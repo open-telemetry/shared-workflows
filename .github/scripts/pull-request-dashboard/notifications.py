@@ -30,6 +30,8 @@ def load_slack_user_map() -> dict[str, str]:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
         raise RuntimeError(f"SLACK_USER_MAP_JSON must be valid JSON: {e.msg} at char {e.pos}") from e
+    if data is None:
+        return {}
     if not isinstance(data, dict):
         raise RuntimeError("SLACK_USER_MAP_JSON must be a JSON object mapping GitHub logins to Slack user IDs")
     return {str(k).lower(): str(v) for k, v in data.items() if str(k).strip() and str(v).strip()}
@@ -195,10 +197,10 @@ def next_notification_state(
     previous_state_exists = bool(previous_state.get("_loaded_from_dashboard"))
     webhook_url = os.environ.get("SLACK_WEBHOOK_URL") or ""
     slack_channel = os.environ.get("SLACK_CHANNEL") or ""
-    slack_user_map = load_slack_user_map()
     if not slack_channel:
         print("slack_channel is not configured; skipping Slack notifications", file=sys.stderr)
         return {**previous_state, "_notification_errors": []}
+    slack_user_map = load_slack_user_map()
 
     new_prs: dict[str, Any] = {}
     notification_errors: list[str] = []

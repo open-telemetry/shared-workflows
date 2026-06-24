@@ -315,7 +315,7 @@ jobs:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           REPO_NAME: ${{ matrix.name }}
           REQUIRED_APPROVALS: ${{ matrix.required_approvals || 1 }}
-          APPROVER_TEAMS_JSON: ${{ toJSON(matrix.approver_teams) }}
+          APPROVER_TEAMS_JSON: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
         run: |
           set -euo pipefail
           dashboard_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "$REPO_NAME")
@@ -362,7 +362,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_CHANNEL: ${{ matrix.slack_channel }}
-          SLACK_USER_MAP_JSON: ${{ toJSON(matrix.slack_user_mapping) }}
+          SLACK_USER_MAP_JSON: ${{ toJSON(matrix.slack_user_mapping || fromJSON('{}')) }}
           REPO_NAME: ${{ matrix.name }}
         run: |
           python3 .github/scripts/pull-request-dashboard/notify_slack.py \

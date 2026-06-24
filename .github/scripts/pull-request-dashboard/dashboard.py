@@ -1031,7 +1031,7 @@ def render_dashboard_body(
     results: dict[int, dict[str, Any]],
     repo: str,
 ) -> str:
-    return render_pr_tables(prs, results, repo)
+    return render_pr_tables(prs, results)
 
 
 def failed_result_numbers(results: dict[int, dict[str, Any]]) -> list[int]:
