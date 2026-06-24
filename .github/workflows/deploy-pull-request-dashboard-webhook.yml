@@ -65,6 +65,7 @@ jobs:
           NETLIFY_SITE_ID: ${{ vars.NETLIFY_PR_DASHBOARD_PROJECT_ID }}
         run: |
           set -euo pipefail
+          mkdir -p public
           npx --yes netlify-cli@26.0.2 deploy \
             --prod \
             --dir public \
