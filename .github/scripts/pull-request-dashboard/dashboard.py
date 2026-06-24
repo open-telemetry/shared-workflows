@@ -300,7 +300,12 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
     for c in raw["commits"]:
         commit_obj = c.get("commit") or {}
         commit_author = commit_obj.get("author") or {}
-        login = actor_login(c.get("author") or {}) or commit_author.get("name") or ""
+        login = (
+            actor_login(c.get("author") or {})
+            or actor_login(c.get("committer") or {})
+            or commit_author.get("name")
+            or ""
+        )
         sha = c.get("sha") or ""
         events.append({
             "kind": "commit",

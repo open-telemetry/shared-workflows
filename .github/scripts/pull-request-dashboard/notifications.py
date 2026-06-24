@@ -254,4 +254,4 @@ def next_notification_state(
 
         if new_pr_state["last_notified_at"]:
             new_prs[pr_key] = new_pr_state
-    return {"version": 1, "prs": new_prs, "_notification_errors": notification_errors}
+    return {"prs": new_prs, "_notification_errors": notification_errors}
