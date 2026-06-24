@@ -281,7 +281,7 @@ jobs:
         if: needs.resolve-targets.outputs.pr_number != ''
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          path: .cache/classifications
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
           key: pull-request-dashboard-classifications-${{ matrix.name }}-${{ needs.resolve-targets.outputs.pr_number }}-${{ github.run_id }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ matrix.name }}-${{ needs.resolve-targets.outputs.pr_number }}-
@@ -290,7 +290,7 @@ jobs:
         if: needs.resolve-targets.outputs.pr_number == ''
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          path: .cache/classifications
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
           key: pull-request-dashboard-classifications-${{ matrix.name }}-all-${{ github.run_id }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ matrix.name }}-all-

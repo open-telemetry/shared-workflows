@@ -13,7 +13,7 @@ from utils import truncate
 
 
 LLM_THREAD_TIMEOUT_SECONDS = 180
-CLASSIFICATION_CACHE_DIR = Path(".cache/classifications")
+CLASSIFICATION_CACHE_DIR = Path(__file__).resolve().parent / ".cache" / "classifications"
 THREAD_RECENT_COMMENTS_LIMIT = 20
 THREAD_COMMENT_BODY_MAX_CHARS = 500
 MAX_PROMPT_CHARS = 18_000

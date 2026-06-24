@@ -85,9 +85,8 @@ def post_slack_webhook(message: str, webhook_url: str, channel: str) -> None:
 
 
 def slack_escape_link_text(text: str) -> str:
-    # Slack link text requires escaping &, <, and >.
-    # Other PR title punctuation can be rendered as-is.
-    return html.escape(text, quote=False)
+    # Slack link text requires escaping &, <, and >, and cannot contain |.
+    return html.escape(text, quote=False).replace("|", "¦")
 
 
 def slack_message(repo: str, result: dict[str, Any], reviewer_mentions: str, kind: str) -> str:
