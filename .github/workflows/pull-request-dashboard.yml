@@ -227,10 +227,10 @@ jobs:
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ matrix.name }}
-          permission-actions: read
           permission-checks: read
-          permission-contents: write
+          permission-contents: read
           permission-issues: read
+          permission-members: read
           permission-pull-requests: read
 
       - name: Restore per-PR classification cache
@@ -304,7 +304,6 @@ jobs:
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ matrix.name }}
-          permission-contents: write
           permission-pull-requests: read
 
       - name: Send Slack notifications
@@ -346,7 +345,6 @@ jobs:
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ matrix.name }}
-          permission-contents: read
           permission-issues: write
 
       - name: Publish dashboard issue
