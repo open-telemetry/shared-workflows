@@ -247,6 +247,7 @@ jobs:
     if: needs.resolve-targets.outputs.dashboard_precondition_met == 'true'
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
     concurrency:
       group: ${{ github.workflow }}-state-${{ matrix.name }}-${{ needs.resolve-targets.outputs.pr_number || 'full' }}
@@ -333,6 +334,7 @@ jobs:
     if: needs.update-dashboard.result == 'success'
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
     concurrency:
       group: ${{ github.workflow }}-notify-${{ matrix.name }}
