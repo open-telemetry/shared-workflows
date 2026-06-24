@@ -107,7 +107,12 @@ def main() -> int:
     parser.add_argument(
         "--print-dashboard-url",
         action="store_true",
-        help="print the existing dashboard issue URL and exit",
+        help="print the dashboard issue URL and exit",
+    )
+    parser.add_argument(
+        "--check-dashboard-exists",
+        action="store_true",
+        help="exit successfully only when the dashboard issue exists",
     )
     parser.add_argument(
         "--state-branch",
@@ -116,12 +121,16 @@ def main() -> int:
     args = parser.parse_args()
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
+    if args.check_dashboard_exists:
+        print("true" if find_dashboard_issue(repo) is not None else "false")
+        return 0
+
     if args.print_dashboard_url:
         print(dashboard_issue_url(repo))
         return 0
 
     if not args.state_branch:
-        parser.error("--state-branch is required unless --print-dashboard-url is set")
+        parser.error("--state-branch is required unless --print-dashboard-url or --check-dashboard-exists is set")
 
     with state_branch.temporary_state_dir() as state_dir:
         set_state_dir(state_dir / repo_state_key(repo))

@@ -42,6 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    environment: protected
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
       pr_number: ${{ steps.trigger.outputs.pr_number }}
@@ -49,6 +50,7 @@ jobs:
       trigger_action: ${{ steps.trigger.outputs.action }}
       trigger_actor: ${{ steps.trigger.outputs.actor }}
       trigger_review_id: ${{ steps.trigger.outputs.review_id }}
+      dashboard_precondition_met: ${{ steps.dashboard-precondition.outputs.met }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -58,6 +60,7 @@ jobs:
         id: trigger
         env:
           EVENT_NAME: ${{ github.event_name }}
+          TARGET_REPOSITORY_FROM_INPUT: ${{ inputs.repository }}
           PR_FROM_INPUT: ${{ inputs.pr_number }}
           TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
           TRIGGER_ACTION_FROM_INPUT: ${{ inputs.trigger_action }}
@@ -86,6 +89,7 @@ jobs:
 
           if [[ -n "$pr_number" ]]; then
             [[ "$pr_number" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "bad PR number: $pr_number"; exit 1; }
+            [[ -n "$TARGET_REPOSITORY_FROM_INPUT" ]] || { echo "repository is required when pr_number is set"; exit 1; }
           fi
           if [[ -n "$trigger_event" ]]; then
             [[ "$trigger_event" =~ ^(schedule|workflow_dispatch|check_suite|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
@@ -127,11 +131,49 @@ jobs:
             exit 1
           fi
           echo "matrix={\"include\":${matrix}}" >> "$GITHUB_OUTPUT"
+          echo "repository=$(jq -r '.[0].name' <<< "$matrix")" >> "$GITHUB_OUTPUT"
           echo "$matrix" | jq .
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        if: steps.trigger.outputs.pr_number != ''
+        id: dashboard-token
+        with:
+          app-id: ${{ vars.PR_DASHBOARD_APP_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ steps.targets.outputs.repository }}
+          permission-issues: read
+
+      - name: Check dashboard precondition
+        id: dashboard-precondition
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          TRIGGER_PR_NUMBER: ${{ steps.trigger.outputs.pr_number }}
+          REPO: open-telemetry/${{ steps.targets.outputs.repository }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$TRIGGER_PR_NUMBER" ]]; then
+            echo "met=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          dashboard_exists=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --repo "$REPO" --check-dashboard-exists)
+          if [[ "$dashboard_exists" == "true" ]]; then
+            echo "met=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$dashboard_exists" == "false" ]]; then
+            echo "Dashboard issue does not exist yet; skipping targeted refresh."
+            echo "met=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "unexpected dashboard existence result: $dashboard_exists" >&2
+          exit 1
 
   post-review-guidance:
     needs: resolve-targets
     if: >-
+      needs.resolve-targets.outputs.dashboard_precondition_met == 'true' &&
       needs.resolve-targets.outputs.pr_number != '' &&
       needs.resolve-targets.outputs.trigger_event == 'pull_request_review' &&
       needs.resolve-targets.outputs.trigger_action == 'submitted' &&
@@ -173,6 +215,8 @@ jobs:
           LEGACY_MARKER: "<!-- copilot-review-guidance -->"
         run: |
           set -euo pipefail
+          dashboard_url=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --repo "$REPO" --print-dashboard-url)
+
           if gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
             --jq '.[] | select((.body | contains("'"${MARKER}"'")) or (.body | contains("'"${LEGACY_MARKER}"'"))) | .id' | grep -q .; then
             echo "Guidance comment already posted on PR #${PR_NUMBER}; skipping."
@@ -185,7 +229,6 @@ jobs:
             exit 0
           fi
 
-          dashboard_url=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --repo "$REPO" --print-dashboard-url)
           body=$(cat <<EOF
           ${MARKER}
           This PR has review comments. Review suggestions, whether from maintainers or automated reviewers, aren't always correct or required. Please evaluate each comment on its merits, then make sure each thread has a clear outcome.
@@ -201,6 +244,7 @@ jobs:
 
   update-dashboard:
     needs: resolve-targets
+    if: needs.resolve-targets.outputs.dashboard_precondition_met == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
@@ -337,6 +381,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+    environment: protected
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
