@@ -1,6 +1,6 @@
 # OpenTelemetry Shared Workflows
 
-Reusable GitHub Actions components shared across multiple OpenTelemetry repositories.
+This repository contains reusable GitHub Actions components shared across multiple OpenTelemetry repositories.
 
 ## Maintainers
 
