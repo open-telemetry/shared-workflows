@@ -172,7 +172,7 @@ def detect_repo() -> str:
 
 
 def load_reviewer_set(org: str, approver_team_slugs: list[str]) -> set[str]:
-    token = os.environ.get("OTELBOT_TOKEN") or None
+    token = os.environ.get("PR_DASHBOARD_TOKEN") or None
     reviewers: set[str] = set()
     for slug in approver_team_slugs:
         members = gh_api(
@@ -184,7 +184,7 @@ def load_reviewer_set(org: str, approver_team_slugs: list[str]) -> set[str]:
     if not reviewers:
         raise RuntimeError(
             f"no reviewers found in teams {approver_team_slugs}; "
-            f"the token must have org:read permission"
+            f"the dashboard app token must have org members read permission"
         )
     return {r.lower() for r in reviewers}
 

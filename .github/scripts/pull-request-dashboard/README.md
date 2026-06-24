@@ -32,9 +32,10 @@ The dashboard issue is discovered dynamically in the target repository by the
 `dashboard` label and `Pull Request Dashboard` title. If it does not exist, the
 publish step creates it.
 
-The GitHub App installation is organization-wide. The workflow creates one app
-installation token for `open-telemetry` and uses it for target repository API
-reads/writes and approver team membership reads.
+The target repository GitHub App is installed on each configured repository.
+The workflow creates repository-scoped app installation tokens with
+`PR_DASHBOARD_APP_ID` and `PR_DASHBOARD_PRIVATE_KEY`, then uses those tokens for
+target repository API reads/writes and approver team membership reads.
 
 Slack notifications use the shared `SLACK_WEBHOOK_URL` secret. Each repository
 can route notifications to its own `slack_channel` and map GitHub logins to

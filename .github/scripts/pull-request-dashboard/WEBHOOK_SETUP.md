@@ -94,6 +94,12 @@ Event rationale:
 
 Create the app, update the logo, and generate a private key.
 
+Save the app credentials in the `shared-workflows` repository:
+
+- GitHub Actions variable `PR_DASHBOARD_APP_ID` - target repository app ID
+- GitHub Actions secret `PR_DASHBOARD_PRIVATE_KEY` - private key PEM for the
+  target repository app
+
 ### Shared-workflows dispatcher app
 
 Use the [repo-specific otelbot app](https://github.com/open-telemetry/community/blob/main/assets.md#otelbot-sig-specific) for `open-telemetry/shared-workflows` to
