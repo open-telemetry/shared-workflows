@@ -81,9 +81,8 @@ Respond with a single JSON object and nothing else:
 """
 
 
-def parse_copilot_jsonl(s: str) -> tuple[str, dict[str, Any]]:
+def parse_copilot_jsonl(s: str) -> str:
     parts: list[str] = []
-    usage: dict[str, Any] = {}
     for line in s.splitlines():
         line = line.strip()
         if not line.startswith("{"):
@@ -96,11 +95,7 @@ def parse_copilot_jsonl(s: str) -> tuple[str, dict[str, Any]]:
             content = (evt.get("data") or {}).get("content")
             if isinstance(content, str):
                 parts.append(content)
-        elif evt.get("type") == "result":
-            usage_obj = evt.get("usage") or {}
-            if isinstance(usage_obj.get("premiumRequests"), int):
-                usage["premium_requests"] = usage_obj["premiumRequests"]
-    return "\n".join(parts), usage
+    return "\n".join(parts)
 
 
 def extract_json_object(s: str) -> dict[str, Any] | None:
@@ -211,16 +206,13 @@ def run_llm_for_thread(thread: dict[str, Any], model: str) -> dict[str, Any]:
         errors="replace",
         timeout=LLM_THREAD_TIMEOUT_SECONDS,
     )
-    response_text, usage = parse_copilot_jsonl(proc.stdout)
+    response_text = parse_copilot_jsonl(proc.stdout)
     decision, valid_response = parse_thread_decision(response_text)
     return {
         "thread_id": thread["thread_id"],
         "thread_kind": thread["thread_kind"],
         "failed": proc.returncode != 0 or not valid_response,
         "decision": decision,
-        "usage": usage,
-        "error": proc.stderr[-2000:] if proc.stderr else "",
-        "response_text": response_text,
     }
 
 
@@ -273,11 +265,11 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
         key = thread_cache_key(thread, model)
         cached = cache_in.get(key)
         if isinstance(cached, dict):
-            record = dict(cached)
+            record = {k: v for k, v in cached.items() if k not in ("error", "response_text", "usage")}
             record["thread_id"] = thread["thread_id"]
             record["thread_kind"] = thread["thread_kind"]
             classifications.append(record)
-            cache_out[key] = cached
+            cache_out[key] = record
             continue
         try:
             record = run_llm_for_thread(thread, model)
@@ -287,7 +279,6 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
                 "thread_kind": thread["thread_kind"],
                 "failed": True,
                 "decision": {"thread_action": "unclear", "reason": "LLM timeout"},
-                "error": "timeout",
             }
         except Exception as e:
             print(
@@ -300,7 +291,6 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
                 "thread_kind": thread["thread_kind"],
                 "failed": True,
                 "decision": {"thread_action": "unclear", "reason": f"LLM failed: {e!r}"},
-                "error": repr(e),
             }
         classifications.append(record)
         if not record.get("failed"):

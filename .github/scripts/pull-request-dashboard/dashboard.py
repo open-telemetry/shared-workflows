@@ -41,7 +41,7 @@ A run flows like this:
   reconcile_with_latest_dashboard
        reload dashboard-state in case a concurrent run updated it
        v
-  render_dashboard_body                (write pull-request-dashboard.md)
+    render_pr_tables                     (write pull-request-dashboard.md)
        v
   save_dashboard_state_cache
 
@@ -1026,18 +1026,6 @@ def reconcile_with_latest_dashboard(
     return replace(calculation, results=results, dashboard_state=dashboard_state), False
 
 
-def render_dashboard_body(
-    prs: list[dict[str, Any]],
-    results: dict[int, dict[str, Any]],
-    repo: str,
-) -> str:
-    return render_pr_tables(prs, results)
-
-
-def failed_result_numbers(results: dict[int, dict[str, Any]]) -> list[int]:
-    return [number for number, result in sorted(results.items()) if result.get("failed")]
-
-
 def update_dashboard(args: argparse.Namespace) -> int:
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     owner, repo_name = repo.split("/", 1)
@@ -1069,7 +1057,11 @@ def update_dashboard(args: argparse.Namespace) -> int:
         open_pr_numbers,
     )
 
-    failed_results = failed_result_numbers(calculation.results)
+    failed_results = [
+        number
+        for number, result in sorted(calculation.results.items())
+        if result.get("failed")
+    ]
     if failed_results:
         print(
             "dashboard refresh hit PR failure(s); refusing to publish failed state: "
@@ -1078,10 +1070,9 @@ def update_dashboard(args: argparse.Namespace) -> int:
         )
         return 1
 
-    md = render_dashboard_body(
+    md = render_pr_tables(
         prs,
         calculation.results,
-        repo,
     )
     output_path = dashboard_markdown_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
