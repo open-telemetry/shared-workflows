@@ -121,24 +121,21 @@ Install the target repository app on every repository listed in
 
 ## 4. Netlify environment variables
 
-Encode the private key as a single-line base64 string (Git Bash):
-
-```bash
-base64 < /path/to/github-app-private-key.pem | tr -d '\n' | clip
-```
-
 Add these environment variables to the Netlify project for the Production deploy
 context.
 
 Secrets:
 
 - `GITHUB_WEBHOOK_SECRET` - same webhook secret as the target repository app
-- `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64` - base64-encoded private key PEM
-  for the repo-specific otelbot app that dispatches the central workflow
+- `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` - private key PEM for the repo-specific
+  otelbot app that dispatches the central workflow
 
 Non-secrets:
 
 - `OTELBOT_SHARED_WORKFLOWS_APP_ID` - repo-specific otelbot app ID
+
+The webhook function also supports `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64`
+as a fallback if the deployment environment cannot store a multiline PEM value.
 
 Deploy contexts:
 
