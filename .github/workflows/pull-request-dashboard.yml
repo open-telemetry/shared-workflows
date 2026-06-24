@@ -159,6 +159,9 @@ jobs:
           app-id: ${{ vars.OTELBOT_APP_ID }}
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           owner: open-telemetry
+          repositories: ${{ matrix.name }}
+          permission-issues: write
+          permission-pull-requests: read
 
       - name: Post review guidance
         env:
@@ -223,6 +226,12 @@ jobs:
           app-id: ${{ vars.OTELBOT_APP_ID }}
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           owner: open-telemetry
+          repositories: ${{ matrix.name }}
+          permission-actions: read
+          permission-checks: read
+          permission-contents: write
+          permission-issues: read
+          permission-pull-requests: read
 
       - name: Restore per-PR classification cache
         if: needs.resolve-targets.outputs.pr_number != ''
@@ -254,11 +263,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OTELBOT_TOKEN: ${{ steps.otelbot-token.outputs.token }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          REPO_NAME: ${{ matrix.name }}
+          REQUIRED_APPROVALS: ${{ matrix.required_approvals || 1 }}
+          APPROVER_TEAMS_JSON: ${{ toJSON(matrix.approver_teams) }}
         run: |
           set -euo pipefail
-          dashboard_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "${{ matrix.name }}")
-          dashboard_args+=(--required-approvals "${{ matrix.required_approvals || 1 }}")
-          for team in $(jq -r '.[]' <<< '${{ toJSON(matrix.approver_teams) }}'); do
+          dashboard_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "$REPO_NAME")
+          dashboard_args+=(--required-approvals "$REQUIRED_APPROVALS")
+          for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
             dashboard_args+=(--approver-team "$team")
           done
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
@@ -291,6 +303,9 @@ jobs:
           app-id: ${{ vars.OTELBOT_APP_ID }}
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           owner: open-telemetry
+          repositories: ${{ matrix.name }}
+          permission-contents: write
+          permission-pull-requests: read
 
       - name: Send Slack notifications
         env:
@@ -300,10 +315,11 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_CHANNEL: ${{ matrix.slack_channel }}
           SLACK_USER_MAP_JSON: ${{ toJSON(matrix.slack_user_mapping) }}
+          REPO_NAME: ${{ matrix.name }}
         run: |
           python3 .github/scripts/pull-request-dashboard/notify_slack.py \
             --state-branch "$DASHBOARD_STATE_BRANCH" \
-            --repo "${{ matrix.name }}"
+            --repo "$REPO_NAME"
 
   publish-dashboard:
     needs: [resolve-targets, update-dashboard]
@@ -329,12 +345,16 @@ jobs:
           app-id: ${{ vars.OTELBOT_APP_ID }}
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           owner: open-telemetry
+          repositories: ${{ matrix.name }}
+          permission-contents: read
+          permission-issues: write
 
       - name: Publish dashboard issue
         env:
           GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ matrix.name }}
         run: |
           python3 .github/scripts/pull-request-dashboard/publish_dashboard.py \
             --state-branch "$DASHBOARD_STATE_BRANCH" \
-            --repo "${{ matrix.name }}"
+            --repo "$REPO_NAME"
