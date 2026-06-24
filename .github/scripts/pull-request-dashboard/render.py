@@ -144,6 +144,8 @@ def render_diagnostics_section(results: dict[int, dict[str, Any]]) -> list[str]:
         if error:
             data_lines.append(f"error: {error}")
         data_lines.append("")
+    if not data_lines:
+        return []
     return [
         "<details>",
         "<summary>Diagnostics</summary>",
