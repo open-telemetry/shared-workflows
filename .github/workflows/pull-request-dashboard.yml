@@ -1,0 +1,340 @@
+name: Pull request dashboard
+
+on:
+  schedule:
+    - cron: "0 * * * *" # hourly
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Target repository. Empty means all configured repositories.
+        required: false
+        type: string
+      pr_number:
+        description: Pull request number to refresh. Empty means full rebuild.
+        required: false
+        type: string
+      trigger_event:
+        description: Event that requested the refresh.
+        required: false
+        type: string
+      trigger_action:
+        description: Event action that requested the refresh.
+        required: false
+        type: string
+      trigger_actor:
+        description: Actor that requested the refresh.
+        required: false
+        type: string
+      trigger_review_id:
+        description: Pull request review id that requested the refresh.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
+  DASHBOARD_STATE_BRANCH: otelbot/pull-request-dashboard-state
+
+jobs:
+  resolve-targets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.targets.outputs.matrix }}
+      pr_number: ${{ steps.trigger.outputs.pr_number }}
+      trigger_event: ${{ steps.trigger.outputs.event }}
+      trigger_action: ${{ steps.trigger.outputs.action }}
+      trigger_actor: ${{ steps.trigger.outputs.actor }}
+      trigger_review_id: ${{ steps.trigger.outputs.review_id }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Resolve trigger inputs
+        id: trigger
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_FROM_INPUT: ${{ inputs.pr_number }}
+          TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
+          TRIGGER_ACTION_FROM_INPUT: ${{ inputs.trigger_action }}
+          TRIGGER_ACTOR_FROM_INPUT: ${{ inputs.trigger_actor }}
+          TRIGGER_REVIEW_ID_FROM_INPUT: ${{ inputs.trigger_review_id }}
+        run: |
+          set -euo pipefail
+          pr_number=""
+          trigger_event=""
+          trigger_action=""
+          trigger_actor=""
+          trigger_review_id=""
+
+          case "$EVENT_NAME" in
+            schedule)
+              trigger_event="$EVENT_NAME"
+              ;;
+            workflow_dispatch)
+              pr_number="$PR_FROM_INPUT"
+              trigger_event="${TRIGGER_EVENT_FROM_INPUT:-workflow_dispatch}"
+              trigger_action="$TRIGGER_ACTION_FROM_INPUT"
+              trigger_actor="$TRIGGER_ACTOR_FROM_INPUT"
+              trigger_review_id="$TRIGGER_REVIEW_ID_FROM_INPUT"
+              ;;
+          esac
+
+          if [[ -n "$pr_number" ]]; then
+            [[ "$pr_number" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "bad PR number: $pr_number"; exit 1; }
+          fi
+          if [[ -n "$trigger_event" ]]; then
+            [[ "$trigger_event" =~ ^(schedule|workflow_dispatch|check_suite|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
+              || { echo "bad trigger event: $trigger_event"; exit 1; }
+          fi
+          if [[ -n "$trigger_action" ]]; then
+            [[ "$trigger_action" =~ ^[a-z_]{1,32}$ ]] || { echo "bad trigger action: $trigger_action"; exit 1; }
+          fi
+          if [[ -n "$trigger_actor" ]]; then
+            [[ "$trigger_actor" =~ ^[A-Za-z0-9_.-]{1,100}(\[bot\])?$ ]] || { echo "bad trigger actor: $trigger_actor"; exit 1; }
+          fi
+          if [[ -n "$trigger_review_id" ]]; then
+            [[ "$trigger_review_id" =~ ^[1-9][0-9]{0,19}$ ]] || { echo "bad review id: $trigger_review_id"; exit 1; }
+          fi
+
+          {
+            echo "pr_number=$pr_number"
+            echo "event=$trigger_event"
+            echo "action=$trigger_action"
+            echo "actor=$trigger_actor"
+            echo "review_id=$trigger_review_id"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve target repositories
+        id: targets
+        env:
+          TARGET_REPOSITORY: ${{ inputs.repository }}
+        run: |
+          set -euo pipefail
+          matrix=$(jq -c --arg repo "$TARGET_REPOSITORY" '
+            if $repo == "" then
+              .
+            else
+              [ .[] | select(.name == $repo or ("open-telemetry/" + .name) == $repo) ]
+            end
+          ' "$DASHBOARD_CONFIG")
+          if [[ "$matrix" == "[]" ]]; then
+            echo "no configured repository matched: ${TARGET_REPOSITORY:-<all>}" >&2
+            exit 1
+          fi
+          echo "matrix={\"include\":${matrix}}" >> "$GITHUB_OUTPUT"
+          echo "$matrix" | jq .
+
+  post-review-guidance:
+    needs: resolve-targets
+    if: >-
+      needs.resolve-targets.outputs.pr_number != '' &&
+      needs.resolve-targets.outputs.trigger_event == 'pull_request_review' &&
+      needs.resolve-targets.outputs.trigger_action == 'submitted' &&
+      needs.resolve-targets.outputs.trigger_review_id != ''
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
+    concurrency:
+      group: ${{ github.workflow }}-guidance-${{ matrix.name }}-${{ needs.resolve-targets.outputs.trigger_review_id }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: otelbot-token
+        with:
+          app-id: ${{ vars.OTELBOT_APP_ID }}
+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
+          owner: open-telemetry
+
+      - name: Post review guidance
+        env:
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          PR_NUMBER: ${{ needs.resolve-targets.outputs.pr_number }}
+          REVIEW_ID: ${{ needs.resolve-targets.outputs.trigger_review_id }}
+          REPO: open-telemetry/${{ matrix.name }}
+          MARKER: "<!-- review-guidance -->"
+          LEGACY_MARKER: "<!-- copilot-review-guidance -->"
+        run: |
+          set -euo pipefail
+          if gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select((.body | contains("'"${MARKER}"'")) or (.body | contains("'"${LEGACY_MARKER}"'"))) | .id' | grep -q .; then
+            echo "Guidance comment already posted on PR #${PR_NUMBER}; skipping."
+            exit 0
+          fi
+
+          review_comment_count=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}/comments" --jq '.[].id' | wc -l | tr -d ' ')
+          if [[ "$review_comment_count" == "0" ]]; then
+            echo "Review ${REVIEW_ID} has no review comments; skipping guidance comment."
+            exit 0
+          fi
+
+          dashboard_url=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --repo "$REPO" --print-dashboard-url)
+          body=$(cat <<EOF
+          ${MARKER}
+          This PR has review comments. Review suggestions, whether from maintainers or automated reviewers, aren't always correct or required. Please evaluate each comment on its merits, then make sure each thread has a clear outcome.
+
+          For example, link to the commit if you applied a suggestion, explain why it wasn't applied, or ask a follow-up question.
+
+          Automation flags a PR for human review once every review thread has a reply or is marked as resolved.
+
+          Status across open PRs is visible on the [pull request dashboard](${dashboard_url}).
+          EOF
+          )
+          gh api --method POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -f body="$body"
+
+  update-dashboard:
+    needs: resolve-targets
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
+    concurrency:
+      group: ${{ github.workflow }}-state-${{ matrix.name }}-${{ needs.resolve-targets.outputs.pr_number || 'full' }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: read
+      pull-requests: read
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: otelbot-token
+        with:
+          app-id: ${{ vars.OTELBOT_APP_ID }}
+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
+          owner: open-telemetry
+
+      - name: Restore per-PR classification cache
+        if: needs.resolve-targets.outputs.pr_number != ''
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .cache/classifications
+          key: pull-request-dashboard-classifications-${{ matrix.name }}-${{ needs.resolve-targets.outputs.pr_number }}-${{ github.run_id }}
+          restore-keys: |
+            pull-request-dashboard-classifications-${{ matrix.name }}-${{ needs.resolve-targets.outputs.pr_number }}-
+
+      - name: Restore shared full-rebuild classification cache
+        if: needs.resolve-targets.outputs.pr_number == ''
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .cache/classifications
+          key: pull-request-dashboard-classifications-${{ matrix.name }}-all-${{ github.run_id }}
+          restore-keys: |
+            pull-request-dashboard-classifications-${{ matrix.name }}-all-
+
+      - name: Install Copilot CLI
+        run: |
+          npm ci --prefix .github/scripts/copilot-cli
+          echo "$GITHUB_WORKSPACE/.github/scripts/copilot-cli/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Generate and update dashboard state
+        env:
+          TRIGGER_PR_NUMBER: ${{ needs.resolve-targets.outputs.pr_number }}
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OTELBOT_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          dashboard_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "${{ matrix.name }}")
+          dashboard_args+=(--required-approvals "${{ matrix.required_approvals || 1 }}")
+          for team in $(jq -r '.[]' <<< '${{ toJSON(matrix.approver_teams) }}'); do
+            dashboard_args+=(--approver-team "$team")
+          done
+          if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
+            dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
+          fi
+          python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
+
+  notify-slack:
+    needs: [resolve-targets, update-dashboard]
+    if: needs.update-dashboard.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
+    concurrency:
+      group: ${{ github.workflow }}-notify-${{ matrix.name }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: otelbot-token
+        with:
+          app-id: ${{ vars.OTELBOT_APP_ID }}
+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
+          owner: open-telemetry
+
+      - name: Send Slack notifications
+        env:
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OTELBOT_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_CHANNEL: ${{ matrix.slack_channel }}
+          SLACK_USER_MAP_JSON: ${{ toJSON(matrix.slack_user_mapping) }}
+        run: |
+          python3 .github/scripts/pull-request-dashboard/notify_slack.py \
+            --state-branch "$DASHBOARD_STATE_BRANCH" \
+            --repo "${{ matrix.name }}"
+
+  publish-dashboard:
+    needs: [resolve-targets, update-dashboard]
+    if: needs.update-dashboard.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
+    concurrency:
+      group: ${{ github.workflow }}-publish-${{ matrix.name }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: otelbot-token
+        with:
+          app-id: ${{ vars.OTELBOT_APP_ID }}
+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
+          owner: open-telemetry
+
+      - name: Publish dashboard issue
+        env:
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 .github/scripts/pull-request-dashboard/publish_dashboard.py \
+            --state-branch "$DASHBOARD_STATE_BRANCH" \
+            --repo "${{ matrix.name }}"
