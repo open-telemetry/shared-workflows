@@ -134,10 +134,12 @@ Production function environment before deployment:
 - GitHub Actions variable `OTELBOT_SHARED_WORKFLOWS_APP_ID` - repo-specific
   otelbot app ID
 - GitHub Actions secret `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` - private key PEM
-  for the repo-specific otelbot app that dispatches the central workflow
+  for the repo-specific otelbot app that dispatches the central workflow; the
+  deploy workflow base64-encodes this secret before storing it in Netlify as
+  `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64`
 
-The webhook function also supports `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64`
-as a fallback if the deployment environment cannot store a multiline PEM value.
+The webhook function also supports `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` if the
+deployment environment can store a multiline PEM value directly.
 
 Deploy contexts:
 
