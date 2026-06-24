@@ -121,18 +121,20 @@ Install the target repository app on every repository listed in
 
 ## 4. Netlify environment variables
 
-Add these environment variables to the Netlify project for the Production deploy
+Add this environment variable to the Netlify project for the Production deploy
 context.
 
 Secrets:
 
 - `GITHUB_WEBHOOK_SECRET` - same webhook secret as the target repository app
-- `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` - private key PEM for the repo-specific
-  otelbot app that dispatches the central workflow
 
-Non-secrets:
+The deploy workflow syncs these GitHub Actions values into the Netlify
+Production function environment before deployment:
 
-- `OTELBOT_SHARED_WORKFLOWS_APP_ID` - repo-specific otelbot app ID
+- GitHub Actions variable `OTELBOT_SHARED_WORKFLOWS_APP_ID` - repo-specific
+  otelbot app ID
+- GitHub Actions secret `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` - private key PEM
+  for the repo-specific otelbot app that dispatches the central workflow
 
 The webhook function also supports `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64`
 as a fallback if the deployment environment cannot store a multiline PEM value.
