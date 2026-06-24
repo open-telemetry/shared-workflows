@@ -21,6 +21,9 @@ def _md_escape(s: str) -> str:
     return (
         (s or "")
         .replace("\\", "\\\\")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
         .replace("|", "\\|")
         .replace("[", "\\[")
         .replace("]", "\\]")

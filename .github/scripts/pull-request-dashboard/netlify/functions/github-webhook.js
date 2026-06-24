@@ -6,8 +6,6 @@ const OWNER = "open-telemetry";
 const WORKFLOW_REPOSITORY = "shared-workflows";
 const WORKFLOW_ID = "pull-request-dashboard.yml";
 const WORKFLOW_REF = "main";
-// Keep webhook fanout aligned with the dashboard workflow's configured targets.
-const CONFIGURED_REPOSITORIES = new Set(require("../../repositories.json").map((repository) => repository.name));
 
 const ALLOWED_ACTIONS = {
   check_suite: new Set(["completed", "requested", "rerequested"]),
@@ -73,9 +71,6 @@ async function handle(event) {
   }
   if (repository.owner !== OWNER) {
     return response(202, { status: "ignored", reason: `unsupported repository owner: ${repository.owner || "missing"}` });
-  }
-  if (!CONFIGURED_REPOSITORIES.has(repository.name)) {
-    return response(202, { status: "ignored", reason: `unsupported repository: ${repository.fullName}` });
   }
 
   const prNumber = extractPullRequestNumber(eventName, payload);
