@@ -112,7 +112,7 @@ def main() -> int:
     parser.add_argument(
         "--check-dashboard-exists",
         action="store_true",
-        help="exit successfully only when the dashboard issue exists",
+        help="print \"true\" if the dashboard issue exists, otherwise \"false\", and exit",
     )
     parser.add_argument(
         "--state-branch",
