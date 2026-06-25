@@ -14,6 +14,7 @@ import state_branch
 
 DASHBOARD_TITLE = "Pull Request Dashboard"
 DASHBOARD_LABEL = "dashboard"
+DASHBOARD_LABEL_DESCRIPTION = "Pull request dashboard"
 
 
 # GraphQL is used instead of the REST `/repos/{repo}/issues` list endpoint
@@ -66,6 +67,36 @@ def dashboard_issue_url(repo: str) -> str:
     return f"https://github.com/{repo}/issues/{number}"
 
 
+def ensure_dashboard_label(repo: str) -> None:
+    label = run_gh([
+        "gh",
+        "label",
+        "list",
+        "--repo",
+        repo,
+        "--limit",
+        "1000",
+        "--json",
+        "name",
+        "--jq",
+        f'.[] | select(.name == "{DASHBOARD_LABEL}") | .name',
+    ]).strip()
+    if label:
+        return
+
+    print("creating dashboard label", file=sys.stderr)
+    run_gh([
+        "gh",
+        "label",
+        "create",
+        DASHBOARD_LABEL,
+        "--repo",
+        repo,
+        "--description",
+        DASHBOARD_LABEL_DESCRIPTION,
+    ])
+
+
 def publish_dashboard(repo: str, dashboard_body: Path) -> None:
     if not dashboard_body.exists():
         raise RuntimeError(f"dashboard markdown not found: {dashboard_body}")
@@ -86,6 +117,7 @@ def publish_dashboard(repo: str, dashboard_body: Path) -> None:
         return
 
     print("creating dashboard issue", file=sys.stderr)
+    ensure_dashboard_label(repo)
     run_gh([
         "gh",
         "issue",

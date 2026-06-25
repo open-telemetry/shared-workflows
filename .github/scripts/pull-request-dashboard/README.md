@@ -30,7 +30,7 @@ Add target repositories to `repositories.json`:
 
 The dashboard issue is discovered dynamically in the target repository by the
 `dashboard` label and `Pull Request Dashboard` title. If it does not exist, the
-publish step creates it.
+publish step creates the label and issue.
 
 The target repository GitHub App is installed on each configured repository.
 The workflow creates repository-scoped app installation tokens with
