@@ -1,0 +1,30 @@
+# Zizmor
+
+Reusable GitHub Actions workflow that runs [zizmor](https://github.com/zizmorcore/zizmor) against the calling repository's GitHub Actions workflows and uploads the SARIF results to the repository's code scanning dashboard.
+
+## How to use
+
+Add a workflow file to your repository (for example `.github/workflows/zizmor.yml`):
+
+```yaml
+name: Zizmor
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '45 9 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  zizmor:
+    uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
+```
+
+Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No inputs or secrets are required.
