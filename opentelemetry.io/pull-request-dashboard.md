@@ -58,7 +58,6 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Automate Go semconv version updates in documentation (#9233)](https://github.com/open-telemetry/opentelemetry.io/pull/9233) | pratik-mahalle | chalin&nbsp;🔴 | ✅ | ❌ | 120d |
-| [\[chore\] Fix links to JMX Metric Insights docs (#7513)](https://github.com/open-telemetry/opentelemetry.io/pull/7513) | asweet-confluent | cartermp<br>julianocosta89&nbsp;✔️<br>svrnm<br>tiffany76<br>vitorvasc | ✅ | ❌ | 117d |
 | [blog: Observing kgateway with otel (#9113)](https://github.com/open-telemetry/opentelemetry.io/pull/9113) | kaspernissen | chalin&nbsp;✅<br>svrnm&nbsp;✅<br>tiffany76&nbsp;💬⁠✅ | ✅ | ❌ | 116d |
 | [blog: Observing Contour with OpenTelemetry (#9180)](https://github.com/open-telemetry/opentelemetry.io/pull/9180) | kaspernissen | tiffany76&nbsp;💬 | ✅ | ❌ | 116d |
 | [blog: Observing Traefik with OpenTelemetry (#9181)](https://github.com/open-telemetry/opentelemetry.io/pull/9181) | kaspernissen | tiffany76 | ✅ | ❌ | 116d |
