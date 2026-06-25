@@ -38,6 +38,13 @@ on:
         required: false
         default: "{}"
         type: string
+    secrets:
+      PR_DASHBOARD_PRIVATE_KEY:
+        required: true
+      COPILOT_GITHUB_TOKEN:
+        required: true
+      SLACK_WEBHOOK_URL:
+        required: true
 
 permissions:
   contents: read
@@ -59,6 +66,12 @@ jobs:
       contents: read
       issues: write
       pull-requests: read
+    # The protected environment provides environment-level vars such as
+    # PR_DASHBOARD_APP_ID. The GitHub docs suggest environment secrets should
+    # also be available to called reusable workflow jobs, but testing showed
+    # they resolve empty here. Passing the required secrets explicitly through
+    # workflow_call.secrets does work, so secrets are part of the reusable
+    # workflow contract above.
     environment: protected
     runs-on: ubuntu-latest
     steps:
