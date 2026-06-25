@@ -27,7 +27,6 @@
 | [fix(lettuce): set span status for Redis command errors in \[5.1.0, 6.0.0) (#19075)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19075) | YaoYingLong |  | ✅ | ✅ | 6h |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 4h |
 | [Fix ambiguous IPv6 address in db.connection_string for MySQL/MariaDB (#19078)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19078) | bhuvan-somisetty |  | ✅ | ✅ | 3h |
-| [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco |  | ❌ | ✅ | 2h |
 
 ## Waiting on authors
 
@@ -43,6 +42,7 @@
 | [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask&nbsp;💬 | ✅ | ✅ | 20h |
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 11h |
 | [Add Jedis pipeline span batch support (#19054)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054) | trask | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 8h |
+| [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ❌ | ✅ | <1m |
 
 ## Waiting on external
 
