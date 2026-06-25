@@ -20,8 +20,8 @@
 | [Update dependency org.jetbrains.kotlin:kotlin-gradle-plugin to v2.4.0 (#8521)](https://github.com/open-telemetry/opentelemetry-java/pull/8521) | app/renovate |  | ❌ | ✅ | 2d |
 | [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 2d |
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ⏳ | ✅ | 1h |
-| [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ⏳ | ✅ | 48m |
-| [Drop deprecated PrometheusMetricReader constructors (#8541)](https://github.com/open-telemetry/opentelemetry-java/pull/8541) | jack-berg |  | ⏳ | ✅ | 6m |
+| [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ⏳ | ✅ | 49m |
+| [Drop deprecated PrometheusMetricReader constructors (#8541)](https://github.com/open-telemetry/opentelemetry-java/pull/8541) | jack-berg |  | ⏳ | ✅ | 7m |
 | [Remove deprecated InstrumentationConfigUtil.peerServiceMapping (#8542)](https://github.com/open-telemetry/opentelemetry-java/pull/8542) | jack-berg |  | ✅ | ✅ | 4m |
 
 ## Waiting on authors
