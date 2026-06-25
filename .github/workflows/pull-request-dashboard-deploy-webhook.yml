@@ -8,14 +8,14 @@ on:
       - .github/scripts/pull-request-dashboard/netlify.toml
       - .github/scripts/pull-request-dashboard/netlify/**
       - .github/scripts/pull-request-dashboard/public/**
-      - .github/workflows/deploy-pull-request-dashboard-webhook.yml
+      - .github/workflows/pull-request-dashboard-deploy-webhook.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: deploy-pull-request-dashboard-webhook
+  group: pull-request-dashboard-deploy-webhook
   cancel-in-progress: false
 
 jobs:

@@ -1,6 +1,8 @@
+# Reusable workflow — see /zizmor/README.md for consumer documentation.
 name: Zizmor GitHub Actions Security Analysis
 
 on:
+  workflow_call:
   push:
     branches:
       - main
@@ -16,7 +18,11 @@ permissions:
 
 jobs:
   zizmor:
+    name: Zizmor Security Analysis
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results
@@ -28,3 +34,5 @@ jobs:
 
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
+        with:
+          persona: pedantic
