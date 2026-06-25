@@ -38,13 +38,6 @@ on:
         required: false
         default: "{}"
         type: string
-    secrets:
-      PR_DASHBOARD_PRIVATE_KEY:
-        required: true
-      COPILOT_GITHUB_TOKEN:
-        required: true
-      SLACK_WEBHOOK_URL:
-        required: false
 
 permissions:
   contents: read
