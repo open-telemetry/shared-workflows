@@ -1,0 +1,180 @@
+name: Pull request dashboard
+
+on:
+  schedule:
+    - cron: "0 * * * *" # hourly
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Target repository. Empty means all configured repositories.
+        required: false
+        type: string
+      pr_number:
+        description: Pull request number to refresh. Empty means full rebuild.
+        required: false
+        type: string
+      trigger_event:
+        description: Event that requested the refresh.
+        required: false
+        type: string
+      trigger_action:
+        description: Event action that requested the refresh.
+        required: false
+        type: string
+      trigger_review_id:
+        description: Pull request review id that requested the refresh.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
+
+jobs:
+  resolve-targets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment: protected
+    outputs:
+      matrix: ${{ steps.targets.outputs.matrix }}
+      pr_number: ${{ steps.trigger.outputs.pr_number }}
+      trigger_event: ${{ steps.trigger.outputs.event }}
+      trigger_action: ${{ steps.trigger.outputs.action }}
+      trigger_review_id: ${{ steps.trigger.outputs.review_id }}
+      dashboard_precondition_met: ${{ steps.dashboard-precondition.outputs.met }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Resolve trigger inputs
+        id: trigger
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TARGET_REPOSITORY_FROM_INPUT: ${{ inputs.repository }}
+          PR_FROM_INPUT: ${{ inputs.pr_number }}
+          TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
+          TRIGGER_ACTION_FROM_INPUT: ${{ inputs.trigger_action }}
+          TRIGGER_REVIEW_ID_FROM_INPUT: ${{ inputs.trigger_review_id }}
+        run: |
+          set -euo pipefail
+          pr_number=""
+          trigger_event=""
+          trigger_action=""
+          trigger_review_id=""
+
+          case "$EVENT_NAME" in
+            schedule)
+              trigger_event="$EVENT_NAME"
+              ;;
+            workflow_dispatch)
+              pr_number="$PR_FROM_INPUT"
+              trigger_event="${TRIGGER_EVENT_FROM_INPUT:-workflow_dispatch}"
+              trigger_action="$TRIGGER_ACTION_FROM_INPUT"
+              trigger_review_id="$TRIGGER_REVIEW_ID_FROM_INPUT"
+              ;;
+          esac
+
+          if [[ -n "$pr_number" ]]; then
+            [[ "$pr_number" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "bad PR number: $pr_number"; exit 1; }
+            [[ -n "$TARGET_REPOSITORY_FROM_INPUT" ]] || { echo "repository is required when pr_number is set"; exit 1; }
+          fi
+          if [[ -n "$trigger_event" ]]; then
+            [[ "$trigger_event" =~ ^(schedule|workflow_dispatch|check_suite|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
+              || { echo "bad trigger event: $trigger_event"; exit 1; }
+          fi
+          if [[ -n "$trigger_action" ]]; then
+            [[ "$trigger_action" =~ ^[a-z_]{1,32}$ ]] || { echo "bad trigger action: $trigger_action"; exit 1; }
+          fi
+          if [[ -n "$trigger_review_id" ]]; then
+            [[ "$trigger_review_id" =~ ^[1-9][0-9]{0,19}$ ]] || { echo "bad review id: $trigger_review_id"; exit 1; }
+          fi
+
+          {
+            echo "pr_number=$pr_number"
+            echo "event=$trigger_event"
+            echo "action=$trigger_action"
+            echo "review_id=$trigger_review_id"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve target repositories
+        id: targets
+        env:
+          TARGET_REPOSITORY: ${{ inputs.repository }}
+        run: |
+          set -euo pipefail
+          matrix=$(jq -c --arg repo "$TARGET_REPOSITORY" '
+            if $repo == "" then
+              .
+            else
+              [ .[] | select(.name == $repo or ("open-telemetry/" + .name) == $repo) ]
+            end
+          ' "$DASHBOARD_CONFIG")
+          if [[ "$matrix" == "[]" ]]; then
+            echo "no configured repository matched: ${TARGET_REPOSITORY:-<all>}" >&2
+            exit 1
+          fi
+          echo "matrix={\"include\":${matrix}}" >> "$GITHUB_OUTPUT"
+          echo "repository=$(jq -r '.[0].name' <<< "$matrix")" >> "$GITHUB_OUTPUT"
+          echo "$matrix" | jq .
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        if: steps.trigger.outputs.pr_number != ''
+        id: dashboard-token
+        with:
+          app-id: ${{ vars.PR_DASHBOARD_APP_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ steps.targets.outputs.repository }}
+          permission-issues: read
+
+      - name: Check dashboard precondition
+        id: dashboard-precondition
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          TRIGGER_PR_NUMBER: ${{ steps.trigger.outputs.pr_number }}
+          REPO: open-telemetry/${{ steps.targets.outputs.repository }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$TRIGGER_PR_NUMBER" ]]; then
+            echo "met=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          dashboard_exists=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --repo "$REPO" --check-dashboard-exists)
+          if [[ "$dashboard_exists" == "true" ]]; then
+            echo "met=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$dashboard_exists" == "false" ]]; then
+            echo "Dashboard issue does not exist yet; skipping targeted refresh."
+            echo "met=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "unexpected dashboard existence result: $dashboard_exists" >&2
+          exit 1
+
+  run-repo-dashboard:
+    needs: resolve-targets
+    if: needs.resolve-targets.outputs.dashboard_precondition_met == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
+    # Do not use secrets: inherit here. The called workflow jobs use the
+    # protected environment, so GitHub resolves the dashboard secrets from that
+    # environment without broadening caller secret exposure.
+    uses: ./.github/workflows/pull-request-dashboard-repo.yml
+    with:
+      repository: ${{ matrix.name }}
+      pr_number: ${{ needs.resolve-targets.outputs.pr_number }}
+      trigger_event: ${{ needs.resolve-targets.outputs.trigger_event }}
+      trigger_action: ${{ needs.resolve-targets.outputs.trigger_action }}
+      trigger_review_id: ${{ needs.resolve-targets.outputs.trigger_review_id }}
+      required_approvals: ${{ matrix.required_approvals || 1 }}
+      approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
+      slack_channel: ${{ matrix.slack_channel }}
+      slack_user_mapping_json: ${{ toJSON(matrix.slack_user_mapping || fromJSON('{}')) }}

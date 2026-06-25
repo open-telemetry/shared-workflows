@@ -1,0 +1,267 @@
+name: Pull request dashboard repo
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        required: true
+        type: string
+      pr_number:
+        required: false
+        default: ""
+        type: string
+      trigger_event:
+        required: false
+        default: ""
+        type: string
+      trigger_action:
+        required: false
+        default: ""
+        type: string
+      trigger_review_id:
+        required: false
+        default: ""
+        type: string
+      required_approvals:
+        required: false
+        default: 1
+        type: number
+      approver_teams_json:
+        required: false
+        default: "[]"
+        type: string
+      slack_channel:
+        required: false
+        default: ""
+        type: string
+      slack_user_mapping_json:
+        required: false
+        default: "{}"
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DASHBOARD_STATE_BRANCH: otelbot/pull-request-dashboard-state
+
+jobs:
+  post-review-guidance:
+    if: >-
+      inputs.pr_number != '' &&
+      inputs.trigger_event == 'pull_request_review' &&
+      inputs.trigger_action == 'submitted' &&
+      inputs.trigger_review_id != ''
+    concurrency:
+      group: ${{ github.workflow }}-guidance-${{ inputs.repository }}-${{ inputs.trigger_review_id }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          app-id: ${{ vars.PR_DASHBOARD_APP_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ inputs.repository }}
+          permission-issues: write
+          permission-pull-requests: read
+
+      - name: Post review guidance
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          REVIEW_ID: ${{ inputs.trigger_review_id }}
+          REPO: open-telemetry/${{ inputs.repository }}
+          MARKER: "<!-- review-guidance -->"
+          LEGACY_MARKER: "<!-- copilot-review-guidance -->"
+        run: |
+          set -euo pipefail
+          dashboard_url=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --repo "$REPO" --print-dashboard-url)
+
+          if gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select((.body | contains("'"${MARKER}"'")) or (.body | contains("'"${LEGACY_MARKER}"'"))) | .id' | grep -q .; then
+            echo "Guidance comment already posted on PR #${PR_NUMBER}; skipping."
+            exit 0
+          fi
+
+          review_comment_count=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}/comments" --jq '.[].id' | wc -l | tr -d ' ')
+          if [[ "$review_comment_count" == "0" ]]; then
+            echo "Review ${REVIEW_ID} has no review comments; skipping guidance comment."
+            exit 0
+          fi
+
+          body=$(cat <<EOF
+          ${MARKER}
+          This PR has review comments. Review suggestions, whether from maintainers or automated reviewers, aren't always correct or required. Please evaluate each comment on its merits, then make sure each thread has a clear outcome.
+
+          For example, link to the commit if you applied a suggestion, explain why it wasn't applied, or ask a follow-up question.
+
+          Automation flags a PR for human review once every review thread has a reply or is marked as resolved.
+
+          Status across open PRs is visible on the [pull request dashboard](${dashboard_url}).
+          EOF
+          )
+          gh api --method POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -f body="$body"
+
+  update-dashboard:
+    concurrency:
+      group: ${{ github.workflow }}-state-${{ inputs.repository }}-${{ inputs.pr_number || 'full' }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: read
+      pull-requests: read
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          app-id: ${{ vars.PR_DASHBOARD_APP_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ inputs.repository }}
+          permission-checks: read
+          permission-contents: read
+          permission-issues: read
+          permission-members: read
+          permission-pull-requests: read
+
+      - name: Restore per-PR classification cache
+        if: inputs.pr_number != ''
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}
+          restore-keys: |
+            pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-
+
+      - name: Restore shared full-rebuild classification cache
+        if: inputs.pr_number == ''
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}
+          restore-keys: |
+            pull-request-dashboard-classifications-${{ inputs.repository }}-all-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install Copilot CLI
+        run: |
+          npm ci --prefix .github/scripts/pull-request-dashboard
+          echo "$GITHUB_WORKSPACE/.github/scripts/pull-request-dashboard/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Generate and update dashboard state
+        env:
+          TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          REPO_NAME: ${{ inputs.repository }}
+          REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
+          APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
+        run: |
+          set -euo pipefail
+          dashboard_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "$REPO_NAME")
+          dashboard_args+=(--required-approvals "$REQUIRED_APPROVALS")
+          for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
+            dashboard_args+=(--approver-team "$team")
+          done
+          if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
+            dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
+          fi
+          python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
+
+  notify-slack:
+    needs: update-dashboard
+    if: needs.update-dashboard.result == 'success'
+    concurrency:
+      group: ${{ github.workflow }}-notify-${{ inputs.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          app-id: ${{ vars.PR_DASHBOARD_APP_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ inputs.repository }}
+          permission-pull-requests: read
+
+      - name: Send Slack notifications
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_CHANNEL: ${{ inputs.slack_channel }}
+          SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
+          REPO_NAME: ${{ inputs.repository }}
+        run: |
+          python3 .github/scripts/pull-request-dashboard/notify_slack.py \
+            --state-branch "$DASHBOARD_STATE_BRANCH" \
+            --repo "$REPO_NAME"
+
+  publish-dashboard:
+    needs: update-dashboard
+    if: needs.update-dashboard.result == 'success'
+    concurrency:
+      group: ${{ github.workflow }}-publish-${{ inputs.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          app-id: ${{ vars.PR_DASHBOARD_APP_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ inputs.repository }}
+          permission-issues: write
+
+      - name: Publish dashboard issue
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          REPO_NAME: ${{ inputs.repository }}
+        run: |
+          python3 .github/scripts/pull-request-dashboard/publish_dashboard.py \
+            --state-branch "$DASHBOARD_STATE_BRANCH" \
+            --repo "$REPO_NAME"
