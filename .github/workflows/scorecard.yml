@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     permissions:
       security-events: write # Needed for Code scanning upload
       id-token: write # Needed for GitHub OIDC token if publish_results is true

@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results
