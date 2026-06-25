@@ -10,7 +10,8 @@
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 51d |
 | [Align DynamoDB batch telemetry with database batch semantics (#19034)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034) | trask | laurit&nbsp;✅ | ✅ | ✅ | 16h |
 | [feat: add reactive command support for lettuce-4.0 instrumentation (#19071)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19071) | YaoYingLong | trask&nbsp;✅ | ✅ | ✅ | 15h |
-| [Add Lettuce batch span support (#19055)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055) | trask | laurit&nbsp;✅ | ⏳ | ✅ | 8m |
+| [Remove PR dashboard workflow (#19081)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19081) | trask | jaydeluca&nbsp;✅ | ✅ | ✅ | 29m |
+| [Add Lettuce batch span support (#19055)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055) | trask | laurit&nbsp;✅ | ⏳ | ✅ | 12m |
 
 ## Waiting on reviewers
 
@@ -30,7 +31,6 @@
 | [Fix ambiguous IPv6 address in db.connection_string for MySQL/MariaDB (#19078)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19078) | bhuvan-somisetty |  | ✅ | ✅ | 3h |
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco |  | ❌ | ✅ | 2h |
 | [Reduce gradle warnings (#19079)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19079) | laurit |  | ✅ | ✅ | 1h |
-| [Remove PR dashboard workflow (#19081)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19081) | trask |  | ⏳ | ✅ | 25m |
 
 ## Waiting on authors
 
