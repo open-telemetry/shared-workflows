@@ -10,20 +10,20 @@
 | [EnvironmentGetter and EnvironmentSetter empty name normalization (#8481)](https://github.com/open-telemetry/opentelemetry-java/pull/8481) | pellared | jack-berg&nbsp;✅<br>jkwatson&nbsp;🔴<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 3d |
 | [Restore compliance between Composite Samplers code and specs (#8450)](https://github.com/open-telemetry/opentelemetry-java/pull/8450) | PeterF778 | jack-berg&nbsp;✅<br>jkwatson<br>zeitlinger | ❌ | ✅ | 3d |
 | [Fix baggage parsing for invalid percent-encoded members (#8480)](https://github.com/open-telemetry/opentelemetry-java/pull/8480) | Vcode2407 | jack-berg&nbsp;✅<br>psx95&nbsp;✅<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 2d |
-| [Use failExceptionally in PeriodicMetricReader when exporter is busy (#8525)](https://github.com/open-telemetry/opentelemetry-java/pull/8525) | vivekp14 | jack-berg&nbsp;✅ | ✅ | ✅ | 49m |
+| [Use failExceptionally in PeriodicMetricReader when exporter is busy (#8525)](https://github.com/open-telemetry/opentelemetry-java/pull/8525) | vivekp14 | jack-berg&nbsp;✅ | ✅ | ✅ | 55m |
 
 ## Waiting on reviewers
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Make StandardComponentId constructor public (#7763)](https://github.com/open-telemetry/opentelemetry-java/pull/7763) | brunobat | jack-berg | ✅ | ❌ | 239d |
-| [Add JSON pretty-print to logging-otlp exporters (#8164)](https://github.com/open-telemetry/opentelemetry-java/pull/8164) | lucacavenaghi97 | jack-berg<br>zeitlinger | ✅ | ❌ | 104d |
+| [Add JSON pretty-print to logging-otlp exporters (#8164)](https://github.com/open-telemetry/opentelemetry-java/pull/8164) | lucacavenaghi97 | jack-berg<br>zeitlinger | ✅ | ❌ | 105d |
 | [Fix Groovy compatibility in OpenTelemetrySdkBuilder (#8467)](https://github.com/open-telemetry/opentelemetry-java/pull/8467) | ADITYA-CODE-SOURCE | psx95 | ✅ | ❌ | 15d |
 | [profiles: improve JFR export example (#8349)](https://github.com/open-telemetry/opentelemetry-java/pull/8349) | jhalliday | zeitlinger | ✅ | ✅ | 3d |
 | [Update dependency org.jetbrains.kotlin:kotlin-gradle-plugin to v2.4.0 (#8521)](https://github.com/open-telemetry/opentelemetry-java/pull/8521) | app/renovate |  | ❌ | ✅ | 2d |
 | [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 2d |
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ⏳ | ✅ | 1h |
-| [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ⏳ | ✅ | 22m |
+| [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ⏳ | ✅ | 28m |
 
 ## Waiting on authors
 
@@ -38,8 +38,8 @@
 | [Add a ConfigProvider callback for runtime instrumentation option changes (#8076)](https://github.com/open-telemetry/opentelemetry-java/pull/8076) | jackshirazi | jack-berg<br>trask | ❌ | ❌ | 9d |
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 9d |
 | [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ❌ | ✅ | 6h |
-| [Suppress more test logs (#8536)](https://github.com/open-telemetry/opentelemetry-java/pull/8536) | jack-berg | psx95&nbsp;💬 | ✅ | ❌ | 10m |
-| [Remove PR dashboard workflow (#8537)](https://github.com/open-telemetry/opentelemetry-java/pull/8537) | trask | jack-berg&nbsp;✅<br>jaydeluca&nbsp;✅<br>psx95&nbsp;✅ | ✅ | ✅ | 5m |
+| [Suppress more test logs (#8536)](https://github.com/open-telemetry/opentelemetry-java/pull/8536) | jack-berg | psx95&nbsp;💬 | ✅ | ❌ | 16m |
+| [Remove PR dashboard workflow (#8537)](https://github.com/open-telemetry/opentelemetry-java/pull/8537) | trask | jack-berg&nbsp;✅<br>jaydeluca&nbsp;✅<br>psx95&nbsp;✅ | ✅ | ✅ | 11m |
 
 ## Waiting on external
 
