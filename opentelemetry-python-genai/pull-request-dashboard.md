@@ -18,6 +18,7 @@
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 8d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell | ❌ | ❌ | 7d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 1d |
+| [Update dependency langchain to v1 \[SECURITY\] (#172)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/172) | app/renovate |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
 
