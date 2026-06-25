@@ -44,7 +44,7 @@ The workflow YAML and scripts that run this workflow live in this repo at:
 
 - [`.github/workflows/pull-request-dashboard.yml`](../.github/workflows/pull-request-dashboard.yml) — top-level orchestrator
 - [`.github/workflows/pull-request-dashboard-repo.yml`](../.github/workflows/pull-request-dashboard-repo.yml) — per-repository job
-- [`.github/workflows/deploy-pull-request-dashboard-webhook.yml`](../.github/workflows/deploy-pull-request-dashboard-webhook.yml) — webhook bridge deploy
+- [`.github/workflows/pull-request-dashboard-deploy-webhook.yml`](../.github/workflows/pull-request-dashboard-deploy-webhook.yml) — webhook bridge deploy
 - [`.github/scripts/pull-request-dashboard/`](../.github/scripts/pull-request-dashboard/) — Python scripts, state handling, rendering
 
 See [`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md) for the architecture and tradeoffs behind the design.
