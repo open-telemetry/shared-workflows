@@ -10,6 +10,14 @@ the implementation understandable and operationally cheap.
   target repository hosting its own workflow.
 - Target repositories only need GitHub App access and an entry in
   `repositories.json`.
+- The top-level workflow resolves target repositories, then calls a reusable
+  per-repository workflow for each target. The per-repository workflow runs the
+  update, notification, and publishing jobs top to bottom for one repository, so
+  one repository's update failure does not block publishing or notifications for
+  repositories whose updates succeeded.
+- The top-level repository matrix uses limited parallelism to reduce contention
+  on the shared state branch while still allowing more than one repository to
+  run at a time.
 - State for all target repositories lives on one shared state branch, namespaced
   by repository name.
 - The dashboard issue is discovered dynamically by title and label, so target
