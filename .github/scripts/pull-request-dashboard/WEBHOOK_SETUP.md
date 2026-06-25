@@ -96,7 +96,7 @@ Create the app, update the logo, and generate a private key.
 
 Save the app credentials in the `shared-workflows` repository:
 
-- GitHub Actions variable `PR_DASHBOARD_APP_ID` - target repository app ID
+- GitHub Actions variable `PR_DASHBOARD_CLIENT_ID` - target repository client ID
 - GitHub Actions secret `PR_DASHBOARD_PRIVATE_KEY` - private key PEM for the
   target repository app
 

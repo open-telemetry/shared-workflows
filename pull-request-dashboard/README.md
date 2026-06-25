@@ -36,7 +36,7 @@ Once the PR is merged, the dashboard will pick up your repository on its next sc
 
 ## Prerequisites
 
-The target repository GitHub App must be installed on your repository. See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for the GitHub App configuration this repo uses.
+The target repository GitHub App must be installed on your repository. The workflow creates repository-scoped app installation tokens with `PR_DASHBOARD_CLIENT_ID` and `PR_DASHBOARD_PRIVATE_KEY`. See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for the GitHub App configuration this repo uses.
 
 ## Implementation
 
