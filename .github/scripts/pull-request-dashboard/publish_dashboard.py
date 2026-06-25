@@ -14,6 +14,7 @@ import state_branch
 
 DASHBOARD_TITLE = "Pull Request Dashboard"
 DASHBOARD_LABEL = "dashboard"
+DASHBOARD_LABEL_COLOR = "cfd3d7"
 DASHBOARD_LABEL_DESCRIPTION = "Pull request dashboard"
 
 
@@ -92,6 +93,8 @@ def ensure_dashboard_label(repo: str) -> None:
         DASHBOARD_LABEL,
         "--repo",
         repo,
+        "--color",
+        DASHBOARD_LABEL_COLOR,
         "--description",
         DASHBOARD_LABEL_DESCRIPTION,
     ])
