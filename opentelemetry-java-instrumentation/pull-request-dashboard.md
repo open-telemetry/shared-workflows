@@ -41,8 +41,8 @@
 | [feat(kafka): add messaging.kafka.cluster.id from client reflection (#18978)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978) | shashank-reddy-nr |  | ✅ | ❌ | 13d |
 | [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask&nbsp;💬 | ✅ | ✅ | 21h |
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 11h |
-| [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ❌ | ✅ | 10m |
-| [Add Jedis pipeline span batch support (#19054)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054) | trask | laurit&nbsp;✅ | ✅ | ❌ | <1m |
+| [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ❌ | ✅ | 11m |
+| [Add Jedis pipeline span batch support (#19054)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054) | trask | laurit&nbsp;✅ | ✅ | ❌ | 1m |
 
 ## Waiting on external
 
