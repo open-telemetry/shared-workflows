@@ -39,7 +39,7 @@
 | [feat(kafka): add messaging.kafka.cluster.id from client reflection (#18978)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978) | shashank-reddy-nr |  | ✅ | ❌ | 13d |
 | [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask&nbsp;💬 | ✅ | ✅ | 23h |
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 14h |
-| [fix(lettuce): set span status for Redis command errors in \[5.1.0, 6.0.0) (#19075)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19075) | YaoYingLong | trask | ⏳ | ✅ | 7m |
+| [fix(lettuce): set span status for Redis command errors in \[5.1.0, 6.0.0) (#19075)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19075) | YaoYingLong | trask | ⏳ | ✅ | 9m |
 
 ## Waiting on external
 
