@@ -15,23 +15,25 @@ New workflows are welcome, and anyone in the OpenTelemetry community can propose
 
 Shared workflows in this repo come in two shapes. Pick the one that fits your use case:
 
-- **Reusable workflow** — a workflow that other repos call directly via [`uses:`](https://docs.github.com/en/actions/using-workflows/reusing-workflows). The workflow runs in the *calling* repository's context.
-- **Centrally-executed workflow** — a workflow that runs *from this repo* against an opted-in list of target repositories. The workflow runs in this repository's context and accesses target repos via the GitHub API.
+- **Reusable workflow** — a workflow that other repos call directly via [`uses:`](https://docs.github.com/en/actions/using-workflows/reusing-workflows). The workflow runs in the *calling* repository's context. Example: [`zizmor.yml`](./.github/workflows/zizmor.yml).
+- **Centrally-executed workflow** — a workflow that runs *from this repo* against an opted-in list of target repositories. The workflow runs in this repository's context and accesses target repos via the GitHub API. Example: [`pull-request-dashboard/`](./pull-request-dashboard/) plus `pull-request-dashboard*.yml`.
 
-The two shapes differ in how repositories opt in and in where their supporting files live, but **both shapes get their own folder at the root of this repo** with the consumer-facing `README.md`.
-
-> Workflows that this repo runs for its own checks (such as [`codeql.yml`](./.github/workflows/codeql.yml) and [`scorecard.yml`](./.github/workflows/scorecard.yml)) are **not** shared — they live only under `.github/workflows/` and do not get a root folder.
+> Workflows that this repo runs only for its own checks (such as [`codeql.yml`](./.github/workflows/codeql.yml) and [`scorecard.yml`](./.github/workflows/scorecard.yml)) are **not** shared. They have no companion docs folder.
 
 ### Layout
 
-#### Reusable workflow (`uses:`-style)
+> [GitHub Actions only discovers workflow files directly under `.github/workflows/`](https://docs.github.com/en/actions/writing-workflows/about-workflows). YAML files in subdirectories are silently ignored and will not run. **All workflow YAML must therefore live flat in `.github/workflows/`.**
+>
+> Each shared workflow gets a companion **docs folder at the repo root** for its consumer-facing `README.md`. If a single logical workflow ships multiple YAML files, group them by **filename prefix** (e.g. `pull-request-dashboard*.yml`).
 
-The consumer-facing `README.md` lives in a root folder named after the workflow. The actual workflow YAML must stay under `.github/workflows/` because [GitHub Actions requires reusable workflows to live there](https://docs.github.com/en/actions/using-workflows/reusing-workflows#calling-a-reusable-workflow).
+#### Reusable workflow (`uses:`-style)
 
 ```
 <workflow-name>/
-  README.md                                # how callers consume the workflow
-.github/workflows/<workflow-name>.yml      # the actual reusable workflow
+  README.md                                # consumer docs (at repo root)
+
+.github/workflows/
+  <workflow-name>.yml                      # the reusable workflow (must live here)
 ```
 
 Callers reference the workflow at its real location, e.g.:
@@ -40,25 +42,25 @@ Callers reference the workflow at its real location, e.g.:
 uses: open-telemetry/shared-workflows/.github/workflows/<workflow-name>.yml@<sha-or-tag>
 ```
 
-Example: [`zizmor/`](./zizmor/) plus [`.github/workflows/zizmor.yml`](./.github/workflows/zizmor.yml).
-
 #### Centrally-executed workflow
 
 The consumer-facing `README.md` lives in a root folder named after the workflow. The scripts, workflow YAML files, and per-workflow `repositories.json` opt-in list stay under `.github/` because the workflow executes inside this repository.
 
 ```
 <workflow-name>/
-  README.md                                # what the workflow does and how to opt in
+  README.md                          # consumer docs (at repo root)
+
 .github/
-  workflows/<workflow-name>.yml            # one or more YAML files for the workflow
-  scripts/<workflow-name>/
-    repositories.json                      # per-workflow opt-in list
-    <workflow scripts...>                  # flat, no scripts/ subfolder
+  workflows/
+    <workflow-name>.yml              # main YAML (one or more, prefix-grouped)
+    <workflow-name>-<other>.yml      # sibling YAMLs for the same workflow
+  scripts/
+    <workflow-name>/
+      repositories.json              # per-workflow opt-in list
+      <workflow scripts...>          # flat, no scripts/ subfolder
 ```
 
 Each centrally-executed workflow has its **own `repositories.json`**, so opting in is per workflow — a repository only appears in the workflows it chose to use.
-
-Example: [`pull-request-dashboard/`](./pull-request-dashboard/) plus [`.github/scripts/pull-request-dashboard/`](./.github/scripts/pull-request-dashboard/) and `.github/workflows/pull-request-dashboard*.yml`.
 
 ### The workflow's README
 
@@ -79,6 +81,7 @@ If you are not yet an approver or maintainer, you can still propose and contribu
 <workflow-name>/**                       @open-telemetry/<sig>-approvers @co-owner
 .github/scripts/<workflow-name>/**       @open-telemetry/<sig>-approvers @co-owner
 .github/workflows/<workflow-name>.yml    @open-telemetry/<sig>-approvers @co-owner
+.github/workflows/<workflow-name>-*.yml  @open-telemetry/<sig>-approvers @co-owner
 ```
 
 ### Adding your workflow to the catalog
