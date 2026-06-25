@@ -31,7 +31,7 @@
 | [Move capture_message_content kwarg logic to genai-utils (#140)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/140) | rads-1996 | lmolkova&nbsp;🔴 | ❌ | ✅ | 7d |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lzchen&nbsp;✅ | ✅ | ❌ | 4d |
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | rads-1996&nbsp;💬 | ❌ | ✅ | 3h |
-| [Add tools support in langchain (#37)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/37) | wrisa | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬⁠✅ | ✅ | ✅ | <1m |
+| [Add tools support in langchain (#37)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/37) | wrisa | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬⁠✅ | ✅ | ✅ | 1m |
 
 ## Draft pull requests
 
