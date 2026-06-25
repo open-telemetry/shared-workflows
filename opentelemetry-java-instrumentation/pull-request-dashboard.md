@@ -27,8 +27,8 @@
 | [fix(lettuce): set span status for Redis command errors in \[5.1.0, 6.0.0) (#19075)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19075) | YaoYingLong |  | ✅ | ✅ | 5h |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 3h |
 | [Fix ambiguous IPv6 address in db.connection_string for MySQL/MariaDB (#19078)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19078) | bhuvan-somisetty |  | ✅ | ✅ | 2h |
-| [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco |  | ⏳ | ✅ | 1h |
-| [Reduce gradle warnings (#19079)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19079) | laurit |  | ⏳ | ✅ | 54m |
+| [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco |  | ❌ | ✅ | 1h |
+| [Reduce gradle warnings (#19079)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19079) | laurit |  | ⏳ | ✅ | 55m |
 
 ## Waiting on authors
 
