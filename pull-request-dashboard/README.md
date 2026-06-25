@@ -34,7 +34,7 @@ Fields:
 
 Ask a maintainer or admin to add the repo to the list of repositories under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
-Once the PR is merged, the dashboard will pick up your repository on its next scheduled run. The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title — if it does not exist, the publish step creates the label and issue.
+Once the PR is merged, the dashboard will pick up your repository on its next scheduled run. To manually trigger it sooner, see [Manual runs](#manual-runs) below. The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title — if it does not exist, the publish step creates the label and issue.
 
 ## Configuration
 
@@ -85,14 +85,6 @@ Manual run for one repository:
 ```text
 workflow_dispatch:
   repository: opentelemetry-java-instrumentation
-```
-
-Manual targeted PR refresh:
-
-```text
-workflow_dispatch:
-  repository: opentelemetry-java-instrumentation
-  pr_number: "12345"
 ```
 
 Scheduled runs process every configured repository.
