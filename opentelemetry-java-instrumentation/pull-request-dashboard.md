@@ -10,7 +10,7 @@
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 51d |
 | [Align DynamoDB batch telemetry with database batch semantics (#19034)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034) | trask | laurit&nbsp;✅ | ✅ | ✅ | 17h |
 | [feat: add reactive command support for lettuce-4.0 instrumentation (#19071)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19071) | YaoYingLong | trask&nbsp;✅ | ✅ | ✅ | 15h |
-| [Remove PR dashboard workflow (#19081)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19081) | trask | jaydeluca&nbsp;✅ | ✅ | ✅ | 36m |
+| [Remove PR dashboard workflow (#19081)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19081) | trask | jaydeluca&nbsp;✅ | ✅ | ✅ | 39m |
 
 ## Waiting on reviewers
 
@@ -29,7 +29,6 @@
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 4h |
 | [Fix ambiguous IPv6 address in db.connection_string for MySQL/MariaDB (#19078)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19078) | bhuvan-somisetty |  | ✅ | ✅ | 3h |
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco |  | ❌ | ✅ | 2h |
-| [Reduce gradle warnings (#19079)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19079) | laurit |  | ✅ | ✅ | 1h |
 
 ## Waiting on authors
 
@@ -69,7 +68,7 @@
 | [Tracking package and module name alignment (#18428)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18428) | trask | 22d |
 | [Add support for capturing and extracting Dubbo response status codes (#16688)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16688) | steverao | 9d |
 | [Unify database batch tests into parameterized scenario tests (#19019)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19019) | trask | 7d |
-| [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | 4h |
+| [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | 5h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
