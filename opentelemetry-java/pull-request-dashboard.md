@@ -11,7 +11,6 @@
 | [Restore compliance between Composite Samplers code and specs (#8450)](https://github.com/open-telemetry/opentelemetry-java/pull/8450) | PeterF778 | jack-berg&nbsp;✅<br>jkwatson<br>zeitlinger | ❌ | ✅ | 3d |
 | [Fix baggage parsing for invalid percent-encoded members (#8480)](https://github.com/open-telemetry/opentelemetry-java/pull/8480) | Vcode2407 | jack-berg&nbsp;✅<br>psx95&nbsp;✅<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 2d |
 | [Use failExceptionally in PeriodicMetricReader when exporter is busy (#8525)](https://github.com/open-telemetry/opentelemetry-java/pull/8525) | vivekp14 | jack-berg&nbsp;✅ | ✅ | ✅ | 44m |
-| [Remove PR dashboard workflow (#8537)](https://github.com/open-telemetry/opentelemetry-java/pull/8537) | trask | jack-berg&nbsp;✅<br>jaydeluca&nbsp;✅<br>psx95&nbsp;✅ | ✅ | ✅ | 41m |
 
 ## Waiting on reviewers
 
@@ -39,6 +38,7 @@
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 9d |
 | [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ❌ | ✅ | 6h |
 | [Suppress more test logs (#8536)](https://github.com/open-telemetry/opentelemetry-java/pull/8536) | jack-berg | psx95&nbsp;💬 | ✅ | ❌ | 5m |
+| [Remove PR dashboard workflow (#8537)](https://github.com/open-telemetry/opentelemetry-java/pull/8537) | trask | jack-berg&nbsp;✅<br>jaydeluca&nbsp;✅<br>psx95&nbsp;✅ | ✅ | ✅ | <1m |
 
 ## Waiting on external
 
