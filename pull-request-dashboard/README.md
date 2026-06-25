@@ -36,6 +36,15 @@ Ask a maintainer or admin to add the repo to the list of repositories under [Rep
 
 Once the PR is merged, the dashboard will pick up your repository on its next scheduled run. To manually trigger it sooner, see [Manual runs](#manual-runs) below. The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title — if it does not exist, the publish step creates the label and issue.
 
+## One-time PR guidance comment
+
+After the dashboard issue exists, the workflow adds one guidance comment to a
+PR the first time a submitted review includes inline comments. A hidden marker
+prevents repeat comments on later reviews or workflow runs.
+
+The comment asks authors to give each review thread a clear outcome. This keeps
+the dashboard from treating stale or ambiguous threads as the wrong next action.
+
 ## Configuration
 
 The target repository GitHub App is installed on each configured repository.
