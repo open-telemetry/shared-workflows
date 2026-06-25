@@ -1,6 +1,34 @@
+# Zizmor GitHub Actions Security Analysis (reusable)
+#
+# Runs zizmor (https://github.com/zizmorcore/zizmor) against the calling
+# repository's GitHub Actions workflows and uploads SARIF results to the
+# repository's code scanning dashboard.
+#
+# Usage from another OpenTelemetry repository — add a workflow file such as
+# `.github/workflows/zizmor.yml` to your repo:
+#
+#   name: Zizmor
+#   on:
+#     push:
+#       branches: [main]
+#     pull_request:
+#       branches: [main]
+#     schedule:
+#       - cron: '45 9 * * 5'
+#     workflow_dispatch:
+#   permissions:
+#     contents: read
+#     security-events: write
+#   jobs:
+#     zizmor:
+#       uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
+#
+# Pin `<sha-or-tag>` to a commit SHA or release tag. No inputs or secrets
+# are required.
 name: Zizmor GitHub Actions Security Analysis
 
 on:
+  workflow_call:
   push:
     branches:
       - main
@@ -16,7 +44,11 @@ permissions:
 
 jobs:
   zizmor:
+    name: Zizmor Security Analysis
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: false
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results
@@ -28,3 +60,5 @@ jobs:
 
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
+        with:
+          persona: pedantic

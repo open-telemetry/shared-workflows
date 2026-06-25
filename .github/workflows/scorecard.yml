@@ -8,16 +8,18 @@ on:
     - cron: '25 4 * * 4' # weekly at 04:25 (UTC) on Thursday
   workflow_dispatch:
 
-permissions: read-all
+permissions: read-all # zizmor: ignore[excessive-permissions] — needed to read repo metadata for Scorecard checks
 
 jobs:
   analysis:
+    name: OSSF Scorecard Analysis
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
-      # Needed for Code scanning upload
-      security-events: write
-      # Needed for GitHub OIDC token if publish_results is true
-      id-token: write
+      security-events: write # Needed for Code scanning upload
+      id-token: write # Needed for GitHub OIDC token if publish_results is true
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:

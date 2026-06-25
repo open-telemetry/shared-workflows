@@ -2,6 +2,14 @@
 
 This repository contains reusable GitHub Actions components shared across multiple OpenTelemetry repositories.
 
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to propose a new shared workflow or use an existing one.
+
+## Workflows
+
+| Name | Description | How to use |
+| ---- | ----------- | ---------- |
+| [Zizmor](./.github/workflows/zizmor.yml) | Static analysis of GitHub Actions workflows for security issues using [zizmor](https://github.com/zizmorcore/zizmor). | Call via `uses:` from your repo's workflow. See the header comment in [`zizmor.yml`](./.github/workflows/zizmor.yml) for the snippet. |
+
 ## Maintainers
 
 - [Adriel Perkins](https://github.com/adrielp), Grainger
