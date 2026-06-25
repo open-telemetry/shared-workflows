@@ -96,7 +96,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Clarify status levels and semconv stability on Languages page (#9711)](https://github.com/open-telemetry/opentelemetry.io/pull/9711) | franrob-projects | simi&nbsp;✔️<br>tiffany76 | ❌ | ✅ | 12d |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬 | ❌ | ✅ | 9d |
-| [Update opentelemetry-configuration version to v1.1.0 (#10550)](https://github.com/open-telemetry/opentelemetry.io/pull/10550) | app/otelbot | jack-berg&nbsp;✔️ | ✅ | ✅ | 28m |
+| [Update opentelemetry-configuration version to v1.1.0 (#10550)](https://github.com/open-telemetry/opentelemetry.io/pull/10550) | app/otelbot | jack-berg&nbsp;✔️ | ✅ | ✅ | 29m |
 
 ## Draft pull requests
 
