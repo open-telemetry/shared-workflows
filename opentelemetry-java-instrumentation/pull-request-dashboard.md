@@ -10,7 +10,6 @@
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 51d |
 | [Align DynamoDB batch telemetry with database batch semantics (#19034)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034) | trask | laurit&nbsp;✅ | ✅ | ✅ | 17h |
 | [feat: add reactive command support for lettuce-4.0 instrumentation (#19071)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19071) | YaoYingLong | trask&nbsp;✅ | ✅ | ✅ | 15h |
-| [Remove PR dashboard workflow (#19081)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19081) | trask | jaydeluca&nbsp;✅ | ✅ | ✅ | 39m |
 
 ## Waiting on reviewers
 
