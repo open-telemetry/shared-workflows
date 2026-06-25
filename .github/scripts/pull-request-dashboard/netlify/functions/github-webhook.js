@@ -78,7 +78,6 @@ async function handle(event) {
     return response(202, { status: "ignored", reason: "no pull request number found" });
   }
 
-  const triggerActor = extractTriggerActor(payload);
   const triggerReviewId = extractTriggerReviewId(payload);
   const dispatcherJwt = createAppJwt({ appId: config.dispatcherAppId, privateKey: config.dispatcherPrivateKey });
   const installationId = await findRepositoryInstallationId(dispatcherJwt, `${OWNER}/${WORKFLOW_REPOSITORY}`);
@@ -88,7 +87,6 @@ async function handle(event) {
     pr_number: String(prNumber),
     trigger_event: eventName,
     trigger_action: action,
-    trigger_actor: triggerActor || "",
     trigger_review_id: triggerReviewId ? String(triggerReviewId) : "",
   });
 
@@ -98,7 +96,6 @@ async function handle(event) {
     pr_number: prNumber,
     trigger_event: eventName,
     trigger_action: action,
-    trigger_actor: triggerActor,
     trigger_review_id: triggerReviewId,
   });
 }
@@ -132,10 +129,6 @@ function readRepository(payload) {
     name,
     owner: repository.owner && repository.owner.login,
   };
-}
-
-function extractTriggerActor(payload) {
-  return payload.sender && payload.sender.login;
 }
 
 function extractTriggerReviewId(payload) {

@@ -156,7 +156,6 @@ The webhook bridge should dispatch `pull-request-dashboard.yml` in
   "pr_number": "12345",
   "trigger_event": "pull_request_review_comment",
   "trigger_action": "created",
-  "trigger_actor": "octocat",
   "trigger_review_id": "67890"
 }
 ```

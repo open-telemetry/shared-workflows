@@ -21,10 +21,6 @@ on:
         description: Event action that requested the refresh.
         required: false
         type: string
-      trigger_actor:
-        description: Actor that requested the refresh.
-        required: false
-        type: string
       trigger_review_id:
         description: Pull request review id that requested the refresh.
         required: false
@@ -48,7 +44,6 @@ jobs:
       pr_number: ${{ steps.trigger.outputs.pr_number }}
       trigger_event: ${{ steps.trigger.outputs.event }}
       trigger_action: ${{ steps.trigger.outputs.action }}
-      trigger_actor: ${{ steps.trigger.outputs.actor }}
       trigger_review_id: ${{ steps.trigger.outputs.review_id }}
       dashboard_precondition_met: ${{ steps.dashboard-precondition.outputs.met }}
     steps:
@@ -64,14 +59,12 @@ jobs:
           PR_FROM_INPUT: ${{ inputs.pr_number }}
           TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
           TRIGGER_ACTION_FROM_INPUT: ${{ inputs.trigger_action }}
-          TRIGGER_ACTOR_FROM_INPUT: ${{ inputs.trigger_actor }}
           TRIGGER_REVIEW_ID_FROM_INPUT: ${{ inputs.trigger_review_id }}
         run: |
           set -euo pipefail
           pr_number=""
           trigger_event=""
           trigger_action=""
-          trigger_actor=""
           trigger_review_id=""
 
           case "$EVENT_NAME" in
@@ -82,7 +75,6 @@ jobs:
               pr_number="$PR_FROM_INPUT"
               trigger_event="${TRIGGER_EVENT_FROM_INPUT:-workflow_dispatch}"
               trigger_action="$TRIGGER_ACTION_FROM_INPUT"
-              trigger_actor="$TRIGGER_ACTOR_FROM_INPUT"
               trigger_review_id="$TRIGGER_REVIEW_ID_FROM_INPUT"
               ;;
           esac
@@ -98,9 +90,6 @@ jobs:
           if [[ -n "$trigger_action" ]]; then
             [[ "$trigger_action" =~ ^[a-z_]{1,32}$ ]] || { echo "bad trigger action: $trigger_action"; exit 1; }
           fi
-          if [[ -n "$trigger_actor" ]]; then
-            [[ "$trigger_actor" =~ ^[A-Za-z0-9_.-]{1,100}(\[bot\])?$ ]] || { echo "bad trigger actor: $trigger_actor"; exit 1; }
-          fi
           if [[ -n "$trigger_review_id" ]]; then
             [[ "$trigger_review_id" =~ ^[1-9][0-9]{0,19}$ ]] || { echo "bad review id: $trigger_review_id"; exit 1; }
           fi
@@ -109,7 +98,6 @@ jobs:
             echo "pr_number=$pr_number"
             echo "event=$trigger_event"
             echo "action=$trigger_action"
-            echo "actor=$trigger_actor"
             echo "review_id=$trigger_review_id"
           } >> "$GITHUB_OUTPUT"
 
