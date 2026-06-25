@@ -45,7 +45,7 @@
 | [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 18h |
 | [semconv for a2a protocol (#195)](https://github.com/open-telemetry/semantic-conventions-genai/pull/195) | eternalcuriouslearner | aabmass&nbsp;💬<br>JWinermaSplunk<br>pwkowalski&nbsp;💬⁠✔️<br>trask | ✅ | ✅ | 56m |
 | [Introduce `gen_ai.invoke_agent.{inference,tool}_calls` (#336)](https://github.com/open-telemetry/semantic-conventions-genai/pull/336) | RKest | aabmass&nbsp;💬⁠✅<br>lmolkova&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ❌ | 55m |
-| [\[chore\] Add basic agent.md (#342)](https://github.com/open-telemetry/semantic-conventions-genai/pull/342) | lmolkova | trask&nbsp;💬⁠✅ | ✅ | ✅ | 9m |
+| [\[chore\] Add basic agent.md (#342)](https://github.com/open-telemetry/semantic-conventions-genai/pull/342) | lmolkova | trask&nbsp;💬⁠✅ | ✅ | ✅ | 10m |
 
 ## Draft pull requests
 
