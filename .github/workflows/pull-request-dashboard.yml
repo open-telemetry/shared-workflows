@@ -125,7 +125,7 @@ jobs:
         if: steps.trigger.outputs.pr_number != ''
         id: dashboard-token
         with:
-          app-id: ${{ vars.PR_DASHBOARD_APP_ID }}
+          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ steps.targets.outputs.repository }}

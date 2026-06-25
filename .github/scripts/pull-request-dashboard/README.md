@@ -34,7 +34,7 @@ publish step creates the label and issue.
 
 The target repository GitHub App is installed on each configured repository.
 The workflow creates repository-scoped app installation tokens with
-`PR_DASHBOARD_APP_ID` and `PR_DASHBOARD_PRIVATE_KEY`, then uses those tokens for
+`PR_DASHBOARD_CLIENT_ID` and `PR_DASHBOARD_PRIVATE_KEY`, then uses those tokens for
 target repository API reads/writes and approver team membership reads.
 
 Slack notifications use the shared `SLACK_WEBHOOK_URL` secret. Each repository
