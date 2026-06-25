@@ -188,4 +188,3 @@ jobs:
       approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
       slack_channel: ${{ matrix.slack_channel }}
       slack_user_mapping_json: ${{ toJSON(matrix.slack_user_mapping || fromJSON('{}')) }}
-    secrets: inherit
