@@ -23,7 +23,7 @@
 | [semconv for a2a protocol (#195)](https://github.com/open-telemetry/semantic-conventions-genai/pull/195) | eternalcuriouslearner | aabmass<br>JWinermaSplunk<br>pwkowalski&nbsp;💬⁠✔️<br>trask | ✅ | ✅ | 1h |
 | [gen-ai: model agent-to-agent handoff as execute_tool span (#98)](https://github.com/open-telemetry/semantic-conventions-genai/pull/98) | Krishnachaitanyakc | lmolkova<br>MikeGoldsmith&nbsp;✅<br>trask | ✅ | ❌ | 35m |
 | [PR dashboard now lives in shared-workflows repo (#346)](https://github.com/open-telemetry/semantic-conventions-genai/pull/346) | trask |  | ✅ | ✅ | 14m |
-| [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova |  | ✅ | ✅ | 1m |
+| [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova |  | ✅ | ✅ | 2m |
 | [Bump the python-security group across 2 directories with 1 update (#347)](https://github.com/open-telemetry/semantic-conventions-genai/pull/347) | app/dependabot |  | ✅ | ✅ | 1m |
 
 ## Waiting on authors
