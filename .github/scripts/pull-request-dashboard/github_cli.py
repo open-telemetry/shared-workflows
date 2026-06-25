@@ -19,6 +19,7 @@ def normalize_repo(repo: str) -> str:
 def repo_state_key(repo: str) -> str:
     return normalize_repo(repo).split("/", 1)[1]
 
+
 class TransientGhError(RuntimeError):
     pass
 
