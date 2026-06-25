@@ -34,7 +34,7 @@
 | [fix(deps): update all patch versions (#6852)](https://github.com/open-telemetry/opentelemetry-js/pull/6852) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ✅ | ✅ | 22h |
 | [feat(propagator-env-carrier): make EnvironmentGetter read the current process.env (#6853)](https://github.com/open-telemetry/opentelemetry-js/pull/6853) | pellared | kamphaus&nbsp;✔️ | ❌ | ✅ | 7h |
 | [chore(*): migrate use of sdk-trace-base and sdk-trace-node to sdk-trace (#6851)](https://github.com/open-telemetry/opentelemetry-js/pull/6851) | trentm | trentm | ✅ | ✅ | 6h |
-| [doc(sdk-node): encourage configuration of NodeSDK that does not result in default resource attributes being excluded by accident (#6857)](https://github.com/open-telemetry/opentelemetry-js/pull/6857) | trentm | trentm | ⏳ | ✅ | <1m |
+| [doc(sdk-node): encourage configuration of NodeSDK that does not result in default resource attributes being excluded by accident (#6857)](https://github.com/open-telemetry/opentelemetry-js/pull/6857) | trentm | trentm | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
