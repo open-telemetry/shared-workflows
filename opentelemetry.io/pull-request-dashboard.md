@@ -10,7 +10,7 @@
 | [Add PHP class auto-instrumentation to registry (#9716)](https://github.com/open-telemetry/opentelemetry.io/pull/9716) | eerzho | ChrisLightfootWild&nbsp;✔️<br>theletterf<br>vitorvasc&nbsp;✅ | ❌ | ✅ | 21d |
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 15d |
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 2d |
-| [Auto update excerpts when updating submodules (#10565)](https://github.com/open-telemetry/opentelemetry.io/pull/10565) | jack-berg | maryliag&nbsp;✅ | ✅ | ✅ | 4h |
+| [Auto update excerpts when updating submodules (#10565)](https://github.com/open-telemetry/opentelemetry.io/pull/10565) | jack-berg | maryliag&nbsp;✅ | ✅ | ✅ | 5h |
 
 ## Waiting on reviewers
 
