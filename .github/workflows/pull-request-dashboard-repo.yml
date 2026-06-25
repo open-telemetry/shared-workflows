@@ -222,7 +222,6 @@ jobs:
       - name: Send Slack notifications
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_CHANNEL: ${{ inputs.slack_channel }}
           SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
@@ -260,7 +259,6 @@ jobs:
       - name: Publish dashboard issue
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_NAME: ${{ inputs.repository }}
         run: |
           python3 .github/scripts/pull-request-dashboard/publish_dashboard.py \

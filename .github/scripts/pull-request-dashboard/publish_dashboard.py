@@ -57,7 +57,7 @@ def find_dashboard_issue(repo: str) -> int | None:
         page_info = connection["pageInfo"]
         if not page_info["hasNextPage"]:
             return None
-        after = page_info["endCursor"]
+        after = page_info["endCursor"] or ""
 
 
 def dashboard_issue_url(repo: str) -> str:

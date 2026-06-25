@@ -91,13 +91,15 @@ def reset_state(state_dir: Path, state_branch: str) -> bool:
 
 
 def push_state(state_dir: Path, state_branch: str) -> bool:
-    cmd = ["git"]
+    env = dict(os.environ)
     token = os.environ.get("GITHUB_TOKEN")
     if token:
         credential = base64.b64encode(f"x-access-token:{token}".encode()).decode()
-        cmd.extend(["-c", f"http.https://github.com/.extraheader=AUTHORIZATION: basic {credential}"])
-    cmd.extend(["push", "--force-with-lease", "origin", state_branch])
-    return run(cmd, cwd=state_dir, check=False).returncode == 0
+        env["GIT_CONFIG_COUNT"] = "1"
+        env["GIT_CONFIG_KEY_0"] = "http.https://github.com/.extraheader"
+        env["GIT_CONFIG_VALUE_0"] = f"AUTHORIZATION: basic {credential}"
+    cmd = ["git", "push", "--force-with-lease", "origin", state_branch]
+    return subprocess.run(cmd, cwd=state_dir, check=False, text=True, env=env).returncode == 0
 
 
 def configure_git() -> None:
