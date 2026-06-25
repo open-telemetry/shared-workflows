@@ -24,11 +24,11 @@
 | [Add OSGi support for library instrumentation, API, and SDK extension artifacts (#18995)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995) | royteeuwen |  | ✅ | ❌ | 11d |
 | [Revive reduced servlet smoke test matrix on top of main (#18953)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953) | zeitlinger |  | ✅ | ✅ | 6d |
 | [Implement configurable metric bridge metric suppression (#19048)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19048) | somiljain2006 |  | ✅ | ✅ | 6d |
-| [fix(lettuce): set span status for Redis command errors in \[5.1.0, 6.0.0) (#19075)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19075) | YaoYingLong |  | ✅ | ✅ | 5h |
+| [fix(lettuce): set span status for Redis command errors in \[5.1.0, 6.0.0) (#19075)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19075) | YaoYingLong |  | ✅ | ✅ | 6h |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 3h |
-| [Fix ambiguous IPv6 address in db.connection_string for MySQL/MariaDB (#19078)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19078) | bhuvan-somisetty |  | ✅ | ✅ | 2h |
+| [Fix ambiguous IPv6 address in db.connection_string for MySQL/MariaDB (#19078)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19078) | bhuvan-somisetty |  | ✅ | ✅ | 3h |
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco |  | ❌ | ✅ | 1h |
-| [Reduce gradle warnings (#19079)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19079) | laurit |  | ⏳ | ✅ | 55m |
+| [Reduce gradle warnings (#19079)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19079) | laurit |  | ⏳ | ✅ | 1h |
 
 ## Waiting on authors
 
@@ -41,7 +41,7 @@
 | [fix: separate default vs controller-telemetry metadata test suites so instrumentation-list.yaml reflects out-of-the-box telemetry (#18974)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974) | mvanhorn | jaydeluca&nbsp;💬 | ✅ | ✅ | 13d |
 | [Use Arguments.argumentSet() for named parameterized test cases (#18975)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975) | zeitlinger | laurit<br>trask&nbsp;💬 | ✅ | ✅ | 13d |
 | [feat(kafka): add messaging.kafka.cluster.id from client reflection (#18978)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978) | shashank-reddy-nr |  | ✅ | ❌ | 13d |
-| [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask&nbsp;💬 | ✅ | ✅ | 19h |
+| [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask&nbsp;💬 | ✅ | ✅ | 20h |
 | [Add Lettuce batch span support (#19055)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055) | trask | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 10h |
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 10h |
 | [Add Jedis pipeline span batch support (#19054)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054) | trask | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 7h |
@@ -70,6 +70,7 @@
 | [Add support for capturing and extracting Dubbo response status codes (#16688)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16688) | steverao | 9d |
 | [Unify database batch tests into parameterized scenario tests (#19019)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19019) | trask | 7d |
 | [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | 4h |
+| [Remove PR dashboard workflow (#19081)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19081) | trask | <1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
