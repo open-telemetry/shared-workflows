@@ -44,6 +44,14 @@ jobs:
           set -euo pipefail
           dispatcher_private_key_base64=$(printf '%s' "$OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY" | base64 -w0)
           echo "::add-mask::$dispatcher_private_key_base64"
+          npx --yes netlify-cli@26.0.2 env:unset OTELBOT_SHARED_WORKFLOWS_APP_ID \
+            --site "$NETLIFY_SITE_ID" \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --force || true
+          npx --yes netlify-cli@26.0.2 env:unset OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64 \
+            --site "$NETLIFY_SITE_ID" \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --force || true
           npx --yes netlify-cli@26.0.2 env:set OTELBOT_SHARED_WORKFLOWS_APP_ID "$OTELBOT_SHARED_WORKFLOWS_APP_ID" \
             --context production \
             --scope functions \

@@ -160,6 +160,12 @@ jobs:
   run-repo-dashboard:
     needs: resolve-targets
     if: needs.resolve-targets.outputs.dashboard_precondition_met == 'true'
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: write
+      pull-requests: read
     strategy:
       fail-fast: false
       max-parallel: 2
