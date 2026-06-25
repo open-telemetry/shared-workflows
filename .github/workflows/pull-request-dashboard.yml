@@ -165,6 +165,9 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
+    # Do not use secrets: inherit here. The called workflow jobs use the
+    # protected environment, so GitHub resolves the dashboard secrets from that
+    # environment without broadening caller secret exposure.
     uses: ./.github/workflows/pull-request-dashboard-repo.yml
     with:
       repository: ${{ matrix.name }}
