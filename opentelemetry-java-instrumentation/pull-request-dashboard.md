@@ -9,7 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 51d |
 | [Align DynamoDB batch telemetry with database batch semantics (#19034)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19034) | trask | laurit&nbsp;✅ | ✅ | ✅ | 16h |
-| [feat: add reactive command support for lettuce-4.0 instrumentation (#19071)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19071) | YaoYingLong | trask&nbsp;✅ | ✅ | ✅ | 14h |
+| [feat: add reactive command support for lettuce-4.0 instrumentation (#19071)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19071) | YaoYingLong | trask&nbsp;✅ | ✅ | ✅ | 15h |
 
 ## Waiting on reviewers
 
@@ -42,9 +42,9 @@
 | [Use Arguments.argumentSet() for named parameterized test cases (#18975)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975) | zeitlinger | laurit<br>trask&nbsp;💬 | ✅ | ✅ | 13d |
 | [feat(kafka): add messaging.kafka.cluster.id from client reflection (#18978)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978) | shashank-reddy-nr |  | ✅ | ❌ | 13d |
 | [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask&nbsp;💬 | ✅ | ✅ | 20h |
-| [Add Lettuce batch span support (#19055)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055) | trask | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 10h |
+| [Add Lettuce batch span support (#19055)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19055) | trask | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 11h |
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 10h |
-| [Add Jedis pipeline span batch support (#19054)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054) | trask | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 7h |
+| [Add Jedis pipeline span batch support (#19054)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19054) | trask | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 8h |
 
 ## Waiting on external
 
@@ -70,7 +70,7 @@
 | [Add support for capturing and extracting Dubbo response status codes (#16688)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16688) | steverao | 9d |
 | [Unify database batch tests into parameterized scenario tests (#19019)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19019) | trask | 7d |
 | [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | 4h |
-| [Remove PR dashboard workflow (#19081)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19081) | trask | 1m |
+| [Remove PR dashboard workflow (#19081)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19081) | trask | 12m |
 
 <details>
 <summary>Diagnostics</summary>
