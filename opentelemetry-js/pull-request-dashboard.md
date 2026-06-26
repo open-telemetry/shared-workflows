@@ -9,7 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ⏳ | ✅ | 81d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 71d |
-| [docs(configuration): link README to the cross-SDK language support status doc (#6846)](https://github.com/open-telemetry/opentelemetry-js/pull/6846) | MikeGoldsmith | JamieDanielson<br>maryliag&nbsp;✅<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 13h |
+| [docs(configuration): link README to the cross-SDK language support status doc (#6846)](https://github.com/open-telemetry/opentelemetry-js/pull/6846) | MikeGoldsmith | JamieDanielson<br>maryliag&nbsp;✅<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 14h |
 
 ## Waiting on reviewers
 
@@ -79,7 +79,7 @@
 | [refactor(sdk-node): model built-in exporter resolution on top of PluginComponentProvider spec (#6730)](https://github.com/open-telemetry/opentelemetry-js/pull/6730) | pichlermarc | 17d |
 | [feat: add context attach/detach (#6387)](https://github.com/open-telemetry/opentelemetry-js/pull/6387) | pichlermarc | 6d |
 | [chore(shim-opencensus): remove the `&#64;opentelemetry/shim-opencensus` package (#6843)](https://github.com/open-telemetry/opentelemetry-js/pull/6843) | trentm | 1d |
-| [feat(propagator-env-carrier): make EnvironmentGetter read the current process.env (#6853)](https://github.com/open-telemetry/opentelemetry-js/pull/6853) | pellared | <1m |
+| [feat(propagator-env-carrier): make EnvironmentGetter read the current process.env (#6853)](https://github.com/open-telemetry/opentelemetry-js/pull/6853) | pellared | 1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
