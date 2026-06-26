@@ -31,7 +31,7 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅ | ❌ | ❌ | 8d |
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | rads-1996&nbsp;💬 | ❌ | ✅ | 21h |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 10h |
-| [\[`opentelemetry-instrumentation-google-genai`\] Instrument the embeddings API (#176)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/176) | DylanRussell | lmolkova&nbsp;💬⁠✅ | ✅ | ✅ | 41m |
+| [\[`opentelemetry-instrumentation-google-genai`\] Instrument the embeddings API (#176)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/176) | DylanRussell | lmolkova&nbsp;💬⁠✅ | ✅ | ✅ | 42m |
 
 ## Draft pull requests
 
