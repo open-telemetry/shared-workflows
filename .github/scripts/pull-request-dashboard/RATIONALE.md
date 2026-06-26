@@ -66,11 +66,15 @@ the implementation understandable and operationally cheap.
 - Slack notification state is PR-granular. It does not track notification
   history separately for each assignee.
 - When notification state is first created, existing approver-routed PRs may
-  receive initial notifications on the next run. Avoiding that bootstrap case
-  would require storing separate seen-but-not-notified state.
+  receive initial notifications on a later targeted refresh. Avoiding that
+  bootstrap case would require storing separate seen-but-not-notified state.
 - When a mapped assignee is added after a PR was already notified during the
   same waiting period, that assignee may wait until the next follow-up cadence
   instead of receiving an immediate initial notification.
+- Scheduled runs send only due follow-up reminders. Targeted PR refreshes send
+  only the triggering PR's initial notification. This keeps webhook-driven
+  refreshes from sweeping unrelated PR reminders while preserving the hourly
+  reminder pass.
 - Slack notifications are sent only for dashboard state that has already been
   accepted on the state branch. A newer dashboard update can land after the
   notification job checks out state, so a notification can be slightly late

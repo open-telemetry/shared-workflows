@@ -209,9 +209,11 @@ jobs:
 
   notify-slack:
     needs: update-dashboard
-    if: needs.update-dashboard.result == 'success'
+    if: >-
+      needs.update-dashboard.result == 'success' &&
+      (inputs.trigger_event == 'schedule' || inputs.pr_number != '')
     concurrency:
-      group: ${{ github.workflow }}-notify-${{ inputs.repository }}
+      group: ${{ github.workflow }}-notify-${{ inputs.repository }}-${{ inputs.pr_number || 'full' }}
       cancel-in-progress: false
     permissions:
       contents: write
@@ -240,10 +242,15 @@ jobs:
           SLACK_CHANNEL: ${{ inputs.slack_channel }}
           SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
           REPO_NAME: ${{ inputs.repository }}
+          TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
         run: |
-          python3 .github/scripts/pull-request-dashboard/notify_slack.py \
-            --state-branch "$DASHBOARD_STATE_BRANCH" \
-            --repo "$REPO_NAME"
+          set -euo pipefail
+          notify_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "$REPO_NAME")
+          if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
+            notify_args+=(--pr-number "$TRIGGER_PR_NUMBER")
+          fi
+
+          python3 .github/scripts/pull-request-dashboard/notify_slack.py "${notify_args[@]}"
 
   publish-dashboard:
     needs: update-dashboard
