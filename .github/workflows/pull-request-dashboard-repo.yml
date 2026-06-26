@@ -64,8 +64,6 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      issues: write
-      pull-requests: read
     # The protected environment provides environment-level vars such as
     # PR_DASHBOARD_CLIENT_ID. The GitHub docs suggest environment secrets should
     # also be available to called reusable workflow jobs, but testing showed
@@ -131,11 +129,7 @@ jobs:
       group: ${{ github.workflow }}-state-${{ inputs.repository }}-${{ inputs.pr_number || 'full' }}
       cancel-in-progress: false
     permissions:
-      actions: read
-      checks: read
       contents: write
-      issues: read
-      pull-requests: read
     environment: protected
     runs-on: ubuntu-latest
     steps:
@@ -217,7 +211,6 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
-      pull-requests: read
     environment: protected
     runs-on: ubuntu-latest
     steps:
@@ -260,7 +253,6 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      issues: write
     environment: protected
     runs-on: ubuntu-latest
     steps:
