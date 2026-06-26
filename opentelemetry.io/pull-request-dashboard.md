@@ -89,7 +89,7 @@
 | [Add PHP class auto-instrumentation to registry (#9716)](https://github.com/open-telemetry/opentelemetry.io/pull/9716) | eerzho | ChrisLightfootWild&nbsp;✔️<br>maryliag<br>theletterf<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 19h |
 | [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ❌ | 12h |
 | [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 8h |
-| [feat: \[pt\] Create docs/platforms/kubernetes/helm/operator.md (#10542)](https://github.com/open-telemetry/opentelemetry.io/pull/10542) | dmroch4 | emdneto&nbsp;✔️<br>maryliag<br>vitorvasc | ✅ | ✅ | 22m |
+| [feat: \[pt\] Create docs/platforms/kubernetes/helm/operator.md (#10542)](https://github.com/open-telemetry/opentelemetry.io/pull/10542) | dmroch4 | emdneto&nbsp;✔️<br>maryliag<br>vitorvasc | ✅ | ✅ | 23m |
 
 ## Waiting on external
 
