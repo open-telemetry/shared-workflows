@@ -85,7 +85,7 @@ jobs:
           owner: open-telemetry
           repositories: ${{ inputs.repository }}
           permission-issues: write
-          permission-pull-requests: read
+          permission-pull-requests: write
 
       - name: Post review guidance
         env:

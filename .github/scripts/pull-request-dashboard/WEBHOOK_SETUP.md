@@ -51,7 +51,7 @@ Repository permissions:
 - Contents: read-only
 - Issues: read and write
 - Metadata: read-only
-- Pull requests: read-only
+- Pull requests: read and write
 
 Organization permissions:
 
@@ -63,14 +63,14 @@ Permission rationale:
 | ---------- | ------ | ---------------- |
 | Checks | Read | Required to subscribe to check-suite events and to read check data for dashboard rows. |
 | Contents | Read | Reads PR commits and repository metadata needed by pull/commit APIs. |
-| Issues | Read and write | Finds/creates/updates the dashboard issue and posts review-guidance comments on PRs. |
+| Issues | Read and write | Finds/creates/updates the dashboard issue and reads existing PR conversation comments before posting review guidance. |
 | Metadata | Read | Required by GitHub for GitHub App repository access. |
-| Pull requests | Read | Required to subscribe to PR review/comment/thread events and to read PR details, reviews, review comments, commits, and GraphQL review threads. |
+| Pull requests | Read and write | Required to subscribe to PR review/comment/thread events, read PR details, reviews, review comments, commits, and GraphQL review threads, and post review-guidance comments on PRs. |
 | Members | Read | Reads approver-team membership configured in `repositories.json`. |
 
-PR conversation comments are covered by `Issues: read and write`. The dashboard
-does not create inline review comments, submit reviews, or resolve review
-threads, so it does not need `Pull requests: write`.
+The dashboard does not create inline review comments, submit reviews, or resolve
+review threads. It does create PR conversation comments for review guidance,
+which requires `Pull requests: read and write`.
 
 Subscribe to events:
 
