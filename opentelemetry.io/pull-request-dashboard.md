@@ -52,7 +52,7 @@
 | [Add Oodle AI to OpenTelemetry Registry (#10575)](https://github.com/open-telemetry/opentelemetry.io/pull/10575) | eragon512 |  | ❌ | ✅ | 1h |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh |  | ✅ | ✅ | 1h |
 | [java: Update links for declarative configuration resources (#10577)](https://github.com/open-telemetry/opentelemetry.io/pull/10577) | emdneto |  | ⏳ | ✅ | 5m |
-| [chore(specs): drop obsolete semconv patch (#10485)](https://github.com/open-telemetry/opentelemetry.io/pull/10485) | chalin | maryliag&nbsp;💬 | ✅ | ✅ | <1m |
+| [chore(specs): drop obsolete semconv patch (#10485)](https://github.com/open-telemetry/opentelemetry.io/pull/10485) | chalin | maryliag&nbsp;💬 | ✅ | ✅ | 1m |
 
 ## Waiting on authors
 
