@@ -26,7 +26,7 @@
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 21h |
 | [Fix gradle warning (#19086)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19086) | laurit |  | ✅ | ✅ | 5h |
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ✅ | ✅ | 4h |
-| [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | <1m |
+| [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | 17m |
 
 ## Waiting on authors
 
