@@ -10,7 +10,7 @@
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 16d |
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 2d |
 | [java: Update links for declarative configuration resources (#10577)](https://github.com/open-telemetry/opentelemetry.io/pull/10577) | emdneto | maryliag&nbsp;✅ | ✅ | ✅ | 9m |
-| [chore(specs): drop obsolete semconv patch (#10485)](https://github.com/open-telemetry/opentelemetry.io/pull/10485) | chalin | maryliag&nbsp;✅ | ✅ | ✅ | 4m |
+| [chore(specs): drop obsolete semconv patch (#10485)](https://github.com/open-telemetry/opentelemetry.io/pull/10485) | chalin | maryliag&nbsp;✅ | ✅ | ✅ | 5m |
 
 ## Waiting on reviewers
 
