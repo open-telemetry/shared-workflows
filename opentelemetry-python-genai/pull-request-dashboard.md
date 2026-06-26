@@ -8,9 +8,9 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [\[`opentelemetry-instrumentation-google-genai`\] Update `generate_content` streaming variants to use `AsyncStreamWrapper` and `SyncStreamWrapper`  from utils (#167)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/167) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 1d |
-| [feat: add instrumentation around openai responses stream method. (#131)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/131) | eternalcuriouslearner | lmolkova&nbsp;✅ | ✅ | ✅ | 21h |
-| [\[`opentelemetry-instrumentation-google-genai`\] Instrument the embeddings API (#176)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/176) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 2h |
-| [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 1h |
+| [feat: add instrumentation around openai responses stream method. (#131)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/131) | eternalcuriouslearner | lmolkova&nbsp;✅ | ✅ | ✅ | 22h |
+| [\[`opentelemetry-instrumentation-google-genai`\] Instrument the embeddings API (#176)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/176) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 3h |
+| [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
 
@@ -27,17 +27,17 @@
 | [Add streaming timing metrics to generic stream wrappers (#13)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/13) | Nik-Reddy | aabmass<br>eternalcuriouslearner&nbsp;🔴<br>lmolkova&nbsp;🔴<br>lzchen&nbsp;💬<br>MikeGoldsmith&nbsp;🔴 | ✅ | ❌ | 29d |
 | [opentelemetry-instrumentation-genai-openai-agents: handle MCPListToolsSpanData (#100)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/100) | Jwrede | lmolkova&nbsp;💬 | ✅ | ❌ | 27d |
 | [util-genai \| Add MCPInvocation type for MCP span (#105)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/105) | etserend | shuningc&nbsp;💬 | ✅ | ✅ | 24d |
-| [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 14d |
+| [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 15d |
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;💬⁠✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 11d |
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | rads-1996&nbsp;💬 | ❌ | ✅ | 1d |
-| [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 14h |
+| [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 15h |
 
 ## Draft pull requests
 
 | PR | Author | Updated |
 |---|---|:---:|
 | [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 10d |
-| [\[langchain\] Prototype collecting number of llm and tool calls per agent invocation (#173)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/173) | lmolkova | 20h |
+| [\[langchain\] Prototype collecting number of llm and tool calls per agent invocation (#173)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/173) | lmolkova | 21h |
 
 <details>
 <summary>Diagnostics</summary>
