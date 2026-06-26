@@ -53,7 +53,7 @@
 | [Add Oodle AI to OpenTelemetry Registry (#10575)](https://github.com/open-telemetry/opentelemetry.io/pull/10575) | eragon512 |  | ✅ | ✅ | 11h |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh |  | ✅ | ✅ | 11h |
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 1h |
-| [Housekeeping: automated fix results (#10584)](https://github.com/open-telemetry/opentelemetry.io/pull/10584) | app/otelbot-docs |  | ⏳ | ✅ | <1m |
+| [Housekeeping: automated fix results (#10584)](https://github.com/open-telemetry/opentelemetry.io/pull/10584) | app/otelbot-docs |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
