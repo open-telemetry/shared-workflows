@@ -8,7 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 10h |
-| [\[`opentelemetry-instrumentation-google-genai`\] Update `generate_content` streaming variants to use `AsyncStreamWrapper` and `SyncStreamWrapper`  from utils (#167)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/167) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 9h |
+| [\[`opentelemetry-instrumentation-google-genai`\] Update `generate_content` streaming variants to use `AsyncStreamWrapper` and `SyncStreamWrapper`  from utils (#167)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/167) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 10h |
 | [feat: add instrumentation around openai responses stream method. (#131)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/131) | eternalcuriouslearner | lmolkova&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
@@ -19,7 +19,7 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell | ❌ | ❌ | 7d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ❌ | 1d |
 | [Update dependency langchain to v1 \[SECURITY\] (#172)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/172) | app/renovate |  | ✅ | ✅ | 2h |
-| [Update all patch versions (#174)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/174) | app/renovate |  | ✅ | ✅ | 5m |
+| [Update all patch versions (#174)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/174) | app/renovate |  | ✅ | ✅ | 12m |
 
 ## Waiting on authors
 
@@ -40,6 +40,64 @@
 |---|---|:---:|
 | [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 9d |
 | [\[langchain\] Prototype collecting number of llm and tool calls per agent invocation (#173)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/173) | lmolkova | 1h |
+
+<details>
+<summary>Diagnostics</summary>
+
+```text
+PR #150
+llm: PRRT_kwDOSbspP86KbITi -> reviewer (The latest comment is from the author and looks like a response/clarification, so the reviewer should check it and continue the thread.)
+llm: PRRT_kwDOSbspP86KbIpn -> reviewer (The latest comment is from the author and proposes a change, so the ball is back with the reviewer to respond or review that suggestion.)
+
+PR #147
+llm: PRRT_kwDOSbspP86KDEr1 -> none (The author արդեն answered the suggestion and indicated no current PR change is needed, with any broader cleanup deferred to a separate task.)
+
+PR #140
+llm: PRRT_kwDOSbspP86Jt328 -> reviewer (The last comment is from the author asking whether to keep the flexibility or make it stricter, so the reviewer/maintainer needs to जवाब/respond.)
+llm: pr-conversation -> author (The only comment is from a reviewer requesting follow-up, so the author needs to respond or act.)
+
+PR #129
+llm: PRRT_kwDOSbspP86JpPxW -> author (The latest reviewer comment asks for a change in the list source, so the PR author needs to update the implementation or respond.)
+
+PR #124
+llm: PRRT_kwDOSbspP86K8dTl -> reviewer (The author replied with an issue link to address the reviewer’s request, so the ball is back with the reviewer to accept that follow-up or continue the discussion.)
+
+PR #105
+llm: PRRT_kwDOSbspP86GRCWP -> author (Reviewer指出测试锁定了错误行为，暗示作者需要调整实现或测试并回复。)
+llm: PRRT_kwDOSbspP86GevWT -> author (The latest comment is a bot review requesting a code change to accept `trace_state`, so the PR author needs to update the implementation.)
+llm: PRRT_kwDOSbspP86GevW- -> author (The only comment is a reviewer bot suggestion asking to change the implementation from empty string to `None`, so the PR author needs to act.)
+llm: PRRT_kwDOSbspP86GevXY -> author (The latest comment is an automated review suggestion asking to centralize duplicated attribute-building, so the PR author would need to make the change or respond to it.)
+
+PR #102
+llm: pr-conversation -> author (The latest comment is a reviewer suggestion asking whether to use openinference for cohere instrumentation coverage, so the author needs to जवाब/act on it.)
+
+PR #100
+llm: PRRT_kwDOSbspP86F3vOM -> author (A bot reviewer flagged a concrete code change and no one has replied yet, so the PR author needs to update the implementation.)
+llm: PRRT_kwDOSbspP86F3vON -> author (A bot review comment suggests a code change, so the PR author needs to update the implementation or respond.)
+llm: PRRT_kwDOSbspP86F3vOP -> author (A bot reviewer flagged a naming/API issue and suggested a code change, so the PR author needs to update the implementation or respond.)
+llm: PRRT_kwDOSbspP86KaNp1 -> author (Reviewer requested a design change and no author reply followed, so the PR author needs to respond or update the implementation.)
+llm: pr-conversation -> reviewer (The author asked the reviewer to choose whether to keep this PR open as a tracking reference or close it and move the gap to an issue, so the reviewer needs to जवाब/decide next.)
+
+PR #90
+llm: PRRT_kwDOSbspP86LaGma -> author (The last comment is a reviewer asking for backward-compatibility or a deprecation message and offering help on follow-up changes, so the author needs to respond or update the PR.)
+
+PR #49
+llm: PRRT_kwDOSbspP86H4tJU -> none (The author answered the suggestion and explicitly deferred the refactor to a follow-up PR, so the current thread is effectively closed.)
+llm: PRRT_kwDOSbspP86I8NyE -> author (The only comment is from a reviewer raising a concern and asking for thoughts, so the PR author needs to respond or adjust the code.)
+llm: PRRT_kwDOSbspP86I8O6k -> author (A reviewer asked an open design question about undefined behavior and whether root spans should be marked OK, so the PR author needs to जवाब/respond and decide the implementation.)
+llm: pr-conversation -> author (The latest comment is from a reviewer requesting the PR author’s response/action, so the ball is with the author.)
+
+PR #13
+llm: PRRT_kwDOSbspP86Dn1e0 -> reviewer (The author answered the question and explained why the method is not needed here, so the ball is back with the reviewer to accept or continue the discussion.)
+llm: PRRT_kwDOSbspP86Dn5N7 -> reviewer (The author explained the tradeoff and asked the reviewer to decide which direction they want, so the next action is with the reviewer.)
+llm: PRRT_kwDOSbspP86Dn925 -> author (The latest comment is from the author and says they will batch the decision with the next push, so the PR still needs author follow-up.)
+llm: PRRT_kwDOSbspP86DoNGR -> reviewer (The author has responded with a proposed resolution and asked the reviewer whether to prefer option 2 instead, so the ball is back with the reviewer.)
+llm: PRRT_kwDOSbspP86KYIl0 -> author (A reviewer asked whether these files are related to the PR, so the author needs to जवाब/respond and clarify.)
+llm: pr-conversation -> author (A reviewer left CHANGES_REQUESTED with concrete suggestions and no follow-up from the author yet, so the PR author needs to respond and update the code.)
+
+```
+
+</details>
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
