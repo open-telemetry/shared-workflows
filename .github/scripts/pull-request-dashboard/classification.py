@@ -80,9 +80,55 @@ Respond with a single JSON object and nothing else:
 ---END THREAD---
 """
 
+# Copilot CLI JSONL is an external boundary rather than a typed API. Usage can
+# appear in CLI event-, provider-, model-, or version-specific shapes, so
+# normalize known spellings at ingest and keep the dashboard schema stable.
+_COPILOT_USAGE_FIELDS = {
+    "input_tokens": ("input_tokens", "prompt_tokens", "promptTokens", "inputTokens"),
+    "output_tokens": ("output_tokens", "completion_tokens", "completionTokens", "outputTokens"),
+    "total_tokens": ("total_tokens", "totalTokens", "tokens"),
+}
 
-def parse_copilot_jsonl(s: str) -> str:
+
+def _numeric_usage_value(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return None
+
+
+def _first_usage_value(usage: dict[str, Any], field_names: tuple[str, ...]) -> int:
+    for field_name in field_names:
+        if field_name not in usage:
+            continue
+        value = _numeric_usage_value(usage[field_name])
+        if value is not None:
+            return value
+    return 0
+
+
+def normalize_copilot_usage(usage: Any) -> dict[str, int]:
+    if not isinstance(usage, dict):
+        return {}
+    input_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["input_tokens"])
+    output_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["output_tokens"])
+    total_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["total_tokens"])
+    if not total_tokens and (input_tokens or output_tokens):
+        total_tokens = input_tokens + output_tokens
+    normalized = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+    }
+    return {key: value for key, value in normalized.items() if value}
+
+
+def parse_copilot_jsonl(s: str) -> tuple[str, dict[str, int]]:
     parts: list[str] = []
+    usage: dict[str, int] = {}
     for line in s.splitlines():
         line = line.strip()
         if not line.startswith("{"):
@@ -95,7 +141,12 @@ def parse_copilot_jsonl(s: str) -> str:
             content = (evt.get("data") or {}).get("content")
             if isinstance(content, str):
                 parts.append(content)
-    return "\n".join(parts)
+        event_usage = normalize_copilot_usage(evt.get("usage"))
+        if not event_usage:
+            event_usage = normalize_copilot_usage((evt.get("data") or {}).get("usage"))
+        for key, value in event_usage.items():
+            usage[key] = usage.get(key, 0) + value
+    return "\n".join(parts), usage
 
 
 def extract_json_object(s: str) -> dict[str, Any] | None:
@@ -206,14 +257,18 @@ def run_llm_for_thread(thread: dict[str, Any], model: str) -> dict[str, Any]:
         errors="replace",
         timeout=LLM_THREAD_TIMEOUT_SECONDS,
     )
-    response_text = parse_copilot_jsonl(proc.stdout)
+    response_text, usage = parse_copilot_jsonl(proc.stdout)
     decision, valid_response = parse_thread_decision(response_text)
-    return {
+    record = {
         "thread_id": thread["thread_id"],
         "thread_kind": thread["thread_kind"],
+        "_copilot_cli_call": True,
         "failed": proc.returncode != 0 or not valid_response,
         "decision": decision,
     }
+    if usage:
+        record["usage"] = usage
+    return record
 
 
 def thread_cache_key(thread: dict[str, Any], model: str) -> str:
@@ -247,6 +302,14 @@ def save_classification_cache(pr_number: int, cache: dict[str, dict[str, Any]]) 
     path.write_text(json.dumps(cache, sort_keys=True, indent=2), encoding="utf-8")
 
 
+def cached_classification_record(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        k: v
+        for k, v in record.items()
+        if k not in ("_copilot_cli_call", "error", "response_text", "usage")
+    }
+
+
 def prune_classification_cache(open_pr_numbers: set[int]) -> None:
     if not CLASSIFICATION_CACHE_DIR.exists():
         return
@@ -265,7 +328,7 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
         key = thread_cache_key(thread, model)
         cached = cache_in.get(key)
         if isinstance(cached, dict):
-            record = {k: v for k, v in cached.items() if k not in ("error", "response_text", "usage")}
+            record = cached_classification_record(cached)
             record["thread_id"] = thread["thread_id"]
             record["thread_kind"] = thread["thread_kind"]
             classifications.append(record)
@@ -277,6 +340,7 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
             record = {
                 "thread_id": thread["thread_id"],
                 "thread_kind": thread["thread_kind"],
+                "_copilot_cli_call": True,
                 "failed": True,
                 "decision": {"thread_action": "unclear", "reason": "LLM timeout"},
             }
@@ -294,6 +358,6 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
             }
         classifications.append(record)
         if not record.get("failed"):
-            cache_out[key] = record
+            cache_out[key] = cached_classification_record(record)
     save_classification_cache(number, cache_out)
     return classifications
