@@ -46,7 +46,7 @@
 | [Introduce `gen_ai.invoke_agent.{inference,tool}_calls` (#336)](https://github.com/open-telemetry/semantic-conventions-genai/pull/336) | RKest | aabmass&nbsp;💬⁠✅<br>lmolkova&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ❌ | 15h |
 | [gen-ai: add run guardrail span and security finding (#262)](https://github.com/open-telemetry/semantic-conventions-genai/pull/262) | nagkumar91 | aabmass<br>habibam&nbsp;✔️<br>hemanshubelani&nbsp;✔️<br>sjain700&nbsp;✔️<br>trask | ✅ | ❌ | 14h |
 | [Remove inference spans from agentic reference instrumentations, add guidance (#351)](https://github.com/open-telemetry/semantic-conventions-genai/pull/351) | lmolkova |  | ✅ | ✅ | 10h |
-| [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 3m |
+| [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 6m |
 
 ## Draft pull requests
 
