@@ -4,6 +4,35 @@ A centrally-executed shared workflow that builds and publishes a per-repository 
 
 The workflow runs from `open-telemetry/shared-workflows` and targets the repositories listed in [`repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json). Target repositories do not need to host any workflow files.
 
+## Dashboard columns
+
+The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*, *Waiting on external*). Draft PRs are listed separately at the bottom. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
+
+- **PR** — Pull request title and number, linked to the PR on GitHub.
+- **Author** — GitHub login of the PR author.
+- **Reviewers** — Reviewers who have engaged with the PR, each annotated with one or more icons:
+  - ✅ approved
+  - ✔️ approved (non-code-owner — does **not** count toward merge requirements)
+  - 💬 has an open (unresolved) review thread on the PR
+  - 🔴 requested changes
+  - Combinations such as 💬✅ mean approved but with an open thread still outstanding.
+- **CI** — Aggregate check status across the PR:
+  - ✅ all checks passing
+  - ⏳ at least one check pending, none failing
+  - ❌ at least one check failing
+  - `?` check data could not be fetched
+- **Conflicts** — Whether the PR has merge conflicts against its base branch:
+  - ✅ no conflicts
+  - ❌ has conflicts
+  - `?` could not be determined
+- **Age** — **Time the party currently expected to act has been waiting — _not_ the calendar age of the PR.** A six-month-old PR that received a reviewer comment yesterday shows `1d` (the author has been holding the ball for one day), not six months. Computed in this priority order:
+  1. Time since the oldest pending review thread directed at the routed party (e.g. the oldest unresolved thread the author owes a reply on, when the PR is *Waiting on authors*).
+  2. Time since the most recent activity from the _opposite_ party — for *Waiting on authors*, the latest approver/reviewer activity; for *Waiting on reviewers* / *Waiting on maintainers*, the latest author activity; for *Waiting on external*, the latest external activity.
+  3. Time since the most recent activity timestamp overall.
+  4. PR creation time (last-resort fallback).
+
+  Format: `<1m`, `Xm` (under an hour), `Xh` (under a day), or `Xd` (days).
+
 ## How to opt in
 
 Open a pull request adding an entry for your repository to [`.github/scripts/pull-request-dashboard/repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json):
