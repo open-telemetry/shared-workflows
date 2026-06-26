@@ -21,7 +21,7 @@
 | [\[chore\] Add basic agents.md (#342)](https://github.com/open-telemetry/semantic-conventions-genai/pull/342) | lmolkova | trask&nbsp;💬⁠✅ | ✅ | ✅ | 13h |
 | [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova |  | ✅ | ✅ | 13h |
 | [Add Agent Framework reference scenario (#325)](https://github.com/open-telemetry/semantic-conventions-genai/pull/325) | eavanvalkenburg | lmolkova&nbsp;✅ | ✅ | ✅ | 4h |
-| [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | <1m |
+| [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 1m |
 
 ## Waiting on authors
 
