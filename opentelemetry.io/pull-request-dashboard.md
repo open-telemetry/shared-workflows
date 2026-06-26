@@ -10,6 +10,7 @@
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 16d |
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 2d |
 | [Update opentelemetry-configuration version to v1.1.0 (#10550)](https://github.com/open-telemetry/opentelemetry.io/pull/10550) | app/otelbot | jack-berg&nbsp;✔️<br>vitorvasc&nbsp;✅ | ⏳ | ✅ | 1d |
+| [Update community members (#10571)](https://github.com/open-telemetry/opentelemetry.io/pull/10571) | app/otelbot-docs | vitorvasc&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
 
@@ -51,7 +52,6 @@
 | [Auto-update registry versions (c41e9cf383f4d1ac8f3407973b76ef7ae18c397f) (#10556)](https://github.com/open-telemetry/opentelemetry.io/pull/10556) | app/otelbot |  | ✅ | ✅ | 1d |
 | [\[es\] Translate docs/guidance/reference-implementations/adobe/index.md (#10558)](https://github.com/open-telemetry/opentelemetry.io/pull/10558) | mwimpelberg28 |  | ✅ | ✅ | 22h |
 | [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs |  | ❌ | ✅ | 3h |
-| [Update community members (#10571)](https://github.com/open-telemetry/opentelemetry.io/pull/10571) | app/otelbot-docs |  | ✅ | ✅ | 2h |
 
 ## Waiting on authors
 
