@@ -87,6 +87,9 @@ _COPILOT_USAGE_FIELDS = {
     "input_tokens": ("input_tokens", "prompt_tokens", "promptTokens", "inputTokens"),
     "output_tokens": ("output_tokens", "completion_tokens", "completionTokens", "outputTokens"),
     "total_tokens": ("total_tokens", "totalTokens", "tokens"),
+    "cache_read_tokens": ("cache_read_tokens", "cacheReadTokens", "cached_tokens", "cachedTokens"),
+    "cache_write_tokens": ("cache_write_tokens", "cacheWriteTokens"),
+    "reasoning_tokens": ("reasoning_tokens", "reasoningTokens"),
 }
 
 
@@ -116,12 +119,18 @@ def normalize_copilot_usage(usage: Any) -> dict[str, int]:
     input_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["input_tokens"])
     output_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["output_tokens"])
     total_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["total_tokens"])
+    cache_read_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["cache_read_tokens"])
+    cache_write_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["cache_write_tokens"])
+    reasoning_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["reasoning_tokens"])
     if not total_tokens and (input_tokens or output_tokens):
         total_tokens = input_tokens + output_tokens
     normalized = {
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
+        "cache_read_tokens": cache_read_tokens,
+        "cache_write_tokens": cache_write_tokens,
+        "reasoning_tokens": reasoning_tokens,
     }
     return {key: value for key, value in normalized.items() if value}
 
@@ -137,13 +146,15 @@ def parse_copilot_jsonl(s: str) -> tuple[str, dict[str, int]]:
             evt = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if evt.get("type") == "assistant.message":
-            content = (evt.get("data") or {}).get("content")
+        event_type = evt.get("type")
+        data = evt.get("data") or {}
+        if event_type == "assistant.message":
+            content = data.get("content")
             if isinstance(content, str):
                 parts.append(content)
-        event_usage = normalize_copilot_usage(evt.get("usage"))
+        event_usage = normalize_copilot_usage(data if event_type == "assistant.usage" else evt.get("usage"))
         if not event_usage:
-            event_usage = normalize_copilot_usage((evt.get("data") or {}).get("usage"))
+            event_usage = normalize_copilot_usage(data.get("usage"))
         for key, value in event_usage.items():
             usage[key] = usage.get(key, 0) + value
     return "\n".join(parts), usage
