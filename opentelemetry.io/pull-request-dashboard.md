@@ -10,7 +10,6 @@
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 16d |
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 2d |
 | [Update opentelemetry-configuration version to v1.1.0 (#10550)](https://github.com/open-telemetry/opentelemetry.io/pull/10550) | app/otelbot | jack-berg&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 1d |
-| [Update community members (#10571)](https://github.com/open-telemetry/opentelemetry.io/pull/10571) | app/otelbot-docs | vitorvasc&nbsp;✅ | ✅ | ✅ | 3h |
 
 ## Waiting on reviewers
 
@@ -91,8 +90,8 @@
 | [Add PHP class auto-instrumentation to registry (#9716)](https://github.com/open-telemetry/opentelemetry.io/pull/9716) | eerzho | ChrisLightfootWild&nbsp;✔️<br>maryliag<br>theletterf<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 11h |
 | [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo |  | ✅ | ❌ | 4h |
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm | ✅ | ✅ | 1h |
-| [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 22m |
-| [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs | vitorvasc | ❌ | ✅ | 1m |
+| [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 25m |
+| [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs | vitorvasc | ❌ | ✅ | 4m |
 
 ## Waiting on external
 
