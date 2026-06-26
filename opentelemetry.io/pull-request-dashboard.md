@@ -52,8 +52,8 @@
 | [Dev (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 |  | ✅ | ✅ | 11h |
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm | ✅ | ✅ | 11h |
 | [Add Oodle AI to OpenTelemetry Registry (#10575)](https://github.com/open-telemetry/opentelemetry.io/pull/10575) | eragon512 |  | ✅ | ✅ | 9h |
-| [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh |  | ✅ | ✅ | 8h |
-| [Add `/approve-registry-update` helper skill (#10582)](https://github.com/open-telemetry/opentelemetry.io/pull/10582) | chalin |  | ✅ | ✅ | 32m |
+| [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh |  | ✅ | ✅ | 9h |
+| [Add `/approve-registry-update` helper skill (#10582)](https://github.com/open-telemetry/opentelemetry.io/pull/10582) | chalin |  | ✅ | ✅ | 41m |
 
 ## Waiting on authors
 
@@ -90,7 +90,7 @@
 | [Add blog post: Call for Contributors — OpenTelemetry for Dart and Flutter (#10360)](https://github.com/open-telemetry/opentelemetry.io/pull/10360) | michaelbushe | maryliag&nbsp;✅<br>svrnm&nbsp;✅ | ✅ | ✅ | 1d |
 | [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️ | ❌ | ✅ | 1d |
 | [Add PHP class auto-instrumentation to registry (#9716)](https://github.com/open-telemetry/opentelemetry.io/pull/9716) | eerzho | ChrisLightfootWild&nbsp;✔️<br>maryliag<br>theletterf<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 23h |
-| [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ❌ | 15h |
+| [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ❌ | 16h |
 | [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 12h |
 
 ## Waiting on external
