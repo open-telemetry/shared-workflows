@@ -910,6 +910,9 @@ def empty_copilot_usage() -> dict[str, int]:
         "input_tokens": 0,
         "output_tokens": 0,
         "total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 0,
     }
 
 
@@ -928,6 +931,9 @@ def add_copilot_usage(aggregate: dict[str, int], result: dict[str, Any] | None) 
         aggregate["input_tokens"] += int(usage.get("input_tokens") or 0)
         aggregate["output_tokens"] += int(usage.get("output_tokens") or 0)
         aggregate["total_tokens"] += int(usage.get("total_tokens") or 0)
+        aggregate["cache_read_tokens"] += int(usage.get("cache_read_tokens") or 0)
+        aggregate["cache_write_tokens"] += int(usage.get("cache_write_tokens") or 0)
+        aggregate["reasoning_tokens"] += int(usage.get("reasoning_tokens") or 0)
 
 
 def copilot_usage_from_results(results: dict[int, dict[str, Any]]) -> dict[str, int]:
@@ -946,7 +952,10 @@ def print_copilot_usage_summary(repo: str, model: str, usage: dict[str, int]) ->
         f"missing_usage={usage.get('missing_usage_calls', 0)}, "
         f"input_tokens={usage.get('input_tokens', 0)}, "
         f"output_tokens={usage.get('output_tokens', 0)}, "
-        f"total_tokens={usage.get('total_tokens', 0)}",
+        f"total_tokens={usage.get('total_tokens', 0)}, "
+        f"cache_read_tokens={usage.get('cache_read_tokens', 0)}, "
+        f"cache_write_tokens={usage.get('cache_write_tokens', 0)}, "
+        f"reasoning_tokens={usage.get('reasoning_tokens', 0)}",
         file=sys.stderr,
     )
 
