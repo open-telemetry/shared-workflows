@@ -9,8 +9,6 @@
 |---|---|---|:---:|:---:|:---:|
 | [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ⏳ | ✅ | 81d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 71d |
-| [fix(deps): update all patch versions (#6852)](https://github.com/open-telemetry/opentelemetry-js/pull/6852) | app/renovate | dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ✅ | ✅ | 1d |
-| [docs(configuration): link README to the cross-SDK language support status doc (#6846)](https://github.com/open-telemetry/opentelemetry-js/pull/6846) | MikeGoldsmith | JamieDanielson<br>maryliag&nbsp;✅<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 20h |
 
 ## Waiting on reviewers
 
