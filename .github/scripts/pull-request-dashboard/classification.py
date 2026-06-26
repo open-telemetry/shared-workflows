@@ -80,37 +80,42 @@ Respond with a single JSON object and nothing else:
 ---END THREAD---
 """
 
+# Copilot CLI JSONL is an external boundary rather than a typed API. Usage can
+# appear in CLI event-, provider-, model-, or version-specific shapes, so
+# normalize known spellings at ingest and keep the dashboard schema stable.
+_COPILOT_USAGE_FIELDS = {
+    "input_tokens": ("input_tokens", "prompt_tokens", "promptTokens", "inputTokens"),
+    "output_tokens": ("output_tokens", "completion_tokens", "completionTokens", "outputTokens"),
+    "total_tokens": ("total_tokens", "totalTokens", "tokens"),
+}
 
-def _numeric_usage_value(value: Any) -> int:
+
+def _numeric_usage_value(value: Any) -> int | None:
     if isinstance(value, bool):
-        return 0
+        return None
     if isinstance(value, int):
         return value
     if isinstance(value, float) and value.is_integer():
         return int(value)
+    return None
+
+
+def _first_usage_value(usage: dict[str, Any], field_names: tuple[str, ...]) -> int:
+    for field_name in field_names:
+        if field_name not in usage:
+            continue
+        value = _numeric_usage_value(usage[field_name])
+        if value is not None:
+            return value
     return 0
 
 
 def normalize_copilot_usage(usage: Any) -> dict[str, int]:
     if not isinstance(usage, dict):
         return {}
-    input_tokens = _numeric_usage_value(
-        usage.get("input_tokens")
-        or usage.get("prompt_tokens")
-        or usage.get("promptTokens")
-        or usage.get("inputTokens")
-    )
-    output_tokens = _numeric_usage_value(
-        usage.get("output_tokens")
-        or usage.get("completion_tokens")
-        or usage.get("completionTokens")
-        or usage.get("outputTokens")
-    )
-    total_tokens = _numeric_usage_value(
-        usage.get("total_tokens")
-        or usage.get("totalTokens")
-        or usage.get("tokens")
-    )
+    input_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["input_tokens"])
+    output_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["output_tokens"])
+    total_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["total_tokens"])
     if not total_tokens and (input_tokens or output_tokens):
         total_tokens = input_tokens + output_tokens
     normalized = {
