@@ -21,7 +21,7 @@
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ✅ | ✅ | 23h |
 | [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 17h |
 | [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 14m |
-| [More suppress test loggers (#8547)](https://github.com/open-telemetry/opentelemetry-java/pull/8547) | jack-berg |  | ⏳ | ✅ | 7m |
+| [More suppress test loggers (#8547)](https://github.com/open-telemetry/opentelemetry-java/pull/8547) | jack-berg |  | ⏳ | ✅ | 8m |
 
 ## Waiting on authors
 
@@ -36,7 +36,7 @@
 | [Add a ConfigProvider callback for runtime instrumentation option changes (#8076)](https://github.com/open-telemetry/opentelemetry-java/pull/8076) | jackshirazi | jack-berg<br>trask | ❌ | ❌ | 10d |
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 9d |
 | [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ❌ | ✅ | 1d |
-| [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg |  | ✅ | ✅ | 1h |
+| [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg |  | ⏳ | ✅ | 1h |
 
 ## Waiting on external
 
