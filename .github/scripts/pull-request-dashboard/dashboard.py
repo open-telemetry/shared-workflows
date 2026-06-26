@@ -895,69 +895,10 @@ def build_pr_result(
 class DashboardCalculation:
     results: dict[int, dict[str, Any]]
     dashboard_state: dict[str, Any]
-    copilot_usage: dict[str, int]
     trigger_pr_result: dict[str, Any] | None = None
     current_pr_result: dict[str, Any] | None = None
     starting_pr_result: dict[str, Any] | None = None
     used_cached_dashboard_state: bool = False
-
-
-def empty_copilot_usage() -> dict[str, int]:
-    return {
-        "calls": 0,
-        "reported_calls": 0,
-        "missing_usage_calls": 0,
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0,
-        "reasoning_tokens": 0,
-    }
-
-
-def add_copilot_usage(aggregate: dict[str, int], result: dict[str, Any] | None) -> None:
-    if not result:
-        return
-    for classification in result.get("classifications") or []:
-        if not classification.get("_copilot_cli_call"):
-            continue
-        aggregate["calls"] += 1
-        usage = classification.get("usage") or {}
-        if not usage:
-            aggregate["missing_usage_calls"] += 1
-            continue
-        aggregate["reported_calls"] += 1
-        aggregate["input_tokens"] += int(usage.get("input_tokens") or 0)
-        aggregate["output_tokens"] += int(usage.get("output_tokens") or 0)
-        aggregate["total_tokens"] += int(usage.get("total_tokens") or 0)
-        aggregate["cache_read_tokens"] += int(usage.get("cache_read_tokens") or 0)
-        aggregate["cache_write_tokens"] += int(usage.get("cache_write_tokens") or 0)
-        aggregate["reasoning_tokens"] += int(usage.get("reasoning_tokens") or 0)
-
-
-def copilot_usage_from_results(results: dict[int, dict[str, Any]]) -> dict[str, int]:
-    aggregate = empty_copilot_usage()
-    for result in results.values():
-        add_copilot_usage(aggregate, result)
-    return aggregate
-
-
-def print_copilot_usage_summary(repo: str, model: str, usage: dict[str, int]) -> None:
-    print(
-        "copilot token usage for "
-        f"{repo} (model={model}): "
-        f"calls={usage.get('calls', 0)}, "
-        f"reported={usage.get('reported_calls', 0)}, "
-        f"missing_usage={usage.get('missing_usage_calls', 0)}, "
-        f"input_tokens={usage.get('input_tokens', 0)}, "
-        f"output_tokens={usage.get('output_tokens', 0)}, "
-        f"total_tokens={usage.get('total_tokens', 0)}, "
-        f"cache_read_tokens={usage.get('cache_read_tokens', 0)}, "
-        f"cache_write_tokens={usage.get('cache_write_tokens', 0)}, "
-        f"reasoning_tokens={usage.get('reasoning_tokens', 0)}",
-        file=sys.stderr,
-    )
 
 
 def compute_pr_results(
@@ -989,9 +930,6 @@ def compute_pr_results(
         return DashboardCalculation(
             results=results,
             dashboard_state=dashboard_state,
-            copilot_usage=copilot_usage_from_results(
-                {pr_number: trigger_pr_result} if trigger_pr_result else {}
-            ),
             trigger_pr_result=trigger_pr_result,
             current_pr_result=current_pr_result,
             starting_pr_result=starting_pr_result,
@@ -1035,7 +973,6 @@ def compute_pr_results(
     return DashboardCalculation(
         results=results,
         dashboard_state=dashboard_state,
-        copilot_usage=copilot_usage_from_results(results),
         trigger_pr_result=trigger_pr_result,
         current_pr_result=current_pr_result,
     )
@@ -1113,7 +1050,6 @@ def update_dashboard(args: argparse.Namespace) -> int:
         args.model,
         args.required_approvals,
     )
-    print_copilot_usage_summary(repo, args.model, calculation.copilot_usage)
 
     calculation, dashboard_state_unchanged = reconcile_with_latest_dashboard(
         calculation,

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import traceback
 from pathlib import Path
 from typing import Any
@@ -80,84 +82,19 @@ Respond with a single JSON object and nothing else:
 ---END THREAD---
 """
 
-# Copilot CLI JSONL is an external boundary rather than a typed API. Usage can
-# appear in CLI event-, provider-, model-, or version-specific shapes, so
-# normalize known spellings at ingest and keep the dashboard schema stable.
-_COPILOT_USAGE_FIELDS = {
-    "input_tokens": ("input_tokens", "prompt_tokens", "promptTokens", "inputTokens"),
-    "output_tokens": ("output_tokens", "completion_tokens", "completionTokens", "outputTokens"),
-    "total_tokens": ("total_tokens", "totalTokens", "tokens"),
-    "cache_read_tokens": ("cache_read_tokens", "cacheReadTokens", "cached_tokens", "cachedTokens"),
-    "cache_write_tokens": ("cache_write_tokens", "cacheWriteTokens"),
-    "reasoning_tokens": ("reasoning_tokens", "reasoningTokens"),
-}
-
-
-def _numeric_usage_value(value: Any) -> int | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float) and value.is_integer():
-        return int(value)
-    return None
-
-
-def _first_usage_value(usage: dict[str, Any], field_names: tuple[str, ...]) -> int:
-    for field_name in field_names:
-        if field_name not in usage:
-            continue
-        value = _numeric_usage_value(usage[field_name])
-        if value is not None:
-            return value
-    return 0
-
-
-def normalize_copilot_usage(usage: Any) -> dict[str, int]:
-    if not isinstance(usage, dict):
-        return {}
-    input_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["input_tokens"])
-    output_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["output_tokens"])
-    total_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["total_tokens"])
-    cache_read_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["cache_read_tokens"])
-    cache_write_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["cache_write_tokens"])
-    reasoning_tokens = _first_usage_value(usage, _COPILOT_USAGE_FIELDS["reasoning_tokens"])
-    if not total_tokens and (input_tokens or output_tokens):
-        total_tokens = input_tokens + output_tokens
-    normalized = {
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "total_tokens": total_tokens,
-        "cache_read_tokens": cache_read_tokens,
-        "cache_write_tokens": cache_write_tokens,
-        "reasoning_tokens": reasoning_tokens,
-    }
-    return {key: value for key, value in normalized.items() if value}
-
-
-def parse_copilot_jsonl(s: str) -> tuple[str, dict[str, int]]:
-    parts: list[str] = []
-    usage: dict[str, int] = {}
-    for line in s.splitlines():
-        line = line.strip()
-        if not line.startswith("{"):
-            continue
-        try:
-            evt = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        event_type = evt.get("type")
-        data = evt.get("data") or {}
-        if event_type == "assistant.message":
-            content = data.get("content")
-            if isinstance(content, str):
-                parts.append(content)
-        event_usage = normalize_copilot_usage(data if event_type == "assistant.usage" else evt.get("usage"))
-        if not event_usage:
-            event_usage = normalize_copilot_usage(data.get("usage"))
-        for key, value in event_usage.items():
-            usage[key] = usage.get(key, 0) + value
-    return "\n".join(parts), usage
+def print_copilot_otel_file(path: Path) -> None:
+    if not path.exists():
+        return
+    try:
+        contents = path.read_text(encoding="utf-8").strip()
+    except OSError as e:
+        print(f"  warning: failed to read Copilot OTel output {path}: {e!r}", file=sys.stderr)
+        return
+    if contents:
+        print(
+            f"--- BEGIN COPILOT OTEL JSONL ---\n{contents}\n--- END COPILOT OTEL JSONL ---",
+            file=sys.stderr,
+        )
 
 
 def extract_json_object(s: str) -> dict[str, Any] | None:
@@ -260,15 +197,22 @@ def thread_prompt(thread: dict[str, Any]) -> str:
 
 def run_llm_for_thread(thread: dict[str, Any], model: str) -> dict[str, Any]:
     prompt = thread_prompt(thread)
-    proc = subprocess.run(
-        ["copilot", "-p", prompt, "--output-format", "json", "--model", model],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=LLM_THREAD_TIMEOUT_SECONDS,
-    )
-    response_text, usage = parse_copilot_jsonl(proc.stdout)
+    with tempfile.TemporaryDirectory(prefix="copilot-otel-") as otel_dir:
+        otel_path = Path(otel_dir) / "copilot-otel.jsonl"
+        env = os.environ.copy()
+        env["COPILOT_OTEL_FILE_EXPORTER_PATH"] = str(otel_path)
+        env.setdefault("COPILOT_OTEL_EXPORTER_TYPE", "file")
+        proc = subprocess.run(
+            ["copilot", "-p", prompt, "--model", model, "--silent"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=LLM_THREAD_TIMEOUT_SECONDS,
+            env=env,
+        )
+        print_copilot_otel_file(otel_path)
+    response_text = proc.stdout
     decision, valid_response = parse_thread_decision(response_text)
     record = {
         "thread_id": thread["thread_id"],
@@ -277,8 +221,6 @@ def run_llm_for_thread(thread: dict[str, Any], model: str) -> dict[str, Any]:
         "failed": proc.returncode != 0 or not valid_response,
         "decision": decision,
     }
-    if usage:
-        record["usage"] = usage
     return record
 
 
