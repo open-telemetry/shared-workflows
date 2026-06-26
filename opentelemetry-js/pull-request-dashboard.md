@@ -10,7 +10,7 @@
 | [feat(sdk-trace): add AlwaysRecordSampler (#6168)](https://github.com/open-telemetry/opentelemetry-js/pull/6168) | majanjua-amzn | david-luna&nbsp;✅<br>dyladan<br>pichlermarc<br>trentm&nbsp;✅ | ✅ | ✅ | 212d |
 | [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ⏳ | ✅ | 81d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 71d |
-| [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber<br>pichlermarc&nbsp;✅ | ❌ | ✅ | 56m |
+| [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber<br>pichlermarc&nbsp;✅ | ❌ | ✅ | 1h |
 
 ## Waiting on reviewers
 
@@ -31,7 +31,6 @@
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 7d |
 | [feat(sdk-node): wire up tracer_provider.sampler from declarative config (#6847)](https://github.com/open-telemetry/opentelemetry-js/pull/6847) | MikeGoldsmith |  | ✅ | ✅ | 2d |
 | [perf(sdk-metrics): optionally capture active context for sync instruments (#6848)](https://github.com/open-telemetry/opentelemetry-js/pull/6848) | legendecas |  | ✅ | ✅ | 1d |
-| [doc(sdk-node): encourage configuration of NodeSDK that does not result in default resource attributes being excluded by accident (#6857)](https://github.com/open-telemetry/opentelemetry-js/pull/6857) | trentm | pichlermarc&nbsp;✅<br>trentm | ✅ | ✅ | 17h |
 | [feat(propagator-env-carrier): make EnvironmentGetter read the current process.env (#6853)](https://github.com/open-telemetry/opentelemetry-js/pull/6853) | pellared | kamphaus&nbsp;✔️<br>trentm&nbsp;🔴 | ✅ | ✅ | 4h |
 
 ## Waiting on authors
