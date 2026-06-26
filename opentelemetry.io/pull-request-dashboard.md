@@ -50,7 +50,7 @@
 | [Dev (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 |  | ✅ | ✅ | 2h |
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm | ✅ | ✅ | 2h |
 | [Add Oodle AI to OpenTelemetry Registry (#10575)](https://github.com/open-telemetry/opentelemetry.io/pull/10575) | eragon512 |  | ❌ | ✅ | 1h |
-| [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh |  | ✅ | ✅ | 33m |
+| [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh |  | ✅ | ✅ | 34m |
 
 ## Waiting on authors
 
@@ -91,7 +91,7 @@
 | [Add PHP class auto-instrumentation to registry (#9716)](https://github.com/open-telemetry/opentelemetry.io/pull/9716) | eerzho | ChrisLightfootWild&nbsp;✔️<br>maryliag<br>theletterf<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 15h |
 | [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo |  | ✅ | ❌ | 7h |
 | [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 3h |
-| [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs | vitorvasc | ✅ | ✅ | 3h |
+| [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs | vitorvasc | ⏳ | ✅ | 3h |
 
 ## Waiting on external
 
