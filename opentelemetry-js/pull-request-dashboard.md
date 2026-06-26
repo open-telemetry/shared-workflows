@@ -11,7 +11,7 @@
 | [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ⏳ | ✅ | 81d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 71d |
 | [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 6h |
-| [chore(sdk-node)!: Drop support for deprecated OpenCensusMetricProducer from declarative config (#6860)](https://github.com/open-telemetry/opentelemetry-js/pull/6860) | trentm | maryliag&nbsp;✅<br>trentm | ✅ | ✅ | 3h |
+| [chore(sdk-node)!: Drop support for deprecated OpenCensusMetricProducer from declarative config (#6860)](https://github.com/open-telemetry/opentelemetry-js/pull/6860) | trentm | maryliag&nbsp;✅<br>trentm | ✅ | ✅ | 4h |
 | [docs: fix typos (#6861)](https://github.com/open-telemetry/opentelemetry-js/pull/6861) | maryliag | david-luna&nbsp;✅ | ✅ | ✅ | 1h |
 
 ## Waiting on reviewers
@@ -54,7 +54,7 @@
 | [feat(sdk-logs): implement log processor metrics (#6554)](https://github.com/open-telemetry/opentelemetry-js/pull/6554) | anuraaga | JacksonWeber<br>trentm&nbsp;💬 | ❌ | ❌ | 7d |
 | [chore: Add size-limit check on Pull Requests (#6706)](https://github.com/open-telemetry/opentelemetry-js/pull/6706) | JPeer264 | pichlermarc&nbsp;💬 | ❌ | ❌ | 2d |
 | [feat(api, context-async): add experimental attach/detach functionality (#6845)](https://github.com/open-telemetry/opentelemetry-js/pull/6845) | pichlermarc | legendecas&nbsp;💬 | ✅ | ✅ | 8h |
-| [feat(sdk-node): wire up tracer_provider.sampler from declarative config (#6847)](https://github.com/open-telemetry/opentelemetry-js/pull/6847) | MikeGoldsmith | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 3h |
+| [feat(sdk-node): wire up tracer_provider.sampler from declarative config (#6847)](https://github.com/open-telemetry/opentelemetry-js/pull/6847) | MikeGoldsmith | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 4h |
 
 ## Waiting on external
 
@@ -77,6 +77,118 @@
 | [refactor(sdk-node): model built-in exporter resolution on top of PluginComponentProvider spec (#6730)](https://github.com/open-telemetry/opentelemetry-js/pull/6730) | pichlermarc | 18d |
 | [feat: add context attach/detach (#6387)](https://github.com/open-telemetry/opentelemetry-js/pull/6387) | pichlermarc | 7d |
 | [chore(shim-opencensus): remove the `&#64;opentelemetry/shim-opencensus` package (#6843)](https://github.com/open-telemetry/opentelemetry-js/pull/6843) | trentm | 2d |
+
+<details>
+<summary>Diagnostics</summary>
+
+```text
+PR #6847
+llm: PRRT_kwDOCxSf386MmEl2 -> author (The latest comment is from a reviewer and raises a substantive suggestion about error handling and removing the special warning, so the author needs to respond or update the PR.)
+llm: pr-conversation -> author (The latest comment is from a reviewer and includes a non-blocking nit/suggestion, so the author has the next action.)
+
+PR #6845
+llm: PRRT_kwDOCxSf386MCnzR -> author (The reviewer suggested a different API shape, and the author replied that they will update the implementation and may remove `detach()`, so the ball is still with the author.)
+
+PR #6834
+llm: PRRT_kwDOCxSf386K62j1 -> author (A reviewer asked whether the package-lock.json removals are correct and whether they came from another PR; the author needs to जवाब/confirm or fix it.)
+llm: PRRT_kwDOCxSf386K63dB -> author (A reviewer pointed out the timeout is ineffective and unnecessary, so the PR author needs to respond by changing or defending the code.)
+llm: PRRT_kwDOCxSf386K66aN -> author (A reviewer pointed out confusing wording in the YAML comment and asked to make the distinction clearer, so the PR author needs to update it or respond.)
+llm: PRRT_kwDOCxSf386K67Wt -> author (A reviewer/approver left a suggestion and there’s no author reply yet, so the author needs to respond or apply the change.)
+
+PR #6819
+llm: pr-conversation -> none (The reviewer approved the PR and only left a धन्यवाद/thanks comment, with no follow-up requested.)
+
+PR #6773
+llm: pr-conversation -> reviewer (The author says they made the requested simplification and updated the comment; the thread is now waiting on reviewer review/acknowledgment.)
+
+PR #6751
+llm: PRRT_kwDOCxSf386JORwp -> author (A reviewer asked for a code change (`diag.error` suggestion) and the thread is unresolved, so the PR author needs to respond or update the code.)
+llm: PRRT_kwDOCxSf386JOX5j -> author (A reviewer suggested a concrete code change and there’s no author reply yet, so the PR author needs to update the implementation.)
+llm: PRRT_kwDOCxSf386JOFtk -> author (A reviewer asked for a changelog entry to be moved into the unreleased section, so the PR author needs to make that edit.)
+
+PR #6735
+llm: PRRT_kwDOCxSf386DulQ_ -> author (The latest comment is a review bot request to rewrite the interface remark and remove misleading import guidance, so the PR author needs to update the code/docs.)
+llm: PRRT_kwDOCxSf386DulR7 -> author (The bot reviewer raised documentation fixes and asked to adjust the table, so the PR author needs to update the README or respond.)
+llm: PRRT_kwDOCxSf386DulSU -> author (The only comment is a bot review requesting README table fixes, so the PR author needs to update the document or जवाब back.)
+
+PR #6706
+llm: PRRT_kwDOCxSf386L8NP2 -> author (A reviewer suggested adding `persist-credentials: false`, so the PR author needs to update the workflow or respond.)
+llm: PRRT_kwDOCxSf386L8PD_ -> author (A reviewer suggested changing the workflow node version to 26, so the PR author needs to update or respond.)
+llm: PRRT_kwDOCxSf386L8QJ_ -> author (Reviewer requested pinning the exact action version in the workflow, so the PR author needs to make that change or जवाब back.)
+
+PR #6660
+llm: PRRT_kwDOCxSf386CgDCs -> author (A reviewer suggested a code change and the thread has no follow-up from the author, so the author needs to act.)
+llm: PRRT_kwDOCxSf386CgDzC -> author (The reviewer left a code suggestion asking to change the implementation, so the author needs to respond or apply the fix.)
+llm: PRRT_kwDOCxSf386CgGWE -> author (Reviewer suggested a narrower `proxyEnv` object and raised a design preference, so the PR author needs to respond or apply the change.)
+llm: PRRT_kwDOCxSf386CgHa9 -> author (A reviewer asked to drop the test, so the PR author needs to make that change or respond.)
+llm: PRRT_kwDOCxSf386CgKTC -> author (The reviewer asked whether `envProxyAgentOptions` should be applied before the caller’s `options`, which is an open implementation question for the PR author to answer or change.)
+llm: pr-conversation -> author (The reviewer asked whether the author is still working on it and indicated merge depends on addressing review comments, so the author needs to respond or update the PR.)
+
+PR #6653
+llm: PRRT_kwDOCxSf385_O-RA -> author (CodeQL flagged a missing backslash-escaping issue and no author reply is present, so the author needs to address it.)
+llm: PRRT_kwDOCxSf386CDrMd -> reviewer (The author answered the reviewer’s question with a justification and spec reference, so the ball is back with the reviewer to acknowledge or continue the review.)
+llm: PRRT_kwDOCxSf386CRQJf -> author (The reviewer pointed out a formatting bug, and the author replied that they will fix it, so the next action is still on the author.)
+llm: pr-conversation -> reviewer (The author replied and handed off by saying the tests were added in a separate PR, so the reviewer/maintainer needs to respond to that decision.)
+
+PR #6635
+llm: pr-conversation -> author (The reviewer raised a concern that the change feels premature, so the author needs to respond or adjust the PR.)
+
+PR #6634
+llm: PRRT_kwDOCxSf385-XOhA -> author (The latest comment is a reviewer/approver agreeing with the proposed change and implying the function should be updated to take the error directly, so the author needs to respond or implement it.)
+llm: PRRT_kwDOCxSf386D1Sgx -> author (A reviewer requested a code change (declare a named interface) and no author reply followed, so the author still needs to respond or update the PR.)
+
+PR #6590
+llm: pr-conversation -> author (The last substantive comment is from a reviewer saying the issue should be closed and proposing a different approach, so by the thread heuristic the author still owes a reply/acknowledgement.)
+
+PR #6559
+llm: pr-conversation -> author (The latest comment is from a reviewer flagging a problem with the stability-days behavior, so the author needs to address or respond to it.)
+
+PR #6554
+llm: PRRT_kwDOCxSf3854qNdg -> author (The latest reviewer comment confirms the point and implies the PR still needs the author to decide or implement the internal mechanism change; the discussion is not closed.)
+
+PR #6528
+llm: PRRT_kwDOCxSf3853n9Dk -> author (A reviewer suggested an alternative implementation and asked for the author’s take, so the author needs to respond or update the PR.)
+llm: pr-conversation -> author (The latest comment is from a reviewer/approver and raises unresolved concern about whether the benchmark improvement is real, so the author needs to respond or adjust the PR.)
+
+PR #6515
+llm: PRRT_kwDOCxSf3852HzQG -> author (The latest comment is from the reviewer/approver proposing a concrete approach and asking for the author's opinion, so the author needs to respond or implement.)
+
+PR #6493
+llm: PRRT_kwDOCxSf3852IHBf -> author (The latest comment is from a reviewer clarifying that the change is only internally breaking; the thread is unresolved and the author still needs to respond or adjust the changelog entry.)
+llm: pr-conversation -> reviewer (The latest comment is from the PR author asking for help and a response, so the ball is with a reviewer/maintainer.)
+
+PR #6483
+llm: PRRT_kwDOCxSf385zTBLv -> author (A reviewer left a short follow-up (“same”) on an unresolved thread, so the author needs to address or respond.)
+llm: pr-conversation -> author (A reviewer/outsider provided a rebased branch and explicitly handed it to the PR author to pull in or decide on a successor PR, so the author needs to respond.)
+
+PR #6480
+llm: PRRT_kwDOCxSf3855sXk0 -> reviewer (The author has replied with their rationale and no further action is explicitly requested from them, so the reviewer/maintainer would need to decide whether to accept that explanation or continue the discussion.)
+llm: PRRT_kwDOCxSf3855seEr -> author (The reviewer’s last reply leaves the suggestion open as optional, so the author still needs to acknowledge or decide whether to make the change.)
+llm: pr-conversation -> author (The reviewer asked for conflict resolution, and `current_conflicts` is still yes; the author’s last reply only addressed the `selfObsMeterProvider` naming, so the author still needs to act.)
+
+PR #6466
+llm: pr-conversation -> none (The reviewer’s question was answered, and the last comment only says the PR is being put on hold with no explicit follow-up request.)
+
+PR #6377
+llm: pr-conversation -> reviewer (The latest comment is from the author asking for another review, so the ball is with a reviewer/maintainer to respond.)
+
+PR #6332
+llm: PRRT_kwDOCxSf385quits -> reviewer (The PR author asked whether to deprecate both attributes, so the ball is with a reviewer/maintainer to answer or decide.)
+llm: PRRT_kwDOCxSf386HH2c3 -> author (A reviewer asked for a code change/clarification about merging the option bags versus optional chaining, so the PR author needs to respond or update the implementation.)
+
+PR #6293
+llm: PRRT_kwDOCxSf386JmHsD -> reviewer (The author replied last with a brief pointer back to an earlier comment, so the ball is back with the reviewer to clarify or respond.)
+llm: PRRT_kwDOCxSf386JpjTZ -> author (A reviewer asked for a code change (add the dependency as a devDependency instead of relying on Mocha transitively), so the author needs to update the PR.)
+llm: PRRT_kwDOCxSf386JpncL -> none (The only comment is an informational note for other reviewers and does not request any follow-up, so no action is needed.)
+llm: PRRT_kwDOCxSf386Jl7CM -> none (The reviewer’s last comment is a clear acknowledgment that closes the discussion, so no follow-up is needed.)
+llm: PRRT_kwDOCxSf386JlgiC -> reviewer (The author’s last comment is a follow-up note, and the reviewer has the next opportunity to acknowledge or close the thread.)
+
+PR #6260
+llm: pr-conversation -> external (The reviewer says this PR is blocked on an external opentelemetry-js PR and similar SDK changes before it can merge.)
+
+```
+
+</details>
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
