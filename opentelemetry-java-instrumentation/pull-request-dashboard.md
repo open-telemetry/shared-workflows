@@ -8,7 +8,6 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 51d |
-| [Update pinned latest dep versions (#19085)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19085) | app/otelbot | laurit&nbsp;✅ | ⏳ | ✅ | 1h |
 
 ## Waiting on reviewers
 
