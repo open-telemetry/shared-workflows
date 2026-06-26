@@ -31,7 +31,7 @@
 | [feat(sdk-metrics): metrics exemplars support (#6830)](https://github.com/open-telemetry/opentelemetry-js/pull/6830) | rnavarro |  | ✅ | ❌ | 7d |
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 7d |
 | [perf(sdk-metrics): optionally capture active context for sync instruments (#6848)](https://github.com/open-telemetry/opentelemetry-js/pull/6848) | legendecas |  | ✅ | ❌ | 1d |
-| [docs: fix typos (#6861)](https://github.com/open-telemetry/opentelemetry-js/pull/6861) | maryliag |  | ❌ | ✅ | 3m |
+| [docs: fix typos (#6861)](https://github.com/open-telemetry/opentelemetry-js/pull/6861) | maryliag |  | ❌ | ✅ | 4m |
 
 ## Waiting on authors
 
