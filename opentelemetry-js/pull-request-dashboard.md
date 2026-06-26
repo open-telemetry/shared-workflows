@@ -31,7 +31,7 @@
 | [feat(sdk-metrics): metrics exemplars support (#6830)](https://github.com/open-telemetry/opentelemetry-js/pull/6830) | rnavarro |  | ✅ | ❌ | 7d |
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 7d |
 | [perf(sdk-metrics): optionally capture active context for sync instruments (#6848)](https://github.com/open-telemetry/opentelemetry-js/pull/6848) | legendecas |  | ✅ | ✅ | 1d |
-| [chore(sdk-node)!: Drop support for deprecated OpenCensusMetricProducer from declarative config (#6860)](https://github.com/open-telemetry/opentelemetry-js/pull/6860) | trentm | trentm | ⏳ | ✅ | 5m |
+| [chore(sdk-node)!: Drop support for deprecated OpenCensusMetricProducer from declarative config (#6860)](https://github.com/open-telemetry/opentelemetry-js/pull/6860) | trentm | trentm | ⏳ | ✅ | 6m |
 
 ## Waiting on authors
 
@@ -54,7 +54,7 @@
 | [feat(sdk-logs): implement log processor metrics (#6554)](https://github.com/open-telemetry/opentelemetry-js/pull/6554) | anuraaga | JacksonWeber<br>trentm&nbsp;💬 | ❌ | ❌ | 6d |
 | [chore: Add size-limit check on Pull Requests (#6706)](https://github.com/open-telemetry/opentelemetry-js/pull/6706) | JPeer264 | pichlermarc&nbsp;💬 | ❌ | ❌ | 2d |
 | [feat(api, context-async): add experimental attach/detach functionality (#6845)](https://github.com/open-telemetry/opentelemetry-js/pull/6845) | pichlermarc | legendecas&nbsp;💬 | ✅ | ✅ | 4h |
-| [feat(sdk-node): wire up tracer_provider.sampler from declarative config (#6847)](https://github.com/open-telemetry/opentelemetry-js/pull/6847) | MikeGoldsmith | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 21m |
+| [feat(sdk-node): wire up tracer_provider.sampler from declarative config (#6847)](https://github.com/open-telemetry/opentelemetry-js/pull/6847) | MikeGoldsmith | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 22m |
 
 ## Waiting on external
 
