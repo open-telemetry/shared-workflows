@@ -9,7 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 16d |
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 2d |
-| [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs | chalin&nbsp;✅<br>vitorvasc | ⏳ | ✅ | <1m |
+| [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs | chalin&nbsp;✅<br>vitorvasc | ✅ | ✅ | <1m |
 
 ## Waiting on reviewers
 
