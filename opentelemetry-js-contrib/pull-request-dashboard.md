@@ -17,13 +17,14 @@
 | [fix(graphql): rewrap late-added resolvers (#3447)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3447) | Farhan-Abbas | obecny | ❌ | ✅ | 97d |
 | [feat(instrumentation-aws-sdk): inject trace context into Kinesis PutR… (#3433)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3433) | mosheshaham-dash0 | blumamir<br>jj22ee<br>trivikr | ✅ | ✅ | 92d |
 | [feat(detector-aws): detect Lambda availability zone metadata (#3460)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3460) | garysassano | jj22ee | ✅ | ✅ | 87d |
-| [chore(deps): update dependency &#64;nestjs/core to v11.1.18 \[security\] (#3468)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3468) | app/renovate | dyladan<br>legendecas<br>neilime<br>pichlermarc<br>trentm | ❌ | ✅ | 79d |
-| [chore(deps): update dependency babel-plugin-istanbul to v8 (#3502)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3502) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 55d |
+| [chore(deps): update dependency &#64;nestjs/core to v11.1.18 \[security\] (#3468)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3468) | app/renovate | dyladan<br>legendecas<br>neilime<br>pichlermarc<br>trentm | ❌ | ✅ | 80d |
+| [chore(deps): update dependency babel-plugin-istanbul to v8 (#3502)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3502) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 56d |
 | [fix(instrumentation-express): prevent post-handler middleware from overwriting rpcMetadata.route (#3521)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3521) | Luffy-nani | JamieDanielson<br>pkanal<br>raphael-theriault-swi | ✅ | ✅ | 42d |
 | [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ⏳ | ✅ | 35d |
 | [chore: release main (#3568)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3568) | app/otelbot-js-contrib | blumamir<br>d4nyll<br>dyladan<br>hectorhdzg<br>JamieDanielson<br>legendecas<br>pichlermarc<br>pkanal<br>raphael-theriault-swi<br>yiyuan-he | ❌ | ✅ | 14d |
 | [chore(deps): update dependency &#64;cucumber/cucumber to v13 (#3575)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3575) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm<br>Ugzuzg | ❌ | ✅ | 6d |
 | [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 5d |
+| [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -53,77 +54,6 @@
 | [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 78d |
 | [feat(instrumentation-nats): add instrumentation nats package (#3352)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3352) | giacomoquinalia | 52d |
 | [Feature/kafka cluster (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 3d |
-
-<details>
-<summary>Diagnostics</summary>
-
-```text
-PR #3521
-llm: pr-conversation -> reviewer (The only comment is from a reviewer and asks reviewers to look into prior history before proceeding, so the next action stays with reviewers.)
-
-PR #3505
-llm: pr-conversation -> author (The latest comment is from a reviewer/approver and references another PR/issue, so the author still needs to respond or act.)
-
-PR #3493
-llm: pr-conversation -> author (The latest reviewer comment says the CLA is still missing and asks the author to sign it, so the author needs to act next.)
-
-PR #3445
-llm: PRRT_kwDOD0IL4851T3iG -> author (A reviewer noted that `console.trace()` should also capture a stack trace, so the author needs to update the instrumentation or respond to the review.)
-llm: PRRT_kwDOD0IL4852x7-G -> reviewer (The only visible comment is from the author explaining their rationale in response to a likely review concern, so the ball is back with the reviewer to acknowledge or continue the review.)
-
-PR #3436
-llm: PRRT_kwDOD0IL4850SKfT -> author (A reviewer asked whether the comment should stay, so the author needs to जवाब/respond or revise it.)
-llm: PRRT_kwDOD0IL4853tHyx -> author (The reviewer is asking for a code change (`:memory` -> `:memory:`), so the PR author needs to respond by updating the implementation or explaining why not.)
-llm: pr-conversation -> external (The author says they’ve asked about this in SemConv Slack, so the thread is waiting on an external response outside the repository.)
-
-PR #3435
-llm: pr-conversation -> author (The latest comment is a reviewer asking for feedback on the proposed split/deprecation plan, so the PR author needs to respond.)
-
-PR #3422
-llm: PRRT_kwDOD0IL485-n0WD -> author (A reviewer asked for a code change and there was no author reply, so the PR author needs to act.)
-llm: pr-conversation -> reviewer (The author asked a question and no reviewer has जवाबd yet, so the next action is on the reviewer to clarify what instrumentation is meant.)
-
-PR #3420
-llm: PRRT_kwDOD0IL485zIKQN -> author (The last comment is from a reviewer and raises a workaround suggestion tied to an external issue, so the PR author should respond or act on it.)
-
-PR #3380
-llm: PRRT_kwDOD0IL485uebWd -> author (A reviewer requested adding `server.address`/`server.port`, and there’s no author reply yet, so the author needs to act.)
-llm: PRRT_kwDOD0IL485zVrDa -> reviewer (The last comment is from the author and asks back whether the readme text is still valid across many packages, so the reviewer/maintainer needs to जवाब or confirm next.)
-llm: PRRT_kwDOD0IL4856J30_ -> author (The last comment is a reviewer making a substantive point about span name construction, so the author needs to respond or adjust the PR.)
-
-PR #3377
-llm: pr-conversation -> author (The reviewer asked for documentation/spec confirmation and raised a concern; the author needs to जवाब/clarify before the thread can close.)
-
-PR #3356
-llm: PRRT_kwDOD0IL4857MDI7 -> author (A reviewer suggested changing the type to `string | null`, so the PR author needs to respond or make that update.)
-llm: PRRT_kwDOD0IL4857MEyK -> author (A reviewer asked whether the feature is related and suggested it may belong in a separate PR, so the author needs to respond or adjust the PR.)
-
-PR #3328
-llm: PRRT_kwDOD0IL485pjD_O -> author (The latest reviewer/approver comment proposes a test strategy and asks for the author’s opinion, so the author needs to respond or implement a follow-up.)
-llm: pr-conversation -> author (A reviewer asked the PR author whether they had time to review the latest comments, so the author needs to respond.)
-
-PR #3276
-llm: pr-conversation -> author (The reviewer left a CHANGES_REQUESTED comment and there is no author follow-up yet, so the author needs to respond or update the PR.)
-
-PR #3231
-llm: pr-conversation -> author (The latest comment is from a reviewer/approver pushing back and explaining why the change is unnecessary, so the author needs to respond or adjust the PR.)
-
-PR #3200
-llm: pr-conversation -> none (The only comment is a reviewer note stating the change fixes the issue and makes #3276 redundant, with no explicit follow-up requested.)
-
-PR #3194
-llm: PRRT_kwDOD0IL485hkbTm -> author (The last comment is a reviewer asking for a TS union type instead of a raw string, so the author needs to make or address that change.)
-
-PR #3010
-llm: pr-conversation -> reviewer (The only comment is from a reviewer cc’ing component owners, so the next step is for reviewers/maintainers to respond or review.)
-
-PR #2976
-llm: PRRT_kwDOD0IL485XchqF -> author (The reviewer asked for a code change: move to a local `src/semconv.ts` file instead of using the `/incubating` entry point, so the PR author needs to update the implementation.)
-llm: pr-conversation -> external (The last reviewer comment says acceptance depends on a semconv-repo proposal and newer experimental semconv support, so progress is blocked outside this repository.)
-
-```
-
-</details>
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
