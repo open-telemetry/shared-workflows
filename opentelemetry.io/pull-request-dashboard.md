@@ -49,7 +49,7 @@
 | [\[ja\] add translation of content/en/docs/languages/dotnet/instrumentation.md (#10539)](https://github.com/open-telemetry/opentelemetry.io/pull/10539) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [Auto-update registry versions (c41e9cf383f4d1ac8f3407973b76ef7ae18c397f) (#10556)](https://github.com/open-telemetry/opentelemetry.io/pull/10556) | app/otelbot |  | ✅ | ✅ | 22h |
 | [\[es\] Translate docs/guidance/reference-implementations/adobe/index.md (#10558)](https://github.com/open-telemetry/opentelemetry.io/pull/10558) | mwimpelberg28 |  | ✅ | ✅ | 19h |
-| [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs |  | ⏳ | ✅ | 2m |
+| [Update Collector component tables for v0.155.0 (#10570)](https://github.com/open-telemetry/opentelemetry.io/pull/10570) | app/otelbot-docs |  | ❌ | ✅ | 4m |
 
 ## Waiting on authors
 
@@ -90,7 +90,7 @@
 | [Add blog post: Call for Contributors — OpenTelemetry for Dart and Flutter (#10360)](https://github.com/open-telemetry/opentelemetry.io/pull/10360) | michaelbushe | maryliag&nbsp;✅<br>svrnm&nbsp;✅ | ✅ | ✅ | 12h |
 | [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️ | ❌ | ✅ | 12h |
 | [Add PHP class auto-instrumentation to registry (#9716)](https://github.com/open-telemetry/opentelemetry.io/pull/9716) | eerzho | ChrisLightfootWild&nbsp;✔️<br>maryliag<br>theletterf<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 8h |
-| [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo |  | ✅ | ❌ | 43m |
+| [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo |  | ✅ | ❌ | 44m |
 
 ## Waiting on external
 
