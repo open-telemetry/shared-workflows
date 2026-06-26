@@ -52,7 +52,7 @@
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm | ? | ✅ | 10h |
 | [Add Oodle AI to OpenTelemetry Registry (#10575)](https://github.com/open-telemetry/opentelemetry.io/pull/10575) | eragon512 |  | ✅ | ✅ | 8h |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh |  | ? | ✅ | 8h |
-| [Add approve-registry-update skill (#10582)](https://github.com/open-telemetry/opentelemetry.io/pull/10582) | chalin |  | ⏳ | ✅ | 21m |
+| [Add approve-registry-update skill (#10582)](https://github.com/open-telemetry/opentelemetry.io/pull/10582) | chalin |  | ⏳ | ✅ | 22m |
 
 ## Waiting on authors
 
