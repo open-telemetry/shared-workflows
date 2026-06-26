@@ -49,7 +49,7 @@
 | [\[ja\] add translation of content/en/docs/languages/dotnet/instrumentation.md (#10539)](https://github.com/open-telemetry/opentelemetry.io/pull/10539) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [Auto-update registry versions (c41e9cf383f4d1ac8f3407973b76ef7ae18c397f) (#10556)](https://github.com/open-telemetry/opentelemetry.io/pull/10556) | app/otelbot |  | ✅ | ✅ | 18h |
 | [\[es\] Translate docs/guidance/reference-implementations/adobe/index.md (#10558)](https://github.com/open-telemetry/opentelemetry.io/pull/10558) | mwimpelberg28 |  | ✅ | ✅ | 14h |
-| [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo |  | ⏳ | ❌ | <1m |
+| [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo |  | ⏳ | ❌ | 1m |
 
 ## Waiting on authors
 
