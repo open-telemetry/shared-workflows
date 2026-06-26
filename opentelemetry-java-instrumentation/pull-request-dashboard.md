@@ -24,8 +24,8 @@
 | [Implement configurable metric bridge metric suppression (#19048)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19048) | somiljain2006 |  | ✅ | ✅ | 6d |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 14h |
 | [Fix ambiguous IPv6 address in db.connection_string for MySQL/MariaDB (#19078)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19078) | bhuvan-somisetty |  | ✅ | ✅ | 13h |
-| [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ❌ | ✅ | 10h |
-| [Update pinned latest dep versions (#19085)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19085) | app/otelbot |  | ⏳ | ✅ | 26m |
+| [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ❌ | ✅ | 11h |
+| [Update pinned latest dep versions (#19085)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19085) | app/otelbot |  | ⏳ | ✅ | 27m |
 
 ## Waiting on authors
 
