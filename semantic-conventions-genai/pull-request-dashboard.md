@@ -19,8 +19,8 @@
 | [Add Agent Framework reference scenario (#325)](https://github.com/open-telemetry/semantic-conventions-genai/pull/325) | eavanvalkenburg | lmolkova&nbsp;✅ | ✅ | ❌ | 2d |
 | [\[chore\] Add signal requirement level to yaml and jinja templates (#340)](https://github.com/open-telemetry/semantic-conventions-genai/pull/340) | lmolkova |  | ✅ | ✅ | 1d |
 | [gen-ai: model agent-to-agent handoff as execute_tool span (#98)](https://github.com/open-telemetry/semantic-conventions-genai/pull/98) | Krishnachaitanyakc | lmolkova<br>MikeGoldsmith&nbsp;✅<br>trask | ✅ | ❌ | 5h |
-| [\[chore\] Add basic agents.md (#342)](https://github.com/open-telemetry/semantic-conventions-genai/pull/342) | lmolkova | trask&nbsp;💬⁠✅ | ⏳ | ✅ | 58m |
-| [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova |  | ⏳ | ✅ | 31m |
+| [\[chore\] Add basic agents.md (#342)](https://github.com/open-telemetry/semantic-conventions-genai/pull/342) | lmolkova | trask&nbsp;💬⁠✅ | ⏳ | ✅ | 59m |
+| [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova |  | ⏳ | ✅ | 32m |
 
 ## Waiting on authors
 
