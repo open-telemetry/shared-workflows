@@ -1,8 +1,12 @@
 # Pull Request Dashboard
 
-A centrally-executed shared workflow that builds and publishes a per-repository pull request triage dashboard for opted-in OpenTelemetry repositories. The workflow scans open PRs in each target repository, classifies who has the next action, publishes the dashboard as a GitHub issue in that repository, and (optionally) sends Slack notifications.
+A centralized shared workflow that builds and publishes a per-repository pull request triage dashboard for opted-in OpenTelemetry repositories. For each target repository, the workflow scans open PRs, classifies who has the next action, publishes the dashboard as a GitHub issue, and optionally sends Slack notifications.
 
 The workflow runs from `open-telemetry/shared-workflows` and targets the repositories listed in [`repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json). Target repositories do not need to host any workflow files.
+
+Webhook-triggered incremental runs keep active dashboards close to real time. Hourly full runs provide a backstop for missed or delayed events.
+
+The classification cache reuses prior results for unchanged review threads, minimizing Copilot token usage.
 
 ## Dashboard columns
 
@@ -25,17 +29,17 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   - ✅ no conflicts
   - ❌ has conflicts
   - `?` could not be determined
-- **Age** — **Time the party currently expected to act has been waiting — _not_ the calendar age of the PR.** A six-month-old PR that received a reviewer comment yesterday shows `1d` (the author has been holding the ball for one day), not six months. Computed in this priority order:
-  1. Time since the oldest pending review thread directed at the routed party (e.g. the oldest unresolved thread the author owes a reply on, when the PR is *Waiting on authors*).
-  2. Time since the most recent activity from the _opposite_ party — for *Waiting on authors*, the latest approver/reviewer activity; for *Waiting on reviewers* / *Waiting on maintainers*, the latest author activity; for *Waiting on external*, the latest external activity.
-  3. Time since the most recent activity timestamp overall.
-  4. PR creation time (last-resort fallback).
-
-  Format: `<1m`, `Xm` (under an hour), `Xh` (under a day), or `Xd` (days).
+- **Age** — How long the PR has been waiting on the current next-action owner,
+  not the calendar age of the PR. For example, a six-month-old PR that received a
+  reviewer comment yesterday shows `1d` when it is waiting on the author. When
+  possible, this is based on the oldest pending thread for the routed party;
+  otherwise it falls back to the latest activity from the opposite party, then
+  to recent PR activity or PR creation time. Format: `<1m`, `Xm`, `Xh`, or
+  `Xd`.
 
 ## How to opt in
 
-Open a pull request adding an entry for your repository to [`.github/scripts/pull-request-dashboard/repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json):
+Open a pull request that adds your repository to [`.github/scripts/pull-request-dashboard/repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json):
 
 ```json
 [
@@ -55,15 +59,15 @@ Fields:
 
 | Field | Required | Description |
 | ----- | -------- | ----------- |
-| `name` | yes | Repository name under `open-telemetry`. |
+| `name` | yes | Name of the repository under `open-telemetry`. |
 | `approver_teams` | yes | GitHub team slugs whose members count as approvers. |
 | `required_approvals` | yes | Number of approvals required for an open PR to be marked ready to merge. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 
-Ask a maintainer or admin to add the repo to the list of repositories under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
+Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
-Once the PR is merged, the dashboard will pick up your repository on its next scheduled run. To manually trigger it sooner, see [Manual runs](#manual-runs) below. The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title — if it does not exist, the publish step creates the label and issue.
+Once the PR is merged, the dashboard will pick up your repository on its next hourly full run. To run it sooner, see [Manual full run](#manual-full-run). The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title; if it does not exist, the publish step creates the label and issue.
 
 ## One-time PR guidance comment
 
@@ -79,7 +83,7 @@ the dashboard from treating stale or ambiguous threads as the wrong next action.
 The target repository GitHub App is installed on each configured repository.
 The workflow creates repository-scoped app installation tokens with
 `PR_DASHBOARD_CLIENT_ID` and `PR_DASHBOARD_PRIVATE_KEY`, then uses those tokens for
-target repository API reads/writes and approver team membership reads.
+API reads/writes and approver team membership reads in the target repository.
 
 Slack notifications use the shared `SLACK_WEBHOOK_URL` secret. Each repository
 can route notifications to its own `slack_channel` and map GitHub logins to
@@ -88,7 +92,7 @@ configured skip Slack notification processing.
 
 ## Prerequisites
 
-The target repository GitHub App must be installed on your repository. The workflow creates repository-scoped app installation tokens with `PR_DASHBOARD_CLIENT_ID` and `PR_DASHBOARD_PRIVATE_KEY`. See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for the GitHub App configuration this repo uses.
+The target repository GitHub App must be installed on your repository. See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for the GitHub App configuration this repo uses.
 
 ## State
 
@@ -101,12 +105,12 @@ semantic-conventions-genai/dashboard-state.json
 opentelemetry-java-instrumentation/dashboard-state.json
 ```
 
-This allows one central workflow to manage multiple target repositories without
+This lets one central workflow manage multiple target repositories without
 state collisions.
 
 ## Implementation
 
-The workflow YAML and scripts that run this workflow live in this repo at:
+The workflow YAML and supporting scripts live in this repo:
 
 - [`.github/workflows/pull-request-dashboard.yml`](../.github/workflows/pull-request-dashboard.yml) — top-level orchestrator
 - [`.github/workflows/pull-request-dashboard-repo.yml`](../.github/workflows/pull-request-dashboard-repo.yml) — per-repository job
@@ -116,20 +120,11 @@ The workflow YAML and scripts that run this workflow live in this repo at:
 See [`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md) for the architecture and tradeoffs behind the design.
 See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for GitHub App webhook permissions and dispatch setup.
 
-## Manual runs
+## Manual full run
 
-Manual run for one repository:
-
-```text
-workflow_dispatch:
-  repository: opentelemetry-java-instrumentation
-```
-
-Scheduled runs process every configured repository.
-
-## Notes
-
-- Full rebuilds run in GitHub Actions, not Netlify background functions.
-- GraphQL review threads are paged in groups of 10 to reduce GraphQL point cost
-  while preserving the existing thread/comment data shape.
-- Slack notification state remains git-backed and repository-namespaced.
+To manually run a full dashboard rebuild, open the
+[Pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml),
+choose **Run workflow**, and populate the `repository` field with the target
+repository name under `open-telemetry`, for example
+`opentelemetry-java-instrumentation`. Leave `repository` empty to process every
+configured repository.

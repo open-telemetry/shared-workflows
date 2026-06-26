@@ -37,6 +37,7 @@ the implementation understandable and operationally cheap.
 
 - Dashboard and notification state are stored on a git branch rather than in the
   live dashboard issue body.
+- Dashboard and notification state files are namespaced by target repository.
 - Updates use `git push --force-with-lease`, so git refs provide the durable
   compare-and-swap boundary for concurrent runs.
 - Full rebuilds write the complete current state; targeted PR runs merge one PR
@@ -56,6 +57,8 @@ the implementation understandable and operationally cheap.
 ## Classification Cache
 
 - LLM classification cache is stored with `actions/cache`.
+- Unchanged review threads reuse cached classifications and avoid new Copilot
+  calls.
 - Cache keys are scoped by target repository and by either PR number or full
   rebuild.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
