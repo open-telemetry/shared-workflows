@@ -31,8 +31,8 @@
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 7d |
 | [feat(sdk-node): wire up tracer_provider.sampler from declarative config (#6847)](https://github.com/open-telemetry/opentelemetry-js/pull/6847) | MikeGoldsmith |  | ✅ | ✅ | 2d |
 | [perf(sdk-metrics): optionally capture active context for sync instruments (#6848)](https://github.com/open-telemetry/opentelemetry-js/pull/6848) | legendecas |  | ✅ | ✅ | 1d |
-| [doc(sdk-node): encourage configuration of NodeSDK that does not result in default resource attributes being excluded by accident (#6857)](https://github.com/open-telemetry/opentelemetry-js/pull/6857) | trentm | pichlermarc&nbsp;✅<br>trentm | ✅ | ✅ | 15h |
-| [feat(propagator-env-carrier): make EnvironmentGetter read the current process.env (#6853)](https://github.com/open-telemetry/opentelemetry-js/pull/6853) | pellared | kamphaus&nbsp;✔️<br>trentm&nbsp;🔴 | ✅ | ✅ | 2h |
+| [doc(sdk-node): encourage configuration of NodeSDK that does not result in default resource attributes being excluded by accident (#6857)](https://github.com/open-telemetry/opentelemetry-js/pull/6857) | trentm | pichlermarc&nbsp;✅<br>trentm | ✅ | ✅ | 16h |
+| [feat(propagator-env-carrier): make EnvironmentGetter read the current process.env (#6853)](https://github.com/open-telemetry/opentelemetry-js/pull/6853) | pellared | kamphaus&nbsp;✔️<br>trentm&nbsp;🔴 | ✅ | ✅ | 3h |
 
 ## Waiting on authors
 
