@@ -19,6 +19,7 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell | ❌ | ❌ | 7d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ❌ | 1d |
 | [Update dependency langchain to v1 \[SECURITY\] (#172)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/172) | app/renovate |  | ✅ | ✅ | 2h |
+| [Update all patch versions (#174)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/174) | app/renovate |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -32,12 +33,6 @@
 | [Move capture_message_content kwarg logic to genai-utils (#140)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/140) | rads-1996 | lmolkova&nbsp;🔴 | ❌ | ✅ | 7d |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lzchen&nbsp;✅ | ✅ | ❌ | 4d |
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | rads-1996&nbsp;💬 | ❌ | ✅ | 6h |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [Update all patch versions (#174)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/174) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
 
