@@ -55,7 +55,7 @@
 | [Add time_budget value for gen_ai.agent.finish_reason (#267)](https://github.com/open-telemetry/semantic-conventions-genai/pull/267) | Nik-Reddy | 15d |
 | [genai: add `gen_ai.token.cache` and `gen_ai.token.reasoning` metric attributes (#96)](https://github.com/open-telemetry/semantic-conventions-genai/pull/96) | Nik-Reddy | 15d |
 | [Scope PR dashboard Slack notifications (#282)](https://github.com/open-telemetry/semantic-conventions-genai/pull/282) | trask | 15d |
-| [Add gen_ai.agent.identity.id and gen_ai.agent.identity.name: agent identity distinct from the deployed resource (#350)](https://github.com/open-telemetry/semantic-conventions-genai/pull/350) | AraiYuno | 45m |
+| [Add gen_ai.agent.identity.id and gen_ai.agent.identity.name: agent identity distinct from the deployed resource (#350)](https://github.com/open-telemetry/semantic-conventions-genai/pull/350) | AraiYuno | 46m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
