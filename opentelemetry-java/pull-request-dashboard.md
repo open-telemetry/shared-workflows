@@ -20,8 +20,8 @@
 | [Update dependency org.jetbrains.kotlin:kotlin-gradle-plugin to v2.4.0 (#8521)](https://github.com/open-telemetry/opentelemetry-java/pull/8521) | app/renovate |  | ❌ | ✅ | 3d |
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ✅ | ✅ | 23h |
 | [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 17h |
-| [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ⏳ | ✅ | 11m |
-| [More suppress test loggers (#8547)](https://github.com/open-telemetry/opentelemetry-java/pull/8547) | jack-berg |  | ⏳ | ✅ | 4m |
+| [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 14m |
+| [More suppress test loggers (#8547)](https://github.com/open-telemetry/opentelemetry-java/pull/8547) | jack-berg |  | ⏳ | ✅ | 7m |
 
 ## Waiting on authors
 
