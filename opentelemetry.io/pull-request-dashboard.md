@@ -10,7 +10,7 @@
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 16d |
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 2d |
 | [Update opentelemetry-configuration version to v1.1.0 (#10550)](https://github.com/open-telemetry/opentelemetry.io/pull/10550) | app/otelbot | jack-berg&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 1d |
-| [Update community members (#10571)](https://github.com/open-telemetry/opentelemetry.io/pull/10571) | app/otelbot-docs | vitorvasc&nbsp;✅ | ✅ | ✅ | 2h |
+| [Update community members (#10571)](https://github.com/open-telemetry/opentelemetry.io/pull/10571) | app/otelbot-docs | vitorvasc&nbsp;✅ | ✅ | ✅ | 3h |
 
 ## Waiting on reviewers
 
