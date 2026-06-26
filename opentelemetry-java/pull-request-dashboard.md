@@ -35,7 +35,7 @@
 | [Add a ConfigProvider callback for runtime instrumentation option changes (#8076)](https://github.com/open-telemetry/opentelemetry-java/pull/8076) | jackshirazi | jack-berg<br>trask | ❌ | ❌ | 10d |
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 9d |
 | [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ❌ | ✅ | 1d |
-| [Suppress more test logs (#8536)](https://github.com/open-telemetry/opentelemetry-java/pull/8536) | jack-berg | psx95&nbsp;💬 | ✅ | ❌ | <1m |
+| [Suppress more test logs (#8536)](https://github.com/open-telemetry/opentelemetry-java/pull/8536) | jack-berg | psx95&nbsp;💬 | ✅ | ❌ | 1m |
 
 ## Waiting on external
 
