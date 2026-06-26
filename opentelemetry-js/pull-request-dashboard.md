@@ -55,7 +55,7 @@
 | [chore: Add size-limit check on Pull Requests (#6706)](https://github.com/open-telemetry/opentelemetry-js/pull/6706) | JPeer264 | pichlermarc&nbsp;💬 | ❌ | ❌ | 1d |
 | [feat(api, context-async): add experimental attach/detach functionality (#6845)](https://github.com/open-telemetry/opentelemetry-js/pull/6845) | pichlermarc | legendecas&nbsp;💬 | ✅ | ✅ | 1d |
 | [feat(sdk-trace): add AlwaysRecordSampler (#6168)](https://github.com/open-telemetry/opentelemetry-js/pull/6168) | majanjua-amzn | david-luna&nbsp;✅<br>dyladan<br>pichlermarc<br>trentm&nbsp;✅ | ✅ | ❌ | 1d |
-| [chore(*): migrate use of sdk-trace-base and sdk-trace-node to sdk-trace (#6851)](https://github.com/open-telemetry/opentelemetry-js/pull/6851) | trentm | pichlermarc&nbsp;💬⁠✅<br>trentm | ✅ | ❌ | <1m |
+| [chore(*): migrate use of sdk-trace-base and sdk-trace-node to sdk-trace (#6851)](https://github.com/open-telemetry/opentelemetry-js/pull/6851) | trentm | pichlermarc&nbsp;💬⁠✅<br>trentm | ✅ | ❌ | 1m |
 
 ## Waiting on external
 
