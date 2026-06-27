@@ -54,8 +54,8 @@
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 9h |
 | [Housekeeping: automated fix results (#10584)](https://github.com/open-telemetry/opentelemetry.io/pull/10584) | app/otelbot-docs |  | ✅ | ✅ | 7h |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | dashpole&nbsp;✔️<br>didiViking&nbsp;✔️<br>pellared&nbsp;✔️<br>svrnm<br>YElayyat&nbsp;✔️ | ✅ | ✅ | 5h |
-| [Update community members (#10585)](https://github.com/open-telemetry/opentelemetry.io/pull/10585) | app/otelbot-docs |  | ✅ | ✅ | 51m |
-| [Auto-update registry versions (76fcb036a755dafca243d852aa383db771ea0800) (#10586)](https://github.com/open-telemetry/opentelemetry.io/pull/10586) | app/otelbot |  | ⏳ | ✅ | <1m |
+| [Update community members (#10585)](https://github.com/open-telemetry/opentelemetry.io/pull/10585) | app/otelbot-docs |  | ✅ | ✅ | 52m |
+| [Auto-update registry versions (76fcb036a755dafca243d852aa383db771ea0800) (#10586)](https://github.com/open-telemetry/opentelemetry.io/pull/10586) | app/otelbot |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
