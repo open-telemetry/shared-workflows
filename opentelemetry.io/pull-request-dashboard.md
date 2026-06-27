@@ -53,9 +53,9 @@
 | [Update community members (#10585)](https://github.com/open-telemetry/opentelemetry.io/pull/10585) | app/otelbot-docs |  | ✅ | ✅ | 1h |
 | [Auto-update registry versions (76fcb036a755dafca243d852aa383db771ea0800) (#10586)](https://github.com/open-telemetry/opentelemetry.io/pull/10586) | app/otelbot |  | ✅ | ✅ | 1h |
 | [\[ja\] add translation of content/en/docs/guidance/reference-implementations/mastodon/index.md (#10506)](https://github.com/open-telemetry/opentelemetry.io/pull/10506) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 2m |
-| [\[ja\] add translation of content/en/blog/2023/k8s-runtime-observability/index.md (#10505)](https://github.com/open-telemetry/opentelemetry.io/pull/10505) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
+| [\[ja\] add translation of content/en/blog/2023/k8s-runtime-observability/index.md (#10505)](https://github.com/open-telemetry/opentelemetry.io/pull/10505) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 2m |
 | [\[ja\] docs(i18n): update content/ja/docs/contributing/blog.md (#10551)](https://github.com/open-telemetry/opentelemetry.io/pull/10551) | Msksgm | ymotongpoo&nbsp;✔️ | ✅ | ✅ | 1m |
-| [\[ja\] add translation of content/en/blog/2022/why-and-how-ebay-pivoted-to-opentelemetry/index.md (#10507)](https://github.com/open-telemetry/opentelemetry.io/pull/10507) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] add translation of content/en/blog/2022/why-and-how-ebay-pivoted-to-opentelemetry/index.md (#10507)](https://github.com/open-telemetry/opentelemetry.io/pull/10507) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 
 ## Waiting on authors
 
