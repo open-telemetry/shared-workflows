@@ -10,8 +10,8 @@
 | [feat(sdk-trace): add AlwaysRecordSampler (#6168)](https://github.com/open-telemetry/opentelemetry-js/pull/6168) | majanjua-amzn | david-luna&nbsp;✅<br>dyladan<br>pichlermarc<br>trentm&nbsp;✅ | ✅ | ✅ | 213d |
 | [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ⏳ | ✅ | 82d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 71d |
-| [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 10h |
-| [chore(sdk-node)!: Drop support for deprecated OpenCensusMetricProducer from declarative config (#6860)](https://github.com/open-telemetry/opentelemetry-js/pull/6860) | trentm | maryliag&nbsp;✅<br>trentm | ✅ | ✅ | 7h |
+| [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 11h |
+| [chore(sdk-node)!: Drop support for deprecated OpenCensusMetricProducer from declarative config (#6860)](https://github.com/open-telemetry/opentelemetry-js/pull/6860) | trentm | maryliag&nbsp;✅<br>trentm | ✅ | ✅ | 8h |
 
 ## Waiting on reviewers
 
@@ -41,7 +41,7 @@
 | [perf(sdk-metrics): improve performance of hashAttributes() util (#6515)](https://github.com/open-telemetry/opentelemetry-js/pull/6515) | gunjam | dyladan&nbsp;💬 | ❌ | ❌ | 95d |
 | [perf(sdk-trace-base): avoid _getTime for default Span.startTime (#6528)](https://github.com/open-telemetry/opentelemetry-js/pull/6528) | daniellockyer | david-luna&nbsp;💬<br>dyladan | ✅ | ❌ | 88d |
 | [feat(sdk): implement exporter metrics (#6480)](https://github.com/open-telemetry/opentelemetry-js/pull/6480) | anuraaga | overbalance&nbsp;💬⁠✔️<br>trentm&nbsp;✅ | ✅ | ❌ | 77d |
-| [feat(opentelemetry-exporter-prometheus): add translation strategy support (#6653)](https://github.com/open-telemetry/opentelemetry-js/pull/6653) | cjihrig | ArthurSens&nbsp;💬<br>github-advanced-security&nbsp;💬<br>JacksonWeber&nbsp;💬 | ❌ | ❌ | 53d |
+| [feat(opentelemetry-exporter-prometheus): add translation strategy support (#6653)](https://github.com/open-telemetry/opentelemetry-js/pull/6653) | cjihrig | ArthurSens&nbsp;💬<br>github-advanced-security&nbsp;💬<br>JacksonWeber&nbsp;💬 | ❌ | ❌ | 54d |
 | [fix(instrumentation): lazily initialize require-in-the-middle for empty instrumentations (#6590)](https://github.com/open-telemetry/opentelemetry-js/pull/6590) | biw | pichlermarc | ❌ | ✅ | 46d |
 | [fix(otlp-exporter-base): honor env proxy settings (#6660)](https://github.com/open-telemetry/opentelemetry-js/pull/6660) | cyphercodes | pichlermarc<br>raphael-theriault-swi&nbsp;✅<br>trentm&nbsp;💬 | ✅ | ✅ | 42d |
 | [docs(otlp-exporter-base): document HTTP exporter options (#6735)](https://github.com/open-telemetry/opentelemetry-js/pull/6735) | macayu17 |  | ✅ | ✅ | 36d |
@@ -52,8 +52,8 @@
 | [docs(configuration): add declarative config example for startNodeSDK() (#6834)](https://github.com/open-telemetry/opentelemetry-js/pull/6834) | MikeGoldsmith | maryliag&nbsp;💬 | ✅ | ❌ | 7d |
 | [feat(sdk-logs): implement log processor metrics (#6554)](https://github.com/open-telemetry/opentelemetry-js/pull/6554) | anuraaga | JacksonWeber<br>trentm&nbsp;💬 | ❌ | ❌ | 7d |
 | [chore: Add size-limit check on Pull Requests (#6706)](https://github.com/open-telemetry/opentelemetry-js/pull/6706) | JPeer264 | pichlermarc&nbsp;💬 | ❌ | ❌ | 2d |
-| [feat(api, context-async): add experimental attach/detach functionality (#6845)](https://github.com/open-telemetry/opentelemetry-js/pull/6845) | pichlermarc | legendecas&nbsp;💬 | ✅ | ✅ | 11h |
-| [feat(sdk-node): wire up tracer_provider.sampler from declarative config (#6847)](https://github.com/open-telemetry/opentelemetry-js/pull/6847) | MikeGoldsmith | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 7h |
+| [feat(api, context-async): add experimental attach/detach functionality (#6845)](https://github.com/open-telemetry/opentelemetry-js/pull/6845) | pichlermarc | legendecas&nbsp;💬 | ✅ | ✅ | 13h |
+| [feat(sdk-node): wire up tracer_provider.sampler from declarative config (#6847)](https://github.com/open-telemetry/opentelemetry-js/pull/6847) | MikeGoldsmith | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 9h |
 
 ## Waiting on external
 
