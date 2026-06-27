@@ -19,9 +19,9 @@
 | [gen-ai: model agent-to-agent handoff as execute_tool span (#98)](https://github.com/open-telemetry/semantic-conventions-genai/pull/98) | Krishnachaitanyakc | lmolkova<br>MikeGoldsmith&nbsp;✅<br>trask | ✅ | ✅ | 1d |
 | [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova |  | ✅ | ✅ | 1d |
 | [Add Agent Framework reference scenario (#325)](https://github.com/open-telemetry/semantic-conventions-genai/pull/325) | eavanvalkenburg | lmolkova&nbsp;✅ | ✅ | ✅ | 1d |
-| [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 22h |
-| [Propose GenAI agent entity (#270)](https://github.com/open-telemetry/semantic-conventions-genai/pull/270) | aabmass | AgentGymLeader&nbsp;✔️<br>lmolkova&nbsp;✅<br>trask | ✅ | ✅ | 20h |
-| [Migrate anthropic reference scenario to opentelemetry-util-genai (#324)](https://github.com/open-telemetry/semantic-conventions-genai/pull/324) | AgentGymLeader | lmolkova | ✅ | ✅ | 8h |
+| [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 23h |
+| [Propose GenAI agent entity (#270)](https://github.com/open-telemetry/semantic-conventions-genai/pull/270) | aabmass | AgentGymLeader&nbsp;✔️<br>lmolkova&nbsp;✅<br>trask | ✅ | ✅ | 21h |
+| [Migrate anthropic reference scenario to opentelemetry-util-genai (#324)](https://github.com/open-telemetry/semantic-conventions-genai/pull/324) | AgentGymLeader | lmolkova | ✅ | ✅ | 9h |
 
 ## Waiting on authors
 
