@@ -46,7 +46,7 @@
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls |  | ✅ | ✅ | 11h |
 | [feat: \[es\] New translation content/es/docs/languages/cpp/getting-star… (#10172)](https://github.com/open-telemetry/opentelemetry.io/pull/10172) | Paken | chalin<br>immavalls&nbsp;✔️<br>krol3&nbsp;✔️ | ✅ | ✅ | 11h |
 | [Housekeeping: automated fix results (#10591)](https://github.com/open-telemetry/opentelemetry.io/pull/10591) | app/otelbot-docs |  | ✅ | ✅ | 30m |
-| [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 1m |
+| [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 2m |
 
 ## Waiting on authors
 
@@ -87,7 +87,7 @@
 | [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 1d |
 | [\[ja\] add translation of content/en/docs/languages/dotnet/instrumentation.md (#10539)](https://github.com/open-telemetry/opentelemetry.io/pull/10539) | ymotongpoo |  | ✅ | ✅ | 13h |
 | [\[ja\] add translation of content/en/blog/2023/testing-otel-demo/index.md (#10536)](https://github.com/open-telemetry/opentelemetry.io/pull/10536) | ymotongpoo |  | ✅ | ✅ | 12h |
-| [\[es\] Translate docs/guidance/reference-implementations/adobe/index.md (#10558)](https://github.com/open-telemetry/opentelemetry.io/pull/10558) | mwimpelberg28 |  | ⏳ | ✅ | 11h |
+| [\[es\] Translate docs/guidance/reference-implementations/adobe/index.md (#10558)](https://github.com/open-telemetry/opentelemetry.io/pull/10558) | mwimpelberg28 |  | ✅ | ✅ | 11h |
 
 ## Waiting on external
 
