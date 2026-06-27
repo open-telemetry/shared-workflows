@@ -7,10 +7,10 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [chore(deps): update dependency &#64;rollup/plugin-commonjs to v29 - manually fixed (#3200)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3200) | app/renovate | dyladan<br>legendecas<br>martinkuba<br>overbalance&nbsp;✔️<br>pichlermarc<br>pkanal<br>trentm<br>wolfgangcodes | ⏳ | ❌ | 238d |
+| [chore(deps): update dependency &#64;rollup/plugin-commonjs to v29 - manually fixed (#3200)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3200) | app/renovate | dyladan<br>legendecas<br>martinkuba<br>overbalance&nbsp;✔️<br>pichlermarc<br>pkanal<br>trentm<br>wolfgangcodes | ⏳ | ❌ | 239d |
 | [feat(instrumentation-ioredis): add Redis Cluster instrumentation support (#3010)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3010) | PavelPashov | blumamir<br>naseemkullah<br>pichlermarc | ✅ | ❌ | 233d |
 | [chore(deps): update dependency expect to v30 (#3213)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3213) | app/renovate | blumamir<br>dyladan<br>JamieDanielson<br>jj22ee<br>legendecas<br>maryliag<br>MikeGoldsmith<br>mottibec<br>pichlermarc<br>trentm | ❌ | ✅ | 232d |
-| [chore(deps): update dependency chai to v6 (#3276)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3276) | app/renovate | dyladan<br>legendecas<br>martinkuba<br>pichlermarc<br>pkanal<br>trentm<br>wolfgangcodes | ❌ | ✅ | 203d |
+| [chore(deps): update dependency chai to v6 (#3276)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3276) | app/renovate | dyladan<br>legendecas<br>martinkuba<br>pichlermarc<br>pkanal<br>trentm<br>wolfgangcodes | ❌ | ✅ | 204d |
 | [fix(instrumentation-ioredis): correctly mark MULTI/PIPELINE in operation name (#3278)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3278) | aryamohanan | blumamir<br>naseemkullah<br>pichlermarc | ✅ | ✅ | 203d |
 | [chore(deps): update dependency mongodb to v7 (#3419)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3419) | app/renovate | dyladan<br>legendecas<br>onurtemizkan<br>pichlermarc<br>trentm | ❌ | ✅ | 113d |
 | [chore(deps): update dependency node to v24 (#3420)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3420) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm&nbsp;💬 | ✅ | ✅ | 113d |
@@ -22,7 +22,7 @@
 | [fix(instrumentation-express): prevent post-handler middleware from overwriting rpcMetadata.route (#3521)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3521) | Luffy-nani | JamieDanielson<br>pkanal<br>raphael-theriault-swi | ✅ | ✅ | 43d |
 | [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 36d |
 | [chore: release main (#3568)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3568) | app/otelbot-js-contrib | blumamir<br>d4nyll<br>dyladan<br>hectorhdzg<br>JamieDanielson<br>legendecas<br>pichlermarc<br>pkanal<br>raphael-theriault-swi<br>yiyuan-he | ✅ | ✅ | 15d |
-| [chore(deps): update dependency &#64;cucumber/cucumber to v13 (#3575)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3575) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm<br>Ugzuzg | ❌ | ✅ | 7d |
+| [chore(deps): update dependency &#64;cucumber/cucumber to v13 (#3575)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3575) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm<br>Ugzuzg | ❌ | ✅ | 8d |
 | [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 6d |
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 1d |
 
