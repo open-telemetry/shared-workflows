@@ -8,7 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 52d |
-| [chore: update instrumentation list \[automated\] (#19089)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19089) | app/otelbot-java-instrumentation | jaydeluca&nbsp;✅ | ✅ | ✅ | 7h |
+| [chore: update instrumentation list \[automated\] (#19089)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19089) | app/otelbot-java-instrumentation | jaydeluca&nbsp;✅ | ✅ | ✅ | 8h |
 
 ## Waiting on reviewers
 
@@ -26,7 +26,7 @@
 | [Gate process command attributes under v3 preview (#19082)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082) | trask |  | ✅ | ✅ | 1d |
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ✅ | ✅ | 1d |
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | 21h |
-| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 1h |
+| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 2h |
 
 ## Waiting on authors
 
@@ -40,8 +40,7 @@
 | [Use Arguments.argumentSet() for named parameterized test cases (#18975)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18975) | zeitlinger | laurit<br>trask&nbsp;💬 | ✅ | ✅ | 14d |
 | [feat(kafka): add messaging.kafka.cluster.id from client reflection (#18978)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978) | shashank-reddy-nr |  | ✅ | ❌ | 14d |
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 2d |
-| [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask | ❌ | ✅ | 1d |
-| [getModuleGroup removal using common class-loaders for instrumentation modules. (#18859)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859) | SylvainJuge | JonasKunz&nbsp;✅<br>laurit&nbsp;💬<br>SylvainJuge<br>trask | ✅ | ✅ | 18h |
+| [getModuleGroup removal using common class-loaders for instrumentation modules. (#18859)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18859) | SylvainJuge | JonasKunz&nbsp;✅<br>laurit&nbsp;💬<br>SylvainJuge<br>trask | ✅ | ✅ | 19h |
 
 ## Waiting on external
 
@@ -67,6 +66,7 @@
 | [Add support for capturing and extracting Dubbo response status codes (#16688)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16688) | steverao | 10d |
 | [Unify database batch tests into parameterized scenario tests (#19019)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19019) | trask | 8d |
 | [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | 1d |
+| [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | <1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
