@@ -11,7 +11,7 @@
 | [feat(instrumentation-ioredis): add Redis Cluster instrumentation support (#3010)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3010) | PavelPashov | blumamir<br>naseemkullah<br>pichlermarc | ✅ | ❌ | 233d |
 | [chore(deps): update dependency expect to v30 (#3213)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3213) | app/renovate | blumamir<br>dyladan<br>JamieDanielson<br>jj22ee<br>legendecas<br>maryliag<br>MikeGoldsmith<br>mottibec<br>pichlermarc<br>trentm | ❌ | ✅ | 232d |
 | [chore(deps): update dependency chai to v6 (#3276)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3276) | app/renovate | dyladan<br>legendecas<br>martinkuba<br>pichlermarc<br>pkanal<br>trentm<br>wolfgangcodes | ❌ | ✅ | 204d |
-| [fix(instrumentation-ioredis): correctly mark MULTI/PIPELINE in operation name (#3278)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3278) | aryamohanan | blumamir<br>naseemkullah<br>pichlermarc | ✅ | ✅ | 203d |
+| [fix(instrumentation-ioredis): correctly mark MULTI/PIPELINE in operation name (#3278)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3278) | aryamohanan | blumamir<br>naseemkullah<br>pichlermarc | ✅ | ✅ | 204d |
 | [chore(deps): update dependency mongodb to v7 (#3419)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3419) | app/renovate | dyladan<br>legendecas<br>onurtemizkan<br>pichlermarc<br>trentm | ❌ | ✅ | 113d |
 | [chore(deps): update dependency node to v24 (#3420)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3420) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm&nbsp;💬 | ✅ | ✅ | 113d |
 | [fix(graphql): rewrap late-added resolvers (#3447)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3447) | Farhan-Abbas | obecny | ❌ | ✅ | 99d |
@@ -20,10 +20,10 @@
 | [chore(deps): update dependency &#64;nestjs/core to v11.1.18 \[security\] (#3468)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3468) | app/renovate | dyladan<br>legendecas<br>neilime<br>pichlermarc<br>trentm | ❌ | ✅ | 81d |
 | [chore(deps): update dependency babel-plugin-istanbul to v8 (#3502)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3502) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 57d |
 | [fix(instrumentation-express): prevent post-handler middleware from overwriting rpcMetadata.route (#3521)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3521) | Luffy-nani | JamieDanielson<br>pkanal<br>raphael-theriault-swi | ✅ | ✅ | 43d |
-| [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 36d |
+| [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 37d |
 | [chore: release main (#3568)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3568) | app/otelbot-js-contrib | blumamir<br>d4nyll<br>dyladan<br>hectorhdzg<br>JamieDanielson<br>legendecas<br>pichlermarc<br>pkanal<br>raphael-theriault-swi<br>yiyuan-he | ✅ | ✅ | 16d |
 | [chore(deps): update dependency &#64;cucumber/cucumber to v13 (#3575)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3575) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm<br>Ugzuzg | ❌ | ✅ | 8d |
-| [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 6d |
+| [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 7d |
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 1d |
 
 ## Waiting on authors
