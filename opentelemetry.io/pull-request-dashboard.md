@@ -127,7 +127,7 @@
 | [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 19h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 19h |
 | [\[ja\] add translation of content/en/blog/2026/demystifying-opentelemetry/index.md (#10587)](https://github.com/open-telemetry/opentelemetry.io/pull/10587) | ymotongpoo | 36m |
-| [Refresh refcache (#10588)](https://github.com/open-telemetry/opentelemetry.io/pull/10588) | app/otelbot-docs | 11m |
+| [Refresh refcache (#10588)](https://github.com/open-telemetry/opentelemetry.io/pull/10588) | app/otelbot-docs | 12m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
