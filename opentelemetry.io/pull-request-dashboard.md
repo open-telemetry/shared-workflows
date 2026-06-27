@@ -46,7 +46,7 @@
 | [\[ja\] add translation of content/en/docs/languages/erlang/instrumentation.md (#10516)](https://github.com/open-telemetry/opentelemetry.io/pull/10516) | ymotongpoo |  | ✅ | ✅ | 13h |
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls |  | ✅ | ✅ | 11h |
 | [feat: \[es\] New translation content/es/docs/languages/cpp/getting-star… (#10172)](https://github.com/open-telemetry/opentelemetry.io/pull/10172) | Paken | chalin<br>immavalls&nbsp;✔️<br>krol3&nbsp;✔️ | ✅ | ✅ | 11h |
-| [Housekeeping: automated fix results (#10591)](https://github.com/open-telemetry/opentelemetry.io/pull/10591) | app/otelbot-docs |  | ⏳ | ✅ | <1m |
+| [Housekeeping: automated fix results (#10591)](https://github.com/open-telemetry/opentelemetry.io/pull/10591) | app/otelbot-docs |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
