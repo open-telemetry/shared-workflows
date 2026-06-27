@@ -26,7 +26,7 @@
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ✅ | ✅ | 1d |
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | 19h |
 | [chore: update instrumentation list \[automated\] (#19089)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19089) | app/otelbot-java-instrumentation | jaydeluca | ✅ | ✅ | 5h |
-| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ⏳ | ✅ | <1m |
+| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
