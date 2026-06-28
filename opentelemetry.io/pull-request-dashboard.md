@@ -47,7 +47,7 @@
 | [Housekeeping: automated fix results (#10591)](https://github.com/open-telemetry/opentelemetry.io/pull/10591) | app/otelbot-docs |  | ✅ | ✅ | 6h |
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 5h |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ❌ | ✅ | 3h |
-| [\[ja\] add translation of content/en/blog/2025/mainframe-survey/index.md (#10557)](https://github.com/open-telemetry/opentelemetry.io/pull/10557) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
+| [\[ja\] add translation of content/en/blog/2025/mainframe-survey/index.md (#10557)](https://github.com/open-telemetry/opentelemetry.io/pull/10557) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 2m |
 | [\[ja\] add translation of content/en/blog/2023/testing-otel-demo/index.md (#10536)](https://github.com/open-telemetry/opentelemetry.io/pull/10536) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 | [\[ja\] add translation of content/en/blog/2026/demystifying-opentelemetry/index.md (#10587)](https://github.com/open-telemetry/opentelemetry.io/pull/10587) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 
