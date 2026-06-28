@@ -47,11 +47,11 @@
 | [feat: \[es\] New translation content/es/docs/languages/cpp/getting-star… (#10172)](https://github.com/open-telemetry/opentelemetry.io/pull/10172) | Paken | chalin<br>immavalls&nbsp;✔️<br>krol3&nbsp;✔️ | ✅ | ✅ | 15h |
 | [Housekeeping: automated fix results (#10591)](https://github.com/open-telemetry/opentelemetry.io/pull/10591) | app/otelbot-docs |  | ✅ | ✅ | 4h |
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 3h |
-| [\[ja\] update translation of content/en/docs/languages/java/configuration.md (#10592)](https://github.com/open-telemetry/opentelemetry.io/pull/10592) | ymotongpoo | kota-sakuma&nbsp;✔️ | ✅ | ✅ | 2h |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ❌ | ✅ | 1h |
 | [\[ja\] add translation of content/en/blog/2026/demystifying-opentelemetry/index.md (#10587)](https://github.com/open-telemetry/opentelemetry.io/pull/10587) | ymotongpoo |  | ✅ | ✅ | 1h |
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo |  | ✅ | ✅ | 49m |
-| [\[ja\] add translation of content/en/blog/2025/mainframe-survey/index.md (#10557)](https://github.com/open-telemetry/opentelemetry.io/pull/10557) | ymotongpoo |  | ⏳ | ✅ | 24m |
+| [\[ja\] add translation of content/en/blog/2025/mainframe-survey/index.md (#10557)](https://github.com/open-telemetry/opentelemetry.io/pull/10557) | ymotongpoo |  | ⏳ | ✅ | 25m |
+| [\[ja\] update translation of content/en/docs/languages/java/configuration.md (#10592)](https://github.com/open-telemetry/opentelemetry.io/pull/10592) | ymotongpoo | kota-sakuma&nbsp;✔️ | ✅ | ✅ | <1m |
 
 ## Waiting on authors
 
