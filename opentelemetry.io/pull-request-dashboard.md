@@ -29,7 +29,6 @@
 | [CI: Add plan to PR lifecycle automation (#10369)](https://github.com/open-telemetry/opentelemetry.io/pull/10369) | vitorvasc | chalin | ✅ | ✅ | 11d |
 | [\[i18n\]\[ko\] Localize glossary to Korean (#10448)](https://github.com/open-telemetry/opentelemetry.io/pull/10448) | krapie |  | ✅ | ✅ | 11d |
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin | ✅ | ❌ | 6d |
-| [\[ja\] add translation of content/en/docs/zero-code/java/agent/extensions.md (#10517)](https://github.com/open-telemetry/opentelemetry.io/pull/10517) | ymotongpoo | kota-sakuma&nbsp;✔️ | ✅ | ✅ | 4d |
 | [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ❌ | ✅ | 4d |
 | [feat: \[pt\] Create docs/platforms/kubernetes/_index.md (#10581)](https://github.com/open-telemetry/opentelemetry.io/pull/10581) | dmroch4 |  | ✅ | ✅ | 4d |
 | [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 |  | ✅ | ✅ | 4d |
@@ -48,6 +47,7 @@
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 1h |
 | [\[ja\] update translation of content/en/docs/languages/java/configuration.md (#10592)](https://github.com/open-telemetry/opentelemetry.io/pull/10592) | ymotongpoo |  | ⏳ | ✅ | 2m |
 | [\[ja\] update translation of content/en/docs/demo/_index.md (#10568)](https://github.com/open-telemetry/opentelemetry.io/pull/10568) | ymotongpoo | kohbis&nbsp;✔️ | ⏳ | ✅ | 2m |
+| [\[ja\] add translation of content/en/docs/zero-code/java/agent/extensions.md (#10517)](https://github.com/open-telemetry/opentelemetry.io/pull/10517) | ymotongpoo | kota-sakuma&nbsp;✔️ | ✅ | ✅ | <1m |
 
 ## Waiting on authors
 
