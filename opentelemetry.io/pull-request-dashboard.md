@@ -46,6 +46,7 @@
 | [feat: \[es\] New translation content/es/docs/languages/cpp/getting-star… (#10172)](https://github.com/open-telemetry/opentelemetry.io/pull/10172) | Paken | chalin<br>immavalls&nbsp;✔️<br>krol3&nbsp;✔️ | ✅ | ✅ | 13h |
 | [Housekeeping: automated fix results (#10591)](https://github.com/open-telemetry/opentelemetry.io/pull/10591) | app/otelbot-docs |  | ✅ | ✅ | 2h |
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 1h |
+| [\[ja\] update translation of content/en/docs/languages/java/configuration.md (#10592)](https://github.com/open-telemetry/opentelemetry.io/pull/10592) | ymotongpoo |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
@@ -94,12 +95,6 @@
 |---|---|---|:---:|:---:|:---:|
 | [Clarify status levels and semconv stability on Languages page (#9711)](https://github.com/open-telemetry/opentelemetry.io/pull/9711) | franrob-projects | simi&nbsp;✔️<br>tiffany76 | ❌ | ✅ | 14d |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬 | ❌ | ✅ | 11d |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [\[ja\] update translation of content/en/docs/languages/java/configuration.md (#10592)](https://github.com/open-telemetry/opentelemetry.io/pull/10592) | ymotongpoo |  | ? | ? | ? |
 
 ## Draft pull requests
 
