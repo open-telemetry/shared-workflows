@@ -46,7 +46,7 @@
 | [feat: \[es\] New translation content/es/docs/languages/cpp/getting-star… (#10172)](https://github.com/open-telemetry/opentelemetry.io/pull/10172) | Paken | chalin<br>immavalls&nbsp;✔️<br>krol3&nbsp;✔️ | ✅ | ✅ | 12h |
 | [Housekeeping: automated fix results (#10591)](https://github.com/open-telemetry/opentelemetry.io/pull/10591) | app/otelbot-docs |  | ✅ | ✅ | 1h |
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 1h |
-| [\[ja\] add translation of content/en/blog/2025/demystifying-auto-instrumentation.md (#10531)](https://github.com/open-telemetry/opentelemetry.io/pull/10531) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] add translation of content/en/blog/2025/demystifying-auto-instrumentation.md (#10531)](https://github.com/open-telemetry/opentelemetry.io/pull/10531) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 
 ## Waiting on authors
 
