@@ -28,9 +28,9 @@
 | [opentelemetry-instrumentation-genai-openai-agents: handle MCPListToolsSpanData (#100)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/100) | Jwrede | lmolkova&nbsp;💬 | ✅ | ❌ | 29d |
 | [util-genai \| Add MCPInvocation type for MCP span (#105)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/105) | etserend | shuningc&nbsp;💬 | ✅ | ✅ | 26d |
 | [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 16d |
-| [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;💬⁠✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 12d |
+| [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;💬⁠✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 13d |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 2d |
-| [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | bhumikadangayach&nbsp;💬<br>rads-1996&nbsp;💬 | ❌ | ✅ | 9h |
+| [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | bhumikadangayach&nbsp;💬<br>rads-1996&nbsp;💬 | ❌ | ✅ | 10h |
 
 ## Draft pull requests
 
