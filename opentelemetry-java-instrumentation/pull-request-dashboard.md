@@ -25,8 +25,8 @@
 | [Gate process command attributes under v3 preview (#19082)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082) | trask |  | ✅ | ✅ | 2d |
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | trask | ✅ | ✅ | 1d |
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | 1d |
-| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 20h |
-| [Update pinned latest dep versions (#19090)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19090) | app/otelbot |  | ⏳ | ✅ | 2m |
+| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 21h |
+| [Update pinned latest dep versions (#19090)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19090) | app/otelbot |  | ⏳ | ✅ | 16m |
 
 ## Waiting on authors
 
