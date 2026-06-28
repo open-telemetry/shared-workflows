@@ -19,42 +19,42 @@
 | [feat(detector-aws): detect Lambda availability zone metadata (#3460)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3460) | garysassano | jj22ee | ✅ | ✅ | 90d |
 | [chore(deps): update dependency &#64;nestjs/core to v11.1.18 \[security\] (#3468)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3468) | app/renovate | dyladan<br>legendecas<br>neilime<br>pichlermarc<br>trentm | ❌ | ✅ | 82d |
 | [chore(deps): update dependency babel-plugin-istanbul to v8 (#3502)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3502) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 58d |
-| [fix(instrumentation-express): prevent post-handler middleware from overwriting rpcMetadata.route (#3521)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3521) | Luffy-nani | JamieDanielson<br>pkanal<br>raphael-theriault-swi | ✅ | ✅ | 44d |
+| [fix(instrumentation-express): prevent post-handler middleware from overwriting rpcMetadata.route (#3521)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3521) | Luffy-nani | JamieDanielson<br>pkanal<br>raphael-theriault-swi | ✅ | ✅ | 45d |
 | [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 38d |
 | [chore: release main (#3568)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3568) | app/otelbot-js-contrib | blumamir<br>d4nyll<br>dyladan<br>hectorhdzg<br>JamieDanielson<br>legendecas<br>pichlermarc<br>pkanal<br>raphael-theriault-swi<br>yiyuan-he | ✅ | ✅ | 17d |
 | [chore(deps): update dependency &#64;cucumber/cucumber to v13 (#3575)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3575) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm<br>Ugzuzg | ❌ | ✅ | 9d |
 | [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 8d |
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 2d |
-| [chore(eslint): use canonical n/ prefix for eslint-plugin-n in flat config (#3581)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3581) | bhuvan-somisetty |  | ✅ | ✅ | 20h |
-| [fix(instrumentation-koa): use fallback name for anonymous middleware spans (#3582)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3582) | bhuvan-somisetty |  | ✅ | ✅ | 7h |
+| [chore(eslint): use canonical n/ prefix for eslint-plugin-n in flat config (#3581)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3581) | bhuvan-somisetty |  | ✅ | ✅ | 22h |
+| [fix(instrumentation-koa): use fallback name for anonymous middleware spans (#3582)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3582) | bhuvan-somisetty |  | ✅ | ✅ | 8h |
 
 ## Waiting on authors
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [feat(instrumentation-amqp): adds latest semantic conventions (#2976)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/2976) | lucas-gregoire | blumamir<br>JamieDanielson<br>pichlermarc<br>trentm&nbsp;🔴 | ❌ | ✅ | 318d |
+| [feat(instrumentation-amqp): adds latest semantic conventions (#2976)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/2976) | lucas-gregoire | blumamir<br>JamieDanielson<br>pichlermarc<br>trentm&nbsp;🔴 | ❌ | ✅ | 319d |
 | [feat(instrumentation-openai): support Responses API (#3194)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3194) | btomaj | hectorhdzg&nbsp;💬<br>JacksonWeber&nbsp;✅<br>pichlermarc<br>raphael-theriault-swi<br>seemk<br>trentm&nbsp;✅ | ❌ | ✅ | 225d |
 | [ci: Update Renovate configuration to best practices (#3231)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3231) | thompson-tomo | pichlermarc&nbsp;🔴 | ✅ | ✅ | 219d |
 | [feat(instr-runtime-node): add configurable gcDurationBuckets option (#3328)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3328) | lukeramsden | d4nyll<br>david-luna&nbsp;💬<br>maryliag&nbsp;💬<br>pichlermarc<br>trentm | ❌ | ❌ | 159d |
 | [feat: add neo4j instrumentation (#3380)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3380) | t2t2 | mhennoch<br>seemk&nbsp;💬<br>t2t2<br>thompson-tomo&nbsp;💬 | ✅ | ❌ | 135d |
 | [fix(instrumentation-sequelize): do not include 'server.address' for SQLite DB spans (#3436)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3436) | trentm | maryliag&nbsp;💬<br>mhennoch<br>seemk&nbsp;💬<br>t2t2<br>trentm | ✅ | ✅ | 106d |
-| [fix(instrumentation-pino): Allow control over logged fields (#3356)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3356) | jnloureiro | dyladan&nbsp;💬<br>seemk | ✅ | ✅ | 73d |
-| [feat(resource-detector-aws): read cloud.account.id from symlink in Lambda detector (#3377)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3377) | RaphaelManke | dyladan<br>jj22ee | ✅ | ✅ | 73d |
+| [fix(instrumentation-pino): Allow control over logged fields (#3356)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3356) | jnloureiro | dyladan&nbsp;💬<br>seemk | ✅ | ✅ | 74d |
+| [feat(resource-detector-aws): read cloud.account.id from symlink in Lambda detector (#3377)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3377) | RaphaelManke | dyladan<br>jj22ee | ✅ | ✅ | 74d |
 | [feat(nestjs): add instrumentation for NestJS microservice (#3435)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3435) | neilime | blumamir<br>david-luna<br>dyladan<br>legendecas<br>neilime<br>pichlermarc | ❌ | ❌ | 60d |
 | [fix(instrumentation-aws-lambda): handle non-configurable exports from esbuild CJS bundles (#3422)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3422) | RaphaelManke | jj22ee&nbsp;💬<br>raphael-theriault-swi | ✅ | ✅ | 59d |
-| [feat(auto-instrumentations-node): opt-in crash flush via OTEL_NODE_FLUSH_ON_CRASH (#3505)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3505) | ElfoLiNk | blumamir<br>dyladan<br>legendecas<br>pichlermarc<br>raphael-theriault-swi | ✅ | ✅ | 53d |
+| [feat(auto-instrumentations-node): opt-in crash flush via OTEL_NODE_FLUSH_ON_CRASH (#3505)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3505) | ElfoLiNk | blumamir<br>dyladan<br>legendecas<br>pichlermarc<br>raphael-theriault-swi | ✅ | ✅ | 54d |
 | [fix(instrumentation-knex): use resolved connection settings (#3493)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3493) | Genmin | david-luna | ❌ | ✅ | 6d |
 
 ## Draft pull requests
 
 | PR | Author | Updated |
 |---|---|:---:|
-| [test(auto-instrumentations-node): reproduce blocking process termination (#3348)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3348) | basti1302 | 159d |
+| [test(auto-instrumentations-node): reproduce blocking process termination (#3348)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3348) | basti1302 | 160d |
 | [fix(instrumentation-pg): correct `db.client.connection.count` metric counting to handle multiple pg pools (#3367)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3367) | trentm | 149d |
-| [refactor(sampler-aws-xray): change internals to be promise-based to improve test stability (#3396)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3396) | pichlermarc | 128d |
+| [refactor(sampler-aws-xray): change internals to be promise-based to improve test stability (#3396)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3396) | pichlermarc | 129d |
 | [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 81d |
 | [feat(instrumentation-nats): add instrumentation nats package (#3352)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3352) | giacomoquinalia | 55d |
-| [Feature/kafka cluster (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 22h |
+| [Feature/kafka cluster (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 23h |
 
 <details>
 <summary>Diagnostics</summary>
