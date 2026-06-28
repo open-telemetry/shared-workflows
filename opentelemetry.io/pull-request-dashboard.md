@@ -95,6 +95,12 @@
 | [Clarify status levels and semconv stability on Languages page (#9711)](https://github.com/open-telemetry/opentelemetry.io/pull/9711) | franrob-projects | simi&nbsp;✔️<br>tiffany76 | ❌ | ✅ | 14d |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬 | ❌ | ✅ | 11d |
 
+## Unknown
+
+| PR | Author | Reviewers | CI | Conflicts | Age |
+|---|---|---|:---:|:---:|:---:|
+| [\[ja\] update translation of content/en/docs/languages/java/configuration.md (#10592)](https://github.com/open-telemetry/opentelemetry.io/pull/10592) | ymotongpoo |  | ? | ? | ? |
+
 ## Draft pull requests
 
 | PR | Author | Updated |
