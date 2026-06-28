@@ -51,7 +51,7 @@
 | [\[ja\] add translation of content/en/blog/2026/demystifying-opentelemetry/index.md (#10587)](https://github.com/open-telemetry/opentelemetry.io/pull/10587) | ymotongpoo |  | ✅ | ✅ | 1h |
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo |  | ✅ | ✅ | 49m |
 | [\[ja\] add translation of content/en/blog/2025/mainframe-survey/index.md (#10557)](https://github.com/open-telemetry/opentelemetry.io/pull/10557) | ymotongpoo |  | ⏳ | ✅ | 25m |
-| [\[ja\] update translation of content/en/docs/languages/java/configuration.md (#10592)](https://github.com/open-telemetry/opentelemetry.io/pull/10592) | ymotongpoo | kota-sakuma&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] update translation of content/en/docs/languages/java/configuration.md (#10592)](https://github.com/open-telemetry/opentelemetry.io/pull/10592) | ymotongpoo | kota-sakuma&nbsp;✔️ | ✅ | ✅ | 1m |
 
 ## Waiting on authors
 
