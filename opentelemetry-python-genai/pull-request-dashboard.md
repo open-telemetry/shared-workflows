@@ -24,7 +24,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Add streaming timing metrics to generic stream wrappers (#13)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/13) | Nik-Reddy | aabmass<br>eternalcuriouslearner&nbsp;🔴<br>lmolkova&nbsp;🔴<br>lzchen&nbsp;💬<br>MikeGoldsmith&nbsp;🔴 | ✅ | ❌ | 30d |
+| [Add streaming timing metrics to generic stream wrappers (#13)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/13) | Nik-Reddy | aabmass<br>eternalcuriouslearner&nbsp;🔴<br>lmolkova&nbsp;🔴<br>lzchen&nbsp;💬<br>MikeGoldsmith&nbsp;🔴 | ✅ | ❌ | 31d |
 | [opentelemetry-instrumentation-genai-openai-agents: handle MCPListToolsSpanData (#100)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/100) | Jwrede | lmolkova&nbsp;💬 | ✅ | ❌ | 28d |
 | [util-genai \| Add MCPInvocation type for MCP span (#105)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/105) | etserend | shuningc&nbsp;💬 | ✅ | ✅ | 26d |
 | [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 16d |
