@@ -44,7 +44,7 @@
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ❌ | ✅ | 1d |
 | [\[ja\] update translation of content/en/docs/zero-code/java/_index.md (#10596)](https://github.com/open-telemetry/opentelemetry.io/pull/10596) | ymotongpoo |  | ✅ | ✅ | 16h |
 | [Update all patch versions (#10599)](https://github.com/open-telemetry/opentelemetry.io/pull/10599) | app/renovate |  | ⏳ | ✅ | 3m |
-| [Update all minor versions to v25.2.1 (#10600)](https://github.com/open-telemetry/opentelemetry.io/pull/10600) | app/renovate |  | ⏳ | ✅ | 2m |
+| [Update all minor versions to v25.2.1 (#10600)](https://github.com/open-telemetry/opentelemetry.io/pull/10600) | app/renovate |  | ✅ | ✅ | 3m |
 
 ## Waiting on authors
 
