@@ -120,7 +120,7 @@
 | [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 22h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 22h |
 | [Refresh refcache (#10588)](https://github.com/open-telemetry/opentelemetry.io/pull/10588) | app/otelbot-docs | 2h |
-| [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | 51m |
+| [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | 52m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
