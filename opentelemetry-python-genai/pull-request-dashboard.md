@@ -19,8 +19,8 @@
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 12d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅ | ❌ | ❌ | 10d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 4d |
-| [Update dependency google-genai to v2.10.0 (#177)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/177) | app/renovate |  | ✅ | ✅ | 4m |
-| [Update dependency grpcio to &lt;1.81.2 (#178)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/178) | app/renovate |  | ⏳ | ✅ | 4m |
+| [Update dependency google-genai to v2.10.0 (#177)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/177) | app/renovate |  | ✅ | ✅ | 5m |
+| [Update dependency grpcio to &lt;1.81.2 (#178)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/178) | app/renovate |  | ✅ | ✅ | 5m |
 
 ## Waiting on authors
 
