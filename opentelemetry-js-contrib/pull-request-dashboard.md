@@ -9,11 +9,11 @@
 |---|---|---|:---:|:---:|:---:|
 | [chore(deps): update dependency &#64;rollup/plugin-commonjs to v29 - manually fixed (#3200)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3200) | app/renovate | dyladan<br>legendecas<br>martinkuba<br>overbalance&nbsp;✔️<br>pichlermarc<br>pkanal<br>trentm<br>wolfgangcodes | ⏳ | ❌ | 240d |
 | [feat(instrumentation-ioredis): add Redis Cluster instrumentation support (#3010)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3010) | PavelPashov | blumamir<br>naseemkullah<br>pichlermarc | ✅ | ❌ | 235d |
-| [chore(deps): update dependency expect to v30 (#3213)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3213) | app/renovate | blumamir<br>dyladan<br>JamieDanielson<br>jj22ee<br>legendecas<br>maryliag<br>MikeGoldsmith<br>mottibec<br>pichlermarc<br>trentm | ❌ | ✅ | 233d |
+| [chore(deps): update dependency expect to v30 (#3213)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3213) | app/renovate | blumamir<br>dyladan<br>JamieDanielson<br>jj22ee<br>legendecas<br>maryliag<br>MikeGoldsmith<br>mottibec<br>pichlermarc<br>trentm | ❌ | ✅ | 234d |
 | [chore(deps): update dependency chai to v6 (#3276)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3276) | app/renovate | dyladan<br>legendecas<br>martinkuba<br>pichlermarc<br>pkanal<br>trentm<br>wolfgangcodes | ❌ | ✅ | 205d |
 | [fix(instrumentation-ioredis): correctly mark MULTI/PIPELINE in operation name (#3278)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3278) | aryamohanan | blumamir<br>naseemkullah<br>pichlermarc | ✅ | ✅ | 205d |
-| [chore(deps): update dependency mongodb to v7 (#3419)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3419) | app/renovate | dyladan<br>legendecas<br>onurtemizkan<br>pichlermarc<br>trentm | ❌ | ✅ | 114d |
-| [chore(deps): update dependency node to v24 (#3420)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3420) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm&nbsp;💬 | ✅ | ✅ | 114d |
+| [chore(deps): update dependency mongodb to v7 (#3419)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3419) | app/renovate | dyladan<br>legendecas<br>onurtemizkan<br>pichlermarc<br>trentm | ❌ | ✅ | 115d |
+| [chore(deps): update dependency node to v24 (#3420)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3420) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm&nbsp;💬 | ✅ | ✅ | 115d |
 | [fix(graphql): rewrap late-added resolvers (#3447)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3447) | Farhan-Abbas | obecny | ❌ | ✅ | 100d |
 | [feat(instrumentation-aws-sdk): inject trace context into Kinesis PutR… (#3433)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3433) | mosheshaham-dash0 | blumamir<br>jj22ee<br>trivikr | ✅ | ✅ | 95d |
 | [feat(detector-aws): detect Lambda availability zone metadata (#3460)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3460) | garysassano | jj22ee | ✅ | ✅ | 90d |
@@ -26,7 +26,7 @@
 | [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 8d |
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 3d |
 | [chore(eslint): use canonical n/ prefix for eslint-plugin-n in flat config (#3581)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3581) | bhuvan-somisetty |  | ✅ | ✅ | 1d |
-| [fix(instrumentation-koa): use fallback name for anonymous middleware spans (#3582)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3582) | bhuvan-somisetty |  | ✅ | ✅ | 15h |
+| [fix(instrumentation-koa): use fallback name for anonymous middleware spans (#3582)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3582) | bhuvan-somisetty |  | ✅ | ✅ | 16h |
 
 ## Waiting on authors
 
@@ -54,7 +54,7 @@
 | [refactor(sampler-aws-xray): change internals to be promise-based to improve test stability (#3396)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3396) | pichlermarc | 129d |
 | [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 81d |
 | [feat(instrumentation-nats): add instrumentation nats package (#3352)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3352) | giacomoquinalia | 55d |
-| [Feature/kafka cluster (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 5h |
+| [Feature/kafka cluster (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 6h |
 
 <details>
 <summary>Diagnostics</summary>
