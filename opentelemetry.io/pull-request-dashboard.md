@@ -11,7 +11,7 @@
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 5d |
 | [Update Python version support to 3.10 and higher (#10579)](https://github.com/open-telemetry/opentelemetry.io/pull/10579) | emdneto | maryliag&nbsp;✅ | ✅ | ✅ | 2d |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | svrnm&nbsp;✅ | ❌ | ✅ | 1h |
-| [Registry: fix capitalized boolean values (#10615)](https://github.com/open-telemetry/opentelemetry.io/pull/10615) | chalin | vitorvasc&nbsp;✅ | ⏳ | ✅ | 2m |
+| [Registry: fix capitalized boolean values (#10615)](https://github.com/open-telemetry/opentelemetry.io/pull/10615) | chalin | vitorvasc&nbsp;✅ | ⏳ | ✅ | 3m |
 
 ## Waiting on reviewers
 
