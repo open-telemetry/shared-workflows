@@ -86,7 +86,7 @@
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 14h |
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;💬 | ✅ | ❌ | 9h |
 | [feat: \[es\] New translation - es/docs/languages/java/intro.md (#9973)](https://github.com/open-telemetry/opentelemetry.io/pull/9973) | roko1987-k8s |  | ❌ | ✅ | 8h |
-| [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | chalin&nbsp;💬 | ⏳ | ✅ | <1m |
+| [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | chalin&nbsp;💬 | ⏳ | ✅ | 1m |
 
 ## Waiting on external
 
