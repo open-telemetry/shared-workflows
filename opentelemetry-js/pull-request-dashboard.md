@@ -32,7 +32,7 @@
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 9d |
 | [perf(sdk-metrics): optionally capture active context for sync instruments (#6848)](https://github.com/open-telemetry/opentelemetry-js/pull/6848) | legendecas |  | ✅ | ❌ | 4d |
 | [chore(deps): update all patch versions (#6862)](https://github.com/open-telemetry/opentelemetry-js/pull/6862) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 6m |
-| [chore(deps): update dependency &#64;bufbuild/buf to v1.71.0 (#6863)](https://github.com/open-telemetry/opentelemetry-js/pull/6863) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ⏳ | ✅ | 6m |
+| [chore(deps): update dependency &#64;bufbuild/buf to v1.71.0 (#6863)](https://github.com/open-telemetry/opentelemetry-js/pull/6863) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ✅ | ✅ | 6m |
 
 ## Waiting on authors
 
