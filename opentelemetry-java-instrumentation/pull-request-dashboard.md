@@ -25,7 +25,7 @@
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | 3d |
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 2d |
 | [Fix flaky pulsar test (#19095)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19095) | laurit |  | ✅ | ✅ | 8h |
-| [chore(deps): update plugin com.gradle.common-custom-user-data-gradle-plugin to v2.7.0 (#19097)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19097) | app/renovate |  | ⏳ | ✅ | <1m |
+| [chore(deps): update plugin com.gradle.common-custom-user-data-gradle-plugin to v2.7.0 (#19097)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19097) | app/renovate |  | ⏳ | ✅ | 1m |
 | [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
