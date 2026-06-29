@@ -42,7 +42,7 @@
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 1d |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ❌ | ✅ | 1d |
 | [\[ja\] add translation of content/en/blog/2023/otel-arrow/index.md (#10594)](https://github.com/open-telemetry/opentelemetry.io/pull/10594) | ymotongpoo |  | ✅ | ✅ | 1d |
-| [Update dependency js-yaml to v5 (#10603)](https://github.com/open-telemetry/opentelemetry.io/pull/10603) | app/renovate |  | ❌ | ✅ | 56m |
+| [Update dependency js-yaml to v5 (#10603)](https://github.com/open-telemetry/opentelemetry.io/pull/10603) | app/renovate |  | ❌ | ✅ | 57m |
 | [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo |  | ⏳ | ✅ | 25m |
 | [Update community members (#10605)](https://github.com/open-telemetry/opentelemetry.io/pull/10605) | app/otelbot-docs |  | ⏳ | ✅ | 3m |
 
