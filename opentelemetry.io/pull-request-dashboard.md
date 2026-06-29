@@ -42,9 +42,9 @@
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 1d |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ❌ | ✅ | 1d |
 | [\[ja\] add translation of content/en/blog/2023/otel-arrow/index.md (#10594)](https://github.com/open-telemetry/opentelemetry.io/pull/10594) | ymotongpoo |  | ✅ | ✅ | 1d |
-| [Update dependency js-yaml to v5 (#10603)](https://github.com/open-telemetry/opentelemetry.io/pull/10603) | app/renovate |  | ⏳ | ✅ | 1h |
-| [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo |  | ⏳ | ✅ | 30m |
-| [Update community members (#10605)](https://github.com/open-telemetry/opentelemetry.io/pull/10605) | app/otelbot-docs |  | ✅ | ✅ | 8m |
+| [Update dependency js-yaml to v5 (#10603)](https://github.com/open-telemetry/opentelemetry.io/pull/10603) | app/renovate |  | ✅ | ✅ | 1h |
+| [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo |  | ⏳ | ✅ | 31m |
+| [Update community members (#10605)](https://github.com/open-telemetry/opentelemetry.io/pull/10605) | app/otelbot-docs |  | ✅ | ✅ | 9m |
 
 ## Waiting on authors
 
@@ -85,7 +85,7 @@
 | [\[es\] Translate docs/guidance/reference-implementations/adobe/index.md (#10558)](https://github.com/open-telemetry/opentelemetry.io/pull/10558) | mwimpelberg28 |  | ✅ | ✅ | 1d |
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 5h |
-| [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;💬 | ✅ | ❌ | 23m |
+| [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;💬 | ✅ | ❌ | 24m |
 
 ## Waiting on external
 
