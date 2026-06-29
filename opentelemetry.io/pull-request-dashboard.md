@@ -49,7 +49,7 @@
 | [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | chalin | ⏳ | ✅ | 1h |
 | [Add Portuguese (pt) translation for JS resources page (#10308)](https://github.com/open-telemetry/opentelemetry.io/pull/10308) | brunofoggiatto | maryliag | ⏳ | ✅ | 47m |
 | [Add pt translation for JS benchmarks page (#10429)](https://github.com/open-telemetry/opentelemetry.io/pull/10429) | brunofoggiatto | maryliag | ⏳ | ✅ | 42m |
-| [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ⏳ | ✅ | 36m |
+| [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ⏳ | ✅ | 37m |
 
 ## Waiting on authors
 
