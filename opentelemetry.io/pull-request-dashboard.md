@@ -44,7 +44,7 @@
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ❌ | ✅ | 1d |
 | [\[ja\] add translation of content/en/blog/2023/otel-arrow/index.md (#10594)](https://github.com/open-telemetry/opentelemetry.io/pull/10594) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo |  | ✅ | ✅ | 44m |
-| [Update community members (#10605)](https://github.com/open-telemetry/opentelemetry.io/pull/10605) | app/otelbot-docs |  | ✅ | ✅ | 21m |
+| [Update community members (#10605)](https://github.com/open-telemetry/opentelemetry.io/pull/10605) | app/otelbot-docs |  | ✅ | ✅ | 22m |
 
 ## Waiting on authors
 
