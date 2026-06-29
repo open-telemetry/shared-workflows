@@ -7,12 +7,9 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [feat(sdk-trace): add AlwaysRecordSampler (#6168)](https://github.com/open-telemetry/opentelemetry-js/pull/6168) | majanjua-amzn | david-luna&nbsp;✅<br>dyladan<br>pichlermarc<br>trentm&nbsp;✅ | ✅ | ✅ | 215d |
 | [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ⏳ | ✅ | 84d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 74d |
 | [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 2d |
-| [chore(deps): update all patch versions (#6862)](https://github.com/open-telemetry/opentelemetry-js/pull/6862) | app/renovate | dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ✅ | ✅ | 10h |
-| [chore(deps): update dependency &#64;bufbuild/buf to v1.71.0 (#6863)](https://github.com/open-telemetry/opentelemetry-js/pull/6863) | app/renovate | dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ✅ | ✅ | 10h |
 
 ## Waiting on reviewers
 
