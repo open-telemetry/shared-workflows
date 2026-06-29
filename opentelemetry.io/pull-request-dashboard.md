@@ -18,7 +18,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Use Hugo Configuration directory (#7765)](https://github.com/open-telemetry/opentelemetry.io/pull/7765) | Andygol | chalin | ✅ | ✅ | 250d |
 | [\[CI\] DRY fix action names in PR-action workflow (#5894) (#8913)](https://github.com/open-telemetry/opentelemetry.io/pull/8913) | pratik-mahalle |  | ✅ | ❌ | 164d |
-| [Blog Post on "OpenTelemetry for Distributed Multi-Agent System Observability" (#9125)](https://github.com/open-telemetry/opentelemetry.io/pull/9125) | axsaucedo | svrnm | ✅ | ✅ | 139d |
+| [Blog Post on "OpenTelemetry for Distributed Multi-Agent System Observability" (#9125)](https://github.com/open-telemetry/opentelemetry.io/pull/9125) | axsaucedo | svrnm | ✅ | ✅ | 140d |
 | [🇺🇦 Ukrainian localization of OpenTelemetry documentation (#5891)](https://github.com/open-telemetry/opentelemetry.io/pull/5891) | Andygol | chalin&nbsp;🔴<br>svrnm&nbsp;🔴 | ✅ | ❌ | 81d |
 | [Update docker-compose.yaml to canonical compose.yaml terminology (#9611)](https://github.com/open-telemetry/opentelemetry.io/pull/9611) | akristen | simi&nbsp;✔️ | ✅ | ✅ | 81d |
 | [Add additional registry entry types (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ✅ | ✅ | 25d |
@@ -43,7 +43,7 @@
 | [ci: add persist-credentials: false to 8 remaining workflows (#10607)](https://github.com/open-telemetry/opentelemetry.io/pull/10607) | ramizqazi |  | ✅ | ✅ | 4h |
 | [\[ja\] add translation of content/en/blog/2023/otel-arrow/index.md (#10594)](https://github.com/open-telemetry/opentelemetry.io/pull/10594) | ymotongpoo |  | ✅ | ✅ | 3h |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo |  | ❌ | ✅ | 1h |
-| [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 | julianocosta89&nbsp;💬 | ⏳ | ✅ | 29m |
+| [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 | julianocosta89&nbsp;💬 | ⏳ | ✅ | 30m |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ✅ | ✅ | 23m |
 | [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ⏳ | ✅ | <1m |
 
@@ -121,7 +121,7 @@
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 1d |
 | [Refresh refcache (#10588)](https://github.com/open-telemetry/opentelemetry.io/pull/10588) | app/otelbot-docs | 4h |
 | [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | 2h |
-| [feat: Add go compile-time instrumentation registry entries (#10609)](https://github.com/open-telemetry/opentelemetry.io/pull/10609) | amazingakai | 1m |
+| [feat: Add go compile-time instrumentation registry entries (#10609)](https://github.com/open-telemetry/opentelemetry.io/pull/10609) | amazingakai | 2m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
