@@ -45,7 +45,7 @@
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ✅ | ✅ | 3h |
 | [feat: Add go compile-time instrumentation registry entries (#10609)](https://github.com/open-telemetry/opentelemetry.io/pull/10609) | amazingakai | chalin<br>kakkoyun&nbsp;✔️<br>txabman42&nbsp;✔️ | ⏳ | ✅ | 3h |
 | [feat: \[pt\] Create docs/platforms/kubernetes/_index.md (#10581)](https://github.com/open-telemetry/opentelemetry.io/pull/10581) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 3h |
-| [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 2h |
+| [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 3h |
 | [Add Portuguese (pt) translation for JS resources page (#10308)](https://github.com/open-telemetry/opentelemetry.io/pull/10308) | brunofoggiatto | maryliag | ⏳ | ✅ | 32m |
 | [Add pt translation for JS benchmarks page (#10429)](https://github.com/open-telemetry/opentelemetry.io/pull/10429) | brunofoggiatto | maryliag | ⏳ | ✅ | 26m |
 | [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ⏳ | ✅ | 21m |
@@ -86,7 +86,7 @@
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 14h |
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;💬 | ✅ | ❌ | 9h |
 | [feat: \[es\] New translation - es/docs/languages/java/intro.md (#9973)](https://github.com/open-telemetry/opentelemetry.io/pull/9973) | roko1987-k8s |  | ❌ | ✅ | 8h |
-| [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | chalin&nbsp;💬 | ⏳ | ✅ | 1m |
+| [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | chalin&nbsp;💬 | ✅ | ✅ | 1m |
 
 ## Waiting on external
 
