@@ -46,9 +46,9 @@
 | [feat: Add go compile-time instrumentation registry entries (#10609)](https://github.com/open-telemetry/opentelemetry.io/pull/10609) | amazingakai | chalin<br>kakkoyun&nbsp;✔️<br>txabman42&nbsp;✔️ | ⏳ | ✅ | 3h |
 | [feat: \[pt\] Create docs/platforms/kubernetes/_index.md (#10581)](https://github.com/open-telemetry/opentelemetry.io/pull/10581) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 3h |
 | [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 3h |
-| [Add Portuguese (pt) translation for JS resources page (#10308)](https://github.com/open-telemetry/opentelemetry.io/pull/10308) | brunofoggiatto | maryliag | ⏳ | ✅ | 49m |
-| [Add pt translation for JS benchmarks page (#10429)](https://github.com/open-telemetry/opentelemetry.io/pull/10429) | brunofoggiatto | maryliag | ⏳ | ✅ | 43m |
-| [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ⏳ | ✅ | 38m |
+| [Add Portuguese (pt) translation for JS resources page (#10308)](https://github.com/open-telemetry/opentelemetry.io/pull/10308) | brunofoggiatto | maryliag | ⏳ | ✅ | 50m |
+| [Add pt translation for JS benchmarks page (#10429)](https://github.com/open-telemetry/opentelemetry.io/pull/10429) | brunofoggiatto | maryliag | ⏳ | ✅ | 45m |
+| [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ⏳ | ✅ | 39m |
 
 ## Waiting on authors
 
@@ -93,7 +93,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Clarify status levels and semconv stability on Languages page (#9711)](https://github.com/open-telemetry/opentelemetry.io/pull/9711) | franrob-projects | simi&nbsp;✔️<br>tiffany76 | ❌ | ✅ | 16d |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬 | ❌ | ✅ | 13d |
-| [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | chalin&nbsp;✅ | ⏳ | ✅ | 1m |
+| [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | chalin&nbsp;✅ | ✅ | ✅ | 2m |
 
 ## Draft pull requests
 
@@ -103,7 +103,7 @@
 | [Configuration docs (WIP) (#8723)](https://github.com/open-telemetry/opentelemetry.io/pull/8723) | jaydeluca | 112d |
 | [\[Do not merge\] testing for Japanese  prh rule (#7671)](https://github.com/open-telemetry/opentelemetry.io/pull/7671) | Msksgm | 105d |
 | [Write-up of context propagation techniques in OBI (#8512)](https://github.com/open-telemetry/opentelemetry.io/pull/8512) | grcevski | 103d |
-| [\[CI\] AI-generated content detection workflow improvements (#8637)](https://github.com/open-telemetry/opentelemetry.io/pull/8637) | vitorvasc | 100d |
+| [\[CI\] AI-generated content detection workflow improvements (#8637)](https://github.com/open-telemetry/opentelemetry.io/pull/8637) | vitorvasc | 101d |
 | [\[i18n\]\[pl\] Localize site getting-started to Polish (#9585)](https://github.com/open-telemetry/opentelemetry.io/pull/9585) | oizzoo | 83d |
 | [Translate pl concepts (#9618)](https://github.com/open-telemetry/opentelemetry.io/pull/9618) | oizzoo | 80d |
 | [Add `/schemas` in YAML, `/schemas/list` in HTML, and a 404 page for the rest (#3537)](https://github.com/open-telemetry/opentelemetry.io/pull/3537) | chalin | 67d |
