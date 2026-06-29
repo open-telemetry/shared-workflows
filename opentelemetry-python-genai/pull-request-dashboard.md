@@ -11,8 +11,8 @@
 | [feat: add instrumentation around openai responses stream method. (#131)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/131) | eternalcuriouslearner | lmolkova&nbsp;✅ | ✅ | ✅ | 3d |
 | [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 2d |
 | [\[`opentelemetry-instrumentation-google-genai`\] Instrument the embeddings API (#176)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/176) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 2d |
-| [Update dependency google-genai to v2.10.0 (#177)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/177) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 8h |
-| [Update dependency grpcio to &lt;1.81.2 (#178)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/178) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 8h |
+| [Update dependency google-genai to v2.10.0 (#177)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/177) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 10h |
+| [Update dependency grpcio to &lt;1.81.2 (#178)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/178) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 10h |
 
 ## Waiting on reviewers
 
@@ -21,8 +21,8 @@
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 12d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅ | ❌ | ❌ | 11d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 4d |
-| [Update dependency openai to v2.44.0 (#179)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/179) | app/renovate |  | ❌ | ✅ | 3h |
-| [Update dependency sphinx-autodoc-typehints to v3.12.0 (#180)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/180) | app/renovate |  | ✅ | ✅ | 3h |
+| [Update dependency openai to v2.44.0 (#179)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/179) | app/renovate |  | ❌ | ✅ | 5h |
+| [Update dependency sphinx-autodoc-typehints to v3.12.0 (#180)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/180) | app/renovate |  | ✅ | ✅ | 5h |
 
 ## Waiting on authors
 
