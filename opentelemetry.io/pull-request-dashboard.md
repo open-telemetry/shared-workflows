@@ -49,6 +49,7 @@
 | [Add Portuguese (pt) translation for JS resources page (#10308)](https://github.com/open-telemetry/opentelemetry.io/pull/10308) | brunofoggiatto | maryliag | ❌ | ✅ | 4h |
 | [Add pt translation for JS benchmarks page (#10429)](https://github.com/open-telemetry/opentelemetry.io/pull/10429) | brunofoggiatto | maryliag | ✅ | ✅ | 4h |
 | [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ❌ | ✅ | 4h |
+| [Rename type anchors to #type-&lt;type&gt;, update url hash when type is sel… (#10620)](https://github.com/open-telemetry/opentelemetry.io/pull/10620) | jack-berg |  | ⏳ | ✅ | 4m |
 
 ## Waiting on authors
 
