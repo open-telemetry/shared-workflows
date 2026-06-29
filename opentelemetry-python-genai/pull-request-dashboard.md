@@ -21,7 +21,7 @@
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 12d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅ | ❌ | ❌ | 11d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 4d |
-| [Update dependency openai to v2.44.0 (#179)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/179) | app/renovate |  | ❌ | ✅ | <1m |
+| [Update dependency openai to v2.44.0 (#179)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/179) | app/renovate |  | ❌ | ✅ | 1m |
 | [Update dependency sphinx-autodoc-typehints to v3.12.0 (#180)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/180) | app/renovate |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
