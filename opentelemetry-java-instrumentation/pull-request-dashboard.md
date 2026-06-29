@@ -25,8 +25,8 @@
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | 3d |
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 2d |
 | [Fix flaky pulsar test (#19095)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19095) | laurit |  | ✅ | ✅ | 8h |
-| [chore(deps): update plugin com.gradle.common-custom-user-data-gradle-plugin to v2.7.0 (#19097)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19097) | app/renovate |  | ⏳ | ✅ | 4m |
-| [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ⏳ | ✅ | 4m |
+| [chore(deps): update plugin com.gradle.common-custom-user-data-gradle-plugin to v2.7.0 (#19097)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19097) | app/renovate |  | ⏳ | ✅ | 7m |
+| [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ⏳ | ✅ | 7m |
 
 ## Waiting on authors
 
@@ -42,8 +42,8 @@
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 4d |
 | [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask | ✅ | ✅ | 4d |
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | laurit&nbsp;💬<br>trask | ✅ | ✅ | 10h |
-| [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 9h |
-| [Gate process command attributes under v3 preview (#19082)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082) | trask | laurit&nbsp;✅ | ✅ | ✅ | 7h |
+| [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 10h |
+| [Gate process command attributes under v3 preview (#19082)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082) | trask | laurit&nbsp;✅ | ✅ | ✅ | 8h |
 | [Add JFR metrics for virtual thread pinning and submit failures (#19092)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19092) | tsawada | laurit&nbsp;💬 | ✅ | ✅ | 6h |
 | [feat: add commons pool2 instrumentation (#19091)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19091) | YaoYingLong | laurit&nbsp;💬 | ✅ | ✅ | 6h |
 
