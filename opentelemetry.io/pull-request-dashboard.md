@@ -42,7 +42,7 @@
 | [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo |  | ✅ | ✅ | 3h |
 | [ci: add persist-credentials: false to 8 remaining workflows (#10607)](https://github.com/open-telemetry/opentelemetry.io/pull/10607) | ramizqazi |  | ✅ | ✅ | 1h |
 | [\[ja\] add translation of content/en/blog/2023/otel-arrow/index.md (#10594)](https://github.com/open-telemetry/opentelemetry.io/pull/10594) | ymotongpoo |  | ⏳ | ✅ | 1h |
-| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo |  | ❌ | ✅ | 55m |
+| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo |  | ❌ | ✅ | 56m |
 
 ## Waiting on authors
 
@@ -120,7 +120,7 @@
 | [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 21h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 21h |
 | [Refresh refcache (#10588)](https://github.com/open-telemetry/opentelemetry.io/pull/10588) | app/otelbot-docs | 1h |
-| [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | 1m |
+| [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | 2m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
