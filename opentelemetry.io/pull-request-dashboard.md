@@ -44,7 +44,7 @@
 | [\[ja\] add translation of content/en/blog/2023/otel-arrow/index.md (#10594)](https://github.com/open-telemetry/opentelemetry.io/pull/10594) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [Update dependency js-yaml to v5 (#10603)](https://github.com/open-telemetry/opentelemetry.io/pull/10603) | app/renovate |  | ⏳ | ✅ | 59m |
 | [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo |  | ⏳ | ✅ | 28m |
-| [Update community members (#10605)](https://github.com/open-telemetry/opentelemetry.io/pull/10605) | app/otelbot-docs |  | ✅ | ✅ | 5m |
+| [Update community members (#10605)](https://github.com/open-telemetry/opentelemetry.io/pull/10605) | app/otelbot-docs |  | ✅ | ✅ | 6m |
 
 ## Waiting on authors
 
