@@ -10,6 +10,7 @@
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 18d |
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 5d |
 | [Update Python version support to 3.10 and higher (#10579)](https://github.com/open-telemetry/opentelemetry.io/pull/10579) | emdneto | maryliag&nbsp;✅ | ✅ | ✅ | 2d |
+| [Update all patch versions (#10599)](https://github.com/open-telemetry/opentelemetry.io/pull/10599) | app/renovate | vitorvasc&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
 
@@ -43,7 +44,6 @@
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 1d |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ❌ | ✅ | 1d |
 | [\[ja\] update translation of content/en/docs/zero-code/java/_index.md (#10596)](https://github.com/open-telemetry/opentelemetry.io/pull/10596) | ymotongpoo | kota-sakuma&nbsp;✔️ | ✅ | ✅ | 19h |
-| [Update all patch versions (#10599)](https://github.com/open-telemetry/opentelemetry.io/pull/10599) | app/renovate |  | ✅ | ✅ | 2h |
 | [Update all minor versions to v25.2.1 (#10600)](https://github.com/open-telemetry/opentelemetry.io/pull/10600) | app/renovate |  | ✅ | ✅ | 2h |
 
 ## Waiting on authors
@@ -84,7 +84,7 @@
 | [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 2d |
 | [\[es\] Translate docs/guidance/reference-implementations/adobe/index.md (#10558)](https://github.com/open-telemetry/opentelemetry.io/pull/10558) | mwimpelberg28 |  | ✅ | ✅ | 1d |
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo |  | ✅ | ✅ | 1d |
-| [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 3h |
+| [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 4h |
 
 ## Waiting on external
 
