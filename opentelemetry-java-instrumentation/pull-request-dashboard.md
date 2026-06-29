@@ -26,6 +26,7 @@
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 2d |
 | [Fix flaky pulsar test (#19095)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19095) | laurit |  | ✅ | ✅ | 8h |
 | [chore(deps): update plugin com.gradle.common-custom-user-data-gradle-plugin to v2.7.0 (#19097)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19097) | app/renovate |  | ⏳ | ✅ | <1m |
+| [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -51,12 +52,6 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [chore(deps): update plugin org.jetbrains.kotlin.jvm to v2.4.0 (#18948)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18948) | app/renovate | laurit | ❌ | ✅ | 19d |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
 
