@@ -11,6 +11,7 @@
 | [Kbauer/internal telemetry config (#10075)](https://github.com/open-telemetry/opentelemetry.io/pull/10075) | kb-newrelic | jade-guiton-dd&nbsp;✔️<br>songy23&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 5d |
 | [Update Python version support to 3.10 and higher (#10579)](https://github.com/open-telemetry/opentelemetry.io/pull/10579) | emdneto | maryliag&nbsp;✅ | ✅ | ✅ | 2d |
 | [Update all patch versions (#10599)](https://github.com/open-telemetry/opentelemetry.io/pull/10599) | app/renovate | vitorvasc&nbsp;✅ | ✅ | ✅ | 2h |
+| [Update all minor versions to v25.2.1 (#10600)](https://github.com/open-telemetry/opentelemetry.io/pull/10600) | app/renovate | vitorvasc&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
 
@@ -44,7 +45,6 @@
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 1d |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs |  | ❌ | ✅ | 1d |
 | [\[ja\] update translation of content/en/docs/zero-code/java/_index.md (#10596)](https://github.com/open-telemetry/opentelemetry.io/pull/10596) | ymotongpoo | kota-sakuma&nbsp;✔️ | ✅ | ✅ | 19h |
-| [Update all minor versions to v25.2.1 (#10600)](https://github.com/open-telemetry/opentelemetry.io/pull/10600) | app/renovate |  | ✅ | ✅ | 2h |
 
 ## Waiting on authors
 
