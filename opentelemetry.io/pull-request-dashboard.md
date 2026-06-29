@@ -30,7 +30,6 @@
 | [\[i18n\]\[ko\] Localize glossary to Korean (#10448)](https://github.com/open-telemetry/opentelemetry.io/pull/10448) | krapie |  | ✅ | ✅ | 12d |
 | [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ❌ | ✅ | 5d |
 | [feat: \[pt\] Create docs/platforms/kubernetes/_index.md (#10581)](https://github.com/open-telemetry/opentelemetry.io/pull/10581) | dmroch4 |  | ✅ | ✅ | 5d |
-| [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 |  | ✅ | ✅ | 5d |
 | [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan |  | ✅ | ✅ | 4d |
 | [Update opentelemetry-collector-releases version to v0.155.0 (#10549)](https://github.com/open-telemetry/opentelemetry.io/pull/10549) | app/otelbot |  | ❌ | ✅ | 4d |
 | [Dev (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 |  | ✅ | ✅ | 2d |
@@ -84,6 +83,7 @@
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 5h |
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;💬 | ✅ | ❌ | 59m |
+| [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 | vitorvasc&nbsp;💬 | ✅ | ✅ | <1m |
 
 ## Waiting on external
 
