@@ -47,7 +47,7 @@
 | [feat: Add go compile-time instrumentation registry entries (#10609)](https://github.com/open-telemetry/opentelemetry.io/pull/10609) | amazingakai | chalin<br>kakkoyun&nbsp;✔️<br>txabman42&nbsp;✔️ | ⏳ | ✅ | 2h |
 | [feat: \[pt\] Create docs/platforms/kubernetes/_index.md (#10581)](https://github.com/open-telemetry/opentelemetry.io/pull/10581) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 2h |
 | [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 2h |
-| [OBI: document wrong service attribution under port selection (#10613)](https://github.com/open-telemetry/opentelemetry.io/pull/10613) | mariomac | grcevski&nbsp;✔️ | ✅ | ✅ | 47m |
+| [OBI: document wrong service attribution under port selection (#10613)](https://github.com/open-telemetry/opentelemetry.io/pull/10613) | mariomac | grcevski&nbsp;✔️ | ✅ | ✅ | 48m |
 
 ## Waiting on authors
 
@@ -121,7 +121,7 @@
 | [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | 5h |
 | [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 2h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 2h |
-| [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | 30m |
+| [Refresh refcache (#10614)](https://github.com/open-telemetry/opentelemetry.io/pull/10614) | app/otelbot-docs | 31m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
