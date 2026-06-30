@@ -9,7 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 20d |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 3d |
-| [\[demo\] Link Grafana to its open source project instead of vendor homepage (#10624)](https://github.com/open-telemetry/opentelemetry.io/pull/10624) | cijothomas | Kielek&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 8h |
+| [\[demo\] Link Grafana to its open source project instead of vendor homepage (#10624)](https://github.com/open-telemetry/opentelemetry.io/pull/10624) | cijothomas | Kielek&nbsp;✔️<br>svrnm&nbsp;✅ | ⏳ | ✅ | <1m |
 
 ## Waiting on reviewers
 
@@ -123,7 +123,7 @@
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 22h |
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 5h |
 | [Refresh refcache (#10625)](https://github.com/open-telemetry/opentelemetry.io/pull/10625) | app/otelbot-docs | 3h |
-| [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | <1m |
+| [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
