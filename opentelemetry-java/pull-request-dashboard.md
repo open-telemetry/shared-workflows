@@ -20,12 +20,12 @@
 | [Update dependency org.jetbrains.kotlin:kotlin-gradle-plugin to v2.4.0 (#8521)](https://github.com/open-telemetry/opentelemetry-java/pull/8521) | app/renovate |  | ❌ | ✅ | 7d |
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ✅ | ✅ | 4d |
 | [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 4d |
-| [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR |  | ✅ | ✅ | 2d |
-| [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 17h |
-| [Update all patch and minor versions (#8551)](https://github.com/open-telemetry/opentelemetry-java/pull/8551) | app/renovate |  | ✅ | ✅ | 9h |
-| [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 9h |
-| [Update weekly update (#8553)](https://github.com/open-telemetry/opentelemetry-java/pull/8553) | app/renovate |  | ✅ | ✅ | 6h |
-| [Update actions/checkout action to v7 (#8554)](https://github.com/open-telemetry/opentelemetry-java/pull/8554) | app/renovate |  | ✅ | ✅ | 6h |
+| [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR |  | ✅ | ✅ | 3d |
+| [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 18h |
+| [Update all patch and minor versions (#8551)](https://github.com/open-telemetry/opentelemetry-java/pull/8551) | app/renovate |  | ✅ | ✅ | 11h |
+| [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 11h |
+| [Update weekly update (#8553)](https://github.com/open-telemetry/opentelemetry-java/pull/8553) | app/renovate |  | ✅ | ✅ | 7h |
+| [Update actions/checkout action to v7 (#8554)](https://github.com/open-telemetry/opentelemetry-java/pull/8554) | app/renovate |  | ✅ | ✅ | 7h |
 
 ## Waiting on authors
 
@@ -40,7 +40,7 @@
 | [Add a ConfigProvider callback for runtime instrumentation option changes (#8076)](https://github.com/open-telemetry/opentelemetry-java/pull/8076) | jackshirazi | jack-berg<br>trask | ❌ | ❌ | 13d |
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 13d |
 | [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg | EvgeniiR&nbsp;💬 | ✅ | ✅ | 2d |
-| [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ✅ | ✅ | 13h |
+| [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ✅ | ✅ | 15h |
 
 ## Waiting on external
 
@@ -78,7 +78,7 @@
 | [Fix SpanLimitsBuilder Javadoc to match non-negative argument check (#8516)](https://github.com/open-telemetry/opentelemetry-java/pull/8516) | thswlsqls | 8d |
 | [Fix LongExemplarAssert hasFilteredAttributesSatisfyingExactly to enforce exact attribute matching (#8518)](https://github.com/open-telemetry/opentelemetry-java/pull/8518) | thswlsqls | 8d |
 | [Deprecate TextMapGetter keys method (#8531)](https://github.com/open-telemetry/opentelemetry-java/pull/8531) | arnabnandy7 | 5d |
-| [Stagger starting record series to avoid multi-thread hotspot (#8550)](https://github.com/open-telemetry/opentelemetry-java/pull/8550) | jack-berg | 13h |
+| [Stagger starting record series to avoid multi-thread hotspot (#8550)](https://github.com/open-telemetry/opentelemetry-java/pull/8550) | jack-berg | 14h |
 
 <details>
 <summary>Diagnostics</summary>
