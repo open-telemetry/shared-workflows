@@ -22,10 +22,10 @@
 | [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 4d |
 | [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR |  | ✅ | ✅ | 2d |
 | [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 11h |
-| [Update all patch and minor versions (#8551)](https://github.com/open-telemetry/opentelemetry-java/pull/8551) | app/renovate |  | ✅ | ✅ | 3h |
-| [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 3h |
-| [Update weekly update (#8553)](https://github.com/open-telemetry/opentelemetry-java/pull/8553) | app/renovate |  | ✅ | ✅ | 22m |
-| [Update actions/checkout action to v7 (#8554)](https://github.com/open-telemetry/opentelemetry-java/pull/8554) | app/renovate |  | ✅ | ✅ | 22m |
+| [Update all patch and minor versions (#8551)](https://github.com/open-telemetry/opentelemetry-java/pull/8551) | app/renovate |  | ✅ | ✅ | 4h |
+| [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 4h |
+| [Update weekly update (#8553)](https://github.com/open-telemetry/opentelemetry-java/pull/8553) | app/renovate |  | ✅ | ✅ | 34m |
+| [Update actions/checkout action to v7 (#8554)](https://github.com/open-telemetry/opentelemetry-java/pull/8554) | app/renovate |  | ✅ | ✅ | 34m |
 
 ## Waiting on authors
 
@@ -79,6 +79,71 @@
 | [Fix LongExemplarAssert hasFilteredAttributesSatisfyingExactly to enforce exact attribute matching (#8518)](https://github.com/open-telemetry/opentelemetry-java/pull/8518) | thswlsqls | 7d |
 | [Deprecate TextMapGetter keys method (#8531)](https://github.com/open-telemetry/opentelemetry-java/pull/8531) | arnabnandy7 | 5d |
 | [Stagger starting record series to avoid multi-thread hotspot (#8550)](https://github.com/open-telemetry/opentelemetry-java/pull/8550) | jack-berg | 7h |
+
+<details>
+<summary>Diagnostics</summary>
+
+```text
+PR #8548
+llm: pr-conversation -> none (The author’s last comment is a completed informational reply about benchmark results and does not leave an open question or request for action.)
+
+PR #8545
+llm: PRRT_kwDOCkv3g86Mt8Xs -> author (A reviewer suggested a code change (`bool[16]` replacement) and the author has not replied yet, so the author needs to act or respond.)
+
+PR #8468
+llm: PRRT_kwDOCkv3g86ImrO2 -> author (The latest reviewer comment says the issue is still not addressed and requests code/test changes, so the author needs to update the PR.)
+
+PR #8467
+llm: pr-conversation -> reviewer (The reviewer asked for motivation, and the author answered with the rationale and linked issue; the ball is back with the reviewer to acknowledge or continue review.)
+
+PR #8464
+llm: PRRT_kwDOCkv3g86MPsyw -> author (The latest comment is from a reviewer asking to adopt a stricter invariant, so the author needs to respond and likely update the PR or explain the approach.)
+
+PR #8450
+llm: pr-conversation -> none (The author only reports that they restored the branch to a previous state; there’s no explicit request or pending follow-up in the thread.)
+
+PR #8446
+llm: PRRT_kwDOCkv3g86KBUh4 -> author (A reviewer asked a direct question (“Why two methods?”), so the author needs to जवाब/respond or adjust the code.)
+llm: PRRT_kwDOCkv3g86KBWSq -> author (A reviewer left a code change suggestion and the thread is still unresolved, so the PR author needs to respond by applying or addressing it.)
+
+PR #8428
+llm: PRRT_kwDOCkv3g86FNGwS -> author (A reviewer asked for the rationale behind the chosen number, so the author needs to जवाब/respond with an explanation or update.)
+llm: PRRT_kwDOCkv3g86JKWNr -> author (A reviewer asked a code question/suggestion and there is no follow-up yet, so the author needs to respond or update the PR.)
+
+PR #8407
+llm: PRRT_kwDOCkv3g86CMfQS -> none (The reviewer asked for explanatory comments, and the author replied that they added them, so the request is addressed and no further follow-up is implied.)
+llm: PRRT_kwDOCkv3g86CMnfF -> reviewer (The reviewer asked why it changed; the author explained the rationale, so the ball is back with the reviewer to accept or continue the review.)
+llm: pr-conversation -> author (A reviewer’s last comment asks the author to try `@CompileStatic` and questions whether reflection is necessary, so the ball is with the author to respond or update the PR.)
+
+PR #8364
+llm: PRRT_kwDOCkv3g86BhQsA -> author (The latest reviewer comment requests a code change to reduce allocation overhead, so the PR author needs to update the thread.)
+llm: PRRT_kwDOCkv3g86BhVsZ -> author (A reviewer指出 collision handling should also account for normalized attributes from other sources, so the PR author needs to respond and update the implementation.)
+llm: pr-conversation -> author (The author says the PR is parked for #8346 and that they will rebase, apply the requested changes, and re-request review once that settles, so the next action is on the author.)
+
+PR #8349
+llm: pr-conversation -> reviewer (The latest comment is from the author responding to the review points and asking for clarification on the `sampledThread` concern, so the reviewer has the next turn.)
+
+PR #8240
+llm: pr-conversation -> author (The author’s latest comment says they will keep investigating why the benchmark metrics are zero, so the ball is still with the author.)
+
+PR #8197
+llm: pr-conversation -> external (The reviewer asked to wait for spec discussion, and the author’s latest comment just points to the external specification issue, so the next step is outside this repository.)
+
+PR #8164
+llm: PRRT_kwDOCkv3g85z-n0C -> none (The latest reviewer comment is a brief approval of the proposed convention, which closes the thread with no further action needed.)
+
+PR #8076
+llm: pr-conversation -> author (The latest comment is from the author and says they will still test and validate this week, so the ball remains with the author.)
+
+PR #7763
+llm: pr-conversation -> reviewer (The reviewer asked why, and the author answered with an explanation; the ball is back with the reviewer to acknowledge or continue the review.)
+
+PR #7741
+llm: pr-conversation -> author (The latest comment is a reviewer suggestion with an explicit request for the author to evaluate it, so the author needs to respond or act.)
+
+```
+
+</details>
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
