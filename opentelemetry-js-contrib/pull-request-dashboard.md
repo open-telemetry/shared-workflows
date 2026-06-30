@@ -19,15 +19,15 @@
 | [feat(detector-aws): detect Lambda availability zone metadata (#3460)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3460) | garysassano | jj22ee | ✅ | ✅ | 92d |
 | [chore(deps): update dependency &#64;nestjs/core to v11.1.18 \[security\] (#3468)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3468) | app/renovate | dyladan<br>legendecas<br>neilime<br>pichlermarc<br>trentm | ❌ | ✅ | 84d |
 | [chore(deps): update dependency babel-plugin-istanbul to v8 (#3502)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3502) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 60d |
-| [fix(instrumentation-express): prevent post-handler middleware from overwriting rpcMetadata.route (#3521)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3521) | Luffy-nani | JamieDanielson<br>pkanal<br>raphael-theriault-swi | ✅ | ✅ | 46d |
+| [fix(instrumentation-express): prevent post-handler middleware from overwriting rpcMetadata.route (#3521)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3521) | Luffy-nani | JamieDanielson<br>pkanal<br>raphael-theriault-swi | ✅ | ✅ | 47d |
 | [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 40d |
 | [chore: release main (#3568)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3568) | app/otelbot-js-contrib | blumamir<br>d4nyll<br>dyladan<br>hectorhdzg<br>JamieDanielson<br>legendecas<br>pichlermarc<br>pkanal<br>raphael-theriault-swi<br>yiyuan-he | ✅ | ✅ | 19d |
 | [chore(deps): update dependency &#64;cucumber/cucumber to v13 (#3575)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3575) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm<br>Ugzuzg | ❌ | ✅ | 11d |
 | [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 10d |
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 4d |
 | [chore(eslint): use canonical n/ prefix for eslint-plugin-n in flat config (#3581)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3581) | bhuvan-somisetty |  | ✅ | ✅ | 1d |
-| [fix(instrumentation-koa): use fallback name for anonymous middleware spans (#3582)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3582) | bhuvan-somisetty |  | ✅ | ✅ | 23h |
-| [fix(instrumentation-knex): use connectionSettings to support function-based connection configs (#3584)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3584) | bhuvan-somisetty |  | ✅ | ✅ | 7h |
+| [fix(instrumentation-koa): use fallback name for anonymous middleware spans (#3582)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3582) | bhuvan-somisetty |  | ✅ | ✅ | 1d |
+| [fix(instrumentation-knex): use connectionSettings to support function-based connection configs (#3584)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3584) | bhuvan-somisetty |  | ✅ | ✅ | 8h |
 
 ## Waiting on authors
 
@@ -39,7 +39,7 @@
 | [feat(instr-runtime-node): add configurable gcDurationBuckets option (#3328)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3328) | lukeramsden | d4nyll<br>david-luna&nbsp;💬<br>maryliag&nbsp;💬<br>pichlermarc<br>trentm | ❌ | ❌ | 161d |
 | [feat: add neo4j instrumentation (#3380)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3380) | t2t2 | mhennoch<br>seemk&nbsp;💬<br>t2t2<br>thompson-tomo&nbsp;💬 | ✅ | ❌ | 137d |
 | [fix(instrumentation-sequelize): do not include 'server.address' for SQLite DB spans (#3436)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3436) | trentm | maryliag&nbsp;💬<br>mhennoch<br>seemk&nbsp;💬<br>t2t2<br>trentm | ✅ | ✅ | 108d |
-| [fix(instrumentation-pino): Allow control over logged fields (#3356)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3356) | jnloureiro | dyladan&nbsp;💬<br>seemk | ✅ | ✅ | 75d |
+| [fix(instrumentation-pino): Allow control over logged fields (#3356)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3356) | jnloureiro | dyladan&nbsp;💬<br>seemk | ✅ | ✅ | 76d |
 | [feat(resource-detector-aws): read cloud.account.id from symlink in Lambda detector (#3377)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3377) | RaphaelManke | dyladan<br>jj22ee | ✅ | ✅ | 75d |
 | [feat(nestjs): add instrumentation for NestJS microservice (#3435)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3435) | neilime | blumamir<br>david-luna<br>dyladan<br>legendecas<br>neilime<br>pichlermarc | ❌ | ❌ | 62d |
 | [fix(instrumentation-aws-lambda): handle non-configurable exports from esbuild CJS bundles (#3422)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3422) | RaphaelManke | jj22ee&nbsp;💬<br>raphael-theriault-swi | ✅ | ✅ | 61d |
@@ -56,7 +56,7 @@
 
 | PR | Author | Updated |
 |---|---|:---:|
-| [test(auto-instrumentations-node): reproduce blocking process termination (#3348)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3348) | basti1302 | 161d |
+| [test(auto-instrumentations-node): reproduce blocking process termination (#3348)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3348) | basti1302 | 162d |
 | [fix(instrumentation-pg): correct `db.client.connection.count` metric counting to handle multiple pg pools (#3367)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3367) | trentm | 151d |
 | [refactor(sampler-aws-xray): change internals to be promise-based to improve test stability (#3396)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3396) | pichlermarc | 130d |
 | [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 83d |
