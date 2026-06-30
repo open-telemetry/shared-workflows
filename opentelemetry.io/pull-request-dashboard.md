@@ -120,7 +120,7 @@
 | [fix(java/spring-boot-starter): correct DC mappings + add BOM section (#10509)](https://github.com/open-telemetry/opentelemetry.io/pull/10509) | zeitlinger | 5d |
 | [docs(demo): update load generator docs from Locust to k6 (#10560)](https://github.com/open-telemetry/opentelemetry.io/pull/10560) | mwimpelberg28 | 5d |
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 9h |
-| [\[ja\] add translation of content/en/blog/2023/any-metric-receiver.md (#10628)](https://github.com/open-telemetry/opentelemetry.io/pull/10628) | ymotongpoo | 3h |
+| [\[ja\] add translation of content/en/blog/2023/any-metric-receiver.md (#10628)](https://github.com/open-telemetry/opentelemetry.io/pull/10628) | ymotongpoo | 4h |
 | [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 3h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 3h |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 2h |
