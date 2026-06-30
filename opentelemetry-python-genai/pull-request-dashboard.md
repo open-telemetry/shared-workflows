@@ -17,8 +17,8 @@
 |---|---|---|:---:|:---:|:---:|
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 13d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅ | ❌ | ❌ | 12d |
-| [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 5d |
-| [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | bhumikadangayach&nbsp;💬<br>rads-1996&nbsp;💬 | ❌ | ✅ | 2d |
+| [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | rads-1996&nbsp;✔️ | ❌ | ✅ | 9d |
+| [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 6d |
 
 ## Waiting on authors
 
@@ -30,7 +30,7 @@
 | [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 18d |
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;💬⁠✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 14d |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 4d |
-| [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬 | ✅ | ✅ | 46m |
+| [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬 | ⏳ | ✅ | 2h |
 
 ## Draft pull requests
 
@@ -38,7 +38,7 @@
 |---|---|:---:|
 | [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 14d |
 | [\[langchain\] Prototype collecting number of llm and tool calls per agent invocation (#173)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/173) | lmolkova | 4d |
-| [openinference migration skill output for langchain (#181)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/181) | keith-decker | 20h |
+| [openinference migration skill output for langchain (#181)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/181) | keith-decker | 22h |
 
 <details>
 <summary>Diagnostics</summary>
@@ -80,7 +80,7 @@ llm: PRRT_kwDOSbspP86KaNp1 -> author (Reviewer requested a design change and no 
 llm: pr-conversation -> reviewer (The author asked the reviewer to choose whether to keep this PR open as a tracking reference or close it and move the gap to an issue, so the reviewer needs to जवाब/decide next.)
 
 PR #90
-llm: PRRT_kwDOSbspP86LaGma -> reviewer (The latest reviewer comment defers the scope decision to @lmolkova and invites review on a separate follow-up, so the next action is on the reviewer/maintainer side.)
+llm: PRRT_kwDOSbspP86LaGma -> none (The reviewer’s last comment settles the backward-compatibility question by stating it will be a breaking change, with no follow-up requested.)
 
 PR #49
 llm: PRRT_kwDOSbspP86H4tJU -> none (The author answered the suggestion and explicitly deferred the refactor to a follow-up PR, so the current thread is effectively closed.)
