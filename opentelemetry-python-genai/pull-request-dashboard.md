@@ -22,7 +22,7 @@
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | bhumikadangayach&nbsp;💬<br>rads-1996&nbsp;💬 | ❌ | ✅ | 1d |
 | [Update github actions (#182)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/182) | app/renovate |  | ✅ | ✅ | 1h |
 | [Update github actions (major) (#183)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/183) | app/renovate |  | ✅ | ✅ | 1h |
-| [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber |  | ✅ | ✅ | 6m |
+| [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber |  | ✅ | ✅ | 10m |
 
 ## Waiting on authors
 
