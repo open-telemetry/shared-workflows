@@ -28,7 +28,7 @@
 | [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ✅ | ✅ | 7h |
 | [chore(deps): update weekly update (#19099)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19099) | app/renovate |  | ✅ | ✅ | 4h |
 | [fix(deps): update all patch versions (#19100)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19100) | app/renovate |  | ✅ | ✅ | 4h |
-| [Update pinned latest dep versions (#19101)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19101) | app/otelbot |  | ⏳ | ✅ | <1m |
+| [Update pinned latest dep versions (#19101)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19101) | app/otelbot |  | ⏳ | ✅ | 2m |
 
 ## Waiting on authors
 
