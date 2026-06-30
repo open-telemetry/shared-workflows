@@ -8,6 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 55d |
+| [jmx metrics recommendation: add link to semconv for duration (#19106)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19106) | SylvainJuge | jaydeluca&nbsp;✅<br>SylvainJuge | ✅ | ✅ | 1h |
 
 ## Waiting on reviewers
 
@@ -24,8 +25,7 @@
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 4d |
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 3d |
 | [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 19h |
-| [jmx metrics recommendation: add link to semconv for duration (#19106)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19106) | SylvainJuge | SylvainJuge | ✅ | ✅ | 1h |
-| [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn |  | ⏳ | ✅ | 41m |
+| [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn |  | ⏳ | ✅ | 46m |
 
 ## Waiting on authors
 
