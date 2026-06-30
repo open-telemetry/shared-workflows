@@ -52,7 +52,7 @@
 | [Housekeeping: automated fix results (#10621)](https://github.com/open-telemetry/opentelemetry.io/pull/10621) | app/otelbot-docs |  | ✅ | ✅ | 3h |
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr |  | ✅ | ✅ | 1h |
 | [docs: clarify Ruby in_span exception handling (#10623)](https://github.com/open-telemetry/opentelemetry.io/pull/10623) | Jaegeonyoon |  | ✅ | ✅ | 1h |
-| [\[demo\] Link Grafana to its open source project instead of vendor homepage (#10624)](https://github.com/open-telemetry/opentelemetry.io/pull/10624) | cijothomas |  | ⏳ | ✅ | 2m |
+| [\[demo\] Link Grafana to its open source project instead of vendor homepage (#10624)](https://github.com/open-telemetry/opentelemetry.io/pull/10624) | cijothomas |  | ❌ | ✅ | <1m |
 
 ## Waiting on authors
 
