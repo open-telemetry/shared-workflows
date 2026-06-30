@@ -27,6 +27,7 @@
 | [fix(deps): update all patch versions (#19100)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19100) | app/renovate |  | ✅ | ✅ | 5h |
 | [Update pinned latest dep versions (#19101)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19101) | app/otelbot |  | ✅ | ✅ | 29m |
 | [fix(deps): update graalvm buildtools packages to v1.1.3 (#19102)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19102) | app/renovate |  | ⏳ | ✅ | <1m |
+| [fix(deps): update gradle shadow packages to v9.4.3 (#19103)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19103) | app/renovate |  | ⏳ | ❌ | <1m |
 
 ## Waiting on authors
 
@@ -53,12 +54,6 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [chore(deps): update plugin org.jetbrains.kotlin.jvm to v2.4.0 (#18948)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18948) | app/renovate | laurit | ❌ | ✅ | 19d |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [fix(deps): update gradle shadow packages to v9.4.3 (#19103)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19103) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
 
