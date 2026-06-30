@@ -76,7 +76,7 @@
 | [Docs: Rust: add instrumentation page scaffold (#9567)](https://github.com/open-telemetry/opentelemetry.io/pull/9567) | sarika-03 | cijothomas&nbsp;💬<br>theletterf<br>vitorvasc | ✅ | ❌ | 54d |
 | [Fix RSS feed reposting articles on modification (#9476)](https://github.com/open-telemetry/opentelemetry.io/pull/9476) | LoveChauhan-18 | vitorvasc&nbsp;🔴 | ✅ | ✅ | 52d |
 | [Additional docs for the OpenTelemetry Kotlin SDK (#9984)](https://github.com/open-telemetry/opentelemetry.io/pull/9984) | fractalwrench | maryliag<br>tiffany76&nbsp;💬 | ✅ | ✅ | 33d |
-| [Add Yorker to the registry (application integration) (#10112)](https://github.com/open-telemetry/opentelemetry.io/pull/10112) | drewpost | tiffany76&nbsp;✅ | ❌ | ✅ | 27d |
+| [Add Yorker to the registry (application integration) (#10112)](https://github.com/open-telemetry/opentelemetry.io/pull/10112) | drewpost | tiffany76&nbsp;✅ | ❌ | ✅ | 28d |
 | [New blog post: The Lazy Developer's Guide To Instrumenting Your Own Code (Issue ref: #10132) (#10343)](https://github.com/open-telemetry/opentelemetry.io/pull/10343) | avillela | reese-lee&nbsp;💬<br>svrnm | ✅ | ❌ | 12d |
 | [Clean up registry entry template whitespace (#10234)](https://github.com/open-telemetry/opentelemetry.io/pull/10234) | brunofoggiatto | chalin&nbsp;💬<br>simi&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 11d |
 | [feat: add setup-new-localization skill (#10481)](https://github.com/open-telemetry/opentelemetry.io/pull/10481) | vitorvasc | chalin&nbsp;💬<br>vitorvasc | ✅ | ✅ | 11d |
