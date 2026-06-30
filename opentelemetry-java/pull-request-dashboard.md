@@ -26,6 +26,7 @@
 | [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 11h |
 | [Update weekly update (#8553)](https://github.com/open-telemetry/opentelemetry-java/pull/8553) | app/renovate |  | ✅ | ✅ | 8h |
 | [Update actions/checkout action to v7 (#8554)](https://github.com/open-telemetry/opentelemetry-java/pull/8554) | app/renovate |  | ✅ | ✅ | 8h |
+| [Align env carrier docs with latest spec (#8555)](https://github.com/open-telemetry/opentelemetry-java/pull/8555) | pellared |  | ⏳ | ✅ | 2m |
 
 ## Waiting on authors
 
@@ -79,7 +80,6 @@
 | [Fix LongExemplarAssert hasFilteredAttributesSatisfyingExactly to enforce exact attribute matching (#8518)](https://github.com/open-telemetry/opentelemetry-java/pull/8518) | thswlsqls | 8d |
 | [Deprecate TextMapGetter keys method (#8531)](https://github.com/open-telemetry/opentelemetry-java/pull/8531) | arnabnandy7 | 5d |
 | [Stagger starting record series to avoid multi-thread hotspot (#8550)](https://github.com/open-telemetry/opentelemetry-java/pull/8550) | jack-berg | 15h |
-| [Align env carrier docs with latest spec (#8555)](https://github.com/open-telemetry/opentelemetry-java/pull/8555) | pellared | <1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
