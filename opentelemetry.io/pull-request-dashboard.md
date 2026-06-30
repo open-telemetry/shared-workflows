@@ -11,7 +11,7 @@
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 4d |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs | svrnm&nbsp;✅ | ✅ | ✅ | 4h |
 | [\[demo\] Link Grafana to its open source project instead of vendor homepage (#10624)](https://github.com/open-telemetry/opentelemetry.io/pull/10624) | cijothomas | Kielek&nbsp;✔️<br>maryliag&nbsp;✅<br>svrnm&nbsp;✅ | ✅ | ✅ | 3h |
-| [Ro graduated (#10629)](https://github.com/open-telemetry/opentelemetry.io/pull/10629) | didiViking | chalin&nbsp;✅<br>didiViking | ⏳ | ✅ | 36m |
+| [Ro graduated (#10629)](https://github.com/open-telemetry/opentelemetry.io/pull/10629) | didiViking | chalin&nbsp;✅<br>didiViking | ⏳ | ✅ | 37m |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>svrnm&nbsp;✅ | ❌ | ✅ | 23m |
 
 ## Waiting on reviewers
@@ -57,7 +57,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Automate Go semconv version updates in documentation (#9233)](https://github.com/open-telemetry/opentelemetry.io/pull/9233) | pratik-mahalle | chalin&nbsp;🔴 | ✅ | ❌ | 124d |
+| [Automate Go semconv version updates in documentation (#9233)](https://github.com/open-telemetry/opentelemetry.io/pull/9233) | pratik-mahalle | chalin&nbsp;🔴 | ✅ | ❌ | 125d |
 | [blog: Observing kgateway with otel (#9113)](https://github.com/open-telemetry/opentelemetry.io/pull/9113) | kaspernissen | chalin&nbsp;✅<br>svrnm&nbsp;✅<br>tiffany76&nbsp;💬⁠✅ | ✅ | ❌ | 121d |
 | [blog: Observing Contour with OpenTelemetry (#9180)](https://github.com/open-telemetry/opentelemetry.io/pull/9180) | kaspernissen | tiffany76&nbsp;💬 | ✅ | ❌ | 121d |
 | [blog: Observing Traefik with OpenTelemetry (#9181)](https://github.com/open-telemetry/opentelemetry.io/pull/9181) | kaspernissen | tiffany76 | ✅ | ❌ | 121d |
