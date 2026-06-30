@@ -8,6 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Restore compliance between Composite Samplers code and specs (#8450)](https://github.com/open-telemetry/opentelemetry-java/pull/8450) | PeterF778 | jack-berg&nbsp;✅<br>jkwatson<br>zeitlinger | ❌ | ✅ | 7d |
+| [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate | psx95&nbsp;✅ | ✅ | ✅ | 14h |
 
 ## Waiting on reviewers
 
@@ -22,7 +23,6 @@
 | [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 4d |
 | [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR |  | ✅ | ✅ | 3d |
 | [Update all patch and minor versions (#8551)](https://github.com/open-telemetry/opentelemetry-java/pull/8551) | app/renovate |  | ❌ | ✅ | 14h |
-| [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 14h |
 | [Update weekly update (#8553)](https://github.com/open-telemetry/opentelemetry-java/pull/8553) | app/renovate |  | ⏳ | ✅ | 10h |
 | [Update actions/checkout action to v7 (#8554)](https://github.com/open-telemetry/opentelemetry-java/pull/8554) | app/renovate |  | ✅ | ✅ | 10h |
 | [Align env carrier docs with latest spec (#8555)](https://github.com/open-telemetry/opentelemetry-java/pull/8555) | pellared |  | ✅ | ✅ | 2h |
