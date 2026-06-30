@@ -21,11 +21,11 @@
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ✅ | ✅ | 4d |
 | [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 4d |
 | [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR |  | ✅ | ✅ | 3d |
-| [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 18h |
+| [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 19h |
 | [Update all patch and minor versions (#8551)](https://github.com/open-telemetry/opentelemetry-java/pull/8551) | app/renovate |  | ✅ | ✅ | 11h |
 | [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 11h |
-| [Update weekly update (#8553)](https://github.com/open-telemetry/opentelemetry-java/pull/8553) | app/renovate |  | ✅ | ✅ | 7h |
-| [Update actions/checkout action to v7 (#8554)](https://github.com/open-telemetry/opentelemetry-java/pull/8554) | app/renovate |  | ✅ | ✅ | 7h |
+| [Update weekly update (#8553)](https://github.com/open-telemetry/opentelemetry-java/pull/8553) | app/renovate |  | ✅ | ✅ | 8h |
+| [Update actions/checkout action to v7 (#8554)](https://github.com/open-telemetry/opentelemetry-java/pull/8554) | app/renovate |  | ✅ | ✅ | 8h |
 
 ## Waiting on authors
 
