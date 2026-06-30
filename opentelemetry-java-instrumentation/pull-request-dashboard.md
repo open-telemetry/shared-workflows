@@ -8,7 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 55d |
-| [Fix flaky pulsar test (#19095)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19095) | laurit | jaydeluca&nbsp;✅ | ✅ | ✅ | 11h |
+| [Fix flaky pulsar test (#19095)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19095) | laurit | jaydeluca&nbsp;✅ | ✅ | ✅ | 12h |
 
 ## Waiting on reviewers
 
@@ -27,8 +27,8 @@
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 2d |
 | [chore(deps): update plugin com.gradle.common-custom-user-data-gradle-plugin to v2.7.0 (#19097)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19097) | app/renovate |  | ✅ | ✅ | 3h |
 | [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ✅ | ✅ | 3h |
-| [chore(deps): update weekly update (#19099)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19099) | app/renovate |  | ✅ | ✅ | 42m |
-| [fix(deps): update all patch versions (#19100)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19100) | app/renovate |  | ⏳ | ✅ | 41m |
+| [chore(deps): update weekly update (#19099)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19099) | app/renovate |  | ✅ | ✅ | 1h |
+| [fix(deps): update all patch versions (#19100)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19100) | app/renovate |  | ✅ | ✅ | 59m |
 
 ## Waiting on authors
 
@@ -47,7 +47,7 @@
 | [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 13h |
 | [Gate process command attributes under v3 preview (#19082)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082) | trask | laurit&nbsp;✅ | ✅ | ✅ | 11h |
 | [Add JFR metrics for virtual thread pinning and submit failures (#19092)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19092) | tsawada | laurit&nbsp;💬 | ✅ | ✅ | 10h |
-| [feat: add commons pool2 instrumentation (#19091)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19091) | YaoYingLong | laurit&nbsp;💬 | ✅ | ✅ | 9h |
+| [feat: add commons pool2 instrumentation (#19091)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19091) | YaoYingLong | laurit&nbsp;💬 | ✅ | ✅ | 10h |
 
 ## Waiting on external
 
