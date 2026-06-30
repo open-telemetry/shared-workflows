@@ -21,9 +21,9 @@
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ✅ | ✅ | 4d |
 | [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 4d |
 | [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR |  | ✅ | ✅ | 2d |
-| [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 7h |
-| [Update all patch and minor versions (#8551)](https://github.com/open-telemetry/opentelemetry-java/pull/8551) | app/renovate |  | ✅ | ✅ | 29m |
-| [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 29m |
+| [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ✅ | 9h |
+| [Update all patch and minor versions (#8551)](https://github.com/open-telemetry/opentelemetry-java/pull/8551) | app/renovate |  | ✅ | ✅ | 1h |
+| [Update spotless packages to v8.8.0 (#8552)](https://github.com/open-telemetry/opentelemetry-java/pull/8552) | app/renovate |  | ✅ | ✅ | 1h |
 
 ## Waiting on authors
 
@@ -38,7 +38,7 @@
 | [Add a ConfigProvider callback for runtime instrumentation option changes (#8076)](https://github.com/open-telemetry/opentelemetry-java/pull/8076) | jackshirazi | jack-berg<br>trask | ❌ | ❌ | 13d |
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 13d |
 | [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg | EvgeniiR&nbsp;💬 | ✅ | ✅ | 2d |
-| [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ✅ | ✅ | 4h |
+| [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ✅ | ✅ | 6h |
 
 ## Waiting on external
 
@@ -51,7 +51,7 @@
 | PR | Author | Updated |
 |---|---|:---:|
 | [Allow frameworks to add instrumentation scope conditions (#7312)](https://github.com/open-telemetry/opentelemetry-java/pull/7312) | brunobat | 425d |
-| [EntityProvider prototype (#7360)](https://github.com/open-telemetry/opentelemetry-java/pull/7360) | breedx-splk | 374d |
+| [EntityProvider prototype (#7360)](https://github.com/open-telemetry/opentelemetry-java/pull/7360) | breedx-splk | 375d |
 | [Add support to finish instrument recording (#7792)](https://github.com/open-telemetry/opentelemetry-java/pull/7792) | atoulme | 61d |
 | [Sketch out ScopedValue based context implementation (#8352)](https://github.com/open-telemetry/opentelemetry-java/pull/8352) | jack-berg | 60d |
 | [Null checking applied (#8321)](https://github.com/open-telemetry/opentelemetry-java/pull/8321) | jack-berg | 52d |
@@ -76,7 +76,7 @@
 | [Fix SpanLimitsBuilder Javadoc to match non-negative argument check (#8516)](https://github.com/open-telemetry/opentelemetry-java/pull/8516) | thswlsqls | 7d |
 | [Fix LongExemplarAssert hasFilteredAttributesSatisfyingExactly to enforce exact attribute matching (#8518)](https://github.com/open-telemetry/opentelemetry-java/pull/8518) | thswlsqls | 7d |
 | [Deprecate TextMapGetter keys method (#8531)](https://github.com/open-telemetry/opentelemetry-java/pull/8531) | arnabnandy7 | 4d |
-| [Stagger starting record series to avoid multi-thread hotspot (#8550)](https://github.com/open-telemetry/opentelemetry-java/pull/8550) | jack-berg | 3h |
+| [Stagger starting record series to avoid multi-thread hotspot (#8550)](https://github.com/open-telemetry/opentelemetry-java/pull/8550) | jack-berg | 5h |
 
 <details>
 <summary>Diagnostics</summary>
