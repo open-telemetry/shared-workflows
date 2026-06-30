@@ -25,7 +25,7 @@
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 3d |
 | [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 19h |
 | [jmx metrics recommendation: add link to semconv for duration (#19106)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19106) | SylvainJuge | SylvainJuge | ✅ | ✅ | 1h |
-| [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn |  | ⏳ | ✅ | 40m |
+| [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn |  | ⏳ | ✅ | 41m |
 
 ## Waiting on authors
 
