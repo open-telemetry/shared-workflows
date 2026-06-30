@@ -89,7 +89,7 @@
 | [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️ | ❌ | ✅ | 6h |
 | [Add Rust 'Export to Jaeger' tracing guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 5h |
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm&nbsp;🔴 | ✅ | ✅ | 5h |
-| [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | maryliag&nbsp;💬⁠✅ | ✅ | ✅ | 1m |
+| [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | maryliag&nbsp;💬⁠✅ | ✅ | ✅ | 2m |
 | [Ro graduated (#10629)](https://github.com/open-telemetry/opentelemetry.io/pull/10629) | didiViking | chalin&nbsp;✅<br>didiViking<br>elifsamedin&nbsp;💬 | ✅ | ✅ | <1m |
 
 ## Waiting on external
