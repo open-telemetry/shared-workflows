@@ -27,7 +27,7 @@
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 4d |
 | [chore(eslint): use canonical n/ prefix for eslint-plugin-n in flat config (#3581)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3581) | bhuvan-somisetty |  | ✅ | ✅ | 1d |
 | [fix(instrumentation-koa): use fallback name for anonymous middleware spans (#3582)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3582) | bhuvan-somisetty |  | ✅ | ✅ | 1d |
-| [fix(instrumentation-knex): use connectionSettings to support function-based connection configs (#3584)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3584) | bhuvan-somisetty |  | ✅ | ✅ | 8h |
+| [fix(instrumentation-knex): use connectionSettings to support function-based connection configs (#3584)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3584) | bhuvan-somisetty |  | ✅ | ✅ | 9h |
 
 ## Waiting on authors
 
@@ -45,7 +45,7 @@
 | [fix(instrumentation-aws-lambda): handle non-configurable exports from esbuild CJS bundles (#3422)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3422) | RaphaelManke | jj22ee&nbsp;💬<br>raphael-theriault-swi | ✅ | ✅ | 61d |
 | [feat(auto-instrumentations-node): opt-in crash flush via OTEL_NODE_FLUSH_ON_CRASH (#3505)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3505) | ElfoLiNk | blumamir<br>dyladan<br>legendecas<br>pichlermarc<br>raphael-theriault-swi | ✅ | ✅ | 56d |
 | [fix(instrumentation-knex): use resolved connection settings (#3493)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3493) | Genmin | david-luna | ❌ | ✅ | 8d |
-| [feat(several): only emit stable http, network and database attributes (#3585)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3585) | maryliag | blumamir<br>jj22ee<br>martinkuba<br>maryliag<br>naseemkullah<br>neilime<br>onurtemizkan<br>pkanal<br>raphael-theriault-swi<br>seemk | ❌ | ✅ | 2m |
+| [feat(several): only emit stable http, network and database attributes (#3585)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3585) | maryliag | blumamir<br>jj22ee<br>martinkuba<br>maryliag<br>naseemkullah<br>neilime<br>onurtemizkan<br>pkanal<br>raphael-theriault-swi<br>seemk | ❌ | ✅ | 3m |
 
 ## Waiting on external
 
