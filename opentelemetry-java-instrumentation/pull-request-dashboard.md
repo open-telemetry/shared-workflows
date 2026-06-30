@@ -23,12 +23,12 @@
 | [Revive reduced servlet smoke test matrix on top of main (#18953)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953) | zeitlinger |  | ✅ | ✅ | 10d |
 | [Implement configurable metric bridge metric suppression (#19048)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19048) | somiljain2006 |  | ✅ | ✅ | 10d |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 4d |
-| [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | 3d |
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 2d |
-| [chore(deps): update plugin com.gradle.common-custom-user-data-gradle-plugin to v2.7.0 (#19097)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19097) | app/renovate |  | ✅ | ✅ | 3h |
-| [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ✅ | ✅ | 3h |
+| [chore(deps): update plugin com.gradle.common-custom-user-data-gradle-plugin to v2.7.0 (#19097)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19097) | app/renovate |  | ✅ | ✅ | 4h |
+| [fix(deps): update spotless packages to v8.8.0 (#19098)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19098) | app/renovate |  | ✅ | ✅ | 4h |
 | [chore(deps): update weekly update (#19099)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19099) | app/renovate |  | ✅ | ✅ | 1h |
-| [fix(deps): update all patch versions (#19100)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19100) | app/renovate |  | ✅ | ✅ | 59m |
+| [fix(deps): update all patch versions (#19100)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19100) | app/renovate |  | ✅ | ✅ | 1h |
+| [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | <1m |
 
 ## Waiting on authors
 
