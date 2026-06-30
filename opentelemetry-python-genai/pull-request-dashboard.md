@@ -22,6 +22,7 @@
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | bhumikadangayach&nbsp;💬<br>rads-1996&nbsp;💬 | ❌ | ✅ | 1d |
 | [Update github actions (#182)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/182) | app/renovate |  | ✅ | ✅ | 1h |
 | [Update github actions (major) (#183)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/183) | app/renovate |  | ✅ | ✅ | 1h |
+| [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber |  | ✅ | ✅ | 6m |
 
 ## Waiting on authors
 
@@ -41,7 +42,6 @@
 | [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 13d |
 | [\[langchain\] Prototype collecting number of llm and tool calls per agent invocation (#173)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/173) | lmolkova | 4d |
 | [openinference migration skill output for langchain (#181)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/181) | keith-decker | 8h |
-| [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | <1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
