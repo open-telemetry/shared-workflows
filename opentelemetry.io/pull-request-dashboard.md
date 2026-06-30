@@ -8,7 +8,6 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 20d |
-| [Update Python version support to 3.10 and higher (#10579)](https://github.com/open-telemetry/opentelemetry.io/pull/10579) | emdneto | maryliag&nbsp;✅<br>svrnm&nbsp;✅ | ⏳ | ✅ | 3d |
 | [\[demo\] Link Grafana to its open source project instead of vendor homepage (#10624)](https://github.com/open-telemetry/opentelemetry.io/pull/10624) | cijothomas | Kielek&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 6h |
 
 ## Waiting on reviewers
@@ -85,11 +84,11 @@
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | jaydeluca&nbsp;✅<br>svrnm&nbsp;✅ | ❌ | ✅ | 5h |
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | ymotongpoo&nbsp;💬 | ✅ | ✅ | 2h |
 | [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️ | ❌ | ✅ | 1h |
-| [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ❌ | ✅ | 26m |
-| [Add Rust 'Export to Jaeger' tracing guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 24m |
-| [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm&nbsp;🔴 | ✅ | ✅ | 12m |
-| [Add Oodle AI to OpenTelemetry Registry (#10575)](https://github.com/open-telemetry/opentelemetry.io/pull/10575) | eragon512 | svrnm&nbsp;🔴 | ✅ | ✅ | 8m |
-| [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | dashpole&nbsp;✔️<br>didiViking&nbsp;✔️<br>pellared&nbsp;✔️<br>svrnm&nbsp;🔴<br>YElayyat&nbsp;✔️ | ✅ | ✅ | <1m |
+| [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ❌ | ✅ | 28m |
+| [Add Rust 'Export to Jaeger' tracing guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 26m |
+| [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm&nbsp;🔴 | ✅ | ✅ | 13m |
+| [Add Oodle AI to OpenTelemetry Registry (#10575)](https://github.com/open-telemetry/opentelemetry.io/pull/10575) | eragon512 | svrnm&nbsp;🔴 | ✅ | ✅ | 10m |
+| [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | dashpole&nbsp;✔️<br>didiViking&nbsp;✔️<br>pellared&nbsp;✔️<br>svrnm&nbsp;🔴<br>YElayyat&nbsp;✔️ | ✅ | ✅ | 2m |
 
 ## Waiting on external
 
