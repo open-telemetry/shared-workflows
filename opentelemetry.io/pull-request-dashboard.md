@@ -121,9 +121,9 @@
 | [docs(demo): update load generator docs from Locust to k6 (#10560)](https://github.com/open-telemetry/opentelemetry.io/pull/10560) | mwimpelberg28 | 4d |
 | [\[ja\] add translation of content/en/blog/2022/exponential-histograms/index.md (#10595)](https://github.com/open-telemetry/opentelemetry.io/pull/10595) | ymotongpoo | 1d |
 | [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | 20h |
-| [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 16h |
+| [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 17h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 16h |
-| [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | <1m |
+| [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 3m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
