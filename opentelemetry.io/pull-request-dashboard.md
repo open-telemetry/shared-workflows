@@ -12,8 +12,8 @@
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs | svrnm&nbsp;✅ | ✅ | ✅ | 3h |
 | [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | maryliag&nbsp;✅ | ✅ | ✅ | 3h |
 | [\[demo\] Link Grafana to its open source project instead of vendor homepage (#10624)](https://github.com/open-telemetry/opentelemetry.io/pull/10624) | cijothomas | Kielek&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 3h |
-| [Ro graduated (#10629)](https://github.com/open-telemetry/opentelemetry.io/pull/10629) | didiViking | chalin&nbsp;✅<br>didiViking | ✅ | ✅ | 14m |
-| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>svrnm&nbsp;✅ | ❌ | ✅ | <1m |
+| [Ro graduated (#10629)](https://github.com/open-telemetry/opentelemetry.io/pull/10629) | didiViking | chalin&nbsp;✅<br>didiViking | ✅ | ✅ | 18m |
+| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>svrnm&nbsp;✅ | ❌ | ✅ | 4m |
 
 ## Waiting on reviewers
 
