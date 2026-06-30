@@ -50,7 +50,7 @@
 | [docs: clarify Ruby in_span exception handling (#10623)](https://github.com/open-telemetry/opentelemetry.io/pull/10623) | Jaegeonyoon |  | ✅ | ✅ | 14h |
 | [\[ja\] update translation of content/en/docs/contributing/blog.md (#10626)](https://github.com/open-telemetry/opentelemetry.io/pull/10626) | ymotongpoo |  | ✅ | ✅ | 4h |
 | [\[concepts\] Document metric cardinality limits and overflow (#10630)](https://github.com/open-telemetry/opentelemetry.io/pull/10630) | cijothomas |  | ✅ | ✅ | 2h |
-| [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ❌ | ✅ | <1m |
+| [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ❌ | ✅ | 1m |
 
 ## Waiting on authors
 
