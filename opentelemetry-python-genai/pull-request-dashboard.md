@@ -20,8 +20,8 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅ | ❌ | ❌ | 11d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 5d |
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | bhumikadangayach&nbsp;💬<br>rads-1996&nbsp;💬 | ❌ | ✅ | 1d |
-| [Update github actions (#182)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/182) | app/renovate |  | ⏳ | ✅ | 1m |
-| [Update github actions (major) (#183)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/183) | app/renovate |  | ⏳ | ✅ | <1m |
+| [Update github actions (#182)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/182) | app/renovate |  | ✅ | ✅ | 4m |
+| [Update github actions (major) (#183)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/183) | app/renovate |  | ⏳ | ✅ | 4m |
 
 ## Waiting on authors
 
