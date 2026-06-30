@@ -26,7 +26,7 @@
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 2d |
 | [Update pinned latest dep versions (#19101)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19101) | app/otelbot |  | ✅ | ✅ | 30m |
 | [fix(deps): update graalvm buildtools packages to v1.1.3 (#19102)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19102) | app/renovate |  | ⏳ | ✅ | 1m |
-| [fix(deps): update gradle shadow packages to v9.4.3 (#19103)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19103) | app/renovate |  | ⏳ | ❌ | <1m |
+| [fix(deps): update gradle shadow packages to v9.4.3 (#19103)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19103) | app/renovate |  | ⏳ | ❌ | 1m |
 
 ## Waiting on authors
 
