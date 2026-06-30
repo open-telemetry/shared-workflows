@@ -45,8 +45,8 @@
 | [Add pt translation for JS benchmarks page (#10429)](https://github.com/open-telemetry/opentelemetry.io/pull/10429) | brunofoggiatto | maryliag | ✅ | ✅ | 19h |
 | [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ❌ | ✅ | 19h |
 | [Housekeeping: automated fix results (#10621)](https://github.com/open-telemetry/opentelemetry.io/pull/10621) | app/otelbot-docs |  | ✅ | ✅ | 11h |
-| [docs: clarify Ruby in_span exception handling (#10623)](https://github.com/open-telemetry/opentelemetry.io/pull/10623) | Jaegeonyoon |  | ✅ | ✅ | 9h |
-| [\[ja\] update translation of content/en/docs/contributing/blog.md (#10626)](https://github.com/open-telemetry/opentelemetry.io/pull/10626) | ymotongpoo |  | ⏳ | ✅ | 43m |
+| [docs: clarify Ruby in_span exception handling (#10623)](https://github.com/open-telemetry/opentelemetry.io/pull/10623) | Jaegeonyoon |  | ✅ | ✅ | 10h |
+| [\[ja\] update translation of content/en/docs/contributing/blog.md (#10626)](https://github.com/open-telemetry/opentelemetry.io/pull/10626) | ymotongpoo |  | ⏳ | ✅ | 46m |
 
 ## Waiting on authors
 
@@ -88,7 +88,7 @@
 | [Add Rust 'Export to Jaeger' tracing guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 1h |
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm&nbsp;🔴 | ✅ | ✅ | 1h |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | dashpole&nbsp;✔️<br>didiViking&nbsp;✔️<br>pellared&nbsp;✔️<br>svrnm&nbsp;🔴<br>YElayyat&nbsp;✔️ | ✅ | ✅ | 1h |
-| [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs | svrnm&nbsp;✅ | ⏳ | ✅ | 12m |
+| [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs | svrnm&nbsp;✅ | ⏳ | ✅ | 14m |
 
 ## Waiting on external
 
@@ -115,14 +115,15 @@
 | [Blog: Collector Kafka Improvements (#9924)](https://github.com/open-telemetry/opentelemetry.io/pull/9924) | MovieStoreGuy | 36d |
 | [Add type annotations for registerLiveChecks imports (#10258)](https://github.com/open-telemetry/opentelemetry.io/pull/10258) | Lang-Qiu | 23d |
 | [\[blog\] Applying the GenAI semantic conventions to a self-hosted LLM gateway (#10328)](https://github.com/open-telemetry/opentelemetry.io/pull/10328) | iamsharduld | 19d |
-| [Add Apache Thrift to Java agent documentation (#9979)](https://github.com/open-telemetry/opentelemetry.io/pull/9979) | nikmat04 | 10d |
+| [Add Apache Thrift to Java agent documentation (#9979)](https://github.com/open-telemetry/opentelemetry.io/pull/9979) | nikmat04 | 11d |
 | [docs(blueprints): add first draft on K8S O11Y Platform (#9741)](https://github.com/open-telemetry/opentelemetry.io/pull/9741) | alemferreira | 7d |
 | [fix(java/spring-boot-starter): correct DC mappings + add BOM section (#10509)](https://github.com/open-telemetry/opentelemetry.io/pull/10509) | zeitlinger | 5d |
 | [docs(demo): update load generator docs from Locust to k6 (#10560)](https://github.com/open-telemetry/opentelemetry.io/pull/10560) | mwimpelberg28 | 4d |
-| [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 21h |
+| [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 22h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 21h |
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 4h |
 | [Refresh refcache (#10625)](https://github.com/open-telemetry/opentelemetry.io/pull/10625) | app/otelbot-docs | 2h |
+| [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | <1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
