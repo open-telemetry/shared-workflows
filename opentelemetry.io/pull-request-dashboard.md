@@ -89,7 +89,7 @@
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | ymotongpoo&nbsp;💬 | ✅ | ✅ | 2h |
 | [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️ | ❌ | ✅ | 1h |
 | [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ❌ | ✅ | 16m |
-| [Add Rust 'Export to Jaeger' tracing guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 13m |
+| [Add Rust 'Export to Jaeger' tracing guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 14m |
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm&nbsp;🔴 | ✅ | ✅ | 1m |
 
 ## Waiting on external
