@@ -24,7 +24,7 @@
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 4d |
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty |  | ✅ | ✅ | 2d |
 | [fix(deps): update graalvm buildtools packages to v1.1.3 (#19102)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19102) | app/renovate |  | ❌ | ✅ | 1h |
-| [chore(deps): update actions/cache action to v6 (#19105)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19105) | app/renovate |  | ⏳ | ✅ | <1m |
+| [chore(deps): update actions/cache action to v6 (#19105)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19105) | app/renovate |  | ⏳ | ✅ | 4m |
 
 ## Waiting on authors
 
