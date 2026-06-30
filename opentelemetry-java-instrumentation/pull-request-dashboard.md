@@ -24,8 +24,8 @@
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 5d |
 | [fix(druid): optimize dataSourceName to resolve metrics high cardinality (#19108)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108) | YaoYingLong |  | ✅ | ✅ | 4h |
 | [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn |  | ✅ | ✅ | 2h |
-| [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 22m |
-| [Add messaging metrics to Kafka client instrumentation (#19110)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19110) | bhuvan-somisetty |  | ⏳ | ✅ | 1m |
+| [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 27m |
+| [Add messaging metrics to Kafka client instrumentation (#19110)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19110) | bhuvan-somisetty |  | ❌ | ✅ | 6m |
 
 ## Waiting on authors
 
@@ -58,7 +58,7 @@
 | PR | Author | Updated |
 |---|---|:---:|
 | [Rename setCaptured* to setCapture* to have a single convention (#17154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17154) | trask | 89d |
-| [ci: migrate to flint v2 for linting (#17759)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17759) | zeitlinger | 67d |
+| [ci: migrate to flint v2 for linting (#17759)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17759) | zeitlinger | 68d |
 | [Add network timing attributes to okhttp3 library (#15664)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15664) | surbhiia | 65d |
 | [Add NullAway to javaagent-tooling and javaagent (#17719)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17719) | zeitlinger | 63d |
 | [Migrate generative AI semantic conventions to OTel 1.37.0 (#15268)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15268) | Cirilla-zmh | 55d |
