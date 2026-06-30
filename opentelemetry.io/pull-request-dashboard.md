@@ -9,7 +9,6 @@
 |---|---|---|:---:|:---:|:---:|
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 20d |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 3d |
-| [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs | svrnm&nbsp;✅ | ✅ | ✅ | 22h |
 | [\[demo\] Link Grafana to its open source project instead of vendor homepage (#10624)](https://github.com/open-telemetry/opentelemetry.io/pull/10624) | cijothomas | Kielek&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 7h |
 
 ## Waiting on reviewers
@@ -47,7 +46,7 @@
 | [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ❌ | ✅ | 19h |
 | [Housekeeping: automated fix results (#10621)](https://github.com/open-telemetry/opentelemetry.io/pull/10621) | app/otelbot-docs |  | ✅ | ✅ | 11h |
 | [docs: clarify Ruby in_span exception handling (#10623)](https://github.com/open-telemetry/opentelemetry.io/pull/10623) | Jaegeonyoon |  | ✅ | ✅ | 9h |
-| [\[ja\] update translation of content/en/docs/contributing/blog.md (#10626)](https://github.com/open-telemetry/opentelemetry.io/pull/10626) | ymotongpoo |  | ⏳ | ✅ | 31m |
+| [\[ja\] update translation of content/en/docs/contributing/blog.md (#10626)](https://github.com/open-telemetry/opentelemetry.io/pull/10626) | ymotongpoo |  | ⏳ | ✅ | 32m |
 
 ## Waiting on authors
 
@@ -90,6 +89,7 @@
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm&nbsp;🔴 | ✅ | ✅ | 1h |
 | [Add Oodle AI to OpenTelemetry Registry (#10575)](https://github.com/open-telemetry/opentelemetry.io/pull/10575) | eragon512 | svrnm&nbsp;🔴 | ✅ | ✅ | 1h |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | dashpole&nbsp;✔️<br>didiViking&nbsp;✔️<br>pellared&nbsp;✔️<br>svrnm&nbsp;🔴<br>YElayyat&nbsp;✔️ | ✅ | ✅ | 1h |
+| [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs | svrnm&nbsp;✅ | ✅ | ✅ | <1m |
 
 ## Waiting on external
 
