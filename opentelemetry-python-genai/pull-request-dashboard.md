@@ -10,7 +10,7 @@
 | [\[`opentelemetry-instrumentation-google-genai`\] Update `generate_content` streaming variants to use `AsyncStreamWrapper` and `SyncStreamWrapper`  from utils (#167)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/167) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 4d |
 | [feat: add instrumentation around openai responses stream method. (#131)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/131) | eternalcuriouslearner | lmolkova&nbsp;✅ | ✅ | ✅ | 4d |
 | [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 3d |
-| [Update github actions (major) (#183)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/183) | app/renovate | eternalcuriouslearner&nbsp;✅ | ⏳ | ✅ | 4h |
+| [Update github actions (major) (#183)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/183) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 4h |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
