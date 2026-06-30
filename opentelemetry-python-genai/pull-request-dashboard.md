@@ -21,6 +21,7 @@
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 5d |
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | bhumikadangayach&nbsp;💬<br>rads-1996&nbsp;💬 | ❌ | ✅ | 1d |
 | [Update github actions (#182)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/182) | app/renovate |  | ⏳ | ✅ | <1m |
+| [Update github actions (major) (#183)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/183) | app/renovate |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -32,12 +33,6 @@
 | [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 18d |
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;💬⁠✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 14d |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 3d |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [Update github actions (major) (#183)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/183) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
 
