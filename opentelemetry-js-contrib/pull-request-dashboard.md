@@ -26,11 +26,11 @@
 | [chore(deps): update dependency &#64;nestjs/core to v11.1.18 \[security\] (#3468)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3468) | app/renovate | dyladan<br>legendecas<br>neilime<br>pichlermarc<br>trentm | ❌ | ✅ | 85d |
 | [chore(deps): update dependency babel-plugin-istanbul to v8 (#3502)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3502) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 61d |
 | [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 41d |
-| [chore: release main (#3568)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3568) | app/otelbot-js-contrib | blumamir<br>d4nyll<br>dyladan<br>hectorhdzg<br>JamieDanielson<br>legendecas<br>pichlermarc<br>pkanal<br>raphael-theriault-swi<br>yiyuan-he | ⏳ | ✅ | 20d |
+| [chore: release main (#3568)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3568) | app/otelbot-js-contrib | blumamir<br>d4nyll<br>dyladan<br>hectorhdzg<br>JamieDanielson<br>legendecas<br>pichlermarc<br>pkanal<br>raphael-theriault-swi<br>yiyuan-he | ✅ | ✅ | 20d |
 | [chore(deps): update dependency &#64;cucumber/cucumber to v13 (#3575)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3575) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm<br>Ugzuzg | ❌ | ✅ | 12d |
-| [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 10d |
+| [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 11d |
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 5d |
-| [chore(eslint): use canonical n/ prefix for eslint-plugin-n in flat config (#3581)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3581) | bhuvan-somisetty |  | ✅ | ✅ | 21h |
+| [chore(eslint): use canonical n/ prefix for eslint-plugin-n in flat config (#3581)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3581) | bhuvan-somisetty |  | ✅ | ✅ | 22h |
 | [chore: Move inactive members to emeritus (#3587)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3587) | opentelemetrybot |  | ✅ | ✅ | 8h |
 | [feat(instrumentation-oracledb): add support for oracledb v7 (#3583)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3583) | abhilash-sivan | sharadraju&nbsp;💬<br>sudarshan12s&nbsp;💬 | ❌ | ✅ | 5h |
 
@@ -61,76 +61,6 @@
 | [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 84d |
 | [feat(instrumentation-nats): add instrumentation nats package (#3352)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3352) | giacomoquinalia | 58d |
 | [Feature/kafka cluster (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 2d |
-
-<details>
-<summary>Diagnostics</summary>
-
-```text
-PR #3585
-llm: PRRT_kwDOD0IL486NcnNq -> author (A bot review comment flags a test weakening and implies the PR author should restore the metric-shape assertions.)
-
-PR #3583
-llm: PRRT_kwDOD0IL486NNEfo -> reviewer (The latest comment is from the author asking for advice on whether to populate `dbName` from `serviceName`, so the reviewer/maintainer needs to जवाब/advise next.)
-
-PR #3581
-llm: pr-conversation -> reviewer (The author asked for a review and made no further request for action from themselves, so the next move is for a reviewer/maintainer to respond.)
-
-PR #3505
-llm: pr-conversation -> author (The latest comment is from a reviewer/approver and references another PR/issue, so the author still needs to respond or act.)
-
-PR #3493
-llm: pr-conversation -> author (The latest reviewer comment says the CLA is still missing and asks the author to sign it, so the author needs to act next.)
-
-PR #3436
-llm: PRRT_kwDOD0IL4850SKfT -> author (A reviewer asked whether the comment should stay, so the author needs to जवाब/respond or revise it.)
-llm: PRRT_kwDOD0IL4853tHyx -> author (The reviewer is asking for a code change (`:memory` -> `:memory:`), so the PR author needs to respond by updating the implementation or explaining why not.)
-llm: pr-conversation -> external (The author says they’ve asked about this in SemConv Slack, so the thread is waiting on an external response outside the repository.)
-
-PR #3435
-llm: pr-conversation -> author (The latest comment is a reviewer asking for feedback on the proposed split/deprecation plan, so the PR author needs to respond.)
-
-PR #3422
-llm: PRRT_kwDOD0IL485-n0WD -> author (A reviewer asked for a code change and there was no author reply, so the PR author needs to act.)
-llm: pr-conversation -> reviewer (The author asked a question and no reviewer has जवाबd yet, so the next action is on the reviewer to clarify what instrumentation is meant.)
-
-PR #3420
-llm: PRRT_kwDOD0IL485zIKQN -> author (The last comment is from a reviewer and raises a workaround suggestion tied to an external issue, so the PR author should respond or act on it.)
-
-PR #3380
-llm: PRRT_kwDOD0IL485uebWd -> author (A reviewer requested adding `server.address`/`server.port`, and there’s no author reply yet, so the author needs to act.)
-llm: PRRT_kwDOD0IL485zVrDa -> reviewer (The last comment is from the author and asks back whether the readme text is still valid across many packages, so the reviewer/maintainer needs to जवाब or confirm next.)
-llm: PRRT_kwDOD0IL4856J30_ -> author (The last comment is a reviewer making a substantive point about span name construction, so the author needs to respond or adjust the PR.)
-
-PR #3377
-llm: pr-conversation -> author (The reviewer asked for documentation/spec confirmation and raised a concern; the author needs to जवाब/clarify before the thread can close.)
-
-PR #3356
-llm: PRRT_kwDOD0IL4857MDI7 -> author (A reviewer suggested changing the type to `string | null`, so the PR author needs to respond or make that update.)
-llm: PRRT_kwDOD0IL4857MEyK -> author (A reviewer asked whether the feature is related and suggested it may belong in a separate PR, so the author needs to respond or adjust the PR.)
-
-PR #3328
-llm: PRRT_kwDOD0IL485pjD_O -> author (The latest reviewer/approver comment proposes a test strategy and asks for the author’s opinion, so the author needs to respond or implement a follow-up.)
-llm: pr-conversation -> author (A reviewer asked the PR author whether they had time to review the latest comments, so the author needs to respond.)
-
-PR #3276
-llm: pr-conversation -> author (The reviewer left a CHANGES_REQUESTED comment and there is no author follow-up yet, so the author needs to respond or update the PR.)
-
-PR #3231
-llm: pr-conversation -> author (The latest comment is from a reviewer/approver pushing back and explaining why the change is unnecessary, so the author needs to respond or adjust the PR.)
-
-PR #3200
-llm: pr-conversation -> none (The only comment is a reviewer note stating the change fixes the issue and makes #3276 redundant, with no explicit follow-up requested.)
-
-PR #3010
-llm: pr-conversation -> reviewer (The only comment is from a reviewer cc’ing component owners, so the next step is for reviewers/maintainers to respond or review.)
-
-PR #2976
-llm: PRRT_kwDOD0IL485XchqF -> author (The reviewer asked for a code change: move to a local `src/semconv.ts` file instead of using the `/incubating` entry point, so the PR author needs to update the implementation.)
-llm: pr-conversation -> external (The last reviewer comment says acceptance depends on a semconv-repo proposal and newer experimental semconv support, so progress is blocked outside this repository.)
-
-```
-
-</details>
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
