@@ -84,7 +84,7 @@
 | [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias |  | ✅ | ❌ | 23h |
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 14h |
 | [\[ja\] add translation of content/en/blog/2022/exponential-histograms/index.md (#10595)](https://github.com/open-telemetry/opentelemetry.io/pull/10595) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 13h |
-| [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo | kohbis&nbsp;💬 | ✅ | ✅ | 12h |
+| [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo | kohbis&nbsp;💬 | ✅ | ✅ | 13h |
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 10h |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬<br>vitorvasc | ❌ | ✅ | 10h |
 | [\[concepts\] Document metric cardinality limits and overflow (#10630)](https://github.com/open-telemetry/opentelemetry.io/pull/10630) | cijothomas | pellared&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 7h |
@@ -122,7 +122,7 @@
 | [\[ja\] add translation of content/en/blog/2025/stability-proposal-announcement.md (#10636)](https://github.com/open-telemetry/opentelemetry.io/pull/10636) | ymotongpoo | 13h |
 | [Refresh refcache (#10641)](https://github.com/open-telemetry/opentelemetry.io/pull/10641) | app/otelbot-docs | 8h |
 | [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 4h |
-| [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 3h |
+| [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 4h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
