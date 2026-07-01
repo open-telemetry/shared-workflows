@@ -48,7 +48,7 @@
 | [registry: add Runback — AI agent audit and governance (OTel-native) (#10635)](https://github.com/open-telemetry/opentelemetry.io/pull/10635) | uchit |  | ✅ | ✅ | 11h |
 | [chore: Move inactive members to emeritus (#10639)](https://github.com/open-telemetry/opentelemetry.io/pull/10639) | opentelemetrybot |  | ✅ | ✅ | 6h |
 | [Update java agent supported libraries list (#10642)](https://github.com/open-telemetry/opentelemetry.io/pull/10642) | jaydeluca |  | ✅ | ✅ | 20m |
-| [Add link to the explorer from agent supported libraries page (#10643)](https://github.com/open-telemetry/opentelemetry.io/pull/10643) | jaydeluca |  | ✅ | ✅ | 16m |
+| [Add link to the explorer from agent supported libraries page (#10643)](https://github.com/open-telemetry/opentelemetry.io/pull/10643) | jaydeluca |  | ✅ | ✅ | 17m |
 
 ## Waiting on authors
 
