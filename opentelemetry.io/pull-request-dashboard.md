@@ -11,7 +11,6 @@
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 4d |
 | [Add DataBuff to vendors list (#10593)](https://github.com/open-telemetry/opentelemetry.io/pull/10593) | databufflabs | svrnm&nbsp;✅ | ✅ | ✅ | 19h |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>svrnm&nbsp;✅ | ❌ | ✅ | 12h |
-| [Add PHP class auto-instrumentation to registry (#10632)](https://github.com/open-telemetry/opentelemetry.io/pull/10632) | eerzho | vitorvasc&nbsp;✅ | ✅ | ✅ | 8h |
 | [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | maryliag&nbsp;✅<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 1h |
 
 ## Waiting on reviewers
@@ -89,8 +88,8 @@
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 4h |
 | [\[ja\] add translation of content/en/blog/2022/exponential-histograms/index.md (#10595)](https://github.com/open-telemetry/opentelemetry.io/pull/10595) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 3h |
 | [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo | kohbis&nbsp;💬 | ✅ | ✅ | 2h |
-| [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 28m |
-| [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬<br>vitorvasc | ❌ | ✅ | 13m |
+| [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 30m |
+| [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬<br>vitorvasc | ❌ | ✅ | 15m |
 
 ## Waiting on external
 
@@ -122,11 +121,11 @@
 | [fix(java/spring-boot-starter): correct DC mappings + add BOM section (#10509)](https://github.com/open-telemetry/opentelemetry.io/pull/10509) | zeitlinger | 6d |
 | [docs(demo): update load generator docs from Locust to k6 (#10560)](https://github.com/open-telemetry/opentelemetry.io/pull/10560) | mwimpelberg28 | 5d |
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 1d |
-| [\[ja\] add translation of content/en/blog/2023/any-metric-receiver.md (#10628)](https://github.com/open-telemetry/opentelemetry.io/pull/10628) | ymotongpoo | 18h |
+| [\[ja\] add translation of content/en/blog/2023/any-metric-receiver.md (#10628)](https://github.com/open-telemetry/opentelemetry.io/pull/10628) | ymotongpoo | 19h |
 | [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 18h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 18h |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 17h |
-| [\[ja\] add translation of content/en/blog/2025/stability-proposal-announcement.md (#10636)](https://github.com/open-telemetry/opentelemetry.io/pull/10636) | ymotongpoo | 2h |
+| [\[ja\] add translation of content/en/blog/2025/stability-proposal-announcement.md (#10636)](https://github.com/open-telemetry/opentelemetry.io/pull/10636) | ymotongpoo | 3h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
