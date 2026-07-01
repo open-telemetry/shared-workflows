@@ -49,7 +49,7 @@
 | [Add Jaeger export instructions to Rust exporters guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 2h |
 | [\[concepts\] Document metric cardinality limits and overflow (#10630)](https://github.com/open-telemetry/opentelemetry.io/pull/10630) | cijothomas |  | ✅ | ✅ | 2h |
 | [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️<br>maryliag | ✅ | ✅ | 1h |
-| [Auto-update registry versions (a240445ec785198638a346588e24af1466aafaa0) (#10638)](https://github.com/open-telemetry/opentelemetry.io/pull/10638) | app/otelbot |  | ⏳ | ✅ | <1m |
+| [Auto-update registry versions (a240445ec785198638a346588e24af1466aafaa0) (#10638)](https://github.com/open-telemetry/opentelemetry.io/pull/10638) | app/otelbot |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
