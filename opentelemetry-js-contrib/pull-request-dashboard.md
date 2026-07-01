@@ -45,7 +45,7 @@
 | [feat(auto-instrumentations-node): opt-in crash flush via OTEL_NODE_FLUSH_ON_CRASH (#3505)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3505) | ElfoLiNk | blumamir<br>dyladan<br>legendecas<br>pichlermarc<br>raphael-theriault-swi | ✅ | ✅ | 56d |
 | [fix(instrumentation-knex): use resolved connection settings (#3493)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3493) | Genmin | david-luna | ❌ | ✅ | 8d |
 | [feat(instrumentation-oracledb): add support for oracledb v7 (#3583)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3583) | abhilash-sivan | sharadraju&nbsp;💬<br>sudarshan12s&nbsp;💬 | ❌ | ✅ | 7h |
-| [feat(several): only emit stable http, network and database attributes (#3585)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3585) | maryliag | blumamir<br>jj22ee<br>martinkuba<br>maryliag<br>naseemkullah<br>neilime<br>onurtemizkan<br>pkanal<br>raphael-theriault-swi<br>seemk | ✅ | ✅ | <1m |
+| [feat(several): only emit stable http, network and database attributes (#3585)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3585) | maryliag | blumamir<br>jj22ee<br>martinkuba<br>maryliag<br>naseemkullah<br>neilime<br>onurtemizkan<br>pkanal<br>raphael-theriault-swi<br>seemk | ✅ | ✅ | 1m |
 
 ## Draft pull requests
 
