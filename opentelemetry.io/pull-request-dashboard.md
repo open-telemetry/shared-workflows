@@ -49,7 +49,7 @@
 | [chore: Move inactive members to emeritus (#10639)](https://github.com/open-telemetry/opentelemetry.io/pull/10639) | opentelemetrybot | cijothomas&nbsp;✔️ | ✅ | ✅ | 11h |
 | [Update java agent supported libraries list (#10642)](https://github.com/open-telemetry/opentelemetry.io/pull/10642) | jaydeluca |  | ✅ | ✅ | 5h |
 | [Add link to the explorer from agent supported libraries page (#10643)](https://github.com/open-telemetry/opentelemetry.io/pull/10643) | jaydeluca |  | ✅ | ✅ | 5h |
-| [Improve declarative config usage link experience with full JSONPath (#10644)](https://github.com/open-telemetry/opentelemetry.io/pull/10644) | jack-berg |  | ⏳ | ✅ | 20m |
+| [Improve declarative config usage link experience with full JSONPath (#10644)](https://github.com/open-telemetry/opentelemetry.io/pull/10644) | jack-berg |  | ⏳ | ✅ | 21m |
 
 ## Waiting on authors
 
