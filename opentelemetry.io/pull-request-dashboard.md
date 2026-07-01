@@ -89,8 +89,8 @@
 | [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | maryliag&nbsp;💬⁠✅ | ✅ | ✅ | 12h |
 | [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ✅ | ✅ | 12h |
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1h |
-| [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️<br>maryliag&nbsp;💬 | ✅ | ✅ | 58m |
-| [\[ja\] add translation of content/en/blog/2022/exponential-histograms/index.md (#10595)](https://github.com/open-telemetry/opentelemetry.io/pull/10595) | ymotongpoo | kohbis&nbsp;💬 | ✅ | ✅ | <1m |
+| [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️<br>maryliag&nbsp;💬 | ✅ | ✅ | 59m |
+| [\[ja\] add translation of content/en/blog/2022/exponential-histograms/index.md (#10595)](https://github.com/open-telemetry/opentelemetry.io/pull/10595) | ymotongpoo | kohbis&nbsp;💬 | ✅ | ✅ | 1m |
 
 ## Waiting on external
 
@@ -124,7 +124,7 @@
 | [docs(demo): update load generator docs from Locust to k6 (#10560)](https://github.com/open-telemetry/opentelemetry.io/pull/10560) | mwimpelberg28 | 5d |
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 21h |
 | [\[ja\] add translation of content/en/blog/2023/any-metric-receiver.md (#10628)](https://github.com/open-telemetry/opentelemetry.io/pull/10628) | ymotongpoo | 15h |
-| [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 14h |
+| [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 15h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 14h |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 14h |
 
