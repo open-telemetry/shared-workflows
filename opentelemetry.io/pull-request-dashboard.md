@@ -10,7 +10,7 @@
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 20d |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 4d |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>svrnm&nbsp;✅ | ❌ | ✅ | 13h |
-| [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | maryliag&nbsp;✅<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 2h |
+| [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | maryliag&nbsp;✅<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 3h |
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 1h |
 
 ## Waiting on reviewers
@@ -49,7 +49,7 @@
 | [Add Jaeger export instructions to Rust exporters guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 3h |
 | [\[concepts\] Document metric cardinality limits and overflow (#10630)](https://github.com/open-telemetry/opentelemetry.io/pull/10630) | cijothomas |  | ✅ | ✅ | 2h |
 | [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️<br>maryliag | ✅ | ✅ | 9m |
-| [chore: Move inactive members to emeritus (#10639)](https://github.com/open-telemetry/opentelemetry.io/pull/10639) | opentelemetrybot |  | ⏳ | ✅ | 3m |
+| [chore: Move inactive members to emeritus (#10639)](https://github.com/open-telemetry/opentelemetry.io/pull/10639) | opentelemetrybot |  | ⏳ | ✅ | 4m |
 
 ## Waiting on authors
 
@@ -123,7 +123,7 @@
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 19h |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 18h |
 | [\[ja\] add translation of content/en/blog/2025/stability-proposal-announcement.md (#10636)](https://github.com/open-telemetry/opentelemetry.io/pull/10636) | ymotongpoo | 4h |
-| [Refresh refcache (#10640)](https://github.com/open-telemetry/opentelemetry.io/pull/10640) | app/otelbot-docs | 1m |
+| [Refresh refcache (#10640)](https://github.com/open-telemetry/opentelemetry.io/pull/10640) | app/otelbot-docs | 2m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
