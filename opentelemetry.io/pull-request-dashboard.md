@@ -48,7 +48,7 @@
 | [registry: add Runback — AI agent audit and governance (OTel-native) (#10635)](https://github.com/open-telemetry/opentelemetry.io/pull/10635) | uchit |  | ✅ | ✅ | 6h |
 | [Add Jaeger export instructions to Rust exporters guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 3h |
 | [\[concepts\] Document metric cardinality limits and overflow (#10630)](https://github.com/open-telemetry/opentelemetry.io/pull/10630) | cijothomas |  | ✅ | ✅ | 3h |
-| [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️<br>maryliag | ⏳ | ✅ | 31m |
+| [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️<br>maryliag | ⏳ | ✅ | 32m |
 | [chore: Move inactive members to emeritus (#10639)](https://github.com/open-telemetry/opentelemetry.io/pull/10639) | opentelemetrybot |  | ⏳ | ✅ | 26m |
 
 ## Waiting on authors
@@ -94,7 +94,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Clarify status levels and semconv stability on Languages page (#9711)](https://github.com/open-telemetry/opentelemetry.io/pull/9711) | franrob-projects | simi&nbsp;✔️<br>tiffany76 | ❌ | ✅ | 17d |
 | [Add blog post: What can you do with OpenTelemetry entity events? (#10124)](https://github.com/open-telemetry/opentelemetry.io/pull/10124) | MatthieuNoirbusson | jsuereth&nbsp;✔️<br>svrnm | ✅ | ✅ | 22h |
-| [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 9h |
+| [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 10h |
 
 ## Draft pull requests
 
@@ -123,7 +123,7 @@
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 19h |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 19h |
 | [\[ja\] add translation of content/en/blog/2025/stability-proposal-announcement.md (#10636)](https://github.com/open-telemetry/opentelemetry.io/pull/10636) | ymotongpoo | 4h |
-| [Refresh refcache (#10641)](https://github.com/open-telemetry/opentelemetry.io/pull/10641) | app/otelbot-docs | <1m |
+| [Refresh refcache (#10641)](https://github.com/open-telemetry/opentelemetry.io/pull/10641) | app/otelbot-docs | 1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
