@@ -53,6 +53,7 @@
 | [Update java agent supported libraries list (#10642)](https://github.com/open-telemetry/opentelemetry.io/pull/10642) | jaydeluca |  | ✅ | ✅ | 9h |
 | [Add link to the explorer from agent supported libraries page (#10643)](https://github.com/open-telemetry/opentelemetry.io/pull/10643) | jaydeluca |  | ✅ | ✅ | 9h |
 | [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 |  | ✅ | ✅ | 3h |
+| [Housekeeping: automated fix results (#10648)](https://github.com/open-telemetry/opentelemetry.io/pull/10648) | app/otelbot-docs |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -97,12 +98,6 @@
 | [Clarify status levels and semconv stability on Languages page (#9711)](https://github.com/open-telemetry/opentelemetry.io/pull/9711) | franrob-projects | simi&nbsp;✔️<br>tiffany76 | ❌ | ✅ | 18d |
 | [Add blog post: What can you do with OpenTelemetry entity events? (#10124)](https://github.com/open-telemetry/opentelemetry.io/pull/10124) | MatthieuNoirbusson | jsuereth&nbsp;✔️<br>svrnm | ✅ | ✅ | 1d |
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | maryliag | ✅ | ✅ | 1d |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [Housekeeping: automated fix results (#10648)](https://github.com/open-telemetry/opentelemetry.io/pull/10648) | app/otelbot-docs |  | ? | ? | ? |
 
 ## Draft pull requests
 
