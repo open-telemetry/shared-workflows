@@ -25,7 +25,7 @@
 | [fix(druid): optimize dataSourceName to resolve metrics high cardinality (#19108)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108) | YaoYingLong |  | ✅ | ✅ | 18h |
 | [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn |  | ✅ | ✅ | 16h |
 | [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 14h |
-| [chore: Move inactive members to emeritus (#19112)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19112) | opentelemetrybot |  | ⏳ | ✅ | <1m |
+| [chore: Move inactive members to emeritus (#19112)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19112) | opentelemetrybot |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
