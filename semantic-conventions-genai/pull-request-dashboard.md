@@ -19,8 +19,9 @@
 | [gen-ai: model agent-to-agent handoff as execute_tool span (#98)](https://github.com/open-telemetry/semantic-conventions-genai/pull/98) | Krishnachaitanyakc | lmolkova<br>MikeGoldsmith&nbsp;✅<br>trask | ✅ | ❌ | 5d |
 | [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 4d |
 | [Migrate anthropic reference scenario to opentelemetry-util-genai (#324)](https://github.com/open-telemetry/semantic-conventions-genai/pull/324) | AgentGymLeader | lmolkova | ✅ | ✅ | 3d |
-| [Update reference implementation dependencies (non-major) (#352)](https://github.com/open-telemetry/semantic-conventions-genai/pull/352) | app/renovate |  | ❌ | ✅ | 18h |
+| [Update reference implementation dependencies (non-major) (#352)](https://github.com/open-telemetry/semantic-conventions-genai/pull/352) | app/renovate |  | ❌ | ✅ | 19h |
 | [gen-ai: add get_response operation and span (#353)](https://github.com/open-telemetry/semantic-conventions-genai/pull/353) | JacksonWeber |  | ✅ | ✅ | 6h |
+| [Clarify workflow span criteria and add reference scenarios for langchain and openai agents (#354)](https://github.com/open-telemetry/semantic-conventions-genai/pull/354) | lmolkova |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
@@ -47,7 +48,6 @@
 | [Propose GenAI agent entity (#270)](https://github.com/open-telemetry/semantic-conventions-genai/pull/270) | aabmass | AgentGymLeader&nbsp;✔️<br>lmolkova&nbsp;💬⁠✅<br>trask | ✅ | ❌ | 2d |
 | [Remove inference spans from agentic reference instrumentations, add guidance (#351)](https://github.com/open-telemetry/semantic-conventions-genai/pull/351) | lmolkova | JWinermaSplunk&nbsp;💬 | ✅ | ❌ | 9h |
 | [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova | JWinermaSplunk&nbsp;💬⁠✅<br>wrisa&nbsp;✔️ | ✅ | ✅ | 9h |
-| [Clarify workflow span criteria and add reference scenarios for langchain and openai agents (#354)](https://github.com/open-telemetry/semantic-conventions-genai/pull/354) | lmolkova |  | ❌ | ✅ | 6m |
 
 ## Draft pull requests
 
