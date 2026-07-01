@@ -25,7 +25,7 @@
 | [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn |  | ✅ | ✅ | 1d |
 | [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 22h |
 | [Remove SpEL from SpringConfigProperties.getMap() (#19113)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19113) | zeitlinger |  | ⏳ | ✅ | 1h |
-| [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | laurit<br>SylvainJuge | ⏳ | ✅ | <1m |
+| [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | laurit<br>SylvainJuge | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
