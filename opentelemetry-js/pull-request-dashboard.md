@@ -7,11 +7,11 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ❌ | ✅ | 85d |
+| [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ❌ | ✅ | 86d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 75d |
 | [fix(core): guard timeInputToHrTime against clock-skew misclassification (#6772) (#6773)](https://github.com/open-telemetry/opentelemetry-js/pull/6773) | MohammadYusif | JacksonWeber&nbsp;✅ | ✅ | ✅ | 13d |
-| [perf(sdk-metrics): optionally capture active context for sync instruments (#6848)](https://github.com/open-telemetry/opentelemetry-js/pull/6848) | legendecas | pichlermarc&nbsp;✅ | ❌ | ✅ | 11h |
-| [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber&nbsp;✅<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 7h |
+| [perf(sdk-metrics): optionally capture active context for sync instruments (#6848)](https://github.com/open-telemetry/opentelemetry-js/pull/6848) | legendecas | pichlermarc&nbsp;✅ | ❌ | ✅ | 12h |
+| [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber&nbsp;✅<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 8h |
 
 ## Waiting on reviewers
 
@@ -21,7 +21,7 @@
 | [chore(deps): update ubuntu docker tag to v26 (#6635)](https://github.com/open-telemetry/opentelemetry-js/pull/6635) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ✅ | ✅ | 65d |
 | [feat(api): add factory pattern for TracerProvider (#6466)](https://github.com/open-telemetry/opentelemetry-js/pull/6466) | ida613 | dyladan | ✅ | ❌ | 57d |
 | [feat(otlp-exporter-base): accept `fetch` parameter in `createFetchTransport`, and export `createFetchTransport`, `createRetryingTransport` and `FetchTransportParameters` (#6377)](https://github.com/open-telemetry/opentelemetry-js/pull/6377) | zakcutner | pichlermarc | ✅ | ❌ | 56d |
-| [chore(deps): update dependency &#64;types/sinon to v21 (#6693)](https://github.com/open-telemetry/opentelemetry-js/pull/6693) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 50d |
+| [chore(deps): update dependency &#64;types/sinon to v21 (#6693)](https://github.com/open-telemetry/opentelemetry-js/pull/6693) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 51d |
 | [chore(deps): update dependency sinon to v22 (#6720)](https://github.com/open-telemetry/opentelemetry-js/pull/6720) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 44d |
 | [fix(deps): update opentelemetry-js monorepo to v2 (#6721)](https://github.com/open-telemetry/opentelemetry-js/pull/6721) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 44d |
 | [Add config option for Prometheus default aggregation (#6761)](https://github.com/open-telemetry/opentelemetry-js/pull/6761) | ArthurSens |  | ✅ | ❌ | 36d |
@@ -30,8 +30,8 @@
 | [feat(api): add setClock and getTick methods to ContextAPI (#6816) (#6820)](https://github.com/open-telemetry/opentelemetry-js/pull/6820) | ipsitapp8 |  | ✅ | ✅ | 12d |
 | [feat(sdk-metrics): metrics exemplars support (#6830)](https://github.com/open-telemetry/opentelemetry-js/pull/6830) | rnavarro |  | ✅ | ❌ | 11d |
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 11d |
-| [docs(configuration): add declarative config example for startNodeSDK() (#6834)](https://github.com/open-telemetry/opentelemetry-js/pull/6834) | MikeGoldsmith | maryliag | ✅ | ✅ | 7h |
-| [feat(sdk-node,instrumentation,instrumentation-http): add declarative config support for `instrumentation/development` (#6864)](https://github.com/open-telemetry/opentelemetry-js/pull/6864) | mwear | trentm | ✅ | ✅ | 1h |
+| [docs(configuration): add declarative config example for startNodeSDK() (#6834)](https://github.com/open-telemetry/opentelemetry-js/pull/6834) | MikeGoldsmith | maryliag | ✅ | ✅ | 8h |
+| [feat(sdk-node,instrumentation,instrumentation-http): add declarative config support for `instrumentation/development` (#6864)](https://github.com/open-telemetry/opentelemetry-js/pull/6864) | mwear | trentm | ✅ | ✅ | 2h |
 
 ## Waiting on authors
 
