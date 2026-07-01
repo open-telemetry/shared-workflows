@@ -28,7 +28,7 @@
 | [fix(instrumentation-koa): use fallback name for anonymous middleware spans (#3582)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3582) | bhuvan-somisetty |  | ✅ | ✅ | 16h |
 | [chore: Move inactive members to emeritus (#3587)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3587) | opentelemetrybot |  | ✅ | ✅ | 3h |
 | [fix(instrumentation-knex): use connectionSettings to support function-based connection configs (#3584)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3584) | bhuvan-somisetty |  | ✅ | ✅ | 1h |
-| [feat(instrumentation-oracledb): add support for oracledb v7 (#3583)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3583) | abhilash-sivan | sharadraju&nbsp;💬<br>sudarshan12s&nbsp;💬 | ❌ | ✅ | <1m |
+| [feat(instrumentation-oracledb): add support for oracledb v7 (#3583)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3583) | abhilash-sivan | sharadraju&nbsp;💬<br>sudarshan12s&nbsp;💬 | ❌ | ✅ | 1m |
 
 ## Waiting on authors
 
