@@ -32,7 +32,7 @@
 | [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 19d |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 5d |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ✅ | 19h |
-| [Removed unused span manager from langchain (#190)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/190) | rads-1996 | eternalcuriouslearner | ❌ | ✅ | <1m |
+| [Removed unused span manager from langchain (#190)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/190) | rads-1996 | eternalcuriouslearner | ✅ | ✅ | 4m |
 
 ## Draft pull requests
 
