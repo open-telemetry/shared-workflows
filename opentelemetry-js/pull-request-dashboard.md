@@ -72,7 +72,7 @@
 | [feat: add context attach/detach (#6387)](https://github.com/open-telemetry/opentelemetry-js/pull/6387) | pichlermarc | 12d |
 | [chore(shim-opencensus): remove the `&#64;opentelemetry/shim-opencensus` package (#6843)](https://github.com/open-telemetry/opentelemetry-js/pull/6843) | trentm | 6d |
 | [Entity-Resource prototype v3 (#6357)](https://github.com/open-telemetry/opentelemetry-js/pull/6357) | dyladan | 2d |
-| [feat(sdk-node,instrumentation,instrumentation-http): add declarative config support for `instrumentation/development` (#6864)](https://github.com/open-telemetry/opentelemetry-js/pull/6864) | mwear | 51m |
+| [feat(sdk-node,instrumentation,instrumentation-http): add declarative config support for `instrumentation/development` (#6864)](https://github.com/open-telemetry/opentelemetry-js/pull/6864) | mwear | 52m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
