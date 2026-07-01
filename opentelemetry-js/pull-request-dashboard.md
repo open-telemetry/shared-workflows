@@ -28,7 +28,7 @@
 | [feat(sdk-metrics): metrics exemplars support (#6830)](https://github.com/open-telemetry/opentelemetry-js/pull/6830) | rnavarro |  | ✅ | ❌ | 12d |
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 12d |
 | [docs(configuration): add declarative config example for startNodeSDK() (#6834)](https://github.com/open-telemetry/opentelemetry-js/pull/6834) | MikeGoldsmith | maryliag | ✅ | ✅ | 1d |
-| [fix(instrumentation,instrumentation-http): fix codecov under-reporting (#6867)](https://github.com/open-telemetry/opentelemetry-js/pull/6867) | mwear |  | ❌ | ✅ | 19h |
+| [fix(instrumentation,instrumentation-http): fix codecov under-reporting (#6867)](https://github.com/open-telemetry/opentelemetry-js/pull/6867) | mwear |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
