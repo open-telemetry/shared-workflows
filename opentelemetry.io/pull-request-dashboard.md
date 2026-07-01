@@ -11,7 +11,7 @@
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 4d |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>svrnm&nbsp;✅ | ❌ | ✅ | 12h |
 | [\[chore\] Document /fix:refcache hint for new-link CI failures (#10627)](https://github.com/open-telemetry/opentelemetry.io/pull/10627) | cijothomas | maryliag&nbsp;✅<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 2h |
-| [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 23m |
+| [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 28m |
 
 ## Waiting on reviewers
 
@@ -43,12 +43,13 @@
 | [\[ja\] update translation of content/en/docs/contributing/blog.md (#10626)](https://github.com/open-telemetry/opentelemetry.io/pull/10626) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 20h |
 | [\[es\] Translate docs/guidance/reference-implementations/adobe/index.md (#10558)](https://github.com/open-telemetry/opentelemetry.io/pull/10558) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 15h |
 | [\[es\] Translate docs/guidance/reference-implementations/_index.md (#10520)](https://github.com/open-telemetry/opentelemetry.io/pull/10520) | mwimpelberg28 | immavalls&nbsp;✔️ | ✅ | ✅ | 15h |
-| [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias |  | ✅ | ✅ | 13h |
+| [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias |  | ✅ | ✅ | 14h |
 | [\[ja\] update translation of content/en/docs/zero-code/obi/troubleshooting.md (#10634)](https://github.com/open-telemetry/opentelemetry.io/pull/10634) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ❌ | 5h |
 | [registry: add Runback — AI agent audit and governance (OTel-native) (#10635)](https://github.com/open-telemetry/opentelemetry.io/pull/10635) | uchit |  | ✅ | ✅ | 4h |
 | [Add Jaeger export instructions to Rust exporters guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm | ✅ | ✅ | 2h |
 | [\[concepts\] Document metric cardinality limits and overflow (#10630)](https://github.com/open-telemetry/opentelemetry.io/pull/10630) | cijothomas |  | ✅ | ✅ | 2h |
 | [Translate docs/contributing/development to romanian (#10502)](https://github.com/open-telemetry/opentelemetry.io/pull/10502) | viorel-alexandrescu | didiViking&nbsp;✔️<br>maryliag | ✅ | ✅ | 1h |
+| [Auto-update registry versions (a240445ec785198638a346588e24af1466aafaa0) (#10638)](https://github.com/open-telemetry/opentelemetry.io/pull/10638) | app/otelbot |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -85,8 +86,8 @@
 | [\[ja\] add translation of content/en/blog/2022/exponential-histograms/index.md (#10595)](https://github.com/open-telemetry/opentelemetry.io/pull/10595) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 3h |
 | [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo | kohbis&nbsp;💬 | ✅ | ✅ | 3h |
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 1h |
-| [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬<br>vitorvasc | ❌ | ✅ | 49m |
-| [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ⏳ | ✅ | 4m |
+| [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬<br>vitorvasc | ❌ | ✅ | 53m |
+| [feat: \[pt\] Create docs/platforms/kubernetes/helm/_index.md (#10583)](https://github.com/open-telemetry/opentelemetry.io/pull/10583) | dmroch4 | emdneto&nbsp;✔️<br>vitorvasc | ⏳ | ✅ | 9m |
 
 ## Waiting on external
 
