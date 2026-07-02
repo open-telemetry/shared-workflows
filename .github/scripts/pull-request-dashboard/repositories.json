@@ -24,8 +24,31 @@
     "slack_user_mapping": {}
   },
   {
+    "name": "opentelemetry-proto",
+    "approver_teams": ["proto-approvers"],
+    "required_approvals": 2,
+    "slack_channel": "",
+    "slack_user_mapping": {}
+  },
+  {
     "name": "opentelemetry-python-genai",
     "approver_teams": ["python-genai-approvers"],
+    "slack_channel": "",
+    "slack_user_mapping": {}
+  },
+  {
+    "name": "opentelemetry-weaver-examples",
+    "approver_teams": [
+      "weaver-approvers"
+    ],
+    "slack_channel": "",
+    "slack_user_mapping": {}
+  },
+  {
+    "name": "opentelemetry-weaver-packages",
+    "approver_teams": [
+      "weaver-package-approvers"
+    ],
     "slack_channel": "",
     "slack_user_mapping": {}
   },
@@ -50,5 +73,13 @@
       "Cirilla-zmh": "U083T0EH5LK",
       "trask": "U0157BDJNBD"
     }
+  },
+  {
+    "name": "weaver",
+    "approver_teams": [
+      "weaver-approvers"
+    ],
+    "slack_channel": "",
+    "slack_user_mapping": {}
   }
 ]
