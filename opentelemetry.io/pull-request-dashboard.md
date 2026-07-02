@@ -15,7 +15,7 @@
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 10h |
 | [Add Jaeger export instructions to Rust exporters guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm&nbsp;✅ | ✅ | ✅ | 2h |
 | [Update community members (#10650)](https://github.com/open-telemetry/opentelemetry.io/pull/10650) | app/otelbot-docs | svrnm&nbsp;✅ | ✅ | ✅ | 1h |
-| [add bronto to vendors (#10645)](https://github.com/open-telemetry/opentelemetry.io/pull/10645) | svrnm | cijothomas&nbsp;✔️<br>jaydeluca&nbsp;✅ | ✅ | ✅ | 35m |
+| [add bronto to vendors (#10645)](https://github.com/open-telemetry/opentelemetry.io/pull/10645) | svrnm | cijothomas&nbsp;✔️<br>jaydeluca&nbsp;✅ | ✅ | ✅ | 36m |
 
 ## Waiting on reviewers
 
