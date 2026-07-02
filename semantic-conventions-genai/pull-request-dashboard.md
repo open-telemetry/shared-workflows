@@ -20,7 +20,7 @@
 | [Update reference implementation dependencies (non-major) (#352)](https://github.com/open-telemetry/semantic-conventions-genai/pull/352) | app/renovate |  | ❌ | ✅ | 1d |
 | [gen-ai: model agent-to-agent handoff as execute_tool span (#98)](https://github.com/open-telemetry/semantic-conventions-genai/pull/98) | Krishnachaitanyakc | lmolkova<br>MikeGoldsmith&nbsp;✅<br>trask | ✅ | ❌ | 8h |
 | [Update tooling dependencies (#357)](https://github.com/open-telemetry/semantic-conventions-genai/pull/357) | app/renovate |  | ✅ | ✅ | 1m |
-| [Update tooling dependencies to v7 (#358)](https://github.com/open-telemetry/semantic-conventions-genai/pull/358) | app/renovate |  | ⏳ | ✅ | 1m |
+| [Update tooling dependencies to v7 (#358)](https://github.com/open-telemetry/semantic-conventions-genai/pull/358) | app/renovate |  | ✅ | ✅ | 1m |
 
 ## Waiting on authors
 
@@ -49,7 +49,7 @@
 | [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova | JWinermaSplunk&nbsp;✅<br>wrisa&nbsp;✔️ | ✅ | ✅ | 1d |
 | [Clarify workflow span criteria and add reference scenarios for langchain and openai agents (#354)](https://github.com/open-telemetry/semantic-conventions-genai/pull/354) | lmolkova |  | ✅ | ✅ | 1d |
 | [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 16h |
-| [gen-ai: add get_response operation and span (#353)](https://github.com/open-telemetry/semantic-conventions-genai/pull/353) | JacksonWeber |  | ✅ | ✅ | 15h |
+| [gen-ai: add get_response operation and span (#353)](https://github.com/open-telemetry/semantic-conventions-genai/pull/353) | JacksonWeber |  | ✅ | ✅ | 16h |
 
 ## Draft pull requests
 
