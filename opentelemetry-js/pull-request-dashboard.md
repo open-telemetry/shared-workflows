@@ -27,7 +27,7 @@
 | [feat(sdk-metrics): metrics exemplars support (#6830)](https://github.com/open-telemetry/opentelemetry-js/pull/6830) | rnavarro |  | ✅ | ❌ | 13d |
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 13d |
 | [docs(configuration): add declarative config example for startNodeSDK() (#6834)](https://github.com/open-telemetry/opentelemetry-js/pull/6834) | MikeGoldsmith | maryliag | ✅ | ✅ | 1d |
-| [chore: prepare next release (#6869)](https://github.com/open-telemetry/opentelemetry-js/pull/6869) | app/otelbot-js |  | ❌ | ✅ | 10m |
+| [chore: prepare next release (#6869)](https://github.com/open-telemetry/opentelemetry-js/pull/6869) | app/otelbot-js |  | ❌ | ✅ | 11m |
 
 ## Waiting on authors
 
