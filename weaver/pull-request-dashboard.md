@@ -21,7 +21,7 @@
 | [Replace regex with semver crate (#1108)](https://github.com/open-telemetry/weaver/pull/1108) | ArthurSens | jsuereth<br>lquerel&nbsp;🔴 | ✅ | ✅ | 180d |
 | [Tolerate unknown properties in resolved schema / published manifest (#1365)](https://github.com/open-telemetry/weaver/pull/1365) | lmolkova | jsuereth&nbsp;💬 | ✅ | ❌ | 55d |
 | [Use semantic conventions v2 for `weaver registry infer` (#1334)](https://github.com/open-telemetry/weaver/pull/1334) | ArthurSens | jsuereth | ✅ | ✅ | 23d |
-| [Update all patch versions (#1554)](https://github.com/open-telemetry/weaver/pull/1554) | app/renovate |  | ⏳ | ✅ | 13h |
+| [Update all patch versions (#1554)](https://github.com/open-telemetry/weaver/pull/1554) | app/renovate |  | ✅ | ✅ | 13h |
 | [Update Rust to v1.96.1 (#1555)](https://github.com/open-telemetry/weaver/pull/1555) | app/renovate |  | ✅ | ✅ | 13h |
 | [Update gcr.io/oss-fuzz-base/base-builder-rust Docker digest to 69eb410 (#1557)](https://github.com/open-telemetry/weaver/pull/1557) | app/renovate |  | ✅ | ✅ | 10h |
 
