@@ -21,18 +21,19 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅ | ❌ | ❌ | 13d |
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | rads-1996&nbsp;✔️ | ❌ | ✅ | 11d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 7d |
+| [feat: Add instrumentation for AsyncMessages.stream, Messages.parse and AsyncMessages.parse methods. (#191)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/191) | eternalcuriouslearner |  | ❌ | ✅ | 3d |
 
 ## Waiting on authors
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Add streaming timing metrics to generic stream wrappers (#13)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/13) | Nik-Reddy | aabmass<br>eternalcuriouslearner&nbsp;🔴<br>lmolkova&nbsp;🔴<br>lzchen&nbsp;💬<br>MikeGoldsmith&nbsp;🔴 | ✅ | ❌ | 34d |
+| [Add streaming timing metrics to generic stream wrappers (#13)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/13) | Nik-Reddy | aabmass<br>eternalcuriouslearner&nbsp;🔴<br>lmolkova&nbsp;🔴<br>lzchen&nbsp;💬<br>MikeGoldsmith&nbsp;🔴 | ✅ | ❌ | 35d |
 | [opentelemetry-instrumentation-genai-openai-agents: handle MCPListToolsSpanData (#100)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/100) | Jwrede | lmolkova&nbsp;💬 | ✅ | ❌ | 32d |
 | [util-genai \| Add MCPInvocation type for MCP span (#105)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/105) | etserend | shuningc&nbsp;💬 | ✅ | ✅ | 30d |
 | [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 20d |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 5d |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ✅ | 1d |
-| [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ❌ | ✅ | 40m |
+| [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ❌ | ✅ | 1h |
 
 ## Draft pull requests
 
@@ -40,69 +41,9 @@
 |---|---|:---:|
 | [\[langchain\] Prototype collecting number of llm and tool calls per agent invocation (#173)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/173) | lmolkova | 6d |
 | [openinference migration skill output for langchain (#181)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/181) | keith-decker | 2d |
-| [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 20h |
+| [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 21h |
 | [Prototype: add nested workflow detection in langchain (#189)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/189) | lmolkova | 20h |
-| [Prototype showing gen_ai.conversation_root span attribute to mark the root GenAI span of a conversation (WIP) (#187)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/187) | wrisa | 11h |
-
-<details>
-<summary>Diagnostics</summary>
-
-```text
-PR #188
-llm: pr-conversation -> author (A reviewer asked the author to check whether anthropic tool support needs to be added, so the author needs to respond or make the change.)
-
-PR #184
-llm: PRRT_kwDOSbspP86NTaT2 -> author (The latest reviewer comment asks whether to close the thread until the follow-up PR is merged, so the author needs to respond or confirm the intended next step.)
-
-PR #150
-llm: PRRT_kwDOSbspP86KbITi -> reviewer (The latest comment is from the author and looks like a response/clarification, so the reviewer should check it and continue the thread.)
-llm: PRRT_kwDOSbspP86KbIpn -> reviewer (The latest comment is from the author and proposes a change, so the ball is back with the reviewer to respond or review that suggestion.)
-
-PR #147
-llm: PRRT_kwDOSbspP86KDEr1 -> none (The author արդեն answered the suggestion and indicated no current PR change is needed, with any broader cleanup deferred to a separate task.)
-
-PR #124
-llm: PRRT_kwDOSbspP86K8dTl -> reviewer (The reviewer requested an issue/PR to make the score optional, and the author replied with the issue link, so the ball is back with the reviewer to acknowledge or continue the review.)
-
-PR #105
-llm: PRRT_kwDOSbspP86GRCWP -> author (Reviewer指出测试锁定了错误行为，暗示作者需要调整实现或测试并回复。)
-llm: PRRT_kwDOSbspP86GevWT -> author (The latest comment is a bot review requesting a code change to accept `trace_state`, so the PR author needs to update the implementation.)
-llm: PRRT_kwDOSbspP86GevW- -> author (The only comment is a reviewer bot suggestion asking to change the implementation from empty string to `None`, so the PR author needs to act.)
-llm: PRRT_kwDOSbspP86GevXY -> author (The latest comment is an automated review suggestion asking to centralize duplicated attribute-building, so the PR author would need to make the change or respond to it.)
-
-PR #102
-llm: PRRT_kwDOSbspP86Ma8Es -> author (The reviewer requested a code change (“please create TelemetryHandler instead”), so the PR author needs to respond and update the thread.)
-llm: PRRT_kwDOSbspP86Ma8Pq -> author (A reviewer said the code does not seem correct and no follow-up reply or fix is shown, so the PR author needs to respond or update the change.)
-llm: PRRT_kwDOSbspP86Ma8sK -> author (A reviewer said the changed cassette looks unrelated, so the author needs to respond or adjust the PR.)
-llm: pr-conversation -> author (A reviewer asked for feedback on using openinference and noted they don’t seem to have instrumentation for Cohere, so the author needs to respond or adjust the approach.)
-
-PR #100
-llm: PRRT_kwDOSbspP86F3vOM -> author (A bot reviewer flagged a concrete code change and no one has replied yet, so the PR author needs to update the implementation.)
-llm: PRRT_kwDOSbspP86F3vON -> author (A bot review comment suggests a code change, so the PR author needs to update the implementation or respond.)
-llm: PRRT_kwDOSbspP86F3vOP -> author (A bot reviewer flagged a naming/API issue and suggested a code change, so the PR author needs to update the implementation or respond.)
-llm: PRRT_kwDOSbspP86KaNp1 -> author (Reviewer requested a design change and no author reply followed, so the PR author needs to respond or update the implementation.)
-llm: pr-conversation -> reviewer (The author asked the reviewer to choose whether to keep this PR open as a tracking reference or close it and move the gap to an issue, so the reviewer needs to जवाब/decide next.)
-
-PR #90
-llm: PRRT_kwDOSbspP86LaGma -> none (The last comment acknowledges the SIG decision and closes the deprecation-warning question, so no follow-up is needed.)
-
-PR #49
-llm: PRRT_kwDOSbspP86H4tJU -> none (The author answered the suggestion and explicitly deferred the refactor to a follow-up PR, so the current thread is effectively closed.)
-llm: PRRT_kwDOSbspP86I8NyE -> author (The only comment is from a reviewer raising a concern and asking for thoughts, so the PR author needs to respond or adjust the code.)
-llm: PRRT_kwDOSbspP86I8O6k -> author (A reviewer asked an open design question about undefined behavior and whether root spans should be marked OK, so the PR author needs to जवाब/respond and decide the implementation.)
-llm: pr-conversation -> author (The latest comment is from a reviewer requesting the PR author’s response/action, so the ball is with the author.)
-
-PR #13
-llm: PRRT_kwDOSbspP86Dn1e0 -> reviewer (The author answered the question and explained why the method is not needed here, so the ball is back with the reviewer to accept or continue the discussion.)
-llm: PRRT_kwDOSbspP86Dn5N7 -> reviewer (The author explained the tradeoff and asked the reviewer to decide which direction they want, so the next action is with the reviewer.)
-llm: PRRT_kwDOSbspP86Dn925 -> author (The latest comment is from the author and says they will batch the decision with the next push, so the PR still needs author follow-up.)
-llm: PRRT_kwDOSbspP86DoNGR -> reviewer (The author has responded with a proposed resolution and asked the reviewer whether to prefer option 2 instead, so the ball is back with the reviewer.)
-llm: PRRT_kwDOSbspP86KYIl0 -> author (A reviewer asked whether these files are related to the PR, so the author needs to जवाब/respond and clarify.)
-llm: pr-conversation -> author (A reviewer left CHANGES_REQUESTED with concrete suggestions and no follow-up from the author yet, so the PR author needs to respond and update the code.)
-
-```
-
-</details>
+| [Prototype showing gen_ai.conversation_root span attribute to mark the root GenAI span of a conversation (WIP) (#187)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/187) | wrisa | 12h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
