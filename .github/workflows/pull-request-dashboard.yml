@@ -177,6 +177,8 @@ jobs:
       approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
       slack_channel: ${{ matrix.slack_channel }}
       slack_user_mapping_json: ${{ toJSON(matrix.slack_user_mapping || fromJSON('{}')) }}
+      max_rows_per_section: ${{ matrix.max_rows_per_section || 0 }}
+      skip_drafts: ${{ matrix.skip_drafts || false }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}

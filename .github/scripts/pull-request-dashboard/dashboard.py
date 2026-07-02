@@ -1073,6 +1073,8 @@ def update_dashboard(args: argparse.Namespace) -> int:
     md = render_pr_tables(
         prs,
         calculation.results,
+        max_rows_per_section=args.max_rows_per_section or None,
+        skip_drafts=args.skip_drafts,
     )
     output_path = dashboard_markdown_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1121,9 +1123,22 @@ def main() -> int:
         help="minimum non-bot approvals needed before a PR can route to maintainers",
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
+    parser.add_argument(
+        "--max-rows-per-section",
+        type=int,
+        default=0,
+        help="cap rows per section in the rendered dashboard (0 = no limit)",
+    )
+    parser.add_argument(
+        "--skip-drafts",
+        action="store_true",
+        help="omit the Draft pull requests section from the rendered dashboard",
+    )
     args = parser.parse_args()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")
+    if args.max_rows_per_section < 0:
+        parser.error("--max-rows-per-section must be zero or positive")
     with state_branch.temporary_state_dir() as state_dir:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
