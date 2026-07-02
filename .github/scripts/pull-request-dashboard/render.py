@@ -181,6 +181,7 @@ def render_pr_tables(
     prs: list[dict[str, Any]],
     results: dict[int, dict[str, Any]],
     max_rows_per_section: int | None = None,
+    skip_drafts: bool = False,
 ) -> str:
     source_url = "https://github.com/open-telemetry/shared-workflows/blob/main/.github/scripts/pull-request-dashboard/dashboard.py"
     refresh_url = "https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml"
@@ -246,7 +247,8 @@ def render_pr_tables(
             out.append(_truncation_note(truncated))
             out.append("")
 
-    out.extend(render_draft_pr_section(prs, max_rows_per_section))
+    if not skip_drafts:
+        out.extend(render_draft_pr_section(prs, max_rows_per_section))
     out.extend(render_diagnostics_section(results))
     out.append(f"_Approvers may [force a refresh]({refresh_url})._")
     out.append("")

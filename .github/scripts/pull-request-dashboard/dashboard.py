@@ -1074,6 +1074,7 @@ def update_dashboard(args: argparse.Namespace) -> int:
         prs,
         calculation.results,
         max_rows_per_section=args.max_rows_per_section or None,
+        skip_drafts=args.skip_drafts,
     )
     output_path = dashboard_markdown_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1127,6 +1128,11 @@ def main() -> int:
         type=int,
         default=0,
         help="cap rows per section in the rendered dashboard (0 = no limit)",
+    )
+    parser.add_argument(
+        "--skip-drafts",
+        action="store_true",
+        help="omit the Draft pull requests section from the rendered dashboard",
     )
     args = parser.parse_args()
     if args.required_approvals < 1:
