@@ -10,8 +10,8 @@
 | [\[`opentelemetry-instrumentation-google-genai`\] Update `generate_content` streaming variants to use `AsyncStreamWrapper` and `SyncStreamWrapper`  from utils (#167)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/167) | DylanRussell | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 6d |
 | [feat: add instrumentation around openai responses stream method. (#131)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/131) | eternalcuriouslearner | lmolkova&nbsp;✅ | ✅ | ✅ | 6d |
 | [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ❌ | 5d |
-| [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 7h |
-| [Removed unused span manager from langchain (#190)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/190) | rads-1996 | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 5h |
+| [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 8h |
+| [Removed unused span manager from langchain (#190)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/190) | rads-1996 | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 6h |
 
 ## Waiting on reviewers
 
@@ -40,9 +40,9 @@
 |---|---|:---:|
 | [\[langchain\] Prototype collecting number of llm and tool calls per agent invocation (#173)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/173) | lmolkova | 6d |
 | [openinference migration skill output for langchain (#181)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/181) | keith-decker | 2d |
-| [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 18h |
-| [Prototype: add nested workflow detection in langchain (#189)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/189) | lmolkova | 17h |
-| [Prototype showing gen_ai.conversation_root span attribute to mark the root GenAI span of a conversation (WIP) (#187)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/187) | wrisa | 9h |
+| [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 19h |
+| [Prototype: add nested workflow detection in langchain (#189)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/189) | lmolkova | 19h |
+| [Prototype showing gen_ai.conversation_root span attribute to mark the root GenAI span of a conversation (WIP) (#187)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/187) | wrisa | 10h |
 
 <details>
 <summary>Diagnostics</summary>
