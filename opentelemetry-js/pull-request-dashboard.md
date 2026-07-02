@@ -10,7 +10,7 @@
 | [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ❌ | ✅ | 87d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 77d |
 | [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber&nbsp;✅<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 1d |
-| [chore: prepare next release (#6869)](https://github.com/open-telemetry/opentelemetry-js/pull/6869) | app/otelbot-js | david-luna&nbsp;✅<br>pichlermarc&nbsp;✅<br>trentm&nbsp;✅ | ✅ | ✅ | 1h |
+| [chore: prepare next release (#6869)](https://github.com/open-telemetry/opentelemetry-js/pull/6869) | app/otelbot-js | david-luna&nbsp;✅<br>pichlermarc&nbsp;✅<br>trentm&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
 
