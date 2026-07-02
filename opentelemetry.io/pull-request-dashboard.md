@@ -14,7 +14,7 @@
 | [\[concepts\] Document metric cardinality limits and overflow (#10630)](https://github.com/open-telemetry/opentelemetry.io/pull/10630) | cijothomas | pellared&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 12h |
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 10h |
 | [Add Jaeger export instructions to Rust exporters guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm&nbsp;✅ | ✅ | ✅ | 2h |
-| [add bronto to vendors (#10645)](https://github.com/open-telemetry/opentelemetry.io/pull/10645) | svrnm | cijothomas&nbsp;✔️<br>jaydeluca&nbsp;✅ | ✅ | ✅ | 26m |
+| [add bronto to vendors (#10645)](https://github.com/open-telemetry/opentelemetry.io/pull/10645) | svrnm | cijothomas&nbsp;✔️<br>jaydeluca&nbsp;✅ | ✅ | ✅ | 27m |
 
 ## Waiting on reviewers
 
