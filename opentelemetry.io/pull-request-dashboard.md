@@ -48,7 +48,7 @@
 | [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 |  | ✅ | ✅ | 18h |
 | [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 12h |
 | [\[ja\] add translation of content/en/blog/2023/otel-arrow/index.md (#10594)](https://github.com/open-telemetry/opentelemetry.io/pull/10594) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 12h |
-| [\[ja\] update translation of content/en/docs/collector/internal-telemetry.md (#10652)](https://github.com/open-telemetry/opentelemetry.io/pull/10652) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 3h |
+| [\[ja\] update translation of content/en/docs/collector/internal-telemetry.md (#10652)](https://github.com/open-telemetry/opentelemetry.io/pull/10652) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 
 ## Waiting on authors
 
