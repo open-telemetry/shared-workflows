@@ -8,7 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ❌ | ✅ | 87d |
-| [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 76d |
+| [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 77d |
 | [feat(sdk-trace-web,fetch,grpc,http,xml-http-request): only emit stable http metrics, spans and attributes (#6819)](https://github.com/open-telemetry/opentelemetry-js/pull/6819) | maryliag | JacksonWeber&nbsp;✅<br>pichlermarc&nbsp;✅ | ✅ | ✅ | 1d |
 
 ## Waiting on reviewers
@@ -24,11 +24,11 @@
 | [Add config option for Prometheus default aggregation (#6761)](https://github.com/open-telemetry/opentelemetry-js/pull/6761) | ArthurSens | pichlermarc | ✅ | ❌ | 37d |
 | [refactor(build): migrate from tsc to tsdown with dual CJS/ESM exports (#6293)](https://github.com/open-telemetry/opentelemetry-js/pull/6293) | overbalance | david-luna&nbsp;💬<br>pichlermarc<br>raphael-theriault-swi | ✅ | ❌ | 16d |
 | [chore(deps): update ubuntu:24.04 docker digest to 786a8b5 (#6806)](https://github.com/open-telemetry/opentelemetry-js/pull/6806) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ⏳ | ✅ | 15d |
-| [feat(api): add setClock and getTick methods to ContextAPI (#6816) (#6820)](https://github.com/open-telemetry/opentelemetry-js/pull/6820) | ipsitapp8 |  | ✅ | ✅ | 13d |
-| [feat(sdk-metrics): metrics exemplars support (#6830)](https://github.com/open-telemetry/opentelemetry-js/pull/6830) | rnavarro |  | ✅ | ❌ | 12d |
+| [feat(api): add setClock and getTick methods to ContextAPI (#6816) (#6820)](https://github.com/open-telemetry/opentelemetry-js/pull/6820) | ipsitapp8 |  | ✅ | ✅ | 14d |
+| [feat(sdk-metrics): metrics exemplars support (#6830)](https://github.com/open-telemetry/opentelemetry-js/pull/6830) | rnavarro |  | ✅ | ❌ | 13d |
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 12d |
 | [docs(configuration): add declarative config example for startNodeSDK() (#6834)](https://github.com/open-telemetry/opentelemetry-js/pull/6834) | MikeGoldsmith | maryliag | ✅ | ✅ | 1d |
-| [fix(instrumentation,instrumentation-http): fix codecov under-reporting (#6867)](https://github.com/open-telemetry/opentelemetry-js/pull/6867) | mwear |  | ✅ | ✅ | 9h |
+| [fix(instrumentation,instrumentation-http): fix codecov under-reporting (#6867)](https://github.com/open-telemetry/opentelemetry-js/pull/6867) | mwear |  | ✅ | ✅ | 11h |
 
 ## Waiting on authors
 
@@ -59,7 +59,7 @@
 
 | PR | Author | Updated |
 |---|---|:---:|
-| [api: add experimental trace decorator support (#5906)](https://github.com/open-telemetry/opentelemetry-js/pull/5906) | legendecas | 91d |
+| [api: add experimental trace decorator support (#5906)](https://github.com/open-telemetry/opentelemetry-js/pull/5906) | legendecas | 92d |
 | [fix: cancel retries on shutdown (#6340)](https://github.com/open-telemetry/opentelemetry-js/pull/6340) | pichlermarc | 51d |
 | [docs: add threat model document (#6676)](https://github.com/open-telemetry/opentelemetry-js/pull/6676) | pichlermarc | 44d |
 | [refactor!: Do not use HrTime in browser instrumentations (#6555)](https://github.com/open-telemetry/opentelemetry-js/pull/6555) | dyladan | 43d |
@@ -70,7 +70,104 @@
 | [feat: add context attach/detach (#6387)](https://github.com/open-telemetry/opentelemetry-js/pull/6387) | pichlermarc | 12d |
 | [chore(shim-opencensus): remove the `&#64;opentelemetry/shim-opencensus` package (#6843)](https://github.com/open-telemetry/opentelemetry-js/pull/6843) | trentm | 7d |
 | [Entity-Resource prototype v3 (#6357)](https://github.com/open-telemetry/opentelemetry-js/pull/6357) | dyladan | 2d |
-| [feat(sdk-node,instrumentation,instrumentation-http,api-config,configuration): add declarative config support for `instrumentation/development` (#6868)](https://github.com/open-telemetry/opentelemetry-js/pull/6868) | mwear | <1m |
+| [feat(sdk-node,instrumentation,instrumentation-http,api-config,configuration): add declarative config support for `instrumentation/development` (#6868)](https://github.com/open-telemetry/opentelemetry-js/pull/6868) | mwear | 1h |
+
+<details>
+<summary>Diagnostics</summary>
+
+```text
+PR #6845
+llm: PRRT_kwDOCxSf386MCnzR -> author (The author replied with an implementation plan and no closing response from the reviewer; the PR still appears to be waiting on the author to make the requested change.)
+
+PR #6819
+llm: pr-conversation -> reviewer (The author posted the contrib PR link in response to the request, so the ball is back with the reviewer/maintainer to review and coordinate merging.)
+
+PR #6751
+llm: PRRT_kwDOCxSf386JORwp -> author (A reviewer asked for a code change (`diag.error` suggestion) and the thread is unresolved, so the PR author needs to respond or update the code.)
+llm: PRRT_kwDOCxSf386JOX5j -> author (A reviewer suggested a concrete code change and there’s no author reply yet, so the PR author needs to update the implementation.)
+llm: PRRT_kwDOCxSf386JOFtk -> author (A reviewer asked for a changelog entry to be moved into the unreleased section, so the PR author needs to make that edit.)
+
+PR #6735
+llm: PRRT_kwDOCxSf386DulQ_ -> author (The latest comment is a review bot request to rewrite the interface remark and remove misleading import guidance, so the PR author needs to update the code/docs.)
+llm: PRRT_kwDOCxSf386DulR7 -> author (The bot reviewer raised documentation fixes and asked to adjust the table, so the PR author needs to update the README or respond.)
+llm: PRRT_kwDOCxSf386DulSU -> author (The only comment is a bot review requesting README table fixes, so the PR author needs to update the document or जवाब back.)
+
+PR #6706
+llm: PRRT_kwDOCxSf386L8NP2 -> author (A reviewer suggested adding `persist-credentials: false`, so the PR author needs to update the workflow or respond.)
+llm: PRRT_kwDOCxSf386L8PD_ -> author (A reviewer suggested changing the workflow node version to 26, so the PR author needs to update or respond.)
+llm: PRRT_kwDOCxSf386L8QJ_ -> author (Reviewer requested pinning the exact action version in the workflow, so the PR author needs to make that change or जवाब back.)
+
+PR #6660
+llm: PRRT_kwDOCxSf386CgDCs -> author (A reviewer suggested a code change and the thread has no follow-up from the author, so the author needs to act.)
+llm: PRRT_kwDOCxSf386CgDzC -> author (The reviewer left a code suggestion asking to change the implementation, so the author needs to respond or apply the fix.)
+llm: PRRT_kwDOCxSf386CgGWE -> author (Reviewer suggested a narrower `proxyEnv` object and raised a design preference, so the PR author needs to respond or apply the change.)
+llm: PRRT_kwDOCxSf386CgHa9 -> author (A reviewer asked to drop the test, so the PR author needs to make that change or respond.)
+llm: PRRT_kwDOCxSf386CgKTC -> author (The reviewer asked whether `envProxyAgentOptions` should be applied before the caller’s `options`, which is an open implementation question for the PR author to answer or change.)
+llm: pr-conversation -> author (The reviewer asked whether the author is still working on it and indicated merge depends on addressing review comments, so the author needs to respond or update the PR.)
+
+PR #6653
+llm: PRRT_kwDOCxSf385_O-RA -> author (CodeQL flagged a missing backslash-escaping issue and no author reply is present, so the author needs to address it.)
+llm: PRRT_kwDOCxSf386CDrMd -> reviewer (The author answered the reviewer’s question with a justification and spec reference, so the ball is back with the reviewer to acknowledge or continue the review.)
+llm: PRRT_kwDOCxSf386CRQJf -> author (The reviewer pointed out a formatting bug, and the author replied that they will fix it, so the next action is still on the author.)
+llm: pr-conversation -> reviewer (The author replied and handed off by saying the tests were added in a separate PR, so the reviewer/maintainer needs to respond to that decision.)
+
+PR #6635
+llm: pr-conversation -> author (The reviewer raised a concern that the change feels premature, so the author needs to respond or adjust the PR.)
+
+PR #6634
+llm: PRRT_kwDOCxSf385-XOhA -> author (The latest comment is a reviewer/approver agreeing with the proposed change and implying the function should be updated to take the error directly, so the author needs to respond or implement it.)
+llm: PRRT_kwDOCxSf386D1Sgx -> author (A reviewer requested a code change (declare a named interface) and no author reply followed, so the author still needs to respond or update the PR.)
+
+PR #6590
+llm: pr-conversation -> author (The last substantive comment is from a reviewer saying the issue should be closed and proposing a different approach, so by the thread heuristic the author still owes a reply/acknowledgement.)
+
+PR #6559
+llm: pr-conversation -> author (The reviewer flagged that the stability-days logic is not working for lockfile updates, so the author needs to investigate and adjust the implementation.)
+
+PR #6554
+llm: PRRT_kwDOCxSf3854qNdg -> author (The latest reviewer comment confirms the point and implies the PR still needs the author to decide or implement the internal mechanism change; the discussion is not closed.)
+
+PR #6528
+llm: PRRT_kwDOCxSf3853n9Dk -> author (A reviewer suggested an alternative implementation and asked for the author’s take, so the author needs to respond or update the PR.)
+llm: pr-conversation -> author (The latest comment is from a reviewer/approver and raises unresolved concern about whether the benchmark improvement is real, so the author needs to respond or adjust the PR.)
+
+PR #6515
+llm: PRRT_kwDOCxSf3852HzQG -> author (The latest comment is from the reviewer/approver proposing a concrete approach and asking for the author's opinion, so the author needs to respond or implement.)
+
+PR #6493
+llm: PRRT_kwDOCxSf3852IHBf -> author (The latest comment is from a reviewer clarifying that the change is only internally breaking; the thread is unresolved and the author still needs to respond or adjust the changelog entry.)
+llm: pr-conversation -> reviewer (The latest comment is from the PR author asking for help and a response, so the ball is with a reviewer/maintainer.)
+
+PR #6483
+llm: PRRT_kwDOCxSf385zTBLv -> author (A reviewer left a short follow-up (“same”) on an unresolved thread, so the author needs to address or respond.)
+llm: pr-conversation -> author (A reviewer/outsider provided a rebased branch and explicitly handed it to the PR author to pull in or decide on a successor PR, so the author needs to respond.)
+
+PR #6480
+llm: PRRT_kwDOCxSf3855sXk0 -> reviewer (The author has replied with their rationale and no further action is explicitly requested from them, so the reviewer/maintainer would need to decide whether to accept that explanation or continue the discussion.)
+llm: PRRT_kwDOCxSf3855seEr -> author (The reviewer’s last reply leaves the suggestion open as optional, so the author still needs to acknowledge or decide whether to make the change.)
+llm: pr-conversation -> author (The reviewer asked for conflict resolution, and `current_conflicts` is still yes; the author’s last reply only addressed the `selfObsMeterProvider` naming, so the author still needs to act.)
+
+PR #6466
+llm: pr-conversation -> none (The reviewer’s question was answered, and the last comment only says the PR is being put on hold with no explicit follow-up request.)
+
+PR #6377
+llm: pr-conversation -> reviewer (The latest comment is from the author asking for another review, so the ball is with a reviewer/maintainer to respond.)
+
+PR #6332
+llm: PRRT_kwDOCxSf385quits -> reviewer (The PR author asked whether to deprecate both attributes, so the ball is with a reviewer/maintainer to answer or decide.)
+
+PR #6293
+llm: PRRT_kwDOCxSf386JmHsD -> reviewer (The author replied, so the ball is back with the reviewer to respond or resolve the open conflict.)
+llm: PRRT_kwDOCxSf386JpncL -> none (The only comment is an informational note to other reviewers and does not ask the author to change anything or require a response.)
+llm: PRRT_kwDOCxSf386Jl7CM -> none (The author answered the question thoroughly, and the reviewer’s last comment is a clear acknowledgement (“now I get it. Thanks”), so the thread is closed with no follow-up needed.)
+llm: PRRT_kwDOCxSf386JlgiC -> reviewer (The author’s latest reply is a follow-up note, and the reviewer’s prior comment left the door open for a future PR; by the last-comment heuristic, the reviewer has the next action.)
+
+PR #6260
+llm: pr-conversation -> external (The reviewer says this PR is blocked on an external opentelemetry-js PR and similar SDK changes before it can merge.)
+
+```
+
+</details>
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
