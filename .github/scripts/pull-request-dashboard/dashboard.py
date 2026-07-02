@@ -185,6 +185,7 @@ from utils import actor_login, format_ts, parse_ts, truncate
 DEFAULT_JOBS = 4
 DEFAULT_MODEL = "gpt-5.4-mini"
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
+LARGE_REPO_MAX_ROWS_PER_SECTION = 50
 
 # ---------------------------------------------------------------- model helpers
 
@@ -1073,8 +1074,8 @@ def update_dashboard(args: argparse.Namespace) -> int:
     md = render_pr_tables(
         prs,
         calculation.results,
-        max_rows_per_section=args.max_rows_per_section or None,
-        skip_drafts=args.skip_drafts,
+        max_rows_per_section=LARGE_REPO_MAX_ROWS_PER_SECTION if args.large_repo else None,
+        skip_drafts=args.large_repo,
     )
     output_path = dashboard_markdown_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1128,21 +1129,17 @@ def main() -> int:
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
     parser.add_argument(
-        "--max-rows-per-section",
-        type=int,
-        default=0,
-        help="cap rows per section in the rendered dashboard (0 = no limit)",
-    )
-    parser.add_argument(
-        "--skip-drafts",
+        "--large-repo",
         action="store_true",
-        help="omit the Draft pull requests section from the rendered dashboard",
+        help=(
+            f"apply large-repo rendering presets: cap {LARGE_REPO_MAX_ROWS_PER_SECTION} rows "
+            "per section and omit the Draft pull requests section, to keep the dashboard body "
+            "under GitHub's 65,536-character issue-body limit"
+        ),
     )
     args = parser.parse_args()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")
-    if args.max_rows_per_section < 0:
-        parser.error("--max-rows-per-section must be zero or positive")
     with state_branch.temporary_state_dir() as state_dir:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
