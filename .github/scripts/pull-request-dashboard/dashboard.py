@@ -1137,6 +1137,8 @@ def main() -> int:
     args = parser.parse_args()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")
+    if args.max_rows_per_section < 0:
+        parser.error("--max-rows-per-section must be zero or positive")
     with state_branch.temporary_state_dir() as state_dir:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)

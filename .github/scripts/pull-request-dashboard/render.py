@@ -34,7 +34,7 @@ def _md_escape(s: str) -> str:
 
 
 def _limit_rows(rows: list[Any], max_rows: int | None) -> tuple[list[Any], int]:
-    if max_rows is None or len(rows) <= max_rows:
+    if max_rows is None or max_rows <= 0 or len(rows) <= max_rows:
         return rows, 0
     return rows[:max_rows], len(rows) - max_rows
 
