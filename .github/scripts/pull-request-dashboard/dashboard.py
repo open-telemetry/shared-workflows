@@ -1073,6 +1073,7 @@ def update_dashboard(args: argparse.Namespace) -> int:
     md = render_pr_tables(
         prs,
         calculation.results,
+        max_rows_per_section=args.max_rows_per_section or None,
     )
     output_path = dashboard_markdown_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1121,6 +1122,12 @@ def main() -> int:
         help="minimum non-bot approvals needed before a PR can route to maintainers",
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
+    parser.add_argument(
+        "--max-rows-per-section",
+        type=int,
+        default=0,
+        help="cap rows per section in the rendered dashboard (0 = no limit)",
+    )
     args = parser.parse_args()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")

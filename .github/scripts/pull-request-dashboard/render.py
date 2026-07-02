@@ -33,11 +33,26 @@ def _md_escape(s: str) -> str:
     )
 
 
-def render_draft_pr_section(prs: list[dict[str, Any]]) -> list[str]:
+def _limit_rows(rows: list[Any], max_rows: int | None) -> tuple[list[Any], int]:
+    if max_rows is None or len(rows) <= max_rows:
+        return rows, 0
+    return rows[:max_rows], len(rows) - max_rows
+
+
+def _truncation_note(count: int) -> str:
+    plural = "PR" if count == 1 else "PRs"
+    return f"_More {count} {plural} not shown_"
+
+
+def render_draft_pr_section(
+    prs: list[dict[str, Any]],
+    max_rows_per_section: int | None = None,
+) -> list[str]:
     drafts = [p for p in prs if p.get("isDraft")]
     if not drafts:
         return []
     drafts.sort(key=lambda p: p.get("updatedAt") or "")
+    drafts, truncated = _limit_rows(drafts, max_rows_per_section)
     lines = ["## Draft pull requests", ""]
     lines.append("| PR | Author | Updated |")
     lines.append("|---|---|:---:|")
@@ -49,6 +64,9 @@ def render_draft_pr_section(prs: list[dict[str, Any]]) -> list[str]:
         updated = activity_age(parse_ts(pr.get("updatedAt") or ""))
         lines.append(f"| [{title} (#{number})]({url}) | {author} | {updated} |")
     lines.append("")
+    if truncated:
+        lines.append(_truncation_note(truncated))
+        lines.append("")
     return lines
 
 
@@ -159,7 +177,11 @@ def render_diagnostics_section(results: dict[int, dict[str, Any]]) -> list[str]:
     ]
 
 
-def render_pr_tables(prs: list[dict[str, Any]], results: dict[int, dict[str, Any]]) -> str:
+def render_pr_tables(
+    prs: list[dict[str, Any]],
+    results: dict[int, dict[str, Any]],
+    max_rows_per_section: int | None = None,
+) -> str:
     source_url = "https://github.com/open-telemetry/shared-workflows/blob/main/.github/scripts/pull-request-dashboard/dashboard.py"
     refresh_url = "https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml"
     grouping_note = (
@@ -200,6 +222,7 @@ def render_pr_tables(prs: list[dict[str, Any]], results: dict[int, dict[str, Any
         if not rows:
             continue
         rows.sort(key=row_sort_key, reverse=True)
+        rows, truncated = _limit_rows(rows, max_rows_per_section)
         out.append(f"## {ROUTE_LABELS.get(route, route)}")
         out.append("")
         out.append("| PR | Author | Reviewers | CI | Conflicts | Age |")
@@ -219,8 +242,11 @@ def render_pr_tables(prs: list[dict[str, Any]], results: dict[int, dict[str, Any
                 f"{conflicts_cell(facts)} | {activity_cell} |"
             )
         out.append("")
+        if truncated:
+            out.append(_truncation_note(truncated))
+            out.append("")
 
-    out.extend(render_draft_pr_section(prs))
+    out.extend(render_draft_pr_section(prs, max_rows_per_section))
     out.extend(render_diagnostics_section(results))
     out.append(f"_Approvers may [force a refresh]({refresh_url})._")
     out.append("")
