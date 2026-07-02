@@ -1079,7 +1079,11 @@ def update_dashboard(args: argparse.Namespace) -> int:
     output_path = dashboard_markdown_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(md, encoding="utf-8")
-    print(f"wrote dashboard markdown to {output_path.resolve()}", file=sys.stderr)
+    print(
+        f"wrote dashboard markdown to {output_path.resolve()} "
+        f"({len(md)} chars, GitHub issue-body limit is 65536)",
+        file=sys.stderr,
+    )
 
     if dashboard_state_unchanged:
         if args.pr_number:

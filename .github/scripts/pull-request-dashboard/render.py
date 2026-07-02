@@ -146,25 +146,30 @@ def _neutralize_code_fence(s: str) -> str:
     return (s or "").replace("```", "`\u200d`\u200d`")
 
 
-def render_diagnostics_section(results: dict[int, dict[str, Any]]) -> list[str]:
+def render_diagnostics_section(
+    results: dict[int, dict[str, Any]],
+    max_rows_per_section: int | None = None,
+) -> list[str]:
+    prs_with_content = [
+        number for number in sorted(results, reverse=True)
+        if (results[number].get("classifications") or results[number].get("error"))
+    ]
+    if not prs_with_content:
+        return []
+    prs_with_content, truncated = _limit_rows(prs_with_content, max_rows_per_section)
     data_lines: list[str] = []
-    for number in sorted(results, reverse=True):
+    for number in prs_with_content:
         result = results[number]
-        classifications = result.get("classifications") or []
-        error = result.get("error")
-        if not classifications and not error:
-            continue
         data_lines.append(f"PR #{number}")
-        for c in classifications:
+        for c in result.get("classifications") or []:
             decision = c.get("decision") or {}
             reason = (decision.get("reason") or "").replace("\n", " ")
             data_lines.append(f"llm: {c.get('thread_id')} -> {decision.get('thread_action')} ({reason})")
+        error = result.get("error")
         if error:
             data_lines.append(f"error: {error}")
         data_lines.append("")
-    if not data_lines:
-        return []
-    return [
+    section = [
         "<details>",
         "<summary>Diagnostics</summary>",
         "",
@@ -175,6 +180,10 @@ def render_diagnostics_section(results: dict[int, dict[str, Any]]) -> list[str]:
         "</details>",
         "",
     ]
+    if truncated:
+        section.append(_truncation_note(truncated))
+        section.append("")
+    return section
 
 
 def render_pr_tables(
@@ -249,7 +258,7 @@ def render_pr_tables(
 
     if not skip_drafts:
         out.extend(render_draft_pr_section(prs, max_rows_per_section))
-    out.extend(render_diagnostics_section(results))
+    out.extend(render_diagnostics_section(results, max_rows_per_section))
     out.append(f"_Approvers may [force a refresh]({refresh_url})._")
     out.append("")
     return "\n".join(out) + "\n"
