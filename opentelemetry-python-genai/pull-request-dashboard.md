@@ -10,8 +10,8 @@
 | [\[`opentelemetry-instrumentation-google-genai`\] Update `generate_content` streaming variants to use `AsyncStreamWrapper` and `SyncStreamWrapper`  from utils (#167)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/167) | DylanRussell | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 7d |
 | [feat: add instrumentation around openai responses stream method. (#131)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/131) | eternalcuriouslearner | lmolkova&nbsp;✅ | ✅ | ✅ | 6d |
 | [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ❌ | 5d |
-| [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 22h |
-| [Removed unused span manager from langchain (#190)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/190) | rads-1996 | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 20h |
+| [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 23h |
+| [Removed unused span manager from langchain (#190)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/190) | rads-1996 | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 21h |
 
 ## Waiting on reviewers
 
@@ -21,7 +21,7 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅ | ❌ | ❌ | 14d |
 | [OpenAI agents: rewrite to util-genai (#90)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/90) | lmolkova | rads-1996&nbsp;✔️ | ❌ | ✅ | 11d |
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | lmolkova&nbsp;💬 | ✅ | ✅ | 7d |
-| [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ❌ | ✅ | 8h |
+| [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ❌ | ✅ | 9h |
 
 ## Waiting on authors
 
@@ -32,7 +32,7 @@
 | [Improve OpenAI Agents conformance and metrics (#49)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/49) | alfozan | lmolkova&nbsp;🔴<br>lzchen&nbsp;💬 | ✅ | ✅ | 20d |
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 6d |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ✅ | 1d |
-| [feat: Add instrumentation for AsyncMessages.stream, Messages.parse and AsyncMessages.parse methods. (#191)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/191) | eternalcuriouslearner |  | ✅ | ✅ | 12h |
+| [feat: Add instrumentation for AsyncMessages.stream, Messages.parse and AsyncMessages.parse methods. (#191)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/191) | eternalcuriouslearner |  | ✅ | ✅ | 13h |
 
 ## Draft pull requests
 
