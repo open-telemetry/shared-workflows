@@ -12,13 +12,13 @@
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>svrnm&nbsp;✅ | ❌ | ✅ | 1d |
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>songy23&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 1d |
 | [Make images zoomable (#10503)](https://github.com/open-telemetry/opentelemetry.io/pull/10503) | jaredDlewis | chalin<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 17h |
-| [Add Jaeger export instructions to Rust exporters guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm&nbsp;✅ | ✅ | ✅ | 9h |
+| [Add Jaeger export instructions to Rust exporters guide (#10518)](https://github.com/open-telemetry/opentelemetry.io/pull/10518) | cijothomas | svrnm&nbsp;✅ | ✅ | ✅ | 10h |
 
 ## Waiting on reviewers
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Use Hugo Configuration directory (#7765)](https://github.com/open-telemetry/opentelemetry.io/pull/7765) | Andygol | chalin | ✅ | ✅ | 253d |
+| [Use Hugo Configuration directory (#7765)](https://github.com/open-telemetry/opentelemetry.io/pull/7765) | Andygol | chalin | ✅ | ✅ | 254d |
 | [\[CI\] DRY fix action names in PR-action workflow (#5894) (#8913)](https://github.com/open-telemetry/opentelemetry.io/pull/8913) | pratik-mahalle |  | ✅ | ❌ | 168d |
 | [Blog Post on "OpenTelemetry for Distributed Multi-Agent System Observability" (#9125)](https://github.com/open-telemetry/opentelemetry.io/pull/9125) | axsaucedo | svrnm | ✅ | ✅ | 143d |
 | [🇺🇦 Ukrainian localization of OpenTelemetry documentation (#5891)](https://github.com/open-telemetry/opentelemetry.io/pull/5891) | Andygol | chalin&nbsp;🔴<br>svrnm&nbsp;🔴 | ✅ | ❌ | 84d |
@@ -30,7 +30,7 @@
 | [feat: added content/fa/_index.md (#10359)](https://github.com/open-telemetry/opentelemetry.io/pull/10359) | Metal-Bat |  | ❌ | ✅ | 20d |
 | [docs: add processor internal duration metric (#10393)](https://github.com/open-telemetry/opentelemetry.io/pull/10393) | SSDWGG | simi&nbsp;✔️ | ✅ | ✅ | 19d |
 | [CI: Add plan to PR lifecycle automation (#10369)](https://github.com/open-telemetry/opentelemetry.io/pull/10369) | vitorvasc | chalin | ✅ | ✅ | 16d |
-| [\[i18n\]\[ko\] Localize glossary to Korean (#10448)](https://github.com/open-telemetry/opentelemetry.io/pull/10448) | krapie |  | ❌ | ✅ | 15d |
+| [\[i18n\]\[ko\] Localize glossary to Korean (#10448)](https://github.com/open-telemetry/opentelemetry.io/pull/10448) | krapie |  | ❌ | ✅ | 16d |
 | [feat: \[pt\] Create docs/platforms/faas/_index.md (#10646)](https://github.com/open-telemetry/opentelemetry.io/pull/10646) | dmroch4 |  | ✅ | ✅ | 8d |
 | [feat: \[pt\] Create docs/platforms/kubernetes/helm/demo.md (#10647)](https://github.com/open-telemetry/opentelemetry.io/pull/10647) | dmroch4 |  | ✅ | ✅ | 8d |
 | [Update opentelemetry-collector-releases version to v0.155.0 (#10549)](https://github.com/open-telemetry/opentelemetry.io/pull/10549) | app/otelbot | svrnm | ✅ | ✅ | 7d |
@@ -114,11 +114,249 @@
 | [\[ja\] add translation of content/en/blog/2023/any-metric-receiver.md (#10628)](https://github.com/open-telemetry/opentelemetry.io/pull/10628) | ymotongpoo | 2d |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 2d |
 | [\[ja\] add translation of content/en/blog/2025/stability-proposal-announcement.md (#10636)](https://github.com/open-telemetry/opentelemetry.io/pull/10636) | ymotongpoo | 1d |
-| [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | 10h |
+| [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | 11h |
 | [\[ja\] add translation of content/en/blog/2025/contribex-survey-results/index.md (#10651)](https://github.com/open-telemetry/opentelemetry.io/pull/10651) | ymotongpoo | 7h |
 | [\[ja\] add translation of content/en/blog/2025/otel-cicd-sig/index.md (#10653)](https://github.com/open-telemetry/opentelemetry.io/pull/10653) | ymotongpoo | 3h |
 | [DRAFT Update semantic-conventions to unreleased v1.43.0-dev (#10427)](https://github.com/open-telemetry/opentelemetry.io/pull/10427) | app/otelbot-docs | 2h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 2h |
+
+<details>
+<summary>Diagnostics</summary>
+
+```text
+PR #10642
+llm: pr-conversation -> reviewer (The latest comment is from the author, so per the thread heuristic the ball is on the reviewer/maintainer side; no closing acknowledgement appears in the thread.)
+
+PR #10634
+llm: pr-conversation -> author (The author’s latest comment requests auto-merge, but the thread facts show current conflicts, so the PR still needs author action to resolve/rebase before it can proceed.)
+
+PR #10631
+llm: pr-conversation -> author (The last comment is from the PR author and the thread still shows conflicts, so the author still needs to act.)
+
+PR #10622
+llm: pr-conversation -> reviewer (The latest comment is an approval but also explicitly asks approvers to take a look (`PTAL`), so the next action is on reviewers/maintainers.)
+
+PR #10606
+llm: pr-conversation -> reviewer (The author’s latest comment answers the concrete issue and raises a general question/consideration, so the ball is back with reviewers/maintainers to respond or decide the policy.)
+
+PR #10601
+llm: PRRT_kwDOCvmNHM6Nc-mt -> author (A reviewer requested a wording change/suggestion on the translated page, so the PR author needs to update or respond.)
+
+PR #10597
+llm: pr-conversation -> reviewer (The only comment is from the author requesting auto-merge, so the ball is on a reviewer/maintainer to act on or respond to that request.)
+
+PR #10594
+llm: pr-conversation -> reviewer (The last comment is from the author requesting auto-merge after an approval, so the reviewer/maintainer needs to act on merge or final review state.)
+
+PR #10574
+llm: PRRT_kwDOCvmNHM6M6LGn -> none (The reviewer asked a question, the author answered it, and the reviewer’s positive reaction suggests the explanation was accepted; no further action is implied.)
+llm: PRRT_kwDOCvmNHM6M5-KN -> none (The reviewer asked a question and the author answered by stating they removed it from `agent`, with no further follow-up requested.)
+
+PR #10569
+llm: pr-conversation -> author (The reviewer requested changes, and the author’s last comment is just “/auto-merge” without addressing them, so the author still needs to act.)
+
+PR #10558
+llm: pr-conversation -> none (The reviewer’s latest comment is an approval with no requested follow-up, so the thread is closed.)
+
+PR #10549
+llm: pr-conversation -> author (The latest comment is from a reviewer/approver and is requesting fixes, so the author needs to act.)
+
+PR #10544
+llm: pr-conversation -> author (The author’s latest comment is a self-directed fix command, indicating the PR still needs author action before the thread can move forward.)
+
+PR #10543
+llm: pr-conversation -> author (The reviewer left a CHANGES_REQUESTED review with minor styling nits, so the PR author needs to make updates or respond.)
+
+PR #10520
+llm: pr-conversation -> none (The reviewer already approved the PR, and the author’s last comment looks like an acknowledgement/reply rather than a new request or needed follow-up.)
+
+PR #10518
+llm: pr-conversation -> none (The only comment is a reviewer saying "LGTM, thanks," which closes the discussion with no follow-up needed.)
+
+PR #10504
+llm: pr-conversation -> author (The only comment is by the PR author and is a fix-oriented note (`/fix:dict`), which indicates the author still needs to act rather than the reviewer needing to respond.)
+
+PR #10503
+llm: pr-conversation -> reviewer (The author addressed the accessibility issue and replied back; the reviewer now needs to confirm, approve, or merge.)
+
+PR #10481
+llm: pr-conversation -> author (The reviewer left a substantive suggestion about checking structural parity and translation equivalence for the new locale homepage, so the author needs to respond or act on it.)
+
+PR #10433
+llm: PRRT_kwDOCvmNHM6JvtWP -> author (The latest comment is from a reviewer/approver providing an alternative image and effectively handing the thread back; the author needs to respond or apply it.)
+llm: PRRT_kwDOCvmNHM6McmJe -> author (Reviewer asked for a wording change to avoid an abbreviation that may not be understood by an international audience; the author needs to update or respond.)
+llm: PRRT_kwDOCvmNHM6McmVU -> author (A reviewer left an inline suggestion and the thread has no author reply or clear closing acknowledgement, so the author needs to act on or respond to it.)
+llm: PRRT_kwDOCvmNHM6Mcmky -> author (A reviewer left an unresolved suggestion on the title, so the PR author needs to apply or respond to it.)
+llm: PRRT_kwDOCvmNHM6Mcmyd -> author (A reviewer left a suggestion on the file and there’s no author reply yet, so the PR author needs to make or respond to the requested change.)
+llm: PRRT_kwDOCvmNHM6McnMq -> author (A reviewer left an unresolved suggestion, so the author needs to respond or apply the change.)
+llm: PRRT_kwDOCvmNHM6McnVs -> author (The only comment is a reviewer suggestion, so the author needs to address or acknowledge it.)
+llm: PRRT_kwDOCvmNHM6Mc5mP -> author (A reviewer left an unresolved suggestion on the blog line, so the author needs to respond by accepting, adjusting, or rejecting it.)
+llm: PRRT_kwDOCvmNHM6Mc6ni -> author (A reviewer suggested changing the text to link the canonical adopters source, so the PR author needs to update or respond.)
+llm: pr-conversation -> author (A reviewer requested changes and asked the author to address inline comments, so the next action is on the author.)
+
+PR #10431
+llm: PRRT_kwDOCvmNHM6Kkd-l -> none (The author already replied and deferred to community consensus, and the last reviewer comment is just a supportive +1 with no new request or blocker.)
+llm: PRRT_kwDOCvmNHM6Kkggi -> reviewer (The author replied with a proposed resolution and asked the reviewers for input, so the ball is back with the reviewer side.)
+llm: pr-conversation -> author (The latest reviewer comment asks the PR author to rebase the feature branch before proceeding, so the ball is with the author.)
+
+PR #10369
+llm: pr-conversation -> reviewer (The latest comment is from the author asking the reviewer to weigh in on further polishing, so the ball is with the reviewer.)
+
+PR #10343
+llm: PRRT_kwDOCvmNHM6KW_fG -> author (A reviewer left a content correction on the line, so the PR author needs to update the text or respond.)
+llm: PRRT_kwDOCvmNHM6KXAtR -> author (The only comment is from a reviewer quoting a line, so the ball is with the PR author to respond or update the text.)
+llm: PRRT_kwDOCvmNHM6KXNdA -> author (A reviewer left the only comment, and it is not a closing acknowledgement; the author still needs to respond or address the point.)
+llm: PRRT_kwDOCvmNHM6KXQKX -> author (The reviewer asked for more elaboration on the “too many options” point, so the author needs to respond or update the PR.)
+llm: PRRT_kwDOCvmNHM6KXStd -> author (The only comment is a reviewer remark on the line, with the thread still unresolved and conflicts present, so the author needs to respond or update the PR.)
+llm: PRRT_kwDOCvmNHM6KXUVA -> author (A reviewer flagged a specific line and the thread is unresolved, so the author likely needs to address the wording or respond.)
+llm: PRRT_kwDOCvmNHM6KXU8- -> author (A reviewer asked to remove a phrase, and the author has not responded yet, so the author needs to update the PR or reply.)
+llm: PRRT_kwDOCvmNHM6KXWID -> author (The only comment is a reviewer review note on a specific line, and there’s no closing acknowledgement; per the default heuristic the author needs to respond or adjust the PR.)
+llm: PRRT_kwDOCvmNHM6KXW3- -> author (A reviewer asked for justification/source for the phrase "good practices," so the author needs to जवाब/clarify or revise the text.)
+llm: PRRT_kwDOCvmNHM6KXcaR -> author (The only comment is a reviewer quote on the blog text, which indicates feedback for the PR author to address or respond to.)
+llm: PRRT_kwDOCvmNHM6NvEhQ -> author (A reviewer requested a concrete change (“Add a period to the end of each bullet point”), so the author needs to update the PR.)
+llm: PRRT_kwDOCvmNHM6NvGAq -> author (A reviewer flagged a likely wording fix at the referenced line, so the author needs to update the PR.)
+llm: PRRT_kwDOCvmNHM6NvQQm -> author (A reviewer asked a clarification question and there’s no author reply yet, so the author needs to respond.)
+llm: PRRT_kwDOCvmNHM6NvQcc -> author (A reviewer asked for a text edit (“Add period to end of sentence.”), so the author needs to make the change and follow up.)
+llm: PRRT_kwDOCvmNHM6NvR5C -> author (A reviewer requested a content change (“Capitalize Docker.”), so the PR author needs to update the file or respond.)
+llm: PRRT_kwDOCvmNHM6NvSYf -> author (Reviewer requested a text change (“Capitalize Docker.”) and there’s no author reply yet, so the author needs to update the PR.)
+llm: PRRT_kwDOCvmNHM6NvS_- -> author (The reviewer requested a content change (“Add periods to the end of the bullet points.”), so the PR author needs to update the file and respond.)
+llm: PRRT_kwDOCvmNHM6NvTSZ -> author (A reviewer requested a text change (“Capitalize Docker.”), and there’s no author reply yet, so the PR author needs to update the file or respond.)
+llm: PRRT_kwDOCvmNHM6NvUOs -> author (A reviewer left the latest comment and the thread is unresolved, so the author needs to respond or make the requested change.)
+llm: PRRT_kwDOCvmNHM6NvUZq -> author (The reviewer left a substantive note on the line (“>Third-party”) and the thread is unresolved, so the author needs to address or clarify it.)
+llm: PRRT_kwDOCvmNHM6NvVyU -> author (A reviewer requested a formatting change and there is no author reply yet, so the PR author needs to update the file.)
+llm: PRRT_kwDOCvmNHM6NvV_3 -> author (A reviewer left a substantive comment on the line and the thread is still unresolved, so the author needs to respond or update the PR.)
+
+PR #10234
+llm: PRRT_kwDOCvmNHM6KtC6g -> author (A reviewer flagged specific lines that should be caught to avoid blank lines, so the author needs to update the PR or reply.)
+llm: pr-conversation -> reviewer (The author says the issue is fixed and asks for review (“PTAL”), so the next action is on the reviewer/maintainer side.)
+
+PR #10124
+llm: pr-conversation -> external (Reviewer says the thread is blocked until SIG Entities confirms sponsorship/approval, which depends on a comment on another issue outside this repo.)
+
+PR #10112
+llm: pr-conversation -> author (The last substantive comment is from the reviewer, pointing out the registry schema issue and prompting a fix, so the author needs to respond or update the PR.)
+
+PR #10086
+llm: PRRT_kwDOCvmNHM6F4MZs -> reviewer (The author replied that the issue has been corrected, so the reviewer/maintainer needs to verify the fix and close the thread if satisfied.)
+
+PR #9984
+llm: PRRT_kwDOCvmNHM6FhnaX -> author (A reviewer left a code suggestion and there’s no author reply yet, so the author needs to address or respond to it.)
+llm: PRRT_kwDOCvmNHM6Fhq9y -> author (A reviewer left a suggestion to change the title, so the author needs to apply or respond to it.)
+llm: PRRT_kwDOCvmNHM6FhrXs -> author (The reviewer requested a content change (remove the stacked heading), so the PR author needs to update the document and respond.)
+llm: PRRT_kwDOCvmNHM6FhuPe -> author (A reviewer left a suggestion and there’s no author reply yet, so the author needs to address or respond to it.)
+llm: pr-conversation -> reviewer (The latest comment asks to leave the PR open, so the reviewer/maintainer needs to act on that request; the author is not being asked to do anything next.)
+
+PR #9973
+llm: pr-conversation -> author (The latest comment is from a reviewer asking the PR author to validate the failing checks and offering help, so the author needs to act next.)
+
+PR #9801
+llm: pr-conversation -> reviewer (The latest comment is a reviewer/approver pinging the docs approvers for review, so the next action is on the reviewer/maintainer side.)
+
+PR #9711
+llm: pr-conversation -> external (Review is blocked until the author signs the CLA, which is outside the repository.)
+
+PR #9567
+llm: PRRT_kwDOCvmNHM6AYiSR -> author (The reviewer flagged an unnecessary SDK dependency, and the author replied that they will remove it, so the next action is on the author.)
+llm: PRRT_kwDOCvmNHM6AYhbn -> author (The reviewer suggested a wording change, and the author replied that they’ll update the docs wording, so the ball is with the author.)
+llm: PRRT_kwDOCvmNHM6AYl0B -> author (The reviewer requested removing the TracerProvider initialization, and the author replied that they will make that change.)
+llm: PRRT_kwDOCvmNHM6AYnys -> author (The reviewer requested a doc change, and the author replied that they will update the logs section to align with the recommendation.)
+
+PR #9534
+llm: PRRT_kwDOCvmNHM6AO6bj -> none (The last comment is a reviewer’s clear acceptance (“SGMT”), which closes the discussion with no further action needed.)
+llm: PRRT_kwDOCvmNHM6K5_Rl -> author (The reviewer suggested an alternative term, and the author replied with an open-ended follow-up (“Will be back with more thoughts”), so the author still owes a response or update.)
+llm: pr-conversation -> reviewer (The author says they’ve rebased and addressed the requested changes, and only one term remains to discuss, so the ball is back with the reviewer to respond on that open point.)
+
+PR #9476
+llm: pr-conversation -> author (A reviewer followed up with the same requested change by referencing another PR, so the ball is back with the author to address or respond.)
+
+PR #9437
+llm: PRRT_kwDOCvmNHM56MevW -> author (A reviewer/approver left a suggestion and there is no author reply yet, so the author needs to respond or apply the change.)
+llm: PRRT_kwDOCvmNHM56Mf5H -> author (A reviewer/approver left a pending suggestion and the thread is unresolved, so the PR author needs to apply or जवाब to it.)
+llm: PRRT_kwDOCvmNHM56Mnk6 -> author (A reviewer left an unresolved suggestion and the author has not replied yet, so the ball is with the author.)
+llm: PRRT_kwDOCvmNHM56Mnr- -> author (The last comment is a reviewer suggestion (`weight: 200`) with the thread still unresolved, so the PR author needs to apply or respond to the change.)
+llm: PRRT_kwDOCvmNHM56Mocb -> author (A reviewer requested concrete PR changes: update front matter weight, add an alias, and adjust cross-references, so the author needs to act.)
+llm: PRRT_kwDOCvmNHM56Mpgt -> author (A reviewer asked for specific PR changes (front matter weight, alias, and cross-references), so the author needs to update the branch and respond.)
+llm: PRRT_kwDOCvmNHM56M5ZG -> author (A reviewer left a suggested replacement with the thread still unresolved, so the PR author needs to apply or respond to the change.)
+llm: PRRT_kwDOCvmNHM56NAnC -> author (A reviewer/approver left a suggestion and there’s no author response yet, so the PR author needs to address or acknowledge it.)
+llm: PRRT_kwDOCvmNHM56NMUi -> author (The reviewer suggested moving this text elsewhere, so the PR author needs to update or respond; the thread is still unresolved.)
+llm: PRRT_kwDOCvmNHM56NMr6 -> author (A reviewer/approver left an unresolved suggestion and there is no author reply yet, so the PR author needs to address it.)
+llm: PRRT_kwDOCvmNHM56NPxc -> author (A reviewer left a code suggestion and there is no author reply yet, so the author needs to respond by accepting, adjusting, or rejecting it.)
+llm: PRRT_kwDOCvmNHM56NSgE -> author (A reviewer left an unresolved suggestion on the file title, so the author needs to apply or जवाब to it.)
+llm: PRRT_kwDOCvmNHM56NUK4 -> author (A reviewer left an unresolved suggestion on the thread, so the PR author needs to respond or apply the change.)
+llm: PRRT_kwDOCvmNHM56NY_Q -> author (A reviewer left a suggested change and there is no author reply yet, so the author needs to act.)
+llm: PRRT_kwDOCvmNHM56NaVc -> author (A reviewer left a suggestion and there’s no author reply yet, so the author needs to respond or apply it.)
+llm: PRRT_kwDOCvmNHM56NayS -> author (A reviewer/approver left a suggestion and no follow-up reply is present, so the PR author needs to apply or respond to it.)
+
+PR #9360
+llm: PRRT_kwDOCvmNHM5y8UDz -> author (The latest comment is a bot review suggesting a code change to the PR message, so the PR author needs to update the workflow.)
+llm: PRRT_kwDOCvmNHM5y8UEH -> author (The latest comment is a bot review suggestion asking for a code/workflow change to handle unrecognized fix directives, so the PR author needs to update the workflow.)
+llm: PRRT_kwDOCvmNHM5y8UEP -> author (The bot reviewer flagged an invalid directive message and suggested a code change; the author needs to update the workflow to match the supported `/fix` and `/fix:all` directives.)
+
+PR #9358
+llm: pr-conversation -> author (The reviewer asked the author to keep them posted on progress, so the author has the next action.)
+
+PR #9233
+llm: pr-conversation -> author (The only comment is a reviewer CHANGES_REQUESTED /hold, so the PR author needs to respond or make changes.)
+
+PR #9201
+llm: PRRT_kwDOCvmNHM58c167 -> author (A reviewer asked a clarification question about the wording, so the author needs to जवाब/adjust the docs.)
+llm: PRRT_kwDOCvmNHM58flvM -> author (A reviewer suggested a documentation change and the thread is unresolved, so the PR author needs to respond or update the doc.)
+llm: PRRT_kwDOCvmNHM58fvu1 -> author (A reviewer suggested an alternative change and the author has not responded yet, so the next action is on the author.)
+llm: PRRT_kwDOCvmNHM58fdW7 -> author (The reviewer left a follow-up suggestion to add a note about adjusting the sizer, so the author needs to respond or update the PR.)
+llm: PRRT_kwDOCvmNHM58f0cr -> author (A reviewer raised a substantive concern and suggested the limits should be more conservative; the author needs to respond or update the doc.)
+llm: PRRT_kwDOCvmNHM58gENz -> author (A reviewer raised substantive concerns and suggested a different approach; the author needs to respond or revise the PR.)
+llm: pr-conversation -> author (The latest comment from a reviewer asks the PR participants whether they still want to collaborate or close it, so the ball is with the author to respond.)
+
+PR #9182
+llm: pr-conversation -> author (The latest comment is a reviewer/approver saying the PR is blocked pending requested rewrites, so the author needs to make changes and respond.)
+
+PR #9181
+llm: pr-conversation -> author (The reviewer says it is blocking and requests rewrites, so the author needs to update the PR.)
+
+PR #9180
+llm: PRRT_kwDOCvmNHM5xWQ3_ -> author (A reviewer left a suggestion and there’s no author follow-up yet, so the PR author needs to respond or apply the change.)
+llm: PRRT_kwDOCvmNHM5xWcII -> author (A reviewer left a suggested change on the PR and the thread is unresolved, so the author needs to update the file or जवाब back.)
+llm: PRRT_kwDOCvmNHM5xWcgn -> author (A reviewer/approver left a suggestion and there’s no author reply yet, so the author needs to respond or apply the change.)
+llm: PRRT_kwDOCvmNHM5xWd2J -> author (A reviewer/approver left a suggestion and there’s no author reply yet, so the author needs to update the PR or respond.)
+llm: PRRT_kwDOCvmNHM5xWfo4 -> author (A reviewer left a suggestion and pointed to a linked issue for further discussion, so the PR author needs to respond or incorporate it.)
+llm: pr-conversation -> author (The reviewer marked the thread blocking and requested rewrites, so the PR author needs to make changes and respond.)
+
+PR #9179
+llm: pr-conversation -> author (The latest reviewer comment says the PR is blocked pending rewrites, so the author needs to update the change.)
+
+PR #9178
+llm: pr-conversation -> author (The latest reviewer/approver comment says the PR is blocked pending requested rewrites, so the author needs to update the PR.)
+
+PR #9125
+llm: pr-conversation -> none (The reviewer asked the author to create an issue and read the guidelines; the author confirmed both and there’s no further follow-up requested.)
+
+PR #9113
+llm: PRRT_kwDOCvmNHM5xV9rs -> author (A reviewer left a concrete suggestion on the file and there’s no follow-up from the author, so the author needs to apply or respond to the requested change.)
+llm: pr-conversation -> author (The latest reviewer comment says the PR is blocked and needs rewrites requested by GC, so the author must make changes and follow up.)
+
+PR #9082
+llm: PRRT_kwDOCvmNHM5z2c4W -> author (The only comment is a review bot pointing out a misleading comment in the template and noting the aliases section starts later; that leaves an actionable fix for the PR author.)
+llm: PRRT_kwDOCvmNHM5z2c5H -> author (The latest comment is a bot review noting the redirect check won’t actually fail CI and explicitly asks for a change or clarification, so the PR author needs to respond.)
+llm: PRRT_kwDOCvmNHM5z2c5Z -> author (The only comment is a bot review suggestion asking for a workflow version consistency change, so the PR author needs to update or respond.)
+llm: PRRT_kwDOCvmNHM5z2c50 -> author (The only comment is a bot review pointing out dead warning logic and asking for a code change or removal, so the PR author needs to act.)
+llm: PRRT_kwDOCvmNHM5z2c6J -> author (The only comment flags a potential workflow inconsistency in the PR, so the author is the side that would need to address or acknowledge it.)
+llm: PRRT_kwDOCvmNHM5z2c6X -> author (The only comment is a review bot raising a concrete concern and asking the PR author to reconsider the approach, so the author has the next action.)
+llm: PRRT_kwDOCvmNHM5z2c6p -> author (The bot指出 CI will fail unless the PR author adds the missing `check:redirects` script, so the next action is on the author.)
+llm: PRRT_kwDOCvmNHM5z2c61 -> author (The last comment is an unresolved reviewer bot suggestion asking to remove a duplicate partial definition, so the PR author needs to make the change or respond.)
+
+PR #8624
+llm: PRRT_kwDOCvmNHM5qbvsc -> author (The latest comment is a reviewer/approver asking the PR author to rename the page, so the ball is with the author.)
+llm: PRRT_kwDOCvmNHM5_IqnB -> author (A reviewer left a suggestion on the line and there’s no follow-up yet, so the author needs to respond by applying or addressing it.)
+llm: PRRT_kwDOCvmNHM5_IrDp -> author (A reviewer left a suggestion on the line and there is no follow-up reply yet, so the PR author needs to respond or apply the change.)
+llm: PRRT_kwDOCvmNHM5_IrNM -> author (A reviewer flagged duplicated quoted lines and implicitly asked for a change; the author needs to update the PR or respond.)
+llm: pr-conversation -> author (The latest comment is a reviewer CHANGES_REQUESTED review asking the PR author to address multiple remaining issues, so the author needs to act next.)
+
+PR #5891
+llm: pr-conversation -> reviewer (The latest comment is from the author asking for help on a CI failure and cc’ing a reviewer, so the next response/action is on the reviewer/maintainer side.)
+
+```
+
+</details>
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
