@@ -46,7 +46,7 @@
 | [Add OSGi support for library instrumentation, API, and SDK extension artifacts (#18995)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995) | royteeuwen | laurit&nbsp;💬 | ✅ | ❌ | 2d |
 | [fix(druid): optimize dataSourceName to resolve metrics high cardinality (#19108)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108) | YaoYingLong | laurit&nbsp;💬 | ✅ | ✅ | 1d |
 | [Set jms destination to null when it can't be extracted (#19115)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19115) | laurit |  | ✅ | ✅ | 5h |
-| [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn | laurit | ✅ | ✅ | 4h |
+| [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn | laurit | ✅ | ✅ | 5h |
 
 ## Waiting on external
 
