@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [ci: Use doctoc to manage toc (#816)](https://github.com/open-telemetry/opentelemetry-proto/pull/816) | thompson-tomo |  | ✅ | ✅ | 8d |
+| [ci: Use doctoc to manage toc (#816)](https://github.com/open-telemetry/opentelemetry-proto/pull/816) | thompson-tomo |  | ✅ | ✅ | 9d |
 
 ## Waiting on authors
 
@@ -21,7 +21,7 @@
 
 | PR | Author | Updated |
 |---|---|:---:|
-| [Add EntityRef ID context type (#810)](https://github.com/open-telemetry/opentelemetry-proto/pull/810) | dmitryax | 23d |
+| [Add EntityRef ID context type (#810)](https://github.com/open-telemetry/opentelemetry-proto/pull/810) | dmitryax | 24d |
 | [\[chore\] Makefile: Enable breaking change check for profiles (#774)](https://github.com/open-telemetry/opentelemetry-proto/pull/774) | florianl | 6d |
 
 <details>
