@@ -19,7 +19,7 @@
 | [Migrate anthropic reference scenario to opentelemetry-util-genai (#324)](https://github.com/open-telemetry/semantic-conventions-genai/pull/324) | AgentGymLeader | lmolkova | ✅ | ✅ | 5d |
 | [Update reference implementation dependencies (non-major) (#352)](https://github.com/open-telemetry/semantic-conventions-genai/pull/352) | app/renovate |  | ❌ | ✅ | 2d |
 | [gen-ai: model agent-to-agent handoff as execute_tool span (#98)](https://github.com/open-telemetry/semantic-conventions-genai/pull/98) | Krishnachaitanyakc | lmolkova<br>MikeGoldsmith&nbsp;✅<br>trask | ✅ | ✅ | 13h |
-| [Update tooling dependencies (#357)](https://github.com/open-telemetry/semantic-conventions-genai/pull/357) | app/renovate |  | ✅ | ✅ | 5h |
+| [Update tooling dependencies (#357)](https://github.com/open-telemetry/semantic-conventions-genai/pull/357) | app/renovate |  | ⏳ | ✅ | 5h |
 | [Update tooling dependencies to v7 (#358)](https://github.com/open-telemetry/semantic-conventions-genai/pull/358) | app/renovate |  | ✅ | ✅ | 5h |
 
 ## Waiting on authors
