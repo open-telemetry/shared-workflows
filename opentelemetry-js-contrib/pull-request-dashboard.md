@@ -25,9 +25,9 @@
 | [fix(instrumentation-user-interaction): use WeakMap for per-element listener bookkeeping (#3576)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3576) | Renegade2345 | obecny | ✅ | ✅ | 11d |
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 6d |
 | [chore(eslint): use canonical n/ prefix for eslint-plugin-n in flat config (#3581)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3581) | bhuvan-somisetty |  | ✅ | ✅ | 1d |
-| [chore: Move inactive members to emeritus (#3587)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3587) | opentelemetrybot |  | ✅ | ✅ | 20h |
-| [feat(instrumentation-oracledb): add support for oracledb v7 (#3583)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3583) | abhilash-sivan | sharadraju&nbsp;💬<br>sudarshan12s&nbsp;💬 | ❌ | ✅ | 17h |
-| [Only treat "name" as relevant if it actually is a value (#3589)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3589) | blast-hardcheese | maryliag<br>raphael-theriault-swi | ❌ | ✅ | 6h |
+| [chore: Move inactive members to emeritus (#3587)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3587) | opentelemetrybot |  | ✅ | ✅ | 22h |
+| [feat(instrumentation-oracledb): add support for oracledb v7 (#3583)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3583) | abhilash-sivan | sharadraju&nbsp;💬<br>sudarshan12s&nbsp;💬 | ❌ | ✅ | 19h |
+| [Only treat "name" as relevant if it actually is a value (#3589)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3589) | blast-hardcheese | maryliag<br>raphael-theriault-swi | ❌ | ✅ | 9h |
 
 ## Waiting on authors
 
@@ -41,7 +41,7 @@
 | [fix(instrumentation-pino): Allow control over logged fields (#3356)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3356) | jnloureiro | dyladan&nbsp;💬<br>seemk | ✅ | ✅ | 77d |
 | [feat(resource-detector-aws): read cloud.account.id from symlink in Lambda detector (#3377)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3377) | RaphaelManke | dyladan<br>jj22ee | ✅ | ✅ | 77d |
 | [feat(nestjs): add instrumentation for NestJS microservice (#3435)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3435) | neilime | blumamir<br>david-luna<br>dyladan<br>legendecas<br>neilime<br>pichlermarc | ❌ | ❌ | 63d |
-| [fix(instrumentation-aws-lambda): handle non-configurable exports from esbuild CJS bundles (#3422)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3422) | RaphaelManke | jj22ee&nbsp;💬<br>raphael-theriault-swi | ✅ | ✅ | 62d |
+| [fix(instrumentation-aws-lambda): handle non-configurable exports from esbuild CJS bundles (#3422)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3422) | RaphaelManke | jj22ee&nbsp;💬<br>raphael-theriault-swi | ✅ | ✅ | 63d |
 | [feat(auto-instrumentations-node): opt-in crash flush via OTEL_NODE_FLUSH_ON_CRASH (#3505)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3505) | ElfoLiNk | blumamir<br>dyladan<br>legendecas<br>pichlermarc<br>raphael-theriault-swi | ✅ | ✅ | 57d |
 | [feat!: only emit stable http, network and database attributes (#3585)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3585) | maryliag | blumamir<br>jj22ee<br>martinkuba<br>maryliag<br>naseemkullah<br>neilime<br>onurtemizkan<br>pkanal<br>raphael-theriault-swi<br>seemk | ✅ | ❌ | 1d |
 
