@@ -45,7 +45,7 @@
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong |  | ✅ | ❌ | 2d |
 | [Add OSGi support for library instrumentation, API, and SDK extension artifacts (#18995)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995) | royteeuwen | laurit&nbsp;💬 | ✅ | ❌ | 1d |
 | [fix(druid): optimize dataSourceName to resolve metrics high cardinality (#19108)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108) | YaoYingLong | laurit&nbsp;💬 | ✅ | ✅ | 19h |
-| [Set jms destination to null when it can't be extracted (#19115)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19115) | laurit |  | ❌ | ✅ | 19m |
+| [Set jms destination to null when it can't be extracted (#19115)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19115) | laurit |  | ❌ | ✅ | 20m |
 | [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn | laurit | ✅ | ✅ | <1m |
 
 ## Waiting on external
