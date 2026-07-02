@@ -8,7 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Restore compliance between Composite Samplers code and specs (#8450)](https://github.com/open-telemetry/opentelemetry-java/pull/8450) | PeterF778 | jack-berg&nbsp;✅<br>jkwatson<br>zeitlinger | ❌ | ✅ | 9d |
-| [Only set valuesRecorded if its false (#8559)](https://github.com/open-telemetry/opentelemetry-java/pull/8559) | jack-berg | zeitlinger&nbsp;✅ | ✅ | ✅ | 15h |
+| [Only set valuesRecorded if its false (#8559)](https://github.com/open-telemetry/opentelemetry-java/pull/8559) | jack-berg | jaydeluca&nbsp;✅<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 15h |
 
 ## Waiting on reviewers
 
@@ -22,8 +22,8 @@
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ✅ | ✅ | 6d |
 | [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 6d |
 | [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ❌ | 1d |
-| [Last value aggregations use volatile instead of atomics (#8560)](https://github.com/open-telemetry/opentelemetry-java/pull/8560) | jack-berg |  | ✅ | ✅ | 14h |
-| [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR | jack-berg | ✅ | ✅ | 13h |
+| [Last value aggregations use volatile instead of atomics (#8560)](https://github.com/open-telemetry/opentelemetry-java/pull/8560) | jack-berg |  | ✅ | ✅ | 15h |
+| [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR | jack-berg | ✅ | ✅ | 14h |
 
 ## Waiting on authors
 
