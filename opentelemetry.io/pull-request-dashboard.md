@@ -52,9 +52,10 @@
 | [Add link to the explorer from agent supported libraries page (#10643)](https://github.com/open-telemetry/opentelemetry.io/pull/10643) | jaydeluca |  | ✅ | ✅ | 11h |
 | [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 |  | ✅ | ✅ | 5h |
 | [Housekeeping: automated fix results (#10648)](https://github.com/open-telemetry/opentelemetry.io/pull/10648) | app/otelbot-docs |  | ✅ | ✅ | 2h |
-| [\[ja\] update translation of content/en/docs/languages/python/_index.md (#10649)](https://github.com/open-telemetry/opentelemetry.io/pull/10649) | ymotongpoo |  | ❌ | ✅ | 23m |
+| [\[ja\] update translation of content/en/docs/languages/python/_index.md (#10649)](https://github.com/open-telemetry/opentelemetry.io/pull/10649) | ymotongpoo |  | ❌ | ✅ | 24m |
 | [\[ja\] update translation of content/en/docs/zero-code/obi/troubleshooting.md (#10634)](https://github.com/open-telemetry/opentelemetry.io/pull/10634) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ❌ | 1m |
-| [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] add translation of content/en/blog/2022/k8s-otel-expose/index.md (#10597)](https://github.com/open-telemetry/opentelemetry.io/pull/10597) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
+| [\[ja\] add translation of content/en/blog/2022/exponential-histograms/index.md (#10595)](https://github.com/open-telemetry/opentelemetry.io/pull/10595) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -88,7 +89,6 @@
 | [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ✅ | ✅ | 1d |
 | [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias |  | ✅ | ❌ | 1d |
 | [\[ja\] add translation of content/en/blog/2023/end-user-q-and-a-01.md (#10569)](https://github.com/open-telemetry/opentelemetry.io/pull/10569) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 23h |
-| [\[ja\] add translation of content/en/blog/2022/exponential-histograms/index.md (#10595)](https://github.com/open-telemetry/opentelemetry.io/pull/10595) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 22h |
 | [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo | kohbis&nbsp;💬 | ✅ | ✅ | 22h |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>krapie&nbsp;💬<br>seokho-son&nbsp;💬<br>vitorvasc | ❌ | ✅ | 19h |
 
