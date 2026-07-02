@@ -8,7 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [chore: Move inactive members to emeritus (#40)](https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/40) | opentelemetrybot |  | ❌ | ✅ | 1d |
-| [Switch to generalized semconv and semconv-genai templates (#38)](https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/38) | lmolkova |  | ❌ | ❌ | 23h |
+| [Switch to generalized semconv and semconv-genai templates (#38)](https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/38) | lmolkova |  | ❌ | ❌ | 1d |
 
 ## Draft pull requests
 
