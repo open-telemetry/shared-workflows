@@ -47,7 +47,7 @@
 | [Introduce the ability to define namespaces #802 (#849)](https://github.com/open-telemetry/weaver/pull/849) | thompson-tomo | 333d |
 | [Wip allow multiple dependencies part 2 - Use semver to resolve *some* dependency conflicts (#1377)](https://github.com/open-telemetry/weaver/pull/1377) | jsuereth | 61d |
 | [\[wip\] Forward compatibility for definition schema (#1422)](https://github.com/open-telemetry/weaver/pull/1422) | lmolkova | 55d |
-| [Consolidate v2 unstable file format warnings and improve diagnostic report styling (#1404)](https://github.com/open-telemetry/weaver/pull/1404) | app/copilot-swe-agent | 28d |
+| [Consolidate v2 unstable file format warnings and improve diagnostic report styling (#1404)](https://github.com/open-telemetry/weaver/pull/1404) | app/copilot-swe-agent | 29d |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
