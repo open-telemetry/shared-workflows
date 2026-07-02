@@ -26,7 +26,7 @@
 | [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 1d |
 | [Remove SpEL from SpringConfigProperties.getMap() (#19113)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19113) | zeitlinger |  | ✅ | ✅ | 15h |
 | [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | laurit<br>SylvainJuge | ✅ | ✅ | 14h |
-| [Update pinned latest dep versions (#19114)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19114) | app/otelbot |  | ⏳ | ✅ | 1m |
+| [Update pinned latest dep versions (#19114)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19114) | app/otelbot |  | ⏳ | ✅ | 2m |
 
 ## Waiting on authors
 
