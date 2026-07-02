@@ -19,11 +19,11 @@
 | [profiles: improve JFR export example (#8349)](https://github.com/open-telemetry/opentelemetry-java/pull/8349) | jhalliday | zeitlinger | ✅ | ✅ | 9d |
 | [Update dependency org.jetbrains.kotlin:kotlin-gradle-plugin to v2.4.0 (#8521)](https://github.com/open-telemetry/opentelemetry-java/pull/8521) | app/renovate |  | ❌ | ✅ | 8d |
 | [Declarative config ref descriptions (#8540)](https://github.com/open-telemetry/opentelemetry-java/pull/8540) | jack-berg |  | ✅ | ✅ | 6d |
-| [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 5d |
+| [FIx for BSP benchmark aux counters (exportedSpans/droppedSpans) always reporting zero (#8539)](https://github.com/open-telemetry/opentelemetry-java/pull/8539) | EvgeniiR |  | ✅ | ✅ | 6d |
 | [Bound instruments (#8527)](https://github.com/open-telemetry/opentelemetry-java/pull/8527) | jack-berg |  | ❌ | ❌ | 1d |
-| [Only set valuesRecorded if its false (#8559)](https://github.com/open-telemetry/opentelemetry-java/pull/8559) | jack-berg |  | ✅ | ✅ | 5h |
-| [Last value aggregations use volatile instead of atomics (#8560)](https://github.com/open-telemetry/opentelemetry-java/pull/8560) | jack-berg |  | ✅ | ✅ | 5h |
-| [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR | jack-berg | ✅ | ✅ | 4h |
+| [Only set valuesRecorded if its false (#8559)](https://github.com/open-telemetry/opentelemetry-java/pull/8559) | jack-berg |  | ✅ | ✅ | 7h |
+| [Last value aggregations use volatile instead of atomics (#8560)](https://github.com/open-telemetry/opentelemetry-java/pull/8560) | jack-berg |  | ✅ | ✅ | 6h |
+| [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR | jack-berg | ✅ | ✅ | 5h |
 
 ## Waiting on authors
 
@@ -50,7 +50,7 @@
 
 | PR | Author | Updated |
 |---|---|:---:|
-| [Allow frameworks to add instrumentation scope conditions (#7312)](https://github.com/open-telemetry/opentelemetry-java/pull/7312) | brunobat | 426d |
+| [Allow frameworks to add instrumentation scope conditions (#7312)](https://github.com/open-telemetry/opentelemetry-java/pull/7312) | brunobat | 427d |
 | [EntityProvider prototype (#7360)](https://github.com/open-telemetry/opentelemetry-java/pull/7360) | breedx-splk | 376d |
 | [Add support to finish instrument recording (#7792)](https://github.com/open-telemetry/opentelemetry-java/pull/7792) | atoulme | 63d |
 | [Sketch out ScopedValue based context implementation (#8352)](https://github.com/open-telemetry/opentelemetry-java/pull/8352) | jack-berg | 62d |
