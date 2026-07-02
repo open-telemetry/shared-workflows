@@ -121,7 +121,7 @@
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 19h |
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | 4h |
 | [\[ja\] add translation of content/en/blog/2025/contribex-survey-results/index.md (#10651)](https://github.com/open-telemetry/opentelemetry.io/pull/10651) | ymotongpoo | 34m |
-| [Refresh refcache (#10641)](https://github.com/open-telemetry/opentelemetry.io/pull/10641) | app/otelbot-docs | <1m |
+| [Refresh refcache (#10641)](https://github.com/open-telemetry/opentelemetry.io/pull/10641) | app/otelbot-docs | 1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
