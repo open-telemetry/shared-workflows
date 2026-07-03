@@ -9,8 +9,8 @@ on:
         required: false
         default: ''
         type: string
-      labels:
-        description: 'Optional label to apply to first-time-contributor PRs (single label; may contain spaces). Omit to skip labeling entirely.'
+      label:
+        description: 'Optional label to apply to first-time-contributor PRs (single label; may contain spaces). Omit to skip labeling entirely. The label must already exist in the caller repository.'
         required: false
         default: ''
         type: string
@@ -34,13 +34,16 @@ jobs:
       github.event.pull_request.author_association == 'NONE'
     steps:
       - name: Add label
-        if: inputs.labels != ''
+        if: inputs.label != ''
+        # Never let a missing/misconfigured label block the welcome comment step
+        # below.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.pull_request.number }}
-          LABELS: ${{ inputs.labels }}
-        run: gh pr edit "$NUMBER" --add-label "$LABELS"
+          LABEL: ${{ inputs.label }}
+        run: gh pr edit "$NUMBER" --add-label "$LABEL"
 
       - name: Comment on PR
         env:

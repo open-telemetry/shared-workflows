@@ -3,7 +3,7 @@
 Reusable GitHub Actions workflow that welcomes first-time contributors when they open a pull request. On the first `pull_request_target: opened` event, it:
 
 1. Posts a welcome comment with contributing guidelines, CLA reminder, and etiquette links. The greeting name and CONTRIBUTING link auto-substitute the caller's repository, so a repo can adopt this workflow with a single `uses:` reference and no further config.
-2. Optionally applies a label to the PR — only when the caller passes a `labels` value. By default, no label is added.
+2. Optionally applies a label to the PR — only when the caller passes a `label` value. By default, no label is added.
 
 Repo-specific content (SIG channels, priority-component lists, etc.) is supplied via the optional `custom_message` input.
 
@@ -30,7 +30,7 @@ Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `custom_message` | no | `''` | Markdown appended to the end of the default welcome comment. Use for repo-specific content: SIG Slack channels, priority-component lists, extra reminders, etc. |
-| `labels` | no | `''` | Label to apply to the PR. Single label string; may contain spaces. **If omitted (empty), the label step is skipped entirely and no label is added.** Pass e.g. `'first-time contributor'` to opt in. |
+| `label` | no | `''` | Single label to apply to the PR. May contain spaces. **If omitted (empty), the label step is skipped entirely and no label is added.** Pass e.g. `'first-time contributor'` to opt in. The label must already exist in your repository. If adding the label fails (typo, missing label, etc.), the labeling step is marked failed but the welcome comment is still posted. |
 
 ## Default comment body
 
@@ -57,7 +57,7 @@ jobs:
   welcome:
     uses: open-telemetry/shared-workflows/.github/workflows/first-time-pr.yml@<sha-or-tag>
     with:
-      labels: 'first-time contributor'
+      label: 'first-time contributor'
       custom_message: |
         - If your change isn't one of our [priority components](https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/44130), reviews may take more time.
         - Raise technical or Collector-specific questions in [#otel-collector-dev](https://cloud-native.slack.com/archives/C07CCCMRXBK) or a [Collector SIG meeting](https://github.com/open-telemetry/community?tab=readme-ov-file#sig-collector).
