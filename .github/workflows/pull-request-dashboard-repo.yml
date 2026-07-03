@@ -38,11 +38,7 @@ on:
         required: false
         default: "{}"
         type: string
-      max_rows_per_section:
-        required: false
-        default: 0
-        type: number
-      skip_drafts:
+      large_repo:
         required: false
         default: false
         type: boolean
@@ -197,8 +193,7 @@ jobs:
           REPO_NAME: ${{ inputs.repository }}
           REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
           APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
-          MAX_ROWS_PER_SECTION: ${{ inputs.max_rows_per_section }}
-          SKIP_DRAFTS: ${{ inputs.skip_drafts }}
+          LARGE_REPO: ${{ inputs.large_repo }}
         run: |
           set -euo pipefail
           dashboard_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "$REPO_NAME")
@@ -209,11 +204,8 @@ jobs:
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
-          if [[ "${MAX_ROWS_PER_SECTION:-0}" -gt 0 ]]; then
-            dashboard_args+=(--max-rows-per-section "$MAX_ROWS_PER_SECTION")
-          fi
-          if [[ "${SKIP_DRAFTS:-false}" == "true" ]]; then
-            dashboard_args+=(--skip-drafts)
+          if [[ "${LARGE_REPO:-false}" == "true" ]]; then
+            dashboard_args+=(--large-repo)
           fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
 

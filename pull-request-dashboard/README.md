@@ -64,8 +64,7 @@ Fields:
 | `required_approvals` | yes | Number of approvals required for an open PR to be marked ready to merge. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
-| `max_rows_per_section` | no | Cap on rows rendered per group section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) in the dashboard issue body. Rows past the cap are dropped and replaced with a `_More X PRs not shown_` note. Omit for no cap. Needed for very large repos where the full dashboard exceeds GitHub's 65,536-character issue-body limit. |
-| `skip_drafts` | no | If `true`, omit the *Draft pull requests* section from the dashboard body entirely. Defaults to `false` (drafts are shown). Useful for very large repos where drafts add significant size without triage value. |
+| `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 50 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. **Also affects triggering**: webhook-driven runs are skipped for `large_repo` targets to avoid exhausting the App's hourly API quota. Hourly scheduled runs and manual `Run workflow` clicks still process them. |
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 

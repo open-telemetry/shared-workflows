@@ -121,8 +121,31 @@ jobs:
           echo "repository=$(jq -r '.[0].name' <<< "$matrix")" >> "$GITHUB_OUTPUT"
           echo "$matrix" | jq .
 
+      # Webhook-driven runs (trigger_event is a real GitHub event like
+      # pull_request_review_comment, not schedule/workflow_dispatch) skip
+      # large_repo targets. Webhook volume on large repos exhausts the App's
+      # hourly API quota; scheduled full rebuilds and manual dispatches still
+      # process them.
+      - name: Check webhook large-repo skip
+        id: webhook-large-repo-skip
+        if: steps.trigger.outputs.event != 'schedule' && steps.trigger.outputs.event != 'workflow_dispatch'
+        env:
+          TARGET_REPOSITORY: ${{ steps.targets.outputs.repository }}
+          TRIGGER_EVENT: ${{ steps.trigger.outputs.event }}
+        run: |
+          set -euo pipefail
+          is_large=$(jq -r --arg repo "$TARGET_REPOSITORY" '
+            [ .[] | select(.name == $repo) | .large_repo // false ][0] // false
+          ' "$DASHBOARD_CONFIG")
+          if [[ "$is_large" == "true" ]]; then
+            echo "Skipping webhook-driven run for large_repo target ($TARGET_REPOSITORY, event=$TRIGGER_EVENT)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        if: steps.trigger.outputs.pr_number != ''
+        if: >-
+          steps.trigger.outputs.pr_number != '' &&
+          steps.webhook-large-repo-skip.outputs.skip != 'true'
         id: dashboard-token
         with:
           client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
@@ -136,9 +159,14 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           TRIGGER_PR_NUMBER: ${{ steps.trigger.outputs.pr_number }}
+          WEBHOOK_LARGE_REPO_SKIP: ${{ steps.webhook-large-repo-skip.outputs.skip }}
           REPO: open-telemetry/${{ steps.targets.outputs.repository }}
         run: |
           set -euo pipefail
+          if [[ "${WEBHOOK_LARGE_REPO_SKIP:-}" == "true" ]]; then
+            echo "met=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [[ -z "$TRIGGER_PR_NUMBER" ]]; then
             echo "met=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -177,8 +205,7 @@ jobs:
       approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
       slack_channel: ${{ matrix.slack_channel }}
       slack_user_mapping_json: ${{ toJSON(matrix.slack_user_mapping || fromJSON('{}')) }}
-      max_rows_per_section: ${{ matrix.max_rows_per_section || 0 }}
-      skip_drafts: ${{ matrix.skip_drafts || false }}
+      large_repo: ${{ matrix.large_repo || false }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
