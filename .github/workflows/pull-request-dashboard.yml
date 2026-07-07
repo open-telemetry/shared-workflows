@@ -215,7 +215,11 @@ jobs:
     needs:
       - resolve-targets
       - run-repo-dashboard
-    if: always() && github.event_name == 'schedule'
+    # Empty repository and PR inputs mean a full rebuild, whether scheduled or manual.
+    if: >-
+      always() &&
+      inputs.repository == '' &&
+      inputs.pr_number == ''
     permissions:
       contents: read
       issues: write # needed to open/close the hourly failure tracking issue
