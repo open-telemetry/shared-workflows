@@ -1,0 +1,12 @@
+# Configuration for auto-generated release notes.
+# See: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes#configuration-options
+#
+# This file is consumed by both the Releases UI and by `gh release create
+# --generate-notes` (used by .github/workflows/release.yml).
+changelog:
+  exclude:
+    authors:
+      - dependabot[bot]
+      - github-actions[bot]
+      - renovate[bot]
+      - renovate-sh-app[bot]
