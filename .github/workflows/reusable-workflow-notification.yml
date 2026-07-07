@@ -14,9 +14,10 @@ permissions:
 
 jobs:
   workflow-notification:
+    name: Open or close workflow failure issue
     permissions:
       contents: read
-      issues: write
+      issues: write # needed to open, comment on, and close workflow failure issues
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -26,21 +27,22 @@ jobs:
       - name: Open issue or add comment if issue already open
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SUCCESS: ${{ inputs.success }}
         run: |
           # TODO (trask) search doesn't support exact phrases, so it's possible that this could grab the wrong issue
           number=$(gh issue list --search "in:title Workflow failed: $GITHUB_WORKFLOW" --limit 1 --json number -q .[].number)
 
           echo $number
-          echo ${{ inputs.success }}
+          echo "$INPUT_SUCCESS"
 
           if [[ $number ]]; then
-            if [[ "${{ inputs.success }}" == "true" ]]; then
+            if [[ "$INPUT_SUCCESS" == "true" ]]; then
               gh issue close $number
             else
               gh issue comment $number \
                                --body "See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
             fi
-          elif [[ "${{ inputs.success }}" == "false" ]]; then
+          elif [[ "$INPUT_SUCCESS" == "false" ]]; then
             gh issue create --title "Workflow failed: $GITHUB_WORKFLOW (#$GITHUB_RUN_NUMBER)" \
                             --body "See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
           fi
