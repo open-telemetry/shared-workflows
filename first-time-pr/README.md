@@ -42,7 +42,6 @@ The default comment is:
 >
 > - Read our [Contributing Guidelines](https://github.com/`<owner/repo>`/blob/main/CONTRIBUTING.md).
 > - Sign the [CLA](https://identity.linuxfoundation.org/projects/cncf) if you haven't already.
-> - First-time contributors should have **at most one PR not marked as draft until their first PR is merged**.
 > - Give reviewers at least a few days before pinging them for feedback.
 > - If you need help with general setup, development process, or contributor etiquette, ask in [#opentelemetry-new-contributors](https://cloud-native.slack.com/archives/C09H3MNMBQV).
 
