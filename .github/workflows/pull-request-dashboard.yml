@@ -215,11 +215,17 @@ jobs:
     needs:
       - resolve-targets
       - run-repo-dashboard
-    # Empty repository and PR inputs mean a full rebuild, whether scheduled or manual.
+    # Notify for full rebuilds: scheduled runs and unfiltered manual runs.
     if: >-
       always() &&
-      inputs.repository == '' &&
-      inputs.pr_number == ''
+      (
+        github.event_name == 'schedule' ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.repository == '' &&
+          inputs.pr_number == ''
+        )
+      )
     permissions:
       contents: read
       issues: write # needed to open/close the hourly failure tracking issue
