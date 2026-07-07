@@ -1,0 +1,67 @@
+# Reusable workflow — see /first-time-pr/README.md for consumer documentation.
+name: First time contributor
+
+on:
+  workflow_call:
+    inputs:
+      custom_message:
+        description: 'Optional Markdown appended to the end of the default welcome comment.'
+        required: false
+        default: ''
+        type: string
+      label:
+        description: 'Optional label to apply to first-time-contributor PRs (single label; may contain spaces). Omit to skip labeling entirely. The label must already exist in the caller repository.'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: first-time-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  welcome_first_contributor:
+    name: Welcome first-time contributor
+    permissions:
+      pull-requests: write # for gh pr edit --add-label and posting the welcome comment
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.action == 'opened' &&
+      github.repository_owner == 'open-telemetry' &&
+      github.event.pull_request.author_association == 'NONE'
+    steps:
+      - name: Add label
+        if: inputs.label != ''
+        # Never let a missing/misconfigured label block the welcome comment step
+        # below.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          LABEL: ${{ inputs.label }}
+        run: gh pr edit "$NUMBER" --add-label "$LABEL"
+
+      - name: Comment on PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          REPO_FULL: ${{ github.repository }}
+          CUSTOM_MESSAGE: ${{ inputs.custom_message }}
+        run: |
+          set -euo pipefail
+          gh pr comment "$NUMBER" --body-file - <<EOF_WELCOME_COMMENT
+          Welcome, contributor! Thank you for your contribution to ${REPO_NAME}.
+
+          **Important reminders:**
+          - Read our [Contributing Guidelines](https://github.com/${REPO_FULL}/blob/main/CONTRIBUTING.md).
+          - Sign the [CLA](https://identity.linuxfoundation.org/projects/cncf) if you haven't already.
+          - Give reviewers at least a few days before pinging them for feedback.
+          - If you need help with general setup, development process, or contributor etiquette, ask in [#opentelemetry-new-contributors](https://cloud-native.slack.com/archives/C09H3MNMBQV).
+          ${CUSTOM_MESSAGE}
+          EOF_WELCOME_COMMENT
