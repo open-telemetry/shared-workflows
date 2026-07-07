@@ -902,20 +902,6 @@ class DashboardCalculation:
     used_cached_dashboard_state: bool = False
 
 
-@dataclass
-class DashboardRefresh:
-    repo: str
-    prs: list[dict[str, Any]]
-    open_pr_numbers: set[int]
-    calculation: DashboardCalculation
-
-
-def update_refresh_pr_list(refresh: DashboardRefresh) -> None:
-    prs = list_open_prs(refresh.repo)
-    refresh.prs = prs
-    refresh.open_pr_numbers = {p["number"] for p in prs}
-
-
 def compute_pr_results(
     repo: str,
     owner: str,
@@ -1041,7 +1027,7 @@ def reconcile_with_latest_dashboard(
     return replace(calculation, results=results, dashboard_state=dashboard_state), False
 
 
-def compute_dashboard_refresh(args: argparse.Namespace) -> DashboardRefresh:
+def update_dashboard(args: argparse.Namespace) -> int:
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     owner, repo_name = repo.split("/", 1)
 
@@ -1066,21 +1052,10 @@ def compute_dashboard_refresh(args: argparse.Namespace) -> DashboardRefresh:
         args.required_approvals,
     )
 
-    return DashboardRefresh(
-        repo=repo,
-        prs=prs,
-        open_pr_numbers=open_pr_numbers,
-        calculation=calculation,
-    )
-
-
-def write_dashboard_refresh(args: argparse.Namespace, refresh: DashboardRefresh) -> int:
-    calculation = refresh.calculation
-
     calculation, dashboard_state_unchanged = reconcile_with_latest_dashboard(
         calculation,
         args.pr_number,
-        refresh.open_pr_numbers,
+        open_pr_numbers,
     )
 
     failed_results = [
@@ -1097,7 +1072,7 @@ def write_dashboard_refresh(args: argparse.Namespace, refresh: DashboardRefresh)
         return 1
 
     md = render_pr_tables(
-        refresh.prs,
+        prs,
         calculation.results,
         max_rows_per_section=LARGE_REPO_MAX_ROWS_PER_SECTION if args.large_repo else None,
         skip_drafts=args.large_repo,
@@ -1122,28 +1097,11 @@ def write_dashboard_refresh(args: argparse.Namespace, refresh: DashboardRefresh)
     return 0
 
 
-def update_dashboard(args: argparse.Namespace) -> int:
-    return write_dashboard_refresh(args, compute_dashboard_refresh(args))
-
-
 def update_dashboard_with_state(args: argparse.Namespace, state_dir: Path) -> int:
-    refresh: DashboardRefresh | None = None
-
-    def write_dashboard_from_cached_refresh() -> int:
-        nonlocal refresh
-        if args.pr_number is None:
-            return update_dashboard(args)
-        if refresh is None:
-            refresh = compute_dashboard_refresh(args)
-        else:
-            print("reusing computed dashboard refresh after push rejection", file=sys.stderr)
-            update_refresh_pr_list(refresh)
-        return write_dashboard_refresh(args, refresh)
-
     return state_branch.push_state_changes(
         state_dir,
         "Update dashboard state",
-        write_dashboard_from_cached_refresh,
+        lambda: update_dashboard(args),
         state_branch=args.state_branch,
     )
 

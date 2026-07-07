@@ -42,12 +42,6 @@ the implementation understandable and operationally cheap.
   compare-and-swap boundary for concurrent runs.
 - Full rebuilds write the complete current state; targeted PR runs merge one PR
   slot with the latest accepted state.
-- On state-branch compare-and-swap retries, full rebuilds recompute from GitHub
-  so the complete-state snapshot stays fresh. Targeted PR runs reuse the
-  already computed trigger PR result, but refresh the open-PR list and re-merge
-  against the latest accepted dashboard state before rendering, avoiding
-  repeated expensive PR/thread classification calls without overwriting newer
-  state.
 
 ## GraphQL Cost
 
