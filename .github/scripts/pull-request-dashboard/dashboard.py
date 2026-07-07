@@ -34,15 +34,15 @@ A run flows like this:
 
   list_open_prs
        v
-  compute_pr_results
-       single-PR + cache hit:  reuse cached results, recompute only the trigger PR
-       single-PR + cache miss: skip; wait for a full run to create initial state
-       no PR target:           rebuild all PRs in parallel
+  build_dashboard_update_for_pr
+       single-PR + cache hit:  reuse cached results, refresh only the trigger PR
+       single-PR + cache miss: skip; wait for backfill to create initial state
+       no PR target:           backfill, processing PRs one at a time
        v
-  reconcile_with_latest_dashboard
+  merge_dashboard_update_with_latest_state
        reload dashboard-state in case a concurrent run updated it
        v
-    render_pr_tables                     (write pull-request-dashboard.md)
+  render_pr_tables                     (write pull-request-dashboard.md)
        v
   save_dashboard_state_cache
 
@@ -55,9 +55,11 @@ State files are committed and pushed first. Only after that state branch push
 succeeds does a follow-up publishing job fetch the accepted rendered dashboard
 body from the state branch and publish it to the dashboard issue.
 
-Full (no --pr-number) runs always rebuild every PR and write unconditionally.
-Single-PR runs are optimistic-concurrency updates of just one PR slot in the
-cached state.
+Runs without --pr-number use backfill and store progress in
+backfill-state.json. A selected PR advances that cursor after a successful
+refresh; a failure leaves the cursor in place so scheduled failure reporting
+continues until the blocked refresh is fixed. Single-PR runs are
+optimistic-concurrency updates of just one PR slot in the cached state.
 
 Field schemas
 -------------
@@ -140,7 +142,7 @@ from __future__ import annotations
 import argparse
 import sys
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
@@ -168,11 +170,12 @@ from classification import (
 from render import render_pr_tables
 from state import (
     dashboard_markdown_path,
-    dashboard_state_from_results,
     empty_state,
     load_dashboard_state_cache,
+    load_backfill_state,
     results_from_dashboard_state,
     save_dashboard_state_cache,
+    save_backfill_state,
     set_state_dir,
     stored_result,
     update_dashboard_state_for_pr,
@@ -181,12 +184,10 @@ import state_branch
 from utils import actor_login, format_ts, parse_ts, truncate
 
 # --- CLI defaults ----------------------------------------------------------
-# Parallel PRs processed at once (each PR's threads are classified
-# sequentially within that worker).
-DEFAULT_JOBS = 4
 DEFAULT_MODEL = "gpt-5.4-mini"
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
 LARGE_REPO_MAX_ROWS_PER_SECTION = 50
+DEFAULT_BACKFILL_MAX_PRS = 100
 
 # ---------------------------------------------------------------- model helpers
 
@@ -877,9 +878,9 @@ def build_pr_result(
             "error": repr(e),
         }
     except Exception as e:
-        # Boundary: one bad PR must not break the dashboard run. Log the
-        # traceback so genuine bugs are visible in workflow logs instead
-        # of being silently routed to "Unknown" forever.
+        # Boundary: keep unexpected PR-specific exceptions as failed results
+        # with tracebacks, so callers can fail cleanly instead of crashing
+        # mid-refresh.
         print(f"  warning: PR #{number} failed to build result:", file=sys.stderr)
         traceback.print_exc()
         return {
@@ -894,7 +895,7 @@ def build_pr_result(
 
 
 @dataclass
-class DashboardCalculation:
+class DashboardUpdate:
     results: dict[int, dict[str, Any]]
     dashboard_state: dict[str, Any]
     trigger_pr_result: dict[str, Any] | None = None
@@ -903,89 +904,47 @@ class DashboardCalculation:
     used_cached_dashboard_state: bool = False
 
 
-def compute_pr_results(
+def build_dashboard_update_for_pr(
     repo: str,
     owner: str,
     repo_name: str,
-    non_drafts: list[dict[str, Any]],
     open_pr_numbers: set[int],
     reviewers: set[str],
-    pr_number: int | None,
-    jobs: int,
+    pr_number: int,
     model: str,
     required_approvals: int,
     dashboard_state: dict[str, Any],
-) -> DashboardCalculation:
-    if pr_number:
-        print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
-        results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-        starting_pr_result = results.get(pr_number)
-        trigger_pr_result = build_pr_result(repo, owner, repo_name, {"number": pr_number}, reviewers, model, required_approvals)
-        if trigger_pr_result is None:
-            results.pop(pr_number, None)
-        else:
-            results[pr_number] = trigger_pr_result
-        current_pr_result = stored_result(trigger_pr_result) if trigger_pr_result is not None else None
-        return DashboardCalculation(
-            results=results,
-            dashboard_state=dashboard_state,
-            trigger_pr_result=trigger_pr_result,
-            current_pr_result=current_pr_result,
-            starting_pr_result=starting_pr_result,
-            used_cached_dashboard_state=True,
-        )
-
-    print(f"processing {len(non_drafts)} PR(s) in {repo} (model={model}, jobs={jobs})", file=sys.stderr)
-    results = {}
-    with ThreadPoolExecutor(max_workers=jobs) as pool:
-        futures = {
-            pool.submit(build_pr_result, repo, owner, repo_name, pr, reviewers, model, required_approvals): pr
-            for pr in non_drafts
-        }
-        for i, fut in enumerate(as_completed(futures), 1):
-            pr = futures[fut]
-            try:
-                res = fut.result()
-            except Exception as e:
-                # Boundary: `build_pr_result` already catches its own
-                # exceptions, so this is a safety net for cancellations or
-                # bugs that escape the inner handler. One bad future must
-                # not break the whole dashboard run.
-                res = {"pr_number": pr["number"], "failed": True, "route": "unknown", "error": repr(e)}
-            if res is None:
-                # PR was closed or converted to draft between list_open_prs
-                # and the worker run; skip it.
-                continue
-            results[pr["number"]] = res
-            counts = action_counts(res.get("classifications") or [])
-            print(
-                f"  [{i}/{len(non_drafts)}] #{pr['number']} -> {res.get('route', 'unknown')} "
-                f"({', '.join(f'{k}={v}' for k, v in counts.items())})",
-                file=sys.stderr,
-            )
-
-    dashboard_state = dashboard_state_from_results(results)
-    trigger_pr_result = results.get(pr_number) if pr_number else None
+) -> DashboardUpdate:
+    print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
+    results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
+    starting_pr_result = results.get(pr_number)
+    trigger_pr_result = build_pr_result(repo, owner, repo_name, {"number": pr_number}, reviewers, model, required_approvals)
+    if trigger_pr_result is None:
+        results.pop(pr_number, None)
+    else:
+        results[pr_number] = trigger_pr_result
     current_pr_result = stored_result(trigger_pr_result) if trigger_pr_result is not None else None
-    return DashboardCalculation(
+    return DashboardUpdate(
         results=results,
         dashboard_state=dashboard_state,
         trigger_pr_result=trigger_pr_result,
         current_pr_result=current_pr_result,
+        starting_pr_result=starting_pr_result,
+        used_cached_dashboard_state=True,
     )
 
 
-def reconcile_with_latest_dashboard(
-    calculation: DashboardCalculation,
+def merge_dashboard_update_with_latest_state(
+    calculation: DashboardUpdate,
     pr_number: int | None,
     open_pr_numbers: set[int],
-) -> tuple[DashboardCalculation, bool]:
+) -> tuple[DashboardUpdate, bool]:
     if not pr_number or not calculation.used_cached_dashboard_state:
         return calculation, False
 
     if calculation.trigger_pr_result is None:
         # The trigger PR is a draft, closed, or was dropped between
-        # list_open_prs and the worker run. Drop any stale cached result so
+        # list_open_prs and the worker run. Drop any outdated cached result so
         # the notification job cannot continue treating the PR as routed.
         dashboard_state = load_dashboard_state_cache()
         if dashboard_state is not None:
@@ -1026,49 +985,76 @@ def reconcile_with_latest_dashboard(
     return replace(calculation, results=results, dashboard_state=dashboard_state), False
 
 
-def update_dashboard(args: argparse.Namespace) -> int:
-    repo = normalize_repo(args.repo) if args.repo else detect_repo()
-    owner, repo_name = repo.split("/", 1)
+def dashboard_state_pr_numbers(state: dict[str, Any]) -> set[int]:
+    numbers: set[int] = set()
+    for key in (state.get("prs") or {}):
+        try:
+            numbers.add(int(key))
+        except ValueError:
+            continue
+    return numbers
 
-    dashboard_state = empty_state()
-    if args.pr_number:
-        loaded_dashboard_state = load_dashboard_state_cache()
-        if loaded_dashboard_state is None:
-            print("dashboard result state not found; skipping targeted refresh", file=sys.stderr)
-            return 0
-        dashboard_state = loaded_dashboard_state
 
-    prs = list_open_prs(repo)
-    open_pr_numbers = {p["number"] for p in prs}
-    if args.pr_number is None:
-        prune_classification_cache(open_pr_numbers)
-    non_drafts = [p for p in prs if not p.get("isDraft")]
+def backfill_cursor_pr_number(backfill_state: dict[str, Any]) -> int | None:
+    cursor = backfill_state.get("cursor") or {}
+    if not isinstance(cursor, dict):
+        return None
+    last_pr_number = cursor.get("last_pr_number")
+    if last_pr_number is None:
+        return None
+    try:
+        return int(last_pr_number)
+    except (TypeError, ValueError):
+        return None
 
-    reviewers = load_reviewer_set(owner, args.approver_team)
 
-    calculation = compute_pr_results(
-        repo,
-        owner,
-        repo_name,
-        non_drafts,
-        open_pr_numbers,
-        reviewers,
-        args.pr_number,
-        DEFAULT_JOBS,
-        args.model,
-        args.required_approvals,
-        dashboard_state,
+def set_backfill_cursor_pr_number(backfill_state: dict[str, Any], number: int) -> None:
+    backfill_state["cursor"] = {"last_pr_number": number}
+
+
+def round_robin_numbers(numbers: list[int], last_number: int | None) -> list[int]:
+    if last_number is None:
+        return numbers
+    return (
+        [number for number in numbers if number > last_number]
+        + [number for number in numbers if number <= last_number]
     )
 
-    calculation, dashboard_state_unchanged = reconcile_with_latest_dashboard(
-        calculation,
-        args.pr_number,
-        open_pr_numbers,
+
+@dataclass
+class BackfillSelection:
+    selected_prs: list[dict[str, Any]]
+    cached_pr_numbers_to_remove: set[int]
+
+
+def select_backfill_prs(
+    prs: list[dict[str, Any]],
+    dashboard_state: dict[str, Any],
+    backfill_state: dict[str, Any],
+    max_prs: int,
+) -> BackfillSelection:
+    open_prs_by_number = {p["number"]: p for p in prs if not p.get("isDraft")}
+    open_numbers = sorted(open_prs_by_number)
+    open_number_set = set(open_numbers)
+    cached_numbers = dashboard_state_pr_numbers(dashboard_state)
+    cached_pr_numbers_to_remove = cached_numbers - open_number_set
+    selected_numbers = round_robin_numbers(open_numbers, backfill_cursor_pr_number(backfill_state))[:max_prs]
+    return BackfillSelection(
+        [open_prs_by_number[number] for number in selected_numbers],
+        cached_pr_numbers_to_remove,
     )
 
+
+def render_and_save_dashboard(
+    args: argparse.Namespace,
+    prs: list[dict[str, Any]],
+    results: dict[int, dict[str, Any]],
+    dashboard_state: dict[str, Any],
+    dashboard_state_unchanged: bool,
+) -> int:
     failed_results = [
         number
-        for number, result in sorted(calculation.results.items())
+        for number, result in sorted(results.items())
         if result.get("failed")
     ]
     if failed_results:
@@ -1081,7 +1067,7 @@ def update_dashboard(args: argparse.Namespace) -> int:
 
     md = render_pr_tables(
         prs,
-        calculation.results,
+        results,
         max_rows_per_section=LARGE_REPO_MAX_ROWS_PER_SECTION if args.large_repo else None,
         skip_drafts=args.large_repo,
     )
@@ -1101,15 +1087,193 @@ def update_dashboard(args: argparse.Namespace) -> int:
             print("dashboard state unchanged", file=sys.stderr)
         return 0
 
-    save_dashboard_state_cache(calculation.dashboard_state)
+    save_dashboard_state_cache(dashboard_state)
     return 0
 
 
-def update_dashboard_with_state(args: argparse.Namespace, state_dir: Path) -> int:
+def update_backfill_cursor(pr_number: int) -> int:
+    backfill_state = load_backfill_state()
+    set_backfill_cursor_pr_number(backfill_state, pr_number)
+    save_backfill_state(backfill_state)
+    return 0
+
+
+def remove_cached_dashboard_prs(
+    args: argparse.Namespace,
+    prs: list[dict[str, Any]],
+    open_non_draft_pr_numbers: set[int],
+    pr_numbers_to_remove: set[int],
+) -> int:
+    if not pr_numbers_to_remove:
+        return 0
+    dashboard_state = load_dashboard_state_cache() or empty_state()
+    state_prs = dict(dashboard_state.get("prs") or {})
+    for number in pr_numbers_to_remove:
+        state_prs.pop(str(number), None)
+    dashboard_state["prs"] = state_prs
+    results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)
+    return render_and_save_dashboard(args, prs, results, dashboard_state, False)
+
+
+def update_dashboard_for_pr_number(args: argparse.Namespace) -> int:
+    if args.pr_number is None:
+        raise RuntimeError("update_dashboard_for_pr_number requires --pr-number")
+
+    repo = normalize_repo(args.repo) if args.repo else detect_repo()
+    owner, repo_name = repo.split("/", 1)
+
+    loaded_dashboard_state = load_dashboard_state_cache()
+    if loaded_dashboard_state is None:
+        print("dashboard result state not found; skipping targeted refresh", file=sys.stderr)
+        return 0
+
+    prs = list_open_prs(repo)
+    open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
+    pr_summary = next((p for p in prs if p["number"] == args.pr_number), None)
+    if not pr_summary or pr_summary.get("isDraft"):
+        return remove_cached_dashboard_prs(args, prs, open_non_draft_pr_numbers, {args.pr_number})
+
+    reviewers = load_reviewer_set(owner, args.approver_team)
+
+    calculation = build_dashboard_update_for_pr(
+        repo,
+        owner,
+        repo_name,
+        open_non_draft_pr_numbers,
+        reviewers,
+        args.pr_number,
+        args.model,
+        args.required_approvals,
+        loaded_dashboard_state,
+    )
+
+    calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
+        calculation,
+        args.pr_number,
+        open_non_draft_pr_numbers,
+    )
+
+    return render_and_save_dashboard(
+        args,
+        prs,
+        calculation.results,
+        calculation.dashboard_state,
+        dashboard_state_unchanged,
+    )
+
+
+def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> int:
+    repo = normalize_repo(args.repo) if args.repo else detect_repo()
+    owner, repo_name = repo.split("/", 1)
+    prs = list_open_prs(repo)
+    open_pr_numbers = {p["number"] for p in prs}
+    open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
+    prune_classification_cache(open_pr_numbers)
+    reviewers = load_reviewer_set(owner, args.approver_team)
+    state_branch.configure_git()
+    state_branch.checkout_state(state_dir, args.state_branch, require_existing=False)
+    try:
+        dashboard_state = load_dashboard_state_cache() or empty_state()
+        backfill_state = load_backfill_state()
+    finally:
+        state_branch.remove_existing_state_dir(state_dir)
+    selection = select_backfill_prs(
+        prs,
+        dashboard_state,
+        backfill_state,
+        DEFAULT_BACKFILL_MAX_PRS,
+    )
+
+    if selection.cached_pr_numbers_to_remove:
+        status = state_branch.push_state_changes(
+            state_dir,
+            "Update dashboard state",
+            lambda: remove_cached_dashboard_prs(
+                args,
+                prs,
+                open_non_draft_pr_numbers,
+                selection.cached_pr_numbers_to_remove,
+            ),
+            state_branch=args.state_branch,
+        )
+        if status != 0:
+            return status
+
+    print(
+        f"backfill selected {len(selection.selected_prs)} PR(s) "
+        f"in {repo} (max={DEFAULT_BACKFILL_MAX_PRS})",
+        file=sys.stderr,
+    )
+
+    # Empty or draft-only repositories still need accepted markdown for the
+    # publish job, even when there are no non-draft PRs to refresh.
+    if not selection.selected_prs:
+        def render_current_dashboard_state() -> int:
+            dashboard_state = load_dashboard_state_cache() or empty_state()
+            results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)
+            return render_and_save_dashboard(args, prs, results, dashboard_state, False)
+
+        return state_branch.push_state_changes(
+            state_dir,
+            "Update dashboard state",
+            render_current_dashboard_state,
+            state_branch=args.state_branch,
+        )
+
+    for pr_summary in selection.selected_prs:
+        def update_selected_pr(pr_summary: dict[str, Any] = pr_summary) -> int:
+            pr_number = pr_summary["number"]
+            dashboard_state = load_dashboard_state_cache() or empty_state()
+            calculation = build_dashboard_update_for_pr(
+                repo,
+                owner,
+                repo_name,
+                open_non_draft_pr_numbers,
+                reviewers,
+                pr_number,
+                args.model,
+                args.required_approvals,
+                dashboard_state,
+            )
+            calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
+                calculation,
+                pr_number,
+                open_non_draft_pr_numbers,
+            )
+            render_prs = (
+                prs
+                if calculation.trigger_pr_result is not None
+                else [p for p in prs if p["number"] != pr_number]
+            )
+            status = render_and_save_dashboard(
+                args,
+                render_prs,
+                calculation.results,
+                calculation.dashboard_state,
+                dashboard_state_unchanged,
+            )
+            if status != 0:
+                return status
+            return update_backfill_cursor(pr_number)
+
+        status = state_branch.push_state_changes(
+            state_dir,
+            "Update dashboard state",
+            update_selected_pr,
+            state_branch=args.state_branch,
+        )
+        if status != 0:
+            return status
+    return 0
+
+
+def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir: Path) -> int:
+    if args.pr_number is None:
+        return update_dashboard_for_backfill(args, state_dir)
     return state_branch.push_state_changes(
         state_dir,
         "Update dashboard state",
-        lambda: update_dashboard(args),
+        lambda: update_dashboard_for_pr_number(args),
         state_branch=args.state_branch,
     )
 
@@ -1151,7 +1315,7 @@ def main() -> int:
     with state_branch.temporary_state_dir() as state_dir:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
-        return update_dashboard_with_state(args, state_dir)
+        return update_dashboard_via_state_branch(args, state_dir)
 
 
 if __name__ == "__main__":

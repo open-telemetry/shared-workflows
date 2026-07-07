@@ -10,7 +10,7 @@ on:
         required: false
         type: string
       pr_number:
-        description: Pull request number to refresh. Empty means full rebuild.
+        description: Pull request number to refresh. Empty means backfill.
         required: false
         type: string
       trigger_event:
@@ -124,7 +124,7 @@ jobs:
       # Webhook-driven runs (trigger_event is a real GitHub event like
       # pull_request_review_comment, not schedule/workflow_dispatch) skip
       # large_repo targets. Webhook volume on large repos exhausts the App's
-      # hourly API quota; scheduled full rebuilds and manual dispatches still
+      # hourly API quota; scheduled backfills and manual dispatches still
       # process them.
       - name: Check webhook large-repo skip
         id: webhook-large-repo-skip
@@ -192,7 +192,7 @@ jobs:
       contents: write
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 1
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
     uses: ./.github/workflows/pull-request-dashboard-repo.yml
     with:
@@ -215,7 +215,7 @@ jobs:
     needs:
       - resolve-targets
       - run-repo-dashboard
-    # Notify for full rebuilds: scheduled runs and unfiltered manual runs.
+    # Notify for backfills: scheduled runs and unfiltered manual runs.
     if: >-
       always() &&
       (

@@ -9,7 +9,7 @@ Create a Netlify project for the webhook bridge:
 - Base directory: `.github/scripts/pull-request-dashboard`
 
 The Netlify project only receives GitHub App webhooks and dispatches the central
-GitHub Actions workflow. It does not run full dashboard rebuilds and does not own
+GitHub Actions workflow. It does not run dashboard backfills and does not own
 dashboard state.
 
 Save the Netlify project ID as a GitHub Actions variable named
@@ -163,7 +163,7 @@ The webhook bridge should dispatch `pull-request-dashboard.yml` in
 Notes:
 
 - `repository` is the short repository name under `open-telemetry`.
-- Omit `pr_number` or set it to an empty string for a full rebuild.
+- Omit `pr_number` or set it to an empty string for a backfill.
 - `trigger_review_id` is only required for `pull_request_review` `submitted`
   events when review guidance may need to be posted.
 - The central workflow validates these inputs before using them.
