@@ -210,3 +210,15 @@ jobs:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  notify-hourly-failure:
+    needs:
+      - resolve-targets
+      - run-repo-dashboard
+    if: always() && github.event_name == 'schedule'
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/reusable-workflow-notification.yml
+    with:
+      success: ${{ needs.resolve-targets.result == 'success' && needs.run-repo-dashboard.result == 'success' }}
