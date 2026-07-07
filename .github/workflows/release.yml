@@ -41,7 +41,8 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-tags: true
-          persist-credentials: false
+          # zizmor: ignore[artipacked] — we need the token persisted to push the annotated tag below.
+          persist-credentials: true
 
       - name: Compute next version
         id: compute
@@ -66,6 +67,17 @@ jobs:
           echo "New version: $new"
           echo "new_version=$new" >> "$GITHUB_OUTPUT"
 
+      - name: Create annotated tag
+        env:
+          NEW_VERSION: ${{ steps.compute.outputs.new_version }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION" "$TARGET_SHA"
+          git push origin "$NEW_VERSION"
+
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,9 +86,13 @@ jobs:
           TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          # The annotated tag was pushed in the previous step; --verify-tag
+          # tells gh to attach the Release to it rather than creating a new
+          # (lightweight) tag.
           gh release create "$NEW_VERSION" \
             --title "$NEW_VERSION" \
             --generate-notes \
             --latest \
+            --verify-tag \
             --target "$TARGET_SHA"
           echo "Created release $NEW_VERSION at $TARGET_SHA"
