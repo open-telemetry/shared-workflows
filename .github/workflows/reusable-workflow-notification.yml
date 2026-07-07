@@ -29,17 +29,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_SUCCESS: ${{ inputs.success }}
         run: |
+          set -euo pipefail
+
           # TODO (trask) search doesn't support exact phrases, so it's possible that this could grab the wrong issue
           number=$(gh issue list --search "in:title Workflow failed: $GITHUB_WORKFLOW" --limit 1 --json number -q .[].number)
 
-          echo $number
+          echo "$number"
           echo "$INPUT_SUCCESS"
 
-          if [[ $number ]]; then
+          if [[ -n "$number" ]]; then
             if [[ "$INPUT_SUCCESS" == "true" ]]; then
-              gh issue close $number
+              gh issue close "$number"
             else
-              gh issue comment $number \
+              gh issue comment "$number" \
                                --body "See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
             fi
           elif [[ "$INPUT_SUCCESS" == "false" ]]; then
