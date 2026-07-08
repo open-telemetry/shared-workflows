@@ -14,6 +14,7 @@
 | [\[httpcheck\] fix incorrect stale value in httpcheck.status when status_code changes (#44917)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/44917) | martin-schulze-e2m | atoulme<br>MovieStoreGuy | ❌ | ✅ | 27d |
 | [\[pkg/ottl\] Implement AST constant folding for deterministic converters (#46506)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46506) | Rajneesh180 | andrzej-stencel<br>edmocosta | ✅ | ❌ | 26d |
 | [\[pkg/stanza/fileconsumer\] Require explicit top_n when sort_by is configured (#47445)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47445) | Dylan-M | andrzej-stencel<br>atoulme<br>braydonk<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 22d |
+| [\[receiver/kafkametricsreceiver\] Set kafka.cluster.alias when cluster_alias is defined (#47573) (#47574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47574) | skreuzer | pjanotti | ✅ | ❌ | 11d |
 | [chore: add cloud.account.id to resource attributes (#46173)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46173) | sfozz | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley<br>paulojmdias&nbsp;✔️<br>schmikei&nbsp;✔️ | ✅ | ❌ | 5d |
 
 ## Waiting on authors
@@ -86,7 +87,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 129 PRs not shown_
+_More 128 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
