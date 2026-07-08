@@ -38,6 +38,7 @@
 | [\[receiver/vcenter\] Add host memory granted, active, and ballooned metrics (#49047)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49047) | Easonliuuuuu | andrzej-stencel | ✅ | ❌ | 25d |
 | [connector/servicegraph: add links-based correlation for async messaging (#48782)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48782) | harshitt13 | dmitryax | ✅ | ✅ | 23d |
 | [\[pkg/stanza/fileconsumer\] Require explicit top_n when sort_by is configured (#47445)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47445) | Dylan-M | andrzej-stencel<br>atoulme<br>braydonk<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 22d |
+| [Update module gopkg.in/yaml.v2 to v3 (#49119)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49119) | app/renovate | TylerHelmuth | ❌ | ✅ | 22d |
 | [\[exporter/opensearchexporter\] Add manage_index_template option for otel-v1 mode (#48873)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48873) | ps48 | kylehounslow&nbsp;✔️<br>pjanotti | ✅ | ✅ | 21d |
 | [\[receiver/hostmetrics\] Add hardwarescraper for hardware temperature monitoring (#49097)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49097) | moseoh | dmitryax | ✅ | ✅ | 20d |
 | [\[receiver/redis\] Add link to documentation.md for metrics details (#48709)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48709) | Madhumasa84 | dashpole | ✅ | ✅ | 16d |
@@ -70,9 +71,8 @@
 | [\[receiver/fluent_forward\] delay chunk ACK until ConsumeLogs returns (#48839)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48839) | Krishnachaitanyakc | pjanotti | ✅ | ✅ | 4d |
 | [\[exporter/clickhouse\] retry schema detection after transient errors instead of caching "feature absent" (#48902)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48902) | Krishnachaitanyakc | iblancasa | ✅ | ✅ | 4d |
 | [\[receiver/oracledb\] Add transaction, lock, and recovery metrics (#49067)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49067) | rluidash | codeboten<br>crobert-1&nbsp;💬 | ✅ | ✅ | 11h |
-| [\[receiver/oracledb\] Add session, JVM, and OS resource metrics (#49068)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49068) | rluidash | ChrsMark<br>crobert-1&nbsp;💬 | ✅ | ✅ | 11h |
 
-_More 4 PRs not shown_
+_More 5 PRs not shown_
 
 ## Waiting on authors
 
@@ -185,7 +185,7 @@ _More 4 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 38 PRs not shown_
+_More 37 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
