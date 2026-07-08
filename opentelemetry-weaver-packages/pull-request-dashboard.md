@@ -13,8 +13,8 @@
 
 | PR | Author | Updated |
 |---|---|:---:|
-| [add python codegen templates (#19)](https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/19) | lmolkova | 127d |
-| [Switch to generalized semconv and semconv-genai templates (#38)](https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/38) | lmolkova | 4d |
+| [add python codegen templates (#19)](https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/19) | lmolkova | 128d |
+| [Switch to generalized semconv and semconv-genai templates (#38)](https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/38) | lmolkova | 5d |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
