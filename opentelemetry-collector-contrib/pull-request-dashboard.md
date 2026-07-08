@@ -12,6 +12,7 @@
 | [\[extension/oidcauth\] Add ignore issuer in config and propagate it to go-oidc (#48513)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48513) | Dainerx | axw&nbsp;✅<br>edmocosta | ❌ | ✅ | 14d |
 | [\[processor/spanpruning\] Add bytes metrics (#49008)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49008) | portertech | atoulme&nbsp;✅<br>csmarchbanks&nbsp;✔️<br>jmacd&nbsp;✅<br>songy23 | ✅ | ✅ | 14d |
 | [\[receiver/hostmetrics\] Enable system.cpu.logical.count metric by default (#49325)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49325) | dmitryax | ArthurSens<br>braydonk&nbsp;✅<br>jmacd&nbsp;✅<br>mx-psi&nbsp;✅<br>rogercoll&nbsp;✔️ | ❌ | ✅ | 12d |
+| [\[receiver/httpcheck\] Use confighttp defaulting constructor (#49357)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49357) | swiatekm | crobert-1<br>iblancasa&nbsp;✅ | ✅ | ✅ | 9d |
 | [\[processor/tailsampling\] Change default error_mode of ottl_condition … (#48623)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48623) | pratik-mahalle | ArthurSens<br>atoulme<br>jmacd&nbsp;✅ | ✅ | ✅ | 8d |
 | [New component: awsecsattributes processor Phase 2 - enrichment (#49036)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49036) | daidokoro | ChrsMark<br>dehaansa<br>iblancasa&nbsp;✅<br>povilasv&nbsp;✔️ | ✅ | ❌ | 7d |
 | [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ❌ | 6d |
@@ -192,7 +193,6 @@ _More 5 PRs not shown_
 | [\[exporter/prometheusremotewriteexporter\] Retry transient WAL export errors and add configurable segment cache size (#49383)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49383) | charanck9 |  | ? | ? | ? |
 | [\[exporter/opensearchexporter\] Validate attribute values in dynamic index names (#49362)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49362) | kylehounslow |  | ? | ? | ? |
 | [\[receiver/awsecscontainermetricsreceiver\] Remove v1.21.0 import (#49360)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49360) | anarwal |  | ? | ? | ? |
-| [\[receiver/httpcheck\] Use confighttp defaulting constructor (#49357)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49357) | swiatekm |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
