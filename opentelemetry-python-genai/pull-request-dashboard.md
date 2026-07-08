@@ -3,12 +3,6 @@
 >
 > Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · 💬 open thread · 🔴 changes requested.
 
-## Waiting on maintainers
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [\[`opentelemetry-instrumentation-google-genai`\]: record response model attribute on inference span/event (#205)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/205) | DylanRussell | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 1h |
-
 ## Waiting on reviewers
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
@@ -29,7 +23,7 @@
 | [feat: Add instrumentation for AsyncMessages.stream, Messages.parse and AsyncMessages.parse methods. (#191)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/191) | eternalcuriouslearner | DylanRussell&nbsp;💬⁠✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 1d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ❌ | ❌ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 |  | ✅ | ❌ | 5h |
-| [Remove residual OTEL_SEMCONV_STABILITY_OPT_IN references from docs and tests (#206)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/206) | AgentGymLeader | lmolkova&nbsp;💬 | ❌ | ✅ | 11m |
+| [Remove residual OTEL_SEMCONV_STABILITY_OPT_IN references from docs and tests (#206)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/206) | AgentGymLeader | lmolkova&nbsp;💬 | ❌ | ✅ | 14m |
 
 ## Waiting on external
 
