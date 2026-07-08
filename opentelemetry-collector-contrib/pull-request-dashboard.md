@@ -3,6 +3,12 @@
 >
 > Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · 💬 open thread · 🔴 changes requested.
 
+## Waiting on reviewers
+
+| PR | Author | Reviewers | CI | Conflicts | Age |
+|---|---|---|:---:|:---:|:---:|
+| [\[processor/transform\] Instrument the transform processor to emit traces (#44849)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/44849) | alexcams | atoulme<br>fatsheep9146<br>meldegwi&nbsp;✔️<br>songy23 | ✅ | ✅ | 79d |
+
 ## Waiting on authors
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
@@ -64,7 +70,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 146 PRs not shown_
+_More 145 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
