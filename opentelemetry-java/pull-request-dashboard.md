@@ -8,8 +8,8 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Restore compliance between Composite Samplers code and specs (#8450)](https://github.com/open-telemetry/opentelemetry-java/pull/8450) | PeterF778 | jack-berg&nbsp;✅<br>jkwatson<br>zeitlinger | ❌ | ✅ | 16d |
-| [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg | atoulme&nbsp;✔️<br>breedx-splk&nbsp;✅<br>brunobat&nbsp;✔️<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 5d |
-| [Add BatchSpanProcessor.create(SpanExporter) to match SimpleSpanProcessor (#8564)](https://github.com/open-telemetry/opentelemetry-java/pull/8564) | jimbobbennett | jkwatson&nbsp;✅<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 3d |
+| [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg | atoulme&nbsp;✔️<br>breedx-splk&nbsp;✅<br>brunobat&nbsp;✔️<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 6d |
+| [Add BatchSpanProcessor.create(SpanExporter) to match SimpleSpanProcessor (#8564)](https://github.com/open-telemetry/opentelemetry-java/pull/8564) | jimbobbennett | jkwatson&nbsp;✅<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 4d |
 | [Update fossas/fossa-action action to v2 (#8577)](https://github.com/open-telemetry/opentelemetry-java/pull/8577) | app/renovate | psx95&nbsp;✅ | ✅ | ✅ | 1d |
 | [Fix/sampler shutdown lifecycle (#8574)](https://github.com/open-telemetry/opentelemetry-java/pull/8574) | Debashismitra01 | jkwatson&nbsp;✅ | ✅ | ✅ | 1d |
 
@@ -41,14 +41,14 @@
 | [Use HTTP error bodies in HttpExporter warnings (#8428)](https://github.com/open-telemetry/opentelemetry-java/pull/8428) | ADITYA-CODE-SOURCE | psx95&nbsp;💬 | ✅ | ✅ | 42d |
 | [Add a ConfigProvider callback for runtime instrumentation option changes (#8076)](https://github.com/open-telemetry/opentelemetry-java/pull/8076) | jackshirazi | jack-berg<br>trask | ❌ | ❌ | 22d |
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 22d |
-| [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ✅ | ✅ | 8d |
-| [Fix OkHttp client mTLS when using the platform default trust store (#8565)](https://github.com/open-telemetry/opentelemetry-java/pull/8565) | Debashismitra01 | psx95&nbsp;💬 | ✅ | ✅ | 2h |
+| [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ✅ | ✅ | 9d |
+| [Fix OkHttp client mTLS when using the platform default trust store (#8565)](https://github.com/open-telemetry/opentelemetry-java/pull/8565) | Debashismitra01 | psx95&nbsp;💬 | ✅ | ✅ | 3h |
 
 ## Waiting on external
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Add fallback endpoint support for OTLP exporters (#8197)](https://github.com/open-telemetry/opentelemetry-java/pull/8197) | sridharsurvi1 | jack-berg&nbsp;🔴 | ❌ | ❌ | 83d |
+| [Add fallback endpoint support for OTLP exporters (#8197)](https://github.com/open-telemetry/opentelemetry-java/pull/8197) | sridharsurvi1 | jack-berg&nbsp;🔴 | ❌ | ❌ | 84d |
 
 ## Draft pull requests
 
@@ -56,7 +56,7 @@
 |---|---|:---:|
 | [Allow frameworks to add instrumentation scope conditions (#7312)](https://github.com/open-telemetry/opentelemetry-java/pull/7312) | brunobat | 433d |
 | [EntityProvider prototype (#7360)](https://github.com/open-telemetry/opentelemetry-java/pull/7360) | breedx-splk | 383d |
-| [Add support to finish instrument recording (#7792)](https://github.com/open-telemetry/opentelemetry-java/pull/7792) | atoulme | 69d |
+| [Add support to finish instrument recording (#7792)](https://github.com/open-telemetry/opentelemetry-java/pull/7792) | atoulme | 70d |
 | [Sketch out ScopedValue based context implementation (#8352)](https://github.com/open-telemetry/opentelemetry-java/pull/8352) | jack-berg | 69d |
 | [Null checking applied (#8321)](https://github.com/open-telemetry/opentelemetry-java/pull/8321) | jack-berg | 60d |
 | [add declarative config for log throttling (#7838)](https://github.com/open-telemetry/opentelemetry-java/pull/7838) | the-clam | 22d |
