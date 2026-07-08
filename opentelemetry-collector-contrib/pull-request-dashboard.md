@@ -82,7 +82,7 @@
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 7d |
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 
-_More 57 PRs not shown_
+_More 58 PRs not shown_
 
 ## Waiting on authors
 
@@ -160,7 +160,6 @@ _More 10 PRs not shown_
 | [chore: update version (#49563)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49563) | maryliag |  | ? | ? | ? |
 | [\[chore\] \[receiver/azuremonitor\] Add namespace to logs (#49562)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49562) | celian-garcia |  | ? | ? | ? |
 | [\[chore\]\[govuln\] revert to oldstable (#49560)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49560) | songy23 |  | ? | ? | ? |
-| [\[chore\]\[internal/datadog\] Migrate cenkalti/backoff v4/v5 → v7 (#49559)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49559) | songy23 |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
