@@ -15,6 +15,7 @@
 | [New component: awsecsattributes processor Phase 2 - enrichment (#49036)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49036) | daidokoro | ChrsMark<br>dehaansa<br>iblancasa&nbsp;✅<br>povilasv&nbsp;✔️ | ✅ | ❌ | 7d |
 | [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ❌ | 6d |
 | [\[chore\] \[receiver/hostmetrics\] Fix flaky memory scraper tests on Linux (#49110)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49110) | vishalmore90 | braydonk&nbsp;✅<br>mwear&nbsp;✔️<br>osullivandonal&nbsp;✔️<br>pjanotti<br>rogercoll&nbsp;✔️ | ✅ | ✅ | 1d |
+| [\[pkg/ottl\] Add `Filter` converter (#49184)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49184) | edmocosta | evan-bradley&nbsp;✅<br>MovieStoreGuy<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 21h |
 | [\[processor/resourcedetection\] add internal telemetry (#49128)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49128) | mwear | dashpole&nbsp;✅<br>mx-psi<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 20h |
 | [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 15h |
 | [\[receiver/awsecscontainermetrics\] migrate semantic convention from v1.21.0 to v1.42.0 (#49078)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49078) | singhvibhanshu | Aneurysm9&nbsp;✔️<br>ChrsMark<br>iblancasa&nbsp;✅<br>mx-psi<br>pjanotti<br>VihasMakwana | ✅ | ✅ | 2h |
@@ -191,7 +192,7 @@ _More 11 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 25 PRs not shown_
+_More 24 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
