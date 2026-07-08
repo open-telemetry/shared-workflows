@@ -1438,7 +1438,7 @@
     },
     "6893": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "pichlermarc",
         "ci_failing_count": 0,
@@ -1447,18 +1447,26 @@
         "created_at": "2026-07-08T10:49:51+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-08T14:04:17+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-08T19:08:24+00:00",
+        "last_approver_activity_at": "2026-07-08T19:08:24+00:00",
         "last_author_activity_at": "2026-07-08T09:59:09+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trentm",
+            "open_thread": false
+          }
+        ],
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-08T09:59:09+00:00"
       },
       "failed": false,
       "pr_number": 6893,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6893",
-      "route": "approver"
+      "route": "maintainer"
     }
   },
   "version": 3
