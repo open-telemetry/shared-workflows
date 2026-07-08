@@ -9,6 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [chore(deps): update dependency &#64;rollup/plugin-commonjs to v29 - manually fixed (#3200)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3200) | app/renovate | dyladan<br>legendecas<br>martinkuba<br>overbalance&nbsp;✔️<br>pichlermarc<br>pkanal<br>trentm<br>wolfgangcodes | ⏳ | ❌ | 250d |
 | [feat(instrumentation-ioredis): add Redis Cluster instrumentation support (#3010)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3010) | PavelPashov | blumamir<br>naseemkullah<br>pichlermarc | ✅ | ❌ | 245d |
+| [chore(deps): update dependency expect to v30 (#3213)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3213) | app/renovate | blumamir<br>dyladan<br>JamieDanielson<br>jj22ee<br>legendecas<br>maryliag<br>MikeGoldsmith<br>mottibec<br>pichlermarc<br>trentm | ❌ | ✅ | 243d |
 
 ## Waiting on authors
 
@@ -49,7 +50,6 @@
 | [fix(instrumentation-ioredis): correctly mark MULTI/PIPELINE in operation name (#3278)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3278) | aryamohanan |  | ? | ? | ? |
 | [chore(deps): update dependency chai to v6 (#3276)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3276) | app/renovate |  | ? | ? | ? |
 | [ci: Update Renovate configuration to best practices (#3231)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3231) | thompson-tomo |  | ? | ? | ? |
-| [chore(deps): update dependency expect to v30 (#3213)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3213) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
 
