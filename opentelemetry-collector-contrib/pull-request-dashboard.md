@@ -50,6 +50,7 @@
 | [\[extension/jaegerremotesampling\] disable grpc (#48440)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48440) | ansh0014 | andrzej-stencel<br>jmacd&nbsp;💬<br>yurishkuro&nbsp;💬 | ✅ | ❌ | 52d |
 | [Automation for validating components telemetry (#46315)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46315) | vesari | ArthurSens<br>braydonk&nbsp;💬<br>ChrsMark<br>dashpole<br>jmacd<br>MovieStoreGuy | ✅ | ✅ | 50d |
 | [\[exporter/clickhouse\] Respect configured database when create_schema is false (#48050)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48050) | Vanshul97 | fatsheep9146<br>Frapschen&nbsp;✔️<br>SpencerTorres&nbsp;✔️ | ✅ | ✅ | 48d |
+| [\[extension/filestorage\] Recover from add. bbolt goroutine panic (#48565)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48565) | briandavis-viz | iblancasa&nbsp;💬<br>songy23<br>VihasMakwana | ❌ | ❌ | 48d |
 | [feat(connector): rename grafanacloud to grafana_cloud (#48017)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48017) | Frapschen | andrzej-stencel<br>atoulme<br>dmitryax<br>songy23 | ❌ | ❌ | 44d |
 | [fix(isolationforestprocessor): trees never split + contamination_rate ignored (#47115)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47115) | pathcl | aarvee11&nbsp;💬⁠✔️<br>atoulme<br>codeboten<br>iblancasa&nbsp;💬 | ❌ | ✅ | 23d |
 | [\[receiver/docker_stats\] Introduce feature gate to align metrics with new container semantic conventions (#48081)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48081) | ben-trans | atoulme<br>jamesmoessis&nbsp;💬<br>MovieStoreGuy&nbsp;✅<br>pjanotti | ✅ | ❌ | 23d |
@@ -122,7 +123,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 98 PRs not shown_
+_More 97 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
