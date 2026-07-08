@@ -38,6 +38,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
+| [Update dependency pydantic to &gt;=2.12.5,&lt;3 (#214)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/214) | app/renovate |  | ? | ? | ? |
 | [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate |  | ? | ? | ? |
 | [Update dependency markupsafe to &gt;=2.1.5 (#212)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/212) | app/renovate |  | ? | ? | ? |
 | [Update dependency fsspec to &gt;=2025.12.0 (#211)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/211) | app/renovate |  | ? | ? | ? |
