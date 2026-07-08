@@ -64,12 +64,12 @@
 | [\[ja\] update translation of content/en/docs/collector/configuration.md (#10723)](https://github.com/open-telemetry/opentelemetry.io/pull/10723) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 12h |
 | [\[ja\] update translation of content/en/docs/collector/extend/custom-component/connector/index.md (#10724)](https://github.com/open-telemetry/opentelemetry.io/pull/10724) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 12h |
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 11h |
-| [feat: Add openai-go and kafka-go compile time instrumentation registry entries (#10726)](https://github.com/open-telemetry/opentelemetry.io/pull/10726) | amazingakai |  | ✅ | ✅ | 10h |
+| [feat: Add openai-go and kafka-go compile time instrumentation registry entries (#10726)](https://github.com/open-telemetry/opentelemetry.io/pull/10726) | amazingakai |  | ✅ | ✅ | 11h |
 | [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 8h |
 | [Add cardinalityguardianprocessor to the OpenTelemetry.io registry (#10727)](https://github.com/open-telemetry/opentelemetry.io/pull/10727) | vspallas-flyr |  | ✅ | ✅ | 6h |
 | [registry(android): add Android instrumentation entries (#10728)](https://github.com/open-telemetry/opentelemetry.io/pull/10728) | Babul422 |  | ✅ | ✅ | 6h |
 | [feat: \[pt\] Create docs/platforms/faas/_index.md (#10646)](https://github.com/open-telemetry/opentelemetry.io/pull/10646) | dmroch4 | vitorvasc | ✅ | ✅ | 4h |
-| [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 |  | ⏳ | ✅ | 25m |
+| [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 |  | ⏳ | ✅ | 35m |
 
 ## Waiting on authors
 
@@ -103,7 +103,7 @@
 | [Add pytest-genai-semconv to the registry (#10704)](https://github.com/open-telemetry/opentelemetry.io/pull/10704) | Krishnachaitanyakc |  | ✅ | ✅ | 1d |
 | [docs(obi): synchronize network overview with Beyla docs (#10682)](https://github.com/open-telemetry/opentelemetry.io/pull/10682) | Babul422 | grcevski&nbsp;✔️<br>skl&nbsp;✔️<br>vitorvasc&nbsp;💬 | ✅ | ✅ | 1d |
 | [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 | chalin&nbsp;🔴 | ✅ | ✅ | 1d |
-| [feat: \[pt\] Create docs/platforms/kubernetes/helm/demo.md (#10647)](https://github.com/open-telemetry/opentelemetry.io/pull/10647) | dmroch4 | vitorvasc&nbsp;💬 | ✅ | ✅ | 14h |
+| [feat: \[pt\] Create docs/platforms/kubernetes/helm/demo.md (#10647)](https://github.com/open-telemetry/opentelemetry.io/pull/10647) | dmroch4 | vitorvasc&nbsp;💬 | ✅ | ✅ | 15h |
 
 ## Waiting on external
 
