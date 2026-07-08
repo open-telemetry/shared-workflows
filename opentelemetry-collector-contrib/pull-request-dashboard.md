@@ -81,7 +81,7 @@
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 7d |
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 
-_More 45 PRs not shown_
+_More 46 PRs not shown_
 
 ## Waiting on authors
 
@@ -173,7 +173,6 @@ _More 9 PRs not shown_
 | [\[processor/dynamic_sampling\] honour incoming ot=th and ot=rv (#49520)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49520) | MikeGoldsmith |  | ? | ? | ? |
 | [\[kubeletstats\] Calculate cpu usage on the fly behind feature gate (#49499)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49499) | ChrsMark |  | ? | ? | ? |
 | [\[receiver/datadog\] Reconstruct 128-bit trace IDs for spans regardless of order (#49496)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49496) | SpencerTorres |  | ? | ? | ? |
-| [\[processor/cumulativetodelta\] Rename cumulativetodelta to cumulative_to_delta with deprecated alias cumulativetodelta (#49487)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49487) | agarvin-nr |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
