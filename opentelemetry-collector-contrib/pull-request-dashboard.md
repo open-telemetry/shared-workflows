@@ -80,7 +80,7 @@
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 7d |
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 
-_More 42 PRs not shown_
+_More 43 PRs not shown_
 
 ## Waiting on authors
 
@@ -176,7 +176,6 @@ _More 9 PRs not shown_
 | [\[receiver/splunk_hec\] Fix `read_header_timeout` and `write_timeout` configuration options getting overridden (#49483)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49483) | dyl10s |  | ? | ? | ? |
 | [\[pkg/translator/pprof\] Support translating OTLP sample attributes to pprof sample labels (#49481)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49481) | ms-hujia |  | ? | ? | ? |
 | [\[reciever/jmx\]: remove deprecated code (#49478)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49478) | rogercoll |  | ? | ? | ? |
-| [fix(receiver/memcached): report hit ratio, not miss ratio (#49470)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49470) | ogulcanaydogan |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
