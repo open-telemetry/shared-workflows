@@ -72,10 +72,10 @@
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
 | [\[elasticsearchexporter\] Add retry_on_document_status configuration (#48933)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48933) | belimawr | carsonip&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 7d |
 | [\[receiver/redis\] Add pubsub metrics (#49148)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49148) | rajrohanyadav | pjanotti | ✅ | ✅ | 7d |
+| [fluentforwardreceiver allocates arbitrary memory from attacker-controlled msgpack length prefixes (#49293)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49293) | aniket866 | ChrsMark | ❌ | ✅ | 7d |
 | [\[receiver/postgresql\] clarify `postgresql.backends` metric semantics (#49201)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49201) | kartikgola | dashpole | ❌ | ✅ | 7d |
-| [\[receiver/tlscheckreceiver\] allow scraping all certs (#48520)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48520) | sigmaris | codeboten<br>michael-burt&nbsp;✔️ | ✅ | ✅ | 6d |
 
-_More 23 PRs not shown_
+_More 24 PRs not shown_
 
 ## Waiting on authors
 
@@ -197,7 +197,7 @@ _More 1 PR not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 8 PRs not shown_
+_More 7 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
