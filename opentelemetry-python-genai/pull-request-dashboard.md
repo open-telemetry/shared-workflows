@@ -9,7 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate | eternalcuriouslearner<br>lmolkova&nbsp;✅ | ⏳ | ✅ | 2d |
 | [Update github actions (#207)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/207) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 18m |
-| [Update dependency anthropic to &gt;=0.116.0 (#208)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/208) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 17m |
+| [Update dependency anthropic to &gt;=0.116.0 (#208)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/208) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 18m |
 | [Update dependency anyio to &gt;=4.14.1 (#209)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/209) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 17m |
 | [Update dependency claude-agent-sdk to &gt;=0.2.114 (#210)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/210) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 17m |
 | [Update dependency fsspec to &gt;=2025.12.0 (#211)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/211) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 17m |
@@ -30,7 +30,7 @@
 | [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate |  | ✅ | ✅ | 17m |
 | [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate |  | ✅ | ✅ | 16m |
 | [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate |  | ✅ | ✅ | 16m |
-| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ✅ | ✅ | 14m |
+| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ✅ | ✅ | 15m |
 
 ## Waiting on authors
 
