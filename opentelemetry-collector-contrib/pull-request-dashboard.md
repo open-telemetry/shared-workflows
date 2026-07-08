@@ -65,6 +65,7 @@
 | [\[receiver/fluent_forward\] delay chunk ACK until ConsumeLogs returns (#48839)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48839) | Krishnachaitanyakc | pjanotti | ✅ | ✅ | 4d |
 | [\[exporter/clickhouse\] retry schema detection after transient errors instead of caching "feature absent" (#48902)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48902) | Krishnachaitanyakc | iblancasa | ✅ | ✅ | 4d |
 | [\[receiver/oracledb\] Add transaction, lock, and recovery metrics (#49067)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49067) | rluidash | codeboten<br>crobert-1&nbsp;💬 | ✅ | ✅ | 11h |
+| [\[receiver/oracledb\] Add session, JVM, and OS resource metrics (#49068)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49068) | rluidash | ChrsMark<br>crobert-1&nbsp;💬 | ✅ | ✅ | 11h |
 | [\[receiver/apache\] add request rate, transmitted-bytes rate, and worker limit metrics (#49029)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49029) | sairaj18 | colelaven&nbsp;✔️<br>dashpole&nbsp;💬 | ❌ | ✅ | 6h |
 | [\[processor/drain\] add positional parameter extraction (#48915)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48915) | MikeGoldsmith | songy23 | ❌ | ✅ | 2h |
 | [\[processor/tailsampling\] Initial support for tracestate (only probabilistic) (#48865)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48865) | csmarchbanks | ArthurSens<br>carsonip&nbsp;✔️<br>MikeGoldsmith&nbsp;✔️<br>songy23 | ❌ | ✅ | 1h |
@@ -102,7 +103,7 @@
 | [\[extension/basicauthextension\] Add AWS Secrets Manager support for basicauth extension (#49025)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49025) | meebok | frzifus&nbsp;✔️<br>MovieStoreGuy | ✅ | ❌ | 14d |
 | [\[receiver/k8scluster\] Fix container.image.name and container.image.tag when status image is a bare digest (#46987)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46987) | ricardbejarano | atoulme<br>ChrsMark&nbsp;💬<br>dmitryax<br>povilasv&nbsp;✔️ | ✅ | ✅ | 13d |
 | [\[receiver/sqlserverreceiver\] add db.query.full_text opt-in attribute to top_query and query_sample events (#48660)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48660) | avadla | crobert-1&nbsp;💬<br>songy23 | ✅ | ❌ | 11d |
-| [\[cmd/opampsupervisor\] Restart from last working remote config when fail to apply new one (#47853)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47853) | douglascamata | dehaansa<br>dpaasman00&nbsp;💬<br>evan-bradley&nbsp;💬 | ✅ | ✅ | 8d |
+| [\[cmd/opampsupervisor\] Restart from last working remote config when fail to apply new one (#47853)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47853) | douglascamata | dehaansa<br>dpaasman00&nbsp;💬<br>evan-bradley&nbsp;💬 | ✅ | ✅ | 9d |
 | [\[cmd/opampsupervisor\] Add config structure and interfaces for upgrades (#48792)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48792) | dpaasman00 | douglascamata&nbsp;✔️<br>evan-bradley&nbsp;💬⁠✅<br>MovieStoreGuy<br>tigrannajaryan&nbsp;✔️ | ✅ | ✅ | 8d |
 | [\[processor/tailsampling\] Add num_shards config for parallel event loops (#48699)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48699) | dmfallak | carsonip&nbsp;💬<br>csmarchbanks&nbsp;💬<br>VihasMakwana | ✅ | ✅ | 7d |
 | [\[receiver/oracledb\] Add PDB auto-discovery and per-PDB metrics   for Oracle multitenant (CDB) deployments (#48921)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48921) | spathlavath | codeboten<br>crobert-1&nbsp;💬 | ❌ | ✅ | 6d |
@@ -112,7 +113,7 @@
 | [\[PrometheusRemoteWriter\] Add support of MetadataKeys in remote write outbound requests (#48767)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48767) | gizas | ArthurSens&nbsp;💬⁠✅<br>axw&nbsp;✅<br>constanca-m&nbsp;💬<br>dashpole&nbsp;✅ | ❌ | ❌ | 1d |
 | [\[internal/k8sinventory\] Extract checkpoint package and update Observer interface (#48765)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48765) | kangyili | ChrsMark&nbsp;✅<br>dashpole<br>jmmcorreia&nbsp;✔️<br>krisztianfekete&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[receiver/oracledb\]: Add OS-level metrics from V$OSSTAT (#48459)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48459) | spathlavath | codeboten<br>crobert-1&nbsp;💬 | ✅ | ✅ | 21h |
-| [\[receiver/oracledb\]: Add SGA component memory metrics from V$SGAINFO (#48542)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48542) | spathlavath | crobert-1&nbsp;💬<br>mx-psi | ✅ | ✅ | 19h |
+| [\[receiver/oracledb\]: Add SGA component memory metrics from V$SGAINFO (#48542)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48542) | spathlavath | crobert-1&nbsp;💬<br>mx-psi | ✅ | ✅ | 20h |
 | [\[exporter/kafka\] introduce custom Request implementation (#48880)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48880) | ThyTran1402 | ArthurSens<br>atoulme<br>axw&nbsp;✅<br>MovieStoreGuy | ✅ | ✅ | 16h |
 | [Add more context when collector exits (#48968)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48968) | iblancasa | atoulme<br>dpaasman00&nbsp;✔️<br>evan-bradley&nbsp;✅<br>mwear&nbsp;✔️<br>TylerHelmuth | ✅ | ✅ | 4h |
 | [\[receiver/webhookeventreceiver\] Make webhookeventreceiver to support HMAC signature authentication (#47189)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47189) | steveduan-IDME | atoulme&nbsp;✅<br>ChrsMark<br>shalper2&nbsp;✔️<br>songy23 | ❌ | ✅ | 1h |
@@ -178,7 +179,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 47 PRs not shown_
+_More 46 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
