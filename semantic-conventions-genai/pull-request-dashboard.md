@@ -16,7 +16,7 @@
 | [Migrate anthropic reference scenario to opentelemetry-util-genai (#324)](https://github.com/open-telemetry/semantic-conventions-genai/pull/324) | AgentGymLeader | lmolkova&nbsp;✅ | ✅ | ✅ | 1d |
 | [Add evaluator provenance attributes to gen_ai.evaluation.* (#359)](https://github.com/open-telemetry/semantic-conventions-genai/pull/359) | Mohnish-Srivats |  | ✅ | ✅ | 21h |
 | [Add `gen_ai.main_agent` entity (#270)](https://github.com/open-telemetry/semantic-conventions-genai/pull/270) | aabmass | AgentGymLeader&nbsp;✔️<br>lmolkova&nbsp;✅<br>trask | ✅ | ✅ | 17h |
-| [gen-ai: fix system instructions reference scenarios (#361)](https://github.com/open-telemetry/semantic-conventions-genai/pull/361) | yyuuttaaoo |  | ✅ | ✅ | 10h |
+| [gen-ai: fix system instructions reference scenarios (#361)](https://github.com/open-telemetry/semantic-conventions-genai/pull/361) | yyuuttaaoo |  | ✅ | ✅ | 11h |
 | [Add GenAI input messages delta attribute (#365)](https://github.com/open-telemetry/semantic-conventions-genai/pull/365) | yyuuttaaoo | aabmass<br>lmolkova | ✅ | ✅ | 3h |
 
 ## Waiting on authors
@@ -43,7 +43,7 @@
 | [Add workflow node convention (#188)](https://github.com/open-telemetry/semantic-conventions-genai/pull/188) | RKest | aabmass<br>lmolkova&nbsp;🔴<br>trask | ✅ | ✅ | 1d |
 | [feat: add gen_ai.attribution.link_type for tool-call provenance (addresses #311) (#370)](https://github.com/open-telemetry/semantic-conventions-genai/pull/370) | grvnmttl |  | ❌ | ✅ | 1d |
 | [\[chore\] Add signal requirement level to yaml and jinja templates (#340)](https://github.com/open-telemetry/semantic-conventions-genai/pull/340) | lmolkova | trask&nbsp;💬⁠✅ | ✅ | ✅ | 3h |
-| [Use local weaver when available and of the right version (#371)](https://github.com/open-telemetry/semantic-conventions-genai/pull/371) | lmolkova |  | ✅ | ✅ | 1m |
+| [Use local weaver when available and of the right version (#371)](https://github.com/open-telemetry/semantic-conventions-genai/pull/371) | lmolkova |  | ⏳ | ✅ | 4m |
 
 ## Draft pull requests
 
