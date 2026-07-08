@@ -118,6 +118,7 @@ _More 24 PRs not shown_
 | [\[cmd/opampsupervisor\] Add config structure and interfaces for upgrades (#48792)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48792) | dpaasman00 | douglascamata&nbsp;✔️<br>evan-bradley&nbsp;💬⁠✅<br>MovieStoreGuy<br>tigrannajaryan&nbsp;✔️ | ✅ | ✅ | 8d |
 | [\[receiver/sqlserver\] Add 10 new opt-in metrics for cursor, worker thread, CLR, and Service Broker monitoring (#49144)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49144) | splunk-shanu | atoulme<br>crobert-1&nbsp;💬 | ✅ | ❌ | 8d |
 | [\[processor/tailsampling\] Add num_shards config for parallel event loops (#48699)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48699) | dmfallak | carsonip&nbsp;💬<br>csmarchbanks&nbsp;💬<br>VihasMakwana | ✅ | ✅ | 7d |
+| [Unbounded Entry Count in FluentForward Receiver Enables OOM Kill via Tiny Malicious Frames (#49295)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49295) | aniket866 | braydonk | ✅ | ✅ | 6d |
 | [Make pcommon value comparable (#49214)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49214) | alexcams | edmocosta&nbsp;💬<br>pjanotti | ✅ | ✅ | 6d |
 | [\[receiver/oracledb\] Add PDB auto-discovery and per-PDB metrics   for Oracle multitenant (CDB) deployments (#48921)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48921) | spathlavath | codeboten<br>crobert-1&nbsp;💬 | ❌ | ✅ | 6d |
 | [\[pkg/translator/azurelogs\] Support additional fields not in the common schema (#46165)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46165) | rafaelrodrigues3092 | atoulme<br>axw&nbsp;✅<br>MikeGoldsmith&nbsp;✔️<br>pjanotti | ✅ | ✅ | 6d |
@@ -130,9 +131,8 @@ _More 24 PRs not shown_
 | [\[receiver/oracledb\]: Add OS-level metrics from V$OSSTAT (#48459)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48459) | spathlavath | codeboten<br>crobert-1&nbsp;💬 | ✅ | ✅ | 21h |
 | [\[receiver/oracledb\]: Add SGA component memory metrics from V$SGAINFO (#48542)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48542) | spathlavath | crobert-1&nbsp;💬<br>mx-psi | ✅ | ✅ | 20h |
 | [\[exporter/kafka\] introduce custom Request implementation (#48880)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48880) | ThyTran1402 | ArthurSens<br>atoulme<br>axw&nbsp;✅<br>MovieStoreGuy | ✅ | ✅ | 16h |
-| [Add more context when collector exits (#48968)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48968) | iblancasa | atoulme<br>dpaasman00&nbsp;✔️<br>evan-bradley&nbsp;✅<br>mwear&nbsp;✔️<br>TylerHelmuth | ✅ | ✅ | 4h |
 
-_More 1 PR not shown_
+_More 2 PRs not shown_
 
 ## Waiting on external
 
@@ -197,7 +197,7 @@ _More 1 PR not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 7 PRs not shown_
+_More 6 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
