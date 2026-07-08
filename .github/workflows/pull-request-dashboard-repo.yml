@@ -54,7 +54,7 @@ permissions:
   contents: read
 
 env:
-  DASHBOARD_STATE_BRANCH: otelbot/pull-request-dashboard-state
+  DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
 
 jobs:
   post-review-guidance:
@@ -197,7 +197,8 @@ jobs:
           LARGE_REPO: ${{ inputs.large_repo }}
         run: |
           set -euo pipefail
-          dashboard_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "$REPO_NAME")
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          dashboard_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
           dashboard_args+=(--required-approvals "$REQUIRED_APPROVALS")
           for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
             dashboard_args+=(--approver-team "$team")
@@ -247,7 +248,8 @@ jobs:
           TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           set -euo pipefail
-          notify_args=(--state-branch "$DASHBOARD_STATE_BRANCH" --repo "$REPO_NAME")
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          notify_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             notify_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
@@ -283,6 +285,8 @@ jobs:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ inputs.repository }}
         run: |
+          set -euo pipefail
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
           python3 .github/scripts/pull-request-dashboard/publish_dashboard.py \
-            --state-branch "$DASHBOARD_STATE_BRANCH" \
+            --state-branch "$state_branch" \
             --repo "$REPO_NAME"
