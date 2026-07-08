@@ -7,6 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
+| [#850 Scope don't need attributes (#853)](https://github.com/open-telemetry/weaver/pull/853) | thompson-tomo | jsuereth | ✅ | ✅ | 351d |
 | [The aggregation params of metrics can be defined #844 (#845)](https://github.com/open-telemetry/weaver/pull/845) | thompson-tomo | jerbly<br>jsuereth<br>lmolkova | ✅ | ❌ | 322d |
 
 ## Unknown
@@ -23,7 +24,6 @@
 | [Proposal: Offer packages (#872)](https://github.com/open-telemetry/weaver/pull/872) | thompson-tomo |  | ? | ? | ? |
 | [Proposal: Introduce bundles (#871)](https://github.com/open-telemetry/weaver/pull/871) | thompson-tomo |  | ? | ? | ? |
 | [Proposal: Define namespaces in yaml (#867)](https://github.com/open-telemetry/weaver/pull/867) | thompson-tomo |  | ? | ? | ? |
-| [#850 Scope don't need attributes (#853)](https://github.com/open-telemetry/weaver/pull/853) | thompson-tomo |  | ? | ? | ? |
 
 ## Draft pull requests
 
