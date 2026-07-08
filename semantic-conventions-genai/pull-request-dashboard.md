@@ -17,7 +17,6 @@
 | [Add evaluator provenance attributes to gen_ai.evaluation.* (#359)](https://github.com/open-telemetry/semantic-conventions-genai/pull/359) | Mohnish-Srivats |  | ✅ | ✅ | 23h |
 | [Add `gen_ai.main_agent` entity (#270)](https://github.com/open-telemetry/semantic-conventions-genai/pull/270) | aabmass | AgentGymLeader&nbsp;✔️<br>lmolkova&nbsp;✅<br>trask | ✅ | ❌ | 19h |
 | [Add GenAI input messages delta attribute (#365)](https://github.com/open-telemetry/semantic-conventions-genai/pull/365) | yyuuttaaoo | aabmass<br>lmolkova | ✅ | ✅ | 5h |
-| [Use local weaver when available and of the right version (#371)](https://github.com/open-telemetry/semantic-conventions-genai/pull/371) | lmolkova | trask&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on authors
 
