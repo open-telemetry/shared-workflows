@@ -10,7 +10,7 @@
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate | eternalcuriouslearner<br>lmolkova&nbsp;✅ | ✅ | ✅ | 2d |
 | [Update dependency claude-agent-sdk to &gt;=0.2.114 (#210)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/210) | app/renovate | lmolkova&nbsp;✅ | ✅ | ❌ | 22m |
 | [Update dependency fsspec to &gt;=2025.12.0 (#211)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/211) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 22m |
-| [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 21m |
+| [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 22m |
 | [Update opentelemetry-python monorepo to &gt;=1.43.0 (#216)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/216) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 21m |
 
 ## Waiting on reviewers
@@ -45,13 +45,6 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | eternalcuriouslearner<br>lmolkova&nbsp;💬 | ✅ | ✅ | 7h |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [Update dependency markupsafe to &gt;=2.1.5 (#212)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/212) | app/renovate |  | ? | ? | ? |
-| [Update dependency anyio to &gt;=4.14.1 (#209)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/209) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
 
