@@ -10,6 +10,7 @@
 | [gen-ai: make input-messages BlobPart content optional and add stripped_reason (#144)](https://github.com/open-telemetry/semantic-conventions-genai/pull/144) | Mandark-droid | lmolkova<br>trask | ✅ | ❌ | 27d |
 | [gen-ai: model agent-to-agent handoff as execute_tool span (#98)](https://github.com/open-telemetry/semantic-conventions-genai/pull/98) | Krishnachaitanyakc | lmolkova<br>MikeGoldsmith&nbsp;✅<br>trask | ✅ | ✅ | 6d |
 | [feat(gen-ai): add agent authorization observability attributes (#180) (#291)](https://github.com/open-telemetry/semantic-conventions-genai/pull/291) | thebenignhacker | lmolkova&nbsp;🔴 | ✅ | ❌ | 6d |
+| [gen-ai: make response finish reasons authoritative (#363)](https://github.com/open-telemetry/semantic-conventions-genai/pull/363) | yyuuttaaoo |  | ✅ | ✅ | 3d |
 | [Introduce `gen_ai.invoke_agent.{inference,tool}_calls` (#336)](https://github.com/open-telemetry/semantic-conventions-genai/pull/336) | RKest | aabmass&nbsp;✅<br>lmolkova&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 2d |
 | [gen-ai: add get_response operation and span (#353)](https://github.com/open-telemetry/semantic-conventions-genai/pull/353) | JacksonWeber | lmolkova&nbsp;💬 | ✅ | ✅ | 1d |
 | [Migrate anthropic reference scenario to opentelemetry-util-genai (#324)](https://github.com/open-telemetry/semantic-conventions-genai/pull/324) | AgentGymLeader | lmolkova&nbsp;💬⁠✅ | ✅ | ✅ | 1d |
@@ -47,7 +48,6 @@
 |---|---|---|:---:|:---:|:---:|
 | [feat: add gen_ai.attribution.link_type for tool-call provenance (addresses #311) (#370)](https://github.com/open-telemetry/semantic-conventions-genai/pull/370) | grvnmttl |  | ? | ? | ? |
 | [Add GenAI input messages delta attribute (#365)](https://github.com/open-telemetry/semantic-conventions-genai/pull/365) | yyuuttaaoo |  | ? | ? | ? |
-| [gen-ai: make response finish reasons authoritative (#363)](https://github.com/open-telemetry/semantic-conventions-genai/pull/363) | yyuuttaaoo |  | ? | ? | ? |
 
 ## Draft pull requests
 
