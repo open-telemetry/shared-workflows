@@ -61,6 +61,7 @@
 | [\[exporter/clickhouse\] Respect configured database when create_schema is false (#48050)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48050) | Vanshul97 | fatsheep9146<br>Frapschen&nbsp;✔️<br>SpencerTorres&nbsp;✔️ | ✅ | ✅ | 48d |
 | [\[extension/filestorage\] Recover from add. bbolt goroutine panic (#48565)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48565) | briandavis-viz | iblancasa&nbsp;💬<br>songy23<br>VihasMakwana | ❌ | ❌ | 48d |
 | [feat(connector): rename grafanacloud to grafana_cloud (#48017)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48017) | Frapschen | andrzej-stencel<br>atoulme<br>dmitryax<br>songy23 | ❌ | ❌ | 44d |
+| [\[exporter/loadbalancing\] Replace log.Fatalf with proper error return in AWS Cloud Map resolver (#48763)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48763) | Vanshul97 | atoulme&nbsp;💬<br>ChrsMark<br>iblancasa&nbsp;✅ | ❌ | ✅ | 40d |
 | [\[receiver/awscloudwatch\] Use LogGroupIdentifier for cross-account log groups (#48762)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48762) | Vanshul97 | andrzej-stencel<br>dyl10s&nbsp;💬 | ✅ | ✅ | 40d |
 | [\[chore\] fix errInvalidEndpoint not wrapped in error chain in check receivers (#48729)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48729) | immanuwell | TylerHelmuth | ✅ | ✅ | 26d |
 | [fix(isolationforestprocessor): trees never split + contamination_rate ignored (#47115)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47115) | pathcl | aarvee11&nbsp;💬⁠✔️<br>atoulme<br>codeboten<br>iblancasa&nbsp;💬 | ❌ | ✅ | 23d |
@@ -138,7 +139,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 82 PRs not shown_
+_More 81 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
