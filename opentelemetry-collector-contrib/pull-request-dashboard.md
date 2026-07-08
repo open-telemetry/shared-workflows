@@ -79,6 +79,7 @@
 | [\[receiver/k8scluster\] Fix container.image.name and container.image.tag when status image is a bare digest (#46987)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46987) | ricardbejarano | atoulme<br>ChrsMark&nbsp;💬<br>dmitryax<br>povilasv&nbsp;✔️ | ✅ | ✅ | 13d |
 | [\[receiver/sqlserverreceiver\] add db.query.full_text opt-in attribute to top_query and query_sample events (#48660)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48660) | avadla | crobert-1&nbsp;💬<br>songy23 | ✅ | ❌ | 11d |
 | [\[cmd/opampsupervisor\] Restart from last working remote config when fail to apply new one (#47853)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47853) | douglascamata | dehaansa<br>dpaasman00&nbsp;💬<br>evan-bradley&nbsp;💬 | ✅ | ✅ | 8d |
+| [\[cmd/opampsupervisor\] Add config structure and interfaces for upgrades (#48792)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48792) | dpaasman00 | douglascamata&nbsp;✔️<br>evan-bradley&nbsp;💬⁠✅<br>MovieStoreGuy<br>tigrannajaryan&nbsp;✔️ | ✅ | ✅ | 8d |
 | [\[processor/tailsampling\] Add num_shards config for parallel event loops (#48699)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48699) | dmfallak | carsonip&nbsp;💬<br>csmarchbanks&nbsp;💬<br>VihasMakwana | ✅ | ✅ | 7d |
 | [\[pkg/translator/azurelogs\] Support additional fields not in the common schema (#46165)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46165) | rafaelrodrigues3092 | atoulme<br>axw&nbsp;✅<br>MikeGoldsmith&nbsp;✔️<br>pjanotti | ✅ | ✅ | 6d |
 | [\[receiver/azure_functions\] Support metrics for Event Hub trigger (#48105)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48105) | tetianakravchenko | mx-psi<br>zmoog&nbsp;✔️ | ❌ | ✅ | 5d |
@@ -144,7 +145,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 76 PRs not shown_
+_More 75 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
