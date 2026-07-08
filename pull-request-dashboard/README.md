@@ -4,7 +4,7 @@ A centralized shared workflow that builds and publishes a per-repository pull re
 
 The workflow runs from `open-telemetry/shared-workflows` and targets the repositories listed in [`repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json). Target repositories do not need to host any workflow files.
 
-Webhook-triggered incremental runs keep active dashboards close to real time. Hourly full runs provide a backstop for missed or delayed events.
+Webhook-triggered incremental runs keep active dashboards close to real time. Hourly backfill runs provide a backstop for missed or failed targeted refreshes.
 
 The classification cache reuses prior results for unchanged review threads, minimizing Copilot token usage.
 
@@ -68,7 +68,7 @@ Fields:
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
-Once the PR is merged, the dashboard will pick up your repository on its next hourly full run. To run it sooner, see [Manual full run](#manual-full-run). The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title; if it does not exist, the publish step creates the label and issue.
+Once the PR is merged, the dashboard will pick up your repository on its next hourly backfill run. To run it sooner, see [Manual backfill run](#manual-backfill-run). The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title; if it does not exist, the publish step creates the label and issue.
 
 ## One-time PR guidance comment
 
@@ -121,11 +121,12 @@ The workflow YAML and supporting scripts live in this repo:
 See [`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md) for the architecture and tradeoffs behind the design.
 See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for GitHub App webhook permissions and dispatch setup.
 
-## Manual full run
+## Manual backfill run
 
-To manually run a full dashboard rebuild, open the
+To manually run a dashboard backfill, open the
 [Pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml),
 choose **Run workflow**, and populate the `repository` field with the target
 repository name under `open-telemetry`, for example
-`opentelemetry-java-instrumentation`. Leave `repository` empty to process every
-configured repository.
+`opentelemetry-java-instrumentation`. Leave `repository` empty to backfill every
+configured repository. Each repository is subject to the PR cap so large repos
+cannot consume the dashboard App's hourly API quota in a single run.

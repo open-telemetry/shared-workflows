@@ -6,8 +6,8 @@ the implementation understandable and operationally cheap.
 
 ## Central Workflow
 
-- Full rebuilds run from `open-telemetry/shared-workflows` instead of each
-  target repository hosting its own workflow.
+- Scheduled backfills run from `open-telemetry/shared-workflows` instead of
+  each target repository hosting its own workflow.
 - Target repositories only need GitHub App access and an entry in
   `repositories.json`.
 - The top-level workflow resolves target repositories, then calls a reusable
@@ -15,23 +15,23 @@ the implementation understandable and operationally cheap.
   update, notification, and publishing jobs top to bottom for one repository, so
   one repository's update failure does not block publishing or notifications for
   repositories whose updates succeeded.
-- The top-level repository matrix uses limited parallelism to reduce contention
-  on the shared state branch while still allowing more than one repository to
-  run at a time.
+- The top-level repository matrix runs one repository at a time. Backfills do
+  not benefit enough from cross-repository parallelism to justify extra
+  contention on the shared state branch.
 - State for all target repositories lives on one shared state branch, namespaced
   by repository name.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
 
-## GitHub Actions Instead Of Netlify For Full Rebuilds
+## GitHub Actions Instead Of Netlify For Scheduled Backfills
 
-- Full rebuilds are batch jobs: they read many PRs, call REST and GraphQL many
-  times, run Copilot classification, update git-backed state, and publish an
-  issue body.
+- Scheduled backfills are batch jobs: they read repository PR lists, call REST
+  and GraphQL, run Copilot classification, update git-backed state, and publish
+  an issue body.
 - GitHub Actions provides clearer logs, concurrency controls, artifacts, and
   normal retry/cancel behavior for that workload.
 - Netlify remains appropriate for small webhook-sized work, but it was a poor
-  fit for long full-rebuild workers.
+  fit for long backfill workers.
 
 ## State Branch
 
@@ -40,8 +40,30 @@ the implementation understandable and operationally cheap.
 - Dashboard and notification state files are namespaced by target repository.
 - Updates use `git push --force-with-lease`, so git refs provide the durable
   compare-and-swap boundary for concurrent runs.
-- Full rebuilds write the complete current state; targeted PR runs merge one PR
-  slot with the latest accepted state.
+- Targeted PR runs merge one PR slot with the latest accepted state.
+
+## Backfill
+
+- Non-PR dashboard runs are backfills, not repository-wide refreshes. They are
+  capped so one run cannot exhaust the dashboard GitHub App's hourly API quota.
+- Each backfill lists open PRs, prunes cached PRs that are no longer open
+  non-draft, then refreshes at most 100 open non-draft PRs.
+- Selected PRs are processed one at a time through the same single-PR merge path
+  as targeted refreshes. Each accepted PR update renders dashboard markdown and
+  pushes state before the next selected PR is processed.
+- The one-PR transaction size keeps state-branch compare-and-swap retries cheap:
+  a rejected push retries one PR instead of refreshing a whole large repository
+  and spending the same GitHub GraphQL rate-limit budget again.
+- Backfill progress is stored separately from dashboard state in
+  `backfill-state.json`. The cursor is the last successfully refreshed PR
+  number, and the next run continues after it in sorted PR-number order,
+  wrapping when needed.
+- A selected PR failure stops the run without advancing the cursor. This can
+  temporarily block later PRs, but it keeps the scheduled workflow failure issue
+  open and pointing at the blocked backfill until the failure is fixed.
+- The cursor deliberately does not rely on PR `updatedAt`; prior testing showed
+  `updatedAt` is not a safe freshness key for every comment, review-comment, or
+  thread event the dashboard needs.
 
 ## GraphQL Cost
 
@@ -59,8 +81,8 @@ the implementation understandable and operationally cheap.
 - LLM classification cache is stored with `actions/cache`.
 - Unchanged review threads reuse cached classifications and avoid new Copilot
   calls.
-- Cache keys are scoped by target repository and by either PR number or full
-  rebuild.
+- Cache keys are scoped by target repository and by either PR number or
+  backfill.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
   latest usable snapshot without concurrent writers overwriting each other.
 
