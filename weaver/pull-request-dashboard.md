@@ -12,6 +12,7 @@
 | [Proposal: Offer packages (#872)](https://github.com/open-telemetry/weaver/pull/872) | thompson-tomo | jsuereth | ✅ | ✅ | 324d |
 | [The aggregation params of metrics can be defined #844 (#845)](https://github.com/open-telemetry/weaver/pull/845) | thompson-tomo | jerbly<br>jsuereth<br>lmolkova | ✅ | ❌ | 322d |
 | [Replace regex with semver crate (#1108)](https://github.com/open-telemetry/weaver/pull/1108) | ArthurSens | jsuereth<br>lquerel&nbsp;🔴 | ✅ | ✅ | 186d |
+| [Tolerate unknown properties in resolved schema / published manifest (#1365)](https://github.com/open-telemetry/weaver/pull/1365) | lmolkova | jsuereth&nbsp;💬 | ✅ | ❌ | 62d |
 | [Use semantic conventions v2 for `weaver registry infer` (#1334)](https://github.com/open-telemetry/weaver/pull/1334) | ArthurSens | jsuereth | ✅ | ✅ | 29d |
 
 ## Waiting on authors
@@ -33,7 +34,6 @@
 |---|---|---|:---:|:---:|:---:|
 | [Update gcr.io/oss-fuzz-base/base-builder-rust Docker digest to 8d1f850 (#1579)](https://github.com/open-telemetry/weaver/pull/1579) | app/renovate |  | ? | ? | ? |
 | [Warn on invalid markdown snippet markers (#1576)](https://github.com/open-telemetry/weaver/pull/1576) | ahfoysal |  | ? | ? | ? |
-| [Tolerate unknown properties in resolved schema / published manifest (#1365)](https://github.com/open-telemetry/weaver/pull/1365) | lmolkova |  | ? | ? | ? |
 
 ## Draft pull requests
 
