@@ -30,6 +30,7 @@
 | [fix: separate default vs controller-telemetry metadata test suites so instrumentation-list.yaml reflects out-of-the-box telemetry (#18974)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974) | mvanhorn | jaydeluca&nbsp;💬 | ✅ | ❌ | 26d |
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 13d |
 | [Gate process command attributes under v3 preview (#19082)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082) | trask | laurit&nbsp;✅ | ✅ | ✅ | 9d |
+| [fix(druid): optimize dataSourceName to resolve metrics high cardinality (#19108)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108) | YaoYingLong | laurit&nbsp;💬 | ✅ | ✅ | 7d |
 | [feat: add commons pool2 instrumentation (#19091)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19091) | YaoYingLong | jaydeluca&nbsp;💬<br>laurit&nbsp;💬 | ✅ | ✅ | 5d |
 | [Emit messaging operation metrics (publish/receive duration) from Kafka instrumentation (#19107)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19107) | maryantocinn | laurit | ✅ | ✅ | 2d |
 | [feat(kafka): add messaging.cluster.id attribute to Kafka Produce, Consumer metrics and spans (#18978)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978) | shashank-reddy-nr | laurit&nbsp;💬 | ✅ | ✅ | 2d |
@@ -55,7 +56,6 @@
 | [feat: Add GenAI agent/tool/retrieval semantic conventions to instrumentation-api-incubator (#19124)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19124) | eternalcuriouslearner |  | ? | ? | ? |
 | [Add Instrumenter operation listener propagation test (#19123)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19123) | amirdeljouyi |  | ? | ? | ? |
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 |  | ? | ? | ? |
-| [fix(druid): optimize dataSourceName to resolve metrics high cardinality (#19108)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108) | YaoYingLong |  | ? | ? | ? |
 
 ## Draft pull requests
 
