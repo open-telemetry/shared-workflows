@@ -8,6 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate | eternalcuriouslearner<br>lmolkova&nbsp;✅ | ⏳ | ✅ | 2d |
+| [Update github actions (#207)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/207) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 10m |
 | [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 9m |
 | [Update dependency pydantic to &gt;=2.12.5,&lt;3 (#214)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/214) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 9m |
 | [Update opentelemetry-python monorepo to &gt;=1.43.0 (#216)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/216) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 9m |
@@ -20,7 +21,6 @@
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 7d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 1d |
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 1h |
-| [Update github actions (#207)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/207) | app/renovate |  | ⏳ | ✅ | 10m |
 | [Update dependency anthropic to &gt;=0.116.0 (#208)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/208) | app/renovate |  | ⏳ | ✅ | 10m |
 | [Update dependency anyio to &gt;=4.14.1 (#209)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/209) | app/renovate |  | ⏳ | ✅ | 10m |
 | [Update dependency claude-agent-sdk to &gt;=0.2.113 (#210)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/210) | app/renovate |  | ⏳ | ✅ | 10m |
