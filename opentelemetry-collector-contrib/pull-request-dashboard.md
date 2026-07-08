@@ -62,6 +62,7 @@
 | [\[receiver/kafkametricsreceiver\] Set kafka.cluster.alias when cluster_alias is defined (#47573) (#47574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47574) | skreuzer | pjanotti | ✅ | ❌ | 11d |
 | [\[connector/signaltometrics\] Add feature gate to change default error_mode to ignore (#48434)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48434) | singhvishalkr | VihasMakwana | ✅ | ✅ | 10d |
 | [\[chore\]\[receiver/kafkametrics\] add benchmark tests for franz-go (#48783)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48783) | paulojmdias | edmocosta | ✅ | ❌ | 9d |
+| [\[receiver/postgresql\] Adding postgresql.query.conflicts metric (#49303)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49303) | Sprakhar97 | atoulme&nbsp;✅<br>axw<br>ebrdarSplunk&nbsp;✔️<br>splunk-shanu&nbsp;💬 | ❌ | ✅ | 8d |
 | [\[receiver/vcenterreceiver\] Fix vcenter.vm.cpu.readiness always report… (#48900)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48900) | Easonliuuuuu | codeboten<br>Dylan-M&nbsp;✔️<br>schmikei&nbsp;✔️ | ✅ | ✅ | 8d |
 | [docs(mongodbreceiver): clarify the `hosts` config (#48788)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48788) | Lenormju | ChrsMark<br>dyl10s&nbsp;✔️<br>paulojmdias&nbsp;✔️ | ❌ | ✅ | 8d |
 | [lookupProcessor: add file watching for yaml (#49070)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49070) | michael-michalski | songy23 | ✅ | ✅ | 8d |
@@ -73,9 +74,8 @@
 | [\[elasticsearchexporter\] Add retry_on_document_status configuration (#48933)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48933) | belimawr | carsonip&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 7d |
 | [\[receiver/redis\] Add pubsub metrics (#49148)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49148) | rajrohanyadav | pjanotti | ✅ | ✅ | 7d |
 | [fluentforwardreceiver allocates arbitrary memory from attacker-controlled msgpack length prefixes (#49293)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49293) | aniket866 | ChrsMark | ❌ | ✅ | 7d |
-| [\[receiver/postgresql\] clarify `postgresql.backends` metric semantics (#49201)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49201) | kartikgola | dashpole | ❌ | ✅ | 7d |
 
-_More 24 PRs not shown_
+_More 25 PRs not shown_
 
 ## Waiting on authors
 
@@ -197,7 +197,7 @@ _More 2 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 6 PRs not shown_
+_More 5 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
