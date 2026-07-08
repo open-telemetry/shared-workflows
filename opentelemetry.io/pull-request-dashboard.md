@@ -50,6 +50,7 @@
 | [feat: add setup-new-localization skill (#10481)](https://github.com/open-telemetry/opentelemetry.io/pull/10481) | vitorvasc | chalin<br>vitorvasc | ✅ | ✅ | 1d |
 | [Additional docs for the OpenTelemetry Kotlin SDK (#9984)](https://github.com/open-telemetry/opentelemetry.io/pull/9984) | fractalwrench | breedx-splk&nbsp;✔️<br>maryliag<br>tiffany76 | ✅ | ✅ | 1d |
 | [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ✅ | ✅ | 1d |
+| [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ✅ | ✅ | 1d |
 | [added blog for cocoapods deprecation (#10657)](https://github.com/open-telemetry/opentelemetry.io/pull/10657) | bryce-b |  | ❌ | ✅ | 1d |
 | [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias | grcevski&nbsp;✔️ | ✅ | ✅ | 1d |
 | [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 |  | ✅ | ✅ | 21h |
@@ -117,7 +118,6 @@
 | [Add Profiles endpoint to declarative config (#10718)](https://github.com/open-telemetry/opentelemetry.io/pull/10718) | florianl |  | ? | ? | ? |
 | [\[ja\] update translation of content/en/docs/demo/docker-deployment.md (#10714)](https://github.com/open-telemetry/opentelemetry.io/pull/10714) | ymotongpoo |  | ? | ? | ? |
 | [Document Java exporter self-monitoring metrics (#10713)](https://github.com/open-telemetry/opentelemetry.io/pull/10713) | LarryHu0217 |  | ? | ? | ? |
-| [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ? | ? | ? |
 
 ## Draft pull requests
 
