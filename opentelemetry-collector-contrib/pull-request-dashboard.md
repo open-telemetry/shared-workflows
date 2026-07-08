@@ -138,7 +138,7 @@ _More 47 PRs not shown_
 | [\[cmd/telemetrygen\] Continue work on "add profiles signal support" (#49212)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49212) | bogdan-st | florianl&nbsp;💬<br>jmacd<br>mx-psi | ✅ | ❌ | 2d |
 | [\[receiver/k8s_objects\] Migrate to Kubernetes SharedInformerFactory (#48663)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48663) | kangyili | ChrsMark<br>krisztianfekete&nbsp;💬<br>mx-psi | ✅ | ✅ | 2d |
 
-_More 9 PRs not shown_
+_More 10 PRs not shown_
 
 ## Waiting on external
 
@@ -171,7 +171,6 @@ _More 9 PRs not shown_
 | [\[receiver/datadog\] Map Datadog k8s tags to OTel resource attributes (#49530)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49530) | SpencerTorres |  | ? | ? | ? |
 | [\[receiver/datadog\] Translate Datadog span links and span events (#49528)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49528) | SpencerTorres |  | ? | ? | ? |
 | [\[processor/dynamic_sampling\] honour incoming ot=th and ot=rv (#49520)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49520) | MikeGoldsmith |  | ? | ? | ? |
-| [\[kubeletstats\] Calculate cpu usage on the fly behind feature gate (#49499)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49499) | ChrsMark |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
