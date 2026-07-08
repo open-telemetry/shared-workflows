@@ -15,7 +15,7 @@
 | [\[receiver/httpcheck\] Use confighttp defaulting constructor (#49357)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49357) | swiatekm | crobert-1<br>iblancasa&nbsp;✅ | ✅ | ✅ | 9d |
 | [\[processor/tailsampling\] Change default error_mode of ottl_condition … (#48623)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48623) | pratik-mahalle | ArthurSens<br>atoulme<br>jmacd&nbsp;✅ | ✅ | ✅ | 8d |
 | [\[exporter/azuremonitor\] Rename `azuremonitor` to `azure_monitor` (#49402)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49402) | dyl10s | iblancasa&nbsp;✅<br>TylerHelmuth | ✅ | ❌ | 8d |
-| [New component: awsecsattributes processor Phase 2 - enrichment (#49036)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49036) | daidokoro | ChrsMark<br>dehaansa<br>iblancasa&nbsp;✅<br>povilasv&nbsp;✔️ | ✅ | ❌ | 7d |
+| [New component: awsecsattributes processor Phase 2 - enrichment (#49036)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49036) | daidokoro | ChrsMark<br>dehaansa<br>iblancasa&nbsp;✅<br>povilasv&nbsp;✔️ | ✅ | ❌ | 8d |
 | [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ❌ | 6d |
 | [\[chore\]\[receiver/huaweicloudcesreceiver\] Migrate cenkalti/backoff v4/v5 → v7 (#49423)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49423) | songy23 | ArthurSens<br>codeboten&nbsp;✅ | ❌ | ✅ | 6d |
 | [\[reciever/jmx\]: remove deprecated code (#49478)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49478) | rogercoll | songy23&nbsp;✅ | ❌ | ❌ | 1d |
