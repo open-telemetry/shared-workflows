@@ -22,7 +22,7 @@
 | [\[pkg/ottl\] Add the `When` OTTL converter (#49356)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49356) | edmocosta | iblancasa&nbsp;✅<br>mx-psi<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 23h |
 | [\[pkg/ottl\] Add `Filter` converter (#49184)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49184) | edmocosta | evan-bradley&nbsp;✅<br>MovieStoreGuy<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 21h |
 | [\[processor/resourcedetection\] add internal telemetry (#49128)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49128) | mwear | dashpole&nbsp;✅<br>mx-psi<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 20h |
-| [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 15h |
+| [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 16h |
 | [\[receiver/awsecscontainermetrics\] migrate semantic convention from v1.21.0 to v1.42.0 (#49078)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49078) | singhvibhanshu | Aneurysm9&nbsp;✔️<br>ChrsMark<br>iblancasa&nbsp;✅<br>mx-psi<br>pjanotti<br>VihasMakwana | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
@@ -80,7 +80,7 @@
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 7d |
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 
-_More 39 PRs not shown_
+_More 40 PRs not shown_
 
 ## Waiting on authors
 
@@ -179,7 +179,6 @@ _More 9 PRs not shown_
 | [fix(receiver/memcached): report hit ratio, not miss ratio (#49470)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49470) | ogulcanaydogan |  | ? | ? | ? |
 | [Use stable network attributes (#49465)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49465) | avy252004 |  | ? | ? | ? |
 | [Add `dbauth` extension (#49464)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49464) | XSAM |  | ? | ? | ? |
-| [\[processor/metricstransform\] Fix silent data loss for Summary metrics in aggregate_labels and aggregate_label_values operations (#49457)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49457) | himanshu130700 |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
