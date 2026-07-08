@@ -24,6 +24,7 @@
 | [\[pkg/ottl\] Add `Filter` converter (#49184)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49184) | edmocosta | evan-bradley&nbsp;✅<br>MovieStoreGuy<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 21h |
 | [\[processor/resourcedetection\] add internal telemetry (#49128)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49128) | mwear | dashpole&nbsp;✅<br>mx-psi<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 20h |
 | [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 16h |
+| [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley&nbsp;✅<br>songy23&nbsp;✅ | ✅ | ✅ | 8h |
 | [\[receiver/awsecscontainermetrics\] migrate semantic convention from v1.21.0 to v1.42.0 (#49078)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49078) | singhvibhanshu | Aneurysm9&nbsp;✔️<br>ChrsMark<br>iblancasa&nbsp;✅<br>mx-psi<br>pjanotti<br>VihasMakwana | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
@@ -166,7 +167,6 @@ _More 10 PRs not shown_
 | [\[chore\]\[k8s_attributes\] Add stability level and semconv refs (#49545)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49545) | ChrsMark |  | ? | ? | ? |
 | [\[receiver/mongodb\] Ignore noisy `$indexStats` errors for views (#49543)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49543) | dyl10s |  | ? | ? | ? |
 | [\[processor/transform/internal/logparsingfuncs\] Add ParseELF log parsing function (#49541)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49541) | Caleb-Hurshman |  | ? | ? | ? |
-| [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
