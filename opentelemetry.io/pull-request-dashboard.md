@@ -55,6 +55,7 @@
 | [New blog post: The Lazy Developer's Guide To Instrumenting Your Own Code (Issue ref: #10132) (#10343)](https://github.com/open-telemetry/opentelemetry.io/pull/10343) | avillela | reese-lee&nbsp;💬<br>svrnm | ✅ | ❌ | 20d |
 | [Clean up registry entry template whitespace (#10234)](https://github.com/open-telemetry/opentelemetry.io/pull/10234) | brunofoggiatto | chalin&nbsp;💬<br>simi&nbsp;✔️<br>vitorvasc | ✅ | ✅ | 19d |
 | [\[i18n\]\[pl\] Localize glossary to Polish (#9534)](https://github.com/open-telemetry/opentelemetry.io/pull/9534) | perk | chalin&nbsp;🔴<br>pellared&nbsp;💬<br>theletterf&nbsp;✅<br>vitorvasc | ✅ | ✅ | 15d |
+| [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 12d |
 | [feat: \[es\] New translation - es/docs/languages/java/intro.md (#9973)](https://github.com/open-telemetry/opentelemetry.io/pull/9973) | roko1987-k8s |  | ❌ | ✅ | 9d |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>vitorvasc | ✅ | ✅ | 6d |
 
@@ -117,7 +118,6 @@
 | [docs: Add Python declarative configuration docs (#10504)](https://github.com/open-telemetry/opentelemetry.io/pull/10504) | pratik-mahalle |  | ? | ? | ? |
 | [feat: add setup-new-localization skill (#10481)](https://github.com/open-telemetry/opentelemetry.io/pull/10481) | vitorvasc |  | ? | ? | ? |
 | [\[i18n\]\[ko\] Localize glossary to Korean (#10448)](https://github.com/open-telemetry/opentelemetry.io/pull/10448) | krapie |  | ? | ? | ? |
-| [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela |  | ? | ? | ? |
 
 ## Draft pull requests
 
@@ -143,7 +143,7 @@
 | [\[ja\] add translation of content/en/blog/2022/instrument-nginx/index.md (#10725)](https://github.com/open-telemetry/opentelemetry.io/pull/10725) | ymotongpoo | 8h |
 | [DRAFT Update semantic-conventions to unreleased v1.44.0-dev (#10677)](https://github.com/open-telemetry/opentelemetry.io/pull/10677) | app/otelbot-docs | 7h |
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 3h |
-| [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 33m |
+| [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 34m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
