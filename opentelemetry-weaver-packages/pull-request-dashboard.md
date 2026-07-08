@@ -3,12 +3,6 @@
 >
 > Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · 💬 open thread · 🔴 changes requested.
 
-## Waiting on reviewers
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [chore: Move inactive members to emeritus (#40)](https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/40) | opentelemetrybot |  | ❌ | ✅ | 7d |
-
 ## Draft pull requests
 
 | PR | Author | Updated |
