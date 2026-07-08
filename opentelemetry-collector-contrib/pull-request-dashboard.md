@@ -18,6 +18,7 @@
 | [New component: awsecsattributes processor Phase 2 - enrichment (#49036)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49036) | daidokoro | ChrsMark<br>dehaansa<br>iblancasa&nbsp;✅<br>povilasv&nbsp;✔️ | ✅ | ❌ | 7d |
 | [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ❌ | 6d |
 | [\[chore\]\[receiver/huaweicloudcesreceiver\] Migrate cenkalti/backoff v4/v5 → v7 (#49423)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49423) | songy23 | ArthurSens<br>codeboten&nbsp;✅ | ❌ | ✅ | 6d |
+| [\[reciever/jmx\]: remove deprecated code (#49478)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49478) | rogercoll | songy23&nbsp;✅ | ❌ | ❌ | 1d |
 | [\[chore\] \[receiver/hostmetrics\] Fix flaky memory scraper tests on Linux (#49110)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49110) | vishalmore90 | braydonk&nbsp;✅<br>mwear&nbsp;✔️<br>osullivandonal&nbsp;✔️<br>pjanotti<br>rogercoll&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[pkg/ottl\] Add the `When` OTTL converter (#49356)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49356) | edmocosta | iblancasa&nbsp;✅<br>mx-psi<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 23h |
 | [\[pkg/ottl\] Add `Filter` converter (#49184)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49184) | edmocosta | evan-bradley&nbsp;✅<br>MovieStoreGuy<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 21h |
@@ -175,7 +176,6 @@ _More 9 PRs not shown_
 | [\[processor/cumulativetodelta\] Rename cumulativetodelta to cumulative_to_delta with deprecated alias cumulativetodelta (#49487)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49487) | agarvin-nr |  | ? | ? | ? |
 | [\[receiver/splunk_hec\] Fix `read_header_timeout` and `write_timeout` configuration options getting overridden (#49483)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49483) | dyl10s |  | ? | ? | ? |
 | [\[pkg/translator/pprof\] Support translating OTLP sample attributes to pprof sample labels (#49481)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49481) | ms-hujia |  | ? | ? | ? |
-| [\[reciever/jmx\]: remove deprecated code (#49478)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49478) | rogercoll |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
