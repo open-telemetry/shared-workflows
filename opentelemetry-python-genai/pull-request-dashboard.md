@@ -10,7 +10,7 @@
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate | eternalcuriouslearner<br>lmolkova&nbsp;✅ | ⏳ | ✅ | 2d |
 | [Update github actions (#207)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/207) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 12m |
 | [Update dependency anthropic to &gt;=0.116.0 (#208)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/208) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 12m |
-| [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 11m |
+| [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 11m |
 | [Update dependency pydantic to &gt;=2.12.5,&lt;3 (#214)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/214) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 11m |
 | [Update opentelemetry-python monorepo to &gt;=1.43.0 (#216)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/216) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 11m |
 
