@@ -25,10 +25,10 @@
 | [chore: release main (#3596)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3596) | app/otelbot-js-contrib | blumamir<br>dyladan<br>hectorhdzg<br>jj22ee<br>legendecas<br>martinkuba<br>maryliag<br>mhennoch<br>pichlermarc<br>yiyuan-he | ❌ | ✅ | 5d |
 | [feat(instrumentation-oracledb): add support for oracledb v7 (#3583)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3583) | abhilash-sivan | sharadraju<br>sudarshan12s | ❌ | ✅ | 5d |
 | [chore(deps): update dependency &#64;koa/router to v15 \[security\] (#3607)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3607) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 1d |
-| [feat(detector-aws): detect Lambda availability zone metadata (#3460)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3460) | garysassano | jj22ee | ❌ | ✅ | 20h |
-| [test(instrumentation-aws-sdk): fix assertions that can never fail (#3603)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3603) | bhuvan-somisetty | blumamir<br>jj22ee<br>trivikr | ✅ | ✅ | 15h |
-| [fix(instrumentation-oracledb): Align with updated Oracle semconv db.namespace split (#3591)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3591) | sudarshan12s | david-luna<br>maryliag<br>pichlermarc<br>sharadraju&nbsp;✔️<br>sudarshan12s | ❌ | ✅ | 4h |
-| [fix: replace deprecated db.client.connections.usage with db.client.connection.count in mongodb and mysql (#3608)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3608) | Luffy-nani | maryliag<br>onurtemizkan | ❌ | ✅ | 4h |
+| [feat(detector-aws): detect Lambda availability zone metadata (#3460)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3460) | garysassano | jj22ee | ❌ | ✅ | 21h |
+| [test(instrumentation-aws-sdk): fix assertions that can never fail (#3603)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3603) | bhuvan-somisetty | blumamir<br>jj22ee<br>trivikr | ✅ | ✅ | 16h |
+| [fix(instrumentation-oracledb): Align with updated Oracle semconv db.namespace split (#3591)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3591) | sudarshan12s | david-luna<br>maryliag<br>pichlermarc<br>sharadraju&nbsp;✔️<br>sudarshan12s | ❌ | ✅ | 5h |
+| [fix: replace deprecated db.client.connections.usage with db.client.connection.count in mongodb and mysql (#3608)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3608) | Luffy-nani | maryliag<br>onurtemizkan | ❌ | ✅ | 5h |
 
 ## Waiting on authors
 
@@ -38,7 +38,7 @@
 | [ci: Update Renovate configuration to best practices (#3231)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3231) | thompson-tomo | pichlermarc&nbsp;🔴 | ✅ | ✅ | 229d |
 | [feat(instr-runtime-node): add configurable gcDurationBuckets option (#3328)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3328) | lukeramsden | d4nyll<br>david-luna&nbsp;💬<br>maryliag&nbsp;💬<br>pichlermarc<br>trentm | ❌ | ❌ | 169d |
 | [feat: add neo4j instrumentation (#3380)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3380) | t2t2 | mhennoch<br>seemk&nbsp;💬<br>t2t2<br>thompson-tomo&nbsp;💬 | ✅ | ❌ | 145d |
-| [fix(instrumentation-sequelize): do not include 'server.address' for SQLite DB spans (#3436)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3436) | trentm | maryliag&nbsp;💬<br>mhennoch<br>seemk&nbsp;💬<br>t2t2<br>trentm | ✅ | ✅ | 116d |
+| [fix(instrumentation-sequelize): do not include 'server.address' for SQLite DB spans (#3436)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3436) | trentm | maryliag&nbsp;💬<br>mhennoch<br>seemk&nbsp;💬<br>t2t2<br>trentm | ✅ | ✅ | 117d |
 | [fix(instrumentation-pino): Allow control over logged fields (#3356)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3356) | jnloureiro | dyladan&nbsp;💬<br>seemk | ✅ | ✅ | 84d |
 | [feat(resource-detector-aws): read cloud.account.id from symlink in Lambda detector (#3377)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3377) | RaphaelManke | dyladan<br>jj22ee | ✅ | ✅ | 84d |
 | [feat(nestjs): add instrumentation for NestJS microservice (#3435)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3435) | neilime | blumamir<br>david-luna<br>dyladan<br>legendecas<br>neilime<br>pichlermarc | ❌ | ❌ | 70d |
@@ -61,7 +61,7 @@
 | [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 91d |
 | [feat(instrumentation-nats): add instrumentation nats package (#3352)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3352) | giacomoquinalia | 65d |
 | [feat(instrumentation-kafkajs): add messaging.cluster.id span attribute (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 4d |
-| [chore(*): migrate to sdk-trace (#3599)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3599) | trentm | 21h |
+| [chore(*): migrate to sdk-trace (#3599)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3599) | trentm | 22h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
