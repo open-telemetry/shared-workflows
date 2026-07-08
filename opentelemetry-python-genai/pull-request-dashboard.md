@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Update all patch versions (#201)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/201) | app/renovate | DylanRussell&nbsp;✅<br>eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 20h |
+| [Update all patch versions (#201)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/201) | app/renovate | DylanRussell&nbsp;✅<br>eternalcuriouslearner&nbsp;✅ | ⏳ | ✅ | 20h |
 | [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 5h |
 | [\[`opentelemetry-instrumentation-google-genai`\]: record response model attribute on inference span/event (#205)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/205) | DylanRussell | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 1h |
 
