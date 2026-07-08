@@ -52,6 +52,7 @@
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
 | [\[elasticsearchexporter\] Add retry_on_document_status configuration (#48933)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48933) | belimawr | carsonip&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 7d |
 | [\[receiver/tlscheckreceiver\] allow scraping all certs (#48520)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48520) | sigmaris | codeboten<br>michael-burt&nbsp;✔️ | ✅ | ✅ | 6d |
+| [feat: add feature gate to control otel.scope convention in Datadog exporter (#49001)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49001) | Alexpedone | evan-bradley<br>songy23 | ✅ | ✅ | 6d |
 | [\[receiver/postgresql\] stabilizing preciselagmetrics and connectionPool gates (#48618)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48618) | codeboten | atoulme<br>VihasMakwana | ❌ | ✅ | 5d |
 | [chore: add cloud.account.id to resource attributes (#46173)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46173) | sfozz | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley<br>paulojmdias&nbsp;✔️<br>schmikei&nbsp;✔️ | ✅ | ❌ | 5d |
 | [\[receiver/kafka_metrics\] Add kafka.cluster.id in kafka metrics as attribute (#48897)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48897) | shashank-reddy-nr | evan-bradley | ✅ | ✅ | 5d |
@@ -168,7 +169,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 57 PRs not shown_
+_More 56 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
