@@ -81,7 +81,7 @@
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 7d |
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 
-_More 49 PRs not shown_
+_More 50 PRs not shown_
 
 ## Waiting on authors
 
@@ -168,7 +168,6 @@ _More 10 PRs not shown_
 | [\[processor/transform/internal/logparsingfuncs\] Add ParseELF log parsing function (#49541)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49541) | Caleb-Hurshman |  | ? | ? | ? |
 | [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi |  | ? | ? | ? |
 | [\[receiver/azuremonitor\] Fix metric data loss and incorrect timestamps (#49532)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49532) | vishalmore90 |  | ? | ? | ? |
-| [\[receiver/datadog\] Map Datadog k8s tags to OTel resource attributes (#49530)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49530) | SpencerTorres |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
