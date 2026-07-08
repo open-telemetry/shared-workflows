@@ -98,6 +98,7 @@ _More 2 PRs not shown_
 | [\[pkg/expohisto\] Add binary marshaling for Histogram (#48298)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48298) | lahsivjar | jmacd | ✅ | ✅ | 23d |
 | [\[receiver/fluentforward\] Limit msgpack allocations (#48479)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48479) | dmitryax | TylerHelmuth | ✅ | ✅ | 22d |
 | [\[pkg/pdatatest\] Add pmetricassert collection include matcher (#48472) (#48545)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48545) | harshitt13 | ArthurSens<br>dmitryax&nbsp;💬 | ✅ | ✅ | 21d |
+| [\[receiver/postgresql\] Skip queries whose metrics are all disabled (#49086)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49086) | benchub | andrzej-stencel<br>crobert-1&nbsp;💬 | ✅ | ✅ | 21d |
 | [\[processor/spanpruning\] Add span pruning conditions (#49026)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49026) | portertech | atoulme<br>braydonk<br>csmarchbanks&nbsp;💬<br>jmacd&nbsp;✅ | ✅ | ❌ | 20d |
 | [\[receiver/vcenter\] Add metrics (#48098)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48098) | SCadilhac | evan-bradley | ❌ | ❌ | 20d |
 | [\[pkg/pdatatest\] Add pmetricassert attribute include matcher (#48622)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48622) | singhvibhanshu | ArthurSens<br>dmitryax | ✅ | ✅ | 17d |
@@ -182,7 +183,7 @@ _More 2 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 43 PRs not shown_
+_More 42 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
