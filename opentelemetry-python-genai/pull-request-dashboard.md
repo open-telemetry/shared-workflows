@@ -8,7 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 44m |
-| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 43m |
+| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 44m |
 | [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 42m |
 
 ## Waiting on reviewers
