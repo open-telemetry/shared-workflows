@@ -15,6 +15,7 @@
 | [Update dependency anthropic to &gt;=0.116.0 (#208)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/208) | app/renovate |  | ⏳ | ✅ | 1m |
 | [Update dependency anyio to &gt;=4.14.1 (#209)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/209) | app/renovate |  | ⏳ | ✅ | 1m |
 | [Update dependency claude-agent-sdk to &gt;=0.2.113 (#210)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/210) | app/renovate |  | ⏳ | ✅ | 1m |
+| [Update dependency fsspec to &gt;=2025.12.0 (#211)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/211) | app/renovate |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
@@ -39,6 +40,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
+| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate |  | ? | ? | ? |
 | [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate |  | ? | ? | ? |
 | [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate |  | ? | ? | ? |
 | [Update opentelemetry-python monorepo to &gt;=1.43.0 (#216)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/216) | app/renovate |  | ? | ? | ? |
@@ -46,7 +48,6 @@
 | [Update dependency pydantic to &gt;=2.12.5,&lt;3 (#214)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/214) | app/renovate |  | ? | ? | ? |
 | [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate |  | ? | ? | ? |
 | [Update dependency markupsafe to &gt;=2.1.5 (#212)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/212) | app/renovate |  | ? | ? | ? |
-| [Update dependency fsspec to &gt;=2025.12.0 (#211)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/211) | app/renovate |  | ? | ? | ? |
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
