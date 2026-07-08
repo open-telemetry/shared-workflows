@@ -75,7 +75,7 @@
 | [\[receiver/tlscheckreceiver\] allow scraping all certs (#48520)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48520) | sigmaris | codeboten<br>michael-burt&nbsp;✔️ | ✅ | ✅ | 6d |
 | [feat: add feature gate to control otel.scope convention in Datadog exporter (#49001)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49001) | Alexpedone | evan-bradley<br>songy23 | ✅ | ✅ | 6d |
 
-_More 20 PRs not shown_
+_More 21 PRs not shown_
 
 ## Waiting on authors
 
@@ -197,7 +197,7 @@ _More 1 PR not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 11 PRs not shown_
+_More 10 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
