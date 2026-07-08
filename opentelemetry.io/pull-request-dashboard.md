@@ -31,6 +31,7 @@
 | [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ❌ | ✅ | 9d |
 | [registry: add Runback — AI agent audit and governance (OTel-native) (#10635)](https://github.com/open-telemetry/opentelemetry.io/pull/10635) | uchit |  | ✅ | ✅ | 7d |
 | [chore: Move inactive members to emeritus (#10639)](https://github.com/open-telemetry/opentelemetry.io/pull/10639) | opentelemetrybot | cijothomas&nbsp;✔️ | ✅ | ✅ | 7d |
+| [docs(swift): update getting started sample dependencies (#10667)](https://github.com/open-telemetry/opentelemetry.io/pull/10667) | kalyanamdewri |  | ✅ | ✅ | 5d |
 | [docs: clarify Ruby in_span exception handling (#10623)](https://github.com/open-telemetry/opentelemetry.io/pull/10623) | Jaegeonyoon | kaylareopelle&nbsp;✔️ | ✅ | ✅ | 5d |
 | [docs(zh): fix obsolete SDK property name in Java configuration (#10666)](https://github.com/open-telemetry/opentelemetry.io/pull/10666) | Babul422 |  | ✅ | ✅ | 5d |
 | [Add rhea AMQP 1.0 instrumentation for JavaScript to registry (#10263)](https://github.com/open-telemetry/opentelemetry.io/pull/10263) | bartoval |  | ✅ | ✅ | 4d |
@@ -46,7 +47,7 @@
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 8h |
 | [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 5h |
 | [feat: \[pt\] Create docs/platforms/faas/_index.md (#10646)](https://github.com/open-telemetry/opentelemetry.io/pull/10646) | dmroch4 | vitorvasc | ✅ | ✅ | 1h |
-| [Lychee: always (re)seed the cache, drop reseed scripts (#10730)](https://github.com/open-telemetry/opentelemetry.io/pull/10730) | chalin |  | ⏳ | ✅ | 36m |
+| [Lychee: always (re)seed the cache, drop reseed scripts (#10730)](https://github.com/open-telemetry/opentelemetry.io/pull/10730) | chalin |  | ⏳ | ✅ | 37m |
 
 ## Waiting on authors
 
@@ -117,7 +118,6 @@
 | [Prometheus Exporter's Documentation for suffixes are stale (#10685)](https://github.com/open-telemetry/opentelemetry.io/pull/10685) | singhvibhanshu |  | ? | ? | ? |
 | [docs(obi): synchronize network overview with Beyla docs (#10682)](https://github.com/open-telemetry/opentelemetry.io/pull/10682) | Babul422 |  | ? | ? | ? |
 | [\[ja\] update translation of content/en/docs/zero-code/java/agent/supported-libraries.md (#10674)](https://github.com/open-telemetry/opentelemetry.io/pull/10674) | ymotongpoo |  | ? | ? | ? |
-| [docs(swift): update getting started sample dependencies (#10667)](https://github.com/open-telemetry/opentelemetry.io/pull/10667) | kalyanamdewri |  | ? | ? | ? |
 
 ## Draft pull requests
 
