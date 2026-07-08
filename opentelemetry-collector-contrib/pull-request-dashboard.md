@@ -20,6 +20,7 @@
 | [\[chore\]\[receiver/huaweicloudcesreceiver\] Migrate cenkalti/backoff v4/v5 → v7 (#49423)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49423) | songy23 | ArthurSens<br>codeboten&nbsp;✅ | ❌ | ✅ | 6d |
 | [\[reciever/jmx\]: remove deprecated code (#49478)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49478) | rogercoll | songy23&nbsp;✅ | ❌ | ❌ | 1d |
 | [\[chore\] \[receiver/hostmetrics\] Fix flaky memory scraper tests on Linux (#49110)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49110) | vishalmore90 | braydonk&nbsp;✅<br>mwear&nbsp;✔️<br>osullivandonal&nbsp;✔️<br>pjanotti<br>rogercoll&nbsp;✔️ | ✅ | ✅ | 1d |
+| [\[pkg/ottl\] Add `MapEach` converter (#49186)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49186) | edmocosta | dashpole<br>evan-bradley&nbsp;✅<br>TylerHelmuth&nbsp;✅<br>VihasMakwana&nbsp;✅ | ✅ | ❌ | 1d |
 | [\[processor/resourcedetection\] add internal telemetry (#49128)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49128) | mwear | dashpole&nbsp;✅<br>mx-psi<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 22h |
 | [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 17h |
 | [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley&nbsp;✅<br>songy23&nbsp;✅ | ✅ | ✅ | 10h |
@@ -146,7 +147,6 @@ _More 9 PRs not shown_
 |---|---|---|:---:|:---:|:---:|
 | [exporter/prometheus: Add config option 'resource_constant_labels' (#48922)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48922) | ArthurSens | axw<br>dashpole | ✅ | ❌ | 28d |
 | [\[receiver/hostmetrics\] Add process.network.connection.count metric to process scraper (#49091)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49091) | GlqEason | bogdandrutu | ❌ | ✅ | 20d |
-| [\[pkg/ottl\] Add `MapEach` converter (#49186)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49186) | edmocosta | dashpole<br>evan-bradley<br>TylerHelmuth&nbsp;✅<br>VihasMakwana&nbsp;✅ | ✅ | ✅ | 6d |
 | [\[cumulativetodeltaprocessor\] Add histogram_fields config for selective field conversion (#49407)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49407) | Chau-Tran | axw<br>TylerHelmuth | ❌ | ✅ | 2d |
 
 ## Unknown
