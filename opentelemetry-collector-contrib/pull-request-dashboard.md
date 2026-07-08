@@ -41,6 +41,7 @@
 | [\[exporter/file\] Fix orphaned lumberjack backup files after migration to timberjack (#47694)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47694) | paulojmdias | dehaansa | ✅ | ✅ | 16d |
 | [\[pkg/stanza/fileconsumer\] Skip files unchanged by path+mtime since the previous poll (#48039)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48039) | Dylan-M | atoulme<br>crobert-1 | ✅ | ❌ | 16d |
 | [\[receiver/github\] Process pull-requests in reverse order to adhere to chronological ordering (#48578)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48578) | vladorf | adrielp&nbsp;✔️<br>ArthurSens | ✅ | ✅ | 16d |
+| [\[receiver/netflowreceiver\] Add interface index and IP ToS attributes (#49077)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49077) | Abhishek-Bhandwalkar | MovieStoreGuy | ✅ | ✅ | 15d |
 | [\[cmd/telemetrygen\] support base paths in OTLP HTTP endpoints (#48064)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48064) | jeevan6996 | atoulme | ✅ | ✅ | 14d |
 | [\[exporter/awscloudwatchlogs\]\[internal/aws/cwlogs\] configurable 1 MiB per-event cap + fix batch threshold conflation (#48559)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48559) | challahc | VihasMakwana | ✅ | ✅ | 14d |
 | [\[exporter/prometheusremotewrite\] Add classic→NHCB conversion with dual write (#49010)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49010) | srstrickland | ArthurSens<br>dashpole<br>iblancasa | ✅ | ✅ | 13d |
@@ -68,9 +69,8 @@
 | [\[receiver/oracledb\] Add transaction, lock, and recovery metrics (#49067)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49067) | rluidash | codeboten<br>crobert-1&nbsp;💬 | ✅ | ✅ | 11h |
 | [\[receiver/oracledb\] Add session, JVM, and OS resource metrics (#49068)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49068) | rluidash | ChrsMark<br>crobert-1&nbsp;💬 | ✅ | ✅ | 11h |
 | [\[receiver/apache\] add request rate, transmitted-bytes rate, and worker limit metrics (#49029)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49029) | sairaj18 | colelaven&nbsp;✔️<br>dashpole&nbsp;💬 | ❌ | ✅ | 6h |
-| [\[processor/drain\] add positional parameter extraction (#48915)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48915) | MikeGoldsmith | songy23 | ❌ | ✅ | 2h |
 
-_More 1 PR not shown_
+_More 2 PRs not shown_
 
 ## Waiting on authors
 
@@ -181,7 +181,7 @@ _More 1 PR not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 45 PRs not shown_
+_More 44 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
