@@ -207,7 +207,9 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                     isOutdated
                     path
                     line
-                    comments(first: 100) {
+                    # Keep this page small to limit GitHub GraphQL rate-limit cost;
+                    # pagination still fetches every comment for long threads.
+                    comments(first: 10) {
                         pageInfo {
                             hasNextPage
                             endCursor
@@ -222,11 +224,9 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                             }
                             reactionGroups {
                                 content
-                                # Keep this cap intentionally low: this users
-                                # connection is nested under reactionGroups for
-                                # each fetched review comment, so raising it can
-                                # multiply the query's possible node count.
-                                users(first: 20) {
+                                # Keep this page small to limit GitHub GraphQL
+                                # rate-limit cost for this nested connection.
+                                users(first: 10) {
                                     nodes {
                                         login
                                     }
@@ -260,9 +260,9 @@ query($thread_id: ID!, $after: String) {
                     }
                     reactionGroups {
                         content
-                        # Keep this aligned with REVIEW_THREADS_QUERY so every
-                        # fetched comment has the same reaction-user cap.
-                        users(first: 20) {
+                        # This paginated path is uncommon; keep the same cap
+                        # used by the initial review-thread comment query.
+                        users(first: 10) {
                             nodes {
                                 login
                             }
