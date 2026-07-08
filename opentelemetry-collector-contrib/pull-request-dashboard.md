@@ -74,7 +74,7 @@
 | [\[exporter/opensearchexporter\] Add integration test harness (#48626)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48626) | harshitt13 | ArthurSens | ✅ | ❌ | 4d |
 | [\[receiver/fluent_forward\] delay chunk ACK until ConsumeLogs returns (#48839)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48839) | Krishnachaitanyakc | pjanotti | ✅ | ✅ | 4d |
 
-_More 8 PRs not shown_
+_More 9 PRs not shown_
 
 ## Waiting on authors
 
@@ -189,7 +189,7 @@ _More 8 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 30 PRs not shown_
+_More 29 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
