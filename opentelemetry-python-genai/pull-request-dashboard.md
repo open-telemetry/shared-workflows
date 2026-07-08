@@ -23,7 +23,7 @@
 | [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate |  | ⏳ | ✅ | 25m |
 | [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate |  | ⏳ | ✅ | 24m |
 | [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate |  | ⏳ | ✅ | 24m |
-| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ✅ | ✅ | 22m |
+| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ✅ | ✅ | 23m |
 
 ## Waiting on authors
 
