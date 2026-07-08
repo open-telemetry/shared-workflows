@@ -20,6 +20,7 @@
 | [feat(instrumentation-amqp): adds latest semantic conventions (#2976)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/2976) | lucas-gregoire | blumamir<br>JamieDanielson<br>pichlermarc<br>trentm&nbsp;🔴 | ❌ | ❌ | 329d |
 | [ci: Update Renovate configuration to best practices (#3231)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3231) | thompson-tomo | pichlermarc&nbsp;🔴 | ✅ | ✅ | 229d |
 | [feat(instr-runtime-node): add configurable gcDurationBuckets option (#3328)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3328) | lukeramsden | d4nyll<br>david-luna&nbsp;💬<br>maryliag&nbsp;💬<br>pichlermarc<br>trentm | ❌ | ❌ | 169d |
+| [feat: add neo4j instrumentation (#3380)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3380) | t2t2 | mhennoch<br>seemk&nbsp;💬<br>t2t2<br>thompson-tomo&nbsp;💬 | ✅ | ❌ | 145d |
 | [fix(instrumentation-pino): Allow control over logged fields (#3356)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3356) | jnloureiro | dyladan&nbsp;💬<br>seemk | ✅ | ✅ | 84d |
 | [feat(resource-detector-aws): read cloud.account.id from symlink in Lambda detector (#3377)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3377) | RaphaelManke | dyladan<br>jj22ee | ✅ | ✅ | 84d |
 
@@ -49,7 +50,6 @@
 | [fix(instrumentation-aws-lambda): handle non-configurable exports from esbuild CJS bundles (#3422)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3422) | RaphaelManke |  | ? | ? | ? |
 | [chore(deps): update dependency node to v24 (#3420)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3420) | app/renovate |  | ? | ? | ? |
 | [chore(deps): update dependency mongodb to v7 (#3419)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3419) | app/renovate |  | ? | ? | ? |
-| [feat: add neo4j instrumentation (#3380)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3380) | t2t2 |  | ? | ? | ? |
 
 ## Draft pull requests
 
