@@ -28,7 +28,7 @@
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 2h |
 | [Update dependency wrapt to &gt;=1.17.3,&lt;3.0.0 (#215)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/215) | app/renovate |  | ✅ | ✅ | 16m |
 | [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate |  | ⏳ | ✅ | 16m |
-| [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate |  | ⏳ | ✅ | 15m |
+| [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate |  | ✅ | ✅ | 15m |
 | [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate |  | ⏳ | ✅ | 15m |
 | [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ✅ | ✅ | 14m |
 
