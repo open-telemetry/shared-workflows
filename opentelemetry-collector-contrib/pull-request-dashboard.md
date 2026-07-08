@@ -104,6 +104,7 @@ _More 11 PRs not shown_
 | [\[receiver/postgresql\] Skip queries whose metrics are all disabled (#49086)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49086) | benchub | andrzej-stencel<br>crobert-1&nbsp;💬 | ✅ | ✅ | 21d |
 | [\[processor/spanpruning\] Add span pruning conditions (#49026)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49026) | portertech | atoulme<br>braydonk<br>csmarchbanks&nbsp;💬<br>jmacd&nbsp;✅ | ✅ | ❌ | 20d |
 | [\[receiver/vcenter\] Add metrics (#48098)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48098) | SCadilhac | evan-bradley | ❌ | ❌ | 20d |
+| [\[connector/spanmetrics\] Introduce `source` resource attribute (#49175)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49175) | jcreixell | andrzej-stencel<br>iblancasa&nbsp;🔴<br>thompson-tomo&nbsp;💬 | ✅ | ✅ | 18d |
 | [\[pkg/pdatatest\] Add pmetricassert attribute include matcher (#48622)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48622) | singhvibhanshu | ArthurSens<br>dmitryax | ✅ | ✅ | 17d |
 | [extension.oidauthextension added support for multiple JWT sigs in extension oidc (#47849)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47849) | michaelalang | atoulme&nbsp;💬<br>pavolloffay&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 16d |
 | [\[pkg/stanza\] Add cache for `container` operator's k8s attributes extraction (#44487)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/44487) | Nitesh-vaidyanath | andrzej-stencel<br>atoulme&nbsp;💬<br>codeboten | ✅ | ❌ | 15d |
@@ -190,7 +191,7 @@ _More 11 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 26 PRs not shown_
+_More 25 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
