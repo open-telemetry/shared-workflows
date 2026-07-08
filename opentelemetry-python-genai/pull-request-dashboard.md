@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 42m |
+| [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 43m |
 | [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 42m |
 
 ## Waiting on reviewers
@@ -17,8 +17,8 @@
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 21d |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 7d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 1d |
-| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ⏳ | ✅ | 40m |
-| [Remove residual OTEL_SEMCONV_STABILITY_OPT_IN references from docs and tests (#206)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/206) | AgentGymLeader | lmolkova | ⏳ | ✅ | 3m |
+| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ⏳ | ✅ | 41m |
+| [Remove residual OTEL_SEMCONV_STABILITY_OPT_IN references from docs and tests (#206)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/206) | AgentGymLeader | lmolkova | ⏳ | ✅ | 4m |
 
 ## Waiting on authors
 
