@@ -115,6 +115,7 @@ _More 28 PRs not shown_
 | [\[extension/basicauthextension\] Add AWS Secrets Manager support for basicauth extension (#49025)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49025) | meebok | frzifus&nbsp;✔️<br>MovieStoreGuy | ✅ | ❌ | 14d |
 | [\[receiver/k8scluster\] Fix container.image.name and container.image.tag when status image is a bare digest (#46987)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46987) | ricardbejarano | atoulme<br>ChrsMark&nbsp;💬<br>dmitryax<br>povilasv&nbsp;✔️ | ✅ | ✅ | 13d |
 | [\[receiver/sqlserverreceiver\] add db.query.full_text opt-in attribute to top_query and query_sample events (#48660)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48660) | avadla | crobert-1&nbsp;💬<br>songy23 | ✅ | ❌ | 11d |
+| [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover | atoulme<br>crobert-1&nbsp;💬<br>edmocosta<br>thompson-tomo&nbsp;💬 | ❌ | ❌ | 10d |
 | [\[cmd/opampsupervisor\] Restart from last working remote config when fail to apply new one (#47853)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47853) | douglascamata | dehaansa<br>dpaasman00&nbsp;💬<br>evan-bradley&nbsp;💬 | ✅ | ✅ | 9d |
 | [\[cmd/opampsupervisor\] Add config structure and interfaces for upgrades (#48792)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48792) | dpaasman00 | douglascamata&nbsp;✔️<br>evan-bradley&nbsp;💬⁠✅<br>MovieStoreGuy<br>tigrannajaryan&nbsp;✔️ | ✅ | ✅ | 8d |
 | [New framework processor (#49330)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49330) | ravularohit | ChrsMark<br>kylehounslow&nbsp;💬 | ✅ | ✅ | 8d |
@@ -131,9 +132,8 @@ _More 28 PRs not shown_
 | [\[PrometheusRemoteWriter\] Add support of MetadataKeys in remote write outbound requests (#48767)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48767) | gizas | ArthurSens&nbsp;💬⁠✅<br>axw&nbsp;✅<br>constanca-m&nbsp;💬<br>dashpole&nbsp;✅ | ❌ | ❌ | 1d |
 | [\[internal/k8sinventory\] Extract checkpoint package and update Observer interface (#48765)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48765) | kangyili | ChrsMark&nbsp;✅<br>dashpole<br>jmmcorreia&nbsp;✔️<br>krisztianfekete&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[receiver/oracledb\]: Add OS-level metrics from V$OSSTAT (#48459)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48459) | spathlavath | codeboten<br>crobert-1&nbsp;💬 | ✅ | ✅ | 21h |
-| [\[receiver/oracledb\]: Add SGA component memory metrics from V$SGAINFO (#48542)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48542) | spathlavath | crobert-1&nbsp;💬<br>mx-psi | ✅ | ✅ | 20h |
 
-_More 4 PRs not shown_
+_More 5 PRs not shown_
 
 ## Waiting on external
 
@@ -195,7 +195,6 @@ _More 4 PRs not shown_
 | [\[pkg/ottl\] Add the `When` OTTL converter (#49356)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49356) | edmocosta |  | ? | ? | ? |
 | [fix(pkg/translator/pprof): set instrumentation scope name when conver… (#49353)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49353) | avy252004 |  | ? | ? | ? |
 | [\[receiver/postgresql\] Explicitly ignoring tables with AccessExclusiveLock to prevent receiver from stalling (#49352)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49352) | kartikgola |  | ? | ? | ? |
-| [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
