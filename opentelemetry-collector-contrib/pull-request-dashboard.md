@@ -30,6 +30,7 @@
 | [feat(resourcedetectionprocessor): add retry with backoff config to resource detector processor (#48223)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48223) | KyriosGN0 | atoulme<br>paulojmdias&nbsp;💬 | ✅ | ❌ | 25d |
 | [connector/servicegraph: add links-based correlation for async messaging (#48782)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48782) | harshitt13 | dmitryax | ✅ | ✅ | 23d |
 | [\[pkg/stanza/fileconsumer\] Require explicit top_n when sort_by is configured (#47445)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47445) | Dylan-M | andrzej-stencel<br>atoulme<br>braydonk<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 22d |
+| [\[exporter/opensearchexporter\] Add manage_index_template option for otel-v1 mode (#48873)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48873) | ps48 | kylehounslow&nbsp;✔️<br>pjanotti | ✅ | ✅ | 21d |
 | [\[receiver/redis\] Add link to documentation.md for metrics details (#48709)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48709) | Madhumasa84 | dashpole | ✅ | ✅ | 16d |
 | [\[exporter/file\] Fix orphaned lumberjack backup files after migration to timberjack (#47694)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47694) | paulojmdias | dehaansa | ✅ | ✅ | 16d |
 | [\[pkg/stanza/fileconsumer\] Skip files unchanged by path+mtime since the previous poll (#48039)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48039) | Dylan-M | atoulme<br>crobert-1 | ✅ | ❌ | 16d |
@@ -148,7 +149,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 72 PRs not shown_
+_More 71 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
