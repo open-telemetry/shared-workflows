@@ -131,13 +131,13 @@ _More 35 PRs not shown_
 | [\[receiver/oracledb\] Add PDB auto-discovery and per-PDB metrics   for Oracle multitenant (CDB) deployments (#48921)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48921) | spathlavath | codeboten<br>crobert-1&nbsp;💬 | ❌ | ✅ | 6d |
 | [\[pkg/translator/azurelogs\] Support additional fields not in the common schema (#46165)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46165) | rafaelrodrigues3092 | atoulme<br>axw&nbsp;✅<br>MikeGoldsmith&nbsp;✔️<br>pjanotti | ✅ | ✅ | 6d |
 | [\[exporter/opensearchexporter\] Validate attribute values in dynamic index names (#49362)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49362) | kylehounslow | dashpole<br>ps48&nbsp;💬 | ❌ | ✅ | 5d |
+| [Support resource detectors for service telemetry (#49428)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49428) | iblancasa | andrzej-stencel<br>mwear&nbsp;✔️ | ✅ | ✅ | 5d |
 | [\[receiver/hostmetrics/cpu\] Make logical CPU attribute opt-in (#49162)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49162) | dmitryax | braydonk&nbsp;✅<br>ChrsMark&nbsp;💬<br>iblancasa<br>jmacd&nbsp;✅<br>mx-psi&nbsp;✅<br>rogercoll&nbsp;💬⁠✔️ | ✅ | ✅ | 5d |
 | [\[receiver/azure_functions\] Support metrics for Event Hub trigger (#48105)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48105) | tetianakravchenko | mx-psi<br>zmoog&nbsp;✔️ | ❌ | ✅ | 5d |
 | [\[cmd/telemetrygen\] Continue work on "add profiles signal support" (#49212)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49212) | bogdan-st | florianl&nbsp;💬<br>jmacd<br>mx-psi | ✅ | ❌ | 2d |
 | [\[receiver/k8s_objects\] Migrate to Kubernetes SharedInformerFactory (#48663)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48663) | kangyili | ChrsMark<br>krisztianfekete&nbsp;💬<br>mx-psi | ✅ | ✅ | 2d |
-| [fix(metricstransformprocessor): preserve absent histogram sum on merge (#49404)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49404) | CedricConday | evan-bradley<br>himanshu130700&nbsp;✔️ | ✅ | ✅ | 2d |
 
-_More 8 PRs not shown_
+_More 9 PRs not shown_
 
 ## Waiting on external
 
@@ -184,7 +184,6 @@ _More 8 PRs not shown_
 | [\[exporter/azuremonitor\] include url path in dependency name when no h… (#49448)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49448) | n0rq1 |  | ? | ? | ? |
 | [test(prometheusexporter): regression test for add_metric_suffixes=false suppressing unit suffixes (#49446)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49446) | prabhaks |  | ? | ? | ? |
 | [\[exporter/clickhouse\] update metrics schemas (#49438)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49438) | knudtty |  | ? | ? | ? |
-| [Support resource detectors for service telemetry (#49428)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49428) | iblancasa |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
