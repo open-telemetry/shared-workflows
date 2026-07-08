@@ -9,6 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Use Hugo Configuration directory (#7765)](https://github.com/open-telemetry/opentelemetry.io/pull/7765) | Andygol | chalin | ✅ | ✅ | 260d |
 | [\[CI\] DRY fix action names in PR-action workflow (#5894) (#8913)](https://github.com/open-telemetry/opentelemetry.io/pull/8913) | pratik-mahalle |  | ✅ | ❌ | 174d |
+| [Blog Post on "OpenTelemetry for Distributed Multi-Agent System Observability" (#9125)](https://github.com/open-telemetry/opentelemetry.io/pull/9125) | axsaucedo | svrnm | ✅ | ✅ | 149d |
 | [🇺🇦 Ukrainian localization of OpenTelemetry documentation (#5891)](https://github.com/open-telemetry/opentelemetry.io/pull/5891) | Andygol | chalin&nbsp;🔴<br>svrnm&nbsp;🔴 | ✅ | ❌ | 91d |
 
 ## Waiting on authors
@@ -106,7 +107,6 @@
 | [blog: Observing Contour with OpenTelemetry (#9180)](https://github.com/open-telemetry/opentelemetry.io/pull/9180) | kaspernissen |  | ? | ? | ? |
 | [blog: Observing Emissary with OpenTelemetry (#9179)](https://github.com/open-telemetry/opentelemetry.io/pull/9179) | kaspernissen |  | ? | ? | ? |
 | [blog: Observing Istio with OpenTelemetry (#9178)](https://github.com/open-telemetry/opentelemetry.io/pull/9178) | kaspernissen |  | ? | ? | ? |
-| [Blog Post on "OpenTelemetry for Distributed Multi-Agent System Observability" (#9125)](https://github.com/open-telemetry/opentelemetry.io/pull/9125) | axsaucedo |  | ? | ? | ? |
 
 ## Draft pull requests
 
