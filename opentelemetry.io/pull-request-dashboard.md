@@ -46,6 +46,7 @@
 | [added blog for cocoapods deprecation (#10657)](https://github.com/open-telemetry/opentelemetry.io/pull/10657) | bryce-b |  | ❌ | ✅ | 1d |
 | [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias | grcevski&nbsp;✔️ | ✅ | ✅ | 1d |
 | [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 |  | ✅ | ✅ | 21h |
+| [\[ja\] add translation of content/en/blog/2025/ux-research-prometheus-otel/index.md (#10688)](https://github.com/open-telemetry/opentelemetry.io/pull/10688) | ymotongpoo |  | ✅ | ✅ | 13h |
 | [\[ja\] add translation of content/en/blog/2025/otel-cicd-sig/index.md (#10653)](https://github.com/open-telemetry/opentelemetry.io/pull/10653) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 12h |
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 8h |
 | [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 5h |
@@ -117,7 +118,6 @@
 | [\[ja\] update translation of content/en/docs/collector/_index.md (#10693)](https://github.com/open-telemetry/opentelemetry.io/pull/10693) | ymotongpoo |  | ? | ? | ? |
 | [\[ja\] update translation of content/en/docs/languages/js/context.md (#10692)](https://github.com/open-telemetry/opentelemetry.io/pull/10692) | ymotongpoo |  | ? | ? | ? |
 | [\[ja\] add translation of content/en/blog/2022/collector-builder-sample/index.md (#10690)](https://github.com/open-telemetry/opentelemetry.io/pull/10690) | ymotongpoo |  | ? | ? | ? |
-| [\[ja\] add translation of content/en/blog/2025/ux-research-prometheus-otel/index.md (#10688)](https://github.com/open-telemetry/opentelemetry.io/pull/10688) | ymotongpoo |  | ? | ? | ? |
 
 ## Draft pull requests
 
