@@ -7,6 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
+| [Update dependency google-auth to v2.55.2 (#201)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/201) | app/renovate | DylanRussell&nbsp;✅ | ✅ | ✅ | 18h |
 | [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 3h |
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ❌ | ✅ | 6m |
 
@@ -41,7 +42,6 @@
 |---|---|---|:---:|:---:|:---:|
 | [code scanning report: bump versions, make renovate update all req.txt (#204)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/204) | lmolkova |  | ? | ? | ? |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 |  | ? | ? | ? |
-| [Update dependency google-auth to v2.55.2 (#201)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/201) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
 
