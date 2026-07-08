@@ -12,7 +12,7 @@
 | [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 29m |
 | [Update dependency wrapt to &gt;=1.17.3,&lt;3.0.0 (#215)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/215) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 29m |
 | [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 29m |
-| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 28m |
+| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 29m |
 
 ## Waiting on reviewers
 
