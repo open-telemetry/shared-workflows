@@ -54,6 +54,12 @@
 |---|---|---|:---:|:---:|:---:|
 | [chore(deps): update plugin org.jetbrains.kotlin.jvm to v2.4.0 (#18948)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18948) | app/renovate | laurit | ❌ | ✅ | 28d |
 
+## Unknown
+
+| PR | Author | Reviewers | CI | Conflicts | Age |
+|---|---|---|:---:|:---:|:---:|
+| [Add Ktor 3.0 client span accessors and bridge them under the agent (#19149)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19149) | amccague |  | ? | ? | ? |
+
 ## Draft pull requests
 
 | PR | Author | Updated |
@@ -70,7 +76,6 @@
 | [Unify database batch tests into parameterized scenario tests (#19019)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19019) | trask | 20d |
 | [Draft: init spring-ai instrumentation (#15064)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15064) | Cirilla-zmh | 8d |
 | [Rename setCaptured* to setCapture* to have a single convention (#17154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17154) | trask | 7d |
-| [Add Ktor 3.0 client span accessors and bridge them under the agent (#19149)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19149) | amccague | <1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
