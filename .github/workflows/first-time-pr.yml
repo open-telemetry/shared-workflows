@@ -15,8 +15,7 @@ on:
         default: ''
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: first-time-pr-${{ github.event.pull_request.number }}
