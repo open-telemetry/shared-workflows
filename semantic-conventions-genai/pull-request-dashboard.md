@@ -15,6 +15,7 @@
 | [Migrate anthropic reference scenario to opentelemetry-util-genai (#324)](https://github.com/open-telemetry/semantic-conventions-genai/pull/324) | AgentGymLeader | lmolkova&nbsp;💬⁠✅ | ✅ | ✅ | 1d |
 | [Add evaluator provenance attributes to gen_ai.evaluation.* (#359)](https://github.com/open-telemetry/semantic-conventions-genai/pull/359) | Mohnish-Srivats |  | ✅ | ✅ | 20h |
 | [Add `gen_ai.main_agent` entity (#270)](https://github.com/open-telemetry/semantic-conventions-genai/pull/270) | aabmass | AgentGymLeader&nbsp;✔️<br>lmolkova&nbsp;✅<br>trask | ✅ | ✅ | 16h |
+| [gen-ai: fix system instructions reference scenarios (#361)](https://github.com/open-telemetry/semantic-conventions-genai/pull/361) | yyuuttaaoo |  | ✅ | ✅ | 9h |
 
 ## Waiting on authors
 
@@ -47,7 +48,6 @@
 | [feat: add gen_ai.attribution.link_type for tool-call provenance (addresses #311) (#370)](https://github.com/open-telemetry/semantic-conventions-genai/pull/370) | grvnmttl |  | ? | ? | ? |
 | [Add GenAI input messages delta attribute (#365)](https://github.com/open-telemetry/semantic-conventions-genai/pull/365) | yyuuttaaoo |  | ? | ? | ? |
 | [gen-ai: make response finish reasons authoritative (#363)](https://github.com/open-telemetry/semantic-conventions-genai/pull/363) | yyuuttaaoo |  | ? | ? | ? |
-| [gen-ai: fix system instructions reference scenarios (#361)](https://github.com/open-telemetry/semantic-conventions-genai/pull/361) | yyuuttaaoo |  | ? | ? | ? |
 
 ## Draft pull requests
 
