@@ -25,6 +25,7 @@
 | [chore: release main (#3596)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3596) | app/otelbot-js-contrib | blumamir<br>dyladan<br>hectorhdzg<br>jj22ee<br>legendecas<br>martinkuba<br>maryliag<br>mhennoch<br>pichlermarc<br>yiyuan-he | ❌ | ✅ | 5d |
 | [feat(instrumentation-oracledb): add support for oracledb v7 (#3583)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3583) | abhilash-sivan | sharadraju<br>sudarshan12s | ❌ | ✅ | 5d |
 | [feat(detector-aws): detect Lambda availability zone metadata (#3460)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3460) | garysassano | jj22ee | ❌ | ✅ | 17h |
+| [test(instrumentation-aws-sdk): fix assertions that can never fail (#3603)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3603) | bhuvan-somisetty | blumamir<br>jj22ee<br>trivikr | ✅ | ✅ | 12h |
 | [fix(instrumentation-oracledb): Align with updated Oracle semconv db.namespace split (#3591)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3591) | sudarshan12s | david-luna<br>maryliag<br>pichlermarc<br>sharadraju&nbsp;✔️<br>sudarshan12s | ❌ | ✅ | 1h |
 
 ## Waiting on authors
@@ -54,7 +55,6 @@
 |---|---|---|:---:|:---:|:---:|
 | [fix: replace deprecated db.client.connections.usage with db.client.connection.count in mongodb and mysql (#3608)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3608) | Luffy-nani |  | ? | ? | ? |
 | [chore(deps): update dependency &#64;koa/router to v15 \[security\] (#3607)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3607) | app/renovate |  | ? | ? | ? |
-| [test(instrumentation-aws-sdk): fix assertions that can never fail (#3603)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3603) | bhuvan-somisetty |  | ? | ? | ? |
 
 ## Draft pull requests
 
