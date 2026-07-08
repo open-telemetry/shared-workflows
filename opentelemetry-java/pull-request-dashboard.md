@@ -8,6 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Restore compliance between Composite Samplers code and specs (#8450)](https://github.com/open-telemetry/opentelemetry-java/pull/8450) | PeterF778 | jack-berg&nbsp;✅<br>jkwatson<br>zeitlinger | ❌ | ✅ | 15d |
+| [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg | atoulme&nbsp;✔️<br>breedx-splk&nbsp;✅<br>brunobat&nbsp;✔️<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 5d |
 
 ## Waiting on reviewers
 
@@ -53,7 +54,6 @@
 | [Fix OkHttp client mTLS when using the platform default trust store (#8565)](https://github.com/open-telemetry/opentelemetry-java/pull/8565) | Debashismitra01 |  | ? | ? | ? |
 | [Add BatchSpanProcessor.create(SpanExporter) to match SimpleSpanProcessor (#8564)](https://github.com/open-telemetry/opentelemetry-java/pull/8564) | jimbobbennett |  | ? | ? | ? |
 | [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR |  | ? | ? | ? |
-| [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg |  | ? | ? | ? |
 
 ## Draft pull requests
 
