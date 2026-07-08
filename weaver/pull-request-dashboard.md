@@ -15,6 +15,7 @@
 | [Tolerate unknown properties in resolved schema / published manifest (#1365)](https://github.com/open-telemetry/weaver/pull/1365) | lmolkova | jsuereth&nbsp;💬 | ✅ | ❌ | 62d |
 | [Use semantic conventions v2 for `weaver registry infer` (#1334)](https://github.com/open-telemetry/weaver/pull/1334) | ArthurSens | jsuereth | ✅ | ✅ | 29d |
 | [Warn on invalid markdown snippet markers (#1576)](https://github.com/open-telemetry/weaver/pull/1576) | ahfoysal |  | ❌ | ✅ | 1d |
+| [Update gcr.io/oss-fuzz-base/base-builder-rust Docker digest to 8d1f850 (#1579)](https://github.com/open-telemetry/weaver/pull/1579) | app/renovate |  | ✅ | ✅ | 14h |
 
 ## Waiting on authors
 
@@ -28,12 +29,6 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Document generated file header best practice (#1085)](https://github.com/open-telemetry/weaver/pull/1085) | cnaples79 | jsuereth | ❌ | ✅ | 203d |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [Update gcr.io/oss-fuzz-base/base-builder-rust Docker digest to 8d1f850 (#1579)](https://github.com/open-telemetry/weaver/pull/1579) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
 
