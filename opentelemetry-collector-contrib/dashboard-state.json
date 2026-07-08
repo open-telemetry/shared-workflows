@@ -5411,7 +5411,7 @@
     },
     "49187": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "iblancasa"
         ],
@@ -5422,11 +5422,18 @@
         "created_at": "2026-06-19T15:50:30+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-07T20:06:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-08T21:19:45+00:00",
+        "last_approver_activity_at": "2026-07-08T21:19:45+00:00",
         "last_author_activity_at": "2026-07-07T20:06:17+00:00",
         "last_external_activity_at": "",
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "evan-bradley",
+            "open_thread": true
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -5435,13 +5442,13 @@
             "open_thread": false
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-07T20:06:17+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-08T21:19:45+00:00"
       },
       "failed": false,
       "pr_number": 49187,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49187",
-      "route": "approver"
+      "route": "author"
     },
     "49188": {
       "facts": {
