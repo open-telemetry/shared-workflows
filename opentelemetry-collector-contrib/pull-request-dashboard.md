@@ -24,7 +24,6 @@
 | [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 18h |
 | [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley&nbsp;✅<br>songy23&nbsp;✅ | ✅ | ✅ | 11h |
 | [\[receiver/awsecscontainermetrics\] migrate semantic convention from v1.21.0 to v1.42.0 (#49078)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49078) | singhvibhanshu | Aneurysm9&nbsp;✔️<br>ChrsMark<br>iblancasa&nbsp;✅<br>mx-psi<br>pjanotti<br>VihasMakwana | ✅ | ✅ | 5h |
-| [\[receiver/webhookeventreceiver\] Make webhookeventreceiver to support HMAC signature authentication (#47189)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47189) | steveduan-IDME | atoulme&nbsp;✅<br>ChrsMark<br>shalper2&nbsp;✔️<br>songy23 | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
 
@@ -147,6 +146,7 @@ _More 12 PRs not shown_
 | [exporter/prometheus: Add config option 'resource_constant_labels' (#48922)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48922) | ArthurSens | axw<br>dashpole | ✅ | ❌ | 28d |
 | [\[receiver/hostmetrics\] Add process.network.connection.count metric to process scraper (#49091)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49091) | GlqEason | bogdandrutu | ❌ | ✅ | 20d |
 | [\[cumulativetodeltaprocessor\] Add histogram_fields config for selective field conversion (#49407)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49407) | Chau-Tran | axw<br>TylerHelmuth | ❌ | ✅ | 2d |
+| [\[receiver/webhookeventreceiver\] Make webhookeventreceiver to support HMAC signature authentication (#47189)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47189) | steveduan-IDME | atoulme&nbsp;✅<br>ChrsMark<br>shalper2&nbsp;✔️<br>songy23 | ❌ | ✅ | 1h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
