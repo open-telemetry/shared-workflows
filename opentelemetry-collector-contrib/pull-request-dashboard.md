@@ -76,7 +76,7 @@
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
 | [\[elasticsearchexporter\] Add retry_on_document_status configuration (#48933)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48933) | belimawr | carsonip&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 7d |
 
-_More 29 PRs not shown_
+_More 30 PRs not shown_
 
 ## Waiting on authors
 
@@ -193,7 +193,6 @@ _More 5 PRs not shown_
 | [\[receiver/awsecscontainermetricsreceiver\] Remove v1.21.0 import (#49360)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49360) | anarwal |  | ? | ? | ? |
 | [\[receiver/httpcheck\] Use confighttp defaulting constructor (#49357)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49357) | swiatekm |  | ? | ? | ? |
 | [\[pkg/ottl\] Add the `When` OTTL converter (#49356)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49356) | edmocosta |  | ? | ? | ? |
-| [fix(pkg/translator/pprof): set instrumentation scope name when conver… (#49353)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49353) | avy252004 |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
