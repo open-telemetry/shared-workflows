@@ -82,7 +82,7 @@
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 7d |
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 
-_More 52 PRs not shown_
+_More 53 PRs not shown_
 
 ## Waiting on authors
 
@@ -165,7 +165,6 @@ _More 10 PRs not shown_
 | [\[receiver/redis\] Enable redis.cmd.calls, redis.cmd.latency, and redis.cmd.usec by default (#49551)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49551) | ar-ash |  | ? | ? | ? |
 | [\[processor/dynamic_sampling\] replace rule condition parser with OTTL (#49547)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49547) | MikeGoldsmith |  | ? | ? | ? |
 | [\[chore\]\[k8s_attributes\] Add stability level and semconv refs (#49545)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49545) | ChrsMark |  | ? | ? | ? |
-| [\[receiver/mongodb\] Ignore noisy `$indexStats` errors for views (#49543)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49543) | dyl10s |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
