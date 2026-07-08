@@ -14,6 +14,7 @@
 | [Implement configurable metric bridge metric suppression (#19048)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19048) | somiljain2006 |  | ✅ | ✅ | 18d |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca |  | ✅ | ✅ | 13d |
 | [\[jdbc\] Capture custom object types in prepared statement parameter instrumentation (#19093)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19093) | CodingFabian | laurit | ✅ | ✅ | 8d |
+| [Add Instrumenter operation listener propagation test (#19123)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19123) | amirdeljouyi |  | ✅ | ✅ | 6d |
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | laurit<br>SylvainJuge<br>trask | ✅ | ✅ | 5d |
 | [Add OSGi support for library instrumentation, API, and SDK extension artifacts (#18995)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995) | royteeuwen | laurit&nbsp;💬 | ✅ | ❌ | 4d |
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong | jaydeluca<br>laurit | ✅ | ❌ | 4d |
@@ -37,7 +38,7 @@
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 1d |
 | [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | laurit&nbsp;💬<br>SylvainJuge | ✅ | ✅ | 1d |
 | [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask | ✅ | ✅ | 3h |
-| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty | laurit&nbsp;✅<br>trask&nbsp;💬 | ✅ | ✅ | 44m |
+| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty | laurit&nbsp;✅<br>trask&nbsp;💬 | ✅ | ✅ | 45m |
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 40m |
 
 ## Waiting on external
@@ -55,7 +56,6 @@
 | [\[jmx-metrics\] bootstrap + validate registry definitions for jmx metrics (#19139)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139) | SylvainJuge |  | ? | ? | ? |
 | [Disable virtual field usage checker by default (#19138)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19138) | laurit |  | ? | ? | ? |
 | [feat: Add GenAI agent/tool/retrieval semantic conventions to instrumentation-api-incubator (#19124)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19124) | eternalcuriouslearner |  | ? | ? | ? |
-| [Add Instrumenter operation listener propagation test (#19123)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19123) | amirdeljouyi |  | ? | ? | ? |
 
 ## Draft pull requests
 
