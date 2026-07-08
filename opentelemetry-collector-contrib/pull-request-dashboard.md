@@ -75,7 +75,7 @@
 | [feat: add feature gate to control otel.scope convention in Datadog exporter (#49001)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49001) | Alexpedone | evan-bradley<br>songy23 | ✅ | ✅ | 6d |
 | [\[receiver/postgresql\] stabilizing preciselagmetrics and connectionPool gates (#48618)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48618) | codeboten | atoulme<br>VihasMakwana | ❌ | ✅ | 5d |
 
-_More 18 PRs not shown_
+_More 19 PRs not shown_
 
 ## Waiting on authors
 
@@ -194,7 +194,7 @@ _More 18 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 15 PRs not shown_
+_More 14 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
