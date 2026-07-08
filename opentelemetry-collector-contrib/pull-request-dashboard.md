@@ -88,7 +88,7 @@ _More 58 PRs not shown_
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [\[exporter/file\] fix nil pointer dereference during shutdown (#46947)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46947) | Akash-Kumar-Sinha | Dainerx&nbsp;💬<br>dmitryax | ✅ | ✅ | 113d |
+| [\[exporter/file\] fix nil pointer dereference during shutdown (#46947)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46947) | Akash-Kumar-Sinha | Dainerx&nbsp;💬<br>dmitryax | ✅ | ✅ | 114d |
 | [\[receiver/prometheusreceiver\] Fix mitchellh/mapstructure vulnerability (#45773)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/45773) | aknuds1 | Aneurysm9&nbsp;💬<br>ArthurSens<br>atoulme&nbsp;💬<br>MovieStoreGuy<br>mx-psi | ✅ | ✅ | 97d |
 | [\[receiver/journald\] feat: map journald fields (#46500)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46500) | bruegth | atoulme&nbsp;💬<br>bachp&nbsp;💬⁠✔️<br>belimawr&nbsp;💬<br>dashpole<br>edmocosta<br>namco1992&nbsp;💬<br>thompson-tomo&nbsp;💬 | ❌ | ✅ | 92d |
 | [\[receiver/hostmetrics\] Add cputicks reader behind feature gate (#47972)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47972) | salvatore-campagna | dmitryax<br>rogercoll&nbsp;💬⁠✔️ | ❌ | ✅ | 70d |
