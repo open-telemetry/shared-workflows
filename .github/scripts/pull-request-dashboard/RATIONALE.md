@@ -83,6 +83,9 @@ the implementation understandable and operationally cheap.
   calls.
 - Cache keys are scoped by target repository and by either PR number or
   backfill.
+- Targeted PR runs restore their PR-specific cache first, then fall back to the
+  latest backfill cache for that repository. They still save under a PR-specific
+  key, so targeted runs do not overwrite the backfill cache namespace.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
   latest usable snapshot without concurrent writers overwriting each other.
 

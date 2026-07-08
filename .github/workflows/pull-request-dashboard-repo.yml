@@ -162,6 +162,7 @@ jobs:
           key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-
+            pull-request-dashboard-classifications-${{ inputs.repository }}-all-
 
       - name: Restore shared backfill classification cache
         if: inputs.pr_number == ''
