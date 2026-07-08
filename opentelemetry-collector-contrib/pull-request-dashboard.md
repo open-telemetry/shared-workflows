@@ -27,6 +27,7 @@
 | [\[chore\]\[receiver/fluentforward\] Fix incorrect tag attribute key in README (#48911)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48911) | Vanshul97 | dehaansa | ✅ | ✅ | 30d |
 | [WIP: Exhausted resource middleware (#48908)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48908) | djluck | braydonk | ❌ | ❌ | 27d |
 | [\[httpcheck\] fix incorrect stale value in httpcheck.status when status_code changes (#44917)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/44917) | martin-schulze-e2m | atoulme<br>MovieStoreGuy | ❌ | ✅ | 27d |
+| [\[exporter/doris\] Report rows filtered out by Doris during a successful stream load (#49012)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49012) | vedatkilic | iblancasa | ❌ | ✅ | 27d |
 | [\[receiver/googlecloudpubsub\] add ModifyAckDeadline support for StreamingPull (#48213)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48213) | smurtanv | fatsheep9146 | ✅ | ✅ | 27d |
 | [\[pkg/ottl\] Implement AST constant folding for deterministic converters (#46506)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46506) | Rajneesh180 | andrzej-stencel<br>edmocosta | ✅ | ❌ | 26d |
 | [\[cmd/telemetrygen\] honour --allow-export-failures in batch flushBuffer (#47651)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47651) | alliasgher | atoulme<br>axw<br>bogdan-st&nbsp;✔️<br>braydonk | ✅ | ✅ | 26d |
@@ -171,7 +172,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 54 PRs not shown_
+_More 53 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
