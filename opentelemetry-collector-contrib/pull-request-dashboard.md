@@ -61,7 +61,6 @@
 | [\[cmd/telemetrygen\] support base paths in OTLP HTTP endpoints (#48064)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48064) | jeevan6996 | atoulme | ✅ | ✅ | 14d |
 | [multi host support (#49256)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49256) | pankaj101A | atoulme | ❌ | ✅ | 14d |
 | [\[exporter/awscloudwatchlogs\]\[internal/aws/cwlogs\] configurable 1 MiB per-event cap + fix batch threshold conflation (#48559)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48559) | challahc | VihasMakwana | ✅ | ✅ | 14d |
-| [\[exporter/prometheusremotewrite\] Add classic→NHCB conversion with dual write (#49010)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49010) | srstrickland | ArthurSens<br>dashpole<br>iblancasa | ✅ | ✅ | 13d |
 | [\[receiver/githubreceiver\] retry on primary rate-limit errors (#48539)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48539) | nissessenap | andrzej-stencel | ❌ | ✅ | 13d |
 | [\[chore\]\[pkg/stanza\] remove references to attributes.time from the container operator docs (#48886)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48886) | omrozowicz-splunk | dashpole<br>himanshu130700&nbsp;✔️<br>osullivandonal&nbsp;✔️<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 13d |
 | [\[exporter/awss3\] Add optional webhook notifications on successful upload (#48866)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48866) | skandragon | atoulme&nbsp;🔴<br>dehaansa | ✅ | ❌ | 12d |
@@ -81,6 +80,7 @@
 | [\[processor/transform/internal/logparsingfuncs\] Add ParseCEF log parsing function (#49288)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49288) | Caleb-Hurshman | Dylan-M&nbsp;✔️<br>pjanotti | ✅ | ✅ | 8d |
 | [\[receiver/journald\] add option to include original log record (#48243)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48243) | belimawr | andrzej-stencel<br>ArthurSens | ❌ | ✅ | 8d |
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 7d |
+| [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 
 _More 62 PRs not shown_
 
