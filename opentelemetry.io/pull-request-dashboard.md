@@ -42,6 +42,7 @@
 | [\[ja\] add translation of content/en/blog/2022/collector-builder-sample/index.md (#10690)](https://github.com/open-telemetry/opentelemetry.io/pull/10690) | ymotongpoo |  | ✅ | ✅ | 3d |
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm&nbsp;🔴 | ✅ | ✅ | 3d |
 | [\[ja\] update translation of content/en/docs/languages/js/context.md (#10692)](https://github.com/open-telemetry/opentelemetry.io/pull/10692) | ymotongpoo |  | ✅ | ✅ | 2d |
+| [\[ja\] update translation of content/en/docs/collector/_index.md (#10693)](https://github.com/open-telemetry/opentelemetry.io/pull/10693) | ymotongpoo |  | ✅ | ✅ | 2d |
 | [feat: add setup-new-localization skill (#10481)](https://github.com/open-telemetry/opentelemetry.io/pull/10481) | vitorvasc | chalin<br>vitorvasc | ✅ | ✅ | 1d |
 | [Additional docs for the OpenTelemetry Kotlin SDK (#9984)](https://github.com/open-telemetry/opentelemetry.io/pull/9984) | fractalwrench | breedx-splk&nbsp;✔️<br>maryliag<br>tiffany76 | ✅ | ✅ | 1d |
 | [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ✅ | ✅ | 1d |
@@ -117,7 +118,6 @@
 | [\[ja\] update translation of content/en/docs/zero-code/python/_index.md (#10699)](https://github.com/open-telemetry/opentelemetry.io/pull/10699) | ymotongpoo |  | ? | ? | ? |
 | [\[ja\] add translation of content/en/blog/2023/http-conventions-declared-stable.md (#10696)](https://github.com/open-telemetry/opentelemetry.io/pull/10696) | ymotongpoo |  | ? | ? | ? |
 | [\[ja\] add translation of content/en/docs/languages/php/getting-started.md (#10695)](https://github.com/open-telemetry/opentelemetry.io/pull/10695) | ymotongpoo |  | ? | ? | ? |
-| [\[ja\] update translation of content/en/docs/collector/_index.md (#10693)](https://github.com/open-telemetry/opentelemetry.io/pull/10693) | ymotongpoo |  | ? | ? | ? |
 
 ## Draft pull requests
 
