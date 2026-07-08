@@ -23,6 +23,7 @@
 | [\[pkg/ottl\] Sync entityRefs with changes in resource attributes (#47092)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47092) | meldegwi | dmitryax<br>edmocosta | ✅ | ❌ | 72d |
 | [\[extension/awssecretsmanagerauthextension\] Add AWS Secrets Manager extension (#48474)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48474) | meebok | MovieStoreGuy | ❌ | ❌ | 51d |
 | [\[pkg/ottl\] Grammar slice standardization Step 1 (#47985)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47985) | meldegwi | edmocosta&nbsp;💬<br>jmacd | ❌ | ❌ | 44d |
+| [WIP: Exhausted resource middleware (#48908)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48908) | djluck | braydonk | ❌ | ❌ | 27d |
 | [\[httpcheck\] fix incorrect stale value in httpcheck.status when status_code changes (#44917)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/44917) | martin-schulze-e2m | atoulme<br>MovieStoreGuy | ❌ | ✅ | 27d |
 | [\[receiver/googlecloudpubsub\] add ModifyAckDeadline support for StreamingPull (#48213)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48213) | smurtanv | fatsheep9146 | ✅ | ✅ | 27d |
 | [\[pkg/ottl\] Implement AST constant folding for deterministic converters (#46506)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46506) | Rajneesh180 | andrzej-stencel<br>edmocosta | ✅ | ❌ | 26d |
@@ -155,7 +156,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 65 PRs not shown_
+_More 64 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
