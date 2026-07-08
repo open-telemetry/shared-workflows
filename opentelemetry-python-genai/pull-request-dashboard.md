@@ -10,7 +10,7 @@
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate | eternalcuriouslearner<br>lmolkova&nbsp;✅ | ✅ | ✅ | 2d |
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lmolkova&nbsp;✅<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 41m |
 | [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 36m |
-| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 36m |
+| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 36m |
 
 ## Waiting on reviewers
 
