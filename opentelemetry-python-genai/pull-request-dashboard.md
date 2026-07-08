@@ -9,7 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Update dependency google-auth to v2.55.2 (#201)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/201) | app/renovate | DylanRussell&nbsp;✅ | ✅ | ✅ | 18h |
 | [\[`opentelemetry-instrumentation-google-genai`\] Add  instrumentation for `interactions.create` and `asyncinteractions.create` methods (#165)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/165) | DylanRussell | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 3h |
-| [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ❌ | ✅ | 13m |
+| [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ❌ | ✅ | 14m |
 
 ## Waiting on reviewers
 
