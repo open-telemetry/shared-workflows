@@ -15,15 +15,27 @@ Add a caller workflow to your repository, for example `.github/workflows/first-t
 name: First time contributor
 
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] — this workflow only calls the reusable shared workflow; no PR code is checked out or executed.
     types: [opened]
+
+permissions: {}
 
 jobs:
   welcome:
+    permissions:
+      pull-requests: write # required by the workflow to post the welcome comment
     uses: open-telemetry/shared-workflows/.github/workflows/first-time-pr.yml@<sha-or-tag>
 ```
 
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets are required — the workflow uses the built-in `GITHUB_TOKEN` and posts as `github-actions[bot]`.
+
+## Required permissions
+
+The caller's job-level `permissions:` block **must** grant `pull-requests: write`. The shared workflow needs it to add the label (`gh pr edit --add-label`) and to post the welcome comment (`gh pr comment`).
+
+A [reusable workflow cannot elevate its own permissions beyond what the caller grants](https://docs.github.com/en/actions/using-workflows/reusing-workflows).
+
+The `zizmor: ignore[dangerous-triggers]` inline comment on the `pull_request_target:` line is only relevant if your repo runs [zizmor](https://github.com/zizmorcore/zizmor).
 
 ## Inputs
 
@@ -55,6 +67,8 @@ For a repo that wants to add a label and point contributors at a priority-compon
 ```yaml
 jobs:
   welcome:
+    permissions:
+      pull-requests: write # required by the shared workflow to add a label and post the welcome comment
     uses: open-telemetry/shared-workflows/.github/workflows/first-time-pr.yml@<sha-or-tag>
     with:
       label: 'first-time contributor'
