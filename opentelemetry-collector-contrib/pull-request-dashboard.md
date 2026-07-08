@@ -17,6 +17,7 @@
 | [\[exporter/azuremonitor\] Rename `azuremonitor` to `azure_monitor` (#49402)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49402) | dyl10s | iblancasa&nbsp;✅<br>TylerHelmuth | ✅ | ❌ | 8d |
 | [New component: awsecsattributes processor Phase 2 - enrichment (#49036)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49036) | daidokoro | ChrsMark<br>dehaansa<br>iblancasa&nbsp;✅<br>povilasv&nbsp;✔️ | ✅ | ❌ | 7d |
 | [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ❌ | 6d |
+| [\[chore\]\[receiver/huaweicloudcesreceiver\] Migrate cenkalti/backoff v4/v5 → v7 (#49423)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49423) | songy23 | ArthurSens<br>codeboten&nbsp;✅ | ❌ | ✅ | 6d |
 | [\[chore\] \[receiver/hostmetrics\] Fix flaky memory scraper tests on Linux (#49110)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49110) | vishalmore90 | braydonk&nbsp;✅<br>mwear&nbsp;✔️<br>osullivandonal&nbsp;✔️<br>pjanotti<br>rogercoll&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[pkg/ottl\] Add the `When` OTTL converter (#49356)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49356) | edmocosta | iblancasa&nbsp;✅<br>mx-psi<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 23h |
 | [\[pkg/ottl\] Add `Filter` converter (#49184)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49184) | edmocosta | evan-bradley&nbsp;✅<br>MovieStoreGuy<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 21h |
@@ -186,7 +187,6 @@ _More 8 PRs not shown_
 | [Support resource detectors for service telemetry (#49428)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49428) | iblancasa |  | ? | ? | ? |
 | [\[k8sattributesprocessor\] Add experimental kubelet `/pods` metadata source (#49427)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49427) | iblancasa |  | ? | ? | ? |
 | [feature: skip index for event name (#49426)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49426) | emreyalvac |  | ? | ? | ? |
-| [\[chore\]\[receiver/huaweicloudcesreceiver\] Migrate cenkalti/backoff v4/v5 → v7 (#49423)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49423) | songy23 |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
