@@ -62,6 +62,7 @@
 | [\[exporter/opensearchexporter\] Add integration test harness (#48626)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48626) | harshitt13 | ArthurSens | ✅ | ❌ | 4d |
 | [\[receiver/fluent_forward\] delay chunk ACK until ConsumeLogs returns (#48839)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48839) | Krishnachaitanyakc | pjanotti | ✅ | ✅ | 4d |
 | [\[exporter/clickhouse\] retry schema detection after transient errors instead of caching "feature absent" (#48902)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48902) | Krishnachaitanyakc | iblancasa | ✅ | ✅ | 4d |
+| [\[receiver/apache\] add request rate, transmitted-bytes rate, and worker limit metrics (#49029)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49029) | sairaj18 | colelaven&nbsp;✔️<br>dashpole&nbsp;💬 | ❌ | ✅ | 6h |
 | [\[processor/drain\] add positional parameter extraction (#48915)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48915) | MikeGoldsmith | songy23 | ❌ | ✅ | 2h |
 | [\[processor/tailsampling\] Initial support for tracestate (only probabilistic) (#48865)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48865) | csmarchbanks | ArthurSens<br>carsonip&nbsp;✔️<br>MikeGoldsmith&nbsp;✔️<br>songy23 | ❌ | ✅ | 1h |
 
@@ -174,7 +175,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 51 PRs not shown_
+_More 50 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
