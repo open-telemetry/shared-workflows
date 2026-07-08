@@ -34,6 +34,7 @@
 | [docs(swift): update getting started sample dependencies (#10667)](https://github.com/open-telemetry/opentelemetry.io/pull/10667) | kalyanamdewri |  | ✅ | ✅ | 5d |
 | [docs: clarify Ruby in_span exception handling (#10623)](https://github.com/open-telemetry/opentelemetry.io/pull/10623) | Jaegeonyoon | kaylareopelle&nbsp;✔️ | ✅ | ✅ | 5d |
 | [docs(zh): fix obsolete SDK property name in Java configuration (#10666)](https://github.com/open-telemetry/opentelemetry.io/pull/10666) | Babul422 |  | ✅ | ✅ | 5d |
+| [\[ja\] update translation of content/en/docs/zero-code/java/agent/supported-libraries.md (#10674)](https://github.com/open-telemetry/opentelemetry.io/pull/10674) | ymotongpoo |  | ✅ | ✅ | 4d |
 | [Add rhea AMQP 1.0 instrumentation for JavaScript to registry (#10263)](https://github.com/open-telemetry/opentelemetry.io/pull/10263) | bartoval |  | ✅ | ✅ | 4d |
 | [\[i18n\]\[ko\] Localize glossary to Korean (#10448)](https://github.com/open-telemetry/opentelemetry.io/pull/10448) | krapie |  | ✅ | ✅ | 3d |
 | [blog: The Voyage of a Small Environment Variable (#10543)](https://github.com/open-telemetry/opentelemetry.io/pull/10543) | zeitlinger | jack-berg&nbsp;✔️<br>jaydeluca<br>svrnm&nbsp;🔴 | ✅ | ✅ | 3d |
@@ -117,7 +118,6 @@
 | [\[ja\] add translation of content/en/blog/2022/troubleshooting-nodejs.md (#10687)](https://github.com/open-telemetry/opentelemetry.io/pull/10687) | ymotongpoo |  | ? | ? | ? |
 | [Prometheus Exporter's Documentation for suffixes are stale (#10685)](https://github.com/open-telemetry/opentelemetry.io/pull/10685) | singhvibhanshu |  | ? | ? | ? |
 | [docs(obi): synchronize network overview with Beyla docs (#10682)](https://github.com/open-telemetry/opentelemetry.io/pull/10682) | Babul422 |  | ? | ? | ? |
-| [\[ja\] update translation of content/en/docs/zero-code/java/agent/supported-libraries.md (#10674)](https://github.com/open-telemetry/opentelemetry.io/pull/10674) | ymotongpoo |  | ? | ? | ? |
 
 ## Draft pull requests
 
