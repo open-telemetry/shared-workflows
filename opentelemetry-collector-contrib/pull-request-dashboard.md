@@ -73,7 +73,7 @@
 | [\[receiver/fluent_forward\] delay chunk ACK until ConsumeLogs returns (#48839)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48839) | Krishnachaitanyakc | pjanotti | ✅ | ✅ | 4d |
 | [\[exporter/clickhouse\] retry schema detection after transient errors instead of caching "feature absent" (#48902)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48902) | Krishnachaitanyakc | iblancasa | ✅ | ✅ | 4d |
 
-_More 6 PRs not shown_
+_More 7 PRs not shown_
 
 ## Waiting on authors
 
@@ -186,7 +186,7 @@ _More 6 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 35 PRs not shown_
+_More 34 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
