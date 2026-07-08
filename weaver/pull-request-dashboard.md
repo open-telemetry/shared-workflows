@@ -9,6 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [#850 Scope don't need attributes (#853)](https://github.com/open-telemetry/weaver/pull/853) | thompson-tomo | jsuereth | ✅ | ✅ | 351d |
 | [Proposal: Define namespaces in yaml (#867)](https://github.com/open-telemetry/weaver/pull/867) | thompson-tomo | jerbly&nbsp;💬 | ✅ | ✅ | 339d |
+| [Proposal: Offer packages (#872)](https://github.com/open-telemetry/weaver/pull/872) | thompson-tomo | jsuereth | ✅ | ✅ | 324d |
 | [The aggregation params of metrics can be defined #844 (#845)](https://github.com/open-telemetry/weaver/pull/845) | thompson-tomo | jerbly<br>jsuereth<br>lmolkova | ✅ | ❌ | 322d |
 
 ## Waiting on authors
@@ -28,7 +29,6 @@
 | [Replace regex with semver crate (#1108)](https://github.com/open-telemetry/weaver/pull/1108) | ArthurSens |  | ? | ? | ? |
 | [Document generated file header best practice (#1085)](https://github.com/open-telemetry/weaver/pull/1085) | cnaples79 |  | ? | ? | ? |
 | [fix: allow loading registries and policies from hidden directories (#992)](https://github.com/open-telemetry/weaver/pull/992) | kuklyy |  | ? | ? | ? |
-| [Proposal: Offer packages (#872)](https://github.com/open-telemetry/weaver/pull/872) | thompson-tomo |  | ? | ? | ? |
 
 ## Draft pull requests
 
