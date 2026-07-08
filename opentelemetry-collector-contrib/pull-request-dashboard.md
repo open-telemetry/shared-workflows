@@ -80,7 +80,7 @@
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
 
-_More 35 PRs not shown_
+_More 36 PRs not shown_
 
 ## Waiting on authors
 
@@ -183,7 +183,6 @@ _More 9 PRs not shown_
 | [\[pkg/translator/pprof\] reduce redundant work in sample conversion (#49454)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49454) | florianl |  | ? | ? | ? |
 | [\[exporter/azuremonitor\] include url path in dependency name when no h… (#49448)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49448) | n0rq1 |  | ? | ? | ? |
 | [test(prometheusexporter): regression test for add_metric_suffixes=false suppressing unit suffixes (#49446)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49446) | prabhaks |  | ? | ? | ? |
-| [\[exporter/clickhouse\] update metrics schemas (#49438)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49438) | knudtty |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
