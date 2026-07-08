@@ -52,6 +52,7 @@
 | [\[receiver/github\] Process pull-requests in reverse order to adhere to chronological ordering (#48578)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48578) | vladorf | adrielp&nbsp;✔️<br>ArthurSens | ✅ | ✅ | 16d |
 | [\[receiver/netflowreceiver\] Add interface index and IP ToS attributes (#49077)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49077) | Abhishek-Bhandwalkar | MovieStoreGuy | ✅ | ✅ | 15d |
 | [\[cmd/telemetrygen\] support base paths in OTLP HTTP endpoints (#48064)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48064) | jeevan6996 | atoulme | ✅ | ✅ | 14d |
+| [multi host support (#49256)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49256) | pankaj101A | atoulme | ❌ | ✅ | 14d |
 | [\[exporter/awscloudwatchlogs\]\[internal/aws/cwlogs\] configurable 1 MiB per-event cap + fix batch threshold conflation (#48559)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48559) | challahc | VihasMakwana | ✅ | ✅ | 14d |
 | [\[exporter/prometheusremotewrite\] Add classic→NHCB conversion with dual write (#49010)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49010) | srstrickland | ArthurSens<br>dashpole<br>iblancasa | ✅ | ✅ | 13d |
 | [\[receiver/githubreceiver\] retry on primary rate-limit errors (#48539)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48539) | nissessenap | andrzej-stencel | ❌ | ✅ | 13d |
@@ -73,9 +74,8 @@
 | [\[receiver/postgresql\] clarify `postgresql.backends` metric semantics (#49201)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49201) | kartikgola | dashpole | ❌ | ✅ | 7d |
 | [\[receiver/tlscheckreceiver\] allow scraping all certs (#48520)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48520) | sigmaris | codeboten<br>michael-burt&nbsp;✔️ | ✅ | ✅ | 6d |
 | [feat: add feature gate to control otel.scope convention in Datadog exporter (#49001)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49001) | Alexpedone | evan-bradley<br>songy23 | ✅ | ✅ | 6d |
-| [\[receiver/postgresql\] stabilizing preciselagmetrics and connectionPool gates (#48618)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48618) | codeboten | atoulme<br>VihasMakwana | ❌ | ✅ | 5d |
 
-_More 19 PRs not shown_
+_More 20 PRs not shown_
 
 ## Waiting on authors
 
@@ -197,7 +197,7 @@ _More 1 PR not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 12 PRs not shown_
+_More 11 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
