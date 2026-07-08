@@ -258,7 +258,9 @@ jobs:
     if: needs.update-dashboard.result == 'success'
     concurrency:
       group: ${{ github.workflow }}-publish-${{ inputs.repository }}
-      cancel-in-progress: false
+      # Publishing reads the latest accepted state branch, so older same-repo
+      # publish jobs are redundant once a newer update is ready to publish.
+      cancel-in-progress: true
     permissions:
       contents: read
     environment: protected
