@@ -16,7 +16,7 @@
 | [Use semantic conventions v2 for `weaver registry infer` (#1334)](https://github.com/open-telemetry/weaver/pull/1334) | ArthurSens | jsuereth | ✅ | ✅ | 30d |
 | [Warn on invalid markdown snippet markers (#1576)](https://github.com/open-telemetry/weaver/pull/1576) | ahfoysal |  | ❌ | ✅ | 1d |
 | [Update gcr.io/oss-fuzz-base/base-builder-rust Docker digest to 8d1f850 (#1579)](https://github.com/open-telemetry/weaver/pull/1579) | app/renovate |  | ✅ | ✅ | 17h |
-| [Fix forge tests (#1580)](https://github.com/open-telemetry/weaver/pull/1580) | jsuereth |  | ✅ | ✅ | 57m |
+| [Fix forge tests (#1580)](https://github.com/open-telemetry/weaver/pull/1580) | jsuereth |  | ✅ | ✅ | 58m |
 
 ## Waiting on authors
 
