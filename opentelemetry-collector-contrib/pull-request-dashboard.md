@@ -49,6 +49,7 @@
 | [chore: add cloud.account.id to resource attributes (#46173)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46173) | sfozz | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley<br>paulojmdias&nbsp;✔️<br>schmikei&nbsp;✔️ | ✅ | ❌ | 5d |
 | [\[exporter/opensearchexporter\] Add integration test harness (#48626)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48626) | harshitt13 | ArthurSens | ✅ | ❌ | 4d |
 | [\[receiver/fluent_forward\] delay chunk ACK until ConsumeLogs returns (#48839)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48839) | Krishnachaitanyakc | pjanotti | ✅ | ✅ | 4d |
+| [\[processor/tailsampling\] Initial support for tracestate (only probabilistic) (#48865)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48865) | csmarchbanks | ArthurSens<br>carsonip&nbsp;✔️<br>MikeGoldsmith&nbsp;✔️<br>songy23 | ❌ | ✅ | 1h |
 
 ## Waiting on authors
 
@@ -146,7 +147,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 74 PRs not shown_
+_More 73 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
