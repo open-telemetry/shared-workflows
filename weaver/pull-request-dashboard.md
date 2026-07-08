@@ -11,6 +11,7 @@
 | [Proposal: Define namespaces in yaml (#867)](https://github.com/open-telemetry/weaver/pull/867) | thompson-tomo | jerbly&nbsp;💬 | ✅ | ✅ | 339d |
 | [Proposal: Offer packages (#872)](https://github.com/open-telemetry/weaver/pull/872) | thompson-tomo | jsuereth | ✅ | ✅ | 324d |
 | [The aggregation params of metrics can be defined #844 (#845)](https://github.com/open-telemetry/weaver/pull/845) | thompson-tomo | jerbly<br>jsuereth<br>lmolkova | ✅ | ❌ | 322d |
+| [Replace regex with semver crate (#1108)](https://github.com/open-telemetry/weaver/pull/1108) | ArthurSens | jsuereth<br>lquerel&nbsp;🔴 | ✅ | ✅ | 186d |
 
 ## Waiting on authors
 
@@ -33,7 +34,6 @@
 | [Warn on invalid markdown snippet markers (#1576)](https://github.com/open-telemetry/weaver/pull/1576) | ahfoysal |  | ? | ? | ? |
 | [Tolerate unknown properties in resolved schema / published manifest (#1365)](https://github.com/open-telemetry/weaver/pull/1365) | lmolkova |  | ? | ? | ? |
 | [Use semantic conventions v2 for `weaver registry infer` (#1334)](https://github.com/open-telemetry/weaver/pull/1334) | ArthurSens |  | ? | ? | ? |
-| [Replace regex with semver crate (#1108)](https://github.com/open-telemetry/weaver/pull/1108) | ArthurSens |  | ? | ? | ? |
 
 ## Draft pull requests
 
