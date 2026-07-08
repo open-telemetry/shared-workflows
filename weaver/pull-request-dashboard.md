@@ -16,6 +16,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
+| [fix: allow loading registries and policies from hidden directories (#992)](https://github.com/open-telemetry/weaver/pull/992) | kuklyy | lquerel&nbsp;🔴 | ✅ | ❌ | 247d |
 | [Proposal: Introduce bundles (#871)](https://github.com/open-telemetry/weaver/pull/871) | thompson-tomo | jsuereth | ✅ | ✅ | 115d |
 
 ## Unknown
@@ -28,7 +29,6 @@
 | [Use semantic conventions v2 for `weaver registry infer` (#1334)](https://github.com/open-telemetry/weaver/pull/1334) | ArthurSens |  | ? | ? | ? |
 | [Replace regex with semver crate (#1108)](https://github.com/open-telemetry/weaver/pull/1108) | ArthurSens |  | ? | ? | ? |
 | [Document generated file header best practice (#1085)](https://github.com/open-telemetry/weaver/pull/1085) | cnaples79 |  | ? | ? | ? |
-| [fix: allow loading registries and policies from hidden directories (#992)](https://github.com/open-telemetry/weaver/pull/992) | kuklyy |  | ? | ? | ? |
 
 ## Draft pull requests
 
