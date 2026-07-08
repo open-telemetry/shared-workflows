@@ -34,6 +34,7 @@
 | [fix(configuration): apply resource attribute limits (#6891)](https://github.com/open-telemetry/opentelemetry-js/pull/6891) | LarryHu0217 | maryliag | ✅ | ✅ | 11h |
 | [feat(sdk-node,instrumentation,instrumentation-http,api-config,configuration): add declarative config support for `instrumentation/development` (#6868)](https://github.com/open-telemetry/opentelemetry-js/pull/6868) | mwear |  | ✅ | ❌ | 6h |
 | [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ✅ | ✅ | 5h |
+| [feat(exporter-metrics-otlp-http): respect OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION (#6874)](https://github.com/open-telemetry/opentelemetry-js/pull/6874) | buzztaiki | JacksonWeber | ✅ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -53,7 +54,6 @@
 | [chore: Add size-limit check on Pull Requests (#6706)](https://github.com/open-telemetry/opentelemetry-js/pull/6706) | JPeer264 | pichlermarc&nbsp;💬 | ❌ | ❌ | 14d |
 | [fix(sdk-metrics): drop stale async metric attribute sets (#6884)](https://github.com/open-telemetry/opentelemetry-js/pull/6884) | AkshitBhandariCodes |  | ✅ | ✅ | 2d |
 | [feat(metrics): add experimental advisory attributes support (#6885)](https://github.com/open-telemetry/opentelemetry-js/pull/6885) | AkshitBhandariCodes |  | ✅ | ✅ | 2d |
-| [feat(exporter-metrics-otlp-http): respect OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION (#6874)](https://github.com/open-telemetry/opentelemetry-js/pull/6874) | buzztaiki | JacksonWeber | ✅ | ✅ | 1d |
 | [docs: create 3.x announcement document (#6881)](https://github.com/open-telemetry/opentelemetry-js/pull/6881) | pichlermarc | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 2h |
 
 ## Waiting on external
