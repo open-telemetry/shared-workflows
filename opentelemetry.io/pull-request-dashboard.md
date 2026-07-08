@@ -30,6 +30,7 @@
 | [feat: add daemonset resiliency docs (#9201)](https://github.com/open-telemetry/opentelemetry.io/pull/9201) | jpkrohling | jade-guiton-dd&nbsp;💬⁠✔️<br>maryliag<br>tiffany76&nbsp;✅<br>vitorvasc | ✅ | ❌ | 78d |
 | [docs(specs): Publish spec compliance matrix (#9358)](https://github.com/open-telemetry/opentelemetry.io/pull/9358) | lehmannro | chalin&nbsp;🔴<br>svrnm | ❌ | ❌ | 75d |
 | [Add new mainframe section in /doc/platforms (#8624)](https://github.com/open-telemetry/opentelemetry.io/pull/8624) | gshriver | cartermp<br>chalin&nbsp;🔴<br>rrschulze&nbsp;✔️<br>svrnm&nbsp;🔴 | ❌ | ✅ | 67d |
+| [Docs: Rust: add instrumentation page scaffold (#9567)](https://github.com/open-telemetry/opentelemetry.io/pull/9567) | sarika-03 | cijothomas&nbsp;💬<br>theletterf<br>vitorvasc | ✅ | ❌ | 62d |
 | [Fix RSS feed reposting articles on modification (#9476)](https://github.com/open-telemetry/opentelemetry.io/pull/9476) | LoveChauhan-18 | vitorvasc&nbsp;🔴 | ✅ | ✅ | 60d |
 | [\[i18n\]\[pl\] Localize glossary to Polish (#9534)](https://github.com/open-telemetry/opentelemetry.io/pull/9534) | perk | chalin&nbsp;🔴<br>pellared&nbsp;💬<br>theletterf&nbsp;✅<br>vitorvasc | ✅ | ✅ | 15d |
 
@@ -107,7 +108,6 @@
 | [\[fr\] Add French translation of concepts/distributions (#9801)](https://github.com/open-telemetry/opentelemetry.io/pull/9801) | karlassily |  | ? | ? | ? |
 | [Clarify status levels and semconv stability on Languages page (#9711)](https://github.com/open-telemetry/opentelemetry.io/pull/9711) | franrob-projects |  | ? | ? | ? |
 | [Update docker-compose.yaml to canonical compose.yaml terminology (#9611)](https://github.com/open-telemetry/opentelemetry.io/pull/9611) | akristen |  | ? | ? | ? |
-| [Docs: Rust: add instrumentation page scaffold (#9567)](https://github.com/open-telemetry/opentelemetry.io/pull/9567) | sarika-03 |  | ? | ? | ? |
 
 ## Draft pull requests
 
