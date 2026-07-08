@@ -59,6 +59,7 @@
 | [\[ja\] add translation of content/en/docs/languages/php/getting-started.md (#10695)](https://github.com/open-telemetry/opentelemetry.io/pull/10695) | ymotongpoo |  | ✅ | ✅ | 13h |
 | [\[ja\] add translation of content/en/blog/2025/ux-research-prometheus-otel/index.md (#10688)](https://github.com/open-telemetry/opentelemetry.io/pull/10688) | ymotongpoo |  | ✅ | ✅ | 13h |
 | [\[ja\] add translation of content/en/blog/2025/otel-cicd-sig/index.md (#10653)](https://github.com/open-telemetry/opentelemetry.io/pull/10653) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 12h |
+| [Add Profiles endpoint to declarative config (#10718)](https://github.com/open-telemetry/opentelemetry.io/pull/10718) | florianl |  | ❌ | ✅ | 12h |
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 8h |
 | [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 5h |
 | [feat: \[pt\] Create docs/platforms/faas/_index.md (#10646)](https://github.com/open-telemetry/opentelemetry.io/pull/10646) | dmroch4 | vitorvasc | ✅ | ✅ | 1h |
@@ -117,7 +118,6 @@
 | [\[ja\] update translation of content/en/docs/collector/configuration.md (#10723)](https://github.com/open-telemetry/opentelemetry.io/pull/10723) | ymotongpoo |  | ? | ? | ? |
 | [\[ja\] update translation of content/en/docs/zero-code/obi/setup/kubernetes-helm.md (#10722)](https://github.com/open-telemetry/opentelemetry.io/pull/10722) | ymotongpoo |  | ? | ? | ? |
 | [Update docs after OTel .NET Auto 1.16.0 release (#10721)](https://github.com/open-telemetry/opentelemetry.io/pull/10721) | Kielek |  | ? | ? | ? |
-| [Add Profiles endpoint to declarative config (#10718)](https://github.com/open-telemetry/opentelemetry.io/pull/10718) | florianl |  | ? | ? | ? |
 
 ## Draft pull requests
 
