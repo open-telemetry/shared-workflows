@@ -46,6 +46,7 @@
 | [\[ja\] add translation of content/en/blog/2023/http-conventions-declared-stable.md (#10696)](https://github.com/open-telemetry/opentelemetry.io/pull/10696) | ymotongpoo |  | ✅ | ✅ | 2d |
 | [\[ja\] update translation of content/en/docs/zero-code/python/_index.md (#10699)](https://github.com/open-telemetry/opentelemetry.io/pull/10699) | ymotongpoo |  | ✅ | ✅ | 2d |
 | [\[ja\] add translation of content/en/blog/2025/kubecon-eu.md (#10700)](https://github.com/open-telemetry/opentelemetry.io/pull/10700) | ymotongpoo |  | ✅ | ✅ | 2d |
+| [\[ja\] add translation of content/en/blog/2022/instrument-kafka-clients/index.md (#10708)](https://github.com/open-telemetry/opentelemetry.io/pull/10708) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [feat: add setup-new-localization skill (#10481)](https://github.com/open-telemetry/opentelemetry.io/pull/10481) | vitorvasc | chalin<br>vitorvasc | ✅ | ✅ | 1d |
 | [Additional docs for the OpenTelemetry Kotlin SDK (#9984)](https://github.com/open-telemetry/opentelemetry.io/pull/9984) | fractalwrench | breedx-splk&nbsp;✔️<br>maryliag<br>tiffany76 | ✅ | ✅ | 1d |
 | [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ✅ | ✅ | 1d |
@@ -117,7 +118,6 @@
 | [\[ja\] update translation of content/en/docs/demo/docker-deployment.md (#10714)](https://github.com/open-telemetry/opentelemetry.io/pull/10714) | ymotongpoo |  | ? | ? | ? |
 | [Document Java exporter self-monitoring metrics (#10713)](https://github.com/open-telemetry/opentelemetry.io/pull/10713) | LarryHu0217 |  | ? | ? | ? |
 | [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ? | ? | ? |
-| [\[ja\] add translation of content/en/blog/2022/instrument-kafka-clients/index.md (#10708)](https://github.com/open-telemetry/opentelemetry.io/pull/10708) | ymotongpoo |  | ? | ? | ? |
 
 ## Draft pull requests
 
