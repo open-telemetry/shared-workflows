@@ -130,7 +130,7 @@ jobs:
 
   update-dashboard:
     concurrency:
-      group: ${{ github.workflow }}-state-${{ inputs.repository }}-${{ inputs.pr_number || 'full' }}
+      group: ${{ github.workflow }}-state-${{ inputs.repository }}-${{ inputs.pr_number || 'backfill' }}
       cancel-in-progress: false
     permissions:
       contents: write
@@ -217,7 +217,7 @@ jobs:
       needs.update-dashboard.result == 'success' &&
       (inputs.trigger_event == 'schedule' || inputs.pr_number != '')
     concurrency:
-      group: ${{ github.workflow }}-notify-${{ inputs.repository }}-${{ inputs.pr_number || 'full' }}
+      group: ${{ github.workflow }}-notify-${{ inputs.repository }}-${{ inputs.pr_number || 'backfill' }}
       cancel-in-progress: false
     permissions:
       contents: write
