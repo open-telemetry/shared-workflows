@@ -8,11 +8,11 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate | eternalcuriouslearner<br>lmolkova&nbsp;✅ | ⏳ | ✅ | 2d |
-| [Update github actions (#207)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/207) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 14m |
-| [Update dependency anthropic to &gt;=0.116.0 (#208)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/208) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 14m |
-| [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 13m |
-| [Update dependency pydantic to &gt;=2.12.5,&lt;3 (#214)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/214) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 13m |
-| [Update opentelemetry-python monorepo to &gt;=1.43.0 (#216)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/216) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 13m |
+| [Update github actions (#207)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/207) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 16m |
+| [Update dependency anthropic to &gt;=0.116.0 (#208)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/208) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 15m |
+| [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 15m |
+| [Update dependency pydantic to &gt;=2.12.5,&lt;3 (#214)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/214) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 15m |
+| [Update opentelemetry-python monorepo to &gt;=1.43.0 (#216)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/216) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 15m |
 
 ## Waiting on reviewers
 
@@ -22,15 +22,15 @@
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 7d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 1d |
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ✅ | ✅ | 2h |
-| [Update dependency anyio to &gt;=4.14.1 (#209)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/209) | app/renovate |  | ✅ | ✅ | 14m |
-| [Update dependency claude-agent-sdk to &gt;=0.2.114 (#210)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/210) | app/renovate |  | ⏳ | ✅ | 14m |
-| [Update dependency fsspec to &gt;=2025.12.0 (#211)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/211) | app/renovate |  | ✅ | ✅ | 13m |
-| [Update dependency markupsafe to &gt;=2.1.5 (#212)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/212) | app/renovate |  | ✅ | ✅ | 13m |
-| [Update dependency wrapt to &gt;=1.17.3,&lt;3.0.0 (#215)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/215) | app/renovate |  | ⏳ | ✅ | 13m |
-| [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate |  | ⏳ | ✅ | 13m |
-| [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate |  | ⏳ | ✅ | 13m |
-| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate |  | ⏳ | ✅ | 12m |
-| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ⏳ | ✅ | 11m |
+| [Update dependency anyio to &gt;=4.14.1 (#209)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/209) | app/renovate |  | ✅ | ✅ | 15m |
+| [Update dependency claude-agent-sdk to &gt;=0.2.114 (#210)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/210) | app/renovate |  | ⏳ | ✅ | 15m |
+| [Update dependency fsspec to &gt;=2025.12.0 (#211)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/211) | app/renovate |  | ✅ | ✅ | 15m |
+| [Update dependency markupsafe to &gt;=2.1.5 (#212)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/212) | app/renovate |  | ✅ | ✅ | 15m |
+| [Update dependency wrapt to &gt;=1.17.3,&lt;3.0.0 (#215)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/215) | app/renovate |  | ⏳ | ✅ | 15m |
+| [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate |  | ⏳ | ✅ | 15m |
+| [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate |  | ⏳ | ✅ | 14m |
+| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate |  | ⏳ | ✅ | 14m |
+| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate |  | ⏳ | ✅ | 12m |
 
 ## Waiting on authors
 
@@ -43,7 +43,7 @@
 | [feat: Add instrumentation for AsyncMessages.stream, Messages.parse and AsyncMessages.parse methods. (#191)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/191) | eternalcuriouslearner | DylanRussell&nbsp;💬⁠✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 1d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ⏳ | ✅ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 | lmolkova | ✅ | ❌ | 6h |
-| [Remove residual OTEL_SEMCONV_STABILITY_OPT_IN references from docs and tests (#206)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/206) | AgentGymLeader | lmolkova&nbsp;💬 | ❌ | ✅ | 51m |
+| [Remove residual OTEL_SEMCONV_STABILITY_OPT_IN references from docs and tests (#206)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/206) | AgentGymLeader | lmolkova&nbsp;💬 | ❌ | ✅ | 53m |
 
 ## Waiting on external
 
