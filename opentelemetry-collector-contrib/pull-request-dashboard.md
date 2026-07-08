@@ -28,6 +28,7 @@
 | [\[pkg/stanza/fileconsumer\] Skip files unchanged by path+mtime since the previous poll (#48039)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48039) | Dylan-M | atoulme<br>crobert-1 | ✅ | ❌ | 16d |
 | [\[cmd/telemetrygen\] support base paths in OTLP HTTP endpoints (#48064)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48064) | jeevan6996 | atoulme | ✅ | ✅ | 14d |
 | [\[receiver/kafkametricsreceiver\] Set kafka.cluster.alias when cluster_alias is defined (#47573) (#47574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47574) | skreuzer | pjanotti | ✅ | ❌ | 11d |
+| [\[connector/signaltometrics\] Add feature gate to change default error_mode to ignore (#48434)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48434) | singhvishalkr | VihasMakwana | ✅ | ✅ | 10d |
 | [\[receiver/journald\] add option to include original log record (#48243)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48243) | belimawr | andrzej-stencel<br>ArthurSens | ❌ | ✅ | 7d |
 | [chore: add cloud.account.id to resource attributes (#46173)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46173) | sfozz | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley<br>paulojmdias&nbsp;✔️<br>schmikei&nbsp;✔️ | ✅ | ❌ | 5d |
 
@@ -111,7 +112,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 109 PRs not shown_
+_More 108 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
