@@ -39,6 +39,7 @@
 | [\[receiver/prometheusreceiver\] Fix mitchellh/mapstructure vulnerability (#45773)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/45773) | aknuds1 | Aneurysm9&nbsp;💬<br>ArthurSens<br>atoulme&nbsp;💬<br>MovieStoreGuy<br>mx-psi | ✅ | ✅ | 96d |
 | [\[receiver/journald\] feat: map journald fields (#46500)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46500) | bruegth | atoulme&nbsp;💬<br>bachp&nbsp;💬⁠✔️<br>belimawr&nbsp;💬<br>dashpole<br>edmocosta<br>namco1992&nbsp;💬<br>thompson-tomo&nbsp;💬 | ❌ | ✅ | 91d |
 | [\[receiver/hostmetrics\] Add cputicks reader behind feature gate (#47972)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47972) | salvatore-campagna | dmitryax<br>rogercoll&nbsp;💬⁠✔️ | ❌ | ✅ | 70d |
+| [OpAMP Supervisor: Vision and Roadmap (#48350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48350) | aunshc | cijothomas&nbsp;💬<br>tigrannajaryan&nbsp;💬<br>VihasMakwana | ❌ | ✅ | 56d |
 | [Fix partial-failure retries and disable misleading top-level loadbalancing exporter metrics (#45027)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/45027) | iblancasa | dashpole | ❌ | ❌ | 55d |
 | [Automation for validating components telemetry (#46315)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46315) | vesari | ArthurSens<br>braydonk&nbsp;💬<br>ChrsMark<br>dashpole<br>jmacd<br>MovieStoreGuy | ✅ | ✅ | 50d |
 | [\[exporter/clickhouse\] Respect configured database when create_schema is false (#48050)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48050) | Vanshul97 | fatsheep9146<br>Frapschen&nbsp;✔️<br>SpencerTorres&nbsp;✔️ | ✅ | ✅ | 48d |
@@ -110,7 +111,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 110 PRs not shown_
+_More 109 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
