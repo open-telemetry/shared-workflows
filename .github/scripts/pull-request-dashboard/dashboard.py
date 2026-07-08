@@ -5,10 +5,10 @@ The script keeps repository facts deterministic and asks the LLM only one
 narrow question per unresolved discussion thread: who has the next action for
 that thread?
 
-The workflow publishes the rendered markdown from the accepted state branch.
-This script checks out that branch, commits changed dashboard state files, and
-pushes with `git push --force-with-lease` so concurrent runs use git refs as
-the durable compare-and-swap boundary.
+This script checks out the workflow state branch, commits changed dashboard
+state files, and pushes with `git push --force-with-lease` so concurrent runs
+use git refs as the durable compare-and-swap boundary. The publishing job
+renders markdown from the accepted state branch and the current open PR list.
 
 Usage:
     python .github/scripts/pull-request-dashboard/dashboard.py --state-branch BRANCH
@@ -25,7 +25,6 @@ Workflow state that survives across runs lives on the state branch:
 
     REPO/dashboard-state.json     cached per-PR routing results
     REPO/notification-state.json  per-PR Slack history
-    REPO/pull-request-dashboard.md rendered dashboard body
 
 The dashboard issue body is rendered fresh each run; no state markers are
 embedded in it.
@@ -42,8 +41,6 @@ A run flows like this:
   merge_dashboard_update_with_latest_state
        reload dashboard-state in case a concurrent run updated it
        v
-  render_pr_tables                     (write pull-request-dashboard.md)
-       v
   save_dashboard_state_cache
 
 Slack notifications are sent by notify_slack.py in a separate serialized
@@ -52,8 +49,8 @@ notification state, sends any due notifications, and pushes the updated
 notification state with the same git CAS pattern.
 
 State files are committed and pushed first. Only after that state branch push
-succeeds does a follow-up publishing job fetch the accepted rendered dashboard
-body from the state branch and publish it to the dashboard issue.
+succeeds does a follow-up publishing job fetch the accepted dashboard state,
+render the dashboard body, and publish it to the dashboard issue.
 
 Runs without --pr-number use backfill and store progress in
 backfill-state.json. A selected PR advances that cursor after a successful
@@ -167,9 +164,7 @@ from classification import (
     normalize_thread_action,
     prune_classification_cache,
 )
-from render import render_pr_tables
 from state import (
-    dashboard_markdown_path,
     empty_state,
     load_dashboard_state_cache,
     load_backfill_state,
@@ -186,7 +181,6 @@ from utils import actor_login, format_ts, parse_ts, truncate
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
-LARGE_REPO_MAX_ROWS_PER_SECTION = 50
 DEFAULT_BACKFILL_MAX_PRS = 100
 
 # ---------------------------------------------------------------- model helpers
@@ -1045,41 +1039,26 @@ def select_backfill_prs(
     )
 
 
-def render_and_save_dashboard(
+def has_failed_dashboard_result(result: dict[str, Any] | None) -> bool:
+    return bool(result and result.get("failed"))
+
+
+def reject_failed_dashboard_result(result: dict[str, Any] | None) -> bool:
+    if result is None or not has_failed_dashboard_result(result):
+        return False
+    number = result.get("pr_number") or "?"
+    print(
+        f"dashboard refresh hit PR failure(s); refusing to publish failed state: #{number}",
+        file=sys.stderr,
+    )
+    return True
+
+
+def save_dashboard_update_state(
     args: argparse.Namespace,
-    prs: list[dict[str, Any]],
-    results: dict[int, dict[str, Any]],
     dashboard_state: dict[str, Any],
     dashboard_state_unchanged: bool,
 ) -> int:
-    failed_results = [
-        number
-        for number, result in sorted(results.items())
-        if result.get("failed")
-    ]
-    if failed_results:
-        print(
-            "dashboard refresh hit PR failure(s); refusing to publish failed state: "
-            + ", ".join(f"#{number}" for number in failed_results),
-            file=sys.stderr,
-        )
-        return 1
-
-    md = render_pr_tables(
-        prs,
-        results,
-        max_rows_per_section=LARGE_REPO_MAX_ROWS_PER_SECTION if args.large_repo else None,
-        skip_drafts=args.large_repo,
-    )
-    output_path = dashboard_markdown_path()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(md, encoding="utf-8")
-    print(
-        f"wrote dashboard markdown to {output_path.resolve()} "
-        f"({len(md)} chars, GitHub issue-body limit is 65536)",
-        file=sys.stderr,
-    )
-
     if dashboard_state_unchanged:
         if args.pr_number:
             print(f"PR #{args.pr_number} dashboard state unchanged", file=sys.stderr)
@@ -1100,8 +1079,6 @@ def update_backfill_cursor(pr_number: int) -> int:
 
 def remove_cached_dashboard_prs(
     args: argparse.Namespace,
-    prs: list[dict[str, Any]],
-    open_non_draft_pr_numbers: set[int],
     pr_numbers_to_remove: set[int],
 ) -> int:
     if not pr_numbers_to_remove:
@@ -1111,13 +1088,12 @@ def remove_cached_dashboard_prs(
     for number in pr_numbers_to_remove:
         state_prs.pop(str(number), None)
     dashboard_state["prs"] = state_prs
-    results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)
-    return render_and_save_dashboard(args, prs, results, dashboard_state, False)
+    return save_dashboard_update_state(args, dashboard_state, False)
 
 
-def update_dashboard_for_pr_number(args: argparse.Namespace) -> int:
+def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate | None:
     if args.pr_number is None:
-        raise RuntimeError("update_dashboard_for_pr_number requires --pr-number")
+        raise RuntimeError("build_targeted_dashboard_update requires --pr-number")
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     owner, repo_name = repo.split("/", 1)
@@ -1125,21 +1101,14 @@ def update_dashboard_for_pr_number(args: argparse.Namespace) -> int:
     loaded_dashboard_state = load_dashboard_state_cache()
     if loaded_dashboard_state is None:
         print("dashboard result state not found; skipping targeted refresh", file=sys.stderr)
-        return 0
-
-    prs = list_open_prs(repo)
-    open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
-    pr_summary = next((p for p in prs if p["number"] == args.pr_number), None)
-    if not pr_summary or pr_summary.get("isDraft"):
-        return remove_cached_dashboard_prs(args, prs, open_non_draft_pr_numbers, {args.pr_number})
+        return None
 
     reviewers = load_reviewer_set(owner, args.approver_team)
-
-    calculation = build_dashboard_update_for_pr(
+    return build_dashboard_update_for_pr(
         repo,
         owner,
         repo_name,
-        open_non_draft_pr_numbers,
+        {args.pr_number},
         reviewers,
         args.pr_number,
         args.model,
@@ -1147,18 +1116,42 @@ def update_dashboard_for_pr_number(args: argparse.Namespace) -> int:
         loaded_dashboard_state,
     )
 
-    calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
+
+def apply_targeted_dashboard_update(args: argparse.Namespace, calculation: DashboardUpdate) -> int:
+    merged_calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
         calculation,
         args.pr_number,
-        open_non_draft_pr_numbers,
+        {args.pr_number} if args.pr_number is not None else set(),
+    )
+    if not dashboard_state_unchanged and reject_failed_dashboard_result(merged_calculation.trigger_pr_result):
+        return 1
+
+    return save_dashboard_update_state(
+        args,
+        merged_calculation.dashboard_state,
+        dashboard_state_unchanged,
     )
 
-    return render_and_save_dashboard(
-        args,
-        prs,
-        calculation.results,
-        calculation.dashboard_state,
-        dashboard_state_unchanged,
+
+def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) -> int:
+    if args.pr_number is None:
+        raise RuntimeError("update_dashboard_for_pr_number requires --pr-number")
+
+    state_branch.configure_git()
+    state_branch.checkout_state(state_dir, args.state_branch, require_existing=False)
+    try:
+        update = build_targeted_dashboard_update(args)
+    finally:
+        state_branch.remove_existing_state_dir(state_dir)
+
+    if update is None:
+        return 0
+
+    return state_branch.push_state_changes(
+        state_dir,
+        "Update dashboard state",
+        lambda: apply_targeted_dashboard_update(args, update),
+        state_branch=args.state_branch,
     )
 
 
@@ -1190,8 +1183,6 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             "Update dashboard state",
             lambda: remove_cached_dashboard_prs(
                 args,
-                prs,
-                open_non_draft_pr_numbers,
                 selection.cached_pr_numbers_to_remove,
             ),
             state_branch=args.state_branch,
@@ -1205,18 +1196,17 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         file=sys.stderr,
     )
 
-    # Empty or draft-only repositories still need accepted markdown for the
-    # publish job, even when there are no non-draft PRs to refresh.
+    # Empty or draft-only repositories still need accepted dashboard state for
+    # the publish job, even when there are no non-draft PRs to refresh.
     if not selection.selected_prs:
-        def render_current_dashboard_state() -> int:
+        def save_current_dashboard_state() -> int:
             dashboard_state = load_dashboard_state_cache() or empty_state()
-            results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)
-            return render_and_save_dashboard(args, prs, results, dashboard_state, False)
+            return save_dashboard_update_state(args, dashboard_state, False)
 
         return state_branch.push_state_changes(
             state_dir,
             "Update dashboard state",
-            render_current_dashboard_state,
+            save_current_dashboard_state,
             state_branch=args.state_branch,
         )
 
@@ -1240,15 +1230,10 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 pr_number,
                 open_non_draft_pr_numbers,
             )
-            render_prs = (
-                prs
-                if calculation.trigger_pr_result is not None
-                else [p for p in prs if p["number"] != pr_number]
-            )
-            status = render_and_save_dashboard(
+            if not dashboard_state_unchanged and reject_failed_dashboard_result(calculation.trigger_pr_result):
+                return 1
+            status = save_dashboard_update_state(
                 args,
-                render_prs,
-                calculation.results,
                 calculation.dashboard_state,
                 dashboard_state_unchanged,
             )
@@ -1270,12 +1255,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
 def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir: Path) -> int:
     if args.pr_number is None:
         return update_dashboard_for_backfill(args, state_dir)
-    return state_branch.push_state_changes(
-        state_dir,
-        "Update dashboard state",
-        lambda: update_dashboard_for_pr_number(args),
-        state_branch=args.state_branch,
-    )
+    return update_dashboard_for_pr_number(args, state_dir)
 
 
 def main() -> int:
@@ -1300,15 +1280,6 @@ def main() -> int:
         help="minimum non-bot approvals needed before a PR can route to maintainers",
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
-    parser.add_argument(
-        "--large-repo",
-        action="store_true",
-        help=(
-            f"apply large-repo rendering presets: cap {LARGE_REPO_MAX_ROWS_PER_SECTION} rows "
-            "per section and omit the Draft pull requests section, to keep the dashboard body "
-            "under GitHub's 65,536-character issue-body limit"
-        ),
-    )
     args = parser.parse_args()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")

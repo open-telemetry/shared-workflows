@@ -21,14 +21,18 @@ the implementation understandable and operationally cheap.
 - State for each target repository lives on its own state branch under
   `otelbot/pull-request-dashboard-state/<repository>`, with files still
   namespaced by repository name inside the branch.
+- The state branch stores structured dashboard and notification state. The
+  publishing job renders markdown from accepted dashboard state and the target
+  repository's current open PR list.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
 
 ## GitHub Actions Instead Of Netlify For Scheduled Backfills
 
 - Scheduled backfills are batch jobs: they read repository PR lists, call REST
-  and GraphQL, run Copilot classification, update git-backed state, and publish
-  an issue body.
+  and GraphQL, run Copilot classification, and update git-backed state. A
+  follow-up publishing job renders and publishes the issue body from accepted
+  state.
 - GitHub Actions provides clearer logs, concurrency controls, artifacts, and
   normal retry/cancel behavior for that workload.
 - Netlify remains appropriate for small webhook-sized work, but it was a poor
@@ -45,7 +49,8 @@ the implementation understandable and operationally cheap.
   compare-and-swap boundary for concurrent same-repository runs.
 - A missing repository state branch is bootstrapped by the next non-PR backfill;
   targeted PR runs skip until initial dashboard state exists.
-- Targeted PR runs merge one PR slot with the latest accepted state.
+- Targeted PR runs compute the triggered PR and merge that one PR slot with the
+  latest accepted state on each state-branch compare-and-swap retry.
 
 ## Backfill
 
@@ -54,11 +59,13 @@ the implementation understandable and operationally cheap.
 - Each backfill lists open PRs, prunes cached PRs that are no longer open
   non-draft, then refreshes at most 100 open non-draft PRs.
 - Selected PRs are processed one at a time through the same single-PR merge path
-  as targeted refreshes. Each accepted PR update renders dashboard markdown and
-  pushes state before the next selected PR is processed.
+  as targeted refreshes. Each accepted PR update pushes structured state before
+  the next selected PR is processed.
 - The one-PR transaction size keeps state-branch compare-and-swap retries cheap:
   a rejected push retries one PR instead of refreshing a whole large repository
-  and spending the same GitHub GraphQL rate-limit budget again.
+  and spending the same GitHub GraphQL rate-limit budget again. Backfill retries
+  refetch the selected PR; targeted PR retries reuse the already computed PR
+  result and only redo the latest-state merge and state save.
 - Backfill progress is stored separately from dashboard state in
   `backfill-state.json`. The cursor is the last successfully refreshed PR
   number, and the next run continues after it in sorted PR-number order,
@@ -122,7 +129,9 @@ the implementation understandable and operationally cheap.
 
 - Dashboard publishing is serialized per target repository.
 - Each publish job fetches the accepted state branch while holding the publish
-  slot, so older jobs do not intentionally publish stale markdown over newer
-  accepted state.
+  slot, lists the target repository's current open PRs, renders markdown from
+  `dashboard-state.json`, and publishes the issue body.
+- Publish jobs are superseded by newer publish jobs for the same repository;
+  only the newest queued publish needs to render the latest accepted state.
 - If another update advances the state branch while a publish job is already
   editing the issue, the live issue can briefly lag until the next publish job.
