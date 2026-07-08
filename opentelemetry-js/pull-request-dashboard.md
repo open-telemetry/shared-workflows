@@ -34,7 +34,7 @@
 | [feat(api, context-async): add experimental attach/detach functionality (#6845)](https://github.com/open-telemetry/opentelemetry-js/pull/6845) | pichlermarc | legendecas | ✅ | ❌ | 1d |
 | [fix(configuration): apply resource attribute limits (#6891)](https://github.com/open-telemetry/opentelemetry-js/pull/6891) | LarryHu0217 | maryliag | ✅ | ✅ | 7h |
 | [feat(sdk-node,instrumentation,instrumentation-http,api-config,configuration): add declarative config support for `instrumentation/development` (#6868)](https://github.com/open-telemetry/opentelemetry-js/pull/6868) | mwear |  | ✅ | ❌ | 2h |
-| [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ⏳ | ✅ | 1h |
+| [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ✅ | ✅ | 1h |
 
 ## Waiting on authors
 
