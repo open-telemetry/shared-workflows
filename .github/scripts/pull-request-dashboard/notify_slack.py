@@ -7,91 +7,106 @@ import argparse
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from github_cli import detect_repo, list_open_prs, normalize_repo, repo_state_key
-from notifications import next_notification_state
+from notifications import next_notifications
 from state import (
     load_dashboard_state_cache,
-    load_notification_state_file,
+    load_notifications,
     load_state_file,
     notification_state_path,
     results_from_dashboard_state,
-    save_notification_state_file,
+    save_notifications,
     set_state_dir,
-    union_merge_notification_state,
+    union_merge_notifications,
 )
 import state_branch
 from utils import utc_now
 
 
+def last_notifications(
+    saved_notifications: dict[str, Any] | None,
+    retry_snapshot_path: Path | None,
+) -> dict[str, Any] | None:
+    if saved_notifications is None:
+        return None
+    merged_notifications = saved_notifications
+    if retry_snapshot_path and retry_snapshot_path.exists():
+        retry_snapshot_state = load_state_file(retry_snapshot_path)
+        if retry_snapshot_state is not None:
+            merged_notifications = union_merge_notifications(
+                merged_notifications,
+                retry_snapshot_state["prs"],
+            )
+    return merged_notifications
+
+
 def notify_slack_from_state(
     repo: str,
-    prior_notification_state: Path | None,
+    retry_snapshot_path: Path | None,
     notification_numbers: set[int] | None,
     notification_kinds: set[str] | None,
 ) -> list[str]:
+    dashboard_state = load_dashboard_state_cache()
+    if dashboard_state is None:
+        print("dashboard state not found; skipping Slack notifications", file=sys.stderr)
+        return []
+
     prs = list_open_prs(repo)
     open_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
-    dashboard_state = load_dashboard_state_cache()
     results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
     current_prs = {p["number"]: p for p in prs}
     for number, result in results.items():
         result["pr_title"] = current_prs.get(number, {}).get("title") or ""
 
-    state_file_notification_state = load_notification_state_file()
-    previous_state = state_file_notification_state
-    if prior_notification_state and prior_notification_state.exists():
-        prior = load_state_file(prior_notification_state)
-        previous_state = union_merge_notification_state(previous_state, prior)
+    saved_notifications = load_notifications()
 
-    notification_state = next_notification_state(
+    updated_notifications, delivery_errors = next_notifications(
         repo,
         results,
-        previous_state,
+        last_notifications(saved_notifications, retry_snapshot_path),
         utc_now(),
         notification_numbers=notification_numbers,
         notification_kinds=notification_kinds,
     )
-    notification_errors = [str(error) for error in notification_state.get("_notification_errors") or []]
-    notification_state_changed = (notification_state.get("prs") or {}) != (
-        state_file_notification_state.get("prs") or {}
-    )
-    if not notification_state_changed and state_file_notification_state.get("_loaded_from_dashboard"):
-        print("notification state unchanged", file=sys.stderr)
-        return notification_errors
+    notifications_changed = updated_notifications != (saved_notifications or {})
+    if not notifications_changed and saved_notifications is not None:
+        print("notifications unchanged", file=sys.stderr)
+        return delivery_errors
 
-    save_notification_state_file(notification_state)
-    return notification_errors
+    save_notifications(updated_notifications)
+    return delivery_errors
 
 
-def prior_notification_state_path() -> Path:
+def notification_retry_snapshot_path() -> Path:
     return Path(os.environ.get("RUNNER_TEMP", ".")) / "prior-notification-state.json"
 
 
-def notification_errors_path() -> Path:
+def delivery_errors_path() -> Path:
     return Path(os.environ.get("RUNNER_TEMP", ".")) / "notification-errors.txt"
 
 
 def notify_slack(
     repo: str,
-    prior_notification_state: Path,
-    notification_errors: Path,
+    retry_snapshot_path: Path,
+    delivery_errors_file: Path,
     notification_numbers: set[int] | None,
     notification_kinds: set[str] | None,
 ) -> int:
-    errors = notify_slack_from_state(repo, prior_notification_state, notification_numbers, notification_kinds)
+    errors = notify_slack_from_state(repo, retry_snapshot_path, notification_numbers, notification_kinds)
     if errors:
-        notification_errors.write_text("\n".join(errors) + "\n", encoding="utf-8")
+        delivery_errors_file.write_text("\n".join(errors) + "\n", encoding="utf-8")
     else:
-        notification_errors.unlink(missing_ok=True)
+        delivery_errors_file.unlink(missing_ok=True)
     return 0
 
 
 def notify_slack_with_state(args: argparse.Namespace, state_dir: Path) -> int:
     repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
-    prior_notification_state = prior_notification_state_path()
-    notification_errors = notification_errors_path()
-    notification_errors.unlink(missing_ok=True)
+    retry_snapshot_path = notification_retry_snapshot_path()
+    delivery_errors_file = delivery_errors_path()
+    delivery_errors_file.unlink(missing_ok=True)
     notification_numbers = {args.pr_number} if args.pr_number is not None else None
     notification_kinds = {"initial"} if args.pr_number is not None else {"follow-up"}
     status = state_branch.push_state_changes(
@@ -99,21 +114,21 @@ def notify_slack_with_state(args: argparse.Namespace, state_dir: Path) -> int:
         "Update dashboard notification state",
         lambda: notify_slack(
             normalize_repo(args.repo) if args.repo else detect_repo(),
-            prior_notification_state,
-            notification_errors,
+            retry_snapshot_path,
+            delivery_errors_file,
             notification_numbers,
             notification_kinds,
         ),
         state_branch=args.state_branch,
         add_paths=[f"{repo_key}/notification-state.json"],
-        retry_snapshots=[(notification_state_path(), prior_notification_state)],
+        retry_snapshots=[(notification_state_path(), retry_snapshot_path)],
     )
     if status != 0:
         return status
-    if not notification_errors.exists():
+    if not delivery_errors_file.exists():
         return 0
     print("Slack notification delivery failed:", file=sys.stderr)
-    print(notification_errors.read_text(encoding="utf-8").rstrip(), file=sys.stderr)
+    print(delivery_errors_file.read_text(encoding="utf-8").rstrip(), file=sys.stderr)
     return 1
 
 

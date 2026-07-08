@@ -36,7 +36,8 @@ A run flows like this:
        v
   compute_pr_results
        single-PR + cache hit:  reuse cached results, recompute only the trigger PR
-       otherwise:              rebuild all PRs in parallel
+       single-PR + cache miss: skip; wait for a full run to create initial state
+       no PR target:           rebuild all PRs in parallel
        v
   reconcile_with_latest_dashboard
        reload dashboard-state in case a concurrent run updated it
@@ -913,12 +914,9 @@ def compute_pr_results(
     jobs: int,
     model: str,
     required_approvals: int,
+    dashboard_state: dict[str, Any],
 ) -> DashboardCalculation:
-    dashboard_state = empty_state()
     if pr_number:
-        dashboard_state = load_dashboard_state_cache()
-
-    if pr_number and dashboard_state.get("_loaded_from_dashboard"):
         print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
         results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
         starting_pr_result = results.get(pr_number)
@@ -937,8 +935,6 @@ def compute_pr_results(
             used_cached_dashboard_state=True,
         )
 
-    if pr_number:
-        print("dashboard result state not found; rebuilding all PRs", file=sys.stderr)
     print(f"processing {len(non_drafts)} PR(s) in {repo} (model={model}, jobs={jobs})", file=sys.stderr)
     results = {}
     with ThreadPoolExecutor(max_workers=jobs) as pool:
@@ -992,8 +988,8 @@ def reconcile_with_latest_dashboard(
         # list_open_prs and the worker run. Drop any stale cached result so
         # the notification job cannot continue treating the PR as routed.
         dashboard_state = load_dashboard_state_cache()
-        if dashboard_state.get("_loaded_from_dashboard"):
-            previous_pr_result = (dashboard_state.get("prs") or {}).get(str(pr_number))
+        if dashboard_state is not None:
+            previous_pr_result = dashboard_state["prs"].get(str(pr_number))
             if previous_pr_result != calculation.starting_pr_result:
                 results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
                 return replace(calculation, results=results, dashboard_state=dashboard_state), True
@@ -1006,21 +1002,24 @@ def reconcile_with_latest_dashboard(
     # Reload the cache so we pick up any concurrent writer's update of
     # other PR slots before we merge in our own.
     latest_dashboard_state = load_dashboard_state_cache()
-    previous_pr_result = (latest_dashboard_state.get("prs") or {}).get(str(pr_number))
+    if latest_dashboard_state is None:
+        previous_pr_result = None
+    else:
+        previous_pr_result = latest_dashboard_state["prs"].get(str(pr_number))
     dashboard_state = calculation.dashboard_state
     results = calculation.results
 
     if previous_pr_result == calculation.current_pr_result:
-        if latest_dashboard_state.get("_loaded_from_dashboard"):
+        if latest_dashboard_state is not None:
             dashboard_state = latest_dashboard_state
             results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
         return replace(calculation, results=results, dashboard_state=dashboard_state), True
 
-    if latest_dashboard_state.get("_loaded_from_dashboard") and previous_pr_result != calculation.starting_pr_result:
+    if latest_dashboard_state is not None and previous_pr_result != calculation.starting_pr_result:
         results = results_from_dashboard_state(latest_dashboard_state, open_pr_numbers)
         return replace(calculation, results=results, dashboard_state=latest_dashboard_state), True
 
-    if latest_dashboard_state.get("_loaded_from_dashboard"):
+    if latest_dashboard_state is not None:
         dashboard_state = latest_dashboard_state
     dashboard_state = update_dashboard_state_for_pr(dashboard_state, pr_number, calculation.trigger_pr_result)
     results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
@@ -1030,6 +1029,14 @@ def reconcile_with_latest_dashboard(
 def update_dashboard(args: argparse.Namespace) -> int:
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     owner, repo_name = repo.split("/", 1)
+
+    dashboard_state = empty_state()
+    if args.pr_number:
+        loaded_dashboard_state = load_dashboard_state_cache()
+        if loaded_dashboard_state is None:
+            print("dashboard result state not found; skipping targeted refresh", file=sys.stderr)
+            return 0
+        dashboard_state = loaded_dashboard_state
 
     prs = list_open_prs(repo)
     open_pr_numbers = {p["number"] for p in prs}
@@ -1050,6 +1057,7 @@ def update_dashboard(args: argparse.Namespace) -> int:
         DEFAULT_JOBS,
         args.model,
         args.required_approvals,
+        dashboard_state,
     )
 
     calculation, dashboard_state_unchanged = reconcile_with_latest_dashboard(

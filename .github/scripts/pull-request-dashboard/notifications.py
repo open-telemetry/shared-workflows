@@ -105,16 +105,15 @@ def slack_message(repo: str, result: dict[str, Any], reviewer_mentions: str, kin
 
 
 def pending_notification_kind(
-    previous_state_exists: bool,
-    previous_pr_state: dict[str, Any],
+    last_pr_notification: dict[str, Any] | None,
     current_waiting_since: datetime | None,
     now: datetime,
 ) -> str | None:
-    if not previous_state_exists:
+    if last_pr_notification is None:
         return None
     if current_waiting_since is None:
         return None
-    last_notified = parse_ts(previous_pr_state.get("last_notified_at") or "")
+    last_notified = parse_ts(last_pr_notification.get("last_notified_at") or "")
     if last_notified is None:
         return "initial"
     elapsed_seconds = (now - last_notified).total_seconds()
@@ -167,56 +166,56 @@ def send_slack_notification(
     return None
 
 
-def migrated_pr_notification_state(state: dict[str, Any]) -> dict[str, Any]:
-    if state.get("last_notified_at") or not state.get("assignee_notifications"):
-        return state
+def migrated_pr_notification(notification: dict[str, Any]) -> dict[str, Any]:
+    if notification.get("last_notified_at") or not notification.get("assignee_notifications"):
+        return notification
     timestamps: list[str] = []
-    for notification in state["assignee_notifications"].values():
-        if not isinstance(notification, dict):
+    for assignee_notification in notification["assignee_notifications"].values():
+        if not isinstance(assignee_notification, dict):
             continue
-        last_notified_at = notification.get("last_notified_at")
+        last_notified_at = assignee_notification.get("last_notified_at")
         if isinstance(last_notified_at, str) and last_notified_at:
             timestamps.append(last_notified_at)
     if not timestamps:
-        return state
+        return notification
     return {
         "last_notified_at": max(timestamps),
         "last_notification_kind": "initial",
     }
 
 
-def next_notification_state(
+def next_notifications(
     repo: str,
     results: dict[int, dict[str, Any]],
-    previous_state: dict[str, Any],
+    last_notifications: dict[str, Any] | None,
     now: datetime,
     notification_numbers: set[int] | None = None,
     notification_kinds: set[str] | None = None,
-) -> dict[str, Any]:
-    previous_prs = previous_state.get("prs") or {}
-    previous_state_exists = bool(previous_state.get("_loaded_from_dashboard"))
+) -> tuple[dict[str, Any], list[str]]:
+    has_last_notifications = last_notifications is not None
+    previous_notifications = last_notifications or {}
     webhook_url = os.environ.get("SLACK_WEBHOOK_URL") or ""
     slack_channel = os.environ.get("SLACK_CHANNEL") or ""
     if not slack_channel:
         print("slack_channel is not configured; skipping Slack notifications", file=sys.stderr)
-        return {**previous_state, "_notification_errors": []}
+        return dict(previous_notifications), []
     slack_user_map = load_slack_user_map()
 
-    new_prs: dict[str, Any] = {}
-    notification_errors: list[str] = []
+    updated_notifications: dict[str, Any] = {}
+    delivery_errors: list[str] = []
     for number, result in sorted(results.items()):
         pr_key = str(number)
-        previous_pr_state = migrated_pr_notification_state(previous_prs.get(pr_key) or {})
+        last_pr_notification = migrated_pr_notification(previous_notifications.get(pr_key) or {})
 
         if notification_numbers is not None and number not in notification_numbers:
-            if previous_pr_state:
-                new_prs[pr_key] = previous_pr_state
+            if last_pr_notification:
+                updated_notifications[pr_key] = last_pr_notification
             continue
 
         route = result.get("route") or "unknown"
         if result.get("failed") or route in ("transient-failure", "unknown"):
-            if previous_pr_state:
-                new_prs[pr_key] = previous_pr_state
+            if last_pr_notification:
+                updated_notifications[pr_key] = last_pr_notification
             continue
 
         if route != "approver":
@@ -229,20 +228,21 @@ def next_notification_state(
             if reviewer.lower() in slack_user_map
         ]
         if not mapped_reviewers:
-            if previous_pr_state:
-                new_prs[pr_key] = previous_pr_state
+            if last_pr_notification:
+                updated_notifications[pr_key] = last_pr_notification
             continue
 
         current_waiting_since = parse_ts(facts.get("waiting_since") or "")
+        notification_baseline = last_pr_notification if has_last_notifications else None
         kind = pending_notification_kind(
-            previous_state_exists, previous_pr_state, current_waiting_since, now,
+            notification_baseline, current_waiting_since, now,
         )
         if kind and notification_kinds is not None and kind not in notification_kinds:
             kind = None
 
-        new_pr_state: dict[str, Any] = {
-            "last_notified_at": previous_pr_state.get("last_notified_at") or "",
-            "last_notification_kind": previous_pr_state.get("last_notification_kind") or "",
+        updated_pr_notification: dict[str, Any] = {
+            "last_notified_at": last_pr_notification.get("last_notified_at") or "",
+            "last_notification_kind": last_pr_notification.get("last_notification_kind") or "",
         }
 
         if kind:
@@ -251,11 +251,11 @@ def next_notification_state(
             error = send_slack_notification(repo, result, reviewers, kind, webhook_url, slack_channel, reviewer_mentions)
             if error:
                 print(f"  warning: {error}", file=sys.stderr)
-                notification_errors.append(error)
+                delivery_errors.append(error)
             else:
-                new_pr_state["last_notified_at"] = format_ts(now)
-                new_pr_state["last_notification_kind"] = kind
+                updated_pr_notification["last_notified_at"] = format_ts(now)
+                updated_pr_notification["last_notification_kind"] = kind
 
-        if new_pr_state["last_notified_at"]:
-            new_prs[pr_key] = new_pr_state
-    return {"prs": new_prs, "_notification_errors": notification_errors}
+        if updated_pr_notification["last_notified_at"]:
+            updated_notifications[pr_key] = updated_pr_notification
+    return updated_notifications, delivery_errors
