@@ -42,6 +42,7 @@ The default comment is:
 >
 > - Read our [Contributing Guidelines](https://github.com/`<owner/repo>`/blob/main/CONTRIBUTING.md).
 > - Sign the [CLA](https://identity.linuxfoundation.org/projects/cncf) if you haven't already.
+> - Follow the OpenTelemetry [Generative AI policy](https://github.com/open-telemetry/community/blob/main/policies/genai.md): disclose any AI use in your contribution, and communicate (PR descriptions, review replies) in your own words rather than AI-generated text.
 > - Give reviewers at least a few days before pinging them for feedback.
 > - If you need help with general setup, development process, or contributor etiquette, ask in [#opentelemetry-new-contributors](https://cloud-native.slack.com/archives/C09H3MNMBQV).
 
