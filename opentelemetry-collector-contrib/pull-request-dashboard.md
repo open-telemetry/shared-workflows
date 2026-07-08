@@ -79,6 +79,7 @@
 | [\[exporter/loadbalancing\] Replace log.Fatalf with proper error return in AWS Cloud Map resolver (#48763)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48763) | Vanshul97 | atoulme&nbsp;💬<br>ChrsMark<br>iblancasa&nbsp;✅ | ❌ | ✅ | 40d |
 | [\[receiver/awscloudwatch\] Use LogGroupIdentifier for cross-account log groups (#48762)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48762) | Vanshul97 | andrzej-stencel<br>dyl10s&nbsp;💬 | ✅ | ✅ | 40d |
 | [\[tailsamplingprocessor\] Fix race in iter() that delays config updates (#48889)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48889) | vishalmore90 | csmarchbanks&nbsp;✔️<br>jmacd&nbsp;✅<br>paulojmdias&nbsp;💬<br>VihasMakwana | ✅ | ✅ | 31d |
+| [\[chore\] google_cloud_spanner add metrics and attributes to metadata.yaml (#48975)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48975) | davidspek | dmitryax | ❌ | ✅ | 29d |
 | [\[chore\] fix errInvalidEndpoint not wrapped in error chain in check receivers (#48729)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48729) | immanuwell | TylerHelmuth | ✅ | ✅ | 26d |
 | [fix(isolationforestprocessor): trees never split + contamination_rate ignored (#47115)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47115) | pathcl | aarvee11&nbsp;💬⁠✔️<br>atoulme<br>codeboten<br>iblancasa&nbsp;💬 | ❌ | ✅ | 23d |
 | [\[receiver/docker_stats\] Introduce feature gate to align metrics with new container semantic conventions (#48081)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48081) | ben-trans | atoulme<br>jamesmoessis&nbsp;💬<br>MovieStoreGuy&nbsp;✅<br>pjanotti | ✅ | ❌ | 23d |
@@ -167,7 +168,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 58 PRs not shown_
+_More 57 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
