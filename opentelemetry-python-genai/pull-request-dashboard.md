@@ -16,6 +16,7 @@
 | [Update dependency anyio to &gt;=4.14.1 (#209)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/209) | app/renovate |  | ⏳ | ✅ | 2m |
 | [Update dependency claude-agent-sdk to &gt;=0.2.113 (#210)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/210) | app/renovate |  | ⏳ | ✅ | 2m |
 | [Update dependency fsspec to &gt;=2025.12.0 (#211)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/211) | app/renovate |  | ⏳ | ✅ | 2m |
+| [Update dependency markupsafe to &gt;=2.1.5 (#212)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/212) | app/renovate |  | ⏳ | ✅ | 2m |
 
 ## Waiting on authors
 
@@ -47,7 +48,6 @@
 | [Update dependency wrapt to &gt;=1.17.3,&lt;3.0.0 (#215)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/215) | app/renovate |  | ? | ? | ? |
 | [Update dependency pydantic to &gt;=2.12.5,&lt;3 (#214)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/214) | app/renovate |  | ? | ? | ? |
 | [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate |  | ? | ? | ? |
-| [Update dependency markupsafe to &gt;=2.1.5 (#212)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/212) | app/renovate |  | ? | ? | ? |
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate |  | ? | ? | ? |
 
 ## Draft pull requests
