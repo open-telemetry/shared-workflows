@@ -31,13 +31,13 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ❌ | ❌ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 |  | ✅ | ❌ | 4h |
 | [Update langchain instrumentation (update to latest semantic conventions, bug fixes, update semantic conventions version, etc.) (#129)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/129) | rads-1996 | JacksonWeber&nbsp;✔️<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅<br>nagkumar91&nbsp;✔️ | ❌ | ✅ | 34m |
-| [\[`opentelemetry-instrumentation-google-genai`\]: record response model attribute on inference span/event (#205)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/205) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 16m |
+| [\[`opentelemetry-instrumentation-google-genai`\]: record response model attribute on inference span/event (#205)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/205) | DylanRussell | lmolkova&nbsp;✅ | ✅ | ✅ | 17m |
 
 ## Waiting on external
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | eternalcuriouslearner<br>lmolkova&nbsp;💬 | ✅ | ✅ | 4h |
+| [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | eternalcuriouslearner<br>lmolkova&nbsp;💬 | ✅ | ✅ | 5h |
 
 ## Draft pull requests
 
