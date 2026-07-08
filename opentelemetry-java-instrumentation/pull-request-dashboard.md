@@ -69,7 +69,7 @@
 | [Draft: init spring-ai instrumentation (#15064)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15064) | Cirilla-zmh | 8d |
 | [Rename setCaptured* to setCapture* to have a single convention (#17154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17154) | trask | 7d |
 | [Extract multi-query batch operation attributes (#19147)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19147) | trask | 2h |
-| [Handle explicit empty database batches (#19143)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19143) | trask | 6m |
+| [Handle explicit empty database batches (#19143)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19143) | trask | 7m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
