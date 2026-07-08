@@ -106,6 +106,7 @@ _More 7 PRs not shown_
 | [\[pkg/pdatatest\] Add pmetricassert attribute include matcher (#48622)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48622) | singhvibhanshu | ArthurSens<br>dmitryax | ✅ | ✅ | 17d |
 | [extension.oidauthextension added support for multiple JWT sigs in extension oidc (#47849)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47849) | michaelalang | atoulme&nbsp;💬<br>pavolloffay&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 16d |
 | [\[pkg/stanza\] Add cache for `container` operator's k8s attributes extraction (#44487)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/44487) | Nitesh-vaidyanath | andrzej-stencel<br>atoulme&nbsp;💬<br>codeboten | ✅ | ❌ | 15d |
+| [\[chore\]\[processor/resource_detection\] Add paulojmdias as codeowner (#49141)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49141) | paulojmdias | dashpole&nbsp;✅<br>VihasMakwana | ✅ | ✅ | 14d |
 | [\[extension/basicauthextension\] Add AWS Secrets Manager support for basicauth extension (#49025)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49025) | meebok | frzifus&nbsp;✔️<br>MovieStoreGuy | ✅ | ❌ | 14d |
 | [\[receiver/k8scluster\] Fix container.image.name and container.image.tag when status image is a bare digest (#46987)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46987) | ricardbejarano | atoulme<br>ChrsMark&nbsp;💬<br>dmitryax<br>povilasv&nbsp;✔️ | ✅ | ✅ | 13d |
 | [\[receiver/sqlserverreceiver\] add db.query.full_text opt-in attribute to top_query and query_sample events (#48660)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48660) | avadla | crobert-1&nbsp;💬<br>songy23 | ✅ | ❌ | 11d |
@@ -186,7 +187,7 @@ _More 7 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 34 PRs not shown_
+_More 33 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
