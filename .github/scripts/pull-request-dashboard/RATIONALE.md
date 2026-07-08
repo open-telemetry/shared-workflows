@@ -17,9 +17,10 @@ the implementation understandable and operationally cheap.
   repositories whose updates succeeded.
 - The top-level repository matrix runs one repository at a time. Backfills do
   not benefit enough from cross-repository parallelism to justify extra
-  contention on the shared state branch.
-- State for all target repositories lives on one shared state branch, namespaced
-  by repository name.
+  aggregate API and LLM demand.
+- State for each target repository lives on its own state branch under
+  `otelbot/pull-request-dashboard-state/<repository>`, with files still
+  namespaced by repository name inside the branch.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
 
@@ -38,8 +39,12 @@ the implementation understandable and operationally cheap.
 - Dashboard and notification state are stored on a git branch rather than in the
   live dashboard issue body.
 - Dashboard and notification state files are namespaced by target repository.
+- Each target repository uses a separate state branch so unrelated repositories
+  do not contend on the same git ref during scheduled and webhook-driven runs.
 - Updates use `git push --force-with-lease`, so git refs provide the durable
-  compare-and-swap boundary for concurrent runs.
+  compare-and-swap boundary for concurrent same-repository runs.
+- A missing repository state branch is bootstrapped by the next non-PR backfill;
+  targeted PR runs skip until initial dashboard state exists.
 - Targeted PR runs merge one PR slot with the latest accepted state.
 
 ## Backfill
