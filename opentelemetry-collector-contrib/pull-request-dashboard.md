@@ -78,7 +78,7 @@
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
 | [\[elasticsearchexporter\] Add retry_on_document_status configuration (#48933)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48933) | belimawr | carsonip&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 7d |
 
-_More 30 PRs not shown_
+_More 31 PRs not shown_
 
 ## Waiting on authors
 
@@ -192,7 +192,6 @@ _More 5 PRs not shown_
 | [\[exporter/azuremonitor\] add configurable HTTP success mapping (#49399)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49399) | tombiddulph |  | ? | ? | ? |
 | [\[exporter/prometheusremotewriteexporter\] Retry transient WAL export errors and add configurable segment cache size (#49383)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49383) | charanck9 |  | ? | ? | ? |
 | [\[exporter/opensearchexporter\] Validate attribute values in dynamic index names (#49362)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49362) | kylehounslow |  | ? | ? | ? |
-| [\[receiver/awsecscontainermetricsreceiver\] Remove v1.21.0 import (#49360)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49360) | anarwal |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
