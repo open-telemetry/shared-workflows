@@ -9,10 +9,10 @@
 |---|---|---|:---:|:---:|:---:|
 | [Update dependency grpcio to v1.82.1 (#196)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/196) | app/renovate | eternalcuriouslearner<br>lmolkova&nbsp;✅ | ✅ | ✅ | 2d |
 | [Update dependency claude-agent-sdk to &gt;=0.2.114 (#210)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/210) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 27m |
-| [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 26m |
+| [Update dependency openai-agents to v0.18.0 (#213)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/213) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 27m |
 | [Update dependency wrapt to &gt;=1.17.3,&lt;3.0.0 (#215)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/215) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 26m |
 | [Update dependency markupsafe to v3 (#218)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/218) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 26m |
-| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 25m |
+| [Update dependency wrapt to v2 (#219)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/219) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 26m |
 
 ## Waiting on reviewers
 
