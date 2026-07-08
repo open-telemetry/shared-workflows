@@ -69,9 +69,9 @@
 | [\[exporter/clickhouse\] retry schema detection after transient errors instead of caching "feature absent" (#48902)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48902) | Krishnachaitanyakc | iblancasa | ✅ | ✅ | 4d |
 | [\[receiver/oracledb\] Add transaction, lock, and recovery metrics (#49067)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49067) | rluidash | codeboten<br>crobert-1&nbsp;💬 | ✅ | ✅ | 11h |
 | [\[receiver/oracledb\] Add session, JVM, and OS resource metrics (#49068)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49068) | rluidash | ChrsMark<br>crobert-1&nbsp;💬 | ✅ | ✅ | 11h |
-| [\[receiver/apache\] add request rate, transmitted-bytes rate, and worker limit metrics (#49029)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49029) | sairaj18 | colelaven&nbsp;✔️<br>dashpole&nbsp;💬 | ❌ | ✅ | 6h |
+| [Add v$sysmetric health metrics to oracledbreceiver (#49096)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49096) | rluidash | crobert-1&nbsp;💬<br>edmocosta | ❌ | ✅ | 9h |
 
-_More 2 PRs not shown_
+_More 3 PRs not shown_
 
 ## Waiting on authors
 
@@ -184,7 +184,7 @@ _More 2 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 41 PRs not shown_
+_More 40 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
