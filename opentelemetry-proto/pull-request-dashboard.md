@@ -7,6 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
+| [Support grpc-retry-pushback-ms (#664)](https://github.com/open-telemetry/opentelemetry-proto/pull/664) | DylanRussell | bogdandrutu&nbsp;💬<br>MrAlias&nbsp;💬<br>pellared<br>tigrannajaryan&nbsp;💬 | ✅ | ✅ | 322d |
 | [Add support for SELinux Systems. (#340)](https://github.com/open-telemetry/opentelemetry-proto/pull/340) | hdost | bogdandrutu<br>marcalff&nbsp;✅<br>tigrannajaryan&nbsp;✅ | ? | ❌ | 105d |
 
 ## Unknown
@@ -14,7 +15,6 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [\[DO NOT MERGE\] profiles: more efficient and flexible original_payload handling. (#786)](https://github.com/open-telemetry/opentelemetry-proto/pull/786) | jhalliday |  | ? | ? | ? |
-| [Support grpc-retry-pushback-ms (#664)](https://github.com/open-telemetry/opentelemetry-proto/pull/664) | DylanRussell |  | ? | ? | ? |
 
 ## Draft pull requests
 
