@@ -7,17 +7,17 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate | lmolkova&nbsp;✅ | ⏳ | ✅ | 48m |
-| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 46m |
+| [Update dependency fsspec to v2026 (#217)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/217) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 52m |
+| [Lock file maintenance (#220)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/220) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 50m |
 
 ## Waiting on reviewers
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 21d |
-| [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 7d |
+| [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 1d |
-| [Remove residual OTEL_SEMCONV_STABILITY_OPT_IN references from docs and tests (#206)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/206) | AgentGymLeader | lmolkova | ✅ | ✅ | 5m |
+| [Remove residual OTEL_SEMCONV_STABILITY_OPT_IN references from docs and tests (#206)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/206) | AgentGymLeader | lmolkova | ✅ | ✅ | 10m |
 
 ## Waiting on authors
 
