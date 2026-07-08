@@ -33,6 +33,7 @@
 | [\[pkg/ottl\] Implement AST constant folding for deterministic converters (#46506)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46506) | Rajneesh180 | andrzej-stencel<br>edmocosta | ✅ | ❌ | 26d |
 | [\[cmd/telemetrygen\] honour --allow-export-failures in batch flushBuffer (#47651)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47651) | alliasgher | atoulme<br>axw<br>bogdan-st&nbsp;✔️<br>braydonk | ✅ | ✅ | 26d |
 | [feat(resourcedetectionprocessor): add retry with backoff config to resource detector processor (#48223)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48223) | KyriosGN0 | atoulme<br>paulojmdias&nbsp;💬 | ✅ | ❌ | 25d |
+| [\[receiver/vcenter\] Add host memory granted, active, and ballooned metrics (#49047)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49047) | Easonliuuuuu | andrzej-stencel | ✅ | ❌ | 25d |
 | [connector/servicegraph: add links-based correlation for async messaging (#48782)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48782) | harshitt13 | dmitryax | ✅ | ✅ | 23d |
 | [\[pkg/stanza/fileconsumer\] Require explicit top_n when sort_by is configured (#47445)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47445) | Dylan-M | andrzej-stencel<br>atoulme<br>braydonk<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 22d |
 | [\[exporter/opensearchexporter\] Add manage_index_template option for otel-v1 mode (#48873)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48873) | ps48 | kylehounslow&nbsp;✔️<br>pjanotti | ✅ | ✅ | 21d |
@@ -176,7 +177,7 @@
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 49 PRs not shown_
+_More 48 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
