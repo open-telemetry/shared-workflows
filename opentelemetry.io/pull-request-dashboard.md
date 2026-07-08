@@ -15,6 +15,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
+| [\[CI\] Add redirect rules link checking (#9082)](https://github.com/open-telemetry/opentelemetry.io/pull/9082) | pratik-mahalle |  | ❌ | ✅ | 118d |
 | [Add new mainframe section in /doc/platforms (#8624)](https://github.com/open-telemetry/opentelemetry.io/pull/8624) | gshriver | cartermp<br>chalin&nbsp;🔴<br>rrschulze&nbsp;✔️<br>svrnm&nbsp;🔴 | ❌ | ✅ | 67d |
 
 ## Unknown
@@ -106,7 +107,6 @@
 | [blog: Observing Istio with OpenTelemetry (#9178)](https://github.com/open-telemetry/opentelemetry.io/pull/9178) | kaspernissen |  | ? | ? | ? |
 | [Blog Post on "OpenTelemetry for Distributed Multi-Agent System Observability" (#9125)](https://github.com/open-telemetry/opentelemetry.io/pull/9125) | axsaucedo |  | ? | ? | ? |
 | [blog: Observing kgateway with otel (#9113)](https://github.com/open-telemetry/opentelemetry.io/pull/9113) | kaspernissen |  | ? | ? | ? |
-| [\[CI\] Add redirect rules link checking (#9082)](https://github.com/open-telemetry/opentelemetry.io/pull/9082) | pratik-mahalle |  | ? | ? | ? |
 
 ## Draft pull requests
 
