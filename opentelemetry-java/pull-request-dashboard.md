@@ -25,6 +25,7 @@
 | [Standardize OkHttpHttpSender shutdown to await executor termination (#8495)](https://github.com/open-telemetry/opentelemetry-java/pull/8495) | thswlsqls |  | ❌ | ✅ | 3d |
 | [Fix Jaeger propagator baggage header case sensitivity (#8496)](https://github.com/open-telemetry/opentelemetry-java/pull/8496) | thswlsqls |  | ✅ | ✅ | 3d |
 | [Fix serialization of array-valued scope and resource attributes in Prometheus exporter (#8497)](https://github.com/open-telemetry/opentelemetry-java/pull/8497) | thswlsqls |  | ✅ | ✅ | 3d |
+| [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR | jack-berg | ✅ | ✅ | 22h |
 
 ## Waiting on authors
 
@@ -53,7 +54,6 @@
 | [Fix/sampler shutdown lifecycle (#8574)](https://github.com/open-telemetry/opentelemetry-java/pull/8574) | Debashismitra01 |  | ? | ? | ? |
 | [Fix OkHttp client mTLS when using the platform default trust store (#8565)](https://github.com/open-telemetry/opentelemetry-java/pull/8565) | Debashismitra01 |  | ? | ? | ? |
 | [Add BatchSpanProcessor.create(SpanExporter) to match SimpleSpanProcessor (#8564)](https://github.com/open-telemetry/opentelemetry-java/pull/8564) | jimbobbennett |  | ? | ? | ? |
-| [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR |  | ? | ? | ? |
 
 ## Draft pull requests
 
