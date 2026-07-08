@@ -65,6 +65,7 @@
 | [\[receiver/vcenterreceiver\] Fix vcenter.vm.cpu.readiness always report… (#48900)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48900) | Easonliuuuuu | codeboten<br>Dylan-M&nbsp;✔️<br>schmikei&nbsp;✔️ | ✅ | ✅ | 8d |
 | [docs(mongodbreceiver): clarify the `hosts` config (#48788)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48788) | Lenormju | ChrsMark<br>dyl10s&nbsp;✔️<br>paulojmdias&nbsp;✔️ | ❌ | ✅ | 8d |
 | [lookupProcessor: add file watching for yaml (#49070)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49070) | michael-michalski | songy23 | ✅ | ✅ | 8d |
+| [\[processor/transform/internal/logparsingfuncs\] Add ParseCEF log parsing function (#49288)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49288) | Caleb-Hurshman | Dylan-M&nbsp;✔️<br>pjanotti | ✅ | ✅ | 7d |
 | [\[receiver/journald\] add option to include original log record (#48243)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48243) | belimawr | andrzej-stencel<br>ArthurSens | ❌ | ✅ | 7d |
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 7d |
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
@@ -73,9 +74,8 @@
 | [\[receiver/redis\] Add pubsub metrics (#49148)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49148) | rajrohanyadav | pjanotti | ✅ | ✅ | 7d |
 | [\[receiver/postgresql\] clarify `postgresql.backends` metric semantics (#49201)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49201) | kartikgola | dashpole | ❌ | ✅ | 7d |
 | [\[receiver/tlscheckreceiver\] allow scraping all certs (#48520)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48520) | sigmaris | codeboten<br>michael-burt&nbsp;✔️ | ✅ | ✅ | 6d |
-| [feat: add feature gate to control otel.scope convention in Datadog exporter (#49001)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49001) | Alexpedone | evan-bradley<br>songy23 | ✅ | ✅ | 6d |
 
-_More 22 PRs not shown_
+_More 23 PRs not shown_
 
 ## Waiting on authors
 
@@ -197,7 +197,7 @@ _More 1 PR not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 9 PRs not shown_
+_More 8 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
