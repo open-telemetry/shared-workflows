@@ -21,7 +21,7 @@
 | [feat: Add instrumentation for AsyncMessages.stream, Messages.parse and AsyncMessages.parse methods. (#191)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/191) | eternalcuriouslearner | DylanRussell&nbsp;💬⁠✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 1d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 | lmolkova | ✅ | ❌ | 8h |
-| [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 33m |
+| [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 34m |
 
 ## Waiting on external
 
