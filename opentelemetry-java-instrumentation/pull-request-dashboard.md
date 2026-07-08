@@ -38,6 +38,7 @@
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅ | ✅ | ✅ | 1d |
 | [feat: Add GenAI agent/tool/retrieval semantic conventions to instrumentation-api-incubator (#19124)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19124) | eternalcuriouslearner | laurit&nbsp;💬 | ✅ | ✅ | 1d |
 | [switch non-inlined instrumentation by default + update doc (#19076)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19076) | SylvainJuge | laurit&nbsp;💬<br>SylvainJuge | ✅ | ✅ | 1d |
+| [Disable virtual field usage checker by default (#19138)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19138) | laurit |  | ✅ | ✅ | 1d |
 | [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask | ✅ | ✅ | 3h |
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty | laurit&nbsp;✅<br>trask&nbsp;💬 | ✅ | ✅ | 45m |
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 40m |
@@ -55,7 +56,6 @@
 | [Move experimental apis needed by indy instrumentations to InstrumentationModule (#19142)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142) | laurit |  | ? | ? | ? |
 | [Remove isIndyModule method (#19140)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19140) | laurit |  | ? | ? | ? |
 | [\[jmx-metrics\] bootstrap + validate registry definitions for jmx metrics (#19139)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139) | SylvainJuge |  | ? | ? | ? |
-| [Disable virtual field usage checker by default (#19138)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19138) | laurit |  | ? | ? | ? |
 
 ## Draft pull requests
 
