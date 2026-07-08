@@ -75,7 +75,7 @@
 | [\[receiver/kafka_metrics\] Add kafka.cluster.id in kafka metrics as attribute (#48897)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48897) | shashank-reddy-nr | evan-bradley | ✅ | ✅ | 5d |
 | [\[receiver/awscloudwatch\] Report cloud.account.id and support cross-account metric collection (#49155)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49155) | tommyers-elastic | braydonk | ❌ | ✅ | 5d |
 
-_More 11 PRs not shown_
+_More 12 PRs not shown_
 
 ## Waiting on authors
 
@@ -193,7 +193,7 @@ _More 11 PRs not shown_
 | [\[receiver/sqlserverreceiver\] Add per-index physical stats metrics (#49350)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49350) | akgrover |  | ? | ? | ? |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher |  | ? | ? | ? |
 
-_More 23 PRs not shown_
+_More 22 PRs not shown_
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
