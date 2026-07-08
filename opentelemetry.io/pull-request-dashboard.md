@@ -12,6 +12,7 @@
 | [Blog Post on "OpenTelemetry for Distributed Multi-Agent System Observability" (#9125)](https://github.com/open-telemetry/opentelemetry.io/pull/9125) | axsaucedo | svrnm | ✅ | ✅ | 149d |
 | [🇺🇦 Ukrainian localization of OpenTelemetry documentation (#5891)](https://github.com/open-telemetry/opentelemetry.io/pull/5891) | Andygol | chalin&nbsp;🔴<br>svrnm&nbsp;🔴 | ✅ | ❌ | 91d |
 | [Update docker-compose.yaml to canonical compose.yaml terminology (#9611)](https://github.com/open-telemetry/opentelemetry.io/pull/9611) | akristen | simi&nbsp;✔️ | ✅ | ✅ | 90d |
+| [Add additional registry entry types (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ✅ | ✅ | 34d |
 | [\[fr\] Add French translation of concepts/distributions (#9801)](https://github.com/open-telemetry/opentelemetry.io/pull/9801) | karlassily | chalin<br>theletterf | ✅ | ✅ | 29d |
 | [Additional docs for the OpenTelemetry Kotlin SDK (#9984)](https://github.com/open-telemetry/opentelemetry.io/pull/9984) | fractalwrench | breedx-splk&nbsp;✔️<br>maryliag<br>tiffany76 | ✅ | ✅ | 1d |
 | [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 5h |
@@ -112,7 +113,6 @@
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski |  | ? | ? | ? |
 | [Add rhea AMQP 1.0 instrumentation for JavaScript to registry (#10263)](https://github.com/open-telemetry/opentelemetry.io/pull/10263) | bartoval |  | ? | ? | ? |
 | [Clean up registry entry template whitespace (#10234)](https://github.com/open-telemetry/opentelemetry.io/pull/10234) | brunofoggiatto |  | ? | ? | ? |
-| [Add additional registry entry types (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ? | ? | ? |
 
 ## Draft pull requests
 
