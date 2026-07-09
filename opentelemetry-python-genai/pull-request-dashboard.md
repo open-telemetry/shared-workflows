@@ -11,8 +11,9 @@
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 4h |
 | [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | eternalcuriouslearner<br>trask&nbsp;💬 | ✅ | ❌ | 2h |
-| [run spellcheck on towncrier fragments and other hidden files (#228)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/228) | lmolkova |  | ✅ | ❌ | 50m |
-| [don't run changelog check on release prs (#229)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/229) | lmolkova |  | ✅ | ✅ | 45m |
+| [run spellcheck on towncrier fragments and other hidden files (#228)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/228) | lmolkova |  | ✅ | ❌ | 52m |
+| [don't run changelog check on release prs (#229)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/229) | lmolkova |  | ✅ | ✅ | 47m |
+| [Update readme rst (#230)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/230) | lmolkova |  | ❌ | ✅ | 1m |
 
 ## Waiting on authors
 
