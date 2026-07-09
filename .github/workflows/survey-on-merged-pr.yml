@@ -3,6 +3,17 @@ name: Survey on Merged PR by Non-Member
 
 on:
   workflow_call:
+    inputs:
+      client_id:
+        description: >-
+          Client ID of the caller repository's OTELBOT app. Used to mint an
+          installation token that can comment on PRs and check org membership.
+        required: true
+        type: string
+    secrets:
+      private_key:
+        description: PEM private key for the OTELBOT app referenced by client_id.
+        required: true
 
 permissions: {}
 
@@ -13,22 +24,31 @@ jobs:
   comment-on-pr:
     name: Add survey to PR if author is not a member
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write # for gh pr comment
     if: >-
       github.event.pull_request.merged == true &&
       github.repository_owner == 'open-telemetry' &&
-      github.event.pull_request.user.type != 'Bot' &&
-      github.event.pull_request.author_association != 'MEMBER' &&
-      github.event.pull_request.author_association != 'OWNER' &&
-      github.event.pull_request.author_association != 'COLLABORATOR'
+      github.event.pull_request.user.type != 'Bot'
     steps:
-      - name: Add survey comment
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: otelbot-token
+        with:
+          client-id: ${{ inputs.client_id }}
+          private-key: ${{ secrets.private_key }}
+          permission-pull-requests: write # for 'gh pr comment ...'
+          permission-members: read # for 'gh api orgs/$ORG/members/$USERNAME'
+
+      - name: Add survey comment if author is not an org member
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
           USERNAME: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+          ORG: ${{ github.repository_owner }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          if gh api "orgs/$ORG/members/$USERNAME" --silent; then
+            echo "Skipping survey for org member: $USERNAME"
+            exit 0
+          fi
+          echo "Adding survey comment for external contributor: $USERNAME"
           gh pr comment "$PR_NUMBER" --repo "$REPO" --body "Thank you for your contribution @${USERNAME}! 🎉 We would like to hear from you about your experience contributing to OpenTelemetry by taking a few minutes to fill out this [survey](${SURVEY_URL})."

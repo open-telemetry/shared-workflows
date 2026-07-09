@@ -26,20 +26,28 @@ permissions: {}
 
 jobs:
   survey:
-    permissions:
-      pull-requests: write # required by the shared workflow to post the survey comment
     uses: open-telemetry/shared-workflows/.github/workflows/survey-on-merged-pr.yml@<sha-or-tag>
+    with:
+      client_id: ${{ vars.OTELBOT_CLIENT_ID }}
+    secrets:
+      private_key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
 ```
 
-Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No inputs, no secrets — the workflow uses the built-in `GITHUB_TOKEN` and posts as `github-actions[bot]`.
-
-## Required permissions
-
-The caller's job-level `permissions:` block **must** grant `pull-requests: write`. The shared workflow needs it to post the survey comment via `gh pr comment`.
-
-A [reusable workflow cannot elevate its own permissions beyond what the caller grants](https://docs.github.com/en/actions/using-workflows/reusing-workflows), so a caller job without `pull-requests: write` will fail with a permission error when the comment step runs.
+Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. Substitute the variable/secret names on the right-hand sides to match whatever your repo uses.
 
 The `zizmor: ignore[dangerous-triggers]` inline comment on the `pull_request_target:` line is only relevant if your repo runs [zizmor](https://github.com/zizmorcore/zizmor); it silences the false-positive finding since this caller doesn't check out any PR-controlled code — it just invokes the shared workflow which itself operates entirely through the GitHub API.
+
+## Inputs
+
+| Input | Required | Type | Description |
+| --- | --- | --- | --- |
+| `client_id` | yes | `string` | OTELBOT app Client ID for the caller repo. Pass the value of your `OTELBOT_CLIENT_ID`-style variable. |
+
+## Secrets
+
+| Secret | Required | Description |
+| --- | --- | --- |
+| `private_key` | yes | PEM private key for the OTELBOT app referenced by `client_id`. |
 
 ## Behavior notes
 
