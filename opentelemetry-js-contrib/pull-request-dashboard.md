@@ -18,7 +18,7 @@
 | [feat(instrumentation-aws-sdk): inject trace context into Kinesis PutR… (#3433)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3433) | mosheshaham-dash0 | blumamir<br>jj22ee<br>trivikr | ✅ | ✅ | 106d |
 | [chore(deps): update dependency &#64;nestjs/core to v11.1.18 \[security\] (#3468)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3468) | app/renovate | dyladan<br>legendecas<br>neilime<br>pichlermarc<br>trentm | ❌ | ✅ | 93d |
 | [chore(deps): update dependency babel-plugin-istanbul to v8 (#3502)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3502) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 69d |
-| [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 48d |
+| [feat(deps): lock file maintenance (#3538)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3538) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 49d |
 | [chore(deps): update dependency &#64;cucumber/cucumber to v13 (#3575)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3575) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm<br>Ugzuzg | ❌ | ✅ | 20d |
 | [chore(deps): update babel monorepo to v8 (#3580)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3580) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 13d |
 | [chore: release main (#3596)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3596) | app/otelbot-js-contrib | blumamir<br>dyladan<br>hectorhdzg<br>jj22ee<br>legendecas<br>martinkuba<br>maryliag<br>mhennoch<br>pichlermarc<br>yiyuan-he | ❌ | ✅ | 6d |
@@ -58,7 +58,7 @@
 | [refactor(sampler-aws-xray): change internals to be promise-based to improve test stability (#3396)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3396) | pichlermarc | 139d |
 | [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 92d |
 | [feat(instrumentation-nats): add instrumentation nats package (#3352)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3352) | giacomoquinalia | 66d |
-| [feat(instrumentation-kafkajs): add messaging.cluster.id span attribute (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 4d |
+| [feat(instrumentation-kafkajs): add messaging.cluster.id span attribute (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 5d |
 | [chore(*): migrate to sdk-trace (#3599)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3599) | trentm | 14h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
