@@ -83,7 +83,7 @@
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
 
-_More 51 PRs not shown_
+_More 50 PRs not shown_
 
 ## Waiting on authors
 
@@ -140,7 +140,7 @@ _More 51 PRs not shown_
 | [\[PrometheusRemoteWriter\] Add support of MetadataKeys in remote write outbound requests (#48767)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48767) | gizas | ArthurSens&nbsp;💬⁠✅<br>axw&nbsp;✅<br>constanca-m&nbsp;💬<br>dashpole&nbsp;✅ | ❌ | ❌ | 2d |
 | [\[internal/k8sinventory\] Extract checkpoint package and update Observer interface (#48765)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48765) | kangyili | ChrsMark&nbsp;✅<br>dashpole<br>jmmcorreia&nbsp;✔️<br>krisztianfekete&nbsp;✔️ | ✅ | ✅ | 1d |
 
-_More 11 PRs not shown_
+_More 12 PRs not shown_
 
 ## Waiting on external
 
