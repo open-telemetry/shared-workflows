@@ -10,13 +10,13 @@
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 29d |
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>simi&nbsp;✔️<br>songy23&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 8d |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 6h |
-| [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 | darccio&nbsp;✔️<br>svrnm&nbsp;✅ | ❌ | ✅ | 1h |
+| [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 | darccio&nbsp;✔️<br>svrnm&nbsp;✅ | ❌ | ✅ | 2h |
 
 ## Waiting on reviewers
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Use Hugo Configuration directory (#7765)](https://github.com/open-telemetry/opentelemetry.io/pull/7765) | Andygol | chalin | ✅ | ✅ | 260d |
+| [Use Hugo Configuration directory (#7765)](https://github.com/open-telemetry/opentelemetry.io/pull/7765) | Andygol | chalin | ✅ | ✅ | 261d |
 | [\[CI\] DRY fix action names in PR-action workflow (#5894) (#8913)](https://github.com/open-telemetry/opentelemetry.io/pull/8913) | pratik-mahalle |  | ✅ | ❌ | 175d |
 | [Blog Post on "OpenTelemetry for Distributed Multi-Agent System Observability" (#9125)](https://github.com/open-telemetry/opentelemetry.io/pull/9125) | axsaucedo | svrnm | ✅ | ✅ | 150d |
 | [🇺🇦 Ukrainian localization of OpenTelemetry documentation (#5891)](https://github.com/open-telemetry/opentelemetry.io/pull/5891) | Andygol | chalin&nbsp;🔴<br>svrnm&nbsp;🔴 | ✅ | ❌ | 91d |
@@ -59,7 +59,7 @@
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[ja\] add translation of content/en/blog/2022/instrument-nginx/index.md (#10725)](https://github.com/open-telemetry/opentelemetry.io/pull/10725) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [feat: Add openai-go and kafka-go compile time instrumentation registry entries (#10726)](https://github.com/open-telemetry/opentelemetry.io/pull/10726) | amazingakai |  | ✅ | ✅ | 1d |
-| [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 23h |
+| [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 1d |
 | [feat: \[pt\] Create docs/platforms/faas/_index.md (#10646)](https://github.com/open-telemetry/opentelemetry.io/pull/10646) | dmroch4 | vitorvasc | ✅ | ✅ | 20h |
 | [\[ja\] add translation of content/en/blog/2024/getting-started-with-otelsql/index.md (#10733)](https://github.com/open-telemetry/opentelemetry.io/pull/10733) | ymotongpoo |  | ✅ | ✅ | 11h |
 | [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ✅ | ✅ | 10h |
@@ -108,7 +108,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Clarify status levels and semconv stability on Languages page (#9711)](https://github.com/open-telemetry/opentelemetry.io/pull/9711) | franrob-projects | simi&nbsp;✔️<br>tiffany76 | ❌ | ✅ | 26d |
 | [Add blog post: What can you do with OpenTelemetry entity events? (#10124)](https://github.com/open-telemetry/opentelemetry.io/pull/10124) | MatthieuNoirbusson | jsuereth&nbsp;✔️<br>svrnm | ✅ | ✅ | 9d |
-| [docs: Add Python declarative configuration docs (#10504)](https://github.com/open-telemetry/opentelemetry.io/pull/10504) | pratik-mahalle |  | ❌ | ✅ | 20h |
+| [docs: Add Python declarative configuration docs (#10504)](https://github.com/open-telemetry/opentelemetry.io/pull/10504) | pratik-mahalle |  | ❌ | ✅ | 21h |
 
 ## Draft pull requests
 
@@ -128,12 +128,12 @@
 | [\[blog\] Applying the GenAI semantic conventions to a self-hosted LLM gateway (#10328)](https://github.com/open-telemetry/opentelemetry.io/pull/10328) | iamsharduld | 29d |
 | [docs(demo): update load generator docs from Locust to k6 (#10560)](https://github.com/open-telemetry/opentelemetry.io/pull/10560) | mwimpelberg28 | 14d |
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | 7d |
-| [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 3d |
+| [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 4d |
 | [docs(blueprints): add first draft on K8S O11Y Platform (#9741)](https://github.com/open-telemetry/opentelemetry.io/pull/9741) | alemferreira | 3d |
-| [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 21h |
+| [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 22h |
 | [DRAFT Update semantic-conventions to unreleased v1.44.0-dev (#10677)](https://github.com/open-telemetry/opentelemetry.io/pull/10677) | app/otelbot-docs | 2h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 2h |
-| [Spec/semconv release flow: integration branches finalize their own release PRs (#10738)](https://github.com/open-telemetry/opentelemetry.io/pull/10738) | chalin | 2m |
+| [Spec/semconv release flow: integration branches finalize their own release PRs (#10738)](https://github.com/open-telemetry/opentelemetry.io/pull/10738) | chalin | 7m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
