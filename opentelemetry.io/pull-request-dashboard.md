@@ -9,8 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Correct Bindplane wrongly marked as OSS (#10306)](https://github.com/open-telemetry/opentelemetry.io/pull/10306) | KazimirPodolski | cartermp&nbsp;✅ | ✅ | ✅ | 29d |
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>simi&nbsp;✔️<br>songy23&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 8d |
-| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 8h |
-| [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 | darccio&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 27m |
+| [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 | darccio&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 35m |
 
 ## Waiting on reviewers
 
@@ -100,6 +99,7 @@
 | [registry(android): add Android instrumentation entries (#10728)](https://github.com/open-telemetry/opentelemetry.io/pull/10728) | Babul422 | thompson-tomo&nbsp;💬 | ✅ | ✅ | 7h |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 6h |
 | [Add additional registry entry types including scanning (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ✅ | ✅ | 5h |
+| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 4m |
 
 ## Waiting on external
 
@@ -132,7 +132,7 @@
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 23h |
 | [DRAFT Update semantic-conventions to unreleased v1.44.0-dev (#10677)](https://github.com/open-telemetry/opentelemetry.io/pull/10677) | app/otelbot-docs | 3h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 3h |
-| [Spec/semconv release flow: integration branches finalize their own release PRs (#10738)](https://github.com/open-telemetry/opentelemetry.io/pull/10738) | chalin | <1m |
+| [Spec/semconv release flow: integration branches finalize their own release PRs (#10738)](https://github.com/open-telemetry/opentelemetry.io/pull/10738) | chalin | 8m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
