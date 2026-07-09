@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [add missing permissions for release workflows (#222)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/222) | lmolkova | trask&nbsp;✅ | ❌ | ✅ | 4m |
+| [add missing permissions for release workflows (#222)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/222) | lmolkova | trask&nbsp;✅ | ✅ | ✅ | 4m |
 
 ## Waiting on reviewers
 
@@ -15,7 +15,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 22d |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
-| [Update all patch versions (#223)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/223) | app/renovate |  | ✅ | ✅ | 4m |
+| [Update all patch versions (#223)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/223) | app/renovate |  | ✅ | ✅ | 5m |
 
 ## Waiting on authors
 
@@ -29,7 +29,7 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 | lmolkova | ✅ | ❌ | 9h |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 1h |
-| [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova |  | ❌ | ✅ | 22m |
+| [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova |  | ❌ | ✅ | 23m |
 
 ## Waiting on external
 
