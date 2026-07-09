@@ -7,6 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
+| [Deprecate config parameters in javaagent extension SPIs (#19148)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19148) | trask | laurit&nbsp;✅ | ✅ | ✅ | 9h |
 | [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty | laurit&nbsp;✅<br>trask | ✅ | ✅ | 1h |
 
 ## Waiting on reviewers
@@ -22,10 +23,9 @@
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong | jaydeluca<br>laurit | ✅ | ❌ | 5d |
 | [\[jmx-metrics\] bootstrap + validate registry definitions for jmx metrics (#19139)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139) | SylvainJuge | SylvainJuge | ✅ | ✅ | 21h |
 | [Extract multi-query batch operation attributes (#19147)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19147) | trask |  | ✅ | ✅ | 10h |
-| [Deprecate config parameters in javaagent extension SPIs (#19148)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19148) | trask |  | ✅ | ✅ | 9h |
 | [Add Ktor 3.0 client span accessors and bridge them under the agent (#19149)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19149) | amccague |  | ✅ | ✅ | 7h |
 | [feat: Add GenAI agent/tool/retrieval semantic conventions to instrumentation-api-incubator (#19124)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19124) | eternalcuriouslearner | laurit&nbsp;💬 | ✅ | ✅ | 4h |
-| [Add Redisson 2.3-3.17 connection pool metrics (#19152)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19152) | YaoYingLong |  | ⏳ | ✅ | 30m |
+| [Add Redisson 2.3-3.17 connection pool metrics (#19152)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19152) | YaoYingLong |  | ⏳ | ✅ | 32m |
 
 ## Waiting on authors
 
@@ -54,7 +54,7 @@
 | [Add InstrumentationDefaults helper to declarative-config-bridge (#17816)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816) | zeitlinger | laurit<br>trask | ✅ | ✅ | 9h |
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 8h |
 | [test: parameterize KubernetesRequestUtilsTest cases (#18812)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812) | zeitlinger | trask&nbsp;💬 | ✅ | ✅ | 6h |
-| [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca<br>laurit&nbsp;💬 | ✅ | ✅ | 1m |
+| [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca<br>laurit&nbsp;💬 | ✅ | ✅ | 3m |
 
 ## Waiting on external
 
