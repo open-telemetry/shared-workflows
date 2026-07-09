@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [run spellcheck on towncrier fragments and other hidden files (#228)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/228) | lmolkova | aabmass&nbsp;✅<br>eternalcuriouslearner&nbsp;✅ | ✅ | ❌ | 11h |
+| [run spellcheck on towncrier fragments and other hidden files (#228)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/228) | lmolkova | aabmass&nbsp;✅<br>eternalcuriouslearner&nbsp;✅ | ✅ | ❌ | 12h |
 
 ## Waiting on reviewers
 
@@ -26,7 +26,7 @@
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 13d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | aabmass&nbsp;💬⁠✅<br>eternalcuriouslearner&nbsp;✅<br>trask&nbsp;💬 | ✅ | ❌ | 10h |
-| [\[`opentelemetry-instrumentation-google-genai`\] Add weaver tests (#232)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/232) | DylanRussell |  | ⏳ | ✅ | 5m |
+| [\[`opentelemetry-instrumentation-google-genai`\] Add weaver tests (#232)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/232) | DylanRussell |  | ⏳ | ✅ | 16m |
 
 ## Waiting on external
 
