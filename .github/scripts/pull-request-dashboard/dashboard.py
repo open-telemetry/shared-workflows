@@ -181,7 +181,7 @@ from utils import actor_login, format_ts, parse_ts, truncate
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
-DEFAULT_BACKFILL_MAX_PRS = 100
+DEFAULT_BACKFILL_MAX_PRS = 50
 
 # ---------------------------------------------------------------- model helpers
 
