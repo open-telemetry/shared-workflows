@@ -26,7 +26,7 @@
 | [Add Ktor 3.0 client span accessors and bridge them under the agent (#19149)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19149) | amccague |  | ✅ | ✅ | 6h |
 | [feat: Add GenAI agent/tool/retrieval semantic conventions to instrumentation-api-incubator (#19124)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19124) | eternalcuriouslearner | laurit&nbsp;💬 | ✅ | ✅ | 2h |
 | [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca | ✅ | ✅ | 2h |
-| [Update pinned latest dep versions (#19151)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19151) | app/otelbot |  | ⏳ | ✅ | <1m |
+| [Update pinned latest dep versions (#19151)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19151) | app/otelbot |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
