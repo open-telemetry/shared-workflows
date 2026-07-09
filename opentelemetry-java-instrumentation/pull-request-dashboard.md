@@ -30,7 +30,7 @@
 | [fix(deps): update all patch versions (#19155)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19155) | app/renovate |  | ❌ | ✅ | 12m |
 | [fix(deps): update jackson packages to v2.22.1 (#19156)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19156) | app/renovate |  | ⏳ | ✅ | 12m |
 | [fix(deps): update quarkus packages to v3.37.2 (#19157)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19157) | app/renovate |  | ⏳ | ✅ | 12m |
-| [chore(deps): update weekly update (#19158)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19158) | app/renovate |  | ⏳ | ✅ | 11m |
+| [chore(deps): update weekly update (#19158)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19158) | app/renovate |  | ⏳ | ✅ | 12m |
 
 ## Waiting on authors
 
