@@ -36,6 +36,7 @@
 | [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ✅ | ✅ | 20h |
 | [feat(exporter-metrics-otlp-http): respect OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION (#6874)](https://github.com/open-telemetry/opentelemetry-js/pull/6874) | buzztaiki | JacksonWeber | ✅ | ❌ | 14h |
 | [fix(sdk-logs): allow mutable read-write log records (#6899)](https://github.com/open-telemetry/opentelemetry-js/pull/6899) | cschanhniem |  | ❌ | ✅ | 11h |
+| [feat(instrumentation-http): add ignoreIncomingPropagationHook config (#6901)](https://github.com/open-telemetry/opentelemetry-js/pull/6901) | matthieusieben | pichlermarc | ✅ | ✅ | 1m |
 
 ## Waiting on authors
 
@@ -55,7 +56,6 @@
 | [chore: Add size-limit check on Pull Requests (#6706)](https://github.com/open-telemetry/opentelemetry-js/pull/6706) | JPeer264 | pichlermarc&nbsp;💬 | ❌ | ❌ | 14d |
 | [fix(sdk-metrics): drop stale async metric attribute sets (#6884)](https://github.com/open-telemetry/opentelemetry-js/pull/6884) | AkshitBhandariCodes |  | ✅ | ✅ | 2d |
 | [feat(metrics): add experimental advisory attributes support (#6885)](https://github.com/open-telemetry/opentelemetry-js/pull/6885) | AkshitBhandariCodes |  | ✅ | ✅ | 2d |
-| [feat(instrumentation-http): add ignoreIncomingPropagationHook config (#6901)](https://github.com/open-telemetry/opentelemetry-js/pull/6901) | matthieusieben | pichlermarc | ✅ | ✅ | 44m |
 
 ## Waiting on external
 
