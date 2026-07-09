@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty | laurit&nbsp;✅<br>trask | ✅ | ✅ | <1m |
+| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty | laurit&nbsp;✅<br>trask | ✅ | ✅ | 4m |
 
 ## Waiting on reviewers
 
@@ -26,6 +26,7 @@
 | [Add Ktor 3.0 client span accessors and bridge them under the agent (#19149)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19149) | amccague |  | ✅ | ✅ | 6h |
 | [feat: Add GenAI agent/tool/retrieval semantic conventions to instrumentation-api-incubator (#19124)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19124) | eternalcuriouslearner | laurit&nbsp;💬 | ✅ | ✅ | 2h |
 | [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca | ✅ | ✅ | 2h |
+| [Update pinned latest dep versions (#19151)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19151) | app/otelbot |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -46,12 +47,12 @@
 | [Disable virtual field usage checker by default (#19138)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19138) | laurit |  | ✅ | ✅ | 1d |
 | [Remove isIndyModule method (#19140)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19140) | laurit | steverao&nbsp;✅<br>SylvainJuge&nbsp;✅ | ✅ | ✅ | 1d |
 | [Move experimental apis needed by indy instrumentations to InstrumentationModule (#19142)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142) | laurit | SylvainJuge | ✅ | ✅ | 23h |
-| [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask | ✅ | ✅ | 14h |
+| [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask | ✅ | ✅ | 15h |
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ❌ | ✅ | 11h |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca | trask&nbsp;💬⁠✅ | ✅ | ✅ | 11h |
 | [Revive reduced servlet smoke test matrix on top of main (#18953)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953) | zeitlinger | trask | ✅ | ✅ | 8h |
-| [docs(agent-extension-api): mark ConfigProperties &#64;Nullable where null is possible (#18090)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18090) | zeitlinger | laurit<br>trask | ✅ | ✅ | 7h |
-| [Add InstrumentationDefaults helper to declarative-config-bridge (#17816)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816) | zeitlinger | laurit<br>trask | ✅ | ✅ | 7h |
+| [docs(agent-extension-api): mark ConfigProperties &#64;Nullable where null is possible (#18090)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18090) | zeitlinger | laurit<br>trask | ✅ | ✅ | 8h |
+| [Add InstrumentationDefaults helper to declarative-config-bridge (#17816)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816) | zeitlinger | laurit<br>trask | ✅ | ✅ | 8h |
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 7h |
 | [test: parameterize KubernetesRequestUtilsTest cases (#18812)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812) | zeitlinger | trask&nbsp;💬 | ✅ | ✅ | 5h |
 
