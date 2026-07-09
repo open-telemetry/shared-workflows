@@ -150,7 +150,7 @@ _More 19 PRs not shown_
 | [\[receiver/hostmetrics\] Add process.network.connection.count metric to process scraper (#49091)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49091) | GlqEason | bogdandrutu | ❌ | ✅ | 21d |
 | [\[cumulativetodeltaprocessor\] Add histogram_fields config for selective field conversion (#49407)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49407) | Chau-Tran | axw<br>TylerHelmuth | ❌ | ✅ | 2d |
 | [\[receiver/redis\] Enable redis.cmd.calls, redis.cmd.latency, and redis.cmd.usec by default (#49551)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49551) | ar-ash | MovieStoreGuy | ❌ | ✅ | 6h |
-| [\[receiver/awscloudwatch\] Report cloud.account.id and support cross-account metric collection (#49155)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49155) | tommyers-elastic | braydonk | ✅ | ✅ | 59m |
+| [\[receiver/awscloudwatch\] Report cloud.account.id and support cross-account metric collection (#49155)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49155) | tommyers-elastic | braydonk | ✅ | ✅ | 1h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
