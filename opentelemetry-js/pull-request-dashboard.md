@@ -55,7 +55,7 @@
 | [chore: Add size-limit check on Pull Requests (#6706)](https://github.com/open-telemetry/opentelemetry-js/pull/6706) | JPeer264 | pichlermarc&nbsp;💬 | ❌ | ❌ | 14d |
 | [fix(sdk-metrics): drop stale async metric attribute sets (#6884)](https://github.com/open-telemetry/opentelemetry-js/pull/6884) | AkshitBhandariCodes |  | ✅ | ✅ | 2d |
 | [feat(metrics): add experimental advisory attributes support (#6885)](https://github.com/open-telemetry/opentelemetry-js/pull/6885) | AkshitBhandariCodes |  | ✅ | ✅ | 2d |
-| [feat(instrumentation-http): add ignoreIncomingPropagationHook config (#6901)](https://github.com/open-telemetry/opentelemetry-js/pull/6901) | matthieusieben | pichlermarc | ✅ | ✅ | 16m |
+| [feat(instrumentation-http): add ignoreIncomingPropagationHook config (#6901)](https://github.com/open-telemetry/opentelemetry-js/pull/6901) | matthieusieben | pichlermarc | ✅ | ✅ | 25m |
 
 ## Waiting on external
 
