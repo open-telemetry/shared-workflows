@@ -169,9 +169,10 @@ function extractPullRequestNumber(eventName, payload) {
     return payload.issue.number;
   }
 
-  const checkPullRequestNumber = extractPullRequestNumberFromPullRequests([
+  const checkPullRequestNumber = extractPullRequestNumberFromCheckSuitePullRequests(
     payload.check_suite && payload.check_suite.pull_requests,
-  ]);
+    payload.repository,
+  );
   if (checkPullRequestNumber) {
     return checkPullRequestNumber;
   }
@@ -187,18 +188,43 @@ function extractPullRequestNumber(eventName, payload) {
   ]);
 }
 
-function extractPullRequestNumberFromPullRequests(pullRequestLists) {
-  for (const pullRequests of pullRequestLists) {
-    if (!Array.isArray(pullRequests)) {
-      continue;
-    }
-    for (const pullRequest of pullRequests) {
-      if (pullRequest && Number.isInteger(pullRequest.number)) {
-        return pullRequest.number;
-      }
+function extractPullRequestNumberFromCheckSuitePullRequests(pullRequests, repository) {
+  if (!Array.isArray(pullRequests)) {
+    return undefined;
+  }
+  for (const pullRequest of pullRequests) {
+    if (
+      pullRequest &&
+      Number.isInteger(pullRequest.number) &&
+      checkSuitePullRequestBelongsToRepository(pullRequest, repository)
+    ) {
+      return pullRequest.number;
     }
   }
   return undefined;
+}
+
+function checkSuitePullRequestBelongsToRepository(pullRequest, repository) {
+  const repositoryUrl = repository && repository.url;
+  if (!repositoryUrl) {
+    return false;
+  }
+  // check_suite.pull_requests are commit/ref associations and can point at a
+  // fork PR whose head is this repository. Only dispatch when the associated PR
+  // itself belongs to the repository that emitted this webhook event; the
+  // workflow dispatch passes repository + pr_number, and PR numbers are
+  // repository-scoped.
+  const pullRequestRepositoryUrl = repositoryUrlFromPullRequestApiUrl(pullRequest.url);
+  const baseRepositoryUrl = pullRequest.base && pullRequest.base.repo && pullRequest.base.repo.url;
+  return pullRequestRepositoryUrl === repositoryUrl || baseRepositoryUrl === repositoryUrl;
+}
+
+function repositoryUrlFromPullRequestApiUrl(url) {
+  if (typeof url !== "string") {
+    return "";
+  }
+  const match = url.match(/^(https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+)\/pulls\/\d+$/);
+  return match ? match[1] : "";
 }
 
 function extractPullRequestNumberFromUrls(urls) {
