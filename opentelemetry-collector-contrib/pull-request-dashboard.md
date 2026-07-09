@@ -14,7 +14,6 @@
 | [\[processor/tailsampling\] Change default error_mode of ottl_condition … (#48623)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48623) | pratik-mahalle | ArthurSens<br>atoulme<br>jmacd&nbsp;✅ | ✅ | ✅ | 9d |
 | [\[exporter/azuremonitor\] Rename `azuremonitor` to `azure_monitor` (#49402)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49402) | dyl10s | iblancasa&nbsp;✅<br>TylerHelmuth | ✅ | ❌ | 8d |
 | [New component: awsecsattributes processor Phase 2 - enrichment (#49036)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49036) | daidokoro | ChrsMark<br>dehaansa<br>iblancasa&nbsp;✅<br>povilasv&nbsp;✔️ | ✅ | ❌ | 8d |
-| [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ❌ | 7d |
 | [\[chore\]\[receiver/huaweicloudcesreceiver\] Migrate cenkalti/backoff v4/v5 → v7 (#49423)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49423) | songy23 | ArthurSens<br>codeboten&nbsp;✅ | ✅ | ✅ | 6d |
 | [\[chore\] \[receiver/hostmetrics\] Fix flaky memory scraper tests on Linux (#49110)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49110) | vishalmore90 | braydonk&nbsp;✅<br>mwear&nbsp;✔️<br>osullivandonal&nbsp;✔️<br>pjanotti<br>rogercoll&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[pkg/ottl\] Add `Find` converter (#49190)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49190) | edmocosta | evan-bradley&nbsp;✅<br>VihasMakwana | ✅ | ❌ | 1d |
@@ -26,6 +25,7 @@
 | [\[receiver/awsecscontainermetrics\] migrate semantic convention from v1.21.0 to v1.42.0 (#49078)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49078) | singhvibhanshu | Aneurysm9&nbsp;✔️<br>ChrsMark<br>iblancasa&nbsp;✅<br>mx-psi<br>pjanotti<br>VihasMakwana | ⏳ | ✅ | 13h |
 | [\[processor/tailsampling\] Initial support for tracestate (only probabilistic) (#48865)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48865) | csmarchbanks | ArthurSens<br>axw&nbsp;✅<br>carsonip&nbsp;✔️<br>MikeGoldsmith&nbsp;✔️<br>songy23 | ✅ | ✅ | 8h |
 | [\[exporter/datadog\] Upgrade serializerexporter to b0d9b5a (#49571)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49571) | songy23 | dmitryax&nbsp;✅ | ✅ | ✅ | 7h |
+| [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ✅ | 35m |
 | [\[chore\]\[exporter/awsxray\] migrate feature gate to metadata.yaml (#48619)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48619) | lazureykis | jmacd&nbsp;✅ | ❌ | ✅ | 32m |
 
 ## Waiting on reviewers
