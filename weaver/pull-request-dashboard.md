@@ -16,7 +16,7 @@
 | [#850 Scope don't need attributes (#853)](https://github.com/open-telemetry/weaver/pull/853) | thompson-tomo | jsuereth | ✅ | ✅ | 352d |
 | [Proposal: Define namespaces in yaml (#867)](https://github.com/open-telemetry/weaver/pull/867) | thompson-tomo | jerbly&nbsp;💬 | ✅ | ✅ | 340d |
 | [Proposal: Offer packages (#872)](https://github.com/open-telemetry/weaver/pull/872) | thompson-tomo | jsuereth | ✅ | ✅ | 325d |
-| [The aggregation params of metrics can be defined #844 (#845)](https://github.com/open-telemetry/weaver/pull/845) | thompson-tomo | jerbly<br>jsuereth<br>lmolkova | ✅ | ❌ | 322d |
+| [The aggregation params of metrics can be defined #844 (#845)](https://github.com/open-telemetry/weaver/pull/845) | thompson-tomo | jerbly<br>jsuereth<br>lmolkova | ✅ | ❌ | 323d |
 | [Replace regex with semver crate (#1108)](https://github.com/open-telemetry/weaver/pull/1108) | ArthurSens | jsuereth<br>lquerel&nbsp;🔴 | ✅ | ✅ | 187d |
 | [Tolerate unknown properties in resolved schema / published manifest (#1365)](https://github.com/open-telemetry/weaver/pull/1365) | lmolkova | jsuereth&nbsp;💬 | ✅ | ❌ | 62d |
 | [Warn on invalid markdown snippet markers (#1576)](https://github.com/open-telemetry/weaver/pull/1576) | ahfoysal |  | ❌ | ✅ | 2d |
@@ -42,8 +42,8 @@
 | [Introduce the ability to define namespaces #802 (#849)](https://github.com/open-telemetry/weaver/pull/849) | thompson-tomo | 340d |
 | [Wip allow multiple dependencies part 2 - Use semver to resolve *some* dependency conflicts (#1377)](https://github.com/open-telemetry/weaver/pull/1377) | jsuereth | 68d |
 | [\[wip\] Forward compatibility for definition schema (#1422)](https://github.com/open-telemetry/weaver/pull/1422) | lmolkova | 62d |
-| [Consolidate v2 unstable file format warnings and improve diagnostic report styling (#1404)](https://github.com/open-telemetry/weaver/pull/1404) | app/copilot-swe-agent | 35d |
-| [Expand dependency conflict resolution to allow different versions if major-version is compatible (#1573)](https://github.com/open-telemetry/weaver/pull/1573) | jsuereth | 17m |
+| [Consolidate v2 unstable file format warnings and improve diagnostic report styling (#1404)](https://github.com/open-telemetry/weaver/pull/1404) | app/copilot-swe-agent | 36d |
+| [Expand dependency conflict resolution to allow different versions if major-version is compatible (#1573)](https://github.com/open-telemetry/weaver/pull/1573) | jsuereth | 18m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
