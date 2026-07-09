@@ -9,7 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Deprecate config parameters in javaagent extension SPIs (#19148)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19148) | trask | laurit&nbsp;✅ | ✅ | ✅ | 13h |
 | [feat: Add ConfigPropertiesBackedConfigProvider options for extensions and distros (#15835)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/15835) | aviralgarg05 | robsunday&nbsp;✔️<br>trask<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 1h |
-| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty | laurit&nbsp;✅<br>trask | ✅ | ✅ | 24m |
+| [Suppress duplicate warning log for same application logger factory class (#19088)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19088) | bhuvan-somisetty | laurit&nbsp;✅<br>trask | ✅ | ✅ | 25m |
 
 ## Waiting on reviewers
 
@@ -59,7 +59,7 @@
 | [Add InstrumentationDefaults helper to declarative-config-bridge (#17816)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816) | zeitlinger | laurit<br>trask | ✅ | ✅ | 13h |
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 13h |
 | [test: parameterize KubernetesRequestUtilsTest cases (#18812)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812) | zeitlinger | trask&nbsp;💬 | ✅ | ✅ | 11h |
-| [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca | trask&nbsp;💬⁠✅ | ⏳ | ✅ | 55m |
+| [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca | trask&nbsp;💬⁠✅ | ⏳ | ✅ | 56m |
 
 ## Waiting on external
 
