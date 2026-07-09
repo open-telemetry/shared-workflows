@@ -36,7 +36,7 @@
 | [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ✅ | ✅ | 20h |
 | [feat(exporter-metrics-otlp-http): respect OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION (#6874)](https://github.com/open-telemetry/opentelemetry-js/pull/6874) | buzztaiki | JacksonWeber | ✅ | ❌ | 15h |
 | [fix(sdk-logs): allow mutable read-write log records (#6899)](https://github.com/open-telemetry/opentelemetry-js/pull/6899) | cschanhniem |  | ❌ | ✅ | 11h |
-| [feat(instrumentation-http): add ignoreIncomingPropagationHook config (#6901)](https://github.com/open-telemetry/opentelemetry-js/pull/6901) | matthieusieben | pichlermarc | ✅ | ✅ | 15m |
+| [feat(instrumentation-http): add ignoreIncomingPropagationHook config (#6901)](https://github.com/open-telemetry/opentelemetry-js/pull/6901) | matthieusieben | pichlermarc | ✅ | ✅ | 16m |
 
 ## Waiting on authors
 
