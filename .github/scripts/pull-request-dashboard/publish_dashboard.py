@@ -17,7 +17,8 @@ DASHBOARD_TITLE = "Pull Request Dashboard"
 DASHBOARD_LABEL = "dashboard"
 DASHBOARD_LABEL_COLOR = "cfd3d7"
 DASHBOARD_LABEL_DESCRIPTION = "Pull request dashboard"
-LARGE_REPO_MAX_ROWS_PER_SECTION = 50
+ISSUE_BODY_MAX_CHARS = 65536
+LARGE_REPO_MAX_ROWS_PER_SECTION = 100
 
 
 # GraphQL is used instead of the REST `/repos/{repo}/issues` list endpoint
@@ -157,9 +158,14 @@ def render_dashboard_markdown(repo: str, large_repo: bool) -> Path:
     output_path.write_text(md, encoding="utf-8")
     print(
         f"rendered dashboard markdown to {output_path.resolve()} "
-        f"({len(md)} chars, GitHub issue-body limit is 65536)",
+        f"({len(md)} chars, GitHub issue-body limit is {ISSUE_BODY_MAX_CHARS})",
         file=sys.stderr,
     )
+    if len(md) > ISSUE_BODY_MAX_CHARS:
+        raise RuntimeError(
+            f"rendered dashboard markdown is {len(md)} chars, which exceeds "
+            f"GitHub's {ISSUE_BODY_MAX_CHARS}-character issue-body limit"
+        )
     return output_path
 
 

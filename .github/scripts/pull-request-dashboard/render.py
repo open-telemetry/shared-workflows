@@ -59,10 +59,11 @@ def render_draft_pr_section(
     for pr in drafts:
         number = pr["number"]
         title = _md_escape(pr.get("title", ""))
-        url = pr.get("url", "")
         author = actor_login(pr.get("author") or {})
         updated = activity_age(parse_ts(pr.get("updatedAt") or ""))
-        lines.append(f"| [{title} (#{number})]({url}) | {author} | {updated} |")
+        # GitHub autolinks same-repo PR numbers; avoid full URLs so large
+        # dashboards can show more PRs before hitting the issue body limit.
+        lines.append(f"| #{number} {title} | {author} | {updated} |")
     lines.append("")
     if truncated:
         lines.append(_truncation_note(truncated))
@@ -194,9 +195,13 @@ def render_pr_tables(
 ) -> str:
     source_url = "https://github.com/open-telemetry/shared-workflows/blob/main/.github/scripts/pull-request-dashboard/dashboard.py"
     refresh_url = "https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml"
+    draft_note = (
+        "Draft PRs are omitted to keep this dashboard concise."
+        if skip_drafts
+        else "Draft PRs are listed separately."
+    )
     grouping_note = (
-        "Open non-draft PRs grouped by who is expected to act next. Draft PRs are "
-        "listed separately. The grouping is "
+        f"Open non-draft PRs grouped by who is expected to act next. {draft_note} The grouping is "
         f"partly performed by an LLM ([source]({source_url})) and could contain mistakes."
     )
     reviewers_note = (
@@ -240,13 +245,14 @@ def render_pr_tables(
         for pr in rows:
             number = pr["number"]
             title = _md_escape(pr.get("title", ""))
-            url = pr.get("url", "")
             res = results.get(number) or {}
             facts = res.get("facts") or {}
             author = facts.get("author") or actor_login(pr.get("author") or {})
             reviewers_cell = reviewers_cell_text(facts)
             activity_cell = age_cell(facts)
-            pr_cell = f"[{title} (#{number})]({url})"
+            # GitHub autolinks same-repo PR numbers; avoid full URLs so large
+            # dashboards can show more PRs before hitting the issue body limit.
+            pr_cell = f"#{number} {title}"
             out.append(
                 f"| {pr_cell} | {author} | {reviewers_cell} | {ci_cell(facts)} | "
                 f"{conflicts_cell(facts)} | {activity_cell} |"
