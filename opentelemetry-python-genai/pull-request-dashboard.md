@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Update dependency boto3 to &gt;=1.43.44 (#225)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/225) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 17m |
+| [Update dependency boto3 to &gt;=1.43.44 (#225)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/225) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 21m |
 
 ## Waiting on reviewers
 
@@ -17,7 +17,6 @@
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 3h |
 | [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | eternalcuriouslearner<br>trask&nbsp;💬 | ✅ | ✅ | 1h |
-| [Prepare release 1.0b0 (#226)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/226) | lmolkova |  | ❌ | ✅ | 1m |
 
 ## Waiting on authors
 
@@ -29,6 +28,7 @@
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 12d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 | lmolkova | ✅ | ❌ | 10h |
+| [Prepare release 1.0b0 (#226)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/226) | lmolkova |  | ❌ | ✅ | <1m |
 
 ## Waiting on external
 
@@ -45,7 +45,7 @@
 | [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 7d |
 | [Prototype: add nested workflow detection in langchain (#189)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/189) | lmolkova | 7d |
 | [Prototype showing gen_ai.conversation_root span attribute to mark the root GenAI span of a conversation (WIP) (#187)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/187) | wrisa | 7d |
-| [Add CrewAI instrumentation: LLM inference event listener (#224)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/224) | venkata-pavani | 34m |
+| [Add CrewAI instrumentation: LLM inference event listener (#224)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/224) | venkata-pavani | 38m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
