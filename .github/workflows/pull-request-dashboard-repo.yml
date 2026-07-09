@@ -130,7 +130,7 @@ jobs:
 
   update-dashboard:
     concurrency:
-      group: ${{ github.workflow }}-state-${{ inputs.repository }}-${{ inputs.pr_number || 'full' }}
+      group: ${{ github.workflow }}-state-${{ inputs.repository }}-${{ inputs.pr_number || 'backfill' }}
       cancel-in-progress: false
     permissions:
       contents: write
@@ -194,7 +194,6 @@ jobs:
           REPO_NAME: ${{ inputs.repository }}
           REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
           APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
-          LARGE_REPO: ${{ inputs.large_repo }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
@@ -206,9 +205,6 @@ jobs:
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
-          if [[ "${LARGE_REPO:-false}" == "true" ]]; then
-            dashboard_args+=(--large-repo)
-          fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
 
   notify-slack:
@@ -217,7 +213,7 @@ jobs:
       needs.update-dashboard.result == 'success' &&
       (inputs.trigger_event == 'schedule' || inputs.pr_number != '')
     concurrency:
-      group: ${{ github.workflow }}-notify-${{ inputs.repository }}-${{ inputs.pr_number || 'full' }}
+      group: ${{ github.workflow }}-notify-${{ inputs.repository }}-${{ inputs.pr_number || 'backfill' }}
       cancel-in-progress: false
     permissions:
       contents: write
@@ -261,7 +257,7 @@ jobs:
     if: needs.update-dashboard.result == 'success'
     concurrency:
       group: ${{ github.workflow }}-publish-${{ inputs.repository }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     permissions:
       contents: read
     environment: protected
@@ -279,14 +275,21 @@ jobs:
           owner: open-telemetry
           repositories: ${{ inputs.repository }}
           permission-issues: write
+          permission-pull-requests: read
 
       - name: Publish dashboard issue
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ inputs.repository }}
+          LARGE_REPO: ${{ inputs.large_repo }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          python3 .github/scripts/pull-request-dashboard/publish_dashboard.py \
-            --state-branch "$state_branch" \
+          publish_args=(
+            --state-branch "$state_branch"
             --repo "$REPO_NAME"
+          )
+          if [[ "${LARGE_REPO:-false}" == "true" ]]; then
+            publish_args+=(--large-repo)
+          fi
+          python3 .github/scripts/pull-request-dashboard/publish_dashboard.py "${publish_args[@]}"

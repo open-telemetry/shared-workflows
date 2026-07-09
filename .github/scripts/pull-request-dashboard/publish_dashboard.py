@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish the accepted PR dashboard markdown to the dashboard issue."""
+"""Render and publish the accepted PR dashboard state to the dashboard issue."""
 
 from __future__ import annotations
 
@@ -7,8 +7,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from github_cli import detect_repo, gh_graphql, normalize_repo, repo_state_key, run_gh
-from state import dashboard_markdown_path, set_state_dir
+from github_cli import detect_repo, gh_graphql, list_open_prs, normalize_repo, repo_state_key, run_gh
+from render import render_pr_tables
+from state import dashboard_markdown_path, load_dashboard_state_cache, results_from_dashboard_state, set_state_dir
 import state_branch
 
 
@@ -16,6 +17,7 @@ DASHBOARD_TITLE = "Pull Request Dashboard"
 DASHBOARD_LABEL = "dashboard"
 DASHBOARD_LABEL_COLOR = "cfd3d7"
 DASHBOARD_LABEL_DESCRIPTION = "Pull request dashboard"
+LARGE_REPO_MAX_ROWS_PER_SECTION = 50
 
 
 # GraphQL is used instead of the REST `/repos/{repo}/issues` list endpoint
@@ -136,6 +138,31 @@ def publish_dashboard(repo: str, dashboard_body: Path) -> None:
     ])
 
 
+def render_dashboard_markdown(repo: str, large_repo: bool) -> Path:
+    dashboard_state = load_dashboard_state_cache()
+    if dashboard_state is None:
+        raise RuntimeError("dashboard state not found")
+
+    prs = list_open_prs(repo)
+    open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
+    results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)
+    md = render_pr_tables(
+        prs,
+        results,
+        max_rows_per_section=LARGE_REPO_MAX_ROWS_PER_SECTION if large_repo else None,
+        skip_drafts=large_repo,
+    )
+    output_path = dashboard_markdown_path()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(md, encoding="utf-8")
+    print(
+        f"rendered dashboard markdown to {output_path.resolve()} "
+        f"({len(md)} chars, GitHub issue-body limit is 65536)",
+        file=sys.stderr,
+    )
+    return output_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
@@ -152,6 +179,11 @@ def main() -> int:
     parser.add_argument(
         "--state-branch",
         help="git branch used for workflow state",
+    )
+    parser.add_argument(
+        "--large-repo",
+        action="store_true",
+        help="apply large-repo rendering presets",
     )
     args = parser.parse_args()
 
@@ -171,7 +203,7 @@ def main() -> int:
         set_state_dir(state_dir / repo_state_key(repo))
         state_branch.configure_git()
         state_branch.checkout_state(state_dir, args.state_branch, require_existing=True)
-        publish_dashboard(repo, dashboard_markdown_path())
+        publish_dashboard(repo, render_dashboard_markdown(repo, args.large_repo))
     return 0
 
 
