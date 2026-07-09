@@ -81,7 +81,7 @@
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
 | [\[elasticsearchexporter\] Add retry_on_document_status configuration (#48933)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48933) | belimawr | carsonip&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 7d |
 
-_More 45 PRs not shown_
+_More 46 PRs not shown_
 
 ## Waiting on authors
 
@@ -155,7 +155,6 @@ _More 16 PRs not shown_
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [\[receiver/podman\] Use By unit for blockio byte metrics (#49581)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49581) | ogulcanaydogan |  | ? | ? | ? |
-| [\[chore\]\[receiver/postgresql\] offering additional code owners (#49579)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49579) | ebrdarSplunk |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
