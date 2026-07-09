@@ -231,4 +231,4 @@ jobs:
       issues: write # needed to open/close the hourly failure tracking issue
     uses: ./.github/workflows/reusable-workflow-notification.yml
     with:
-      success: ${{ needs.resolve-targets.result == 'success' && needs.run-repo-dashboard.result == 'success' }}
+      success: ${{ needs.resolve-targets.result == 'success' && (needs.run-repo-dashboard.result == 'success' || needs.run-repo-dashboard.result == 'cancelled') }}
