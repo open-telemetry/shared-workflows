@@ -7,11 +7,11 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ❌ | ✅ | 93d |
+| [chore(deps): lock file maintenance (#6559)](https://github.com/open-telemetry/opentelemetry-js/pull/6559) | app/renovate | david-luna&nbsp;✅<br>dyladan<br>legendecas<br>pichlermarc&nbsp;✅<br>trentm | ❌ | ✅ | 94d |
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 83d |
 | [feat(semantic-conventions): update semantic conventions to v1.43.0 (#6883)](https://github.com/open-telemetry/opentelemetry-js/pull/6883) | trentm | maryliag&nbsp;✅<br>trentm | ✅ | ✅ | 2d |
 | [docs(configuration): add declarative config example for startNodeSDK() (#6834)](https://github.com/open-telemetry/opentelemetry-js/pull/6834) | MikeGoldsmith | maryliag&nbsp;✅ | ✅ | ✅ | 1d |
-| [feat(propagator-jaeger): deprecate JaegerPropagator (#6893)](https://github.com/open-telemetry/opentelemetry-js/pull/6893) | pichlermarc | trentm&nbsp;✅ | ✅ | ✅ | 13h |
+| [feat(propagator-jaeger): deprecate JaegerPropagator (#6893)](https://github.com/open-telemetry/opentelemetry-js/pull/6893) | pichlermarc | trentm&nbsp;✅ | ✅ | ✅ | 14h |
 
 ## Waiting on reviewers
 
@@ -19,22 +19,22 @@
 |---|---|---|:---:|:---:|:---:|
 | [feat(otlp-grpc-exporter): add gRPC channelOptions as config parameter (#6332)](https://github.com/open-telemetry/opentelemetry-js/pull/6332) | vitorvasc | legendecas<br>pichlermarc | ✅ | ✅ | 166d |
 | [fix(instrumentation-http): better solution for avoiding double-wrapping of http (#6491)](https://github.com/open-telemetry/opentelemetry-js/pull/6491) | trentm | david-luna<br>maryliag<br>trentm | ✅ | ❌ | 117d |
-| [chore(deps): update ubuntu docker tag to v26 (#6635)](https://github.com/open-telemetry/opentelemetry-js/pull/6635) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ✅ | ✅ | 72d |
+| [chore(deps): update ubuntu docker tag to v26 (#6635)](https://github.com/open-telemetry/opentelemetry-js/pull/6635) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ✅ | ✅ | 73d |
 | [feat(api): add factory pattern for TracerProvider (#6466)](https://github.com/open-telemetry/opentelemetry-js/pull/6466) | ida613 | dyladan | ✅ | ❌ | 65d |
 | [feat(otlp-exporter-base): accept `fetch` parameter in `createFetchTransport`, and export `createFetchTransport`, `createRetryingTransport` and `FetchTransportParameters` (#6377)](https://github.com/open-telemetry/opentelemetry-js/pull/6377) | zakcutner | pichlermarc | ✅ | ✅ | 64d |
 | [feat(sdk-metrics): add support for max scale for exponential histograms (#6493)](https://github.com/open-telemetry/opentelemetry-js/pull/6493) | andidev | dyladan | ✅ | ✅ | 62d |
-| [fix(deps): update opentelemetry-js monorepo to v2 (#6721)](https://github.com/open-telemetry/opentelemetry-js/pull/6721) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ✅ | ✅ | 51d |
+| [fix(deps): update opentelemetry-js monorepo to v2 (#6721)](https://github.com/open-telemetry/opentelemetry-js/pull/6721) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ✅ | ✅ | 52d |
 | [Add config option for Prometheus default aggregation (#6761)](https://github.com/open-telemetry/opentelemetry-js/pull/6761) | ArthurSens | pichlermarc | ✅ | ✅ | 44d |
 | [refactor(build): migrate from tsc to tsdown with dual CJS/ESM exports (#6293)](https://github.com/open-telemetry/opentelemetry-js/pull/6293) | overbalance | david-luna&nbsp;💬<br>pichlermarc<br>raphael-theriault-swi | ❌ | ❌ | 23d |
 | [chore(deps): update ubuntu:24.04 docker digest to 4fbb8e6 (#6806)](https://github.com/open-telemetry/opentelemetry-js/pull/6806) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 22d |
 | [feat(sdk-metrics): metrics exemplars support (#6830)](https://github.com/open-telemetry/opentelemetry-js/pull/6830) | rnavarro |  | ✅ | ❌ | 19d |
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 19d |
-| [chore(deps): update dependency &#64;types/webpack-env to v1.18.8 (#6877)](https://github.com/open-telemetry/opentelemetry-js/pull/6877) | app/renovate | dyladan<br>legendecas<br>overbalance&nbsp;✔️<br>pichlermarc<br>trentm | ✅ | ✅ | 2d |
+| [chore(deps): update dependency &#64;types/webpack-env to v1.18.8 (#6877)](https://github.com/open-telemetry/opentelemetry-js/pull/6877) | app/renovate | dyladan<br>legendecas<br>overbalance&nbsp;✔️<br>pichlermarc<br>trentm | ✅ | ✅ | 3d |
 | [feat(api, context-async): add experimental attach/detach functionality (#6845)](https://github.com/open-telemetry/opentelemetry-js/pull/6845) | pichlermarc | legendecas | ✅ | ❌ | 1d |
-| [fix(configuration): apply resource attribute limits (#6891)](https://github.com/open-telemetry/opentelemetry-js/pull/6891) | LarryHu0217 | maryliag | ✅ | ✅ | 11h |
-| [feat(sdk-node,instrumentation,instrumentation-http,api-config,configuration): add declarative config support for `instrumentation/development` (#6868)](https://github.com/open-telemetry/opentelemetry-js/pull/6868) | mwear |  | ✅ | ❌ | 6h |
-| [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ✅ | ✅ | 5h |
-| [feat(exporter-metrics-otlp-http): respect OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION (#6874)](https://github.com/open-telemetry/opentelemetry-js/pull/6874) | buzztaiki | JacksonWeber | ✅ | ✅ | <1m |
+| [fix(configuration): apply resource attribute limits (#6891)](https://github.com/open-telemetry/opentelemetry-js/pull/6891) | LarryHu0217 | maryliag | ✅ | ✅ | 12h |
+| [feat(sdk-node,instrumentation,instrumentation-http,api-config,configuration): add declarative config support for `instrumentation/development` (#6868)](https://github.com/open-telemetry/opentelemetry-js/pull/6868) | mwear |  | ✅ | ❌ | 7h |
+| [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ✅ | ✅ | 6h |
+| [feat(exporter-metrics-otlp-http): respect OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION (#6874)](https://github.com/open-telemetry/opentelemetry-js/pull/6874) | buzztaiki | JacksonWeber | ✅ | ✅ | 47m |
 
 ## Waiting on authors
 
@@ -54,7 +54,7 @@
 | [chore: Add size-limit check on Pull Requests (#6706)](https://github.com/open-telemetry/opentelemetry-js/pull/6706) | JPeer264 | pichlermarc&nbsp;💬 | ❌ | ❌ | 14d |
 | [fix(sdk-metrics): drop stale async metric attribute sets (#6884)](https://github.com/open-telemetry/opentelemetry-js/pull/6884) | AkshitBhandariCodes |  | ✅ | ✅ | 2d |
 | [feat(metrics): add experimental advisory attributes support (#6885)](https://github.com/open-telemetry/opentelemetry-js/pull/6885) | AkshitBhandariCodes |  | ✅ | ✅ | 2d |
-| [docs: create 3.x announcement document (#6881)](https://github.com/open-telemetry/opentelemetry-js/pull/6881) | pichlermarc | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 2h |
+| [docs: create 3.x announcement document (#6881)](https://github.com/open-telemetry/opentelemetry-js/pull/6881) | pichlermarc | trentm&nbsp;💬⁠✅ | ✅ | ✅ | 3h |
 
 ## Waiting on external
 
