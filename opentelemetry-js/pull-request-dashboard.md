@@ -11,7 +11,7 @@
 | [fix(opentelemetry-exporter-prometheus)!: default exporter host to localhost (#6599)](https://github.com/open-telemetry/opentelemetry-js/pull/6599) | cjihrig | legendecas&nbsp;✅<br>maryliag<br>pichlermarc | ✅ | ❌ | 84d |
 | [feat(semantic-conventions): update semantic conventions to v1.43.0 (#6883)](https://github.com/open-telemetry/opentelemetry-js/pull/6883) | trentm | maryliag&nbsp;✅<br>trentm | ✅ | ✅ | 2d |
 | [docs(configuration): add declarative config example for startNodeSDK() (#6834)](https://github.com/open-telemetry/opentelemetry-js/pull/6834) | MikeGoldsmith | maryliag&nbsp;✅ | ✅ | ✅ | 2d |
-| [docs: create 3.x announcement document (#6881)](https://github.com/open-telemetry/opentelemetry-js/pull/6881) | pichlermarc | trentm&nbsp;✅ | ✅ | ✅ | 16m |
+| [docs: create 3.x announcement document (#6881)](https://github.com/open-telemetry/opentelemetry-js/pull/6881) | pichlermarc | trentm&nbsp;✅ | ✅ | ✅ | 1h |
 
 ## Waiting on reviewers
 
@@ -31,17 +31,18 @@
 | [chore(deps): update dependency msw to v2.14.6 (#6831)](https://github.com/open-telemetry/opentelemetry-js/pull/6831) | app/renovate | dyladan<br>legendecas<br>pichlermarc<br>trentm | ❌ | ✅ | 20d |
 | [chore(deps): update dependency &#64;types/webpack-env to v1.18.8 (#6877)](https://github.com/open-telemetry/opentelemetry-js/pull/6877) | app/renovate | dyladan<br>legendecas<br>overbalance&nbsp;✔️<br>pichlermarc<br>trentm | ✅ | ✅ | 3d |
 | [feat(api, context-async): add experimental attach/detach functionality (#6845)](https://github.com/open-telemetry/opentelemetry-js/pull/6845) | pichlermarc | legendecas | ✅ | ❌ | 2d |
-| [fix(configuration): apply resource attribute limits (#6891)](https://github.com/open-telemetry/opentelemetry-js/pull/6891) | LarryHu0217 | maryliag | ✅ | ✅ | 23h |
-| [feat(sdk-node,instrumentation,instrumentation-http,api-config,configuration): add declarative config support for `instrumentation/development` (#6868)](https://github.com/open-telemetry/opentelemetry-js/pull/6868) | mwear |  | ✅ | ❌ | 18h |
-| [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ✅ | ✅ | 17h |
-| [feat(exporter-metrics-otlp-http): respect OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION (#6874)](https://github.com/open-telemetry/opentelemetry-js/pull/6874) | buzztaiki | JacksonWeber | ✅ | ✅ | 12h |
-| [fix(sdk-logs): allow mutable read-write log records (#6899)](https://github.com/open-telemetry/opentelemetry-js/pull/6899) | cschanhniem |  | ❌ | ✅ | 9h |
+| [fix(configuration): apply resource attribute limits (#6891)](https://github.com/open-telemetry/opentelemetry-js/pull/6891) | LarryHu0217 | maryliag | ✅ | ✅ | 1d |
+| [feat(sdk-node,instrumentation,instrumentation-http,api-config,configuration): add declarative config support for `instrumentation/development` (#6868)](https://github.com/open-telemetry/opentelemetry-js/pull/6868) | mwear |  | ✅ | ❌ | 20h |
+| [fix(sdk-trace): reject failed SimpleSpanProcessor flushes (#6897)](https://github.com/open-telemetry/opentelemetry-js/pull/6897) | LarryHu0217 |  | ✅ | ✅ | 18h |
+| [feat(exporter-metrics-otlp-http): respect OTEL_EXPORTER_OTLP_METRICS_DEFAULT_HISTOGRAM_AGGREGATION (#6874)](https://github.com/open-telemetry/opentelemetry-js/pull/6874) | buzztaiki | JacksonWeber | ✅ | ✅ | 13h |
+| [fix(sdk-logs): allow mutable read-write log records (#6899)](https://github.com/open-telemetry/opentelemetry-js/pull/6899) | cschanhniem |  | ❌ | ✅ | 10h |
+| [feat(instrumentation-http): add ignoreIncomingPropagationHook config (#6901)](https://github.com/open-telemetry/opentelemetry-js/pull/6901) | matthieusieben |  | ✅ | ✅ | 34m |
 
 ## Waiting on authors
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [feat(sdk-metrics): wire exemplar support into metrics pipeline (#6483)](https://github.com/open-telemetry/opentelemetry-js/pull/6483) | CharlieTLe | dyladan&nbsp;💬 | ✅ | ❌ | 120d |
+| [feat(sdk-metrics): wire exemplar support into metrics pipeline (#6483)](https://github.com/open-telemetry/opentelemetry-js/pull/6483) | CharlieTLe | dyladan&nbsp;💬 | ✅ | ❌ | 121d |
 | [perf(sdk-metrics): improve performance of hashAttributes() util (#6515)](https://github.com/open-telemetry/opentelemetry-js/pull/6515) | gunjam | dyladan&nbsp;💬 | ❌ | ❌ | 107d |
 | [perf(sdk-trace-base): avoid _getTime for default Span.startTime (#6528)](https://github.com/open-telemetry/opentelemetry-js/pull/6528) | daniellockyer | david-luna&nbsp;💬<br>dyladan | ✅ | ❌ | 101d |
 | [feat(sdk): implement exporter metrics (#6480)](https://github.com/open-telemetry/opentelemetry-js/pull/6480) | anuraaga | overbalance&nbsp;💬⁠✔️<br>trentm&nbsp;✅ | ✅ | ❌ | 90d |
@@ -69,7 +70,7 @@
 | [fix: cancel retries on shutdown (#6340)](https://github.com/open-telemetry/opentelemetry-js/pull/6340) | pichlermarc | 59d |
 | [docs: add threat model document (#6676)](https://github.com/open-telemetry/opentelemetry-js/pull/6676) | pichlermarc | 51d |
 | [refactor!: Do not use HrTime in browser instrumentations (#6555)](https://github.com/open-telemetry/opentelemetry-js/pull/6555) | dyladan | 51d |
-| [feat(api): Integrate &#64;opentelemetry/api-logs package into &#64;opentelemetry/api as experimental (#4862)](https://github.com/open-telemetry/opentelemetry-js/pull/4862) | hectorhdzg | 38d |
+| [feat(api): Integrate &#64;opentelemetry/api-logs package into &#64;opentelemetry/api as experimental (#4862)](https://github.com/open-telemetry/opentelemetry-js/pull/4862) | hectorhdzg | 39d |
 | [PoC: widen 'Attributes' to support the extended AnyValue (#6579)](https://github.com/open-telemetry/opentelemetry-js/pull/6579) | trentm | 37d |
 | [feat(api): widen Attributes values type to AnyValue, using unknown TS type (#6780)](https://github.com/open-telemetry/opentelemetry-js/pull/6780) | trentm | 36d |
 | [refactor(sdk-node): model built-in exporter resolution on top of PluginComponentProvider spec (#6730)](https://github.com/open-telemetry/opentelemetry-js/pull/6730) | pichlermarc | 31d |
