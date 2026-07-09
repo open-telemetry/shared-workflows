@@ -3,12 +3,6 @@
 >
 > Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · 💬 open thread · 🔴 changes requested.
 
-## Waiting on maintainers
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [Update all patch versions (#223)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/223) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 10m |
-
 ## Waiting on reviewers
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
@@ -28,13 +22,13 @@
 | [feat: Add instrumentation for AsyncMessages.stream, Messages.parse and AsyncMessages.parse methods. (#191)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/191) | eternalcuriouslearner | DylanRussell&nbsp;💬⁠✅<br>lmolkova&nbsp;✅ | ✅ | ✅ | 1d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 | lmolkova | ✅ | ❌ | 9h |
-| [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova |  | ❌ | ✅ | 27m |
+| [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | trask&nbsp;💬 | ❌ | ✅ | 28m |
 
 ## Waiting on external
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | eternalcuriouslearner<br>lmolkova&nbsp;💬 | ✅ | ✅ | 9h |
+| [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | eternalcuriouslearner<br>lmolkova&nbsp;💬 | ✅ | ✅ | 10h |
 
 ## Draft pull requests
 
