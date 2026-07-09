@@ -8,7 +8,8 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [run spellcheck on towncrier fragments and other hidden files (#228)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/228) | lmolkova | aabmass&nbsp;✅ | ✅ | ❌ | 1h |
-| [Update RELEASING.md to document root workflows for Trusted Publishing (#231)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/231) | aabmass | lmolkova&nbsp;✅ | ⏳ | ✅ | 14m |
+| [don't run changelog check on release prs (#229)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/229) | lmolkova | aabmass&nbsp;✅ | ✅ | ✅ | 51m |
+| [Update RELEASING.md to document root workflows for Trusted Publishing (#231)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/231) | aabmass | lmolkova&nbsp;✅ | ⏳ | ✅ | 15m |
 
 ## Waiting on reviewers
 
@@ -17,7 +18,6 @@
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 22d |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 5h |
-| [don't run changelog check on release prs (#229)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/229) | lmolkova |  | ⏳ | ✅ | 51m |
 
 ## Waiting on authors
 
@@ -29,7 +29,7 @@
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 12d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 | lmolkova | ✅ | ❌ | 12h |
-| [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | aabmass&nbsp;💬⁠✅<br>eternalcuriouslearner<br>trask&nbsp;💬 | ✅ | ❌ | 2m |
+| [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | aabmass&nbsp;💬⁠✅<br>eternalcuriouslearner<br>trask&nbsp;💬 | ✅ | ❌ | 3m |
 
 ## Waiting on external
 
