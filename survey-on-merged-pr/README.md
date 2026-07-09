@@ -1,6 +1,6 @@
 # Survey on merged PR (non-member)
 
-Reusable GitHub Actions workflow that posts a survey link to a pull request when it is merged, if the author is an external contributor (not an OpenTelemetry org member, not a repo owner or collaborator, and not a bot). Used to gather feedback from new contributors about their OpenTelemetry contribution experience.
+Reusable GitHub Actions workflow that posts a survey link to a pull request when it is merged, if the author is a new contributor. Used to gather feedback from new contributors about their OpenTelemetry contribution experience.
 
 The survey link automatically includes the caller repository as a query parameter (`entry.1540511742=<owner/repo>`), so responses collected in the shared OpenTelemetry Google Form are tagged with the source repo.
 
