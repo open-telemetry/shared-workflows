@@ -78,7 +78,7 @@
 | [Deprecate TextMapGetter keys method (#8531)](https://github.com/open-telemetry/opentelemetry-java/pull/8531) | arnabnandy7 | 2d |
 | [Fix Tracer manual context propagation Javadoc example (#8571)](https://github.com/open-telemetry/opentelemetry-java/pull/8571) | thswlsqls | 2d |
 | [Preserve OpenCensus status description when converting to OpenTelemetry (#8511)](https://github.com/open-telemetry/opentelemetry-java/pull/8511) | thswlsqls | 1d |
-| [Remove duplicate declarative config resolver (#8579)](https://github.com/open-telemetry/opentelemetry-java/pull/8579) | Develop-KIM | <1m |
+| [Remove duplicate declarative config resolver (#8579)](https://github.com/open-telemetry/opentelemetry-java/pull/8579) | Develop-KIM | 1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
