@@ -67,7 +67,7 @@
 | [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ✅ | ✅ | 6h |
 | [Auto-update registry versions (bf32f444f0bb4654b9eaa25a7678e8766b809cda) (#10734)](https://github.com/open-telemetry/opentelemetry.io/pull/10734) | app/otelbot |  | ✅ | ✅ | 3h |
 | [\[ja\] add translation of content/en/blog/2026/alternative-approaches-to-contributing/index.md (#10735)](https://github.com/open-telemetry/opentelemetry.io/pull/10735) | ymotongpoo |  | ✅ | ✅ | 3h |
-| [Refresh refcache (#10736)](https://github.com/open-telemetry/opentelemetry.io/pull/10736) | app/otelbot-docs |  | ⏳ | ✅ | 2h |
+| [Refresh refcache (#10736)](https://github.com/open-telemetry/opentelemetry.io/pull/10736) | app/otelbot-docs |  | ✅ | ✅ | 2h |
 | [Add cardinalityguardianprocessor to the OpenTelemetry.io registry (#10727)](https://github.com/open-telemetry/opentelemetry.io/pull/10727) | vspallas-flyr |  | ✅ | ✅ | 1h |
 
 ## Waiting on authors
@@ -103,7 +103,7 @@
 | [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias | grcevski&nbsp;✔️<br>skl&nbsp;💬⁠✔️ | ✅ | ✅ | 11h |
 | [registry(android): add Android instrumentation entries (#10728)](https://github.com/open-telemetry/opentelemetry.io/pull/10728) | Babul422 | thompson-tomo&nbsp;💬 | ✅ | ✅ | 1h |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 1h |
-| [Add additional registry entry types including scanning (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ✅ | ✅ | 22m |
+| [Add additional registry entry types including scanning (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ✅ | ✅ | 23m |
 
 ## Waiting on external
 
