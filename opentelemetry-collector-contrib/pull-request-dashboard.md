@@ -26,7 +26,7 @@
 | [\[chore\]\[exporter/awsxray\] migrate feature gate to metadata.yaml (#48619)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48619) | lazureykis | jmacd&nbsp;✅ | ❌ | ✅ | 8h |
 | [\[chore\]\[receiver/sqlserver\] requesting receiver ownership for Splunk DBMON team (#49574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49574) | ebrdarSplunk | MovieStoreGuy&nbsp;✅ | ✅ | ✅ | 7h |
 | [\[processor/lookupprocessor\] Add CSV lookup source and periodic file reload (#49345)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49345) | rdvansloten | braydonk<br>VihasMakwana&nbsp;✅ | ❌ | ✅ | 1h |
-| [\[receiver/postgresql\] Explicitly ignoring tables with AccessExclusiveLock to prevent receiver from stalling (#49352)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49352) | kartikgola | braydonk&nbsp;✅<br>Caleb-Hurshman&nbsp;✔️<br>ebrdarSplunk&nbsp;✔️ | ⏳ | ✅ | 44m |
+| [\[receiver/postgresql\] Explicitly ignoring tables with AccessExclusiveLock to prevent receiver from stalling (#49352)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49352) | kartikgola | braydonk&nbsp;✅<br>Caleb-Hurshman&nbsp;✔️<br>ebrdarSplunk&nbsp;✔️ | ⏳ | ✅ | 45m |
 
 ## Waiting on reviewers
 
