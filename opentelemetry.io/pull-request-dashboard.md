@@ -69,7 +69,7 @@
 | [Housekeeping: automated fix results (#10731)](https://github.com/open-telemetry/opentelemetry.io/pull/10731) | app/otelbot-docs |  | ✅ | ✅ | 4h |
 | [\[ja\] update translation of content/en/docs/collector/extend/custom-component/connector/index.md (#10724)](https://github.com/open-telemetry/opentelemetry.io/pull/10724) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 | [\[ja\] update translation of content/en/docs/collector/configuration.md (#10723)](https://github.com/open-telemetry/opentelemetry.io/pull/10723) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
-| [\[ja\] update translation of content/en/docs/zero-code/obi/setup/kubernetes-helm.md (#10722)](https://github.com/open-telemetry/opentelemetry.io/pull/10722) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] update translation of content/en/docs/zero-code/obi/setup/kubernetes-helm.md (#10722)](https://github.com/open-telemetry/opentelemetry.io/pull/10722) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 | [\[ja\] add translation of content/en/blog/2022/troubleshooting-nodejs.md (#10687)](https://github.com/open-telemetry/opentelemetry.io/pull/10687) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 | [\[ja\] add translation of content/en/blog/2025/otel-cicd-sig/index.md (#10653)](https://github.com/open-telemetry/opentelemetry.io/pull/10653) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 | [\[ja\] add translation of content/en/blog/2025/contribex-survey-results/index.md (#10651)](https://github.com/open-telemetry/opentelemetry.io/pull/10651) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
