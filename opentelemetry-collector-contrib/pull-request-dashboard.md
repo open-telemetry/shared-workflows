@@ -25,6 +25,7 @@
 | [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ✅ | 8h |
 | [\[chore\]\[exporter/awsxray\] migrate feature gate to metadata.yaml (#48619)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48619) | lazureykis | jmacd&nbsp;✅ | ❌ | ✅ | 8h |
 | [\[chore\]\[receiver/sqlserver\] requesting receiver ownership for Splunk DBMON team (#49574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49574) | ebrdarSplunk | MovieStoreGuy&nbsp;✅ | ✅ | ✅ | 7h |
+| [\[processor/lookupprocessor\] Add CSV lookup source and periodic file reload (#49345)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49345) | rdvansloten | braydonk<br>VihasMakwana&nbsp;✅ | ❌ | ✅ | 1h |
 
 ## Waiting on reviewers
 
@@ -81,7 +82,7 @@
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 8d |
 | [\[elasticsearchexporter\] Add retry_on_document_status configuration (#48933)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48933) | belimawr | carsonip&nbsp;✔️<br>VihasMakwana | ✅ | ✅ | 7d |
 
-_More 46 PRs not shown_
+_More 45 PRs not shown_
 
 ## Waiting on authors
 
