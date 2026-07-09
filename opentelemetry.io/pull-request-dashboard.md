@@ -104,7 +104,7 @@
 | [docs(obi): synchronize network overview with Beyla docs (#10682)](https://github.com/open-telemetry/opentelemetry.io/pull/10682) | Babul422 | grcevski&nbsp;✔️<br>skl&nbsp;✔️<br>vitorvasc&nbsp;💬 | ✅ | ✅ | 1d |
 | [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 | chalin&nbsp;🔴 | ✅ | ✅ | 1d |
 | [feat: \[pt\] Create docs/platforms/kubernetes/helm/demo.md (#10647)](https://github.com/open-telemetry/opentelemetry.io/pull/10647) | dmroch4 | vitorvasc&nbsp;💬 | ✅ | ✅ | 18h |
-| [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias | grcevski&nbsp;✔️<br>skl&nbsp;💬⁠✔️ | ✅ | ✅ | 2h |
+| [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias | grcevski&nbsp;✔️<br>skl&nbsp;💬⁠✔️ | ✅ | ✅ | 3h |
 
 ## Waiting on external
 
@@ -134,7 +134,7 @@
 | [Draft PR for #341 — full blueprint ready for review (#10310)](https://github.com/open-telemetry/opentelemetry.io/pull/10310) | sguruvar | 6d |
 | [Add blog post on cardinality limits in OpenTelemetry metrics SDK (#9971)](https://github.com/open-telemetry/opentelemetry.io/pull/9971) | cijothomas | 3d |
 | [docs(blueprints): add first draft on K8S O11Y Platform (#9741)](https://github.com/open-telemetry/opentelemetry.io/pull/9741) | alemferreira | 2d |
-| [\[ja\] add translation of content/en/blog/2025/how-to-name-your-metrics.md (#10719)](https://github.com/open-telemetry/opentelemetry.io/pull/10719) | ymotongpoo | 18h |
+| [\[ja\] add translation of content/en/blog/2025/how-to-name-your-metrics.md (#10719)](https://github.com/open-telemetry/opentelemetry.io/pull/10719) | ymotongpoo | 19h |
 | [\[ja\] add translation of content/en/blog/2022/instrument-nginx/index.md (#10725)](https://github.com/open-telemetry/opentelemetry.io/pull/10725) | ymotongpoo | 15h |
 | [DRAFT Update semantic-conventions to unreleased v1.44.0-dev (#10677)](https://github.com/open-telemetry/opentelemetry.io/pull/10677) | app/otelbot-docs | 14h |
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 9h |
