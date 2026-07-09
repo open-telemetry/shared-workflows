@@ -11,7 +11,7 @@
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 12d |
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>simi&nbsp;✔️<br>songy23&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 8d |
 | [Update docs after OTel .NET Auto 1.16.0 release (#10721)](https://github.com/open-telemetry/opentelemetry.io/pull/10721) | Kielek | chalin&nbsp;✅<br>lachmatt&nbsp;✔️<br>nrcventura&nbsp;✔️<br>zacharycmontoya&nbsp;✔️ | ✅ | ✅ | 13h |
-| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 2m |
+| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 13m |
 
 ## Waiting on reviewers
 
@@ -31,7 +31,7 @@
 | [Add pt translation for JS benchmarks page (#10429)](https://github.com/open-telemetry/opentelemetry.io/pull/10429) | brunofoggiatto | maryliag | ✅ | ✅ | 9d |
 | [docs(skills): add preflight-pull-request contributor skill (#10333)](https://github.com/open-telemetry/opentelemetry.io/pull/10333) | brunofoggiatto | chalin | ❌ | ✅ | 9d |
 | [registry: add Runback — AI agent audit and governance (OTel-native) (#10635)](https://github.com/open-telemetry/opentelemetry.io/pull/10635) | uchit |  | ✅ | ✅ | 8d |
-| [chore: Move inactive members to emeritus (#10639)](https://github.com/open-telemetry/opentelemetry.io/pull/10639) | opentelemetrybot | cijothomas&nbsp;✔️ | ✅ | ✅ | 7d |
+| [chore: Move inactive members to emeritus (#10639)](https://github.com/open-telemetry/opentelemetry.io/pull/10639) | opentelemetrybot | cijothomas&nbsp;✔️ | ✅ | ✅ | 8d |
 | [docs(swift): update getting started sample dependencies (#10667)](https://github.com/open-telemetry/opentelemetry.io/pull/10667) | kalyanamdewri |  | ✅ | ✅ | 5d |
 | [docs: clarify Ruby in_span exception handling (#10623)](https://github.com/open-telemetry/opentelemetry.io/pull/10623) | Jaegeonyoon | kaylareopelle&nbsp;✔️ | ✅ | ✅ | 5d |
 | [docs(zh): fix obsolete SDK property name in Java configuration (#10666)](https://github.com/open-telemetry/opentelemetry.io/pull/10666) | Babul422 |  | ✅ | ✅ | 5d |
@@ -47,7 +47,7 @@
 | [\[ja\] update translation of content/en/docs/zero-code/python/_index.md (#10699)](https://github.com/open-telemetry/opentelemetry.io/pull/10699) | ymotongpoo |  | ✅ | ✅ | 2d |
 | [\[ja\] add translation of content/en/blog/2025/kubecon-eu.md (#10700)](https://github.com/open-telemetry/opentelemetry.io/pull/10700) | ymotongpoo |  | ✅ | ✅ | 2d |
 | [\[ja\] add translation of content/en/blog/2022/instrument-kafka-clients/index.md (#10708)](https://github.com/open-telemetry/opentelemetry.io/pull/10708) | ymotongpoo |  | ✅ | ✅ | 2d |
-| [feat: add setup-new-localization skill (#10481)](https://github.com/open-telemetry/opentelemetry.io/pull/10481) | vitorvasc | chalin<br>vitorvasc | ✅ | ✅ | 1d |
+| [feat: add setup-new-localization skill (#10481)](https://github.com/open-telemetry/opentelemetry.io/pull/10481) | vitorvasc | chalin<br>vitorvasc | ✅ | ✅ | 2d |
 | [Additional docs for the OpenTelemetry Kotlin SDK (#9984)](https://github.com/open-telemetry/opentelemetry.io/pull/9984) | fractalwrench | breedx-splk&nbsp;✔️<br>maryliag<br>tiffany76 | ✅ | ✅ | 1d |
 | [Add Agent Audit Exporter to the registry (#10544)](https://github.com/open-telemetry/opentelemetry.io/pull/10544) | surpradhan | svrnm&nbsp;🔴 | ✅ | ✅ | 1d |
 | [added blog for cocoapods deprecation (#10657)](https://github.com/open-telemetry/opentelemetry.io/pull/10657) | bryce-b |  | ❌ | ✅ | 1d |
@@ -59,7 +59,7 @@
 | [\[ja\] add translation of content/en/blog/2025/how-to-name-your-metrics.md (#10719)](https://github.com/open-telemetry/opentelemetry.io/pull/10719) | ymotongpoo |  | ✅ | ✅ | 1d |
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 20h |
 | [\[ja\] add translation of content/en/blog/2022/instrument-nginx/index.md (#10725)](https://github.com/open-telemetry/opentelemetry.io/pull/10725) | ymotongpoo |  | ✅ | ✅ | 20h |
-| [feat: Add openai-go and kafka-go compile time instrumentation registry entries (#10726)](https://github.com/open-telemetry/opentelemetry.io/pull/10726) | amazingakai |  | ✅ | ✅ | 19h |
+| [feat: Add openai-go and kafka-go compile time instrumentation registry entries (#10726)](https://github.com/open-telemetry/opentelemetry.io/pull/10726) | amazingakai |  | ✅ | ✅ | 20h |
 | [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 17h |
 | [Add cardinalityguardianprocessor to the OpenTelemetry.io registry (#10727)](https://github.com/open-telemetry/opentelemetry.io/pull/10727) | vspallas-flyr |  | ✅ | ✅ | 15h |
 | [registry(android): add Android instrumentation entries (#10728)](https://github.com/open-telemetry/opentelemetry.io/pull/10728) | Babul422 |  | ✅ | ✅ | 15h |
@@ -69,7 +69,7 @@
 | [\[ja\] add translation of content/en/blog/2024/getting-started-with-otelsql/index.md (#10733)](https://github.com/open-telemetry/opentelemetry.io/pull/10733) | ymotongpoo |  | ✅ | ✅ | 4h |
 | [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ✅ | ✅ | 3h |
 | [Add additional registry entry types including scanning (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ❌ | ✅ | 1h |
-| [Auto-update registry versions (bf32f444f0bb4654b9eaa25a7678e8766b809cda) (#10734)](https://github.com/open-telemetry/opentelemetry.io/pull/10734) | app/otelbot |  | ✅ | ✅ | 47m |
+| [Auto-update registry versions (bf32f444f0bb4654b9eaa25a7678e8766b809cda) (#10734)](https://github.com/open-telemetry/opentelemetry.io/pull/10734) | app/otelbot |  | ✅ | ✅ | 58m |
 
 ## Waiting on authors
 
@@ -98,9 +98,9 @@
 | [feat: \[es\] New translation - es/docs/languages/java/intro.md (#9973)](https://github.com/open-telemetry/opentelemetry.io/pull/9973) | roko1987-k8s |  | ❌ | ✅ | 10d |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>vitorvasc | ✅ | ✅ | 7d |
 | [Add pytest-genai-semconv to the registry (#10704)](https://github.com/open-telemetry/opentelemetry.io/pull/10704) | Krishnachaitanyakc |  | ✅ | ✅ | 2d |
-| [docs(obi): synchronize network overview with Beyla docs (#10682)](https://github.com/open-telemetry/opentelemetry.io/pull/10682) | Babul422 | grcevski&nbsp;✔️<br>skl&nbsp;✔️<br>vitorvasc&nbsp;💬 | ✅ | ✅ | 1d |
+| [docs(obi): synchronize network overview with Beyla docs (#10682)](https://github.com/open-telemetry/opentelemetry.io/pull/10682) | Babul422 | grcevski&nbsp;✔️<br>skl&nbsp;✔️<br>vitorvasc&nbsp;💬 | ✅ | ✅ | 2d |
 | [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 | chalin&nbsp;🔴 | ✅ | ✅ | 1d |
-| [feat: \[pt\] Create docs/platforms/kubernetes/helm/demo.md (#10647)](https://github.com/open-telemetry/opentelemetry.io/pull/10647) | dmroch4 | vitorvasc&nbsp;💬 | ✅ | ✅ | 23h |
+| [feat: \[pt\] Create docs/platforms/kubernetes/helm/demo.md (#10647)](https://github.com/open-telemetry/opentelemetry.io/pull/10647) | dmroch4 | vitorvasc&nbsp;💬 | ✅ | ✅ | 1d |
 | [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias | grcevski&nbsp;✔️<br>skl&nbsp;💬⁠✔️ | ✅ | ✅ | 8h |
 
 ## Waiting on external
@@ -134,7 +134,7 @@
 | [DRAFT Update semantic-conventions to unreleased v1.44.0-dev (#10677)](https://github.com/open-telemetry/opentelemetry.io/pull/10677) | app/otelbot-docs | 19h |
 | [docs: add OpAMP UI to demo docs (#10559)](https://github.com/open-telemetry/opentelemetry.io/pull/10559) | cijothomas | 15h |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 10h |
-| [\[ja\] add translation of content/en/blog/2026/alternative-approaches-to-contributing/index.md (#10735)](https://github.com/open-telemetry/opentelemetry.io/pull/10735) | ymotongpoo | 12m |
+| [\[ja\] add translation of content/en/blog/2026/alternative-approaches-to-contributing/index.md (#10735)](https://github.com/open-telemetry/opentelemetry.io/pull/10735) | ymotongpoo | 23m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
