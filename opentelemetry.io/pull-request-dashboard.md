@@ -62,7 +62,6 @@
 | [\[ja\] add translation of content/en/blog/2025/how-to-name-your-metrics.md (#10719)](https://github.com/open-telemetry/opentelemetry.io/pull/10719) | ymotongpoo |  | ✅ | ✅ | 20h |
 | [\[ja\] update translation of content/en/docs/zero-code/obi/setup/kubernetes-helm.md (#10722)](https://github.com/open-telemetry/opentelemetry.io/pull/10722) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 17h |
 | [\[ja\] update translation of content/en/docs/collector/configuration.md (#10723)](https://github.com/open-telemetry/opentelemetry.io/pull/10723) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 17h |
-| [\[ja\] update translation of content/en/docs/collector/extend/custom-component/connector/index.md (#10724)](https://github.com/open-telemetry/opentelemetry.io/pull/10724) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 17h |
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 16h |
 | [\[ja\] add translation of content/en/blog/2022/instrument-nginx/index.md (#10725)](https://github.com/open-telemetry/opentelemetry.io/pull/10725) | ymotongpoo |  | ✅ | ✅ | 16h |
 | [feat: Add openai-go and kafka-go compile time instrumentation registry entries (#10726)](https://github.com/open-telemetry/opentelemetry.io/pull/10726) | amazingakai |  | ✅ | ✅ | 15h |
@@ -72,6 +71,7 @@
 | [feat: \[pt\] Create docs/platforms/faas/_index.md (#10646)](https://github.com/open-telemetry/opentelemetry.io/pull/10646) | dmroch4 | vitorvasc | ✅ | ✅ | 9h |
 | [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 |  | ✅ | ✅ | 5h |
 | [Housekeeping: automated fix results (#10731)](https://github.com/open-telemetry/opentelemetry.io/pull/10731) | app/otelbot-docs |  | ✅ | ✅ | 4h |
+| [\[ja\] update translation of content/en/docs/collector/extend/custom-component/connector/index.md (#10724)](https://github.com/open-telemetry/opentelemetry.io/pull/10724) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 
 ## Waiting on authors
 
