@@ -11,9 +11,8 @@
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 4h |
 | [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | eternalcuriouslearner<br>trask&nbsp;💬 | ✅ | ❌ | 2h |
-| [run spellcheck on towncrier fragments and other hidden files (#228)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/228) | lmolkova |  | ✅ | ❌ | 54m |
-| [don't run changelog check on release prs (#229)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/229) | lmolkova |  | ⏳ | ✅ | 1m |
-| [Update readme rst (#230)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/230) | lmolkova |  | ⏳ | ✅ | <1m |
+| [run spellcheck on towncrier fragments and other hidden files (#228)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/228) | lmolkova |  | ✅ | ❌ | 57m |
+| [don't run changelog check on release prs (#229)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/229) | lmolkova |  | ⏳ | ✅ | 4m |
 
 ## Waiting on authors
 
@@ -25,6 +24,7 @@
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 12d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 | lmolkova | ✅ | ❌ | 11h |
+| [Update readme rst (#230)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/230) | lmolkova |  | ⏳ | ✅ | <1m |
 
 ## Waiting on external
 
