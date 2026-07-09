@@ -95,7 +95,7 @@
 | [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 12d |
 | [feat: \[es\] New translation - es/docs/languages/java/intro.md (#9973)](https://github.com/open-telemetry/opentelemetry.io/pull/9973) | roko1987-k8s |  | ❌ | ✅ | 9d |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>vitorvasc | ✅ | ✅ | 7d |
-| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ⏳ | ✅ | 4d |
+| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ❌ | ✅ | 4d |
 | [Add pytest-genai-semconv to the registry (#10704)](https://github.com/open-telemetry/opentelemetry.io/pull/10704) | Krishnachaitanyakc |  | ✅ | ✅ | 2d |
 | [docs(obi): synchronize network overview with Beyla docs (#10682)](https://github.com/open-telemetry/opentelemetry.io/pull/10682) | Babul422 | grcevski&nbsp;✔️<br>skl&nbsp;✔️<br>vitorvasc&nbsp;💬 | ✅ | ✅ | 1d |
 | [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 | chalin&nbsp;🔴 | ✅ | ✅ | 1d |
