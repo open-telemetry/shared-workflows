@@ -27,7 +27,7 @@
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | aabmass&nbsp;💬⁠✅<br>eternalcuriouslearner&nbsp;✅<br>trask&nbsp;💬 | ✅ | ❌ | 10h |
 | [\[`opentelemetry-instrumentation-google-genai`\] Add weaver tests (#232)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/232) | DylanRussell | eternalcuriouslearner&nbsp;✅ | ❌ | ✅ | 48m |
-| [\[`opentelemetry-instrumentation-google-genai`\] Add conversation ID attribute to the interactions API telemetry (inference span and event) (#233)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/233) | DylanRussell |  | ✅ | ✅ | 9m |
+| [\[`opentelemetry-instrumentation-google-genai`\] Add conversation ID attribute to the interactions API telemetry (inference span and event) (#233)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/233) | DylanRussell |  | ✅ | ✅ | 10m |
 
 ## Waiting on external
 
