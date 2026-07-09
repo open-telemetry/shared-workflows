@@ -43,7 +43,7 @@
 | [\[ja\] update translation of content/en/docs/languages/js/context.md (#10692)](https://github.com/open-telemetry/opentelemetry.io/pull/10692) | ymotongpoo |  | ✅ | ✅ | 3d |
 | [\[ja\] update translation of content/en/docs/collector/_index.md (#10693)](https://github.com/open-telemetry/opentelemetry.io/pull/10693) | ymotongpoo |  | ✅ | ✅ | 3d |
 | [\[ja\] add translation of content/en/blog/2023/http-conventions-declared-stable.md (#10696)](https://github.com/open-telemetry/opentelemetry.io/pull/10696) | ymotongpoo |  | ✅ | ✅ | 3d |
-| [\[ja\] update translation of content/en/docs/zero-code/python/_index.md (#10699)](https://github.com/open-telemetry/opentelemetry.io/pull/10699) | ymotongpoo |  | ✅ | ✅ | 2d |
+| [\[ja\] update translation of content/en/docs/zero-code/python/_index.md (#10699)](https://github.com/open-telemetry/opentelemetry.io/pull/10699) | ymotongpoo |  | ✅ | ✅ | 3d |
 | [\[ja\] add translation of content/en/blog/2025/kubecon-eu.md (#10700)](https://github.com/open-telemetry/opentelemetry.io/pull/10700) | ymotongpoo |  | ✅ | ✅ | 2d |
 | [\[ja\] add translation of content/en/blog/2022/instrument-kafka-clients/index.md (#10708)](https://github.com/open-telemetry/opentelemetry.io/pull/10708) | ymotongpoo |  | ✅ | ✅ | 2d |
 | [feat: add setup-new-localization skill (#10481)](https://github.com/open-telemetry/opentelemetry.io/pull/10481) | vitorvasc | chalin<br>vitorvasc | ✅ | ✅ | 2d |
@@ -67,8 +67,8 @@
 | [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ✅ | ✅ | 6h |
 | [Auto-update registry versions (bf32f444f0bb4654b9eaa25a7678e8766b809cda) (#10734)](https://github.com/open-telemetry/opentelemetry.io/pull/10734) | app/otelbot |  | ✅ | ✅ | 3h |
 | [\[ja\] add translation of content/en/blog/2026/alternative-approaches-to-contributing/index.md (#10735)](https://github.com/open-telemetry/opentelemetry.io/pull/10735) | ymotongpoo |  | ✅ | ✅ | 2h |
-| [Add cardinalityguardianprocessor to the OpenTelemetry.io registry (#10727)](https://github.com/open-telemetry/opentelemetry.io/pull/10727) | vspallas-flyr |  | ⏳ | ✅ | 58m |
-| [Add additional registry entry types including scanning (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ❌ | ✅ | 1m |
+| [Add cardinalityguardianprocessor to the OpenTelemetry.io registry (#10727)](https://github.com/open-telemetry/opentelemetry.io/pull/10727) | vspallas-flyr |  | ⏳ | ✅ | 1h |
+| [Add additional registry entry types including scanning (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ⏳ | ✅ | 6m |
 
 ## Waiting on authors
 
