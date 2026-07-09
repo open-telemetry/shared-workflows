@@ -7,7 +7,8 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [add missing permissions for release workflows (#222)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/222) | lmolkova | trask&nbsp;✅ | ✅ | ✅ | 4m |
+| [Update all patch versions (#223)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/223) | app/renovate | lmolkova&nbsp;✅ | ✅ | ✅ | 6m |
+| [add missing permissions for release workflows (#222)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/222) | lmolkova | trask&nbsp;✅ | ✅ | ✅ | 5m |
 
 ## Waiting on reviewers
 
@@ -15,7 +16,6 @@
 |---|---|---|:---:|:---:|:---:|
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 22d |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
-| [Update all patch versions (#223)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/223) | app/renovate |  | ✅ | ✅ | 5m |
 
 ## Waiting on authors
 
