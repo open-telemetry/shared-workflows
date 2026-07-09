@@ -26,7 +26,7 @@
 | [\[receiver/awsecscontainermetrics\] migrate semantic convention from v1.21.0 to v1.42.0 (#49078)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49078) | singhvibhanshu | Aneurysm9&nbsp;✔️<br>ChrsMark<br>iblancasa&nbsp;✅<br>mx-psi<br>pjanotti<br>VihasMakwana | ⏳ | ✅ | 13h |
 | [\[processor/tailsampling\] Initial support for tracestate (only probabilistic) (#48865)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48865) | csmarchbanks | ArthurSens<br>axw&nbsp;✅<br>carsonip&nbsp;✔️<br>MikeGoldsmith&nbsp;✔️<br>songy23 | ✅ | ✅ | 8h |
 | [\[exporter/datadog\] Upgrade serializerexporter to b0d9b5a (#49571)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49571) | songy23 | dmitryax&nbsp;✅ | ✅ | ✅ | 7h |
-| [\[chore\]\[exporter/awsxray\] migrate feature gate to metadata.yaml (#48619)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48619) | lazureykis | jmacd&nbsp;✅ | ❌ | ✅ | 31m |
+| [\[chore\]\[exporter/awsxray\] migrate feature gate to metadata.yaml (#48619)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48619) | lazureykis | jmacd&nbsp;✅ | ❌ | ✅ | 32m |
 
 ## Waiting on reviewers
 
