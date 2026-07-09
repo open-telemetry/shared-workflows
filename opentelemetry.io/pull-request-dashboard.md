@@ -56,7 +56,6 @@
 | [\[ja\] update translation of content/en/docs/demo/docker-deployment.md (#10714)](https://github.com/open-telemetry/opentelemetry.io/pull/10714) | ymotongpoo |  | ✅ | ❌ | 1d |
 | [\[ja\] add translation of content/en/docs/languages/php/getting-started.md (#10695)](https://github.com/open-telemetry/opentelemetry.io/pull/10695) | ymotongpoo |  | ✅ | ✅ | 21h |
 | [\[ja\] add translation of content/en/blog/2025/ux-research-prometheus-otel/index.md (#10688)](https://github.com/open-telemetry/opentelemetry.io/pull/10688) | ymotongpoo |  | ✅ | ✅ | 21h |
-| [\[ja\] add translation of content/en/blog/2025/otel-cicd-sig/index.md (#10653)](https://github.com/open-telemetry/opentelemetry.io/pull/10653) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 20h |
 | [Add Profiles endpoint to declarative config (#10718)](https://github.com/open-telemetry/opentelemetry.io/pull/10718) | florianl |  | ❌ | ✅ | 20h |
 | [\[ja\] add translation of content/en/blog/2025/how-to-name-your-metrics.md (#10719)](https://github.com/open-telemetry/opentelemetry.io/pull/10719) | ymotongpoo |  | ✅ | ✅ | 20h |
 | [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 16h |
@@ -72,6 +71,7 @@
 | [\[ja\] update translation of content/en/docs/collector/configuration.md (#10723)](https://github.com/open-telemetry/opentelemetry.io/pull/10723) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 | [\[ja\] update translation of content/en/docs/zero-code/obi/setup/kubernetes-helm.md (#10722)](https://github.com/open-telemetry/opentelemetry.io/pull/10722) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 | [\[ja\] add translation of content/en/blog/2022/troubleshooting-nodejs.md (#10687)](https://github.com/open-telemetry/opentelemetry.io/pull/10687) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] add translation of content/en/blog/2025/otel-cicd-sig/index.md (#10653)](https://github.com/open-telemetry/opentelemetry.io/pull/10653) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 
 ## Waiting on authors
 
