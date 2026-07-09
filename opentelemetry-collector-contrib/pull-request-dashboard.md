@@ -81,7 +81,7 @@
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 8d |
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 8d |
 
-_More 48 PRs not shown_
+_More 47 PRs not shown_
 
 ## Waiting on authors
 
@@ -149,6 +149,7 @@ _More 15 PRs not shown_
 | [\[cumulativetodeltaprocessor\] Add histogram_fields config for selective field conversion (#49407)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49407) | Chau-Tran | axw<br>TylerHelmuth | ❌ | ✅ | 2d |
 | [\[receiver/webhookeventreceiver\] Make webhookeventreceiver to support HMAC signature authentication (#47189)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47189) | steveduan-IDME | atoulme&nbsp;✅<br>ChrsMark<br>shalper2&nbsp;✔️<br>songy23 | ❌ | ✅ | 17h |
 | [\[receiver/redis\] Enable redis.cmd.calls, redis.cmd.latency, and redis.cmd.usec by default (#49551)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49551) | ar-ash | MovieStoreGuy | ❌ | ✅ | 5h |
+| [\[receiver/awscloudwatch\] Report cloud.account.id and support cross-account metric collection (#49155)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49155) | tommyers-elastic | braydonk | ✅ | ✅ | 1m |
 
 ## Unknown
 
