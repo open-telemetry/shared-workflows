@@ -30,8 +30,8 @@
 | [fix(deps): update all patch versions (#19155)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19155) | app/renovate |  | ❌ | ✅ | 46m |
 | [fix(deps): update jackson packages to v2.22.1 (#19156)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19156) | app/renovate |  | ⏳ | ✅ | 46m |
 | [fix(deps): update quarkus packages to v3.37.2 (#19157)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19157) | app/renovate |  | ✅ | ✅ | 46m |
-| [chore(deps): update weekly update (#19158)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19158) | app/renovate |  | ⏳ | ✅ | 45m |
-| [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca&nbsp;💬<br>laurit&nbsp;💬 | ✅ | ✅ | 40m |
+| [chore(deps): update weekly update (#19158)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19158) | app/renovate |  | ⏳ | ✅ | 46m |
+| [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca&nbsp;💬<br>laurit&nbsp;💬 | ✅ | ✅ | 41m |
 
 ## Waiting on authors
 
