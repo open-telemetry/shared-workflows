@@ -26,8 +26,8 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [fix: allow loading registries and policies from hidden directories (#992)](https://github.com/open-telemetry/weaver/pull/992) | kuklyy | lquerel&nbsp;🔴 | ✅ | ❌ | 247d |
-| [Proposal: Introduce bundles (#871)](https://github.com/open-telemetry/weaver/pull/871) | thompson-tomo | jsuereth | ✅ | ✅ | 115d |
+| [fix: allow loading registries and policies from hidden directories (#992)](https://github.com/open-telemetry/weaver/pull/992) | kuklyy | lquerel&nbsp;🔴 | ✅ | ❌ | 248d |
+| [Proposal: Introduce bundles (#871)](https://github.com/open-telemetry/weaver/pull/871) | thompson-tomo | jsuereth | ✅ | ✅ | 116d |
 
 ## Waiting on external
 
@@ -43,7 +43,7 @@
 | [Wip allow multiple dependencies part 2 - Use semver to resolve *some* dependency conflicts (#1377)](https://github.com/open-telemetry/weaver/pull/1377) | jsuereth | 68d |
 | [\[wip\] Forward compatibility for definition schema (#1422)](https://github.com/open-telemetry/weaver/pull/1422) | lmolkova | 62d |
 | [Consolidate v2 unstable file format warnings and improve diagnostic report styling (#1404)](https://github.com/open-telemetry/weaver/pull/1404) | app/copilot-swe-agent | 36d |
-| [Expand dependency conflict resolution to allow different versions if major-version is compatible (#1573)](https://github.com/open-telemetry/weaver/pull/1573) | jsuereth | 18m |
+| [Expand dependency conflict resolution to allow different versions if major-version is compatible (#1573)](https://github.com/open-telemetry/weaver/pull/1573) | jsuereth | 6m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
