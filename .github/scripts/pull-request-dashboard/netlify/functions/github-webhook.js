@@ -210,8 +210,10 @@ function checkSuitePullRequestBelongsToRepository(pullRequest, repository) {
     return false;
   }
   // check_suite.pull_requests are commit/ref associations and can point at a
-  // fork PR whose head is this repository. Only dispatch for PRs owned by the
-  // repository that emitted this webhook event.
+  // fork PR whose head is this repository. Only dispatch when the associated PR
+  // itself belongs to the repository that emitted this webhook event; the
+  // workflow dispatch passes repository + pr_number, and PR numbers are
+  // repository-scoped.
   const pullRequestRepositoryUrl = repositoryUrlFromPullRequestApiUrl(pullRequest.url);
   const baseRepositoryUrl = pullRequest.base && pullRequest.base.repo && pullRequest.base.repo.url;
   return pullRequestRepositoryUrl === repositoryUrl || baseRepositoryUrl === repositoryUrl;
