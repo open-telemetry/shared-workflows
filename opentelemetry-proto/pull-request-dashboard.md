@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Support grpc-retry-pushback-ms (#664)](https://github.com/open-telemetry/opentelemetry-proto/pull/664) | DylanRussell | bogdandrutu&nbsp;💬<br>MrAlias&nbsp;💬<br>pellared<br>tigrannajaryan&nbsp;💬 | ✅ | ✅ | 322d |
+| [Support grpc-retry-pushback-ms (#664)](https://github.com/open-telemetry/opentelemetry-proto/pull/664) | DylanRussell | bogdandrutu&nbsp;💬<br>MrAlias&nbsp;💬<br>pellared<br>tigrannajaryan&nbsp;💬 | ✅ | ✅ | 323d |
 | [Add support for SELinux Systems. (#340)](https://github.com/open-telemetry/opentelemetry-proto/pull/340) | hdost | bogdandrutu<br>marcalff&nbsp;✅<br>tigrannajaryan&nbsp;✅ | ? | ❌ | 106d |
 | [\[DO NOT MERGE\] profiles: more efficient and flexible original_payload handling. (#786)](https://github.com/open-telemetry/opentelemetry-proto/pull/786) | jhalliday | aalexand<br>felixge&nbsp;💬<br>florianl&nbsp;💬 | ✅ | ❌ | 80d |
 
@@ -15,7 +15,7 @@
 
 | PR | Author | Updated |
 |---|---|:---:|
-| [Add EntityRef ID context type (#810)](https://github.com/open-telemetry/opentelemetry-proto/pull/810) | dmitryax | 30d |
+| [Add EntityRef ID context type (#810)](https://github.com/open-telemetry/opentelemetry-proto/pull/810) | dmitryax | 31d |
 | [\[chore\] Makefile: Enable breaking change check for profiles (#774)](https://github.com/open-telemetry/opentelemetry-proto/pull/774) | florianl | 13d |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
