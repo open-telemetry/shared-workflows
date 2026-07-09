@@ -71,7 +71,7 @@
 | [feat: \[pt\] Create docs/platforms/faas/_index.md (#10646)](https://github.com/open-telemetry/opentelemetry.io/pull/10646) | dmroch4 | vitorvasc | ✅ | ✅ | 9h |
 | [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 |  | ✅ | ✅ | 5h |
 | [Housekeeping: automated fix results (#10731)](https://github.com/open-telemetry/opentelemetry.io/pull/10731) | app/otelbot-docs |  | ✅ | ✅ | 4h |
-| [\[ja\] update translation of content/en/docs/collector/extend/custom-component/connector/index.md (#10724)](https://github.com/open-telemetry/opentelemetry.io/pull/10724) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] update translation of content/en/docs/collector/extend/custom-component/connector/index.md (#10724)](https://github.com/open-telemetry/opentelemetry.io/pull/10724) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 
 ## Waiting on authors
 
