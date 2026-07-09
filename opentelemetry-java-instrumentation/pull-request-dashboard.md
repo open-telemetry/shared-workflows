@@ -31,9 +31,8 @@
 | [fix(deps): update jackson packages to v2.22.1 (#19156)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19156) | app/renovate |  | ✅ | ✅ | 2h |
 | [fix(deps): update quarkus packages to v3.37.2 (#19157)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19157) | app/renovate |  | ✅ | ✅ | 2h |
 | [chore(deps): update weekly update (#19158)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19158) | app/renovate |  | ✅ | ✅ | 2h |
-| [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca&nbsp;💬<br>laurit&nbsp;💬 | ✅ | ✅ | 1h |
-| [Remove JMX registration requirement for Apache DBCP 2.0 metrics (#19160)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160) | YaoYingLong |  | ⏳ | ✅ | 16m |
-| [Add capture-template and capture-arguments options to log4j, java-util-logging, and jboss-logmanager (#19154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154) | bhuvan-somisetty | laurit | ✅ | ✅ | 3m |
+| [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca&nbsp;💬<br>laurit&nbsp;💬 | ✅ | ✅ | 2h |
+| [Add capture-template and capture-arguments options to log4j, java-util-logging, and jboss-logmanager (#19154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154) | bhuvan-somisetty | laurit | ✅ | ✅ | 7m |
 
 ## Waiting on authors
 
@@ -61,6 +60,7 @@
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 14h |
 | [test: parameterize KubernetesRequestUtilsTest cases (#18812)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812) | zeitlinger | trask&nbsp;💬 | ✅ | ✅ | 12h |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca | trask&nbsp;💬⁠✅ | ⏳ | ✅ | 1h |
+| [Remove JMX registration requirement for Apache DBCP 2.0 metrics (#19160)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160) | YaoYingLong |  | ❌ | ✅ | 8m |
 
 ## Waiting on external
 
