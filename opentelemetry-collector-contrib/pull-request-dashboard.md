@@ -24,7 +24,7 @@
 | [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley&nbsp;✅<br>songy23&nbsp;✅ | ✅ | ✅ | 1d |
 | [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ✅ | 9h |
 | [\[chore\]\[exporter/awsxray\] migrate feature gate to metadata.yaml (#48619)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48619) | lazureykis | jmacd&nbsp;✅ | ❌ | ✅ | 9h |
-| [\[chore\]\[receiver/sqlserver\] requesting receiver ownership for Splunk DBMON team (#49574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49574) | ebrdarSplunk | MovieStoreGuy&nbsp;✅ | ✅ | ✅ | 7h |
+| [\[chore\]\[receiver/sqlserver\] requesting receiver ownership for Splunk DBMON team (#49574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49574) | ebrdarSplunk | MovieStoreGuy&nbsp;✅ | ✅ | ✅ | 8h |
 | [\[processor/lookupprocessor\] Add CSV lookup source and periodic file reload (#49345)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49345) | rdvansloten | braydonk<br>VihasMakwana&nbsp;✅ | ❌ | ✅ | 2h |
 | [\[receiver/postgresql\] Explicitly ignoring tables with AccessExclusiveLock to prevent receiver from stalling (#49352)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49352) | kartikgola | braydonk&nbsp;✅<br>Caleb-Hurshman&nbsp;✔️<br>ebrdarSplunk&nbsp;✔️ | ⏳ | ✅ | 1h |
 
@@ -151,7 +151,7 @@ _More 18 PRs not shown_
 | [\[cumulativetodeltaprocessor\] Add histogram_fields config for selective field conversion (#49407)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49407) | Chau-Tran | axw<br>TylerHelmuth | ❌ | ✅ | 2d |
 | [\[receiver/webhookeventreceiver\] Make webhookeventreceiver to support HMAC signature authentication (#47189)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47189) | steveduan-IDME | atoulme&nbsp;✅<br>ChrsMark<br>shalper2&nbsp;✔️<br>songy23 | ❌ | ✅ | 18h |
 | [\[receiver/redis\] Enable redis.cmd.calls, redis.cmd.latency, and redis.cmd.usec by default (#49551)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49551) | ar-ash | MovieStoreGuy | ❌ | ✅ | 6h |
-| [\[receiver/awscloudwatch\] Report cloud.account.id and support cross-account metric collection (#49155)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49155) | tommyers-elastic | braydonk | ✅ | ✅ | 57m |
+| [\[receiver/awscloudwatch\] Report cloud.account.id and support cross-account metric collection (#49155)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49155) | tommyers-elastic | braydonk | ✅ | ✅ | 58m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
