@@ -70,9 +70,10 @@
 | [\[ja\] update translation of content/en/docs/collector/extend/custom-component/connector/index.md (#10724)](https://github.com/open-telemetry/opentelemetry.io/pull/10724) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 | [\[ja\] update translation of content/en/docs/collector/configuration.md (#10723)](https://github.com/open-telemetry/opentelemetry.io/pull/10723) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 | [\[ja\] update translation of content/en/docs/zero-code/obi/setup/kubernetes-helm.md (#10722)](https://github.com/open-telemetry/opentelemetry.io/pull/10722) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
-| [\[ja\] add translation of content/en/blog/2022/troubleshooting-nodejs.md (#10687)](https://github.com/open-telemetry/opentelemetry.io/pull/10687) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
-| [\[ja\] add translation of content/en/blog/2025/otel-cicd-sig/index.md (#10653)](https://github.com/open-telemetry/opentelemetry.io/pull/10653) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] add translation of content/en/blog/2022/troubleshooting-nodejs.md (#10687)](https://github.com/open-telemetry/opentelemetry.io/pull/10687) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
+| [\[ja\] add translation of content/en/blog/2025/otel-cicd-sig/index.md (#10653)](https://github.com/open-telemetry/opentelemetry.io/pull/10653) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 1m |
 | [\[ja\] add translation of content/en/blog/2025/contribex-survey-results/index.md (#10651)](https://github.com/open-telemetry/opentelemetry.io/pull/10651) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
+| [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -99,7 +100,6 @@
 | [\[i18n\]\[pl\] Localize glossary to Polish (#9534)](https://github.com/open-telemetry/opentelemetry.io/pull/9534) | perk | chalin&nbsp;🔴<br>pellared&nbsp;💬<br>theletterf&nbsp;✅<br>vitorvasc | ✅ | ✅ | 15d |
 | [New blog post on OTel graduation - #10432 (#10433)](https://github.com/open-telemetry/opentelemetry.io/pull/10433) | avillela | chalin<br>jpkrohling&nbsp;💬⁠✔️<br>svrnm&nbsp;🔴 | ✅ | ✅ | 12d |
 | [feat: \[es\] New translation - es/docs/languages/java/intro.md (#9973)](https://github.com/open-telemetry/opentelemetry.io/pull/9973) | roko1987-k8s |  | ❌ | ✅ | 9d |
-| [\[ja\] add translation of content/en/blog/2022/otel-demo-app-nomad/index.md (#10601)](https://github.com/open-telemetry/opentelemetry.io/pull/10601) | ymotongpoo | kohbis&nbsp;✔️ | ✅ | ✅ | 8d |
 | [\[i18n\]\[ko\] Localize site homepage to Korean (#10431)](https://github.com/open-telemetry/opentelemetry.io/pull/10431) | abel9851 | chalin&nbsp;🔴<br>vitorvasc | ✅ | ✅ | 6d |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ❌ | ✅ | 4d |
 | [Add pytest-genai-semconv to the registry (#10704)](https://github.com/open-telemetry/opentelemetry.io/pull/10704) | Krishnachaitanyakc |  | ✅ | ✅ | 2d |
