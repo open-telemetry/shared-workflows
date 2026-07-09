@@ -8,7 +8,7 @@
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [\[receiver/kafkametricsreceiver\] update docs for Kafka 4.x / KRaft compat (#47748)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47748) | dherges | atoulme&nbsp;✅<br>dmitryax | ❌ | ✅ | 15d |
-| [\[extension/oidcauth\] Add ignore issuer in config and propagate it to go-oidc (#48513)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48513) | Dainerx | axw&nbsp;✅<br>edmocosta | ❌ | ✅ | 14d |
+| [\[extension/oidcauth\] Add ignore issuer in config and propagate it to go-oidc (#48513)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48513) | Dainerx | axw&nbsp;✅<br>edmocosta | ❌ | ✅ | 15d |
 | [\[processor/spanpruning\] Add bytes metrics (#49008)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49008) | portertech | atoulme&nbsp;✅<br>csmarchbanks&nbsp;✔️<br>jmacd&nbsp;✅<br>songy23 | ✅ | ✅ | 14d |
 | [\[receiver/httpcheck\] Use confighttp defaulting constructor (#49357)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49357) | swiatekm | crobert-1<br>iblancasa&nbsp;✅ | ✅ | ✅ | 9d |
 | [\[processor/tailsampling\] Change default error_mode of ottl_condition … (#48623)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48623) | pratik-mahalle | ArthurSens<br>atoulme<br>jmacd&nbsp;✅ | ✅ | ✅ | 9d |
@@ -22,9 +22,9 @@
 | [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[processor/metricstransform\] Fix submatch_case config option having no effect at runtime (#49266)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49266) | himanshu130700 | MovieStoreGuy&nbsp;✅<br>songy23 | ✅ | ✅ | 1d |
 | [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley&nbsp;✅<br>songy23&nbsp;✅ | ✅ | ✅ | 1d |
-| [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ✅ | 6h |
-| [\[chore\]\[exporter/awsxray\] migrate feature gate to metadata.yaml (#48619)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48619) | lazureykis | jmacd&nbsp;✅ | ❌ | ✅ | 6h |
-| [\[chore\]\[receiver/sqlserver\] requesting receiver ownership for Splunk DBMON team (#49574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49574) | ebrdarSplunk | MovieStoreGuy&nbsp;✅ | ✅ | ✅ | 4h |
+| [\[receiver/memcached\] Add TLS support (#49146)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146) | somaz94 | atoulme&nbsp;✅<br>evan-bradley<br>singhvibhanshu&nbsp;✔️ | ✅ | ✅ | 8h |
+| [\[chore\]\[exporter/awsxray\] migrate feature gate to metadata.yaml (#48619)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48619) | lazureykis | jmacd&nbsp;✅ | ❌ | ✅ | 8h |
+| [\[chore\]\[receiver/sqlserver\] requesting receiver ownership for Splunk DBMON team (#49574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49574) | ebrdarSplunk | MovieStoreGuy&nbsp;✅ | ✅ | ✅ | 6h |
 
 ## Waiting on reviewers
 
@@ -46,7 +46,7 @@
 | [feat(resourcedetectionprocessor): add retry with backoff config to resource detector processor (#48223)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48223) | KyriosGN0 | atoulme<br>paulojmdias&nbsp;💬 | ✅ | ❌ | 26d |
 | [\[receiver/vcenter\] Add host memory granted, active, and ballooned metrics (#49047)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49047) | Easonliuuuuu | andrzej-stencel | ✅ | ❌ | 26d |
 | [connector/servicegraph: add links-based correlation for async messaging (#48782)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48782) | harshitt13 | dmitryax | ✅ | ✅ | 24d |
-| [\[pkg/stanza/fileconsumer\] Require explicit top_n when sort_by is configured (#47445)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47445) | Dylan-M | andrzej-stencel<br>atoulme<br>braydonk<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 22d |
+| [\[pkg/stanza/fileconsumer\] Require explicit top_n when sort_by is configured (#47445)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47445) | Dylan-M | andrzej-stencel<br>atoulme<br>braydonk<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 23d |
 | [Update module gopkg.in/yaml.v2 to v3 (#49119)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49119) | app/renovate | TylerHelmuth | ❌ | ✅ | 22d |
 | [\[receiver/hostmetrics\] Add hardwarescraper for hardware temperature monitoring (#49097)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49097) | moseoh | dmitryax | ✅ | ✅ | 20d |
 | [\[cmd/opampsupervisor\] Use `confmap` instead of `koanf` to manage configuration (#49172)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49172) | douglascamata | mx-psi | ✅ | ❌ | 20d |
@@ -57,7 +57,7 @@
 | [\[receiver/github\] Process pull-requests in reverse order to adhere to chronological ordering (#48578)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48578) | vladorf | adrielp&nbsp;✔️<br>ArthurSens | ✅ | ✅ | 16d |
 | [\[receiver/netflowreceiver\] Add interface index and IP ToS attributes (#49077)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49077) | Abhishek-Bhandwalkar | MovieStoreGuy | ✅ | ✅ | 16d |
 | [\[cmd/telemetrygen\] support base paths in OTLP HTTP endpoints (#48064)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48064) | jeevan6996 | atoulme | ✅ | ✅ | 15d |
-| [\[receiver/windowseventlog\]: multi host support (#49256)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49256) | pankaj101A | atoulme | ❌ | ✅ | 14d |
+| [\[receiver/windowseventlog\]: multi host support (#49256)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49256) | pankaj101A | atoulme | ❌ | ✅ | 15d |
 | [\[exporter/awscloudwatchlogs\]\[internal/aws/cwlogs\] configurable 1 MiB per-event cap + fix batch threshold conflation (#48559)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48559) | challahc | VihasMakwana | ✅ | ✅ | 14d |
 | [\[receiver/githubreceiver\] retry on primary rate-limit errors (#48539)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48539) | nissessenap | andrzej-stencel | ❌ | ✅ | 14d |
 | [\[chore\]\[pkg/stanza\] remove references to attributes.time from the container operator docs (#48886)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48886) | omrozowicz-splunk | dashpole<br>himanshu130700&nbsp;✔️<br>osullivandonal&nbsp;✔️<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 14d |
@@ -66,20 +66,20 @@
 | [\[cmd/opampsupervisor\] Restart from last working remote config when fail to apply new one (#47853)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47853) | douglascamata | dehaansa<br>dpaasman00&nbsp;💬<br>evan-bradley&nbsp;💬 | ✅ | ✅ | 12d |
 | [\[processor/spanpruning\] preserve outlier subtrees with multi-level detection (#49324)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49324) | csmarchbanks | atoulme<br>portertech&nbsp;💬 | ✅ | ✅ | 12d |
 | [\[receiver/kafkametricsreceiver\] Set kafka.cluster.alias when cluster_alias is defined (#47573) (#47574)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47574) | skreuzer | pjanotti | ✅ | ❌ | 12d |
-| [\[receiver/oracledb\]: Add OS-level metrics from V$OSSTAT (#48459)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48459) | spathlavath | codeboten<br>crobert-1&nbsp;💬 | ❌ | ✅ | 11d |
+| [\[receiver/oracledb\]: Add OS-level metrics from V$OSSTAT (#48459)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48459) | spathlavath | codeboten<br>crobert-1&nbsp;💬 | ❌ | ✅ | 12d |
 | [\[chore\]\[exporter/elasticsearch\] Document emitted document structure per mapping mode (#49349)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49349) | alliasgher | MovieStoreGuy | ✅ | ✅ | 11d |
 | [\[connector/signaltometrics\] Add feature gate to change default error_mode to ignore (#48434)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48434) | singhvishalkr | VihasMakwana | ✅ | ✅ | 11d |
 | [\[pkg/translator/pprof\] reduce redundant work in sample conversion (#49454)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49454) | florianl | ms-hujia&nbsp;✔️ | ✅ | ✅ | 10d |
-| [\[chore\]\[receiver/kafkametrics\] add benchmark tests for franz-go (#48783)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48783) | paulojmdias | edmocosta | ✅ | ❌ | 9d |
+| [\[chore\]\[receiver/kafkametrics\] add benchmark tests for franz-go (#48783)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48783) | paulojmdias | edmocosta | ✅ | ❌ | 10d |
 | [\[receiver/vcenterreceiver\] Fix vcenter.vm.cpu.readiness always report… (#48900)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48900) | Easonliuuuuu | codeboten<br>Dylan-M&nbsp;✔️<br>schmikei&nbsp;✔️ | ✅ | ✅ | 9d |
 | [docs(mongodbreceiver): clarify the `hosts` config (#48788)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48788) | Lenormju | ChrsMark<br>dyl10s&nbsp;✔️<br>paulojmdias&nbsp;✔️ | ❌ | ✅ | 9d |
-| [\[exporter/prometheusremotewriteexporter\] Retry transient WAL export errors and add configurable segment cache size (#49383)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49383) | charanck9 | VihasMakwana | ❌ | ✅ | 8d |
+| [\[exporter/prometheusremotewriteexporter\] Retry transient WAL export errors and add configurable segment cache size (#49383)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49383) | charanck9 | VihasMakwana | ❌ | ✅ | 9d |
 | [lookupProcessor: add file watching for yaml (#49070)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49070) | michael-michalski | songy23 | ✅ | ✅ | 8d |
 | [\[processor/transform/internal/logparsingfuncs\] Add ParseCEF log parsing function (#49288)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49288) | Caleb-Hurshman | Dylan-M&nbsp;✔️<br>pjanotti | ✅ | ✅ | 8d |
 | [\[receiver/journald\] add option to include original log record (#48243)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48243) | belimawr | andrzej-stencel<br>ArthurSens | ❌ | ✅ | 8d |
 | [\[processor/metricstransform\]\[processor/transform\] Fix histogram min/max aggregation overwritten with 0 by data points without min/max (#49202)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49202) | Osamaali313 | dmitryax | ✅ | ✅ | 8d |
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 8d |
-| [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
+| [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 8d |
 
 _More 48 PRs not shown_
 
@@ -131,11 +131,11 @@ _More 48 PRs not shown_
 | [\[exporter/opensearchexporter\] Validate attribute values in dynamic index names (#49362)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49362) | kylehounslow | dashpole<br>ps48&nbsp;💬 | ❌ | ✅ | 6d |
 | [Support resource detectors for service telemetry (#49428)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49428) | iblancasa | andrzej-stencel<br>mwear&nbsp;✔️ | ✅ | ✅ | 6d |
 | [\[receiver/azure_functions\] Support metrics for Event Hub trigger (#48105)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48105) | tetianakravchenko | mx-psi<br>zmoog&nbsp;✔️ | ❌ | ✅ | 6d |
-| [\[cmd/telemetrygen\] Continue work on "add profiles signal support" (#49212)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49212) | bogdan-st | florianl&nbsp;💬<br>jmacd<br>mx-psi | ✅ | ❌ | 2d |
-| [\[receiver/k8s_objects\] Migrate to Kubernetes SharedInformerFactory (#48663)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48663) | kangyili | ChrsMark<br>krisztianfekete&nbsp;💬<br>mx-psi | ✅ | ✅ | 2d |
+| [\[cmd/telemetrygen\] Continue work on "add profiles signal support" (#49212)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49212) | bogdan-st | florianl&nbsp;💬<br>jmacd<br>mx-psi | ✅ | ❌ | 3d |
+| [\[receiver/k8s_objects\] Migrate to Kubernetes SharedInformerFactory (#48663)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48663) | kangyili | ChrsMark<br>krisztianfekete&nbsp;💬<br>mx-psi | ✅ | ✅ | 3d |
 | [fix(metricstransformprocessor): preserve absent histogram sum on merge (#49404)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49404) | CedricConday | evan-bradley<br>himanshu130700&nbsp;✔️ | ✅ | ✅ | 2d |
 | [\[PrometheusRemoteWriter\] Add support of MetadataKeys in remote write outbound requests (#48767)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48767) | gizas | ArthurSens&nbsp;💬⁠✅<br>axw&nbsp;✅<br>constanca-m&nbsp;💬<br>dashpole&nbsp;✅ | ❌ | ❌ | 2d |
-| [\[internal/k8sinventory\] Extract checkpoint package and update Observer interface (#48765)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48765) | kangyili | ChrsMark&nbsp;✅<br>dashpole<br>jmmcorreia&nbsp;✔️<br>krisztianfekete&nbsp;✔️ | ✅ | ✅ | 1d |
+| [\[internal/k8sinventory\] Extract checkpoint package and update Observer interface (#48765)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48765) | kangyili | ChrsMark&nbsp;✅<br>dashpole<br>jmmcorreia&nbsp;✔️<br>krisztianfekete&nbsp;✔️ | ✅ | ✅ | 2d |
 | [\[kubeletstats\] Calculate cpu usage on the fly behind feature gate (#49499)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49499) | ChrsMark | jmmcorreia&nbsp;✔️<br>mwear&nbsp;✔️<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 1d |
 
 _More 15 PRs not shown_
@@ -147,8 +147,16 @@ _More 15 PRs not shown_
 | [exporter/prometheus: Add config option 'resource_constant_labels' (#48922)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48922) | ArthurSens | axw<br>dashpole | ✅ | ❌ | 28d |
 | [\[receiver/hostmetrics\] Add process.network.connection.count metric to process scraper (#49091)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49091) | GlqEason | bogdandrutu | ❌ | ✅ | 21d |
 | [\[cumulativetodeltaprocessor\] Add histogram_fields config for selective field conversion (#49407)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49407) | Chau-Tran | axw<br>TylerHelmuth | ❌ | ✅ | 2d |
-| [\[receiver/webhookeventreceiver\] Make webhookeventreceiver to support HMAC signature authentication (#47189)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47189) | steveduan-IDME | atoulme&nbsp;✅<br>ChrsMark<br>shalper2&nbsp;✔️<br>songy23 | ❌ | ✅ | 15h |
-| [\[receiver/redis\] Enable redis.cmd.calls, redis.cmd.latency, and redis.cmd.usec by default (#49551)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49551) | ar-ash | MovieStoreGuy | ❌ | ✅ | 3h |
+| [\[receiver/webhookeventreceiver\] Make webhookeventreceiver to support HMAC signature authentication (#47189)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47189) | steveduan-IDME | atoulme&nbsp;✅<br>ChrsMark<br>shalper2&nbsp;✔️<br>songy23 | ❌ | ✅ | 17h |
+| [\[receiver/redis\] Enable redis.cmd.calls, redis.cmd.latency, and redis.cmd.usec by default (#49551)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49551) | ar-ash | MovieStoreGuy | ❌ | ✅ | 5h |
+
+## Unknown
+
+| PR | Author | Reviewers | CI | Conflicts | Age |
+|---|---|---|:---:|:---:|:---:|
+| [\[chore\]\[extension/pebbletailstorage\] Update code owners (#49584)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49584) | carsonip |  | ? | ? | ? |
+| [\[connector/failover\] Remove deprecated fields (#49583)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49583) | khushijain21 |  | ? | ? | ? |
+| [\[connector/failover\] Introduce failover conditions (#49578)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49578) | khushijain21 |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
