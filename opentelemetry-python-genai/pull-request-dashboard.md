@@ -9,7 +9,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [Update dependency boto3 to &gt;=1.43.44 (#225)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/225) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 29m |
 | [fix prepare-release PR creation (#227)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/227) | lmolkova | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 9m |
-| [Prepare release 1.0b0 (#226)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/226) | lmolkova | eternalcuriouslearner&nbsp;✅ | ⏳ | ✅ | 4m |
+| [Prepare release 1.0b0 (#226)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/226) | lmolkova | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 5m |
 
 ## Waiting on reviewers
 
@@ -46,7 +46,7 @@
 | [feat(bedrock): Migrate AWS Bedrock Runtime instrumentation (#93)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/93) | williazz | 7d |
 | [Prototype: add nested workflow detection in langchain (#189)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/189) | lmolkova | 7d |
 | [Prototype showing gen_ai.conversation_root span attribute to mark the root GenAI span of a conversation (WIP) (#187)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/187) | wrisa | 7d |
-| [Add CrewAI instrumentation: LLM inference event listener (#224)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/224) | venkata-pavani | 45m |
+| [Add CrewAI instrumentation: LLM inference event listener (#224)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/224) | venkata-pavani | 46m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
