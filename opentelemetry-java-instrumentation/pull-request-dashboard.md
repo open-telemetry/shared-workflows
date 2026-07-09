@@ -22,11 +22,11 @@
 | [Add Cassandra JMX metrics target system (#19080)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19080) | jkoronaAtCisco | laurit<br>SylvainJuge<br>trask | ✅ | ✅ | 5d |
 | [Add OSGi support for library instrumentation, API, and SDK extension artifacts (#18995)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995) | royteeuwen | laurit&nbsp;💬 | ✅ | ❌ | 5d |
 | [feat: add support for hbase-client 1.4 (#19087)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19087) | YaoYingLong | jaydeluca<br>laurit | ✅ | ❌ | 5d |
-| [Add Ktor 3.0 client span accessors and bridge them under the agent (#19149)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19149) | amccague |  | ✅ | ✅ | 8h |
+| [Add Ktor 3.0 client span accessors and bridge them under the agent (#19149)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19149) | amccague |  | ✅ | ✅ | 9h |
 | [feat: Add GenAI agent/tool/retrieval semantic conventions to instrumentation-api-incubator (#19124)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19124) | eternalcuriouslearner | laurit&nbsp;💬 | ✅ | ✅ | 5h |
 | [Add Redisson 2.3-3.17 connection pool metrics (#19152)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19152) | YaoYingLong |  | ❌ | ✅ | 1h |
-| [Add capture-template and capture-arguments options to log4j, java-util-logging, and jboss-logmanager (#19154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154) | bhuvan-somisetty |  | ⏳ | ✅ | 25m |
-| [\[jmx-metrics\] bootstrap + validate registry definitions for jmx metrics (#19139)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139) | SylvainJuge | SylvainJuge | ⏳ | ✅ | 8m |
+| [\[jmx-metrics\] bootstrap + validate registry definitions for jmx metrics (#19139)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19139) | SylvainJuge | SylvainJuge | ⏳ | ✅ | 29m |
+| [Add capture-template and capture-arguments options to log4j, java-util-logging, and jboss-logmanager (#19154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154) | bhuvan-somisetty |  | ⏳ | ✅ | <1m |
 
 ## Waiting on authors
 
@@ -36,7 +36,7 @@
 | [Add ability to customize span exception handling to instrumenter (#18530)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18530) | jaydeluca |  | ✅ | ❌ | 60d |
 | [Add the Nacos-Client 2.x plugin (#18758)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18758) | peachisai | laurit&nbsp;💬 | ❌ | ❌ | 52d |
 | [fix(webflux): register reactor hook in createWebFilter and add filter. (#18844)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18844) | amit306 | laurit<br>singhvibhanshu&nbsp;✔️ | ✅ | ✅ | 44d |
-| [fix: separate default vs controller-telemetry metadata test suites so instrumentation-list.yaml reflects out-of-the-box telemetry (#18974)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974) | mvanhorn | jaydeluca&nbsp;💬 | ✅ | ❌ | 26d |
+| [fix: separate default vs controller-telemetry metadata test suites so instrumentation-list.yaml reflects out-of-the-box telemetry (#18974)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18974) | mvanhorn | jaydeluca&nbsp;💬 | ✅ | ❌ | 27d |
 | [Capture dubbo UNKNOWN requests (#16668)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16668) | steverao | trask | ✅ | ✅ | 13d |
 | [Gate process command attributes under v3 preview (#19082)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19082) | trask | laurit&nbsp;✅ | ✅ | ✅ | 9d |
 | [fix(druid): optimize dataSourceName to resolve metrics high cardinality (#19108)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19108) | YaoYingLong | laurit&nbsp;💬 | ✅ | ✅ | 7d |
@@ -49,11 +49,11 @@
 | [Move experimental apis needed by indy instrumentations to InstrumentationModule (#19142)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19142) | laurit | SylvainJuge | ✅ | ✅ | 1d |
 | [feat(spring-cloud-aws): instrument onMessage(Collection&lt;Message&lt;T&gt;&gt;) … (#19053)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19053) | Aryainguz | laurit&nbsp;💬<br>trask | ✅ | ✅ | 17h |
 | [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca | trask&nbsp;💬⁠✅ | ✅ | ✅ | 13h |
-| [Revive reduced servlet smoke test matrix on top of main (#18953)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953) | zeitlinger | trask | ✅ | ✅ | 10h |
+| [Revive reduced servlet smoke test matrix on top of main (#18953)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18953) | zeitlinger | trask | ✅ | ✅ | 11h |
 | [docs(agent-extension-api): mark ConfigProperties &#64;Nullable where null is possible (#18090)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18090) | zeitlinger | laurit<br>trask | ✅ | ✅ | 10h |
 | [Add InstrumentationDefaults helper to declarative-config-bridge (#17816)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816) | zeitlinger | laurit<br>trask | ✅ | ✅ | 10h |
-| [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 9h |
-| [test: parameterize KubernetesRequestUtilsTest cases (#18812)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812) | zeitlinger | trask&nbsp;💬 | ✅ | ✅ | 7h |
+| [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 10h |
+| [test: parameterize KubernetesRequestUtilsTest cases (#18812)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812) | zeitlinger | trask&nbsp;💬 | ✅ | ✅ | 8h |
 | [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca<br>laurit&nbsp;💬 | ✅ | ✅ | 1h |
 
 ## Waiting on external
