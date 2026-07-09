@@ -101,8 +101,8 @@
 | [Add documentation for agent, chatbot and MCP added to Otel-demo (#10574)](https://github.com/open-telemetry/opentelemetry.io/pull/10574) | fali007 | chalin&nbsp;🔴 | ✅ | ✅ | 1d |
 | [feat: \[pt\] Create docs/platforms/kubernetes/helm/demo.md (#10647)](https://github.com/open-telemetry/opentelemetry.io/pull/10647) | dmroch4 | vitorvasc&nbsp;💬 | ✅ | ✅ | 1d |
 | [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias | grcevski&nbsp;✔️<br>skl&nbsp;💬⁠✔️ | ✅ | ✅ | 9h |
-| [registry(android): add Android instrumentation entries (#10728)](https://github.com/open-telemetry/opentelemetry.io/pull/10728) | Babul422 | thompson-tomo&nbsp;💬 | ✅ | ✅ | 20m |
-| [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 1m |
+| [registry(android): add Android instrumentation entries (#10728)](https://github.com/open-telemetry/opentelemetry.io/pull/10728) | Babul422 | thompson-tomo&nbsp;💬 | ✅ | ✅ | 24m |
+| [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 4m |
 
 ## Waiting on external
 
