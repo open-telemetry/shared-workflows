@@ -67,7 +67,7 @@
 | [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ✅ | ✅ | 6h |
 | [Auto-update registry versions (bf32f444f0bb4654b9eaa25a7678e8766b809cda) (#10734)](https://github.com/open-telemetry/opentelemetry.io/pull/10734) | app/otelbot |  | ✅ | ✅ | 3h |
 | [\[ja\] add translation of content/en/blog/2026/alternative-approaches-to-contributing/index.md (#10735)](https://github.com/open-telemetry/opentelemetry.io/pull/10735) | ymotongpoo |  | ✅ | ✅ | 3h |
-| [Add cardinalityguardianprocessor to the OpenTelemetry.io registry (#10727)](https://github.com/open-telemetry/opentelemetry.io/pull/10727) | vspallas-flyr |  | ⏳ | ✅ | 1h |
+| [Add cardinalityguardianprocessor to the OpenTelemetry.io registry (#10727)](https://github.com/open-telemetry/opentelemetry.io/pull/10727) | vspallas-flyr |  | ✅ | ✅ | 1h |
 
 ## Waiting on authors
 
