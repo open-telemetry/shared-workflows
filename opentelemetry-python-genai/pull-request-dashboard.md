@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Update RELEASING.md to document root workflows for Trusted Publishing (#231)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/231) | aabmass | lmolkova&nbsp;✅ | ⏳ | ✅ | 35m |
+| [Update RELEASING.md to document root workflows for Trusted Publishing (#231)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/231) | aabmass | lmolkova&nbsp;✅ | ⏳ | ✅ | 36m |
 
 ## Waiting on reviewers
 
