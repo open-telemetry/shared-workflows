@@ -28,8 +28,8 @@
 | [feat: Add GenAI agent/tool/retrieval semantic conventions to instrumentation-api-incubator (#19124)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19124) | eternalcuriouslearner | laurit&nbsp;💬 | ✅ | ✅ | 2h |
 | [fix: optimize dataSourceName to resolve metrics high cardinality (#19159)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19159) | YaoYingLong |  | ⏳ | ✅ | 1h |
 | [fix(deps): update all patch versions (#19155)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19155) | app/renovate |  | ❌ | ✅ | 58m |
-| [fix(deps): update jackson packages to v2.22.1 (#19156)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19156) | app/renovate |  | ⏳ | ✅ | 57m |
-| [fix(deps): update quarkus packages to v3.37.2 (#19157)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19157) | app/renovate |  | ✅ | ✅ | 57m |
+| [fix(deps): update jackson packages to v2.22.1 (#19156)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19156) | app/renovate |  | ⏳ | ✅ | 58m |
+| [fix(deps): update quarkus packages to v3.37.2 (#19157)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19157) | app/renovate |  | ✅ | ✅ | 58m |
 | [chore(deps): update weekly update (#19158)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19158) | app/renovate |  | ✅ | ✅ | 57m |
 | [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca&nbsp;💬<br>laurit&nbsp;💬 | ✅ | ✅ | 52m |
 
@@ -58,7 +58,7 @@
 | [Add InstrumentationDefaults helper to declarative-config-bridge (#17816)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816) | zeitlinger | laurit<br>trask | ✅ | ✅ | 13h |
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 13h |
 | [test: parameterize KubernetesRequestUtilsTest cases (#18812)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812) | zeitlinger | trask&nbsp;💬 | ✅ | ✅ | 10h |
-| [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca | trask&nbsp;💬⁠✅ | ⏳ | ✅ | 47m |
+| [Add structured property support for declarative config metadata (#19077)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19077) | jaydeluca | trask&nbsp;💬⁠✅ | ⏳ | ✅ | 48m |
 | [Add capture-template and capture-arguments options to log4j, java-util-logging, and jboss-logmanager (#19154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154) | bhuvan-somisetty | laurit&nbsp;💬 | ⏳ | ✅ | 9m |
 
 ## Waiting on external
