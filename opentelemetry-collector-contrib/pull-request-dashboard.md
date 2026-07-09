@@ -19,7 +19,6 @@
 | [\[pkg/ottl\] Add `Find` converter (#49190)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49190) | edmocosta | evan-bradley&nbsp;✅<br>VihasMakwana | ✅ | ❌ | 1d |
 | [\[pkg/ottl\] Add `Any` and `All` converters (#49188)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49188) | edmocosta | braydonk<br>evan-bradley&nbsp;✅ | ✅ | ❌ | 1d |
 | [\[pkg/ottl\] Add `MapEach` converter (#49186)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49186) | edmocosta | dashpole<br>evan-bradley&nbsp;✅<br>TylerHelmuth&nbsp;✅<br>VihasMakwana&nbsp;✅ | ✅ | ❌ | 1d |
-| [\[processor/resourcedetection\] add internal telemetry (#49128)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49128) | mwear | dashpole&nbsp;✅<br>mx-psi<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[processor/metricstransform\] Fix submatch_case config option having no effect at runtime (#49266)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49266) | himanshu130700 | MovieStoreGuy&nbsp;✅<br>songy23 | ✅ | ✅ | 23h |
 | [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley&nbsp;✅<br>songy23&nbsp;✅ | ✅ | ✅ | 22h |
@@ -140,7 +139,7 @@ _More 47 PRs not shown_
 | [\[PrometheusRemoteWriter\] Add support of MetadataKeys in remote write outbound requests (#48767)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48767) | gizas | ArthurSens&nbsp;💬⁠✅<br>axw&nbsp;✅<br>constanca-m&nbsp;💬<br>dashpole&nbsp;✅ | ❌ | ❌ | 2d |
 | [\[internal/k8sinventory\] Extract checkpoint package and update Observer interface (#48765)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48765) | kangyili | ChrsMark&nbsp;✅<br>dashpole<br>jmmcorreia&nbsp;✔️<br>krisztianfekete&nbsp;✔️ | ✅ | ✅ | 1d |
 
-_More 14 PRs not shown_
+_More 15 PRs not shown_
 
 ## Waiting on external
 
