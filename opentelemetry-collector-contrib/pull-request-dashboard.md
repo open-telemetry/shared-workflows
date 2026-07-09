@@ -83,7 +83,7 @@
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 8d |
 | [\[receiver/redis\] Add pubsub metrics (#49148)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49148) | rajrohanyadav | pjanotti | ✅ | ✅ | 7d |
 
-_More 43 PRs not shown_
+_More 42 PRs not shown_
 
 ## Waiting on authors
 
@@ -140,7 +140,7 @@ _More 43 PRs not shown_
 | [\[internal/k8sinventory\] Extract checkpoint package and update Observer interface (#48765)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48765) | kangyili | ChrsMark&nbsp;✅<br>dashpole<br>jmmcorreia&nbsp;✔️<br>krisztianfekete&nbsp;✔️ | ✅ | ✅ | 2d |
 | [\[kubeletstats\] Calculate cpu usage on the fly behind feature gate (#49499)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49499) | ChrsMark | jmmcorreia&nbsp;✔️<br>mwear&nbsp;✔️<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 1d |
 
-_More 16 PRs not shown_
+_More 17 PRs not shown_
 
 ## Waiting on external
 
