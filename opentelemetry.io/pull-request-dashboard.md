@@ -57,7 +57,7 @@
 | [\[ja\] add translation of content/en/blog/2025/ux-research-prometheus-otel/index.md (#10688)](https://github.com/open-telemetry/opentelemetry.io/pull/10688) | ymotongpoo |  | ✅ | ✅ | 22h |
 | [Add Profiles endpoint to declarative config (#10718)](https://github.com/open-telemetry/opentelemetry.io/pull/10718) | florianl |  | ❌ | ✅ | 20h |
 | [\[ja\] add translation of content/en/blog/2025/how-to-name-your-metrics.md (#10719)](https://github.com/open-telemetry/opentelemetry.io/pull/10719) | ymotongpoo |  | ✅ | ✅ | 20h |
-| [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 16h |
+| [\[es\] Localize content/es/docs/guidance/blueprints/_index.md (#10590)](https://github.com/open-telemetry/opentelemetry.io/pull/10590) | immavalls | krol3&nbsp;✔️ | ✅ | ✅ | 17h |
 | [\[ja\] add translation of content/en/blog/2022/instrument-nginx/index.md (#10725)](https://github.com/open-telemetry/opentelemetry.io/pull/10725) | ymotongpoo |  | ✅ | ✅ | 16h |
 | [feat: Add openai-go and kafka-go compile time instrumentation registry entries (#10726)](https://github.com/open-telemetry/opentelemetry.io/pull/10726) | amazingakai |  | ✅ | ✅ | 16h |
 | [Adds Tintri Receiver to the Registry (#10086)](https://github.com/open-telemetry/opentelemetry.io/pull/10086) | jraleigh | vitorvasc | ✅ | ✅ | 13h |
