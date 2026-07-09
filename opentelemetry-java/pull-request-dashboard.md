@@ -27,7 +27,7 @@
 | [Standardize OkHttpHttpSender shutdown to await executor termination (#8495)](https://github.com/open-telemetry/opentelemetry-java/pull/8495) | thswlsqls |  | ❌ | ✅ | 4d |
 | [Fix serialization of array-valued scope and resource attributes in Prometheus exporter (#8497)](https://github.com/open-telemetry/opentelemetry-java/pull/8497) | thswlsqls |  | ✅ | ✅ | 4d |
 | [Enforce last-value-wins semantics in AttributesMap without performance regression (#8548)](https://github.com/open-telemetry/opentelemetry-java/pull/8548) | EvgeniiR | jack-berg | ✅ | ✅ | 1d |
-| [Remove duplicate declarative config resolver (#8579)](https://github.com/open-telemetry/opentelemetry-java/pull/8579) | Develop-KIM |  | ⏳ | ✅ | 9m |
+| [Remove duplicate declarative config resolver (#8579)](https://github.com/open-telemetry/opentelemetry-java/pull/8579) | Develop-KIM |  | ⏳ | ✅ | 11m |
 
 ## Waiting on authors
 
