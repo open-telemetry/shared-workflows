@@ -83,7 +83,7 @@
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 8d |
 | [\[receiver/redis\] Add pubsub metrics (#49148)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49148) | rajrohanyadav | pjanotti | ✅ | ✅ | 7d |
 
-_More 42 PRs not shown_
+_More 43 PRs not shown_
 
 ## Waiting on authors
 
@@ -159,7 +159,6 @@ _More 17 PRs not shown_
 |---|---|---|:---:|:---:|:---:|
 | [\[pkg/stanza\] `csv_parser` operator should not split batches of entries (#49586)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49586) | singhvibhanshu |  | ? | ? | ? |
 | [\[chore\]\[extension/pebbletailstorage\] Update code owners (#49584)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49584) | carsonip |  | ? | ? | ? |
-| [\[connector/failover\] Introduce failover conditions (#49578)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49578) | khushijain21 |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
