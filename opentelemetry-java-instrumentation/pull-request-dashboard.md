@@ -53,7 +53,7 @@
 | [Add InstrumentationDefaults helper to declarative-config-bridge (#17816)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816) | zeitlinger | laurit<br>trask | ✅ | ✅ | 10h |
 | [Added SchedulerListener Instrumentation for Scheduler-level errors in Quartz (#19117)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19117) | angad-2 | laurit&nbsp;💬⁠✅<br>trask&nbsp;💬 | ✅ | ✅ | 9h |
 | [test: parameterize KubernetesRequestUtilsTest cases (#18812)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18812) | zeitlinger | trask&nbsp;💬 | ✅ | ✅ | 7h |
-| [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca<br>laurit&nbsp;💬 | ✅ | ✅ | 39m |
+| [chore: update instrumentation list \[automated\] (#19150)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19150) | app/otelbot-java-instrumentation | jaydeluca<br>laurit&nbsp;💬 | ✅ | ✅ | 40m |
 | [Add capture-template and capture-arguments options to log4j, java-util-logging, and jboss-logmanager (#19154)](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19154) | bhuvan-somisetty |  | ⏳ | ✅ | 2m |
 
 ## Waiting on external
