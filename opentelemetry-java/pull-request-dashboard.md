@@ -35,13 +35,13 @@
 | [\[DO NOT MERGE\] JFR API usage (#7741)](https://github.com/open-telemetry/opentelemetry-java/pull/7741) | jhalliday | laurit | ❌ | ✅ | 97d |
 | [Replace ArrayBlockingQueue with park/unpark for BatchSpanProcessor$Worker (#8240)](https://github.com/open-telemetry/opentelemetry-java/pull/8240) | Khepu | jack-berg<br>zeitlinger | ✅ | ✅ | 76d |
 | [Merge colliding Prometheus label values (#8364)](https://github.com/open-telemetry/opentelemetry-java/pull/8364) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬<br>psx95&nbsp;🔴<br>zeitlinger | ✅ | ❌ | 57d |
-| [Fix Groovy OpenTelemetrySdk builder loading (#8407)](https://github.com/open-telemetry/opentelemetry-java/pull/8407) | ADITYA-CODE-SOURCE | jack-berg<br>laurit<br>psx95&nbsp;💬 | ✅ | ✅ | 50d |
+| [Fix Groovy OpenTelemetrySdk builder loading (#8407)](https://github.com/open-telemetry/opentelemetry-java/pull/8407) | ADITYA-CODE-SOURCE | jack-berg<br>laurit<br>psx95&nbsp;💬 | ✅ | ✅ | 51d |
 | [Use HTTP error bodies in HttpExporter warnings (#8428)](https://github.com/open-telemetry/opentelemetry-java/pull/8428) | ADITYA-CODE-SOURCE | psx95&nbsp;💬 | ✅ | ✅ | 42d |
 | [Add a ConfigProvider callback for runtime instrumentation option changes (#8076)](https://github.com/open-telemetry/opentelemetry-java/pull/8076) | jackshirazi | jack-berg<br>trask | ❌ | ❌ | 22d |
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 22d |
 | [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ✅ | ✅ | 9d |
-| [Fix OkHttp client mTLS when using the platform default trust store (#8565)](https://github.com/open-telemetry/opentelemetry-java/pull/8565) | Debashismitra01 | psx95&nbsp;💬 | ✅ | ✅ | 10h |
-| [Fix Jaeger propagator baggage header case sensitivity (#8496)](https://github.com/open-telemetry/opentelemetry-java/pull/8496) | thswlsqls | jkwatson&nbsp;💬 | ✅ | ✅ | 2h |
+| [Fix OkHttp client mTLS when using the platform default trust store (#8565)](https://github.com/open-telemetry/opentelemetry-java/pull/8565) | Debashismitra01 | psx95&nbsp;💬 | ✅ | ✅ | 12h |
+| [Fix Jaeger propagator baggage header case sensitivity (#8496)](https://github.com/open-telemetry/opentelemetry-java/pull/8496) | thswlsqls | jkwatson&nbsp;💬 | ✅ | ✅ | 4h |
 
 ## Waiting on external
 
@@ -73,8 +73,8 @@
 | [Fix stale parameter name in JcTools.drain Javadoc (#8513)](https://github.com/open-telemetry/opentelemetry-java/pull/8513) | thswlsqls | 6d |
 | [Fix typos in sdk-common Javadoc (#8512)](https://github.com/open-telemetry/opentelemetry-java/pull/8512) | thswlsqls | 4d |
 | [Assert String-key setAttribute overloads in shared default logger test (#8567)](https://github.com/open-telemetry/opentelemetry-java/pull/8567) | thswlsqls | 4d |
-| [Remove duplicate getStringList resolver in DeclarativeConfigPropertyUtil (#8572)](https://github.com/open-telemetry/opentelemetry-java/pull/8572) | thswlsqls | 3d |
-| [Document experimental type routing in OtelObjectRule Javadoc (#8573)](https://github.com/open-telemetry/opentelemetry-java/pull/8573) | thswlsqls | 3d |
+| [Remove duplicate getStringList resolver in DeclarativeConfigPropertyUtil (#8572)](https://github.com/open-telemetry/opentelemetry-java/pull/8572) | thswlsqls | 4d |
+| [Document experimental type routing in OtelObjectRule Javadoc (#8573)](https://github.com/open-telemetry/opentelemetry-java/pull/8573) | thswlsqls | 4d |
 | [Deprecate TextMapGetter keys method (#8531)](https://github.com/open-telemetry/opentelemetry-java/pull/8531) | arnabnandy7 | 2d |
 | [Fix Tracer manual context propagation Javadoc example (#8571)](https://github.com/open-telemetry/opentelemetry-java/pull/8571) | thswlsqls | 2d |
 | [Preserve OpenCensus status description when converting to OpenTelemetry (#8511)](https://github.com/open-telemetry/opentelemetry-java/pull/8511) | thswlsqls | 1d |
