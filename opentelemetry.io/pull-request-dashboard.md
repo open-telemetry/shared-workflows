@@ -11,7 +11,6 @@
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>simi&nbsp;✔️<br>songy23&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 8d |
 | [Update docs after OTel .NET Auto 1.16.0 release (#10721)](https://github.com/open-telemetry/opentelemetry.io/pull/10721) | Kielek | chalin&nbsp;✅<br>lachmatt&nbsp;✔️<br>nrcventura&nbsp;✔️<br>zacharycmontoya&nbsp;✔️ | ✅ | ✅ | 16h |
 | [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ✅ | ✅ | 3h |
-| [Refresh refcache (#10736)](https://github.com/open-telemetry/opentelemetry.io/pull/10736) | app/otelbot-docs | vitorvasc&nbsp;✅ | ✅ | ✅ | 2h |
 
 ## Waiting on reviewers
 
@@ -103,7 +102,7 @@
 | [Update OBI docs for v0.10.0 (#10631)](https://github.com/open-telemetry/opentelemetry.io/pull/10631) | MrAlias | grcevski&nbsp;✔️<br>skl&nbsp;💬⁠✔️ | ✅ | ✅ | 11h |
 | [registry(android): add Android instrumentation entries (#10728)](https://github.com/open-telemetry/opentelemetry.io/pull/10728) | Babul422 | thompson-tomo&nbsp;💬 | ✅ | ✅ | 2h |
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 1h |
-| [Add additional registry entry types including scanning (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ✅ | ✅ | 38m |
+| [Add additional registry entry types including scanning (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ✅ | ✅ | 41m |
 
 ## Waiting on external
 
