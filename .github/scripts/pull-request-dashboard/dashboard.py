@@ -1045,6 +1045,85 @@ def select_backfill_prs(
     )
 
 
+def log_line_value(value: Any) -> str:
+    return " ".join(str(value or "").split())
+
+
+def log_multiline_value(label: str, value: Any) -> None:
+    text = str(value or "").strip()
+    if not text:
+        return
+    print(f"      {label}:", file=sys.stderr)
+    print(f"      --- BEGIN {label} ---", file=sys.stderr)
+    for line in text.splitlines():
+        print(f"      | {line}", file=sys.stderr)
+    print(f"      --- END {label} ---", file=sys.stderr)
+
+
+def log_failed_classification_diagnostics(
+    classification: dict[str, Any],
+    thread: dict[str, Any] | None,
+) -> None:
+    decision = classification.get("decision") or {}
+    print(
+        "    failed classification: "
+        f"thread_id={classification.get('thread_id') or '<unknown>'} "
+        f"kind={classification.get('thread_kind') or '<unknown>'} "
+        f"action={decision.get('thread_action') or '<unknown>'} "
+        f"reason={log_line_value(decision.get('reason')) or '<none>'}",
+        file=sys.stderr,
+    )
+    if classification.get("error"):
+        print(f"      error: {log_line_value(classification.get('error'))}", file=sys.stderr)
+    if thread:
+        comments = thread.get("comments") or []
+        latest = comments[-1] if comments else {}
+        location = thread.get("path") or ""
+        if location and thread.get("line"):
+            location = f"{location}:{thread.get('line')}"
+        print(
+            "      thread: "
+            f"location={location or '<none>'} "
+            f"latest_actor={latest.get('actor') or '<unknown>'} "
+            f"latest_role={latest.get('actor_role') or '<unknown>'} "
+            f"latest_at={latest.get('timestamp') or '<unknown>'}",
+            file=sys.stderr,
+        )
+        if latest.get("body"):
+            print(f"      latest_body: {log_line_value(latest.get('body'))}", file=sys.stderr)
+    for key in ("response_text", "stderr"):
+        if classification.get(key):
+            log_multiline_value(key, classification.get(key))
+
+
+def log_failed_result_diagnostics(results: dict[int, dict[str, Any]], failed_results: list[int]) -> None:
+    print("dashboard failure diagnostics:", file=sys.stderr)
+    for number in failed_results:
+        result = results.get(number) or {}
+        print(
+            f"  PR #{number}: route={result.get('route') or '<unknown>'} "
+            f"error={log_line_value(result.get('error')) or '<none>'}",
+            file=sys.stderr,
+        )
+        if result.get("pr_url"):
+            print(f"    url: {result.get('pr_url')}", file=sys.stderr)
+        threads = {
+            thread.get("thread_id"): thread
+            for thread in (result.get("threads") or [])
+            if isinstance(thread, dict) and thread.get("thread_id")
+        }
+        failed_classifications = [
+            classification
+            for classification in (result.get("classifications") or [])
+            if classification.get("failed")
+        ]
+        for classification in failed_classifications:
+            log_failed_classification_diagnostics(
+                classification,
+                threads.get(classification.get("thread_id")),
+            )
+
+
 def render_and_save_dashboard(
     args: argparse.Namespace,
     prs: list[dict[str, Any]],
@@ -1058,6 +1137,7 @@ def render_and_save_dashboard(
         if result.get("failed")
     ]
     if failed_results:
+        log_failed_result_diagnostics(results, failed_results)
         print(
             "dashboard refresh hit PR failure(s); refusing to publish failed state: "
             + ", ".join(f"#{number}" for number in failed_results),

@@ -214,13 +214,25 @@ def run_llm_for_thread(thread: dict[str, Any], model: str) -> dict[str, Any]:
         print_copilot_otel_file(otel_path)
     response_text = proc.stdout
     decision, valid_response = parse_thread_decision(response_text)
+    failed = proc.returncode != 0 or not valid_response
     record = {
         "thread_id": thread["thread_id"],
         "thread_kind": thread["thread_kind"],
         "_copilot_cli_call": True,
-        "failed": proc.returncode != 0 or not valid_response,
+        "failed": failed,
         "decision": decision,
     }
+    if failed:
+        reasons = []
+        if proc.returncode != 0:
+            reasons.append(f"Copilot CLI exited with status {proc.returncode}")
+        if not valid_response:
+            reasons.append("Copilot CLI did not return a valid classification JSON object")
+        record["error"] = "; ".join(reasons)
+        if response_text.strip():
+            record["response_text"] = response_text
+        if proc.stderr.strip():
+            record["stderr"] = proc.stderr
     return record
 
 
@@ -259,7 +271,7 @@ def cached_classification_record(record: dict[str, Any]) -> dict[str, Any]:
     return {
         k: v
         for k, v in record.items()
-        if k not in ("_copilot_cli_call", "error", "response_text", "usage")
+        if k not in ("_copilot_cli_call", "error", "response_text", "stderr", "usage")
     }
 
 
@@ -295,6 +307,7 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
                 "thread_kind": thread["thread_kind"],
                 "_copilot_cli_call": True,
                 "failed": True,
+                "error": f"Copilot CLI timed out after {LLM_THREAD_TIMEOUT_SECONDS}s",
                 "decision": {"thread_action": "unclear", "reason": "LLM timeout"},
             }
         except Exception as e:
@@ -307,6 +320,7 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
                 "thread_id": thread["thread_id"],
                 "thread_kind": thread["thread_kind"],
                 "failed": True,
+                "error": f"LLM failed: {e!r}",
                 "decision": {"thread_action": "unclear", "reason": f"LLM failed: {e!r}"},
             }
         classifications.append(record)
