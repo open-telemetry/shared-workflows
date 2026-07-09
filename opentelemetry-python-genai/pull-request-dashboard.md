@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Update dependency boto3 to &gt;=1.43.44 (#225)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/225) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 25m |
+| [Update dependency boto3 to &gt;=1.43.44 (#225)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/225) | app/renovate | eternalcuriouslearner&nbsp;✅ | ✅ | ✅ | 26m |
 
 ## Waiting on reviewers
 
@@ -17,8 +17,8 @@
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
 | [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ❌ | 3h |
 | [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | eternalcuriouslearner<br>trask&nbsp;💬 | ✅ | ✅ | 1h |
-| [fix prepare-release PR creation (#227)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/227) | lmolkova |  | ❌ | ✅ | 5m |
-| [Prepare release 1.0b0 (#226)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/226) | lmolkova |  | ⏳ | ✅ | <1m |
+| [fix prepare-release PR creation (#227)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/227) | lmolkova |  | ❌ | ✅ | 6m |
+| [Prepare release 1.0b0 (#226)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/226) | lmolkova |  | ⏳ | ✅ | 1m |
 
 ## Waiting on authors
 
