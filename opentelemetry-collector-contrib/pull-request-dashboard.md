@@ -21,6 +21,7 @@
 | [\[pkg/ottl\] Add `MapEach` converter (#49186)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49186) | edmocosta | dashpole<br>evan-bradley&nbsp;✅<br>TylerHelmuth&nbsp;✅<br>VihasMakwana&nbsp;✅ | ✅ | ❌ | 1d |
 | [\[processor/resourcedetection\] add internal telemetry (#49128)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49128) | mwear | dashpole&nbsp;✅<br>mx-psi<br>paulojmdias&nbsp;✔️ | ✅ | ✅ | 1d |
 | [\[chore\] exporter/awsxray: fix telemetry enabled test (#48724)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48724) | EraldCaka | axw&nbsp;✅<br>srprash&nbsp;✔️ | ✅ | ✅ | 1d |
+| [\[processor/metricstransform\] Fix submatch_case config option having no effect at runtime (#49266)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49266) | himanshu130700 | MovieStoreGuy&nbsp;✅<br>songy23 | ✅ | ✅ | 21h |
 | [\[chore\] Add cooldown period to renovate.json (#49533)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49533) | mx-psi | atoulme<br>dyl10s&nbsp;✔️<br>evan-bradley&nbsp;✅<br>songy23&nbsp;✅ | ✅ | ✅ | 20h |
 | [\[processor/tailsampling\] Initial support for tracestate (only probabilistic) (#48865)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48865) | csmarchbanks | ArthurSens<br>axw&nbsp;✅<br>carsonip&nbsp;✔️<br>MikeGoldsmith&nbsp;✔️<br>songy23 | ✅ | ✅ | 10h |
 | [\[exporter/datadog\] Upgrade serializerexporter to b0d9b5a (#49571)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49571) | songy23 | dmitryax&nbsp;✅ | ✅ | ✅ | 9h |
@@ -82,7 +83,7 @@
 | [\[exporter/prometheusremotewriteexporter\] Fix WAL buffered data stall … (#49131)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49131) | charanck9 | bogdandrutu | ✅ | ✅ | 7d |
 | [add skip_conditions OTTL support for conditional redaction (#48632)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48632) | iblancasa | ChrsMark | ❌ | ❌ | 7d |
 
-_More 52 PRs not shown_
+_More 51 PRs not shown_
 
 ## Waiting on authors
 
