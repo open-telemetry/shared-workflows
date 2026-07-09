@@ -11,7 +11,7 @@
 | [Use registry versions for OCB confmap providers (#10307)](https://github.com/open-telemetry/opentelemetry.io/pull/10307) | Staticsubh | svrnm&nbsp;✅ | ✅ | ✅ | 12d |
 | [docs: update collector configs to use host_metrics instead of deprecated hostmetrics (#10622)](https://github.com/open-telemetry/opentelemetry.io/pull/10622) | agarvin-nr | axw&nbsp;✔️<br>simi&nbsp;✔️<br>songy23&nbsp;✔️<br>vitorvasc&nbsp;✅ | ✅ | ✅ | 8d |
 | [Update docs after OTel .NET Auto 1.16.0 release (#10721)](https://github.com/open-telemetry/opentelemetry.io/pull/10721) | Kielek | chalin&nbsp;✅<br>lachmatt&nbsp;✔️<br>nrcventura&nbsp;✔️<br>zacharycmontoya&nbsp;✔️ | ✅ | ✅ | 13h |
-| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ❌ | ✅ | 1m |
+| [feat: Update the ruby instrumentation metadata (#10606)](https://github.com/open-telemetry/opentelemetry.io/pull/10606) | thompson-tomo | chalin&nbsp;🔴<br>jaydeluca&nbsp;✅<br>kaylareopelle&nbsp;✔️<br>svrnm&nbsp;✅ | ⏳ | ✅ | 6m |
 
 ## Waiting on reviewers
 
@@ -68,8 +68,8 @@
 | [Housekeeping: automated fix results (#10731)](https://github.com/open-telemetry/opentelemetry.io/pull/10731) | app/otelbot-docs |  | ✅ | ✅ | 7h |
 | [\[ja\] add translation of content/en/blog/2024/getting-started-with-otelsql/index.md (#10733)](https://github.com/open-telemetry/opentelemetry.io/pull/10733) | ymotongpoo |  | ✅ | ✅ | 3h |
 | [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ✅ | ✅ | 2h |
-| [Add additional registry entry types (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ❌ | ✅ | 32m |
-| [Auto-update registry versions (bf32f444f0bb4654b9eaa25a7678e8766b809cda) (#10734)](https://github.com/open-telemetry/opentelemetry.io/pull/10734) | app/otelbot |  | ✅ | ✅ | 3m |
+| [Add additional registry entry types (#10158)](https://github.com/open-telemetry/opentelemetry.io/pull/10158) | thompson-tomo |  | ❌ | ✅ | 36m |
+| [Auto-update registry versions (bf32f444f0bb4654b9eaa25a7678e8766b809cda) (#10734)](https://github.com/open-telemetry/opentelemetry.io/pull/10734) | app/otelbot |  | ✅ | ✅ | 8m |
 
 ## Waiting on authors
 
