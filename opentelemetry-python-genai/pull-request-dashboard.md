@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Update RELEASING.md to document root workflows for Trusted Publishing (#231)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/231) | aabmass | lmolkova&nbsp;✅ | ⏳ | ✅ | 12m |
+| [Update RELEASING.md to document root workflows for Trusted Publishing (#231)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/231) | aabmass | lmolkova&nbsp;✅ | ⏳ | ✅ | 13m |
 
 ## Waiting on reviewers
 
@@ -29,7 +29,7 @@
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 12d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [fix(openai-agents): record tool calls as structured tool_call parts (#203)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/203) | SahilKumar75 | lmolkova | ✅ | ❌ | 12h |
-| [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | aabmass&nbsp;💬⁠✅<br>eternalcuriouslearner<br>trask&nbsp;💬 | ✅ | ❌ | <1m |
+| [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | aabmass&nbsp;💬⁠✅<br>eternalcuriouslearner<br>trask&nbsp;💬 | ✅ | ❌ | 1m |
 
 ## Waiting on external
 
