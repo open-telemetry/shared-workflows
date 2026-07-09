@@ -66,7 +66,7 @@
 | [feat: \[pt\] Create docs/platforms/faas/_index.md (#10646)](https://github.com/open-telemetry/opentelemetry.io/pull/10646) | dmroch4 | vitorvasc | ✅ | ✅ | 9h |
 | [Add zero-code/go/compile-time docs section (#10654)](https://github.com/open-telemetry/opentelemetry.io/pull/10654) | waqar2403 |  | ✅ | ✅ | 6h |
 | [Housekeeping: automated fix results (#10731)](https://github.com/open-telemetry/opentelemetry.io/pull/10731) | app/otelbot-docs |  | ✅ | ✅ | 5h |
-| [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ⏳ | ✅ | 17m |
+| [Add DProvenanceKit to the registry (#10711)](https://github.com/open-telemetry/opentelemetry.io/pull/10711) | Therealdk8890 |  | ⏳ | ✅ | 18m |
 
 ## Waiting on authors
 
