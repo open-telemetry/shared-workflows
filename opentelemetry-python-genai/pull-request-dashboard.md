@@ -15,7 +15,7 @@
 |---|---|---|:---:|:---:|:---:|
 | [fix(openai): expose headers on streaming with_raw_response wrapper (#147)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/147) | YuxiangJiangCT | eternalcuriouslearner | ❌ | ✅ | 22d |
 | [Instrument OpenAI Responses.retrieve and AsyncResponses.retrieve (#184)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/184) | JacksonWeber | eternalcuriouslearner&nbsp;💬⁠✅<br>lmolkova&nbsp;💬 | ✅ | ❌ | 8d |
-| [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ✅ | 4h |
+| [feat(langchain): add ChatAnthropic support to langchain instrumentation (#188)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/188) | bhumikadangayach | eternalcuriouslearner | ✅ | ✅ | 5h |
 
 ## Waiting on authors
 
@@ -26,19 +26,14 @@
 | [Add Cohere instrumentation package scaffolding (#102)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/102) | Nik-Reddy | eternalcuriouslearner&nbsp;✅<br>lmolkova&nbsp;💬<br>lzchen&nbsp;✅ | ✅ | ❌ | 13d |
 | [Don't call set attribute twice for the same key and make start attributes unsettable (#150)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/150) | lmolkova | DylanRussell&nbsp;✅<br>lzchen&nbsp;💬 | ✅ | ✅ | 1d |
 | [Minor code scanning fixes (#221)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/221) | lmolkova | aabmass&nbsp;💬⁠✅<br>eternalcuriouslearner&nbsp;✅<br>trask&nbsp;💬 | ✅ | ❌ | 10h |
-| [\[`opentelemetry-instrumentation-google-genai`\] Add weaver tests (#232)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/232) | DylanRussell | eternalcuriouslearner&nbsp;✅ | ❌ | ✅ | 35m |
+| [\[`opentelemetry-instrumentation-google-genai`\] Add weaver tests (#232)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/232) | DylanRussell | eternalcuriouslearner&nbsp;✅ | ❌ | ✅ | 39m |
+| [\[`opentelemetry-instrumentation-google-genai`\] Add conversation ID attribute to the interactions API telemetry (inference span and event) (#233)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/233) | DylanRussell |  | ⏳ | ✅ | 1m |
 
 ## Waiting on external
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | eternalcuriouslearner<br>lmolkova&nbsp;💬 | ✅ | ✅ | 23h |
-
-## Unknown
-
-| PR | Author | Reviewers | CI | Conflicts | Age |
-|---|---|---|:---:|:---:|:---:|
-| [\[`opentelemetry-instrumentation-google-genai`\] Add conversation ID attribute to the interactions API telemetry (inference span and event) (#233)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/233) | DylanRussell |  | ? | ? | ? |
+| [Add retrieval support in langchain (#124)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/124) | wrisa | eternalcuriouslearner<br>lmolkova&nbsp;💬 | ✅ | ✅ | 1d |
 
 ## Draft pull requests
 
