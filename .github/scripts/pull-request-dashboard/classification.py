@@ -301,7 +301,7 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
             continue
         try:
             record = run_llm_for_thread(thread, model)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             record = {
                 "thread_id": thread["thread_id"],
                 "thread_kind": thread["thread_kind"],
@@ -310,6 +310,10 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
                 "error": f"Copilot CLI timed out after {LLM_THREAD_TIMEOUT_SECONDS}s",
                 "decision": {"thread_action": "unclear", "reason": "LLM timeout"},
             }
+            if e.stdout and e.stdout.strip():
+                record["response_text"] = e.stdout
+            if e.stderr and e.stderr.strip():
+                record["stderr"] = e.stderr
         except Exception as e:
             print(
                 f"  warning: thread {thread['thread_id']} on PR #{number} failed to classify:",
