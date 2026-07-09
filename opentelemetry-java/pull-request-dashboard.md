@@ -42,7 +42,7 @@
 | [Add a ConfigProvider callback for runtime instrumentation option changes (#8076)](https://github.com/open-telemetry/opentelemetry-java/pull/8076) | jackshirazi | jack-berg<br>trask | ❌ | ❌ | 22d |
 | [Enforce OTLP request size limits (#8446)](https://github.com/open-telemetry/opentelemetry-java/pull/8446) | ADITYA-CODE-SOURCE | jack-berg&nbsp;💬⁠✅<br>jkwatson | ❌ | ✅ | 22d |
 | [Entity SDK - Initial opt-in SDK features (#8464)](https://github.com/open-telemetry/opentelemetry-java/pull/8464) | jsuereth | jack-berg&nbsp;💬 | ✅ | ✅ | 9d |
-| [Fix OkHttp client mTLS when using the platform default trust store (#8565)](https://github.com/open-telemetry/opentelemetry-java/pull/8565) | Debashismitra01 | psx95&nbsp;💬 | ✅ | ✅ | 7h |
+| [Fix OkHttp client mTLS when using the platform default trust store (#8565)](https://github.com/open-telemetry/opentelemetry-java/pull/8565) | Debashismitra01 | psx95&nbsp;💬 | ✅ | ✅ | 8h |
 
 ## Waiting on external
 
@@ -55,7 +55,7 @@
 | PR | Author | Updated |
 |---|---|:---:|
 | [Allow frameworks to add instrumentation scope conditions (#7312)](https://github.com/open-telemetry/opentelemetry-java/pull/7312) | brunobat | 434d |
-| [EntityProvider prototype (#7360)](https://github.com/open-telemetry/opentelemetry-java/pull/7360) | breedx-splk | 383d |
+| [EntityProvider prototype (#7360)](https://github.com/open-telemetry/opentelemetry-java/pull/7360) | breedx-splk | 384d |
 | [Add support to finish instrument recording (#7792)](https://github.com/open-telemetry/opentelemetry-java/pull/7792) | atoulme | 70d |
 | [Sketch out ScopedValue based context implementation (#8352)](https://github.com/open-telemetry/opentelemetry-java/pull/8352) | jack-berg | 69d |
 | [Null checking applied (#8321)](https://github.com/open-telemetry/opentelemetry-java/pull/8321) | jack-berg | 61d |
