@@ -7,7 +7,7 @@
 
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
-| [add missing permissions for release workflows (#222)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/222) | lmolkova | trask&nbsp;✅ | ❌ | ✅ | 13m |
+| [add missing permissions for release workflows (#222)](https://github.com/open-telemetry/opentelemetry-python-genai/pull/222) | lmolkova | trask&nbsp;✅ | ❌ | ✅ | 14m |
 
 ## Waiting on reviewers
 
