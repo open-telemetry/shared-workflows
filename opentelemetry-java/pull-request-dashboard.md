@@ -10,7 +10,6 @@
 | [Restore compliance between Composite Samplers code and specs (#8450)](https://github.com/open-telemetry/opentelemetry-java/pull/8450) | PeterF778 | jack-berg&nbsp;✅<br>jkwatson<br>zeitlinger | ❌ | ✅ | 16d |
 | [Replace jackson OTLP json serialization with handrolled version (#8545)](https://github.com/open-telemetry/opentelemetry-java/pull/8545) | jack-berg | atoulme&nbsp;✔️<br>breedx-splk&nbsp;✅<br>brunobat&nbsp;✔️<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 6d |
 | [Add BatchSpanProcessor.create(SpanExporter) to match SimpleSpanProcessor (#8564)](https://github.com/open-telemetry/opentelemetry-java/pull/8564) | jimbobbennett | jkwatson&nbsp;✅<br>zeitlinger&nbsp;✅ | ✅ | ✅ | 4d |
-| [Update fossas/fossa-action action to v2 (#8577)](https://github.com/open-telemetry/opentelemetry-java/pull/8577) | app/renovate | psx95&nbsp;✅ | ✅ | ✅ | 1d |
 | [Fix/sampler shutdown lifecycle (#8574)](https://github.com/open-telemetry/opentelemetry-java/pull/8574) | Debashismitra01 | jkwatson&nbsp;✅ | ✅ | ✅ | 1d |
 
 ## Waiting on reviewers
