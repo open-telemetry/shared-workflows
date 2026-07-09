@@ -15,8 +15,8 @@
 | [gen-ai: add get_response operation and span (#353)](https://github.com/open-telemetry/semantic-conventions-genai/pull/353) | JacksonWeber | lmolkova&nbsp;💬 | ✅ | ✅ | 2d |
 | [Migrate anthropic reference scenario to opentelemetry-util-genai (#324)](https://github.com/open-telemetry/semantic-conventions-genai/pull/324) | AgentGymLeader | lmolkova&nbsp;✅ | ✅ | ✅ | 1d |
 | [Add evaluator provenance attributes to gen_ai.evaluation.* (#359)](https://github.com/open-telemetry/semantic-conventions-genai/pull/359) | Mohnish-Srivats |  | ✅ | ✅ | 1d |
-| [Add `gen_ai.main_agent` entity (#270)](https://github.com/open-telemetry/semantic-conventions-genai/pull/270) | aabmass | AgentGymLeader&nbsp;✔️<br>lmolkova&nbsp;✅<br>trask | ✅ | ❌ | 22h |
-| [Add GenAI input messages delta attribute (#365)](https://github.com/open-telemetry/semantic-conventions-genai/pull/365) | yyuuttaaoo | aabmass<br>lmolkova | ✅ | ❌ | 8h |
+| [Add `gen_ai.main_agent` entity (#270)](https://github.com/open-telemetry/semantic-conventions-genai/pull/270) | aabmass | AgentGymLeader&nbsp;✔️<br>lmolkova&nbsp;✅<br>trask | ✅ | ❌ | 23h |
+| [Add GenAI input messages delta attribute (#365)](https://github.com/open-telemetry/semantic-conventions-genai/pull/365) | yyuuttaaoo | aabmass<br>lmolkova | ✅ | ❌ | 9h |
 
 ## Waiting on authors
 
@@ -25,7 +25,7 @@
 | [Add gen_ai.server.inter_token_latency metric (#164)](https://github.com/open-telemetry/semantic-conventions-genai/pull/164) | Jwrede | Cirilla-zmh<br>lmolkova&nbsp;💬<br>trask | ✅ | ❌ | 51d |
 | [gen-ai: add evaluation operation name and gen_ai.evaluate.internal span (#185)](https://github.com/open-telemetry/semantic-conventions-genai/pull/185) | hippoley | Cirilla-zmh&nbsp;💬<br>singankit&nbsp;💬 | ❌ | ✅ | 48d |
 | [gen-ai: add gen_ai.response.id to deepeval evaluation result event (#184)](https://github.com/open-telemetry/semantic-conventions-genai/pull/184) | hippoley | lmolkova&nbsp;✅<br>MikeGoldsmith&nbsp;🔴<br>trask | ✅ | ✅ | 41d |
-| [gen-ai: add optional byte_size to multimodal content parts (#143)](https://github.com/open-telemetry/semantic-conventions-genai/pull/143) | Mandark-droid | Cirilla-zmh<br>trask&nbsp;💬 | ✅ | ❌ | 39d |
+| [gen-ai: add optional byte_size to multimodal content parts (#143)](https://github.com/open-telemetry/semantic-conventions-genai/pull/143) | Mandark-droid | Cirilla-zmh<br>trask&nbsp;💬 | ✅ | ❌ | 40d |
 | [Add modality, cache, and phase breakdowns for token usage (#197)](https://github.com/open-telemetry/semantic-conventions-genai/pull/197) | trask | alexmojaki&nbsp;💬<br>lmolkova&nbsp;💬<br>Nik-Reddy&nbsp;💬 | ✅ | ❌ | 39d |
 | [Add gen_ai.invoke_agent.server span (SERVER kind) (#252)](https://github.com/open-telemetry/semantic-conventions-genai/pull/252) | singankit | Cirilla-zmh&nbsp;💬<br>trask | ✅ | ❌ | 34d |
 | [Add gen_ai.agent.invocation.id attribute for invoke_agent spans (#250)](https://github.com/open-telemetry/semantic-conventions-genai/pull/250) | singankit | lmolkova&nbsp;💬<br>MikeGoldsmith&nbsp;🔴<br>trask | ✅ | ❌ | 28d |
@@ -36,10 +36,10 @@
 | [Add `gen_ai.agent.finish_reason` attribute for agent loop termination (#238)](https://github.com/open-telemetry/semantic-conventions-genai/pull/238) | Nik-Reddy | aabmass&nbsp;✅<br>lmolkova&nbsp;🔴<br>MikeGoldsmith&nbsp;✅<br>trask | ✅ | ❌ | 14d |
 | [Remove inference spans from agentic reference instrumentations, add guidance (#351)](https://github.com/open-telemetry/semantic-conventions-genai/pull/351) | lmolkova | JWinermaSplunk&nbsp;💬 | ✅ | ❌ | 8d |
 | [Rename gen_ai.workflow.duration to gen_ai.invoke_workflow.duration (#341)](https://github.com/open-telemetry/semantic-conventions-genai/pull/341) | lmolkova | JWinermaSplunk&nbsp;✅<br>wrisa&nbsp;✔️ | ✅ | ❌ | 8d |
-| [Clarify workflow span criteria and add reference scenarios for langchain and openai agents (#354)](https://github.com/open-telemetry/semantic-conventions-genai/pull/354) | lmolkova | RKest&nbsp;💬⁠✔️ | ✅ | ✅ | 7d |
 | [gen-ai: add run guardrail span and security finding (#262)](https://github.com/open-telemetry/semantic-conventions-genai/pull/262) | nagkumar91 | aabmass<br>habibam&nbsp;✔️<br>hemanshubelani&nbsp;✔️<br>lmolkova&nbsp;💬<br>sjain700&nbsp;✔️<br>trask | ✅ | ✅ | 3d |
 | [semconv for a2a protocol (#195)](https://github.com/open-telemetry/semantic-conventions-genai/pull/195) | eternalcuriouslearner | aabmass&nbsp;💬<br>JWinermaSplunk<br>lmolkova&nbsp;💬<br>pwkowalski&nbsp;💬⁠✔️<br>trask | ✅ | ✅ | 3d |
-| [Add workflow node convention (#188)](https://github.com/open-telemetry/semantic-conventions-genai/pull/188) | RKest | aabmass<br>lmolkova&nbsp;🔴<br>trask | ✅ | ✅ | 1d |
+| [Clarify workflow span criteria and add reference scenarios for langchain and openai agents (#354)](https://github.com/open-telemetry/semantic-conventions-genai/pull/354) | lmolkova | RKest&nbsp;💬⁠✔️ | ⏳ | ✅ | 2d |
+| [Add workflow node convention (#188)](https://github.com/open-telemetry/semantic-conventions-genai/pull/188) | RKest | aabmass<br>lmolkova&nbsp;🔴<br>trask | ✅ | ✅ | 2d |
 | [feat: add gen_ai.attribution.link_type for tool-call provenance (addresses #311) (#370)](https://github.com/open-telemetry/semantic-conventions-genai/pull/370) | grvnmttl |  | ❌ | ✅ | 1d |
 
 ## Draft pull requests
