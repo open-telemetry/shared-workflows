@@ -56,10 +56,10 @@
 | [test(auto-instrumentations-node): reproduce blocking process termination (#3348)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3348) | basti1302 | 170d |
 | [fix(instrumentation-pg): correct `db.client.connection.count` metric counting to handle multiple pg pools (#3367)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3367) | trentm | 160d |
 | [refactor(sampler-aws-xray): change internals to be promise-based to improve test stability (#3396)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3396) | pichlermarc | 139d |
-| [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 91d |
+| [chore: add a compile cache server for builds (#3281)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3281) | david-luna | 92d |
 | [feat(instrumentation-nats): add instrumentation nats package (#3352)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3352) | giacomoquinalia | 66d |
 | [feat(instrumentation-kafkajs): add messaging.cluster.id span attribute (#3577)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3577) | shashank-reddy-nr | 4d |
-| [chore(*): migrate to sdk-trace (#3599)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3599) | trentm | 13h |
+| [chore(*): migrate to sdk-trace (#3599)](https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3599) | trentm | 14h |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
