@@ -133,6 +133,7 @@
 | [\[ja\] add translation of content/en/blog/2023/end-user-discussions-03.md (#10737)](https://github.com/open-telemetry/opentelemetry.io/pull/10737) | ymotongpoo | 1h |
 | [DRAFT Update semantic-conventions to unreleased v1.44.0-dev (#10677)](https://github.com/open-telemetry/opentelemetry.io/pull/10677) | app/otelbot-docs | 7m |
 | [DRAFT Update opentelemetry-specification to unreleased v1.59.0-dev (#10526)](https://github.com/open-telemetry/opentelemetry.io/pull/10526) | app/otelbot-docs | 6m |
+| [Spec/semconv release flow: integration branches finalize their own release PRs (#10738)](https://github.com/open-telemetry/opentelemetry.io/pull/10738) | chalin | <1m |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
