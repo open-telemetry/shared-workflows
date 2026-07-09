@@ -140,7 +140,7 @@ _More 43 PRs not shown_
 | [\[internal/k8sinventory\] Extract checkpoint package and update Observer interface (#48765)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48765) | kangyili | ChrsMark&nbsp;✅<br>dashpole<br>jmmcorreia&nbsp;✔️<br>krisztianfekete&nbsp;✔️ | ✅ | ✅ | 2d |
 | [\[kubeletstats\] Calculate cpu usage on the fly behind feature gate (#49499)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49499) | ChrsMark | jmmcorreia&nbsp;✔️<br>mwear&nbsp;✔️<br>odubajDT&nbsp;✔️<br>TylerHelmuth&nbsp;✅ | ✅ | ✅ | 1d |
 
-_More 17 PRs not shown_
+_More 18 PRs not shown_
 
 ## Waiting on external
 
@@ -158,7 +158,6 @@ _More 17 PRs not shown_
 | PR | Author | Reviewers | CI | Conflicts | Age |
 |---|---|---|:---:|:---:|:---:|
 | [\[pkg/stanza\] `csv_parser` operator should not split batches of entries (#49586)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49586) | singhvibhanshu |  | ? | ? | ? |
-| [\[chore\]\[extension/pebbletailstorage\] Update code owners (#49584)](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49584) | carsonip |  | ? | ? | ? |
 
 _Approvers may [force a refresh](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml)._
 
