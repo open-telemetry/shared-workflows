@@ -31,7 +31,6 @@ jobs:
 
   workflow-failure-issue:
     permissions:
-      contents: read
       issues: write
     needs:
       - build
