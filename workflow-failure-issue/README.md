@@ -10,7 +10,7 @@ failures. Per the [GitHub docs on scheduled workflows](https://docs.github.com/e
 > Notifications for scheduled workflows are sent to the user who last modified
 > the cron syntax in the workflow file.
 
-By opening a tracking issue instead, the whole team is notified.
+By opening a tracking issue instead, the failure is visible to the whole team.
 
 Behavior:
 
