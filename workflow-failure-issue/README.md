@@ -4,9 +4,13 @@ Reusable GitHub Actions workflow that tracks the pass/fail state of another
 workflow (typically a scheduled one) by opening, commenting on, and closing a
 GitHub issue in the calling repository.
 
-This is useful because GitHub only sends scheduled-workflow failure
-notifications to the user who initially created the workflow. By opening a
-tracking issue instead, the whole team is notified.
+This is useful because GitHub notifies only a single user of scheduled-workflow
+failures. Per the [GitHub docs on scheduled workflows](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#actor-for-scheduled-workflows):
+
+> Notifications for scheduled workflows are sent to the user who last modified
+> the cron syntax in the workflow file.
+
+By opening a tracking issue instead, the whole team is notified.
 
 Behavior:
 
