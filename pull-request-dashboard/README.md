@@ -10,9 +10,9 @@ The classification cache reuses prior results for unchanged review threads, mini
 
 ## Dashboard columns
 
-The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*, *Waiting on external*). Draft PRs are listed separately at the bottom. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
+The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*, *Waiting on external*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
 
-- **PR** — Pull request title and number, linked to the PR on GitHub.
+- **PR** — Pull request number and title. The number autolinks to the PR on GitHub.
 - **Author** — GitHub login of the PR author.
 - **Reviewers** — Reviewers who have engaged with the PR, each annotated with one or more icons:
   - ✅ approved
@@ -64,7 +64,7 @@ Fields:
 | `required_approvals` | yes | Number of approvals required for an open PR to be marked ready to merge. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
-| `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 50 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
+| `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
