@@ -13,6 +13,7 @@ permissions: {}
 jobs:
   workflow-failure-issue:
     name: Open or close workflow failure issue
+    if: github.repository_owner == 'open-telemetry'
     permissions:
       issues: write # needed to open, comment on, and close workflow failure issues
     runs-on: ubuntu-latest
