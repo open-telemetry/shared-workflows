@@ -1,6 +1,5 @@
-# this is useful because notifications for scheduled workflows are only sent to the user who
-# initially created the given workflow
-name: Reusable - Workflow notification
+# Reusable workflow — see /workflow-failure-issue/README.md for consumer documentation.
+name: Workflow failure issue
 
 on:
   workflow_call:
@@ -9,24 +8,19 @@ on:
         type: boolean
         required: true
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
-  workflow-notification:
+  workflow-failure-issue:
     name: Open or close workflow failure issue
     permissions:
-      contents: read
       issues: write # needed to open, comment on, and close workflow failure issues
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
       - name: Open issue or add comment if issue already open
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           INPUT_SUCCESS: ${{ inputs.success }}
         run: |
           set -euo pipefail

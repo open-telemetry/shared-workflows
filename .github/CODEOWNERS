@@ -6,9 +6,13 @@
 
 * @open-telemetry/shared-workflows-approvers
 
-# Unlike typical shared workflows, the pull request dashboard workflow runs entirely
-# in this repository.
+# Pull request dashboard
+pull-request-dashboard/** @open-telemetry/shared-workflows-approvers @trask
 .github/scripts/pull-request-dashboard/** @open-telemetry/shared-workflows-approvers @trask
 .github/workflows/pull-request-dashboard.yml @open-telemetry/shared-workflows-approvers @trask
 .github/workflows/pull-request-dashboard-repo.yml @open-telemetry/shared-workflows-approvers @trask
 .github/workflows/pull-request-dashboard-deploy-webhook.yml @open-telemetry/shared-workflows-approvers @trask
+
+# Workflow failure issue
+workflow-failure-issue/** @open-telemetry/shared-workflows-approvers @trask
+.github/workflows/workflow-failure-issue.yml @open-telemetry/shared-workflows-approvers @trask
