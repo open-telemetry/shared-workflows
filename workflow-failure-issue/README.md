@@ -2,7 +2,9 @@
 
 Reusable GitHub Actions workflow that tracks the pass/fail state of another
 workflow (typically a scheduled one) by opening, commenting on, and closing a
-GitHub issue in the calling repository.
+GitHub issue in the calling repository. The workflow runs only when the calling
+repository belongs to the `open-telemetry` organization, preventing runs in
+forks from creating failure issues.
 
 This is useful because GitHub notifies only a single user of scheduled-workflow
 failures. Per the [GitHub docs on scheduled workflows](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#actor-for-scheduled-workflows):
