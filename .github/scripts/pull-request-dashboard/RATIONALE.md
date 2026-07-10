@@ -57,7 +57,7 @@ the implementation understandable and operationally cheap.
 - Non-PR dashboard runs are backfills, not repository-wide refreshes. They are
   capped so one run cannot exhaust the dashboard GitHub App's hourly API quota.
 - Each backfill lists open PRs, prunes cached PRs that are no longer open
-  non-draft, then refreshes at most 100 open non-draft PRs.
+  non-draft, then refreshes at most 50 open non-draft PRs.
 - Selected PRs are processed one at a time through the same single-PR merge path
   as targeted refreshes. Each accepted PR update pushes structured state before
   the next selected PR is processed.
