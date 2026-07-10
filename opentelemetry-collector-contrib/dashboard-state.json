@@ -7025,24 +7025,32 @@
         "approval_count": 0,
         "assignees": [],
         "author": "MenakaDev",
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_failing_count": 1,
+        "ci_pending_count": 96,
         "conflicts": "no",
         "created_at": "2026-07-10T18:26:10+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-10T21:32:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-10T22:23:29+00:00",
+        "last_approver_activity_at": "2026-07-10T22:23:04+00:00",
         "last_author_activity_at": "2026-07-10T21:31:45+00:00",
         "last_external_activity_at": "2026-03-23T19:43:39+00:00",
-        "reviewers": [],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-10T21:31:45+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": true
+          }
+        ],
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-10T22:23:04+00:00"
       },
       "failed": false,
       "pr_number": 49611,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49611",
-      "route": "approver"
+      "route": "author"
     },
     "49613": {
       "facts": {
