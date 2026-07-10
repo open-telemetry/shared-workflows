@@ -1,6 +1,5 @@
-# this is useful because notifications for scheduled workflows are only sent to the user who
-# initially created the given workflow
-name: Reusable - Workflow notification
+# Reusable workflow — see /workflow-failure-issue/README.md for consumer documentation.
+name: Workflow failure issue
 
 on:
   workflow_call:
@@ -13,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  workflow-notification:
+  workflow-failure-issue:
     name: Open or close workflow failure issue
     permissions:
       contents: read

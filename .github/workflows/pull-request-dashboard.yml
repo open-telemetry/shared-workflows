@@ -229,7 +229,7 @@ jobs:
     permissions:
       contents: read
       issues: write # needed to open/close the hourly failure tracking issue
-    uses: ./.github/workflows/reusable-workflow-notification.yml
+    uses: ./.github/workflows/workflow-failure-issue.yml
     with:
       # A superseded per-repo publish is cancelled (publish-dashboard uses
       # cancel-in-progress: true), so count cancelled as success here to avoid
