@@ -27,9 +27,6 @@ you care about, use `if: always()` so it also runs when they fail, and grant
 `issues: write`:
 
 ```yaml
-permissions:
-  contents: read
-
 jobs:
   # ... your jobs (e.g. build) ...
 
