@@ -27,4 +27,14 @@ jobs:
     uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
 ```
 
-Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No inputs or secrets are required.
+Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No inputs or secrets are required. The workflow uses zizmor's `regular` persona by default.
+
+To use a different persona, pass the `persona` input:
+
+```yaml
+jobs:
+  zizmor:
+    uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
+    with:
+      persona: pedantic
+```
