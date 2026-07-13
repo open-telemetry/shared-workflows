@@ -133,7 +133,7 @@
     },
     "45345": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "edmocosta"
         ],
@@ -144,8 +144,8 @@
         "created_at": "2026-01-12T13:33:43+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-10T18:08:02+00:00",
-        "last_approver_activity_at": "2026-04-24T20:14:51+00:00",
+        "last_activity_at": "2026-07-13T01:16:30+00:00",
+        "last_approver_activity_at": "2026-07-13T01:16:30+00:00",
         "last_author_activity_at": "2026-07-10T18:06:51+00:00",
         "last_external_activity_at": "2026-07-08T18:55:00+00:00",
         "reviewers": [
@@ -199,6 +199,13 @@
             "open_thread": false
           },
           {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "MovieStoreGuy",
+            "open_thread": false
+          },
+          {
             "approved": false,
             "approved_non_team": true,
             "changes_requested": false,
@@ -206,13 +213,13 @@
             "open_thread": false
           }
         ],
-        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-10T18:06:51+00:00"
       },
       "failed": false,
       "pr_number": 45345,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/45345",
-      "route": "approver"
+      "route": "maintainer"
     },
     "45773": {
       "facts": {
