@@ -3,6 +3,12 @@ name: Zizmor GitHub Actions Security Analysis
 
 on:
   workflow_call:
+    inputs:
+      persona:
+        description: 'Zizmor persona to use for analysis.'
+        required: false
+        default: regular
+        type: string
   push:
     branches:
       - main
@@ -35,4 +41,4 @@ jobs:
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
         with:
-          persona: pedantic
+          persona: ${{ inputs.persona || 'regular' }}
