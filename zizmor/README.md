@@ -18,12 +18,13 @@ on:
     - cron: '45 9 * * 5'
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
+permissions: {}
 
 jobs:
   zizmor:
+    permissions:
+      contents: read # for actions/checkout
+      security-events: write # for zizmor to upload SARIF results
     uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
 ```
 
@@ -34,6 +35,9 @@ To use a different persona, pass the `persona` input:
 ```yaml
 jobs:
   zizmor:
+    permissions:
+      contents: read # for actions/checkout
+      security-events: write # for zizmor to upload SARIF results
     uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
     with:
       persona: pedantic
