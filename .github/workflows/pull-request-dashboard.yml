@@ -29,6 +29,19 @@ on:
 permissions:
   contents: read
 
+# resolve-targets normally finishes in seconds, but during organization-wide
+# runner queueing, redundant webhook runs can accumulate into a large backlog
+# before job-level concurrency applies.
+#
+# Dashboard state is loaded live, so only the latest pending webhook refresh is
+# needed. Manual runs remain separate because they can refresh large
+# repositories that webhooks skip. Submitted reviews remain distinct because
+# their review id is required to post review guidance.
+concurrency:
+  group: >-
+    pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || 'backfill' }}-${{ inputs.trigger_event == 'pull_request_review' && inputs.trigger_action == 'submitted' && inputs.trigger_review_id || github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
+  cancel-in-progress: false
+
 env:
   DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
 

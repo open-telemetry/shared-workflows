@@ -27,6 +27,24 @@ the implementation understandable and operationally cheap.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
 
+## Workflow Concurrency
+
+- Webhook refreshes are grouped by target repository and PR before the first
+  job starts. GitHub Actions keeps at most one running and one pending run in
+  each group; a newer pending run replaces the older pending run without
+  canceling the run already in progress.
+- Coalescing is safe because each refresh loads current PR state from GitHub.
+  Intermediate states can go unobserved, but the surviving run reflects the
+  state that exists when it executes.
+- Submitted reviews use the review id as a distinct concurrency identity so a
+  pending review-guidance event cannot be replaced by a generic PR refresh.
+  Manual runs are also separate because they can refresh large repositories
+  that webhook-driven runs intentionally skip.
+- Concurrency bounds pending jobs per target; it does not debounce webhook
+  delivery or workflow dispatch. Different repositories, PRs, and submitted
+  review ids can still run independently, and every accepted webhook still
+  creates a workflow run.
+
 ## GitHub Actions Instead Of Netlify For Scheduled Backfills
 
 - Scheduled backfills are batch jobs: they read repository PR lists, call REST
