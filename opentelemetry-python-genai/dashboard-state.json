@@ -346,18 +346,26 @@
         "created_at": "2026-07-10T05:56:17+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-14T21:36:12+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-14T23:12:15+00:00",
+        "last_approver_activity_at": "2026-07-14T23:12:15+00:00",
         "last_author_activity_at": "2026-07-11T12:09:42+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-11T12:09:42+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true
+          }
+        ],
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-14T23:12:15+00:00"
       },
       "failed": false,
       "pr_number": 247,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/247",
-      "route": "approver"
+      "route": "author"
     }
   },
   "version": 3
