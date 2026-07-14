@@ -6795,27 +6795,40 @@
     },
     "49655": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 2,
         "assignees": [],
         "author": "edmocosta",
-        "ci_failing_count": 0,
-        "ci_pending_count": 11,
         "conflicts": "no",
         "created_at": "2026-07-14T11:05:30+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-14T11:05:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-14T11:16:31+00:00",
+        "last_approver_activity_at": "2026-07-14T11:16:23+00:00",
         "last_author_activity_at": "2026-07-14T11:05:50+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false
+          }
+        ],
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-14T11:05:50+00:00"
       },
       "failed": false,
       "pr_number": 49655,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49655",
-      "route": "approver"
+      "route": "maintainer"
     }
   },
   "version": 3
