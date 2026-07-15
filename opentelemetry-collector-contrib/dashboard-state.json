@@ -5600,11 +5600,18 @@
         "created_at": "2026-07-07T16:10:18+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-15T01:06:21+00:00",
+        "last_activity_at": "2026-07-15T16:58:13+00:00",
         "last_approver_activity_at": "2026-07-15T01:06:21+00:00",
         "last_author_activity_at": "2026-07-14T12:07:10+00:00",
-        "last_external_activity_at": "2026-07-09T08:44:17+00:00",
+        "last_external_activity_at": "2026-07-15T16:57:52+00:00",
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "celian-garcia",
+            "open_thread": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -5613,13 +5620,13 @@
             "open_thread": false
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-14T12:07:10+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-15T16:57:52+00:00"
       },
       "failed": false,
       "pr_number": 49532,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49532",
-      "route": "maintainer"
+      "route": "author"
     },
     "49541": {
       "facts": {
