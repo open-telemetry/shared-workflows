@@ -75,7 +75,7 @@ jobs:
     # workflow_call.secrets does work, so secrets are part of the reusable
     # workflow contract above.
     environment: protected
-    runs-on: ubuntu-latest
+    runs-on: cncf-ubuntu-2-8-x86
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -135,7 +135,7 @@ jobs:
     permissions:
       contents: write
     environment: protected
-    runs-on: ubuntu-latest
+    runs-on: cncf-ubuntu-2-8-x86
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -218,7 +218,7 @@ jobs:
     permissions:
       contents: write
     environment: protected
-    runs-on: ubuntu-latest
+    runs-on: cncf-ubuntu-2-8-x86
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -261,7 +261,7 @@ jobs:
     permissions:
       contents: read
     environment: protected
-    runs-on: ubuntu-latest
+    runs-on: cncf-ubuntu-2-8-x86
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
