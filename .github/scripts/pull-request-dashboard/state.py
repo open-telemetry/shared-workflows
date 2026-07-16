@@ -10,7 +10,7 @@ DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
-DASHBOARD_STATE_VERSION = 6
+DASHBOARD_STATE_VERSION = 7
 BACKFILL_STATE_VERSION = 5
 NOTIFICATION_STATE_VERSION = 5
 # Versions 3 and 4 were written while notification state shared the dashboard
@@ -177,7 +177,7 @@ def stored_result(result: dict[str, Any]) -> dict[str, Any]:
         "failed": bool(result.get("failed")),
         "route": result.get("route") or "unknown",
         "facts": result.get("facts") or {},
-        "discussion_state": result.get("discussion_state") or {},
+        "mainline_history": result.get("mainline_history") or {},
     }
 
 

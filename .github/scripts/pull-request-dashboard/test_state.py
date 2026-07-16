@@ -72,7 +72,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(NOTIFICATION_STATE_VERSION, 5)
         self.assertEqual(NOTIFICATION_COMPATIBLE_STATE_VERSIONS, {3, 4, 5})
-        self.assertEqual(DASHBOARD_STATE_VERSION, 6)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 7)
 
     def test_notification_state_write_ignores_dashboard_version(self) -> None:
         with (
@@ -85,14 +85,18 @@ class StateTest(unittest.TestCase):
             state = json.loads(notification_state_path().read_text(encoding="utf-8"))
             self.assertEqual(state["version"], NOTIFICATION_STATE_VERSION)
 
-    def test_stored_result_preserves_discussion_state(self) -> None:
+    def test_stored_result_preserves_mainline_history(self) -> None:
         result = stored_result(
             {
                 "pr_number": 123,
-                "discussion_state": {
+                "pending_actions": {
+                    "inline-thread": {
+                        "action": "author",
+                        "since": "2026-07-14T02:00:00Z",
+                    },
+                },
+                "mainline_history": {
                     "pr-review-456": {
-                        "open": True,
-                        "waiting_on": "reviewer",
                         "evidence": {
                             "kind": "commit",
                             "timestamp": "2026-07-14T03:00:00Z",
@@ -103,11 +107,9 @@ class StateTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            result["discussion_state"],
+            result["mainline_history"],
             {
                 "pr-review-456": {
-                    "open": True,
-                    "waiting_on": "reviewer",
                     "evidence": {
                         "kind": "commit",
                         "timestamp": "2026-07-14T03:00:00Z",
@@ -115,6 +117,7 @@ class StateTest(unittest.TestCase):
                 },
             },
         )
+        self.assertNotIn("pending_actions", result)
 
     def test_notification_state_survives_dashboard_version_bump(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

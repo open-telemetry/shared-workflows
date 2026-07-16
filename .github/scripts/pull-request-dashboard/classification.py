@@ -390,15 +390,15 @@ def run_llm_for_mainline_batch(
     return records
 
 
-def discussion_cache_key(discussion: dict[str, Any], model: str) -> str:
+def discussion_cache_key(
+    discussion: dict[str, Any],
+    model: str,
+    prompt_template: str,
+) -> str:
     cache_key_json = json.dumps(
         {
             "model": model,
-            "prompt_template": (
-                MAINLINE_BATCH_PROMPT_TEMPLATE
-                if discussion.get("discussion_kind") == "pr-conversation-item"
-                else DISCUSSION_PROMPT_TEMPLATE
-            ),
+            "prompt_template": prompt_template,
             "discussion": discussion_prompt_input(discussion),
         },
         sort_keys=True,
@@ -437,8 +437,7 @@ def deterministic_classification_record(discussion: dict[str, Any]) -> dict[str,
     comments = discussion.get("comments") or []
     has_body = any((comment.get("body") or "").strip() for comment in comments)
     if (
-        discussion.get("discussion_kind") == "pr-conversation-item"
-        and discussion.get("review_state") == "CHANGES_REQUESTED"
+        discussion.get("review_state") == "CHANGES_REQUESTED"
         and not has_body
     ):
         return classification_record(
@@ -463,16 +462,14 @@ def prune_classification_cache(open_pr_numbers: set[int]) -> None:
             path.unlink()
 
 
-def cached_or_deterministic_classification(
+def cached_classification(
     discussion: dict[str, Any],
     model: str,
+    prompt_template: str,
     cache_in: dict[str, dict[str, Any]],
     cache_out: dict[str, dict[str, Any]],
 ) -> tuple[str, dict[str, Any] | None]:
-    deterministic_record = deterministic_classification_record(discussion)
-    if deterministic_record is not None:
-        return "", deterministic_record
-    key = discussion_cache_key(discussion, model)
+    key = discussion_cache_key(discussion, model, prompt_template)
     cached = cache_in.get(key)
     if not isinstance(cached, dict):
         return key, None
@@ -492,8 +489,8 @@ def classify_review_threads(
 ) -> dict[str, dict[str, Any]]:
     classifications_by_id: dict[str, dict[str, Any]] = {}
     for discussion in discussions:
-        key, record = cached_or_deterministic_classification(
-            discussion, model, cache_in, cache_out
+        key, record = cached_classification(
+            discussion, model, DISCUSSION_PROMPT_TEMPLATE, cache_in, cache_out
         )
         if record is not None:
             classifications_by_id[discussion["discussion_id"]] = record
@@ -528,7 +525,7 @@ def classify_review_threads(
     return classifications_by_id
 
 
-def classify_pr_conversation_items(
+def classify_mainline_actions(
     number: int,
     discussions: list[dict[str, Any]],
     model: str,
@@ -538,8 +535,12 @@ def classify_pr_conversation_items(
     classifications_by_id: dict[str, dict[str, Any]] = {}
     uncached: list[tuple[dict[str, Any], str]] = []
     for discussion in discussions:
-        key, record = cached_or_deterministic_classification(
-            discussion, model, cache_in, cache_out
+        deterministic_record = deterministic_classification_record(discussion)
+        if deterministic_record is not None:
+            classifications_by_id[discussion["discussion_id"]] = deterministic_record
+            continue
+        key, record = cached_classification(
+            discussion, model, MAINLINE_BATCH_PROMPT_TEMPLATE, cache_in, cache_out
         )
         if record is not None:
             classifications_by_id[discussion["discussion_id"]] = record
@@ -603,26 +604,22 @@ def classify_pr_conversation_items(
     return classifications_by_id
 
 
-def classify_discussions(number: int, discussions: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
+def classify_discussion_domains(
+    number: int,
+    review_threads: list[dict[str, Any]],
+    mainline_actions: list[dict[str, Any]],
+    model: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     cache_in = load_classification_cache(number)
     cache_out: dict[str, dict[str, Any]] = {}
-    review_threads = [
-        discussion
-        for discussion in discussions
-        if discussion.get("discussion_kind") == "review-comment-thread"
-    ]
-    conversation_items = [
-        discussion
-        for discussion in discussions
-        if discussion.get("discussion_kind") == "pr-conversation-item"
-    ]
-    classifications_by_id = classify_review_threads(
+    review_thread_classifications = classify_review_threads(
         number, review_threads, model, cache_in, cache_out
     )
-    classifications_by_id.update(classify_pr_conversation_items(
-        number, conversation_items, model, cache_in, cache_out
-    ))
-
-    classifications = [classifications_by_id[discussion["discussion_id"]] for discussion in discussions]
+    mainline_action_classifications = classify_mainline_actions(
+        number, mainline_actions, model, cache_in, cache_out
+    )
     save_classification_cache(number, cache_out)
-    return classifications
+    return (
+        [review_thread_classifications[thread["discussion_id"]] for thread in review_threads],
+        [mainline_action_classifications[action["discussion_id"]] for action in mainline_actions],
+    )

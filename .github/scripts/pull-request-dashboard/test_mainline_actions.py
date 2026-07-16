@@ -8,14 +8,15 @@ from unittest.mock import patch
 from dashboard import (
     add_wait_age_facts,
     add_reviewers,
-    build_discussion_state,
+    advance_mainline_actions,
+    build_review_thread_pending_actions,
     build_dashboard_update_for_pr,
-    group_pr_conversation_items,
+    derive_mainline_actions,
     normalize_events,
     route_pr,
 )
 from classification import (
-    classify_discussions,
+    classify_discussion_domains,
     deterministic_classification_record,
     parse_discussion_decision,
     run_llm_for_mainline_batch,
@@ -80,16 +81,61 @@ def event(kind: str, timestamp: str, actor: str, actor_role: str, **values: obje
     }
 
 
-def stored_discussion_record(kind: str, timestamp: str) -> dict:
+def mainline_history_record(kind: str, timestamp: str) -> dict:
     return {
-        "open": True,
-        "waiting_on": "reviewer",
-        "waiting_since": timestamp,
         "evidence": {"kind": kind, "timestamp": timestamp},
     }
 
 
+def mainline_actions_from_raw(
+    raw: dict,
+    conflicts: str = "no",
+) -> list[dict]:
+    events = normalize_events(
+        {
+            "commits": [],
+            "issue_comments": raw.get("issue_comments") or [],
+            "review_comments": [],
+            "reviews": raw.get("reviews") or [],
+        },
+        "author",
+        {"reviewer"},
+    )
+    return derive_mainline_actions(events, {"conflicts": conflicts})
+
+
 class MainlineActionLedgerTest(unittest.TestCase):
+    def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
+        review_threads = [
+            {
+                "discussion_id": "open",
+                "comments": [{"timestamp": ROOT_TIMESTAMP}],
+            },
+            {
+                "discussion_id": "closed",
+                "comments": [{"timestamp": ROOT_TIMESTAMP}],
+            },
+        ]
+        classifications = [
+            {
+                "discussion_id": "open",
+                "decision": {"discussion_action": "author"},
+            },
+            {
+                "discussion_id": "closed",
+                "decision": {"discussion_action": "none"},
+            },
+        ]
+
+        pending_actions = build_review_thread_pending_actions(
+            review_threads, classifications
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {"open": {"action": "author", "since": ROOT_TIMESTAMP}},
+        )
+
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
     def test_mainline_batch_maps_ids_and_rejects_incomplete_results(
@@ -144,7 +190,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
     @patch("classification.load_classification_cache", return_value={})
     @patch("classification.run_llm_for_mainline_batch")
     @patch("classification.run_llm_for_discussion")
-    def test_mixed_discussions_use_kind_specific_classification_pipelines(
+    def test_discussion_domains_use_separate_classification_pipelines(
         self,
         run_inline,
         run_batch,
@@ -170,12 +216,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
             }
             for discussion in discussions
         ]
-        discussions = [
-            mainline_discussion("top-level"),
-            review_thread_discussion("inline"),
-        ]
+        review_threads = [review_thread_discussion("inline")]
+        mainline_actions = [mainline_discussion("top-level")]
 
-        classifications = classify_discussions(123, discussions, "model")
+        review_thread_classifications, mainline_action_classifications = (
+            classify_discussion_domains(123, review_threads, mainline_actions, "model")
+        )
 
         self.assertEqual(run_inline.call_args.args[0]["discussion_id"], "inline")
         self.assertEqual(
@@ -183,8 +229,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ["top-level"],
         )
         self.assertEqual(
-            [record["discussion_id"] for record in classifications],
-            ["top-level", "inline"],
+            [record["discussion_id"] for record in review_thread_classifications],
+            ["inline"],
+        )
+        self.assertEqual(
+            [record["discussion_id"] for record in mainline_action_classifications],
+            ["top-level"],
         )
         self.assertEqual(len(save_cache.call_args.args[1]), 2)
 
@@ -214,7 +264,9 @@ class MainlineActionLedgerTest(unittest.TestCase):
         ]
         discussions = [mainline_discussion(f"item-{index}") for index in range(23)]
 
-        classifications = classify_discussions(123, discussions, "model")
+        _review_thread_classifications, classifications = classify_discussion_domains(
+            123, [], discussions, "model"
+        )
 
         self.assertEqual(run_batch.call_count, 2)
         self.assertEqual([len(call.args[0]) for call in run_batch.call_args_list], [10, 10])
@@ -229,7 +281,9 @@ class MainlineActionLedgerTest(unittest.TestCase):
         _load_cache.return_value = save_cache.call_args.args[1]
         run_batch.reset_mock()
 
-        classifications = classify_discussions(123, discussions, "model")
+        _review_thread_classifications, classifications = classify_discussion_domains(
+            123, [], discussions, "model"
+        )
 
         self.assertEqual(run_batch.call_count, 1)
         self.assertEqual(len(run_batch.call_args.args[0]), 3)
@@ -240,36 +294,24 @@ class MainlineActionLedgerTest(unittest.TestCase):
         self.assertEqual(len(save_cache.call_args.args[1]), 23)
 
     def test_unclear_item_sets_reviewer_wait_age(self) -> None:
-        discussions = [mainline_discussion("unclear")]
-        classifications = [
-            {
-                "discussion_id": "unclear",
-                "discussion_kind": "pr-conversation-item",
-                "decision": {"discussion_action": "unclear", "reason": "ambiguous"},
-            },
-        ]
-        discussion_state = {
-            "unclear": {
-                "open": True,
-                "waiting_on": "reviewer",
-                "waiting_since": ROOT_TIMESTAMP,
-            },
+        pending_actions = {
+            "unclear": {"action": "reviewer", "since": ROOT_TIMESTAMP},
         }
         facts = {
             "last_author_activity_at": "2026-07-14T04:00:00Z",
             "created_at": "2026-07-13T01:00:00Z",
         }
 
-        add_wait_age_facts(facts, "approver", discussions, discussion_state)
+        add_wait_age_facts(facts, "approver", pending_actions)
 
         self.assertEqual(facts["waiting_since"], "2026-07-14T01:00:00+00:00")
         self.assertEqual(facts["waiting_age_basis"], "oldest_pending_thread")
 
     @patch("dashboard.build_pr_result")
-    def test_dashboard_refresh_reuses_stored_discussion_state(self, build_result) -> None:
+    def test_dashboard_refresh_reuses_stored_mainline_history(self, build_result) -> None:
         build_result.return_value = None
         previous_state = {
-            "pr-review-456": stored_discussion_record("commit", "2026-07-14T03:00:00Z"),
+            "pr-review-456": mainline_history_record("commit", "2026-07-14T03:00:00Z"),
         }
 
         build_dashboard_update_for_pr(
@@ -285,14 +327,14 @@ class MainlineActionLedgerTest(unittest.TestCase):
                 "prs": {
                     "123": {
                         "pr_number": 123,
-                        "discussion_state": previous_state,
+                        "mainline_history": previous_state,
                     }
                 }
             },
         )
 
         self.assertEqual(
-            build_result.call_args.kwargs["previous_discussion_state"],
+            build_result.call_args.kwargs["previous_mainline_history"],
             previous_state,
         )
 
@@ -355,24 +397,26 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ],
         }
 
-        items = group_pr_conversation_items(raw, "author", {"reviewer"}, {"conflicts": "no"})
-
-        self.assertEqual(
-            [item["discussion_id"] for item in items],
-            ["pr-issue-comment-101", "pr-review-202"],
-        )
-        self.assertEqual(items[1]["root_timestamp"], "2026-07-14T03:00:00Z")
         events = normalize_events(
             {
                 "commits": [],
-                "issue_comments": [],
+                "issue_comments": raw["issue_comments"],
                 "review_comments": [],
                 "reviews": raw["reviews"],
             },
             "author",
             {"reviewer"},
         )
-        self.assertEqual(events[0]["timestamp"], "2026-07-14T02:00:00Z")
+        items = derive_mainline_actions(events, {"conflicts": "no"})
+
+        self.assertEqual(
+            [item["discussion_id"] for item in items],
+            ["pr-issue-comment-101", "pr-review-202"],
+        )
+        self.assertEqual(items[1]["root_timestamp"], "2026-07-14T03:00:00Z")
+        review_event = next(event for event in events if event["kind"] == "review-state")
+        self.assertEqual(review_event["timestamp"], "2026-07-14T02:00:00Z")
+        self.assertEqual(review_event["updated_timestamp"], "2026-07-14T03:00:00Z")
 
     def test_top_level_items_require_github_identity_and_requester(self) -> None:
         raw = {
@@ -395,7 +439,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            group_pr_conversation_items(raw, "author", {"reviewer"}, {"conflicts": "no"}),
+            mainline_actions_from_raw(raw),
             [],
         )
 
@@ -414,7 +458,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            group_pr_conversation_items(raw, "author", {"reviewer"}, {"conflicts": "no"}),
+            mainline_actions_from_raw(raw),
             [],
         )
 
@@ -432,12 +476,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ],
         }
 
-        items = group_pr_conversation_items(
-            raw,
-            "author",
-            {"reviewer"},
-            {"conflicts": "no"},
-        )
+        items = mainline_actions_from_raw(raw)
 
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]["review_state"], "CHANGES_REQUESTED")
@@ -456,7 +495,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ],
         }
 
-        items = group_pr_conversation_items(raw, "author", {"reviewer"}, {"conflicts": "no"})
+        items = mainline_actions_from_raw(raw)
         self.assertEqual(len(items), 1)
         record = deterministic_classification_record(items[0])
         assert record is not None
@@ -478,11 +517,15 @@ class MainlineActionLedgerTest(unittest.TestCase):
         ]
         events = [event("commit", "2026-07-14T03:00:00Z", "author", "author")]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertEqual(discussion_state["code"]["waiting_on"], "reviewer")
+        self.assertEqual(pending_actions["code"]["action"], "reviewer")
+        self.assertEqual(mainline_history["code"]["evidence"]["kind"], "commit")
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
-        self.assertEqual(discussion_state["description"]["waiting_on"], "author")
+        self.assertEqual(pending_actions["description"]["action"], "author")
+        self.assertNotIn("description", mainline_history)
         self.assertEqual(classifications[1]["decision"]["discussion_action"], "author")
 
     def test_author_reply_advances_only_reply_action(self) -> None:
@@ -500,11 +543,14 @@ class MainlineActionLedgerTest(unittest.TestCase):
             event("issue-comment", "2026-07-14T03:00:00Z", "author", "author"),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertEqual(discussion_state["code"]["waiting_on"], "author")
-        self.assertEqual(discussion_state["description"]["waiting_on"], "author")
-        self.assertEqual(discussion_state["reply"]["waiting_on"], "reviewer")
+        self.assertEqual(pending_actions["code"]["action"], "author")
+        self.assertEqual(pending_actions["description"]["action"], "author")
+        self.assertEqual(pending_actions["reply"]["action"], "reviewer")
+        self.assertEqual(mainline_history["reply"]["evidence"]["kind"], "reply")
 
     def test_maintainer_cherry_pick_uses_original_author_date(self) -> None:
         events = normalize_events(
@@ -537,7 +583,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
         self.assertEqual(events[0]["timestamp"], "2026-07-13T03:00:00Z")
 
         classifications = [classification("code", "commit")]
-        discussion_state = build_discussion_state(
+        pending_actions, mainline_history = advance_mainline_actions(
             [mainline_discussion("code")],
             classifications,
             events,
@@ -545,7 +591,8 @@ class MainlineActionLedgerTest(unittest.TestCase):
             "author",
         )
 
-        self.assertEqual(discussion_state["code"]["waiting_on"], "author")
+        self.assertEqual(pending_actions["code"]["action"], "author")
+        self.assertNotIn("code", mainline_history)
 
     def test_cherry_pick_by_author_is_author_evidence(self) -> None:
         events = normalize_events(
@@ -616,15 +663,21 @@ class MainlineActionLedgerTest(unittest.TestCase):
             "editor": {"login": "author"},
         }
 
-        discussion_state = build_discussion_state(discussions, classifications, [], metadata, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, [], metadata, "author"
+        )
 
-        self.assertEqual(discussion_state["description"]["waiting_on"], "reviewer")
+        self.assertEqual(pending_actions["description"]["action"], "reviewer")
+        self.assertEqual(
+            mainline_history["description"]["evidence"]["timestamp"],
+            "2026-07-14T03:00:00Z",
+        )
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
     def test_description_evidence_survives_later_non_author_edit(self) -> None:
         discussions = [mainline_discussion("description")]
         first_classifications = [classification("description", "description")]
-        first_state = build_discussion_state(
+        _first_pending_actions, first_history = advance_mainline_actions(
             discussions,
             first_classifications,
             [],
@@ -634,10 +687,9 @@ class MainlineActionLedgerTest(unittest.TestCase):
             },
             "author",
         )
-        previous_state = {"description": first_state["description"]}
         classifications = [classification("description", "description")]
 
-        discussion_state = build_discussion_state(
+        pending_actions, mainline_history = advance_mainline_actions(
             discussions,
             classifications,
             [],
@@ -646,12 +698,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "maintainer"},
             },
             "author",
-            previous_state,
+            first_history,
         )
 
-        self.assertEqual(discussion_state["description"]["waiting_on"], "reviewer")
+        self.assertEqual(pending_actions["description"]["action"], "reviewer")
         self.assertEqual(
-            discussion_state["description"]["evidence"]["timestamp"],
+            mainline_history["description"]["evidence"]["timestamp"],
             "2026-07-14T03:00:00Z",
         )
 
@@ -659,7 +711,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
         discussions = [mainline_discussion("description")]
         classifications = [classification("description", "description")]
         previous_state = {
-            "description": stored_discussion_record("description", "2026-07-14T03:00:00Z"),
+            "description": mainline_history_record("description", "2026-07-14T03:00:00Z"),
         }
         confirmation = event(
             "review-state",
@@ -669,7 +721,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
             state="APPROVED",
         )
 
-        discussion_state = build_discussion_state(
+        pending_actions, mainline_history = advance_mainline_actions(
             discussions,
             classifications,
             [confirmation],
@@ -678,14 +730,14 @@ class MainlineActionLedgerTest(unittest.TestCase):
             previous_state,
         )
 
-        self.assertFalse(discussion_state["description"]["open"])
+        self.assertNotIn("description", pending_actions)
         self.assertEqual(
-            discussion_state["description"]["evidence"]["timestamp"],
+            mainline_history["description"]["evidence"]["timestamp"],
             "2026-07-14T03:00:00Z",
         )
 
         refreshed_classifications = [classification("description", "description")]
-        refreshed_state = build_discussion_state(
+        refreshed_pending_actions, refreshed_history = advance_mainline_actions(
             discussions,
             refreshed_classifications,
             [],
@@ -694,12 +746,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "maintainer"},
             },
             "author",
-            {"description": discussion_state["description"]},
+            mainline_history,
         )
 
-        self.assertEqual(refreshed_state["description"]["waiting_on"], "reviewer")
+        self.assertEqual(refreshed_pending_actions["description"]["action"], "reviewer")
         self.assertEqual(
-            refreshed_state["description"]["evidence"]["timestamp"],
+            refreshed_history["description"]["evidence"]["timestamp"],
             "2026-07-14T03:00:00Z",
         )
 
@@ -714,7 +766,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
             state="APPROVED",
         )
 
-        discussion_state = build_discussion_state(
+        pending_actions, mainline_history = advance_mainline_actions(
             discussions,
             classifications,
             [confirmation],
@@ -725,14 +777,14 @@ class MainlineActionLedgerTest(unittest.TestCase):
             "author",
         )
 
-        self.assertFalse(discussion_state["description"]["open"])
+        self.assertNotIn("description", pending_actions)
         self.assertEqual(
-            discussion_state["description"]["evidence"]["timestamp"],
+            mainline_history["description"]["evidence"]["timestamp"],
             "2026-07-14T03:00:00Z",
         )
 
         refreshed_classifications = [classification("description", "description")]
-        refreshed_state = build_discussion_state(
+        refreshed_pending_actions, refreshed_history = advance_mainline_actions(
             discussions,
             refreshed_classifications,
             [],
@@ -741,12 +793,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "maintainer"},
             },
             "author",
-            {"description": discussion_state["description"]},
+            mainline_history,
         )
 
-        self.assertEqual(refreshed_state["description"]["waiting_on"], "reviewer")
+        self.assertEqual(refreshed_pending_actions["description"]["action"], "reviewer")
         self.assertEqual(
-            refreshed_state["description"]["evidence"]["timestamp"],
+            refreshed_history["description"]["evidence"]["timestamp"],
             "2026-07-14T03:00:00Z",
         )
 
@@ -754,36 +806,36 @@ class MainlineActionLedgerTest(unittest.TestCase):
         discussions = [mainline_discussion("description")]
         classifications = [classification("description", "description")]
 
-        discussion_state = build_discussion_state(
+        pending_actions, mainline_history = advance_mainline_actions(
             discussions,
             classifications,
             [],
             {},
             "author",
             {
-                "description": stored_discussion_record("description", "2026-07-14T00:00:00Z"),
+                "description": mainline_history_record("description", "2026-07-14T00:00:00Z"),
             },
         )
 
-        self.assertEqual(discussion_state["description"]["waiting_on"], "author")
-        self.assertNotIn("evidence", discussion_state["description"])
+        self.assertEqual(pending_actions["description"]["action"], "author")
+        self.assertNotIn("description", mainline_history)
 
     def test_stored_evidence_kind_must_match_current_decision(self) -> None:
         classifications = [classification("code", "commit")]
 
-        discussion_state = build_discussion_state(
+        pending_actions, mainline_history = advance_mainline_actions(
             [mainline_discussion("code")],
             classifications,
             [],
             {},
             "author",
             {
-                "code": stored_discussion_record("description", "2026-07-14T03:00:00Z"),
+                "code": mainline_history_record("description", "2026-07-14T03:00:00Z"),
             },
         )
 
-        self.assertEqual(discussion_state["code"]["waiting_on"], "author")
-        self.assertNotIn("evidence", discussion_state["code"])
+        self.assertEqual(pending_actions["code"]["action"], "author")
+        self.assertNotIn("code", mainline_history)
 
     def test_reviewer_confirmation_closes_item(self) -> None:
         discussions = [mainline_discussion("code")]
@@ -799,9 +851,15 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertFalse(discussion_state["code"]["open"])
+        self.assertNotIn("code", pending_actions)
+        self.assertEqual(
+            mainline_history["code"]["confirmation"]["timestamp"],
+            "2026-07-14T03:00:00Z",
+        )
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
     def test_reviewer_confirmation_before_author_evidence_does_not_close_item(self) -> None:
@@ -818,11 +876,13 @@ class MainlineActionLedgerTest(unittest.TestCase):
             event("commit", "2026-07-14T03:00:00Z", "author", "author"),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertEqual(discussion_state["code"]["waiting_on"], "reviewer")
+        self.assertEqual(pending_actions["code"]["action"], "reviewer")
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
-        self.assertEqual(discussion_state["code"]["evidence"]["timestamp"], "2026-07-14T03:00:00Z")
+        self.assertEqual(mainline_history["code"]["evidence"]["timestamp"], "2026-07-14T03:00:00Z")
 
     def test_edited_review_confirms_with_edit_timestamp(self) -> None:
         events = normalize_events(
@@ -846,7 +906,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
         )
         classifications = [classification("code", "commit")]
 
-        discussion_state = build_discussion_state(
+        pending_actions, mainline_history = advance_mainline_actions(
             [mainline_discussion("code")],
             classifications,
             events,
@@ -855,8 +915,8 @@ class MainlineActionLedgerTest(unittest.TestCase):
         )
 
         self.assertEqual(events[0]["timestamp"], "2026-07-14T00:00:00Z")
-        self.assertFalse(discussion_state["code"]["open"])
-        self.assertEqual(discussion_state["code"]["confirmation"]["timestamp"], "2026-07-14T03:00:00Z")
+        self.assertNotIn("code", pending_actions)
+        self.assertEqual(mainline_history["code"]["confirmation"]["timestamp"], "2026-07-14T03:00:00Z")
 
     def test_reviewer_confirmation_closes_item_without_detected_author_evidence(self) -> None:
         discussions = [mainline_discussion("code")]
@@ -871,9 +931,15 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertFalse(discussion_state["code"]["open"])
+        self.assertNotIn("code", pending_actions)
+        self.assertEqual(
+            mainline_history["code"]["confirmation"]["timestamp"],
+            "2026-07-14T03:00:00Z",
+        )
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
     def test_reviewer_confirmation_survives_later_author_evidence(self) -> None:
@@ -885,7 +951,7 @@ class MainlineActionLedgerTest(unittest.TestCase):
             "approver",
             state="APPROVED",
         )
-        first_state = build_discussion_state(
+        _first_pending_actions, first_history = advance_mainline_actions(
             discussions,
             [classification("code", "commit")],
             [confirmation],
@@ -893,22 +959,22 @@ class MainlineActionLedgerTest(unittest.TestCase):
             "author",
         )
 
-        refreshed_state = build_discussion_state(
+        refreshed_pending_actions, refreshed_history = advance_mainline_actions(
             discussions,
             [classification("code", "commit")],
             [confirmation, event("commit", "2026-07-14T04:00:00Z", "author", "author")],
             {},
             "author",
-            first_state,
+            first_history,
         )
 
-        self.assertFalse(refreshed_state["code"]["open"])
+        self.assertNotIn("code", refreshed_pending_actions)
         self.assertEqual(
-            refreshed_state["code"]["confirmation"]["timestamp"],
+            refreshed_history["code"]["confirmation"]["timestamp"],
             "2026-07-14T03:00:00Z",
         )
         self.assertEqual(
-            refreshed_state["code"]["evidence"]["timestamp"],
+            refreshed_history["code"]["evidence"]["timestamp"],
             "2026-07-14T04:00:00Z",
         )
 
@@ -931,9 +997,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertEqual(discussion_state["first"]["waiting_on"], "author")
+        self.assertEqual(pending_actions["first"]["action"], "author")
+        self.assertNotIn("first", mainline_history)
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
     def test_filtered_conflict_request_does_not_confirm_older_item(self) -> None:
@@ -953,11 +1022,13 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertEqual(discussion_state["request"]["waiting_on"], "reviewer")
+        self.assertEqual(pending_actions["request"]["action"], "reviewer")
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
-        self.assertEqual(discussion_state["request"]["evidence"]["timestamp"], "2026-07-14T02:00:00Z")
+        self.assertEqual(mainline_history["request"]["evidence"]["timestamp"], "2026-07-14T02:00:00Z")
 
     def test_later_acknowledgement_confirms_older_item(self) -> None:
         discussions = [
@@ -982,9 +1053,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertFalse(discussion_state["request"]["open"])
+        self.assertNotIn("request", pending_actions)
+        self.assertIn("confirmation", mainline_history["request"])
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
     def test_repeated_changes_requested_review_does_not_close_item(self) -> None:
@@ -1001,9 +1075,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertEqual(discussion_state["code"]["waiting_on"], "author")
+        self.assertEqual(pending_actions["code"]["action"], "author")
+        self.assertNotIn("code", mainline_history)
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
     def test_commented_review_does_not_clear_changes_requested_item(self) -> None:
@@ -1029,10 +1106,13 @@ class MainlineActionLedgerTest(unittest.TestCase):
         ]
         facts = {"approval_count": 1, "is_maintenance_bot": False}
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertEqual(discussion_state["code"]["waiting_on"], "reviewer")
-        self.assertEqual(route_pr(facts, discussion_state, 1), "approver")
+        self.assertEqual(pending_actions["code"]["action"], "reviewer")
+        self.assertIn("evidence", mainline_history["code"])
+        self.assertEqual(route_pr(facts, pending_actions, 1), "approver")
 
     def test_different_reviewer_does_not_close_item(self) -> None:
         discussions = [mainline_discussion("code")]
@@ -1048,9 +1128,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
             ),
         ]
 
-        discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+        pending_actions, mainline_history = advance_mainline_actions(
+            discussions, classifications, events, {}, "author"
+        )
 
-        self.assertEqual(discussion_state["code"]["waiting_on"], "reviewer")
+        self.assertEqual(pending_actions["code"]["action"], "reviewer")
+        self.assertIn("evidence", mainline_history["code"])
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
     def test_reviewer_confirmation_closes_external_and_unclear_items(self) -> None:
@@ -1068,9 +1151,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
                 classifications = [classification(action, action)]
                 classifications[0]["decision"]["discussion_action"] = action
 
-                discussion_state = build_discussion_state(discussions, classifications, events, {}, "author")
+                pending_actions, mainline_history = advance_mainline_actions(
+                    discussions, classifications, events, {}, "author"
+                )
 
-                self.assertFalse(discussion_state[action]["open"])
+                self.assertNotIn(action, pending_actions)
+                self.assertIn("confirmation", mainline_history[action])
                 self.assertEqual(classifications[0]["decision"]["discussion_action"], action)
 
     def test_pending_confirmation_overrides_approval_and_remains_visible(self) -> None:
@@ -1079,12 +1165,8 @@ class MainlineActionLedgerTest(unittest.TestCase):
             event("issue-comment", ROOT_TIMESTAMP, "reviewer", "approver"),
         ]
         classifications = [classification("code", "commit")]
-        discussion_state = {
-            "code": {
-                "open": True,
-                "waiting_on": "reviewer",
-                "waiting_since": "2026-07-14T02:00:00Z",
-            },
+        pending_actions = {
+            "code": {"action": "reviewer", "since": "2026-07-14T02:00:00Z"},
         }
         facts = {"approval_count": 1, "is_maintenance_bot": False, "assignees": []}
         events = [
@@ -1097,8 +1179,8 @@ class MainlineActionLedgerTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqual(route_pr(facts, discussion_state, 1), "approver")
-        add_reviewers(facts, events, discussions, discussion_state)
+        self.assertEqual(route_pr(facts, pending_actions, 1), "approver")
+        add_reviewers(facts, events, [], discussions, pending_actions)
         reviewer = facts["reviewers"][0]
         self.assertTrue(reviewer["mainline_feedback"])
         self.assertFalse(reviewer["open_thread"])
@@ -1126,12 +1208,12 @@ class MainlineActionLedgerTest(unittest.TestCase):
             }
         )
         facts = {"assignees": []}
-        discussion_state = {
-            "mainline": {"open": True, "waiting_on": "author"},
-            "inline": {"open": True, "waiting_on": "author"},
+        pending_actions = {
+            "mainline": {"action": "author", "since": ROOT_TIMESTAMP},
+            "inline": {"action": "author", "since": ROOT_TIMESTAMP},
         }
 
-        add_reviewers(facts, [], [mainline, inline], discussion_state)
+        add_reviewers(facts, [], [inline], [mainline], pending_actions)
 
         reviewer = facts["reviewers"][0]
         self.assertTrue(reviewer["mainline_feedback"])

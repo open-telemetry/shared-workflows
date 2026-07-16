@@ -157,7 +157,11 @@ def render_diagnostics_section(
 ) -> list[str]:
     prs_with_content = [
         number for number in sorted(results, reverse=True)
-        if (results[number].get("classifications") or results[number].get("error"))
+        if (
+            results[number].get("review_thread_classifications")
+            or results[number].get("mainline_action_classifications")
+            or results[number].get("error")
+        )
     ]
     if not prs_with_content:
         return []
@@ -165,20 +169,20 @@ def render_diagnostics_section(
     data_lines: list[str] = []
     for number in prs_with_content:
         result = results[number]
-        discussion_state = result.get("discussion_state") or {}
+        pending_actions = result.get("pending_actions") or {}
         data_lines.append(f"PR #{number}")
-        for c in result.get("classifications") or []:
+        classifications = (
+            (result.get("review_thread_classifications") or [])
+            + (result.get("mainline_action_classifications") or [])
+        )
+        for c in classifications:
             decision = c.get("decision") or {}
             reason = (decision.get("reason") or "").replace("\n", " ")
-            entry = discussion_state.get(c.get("discussion_id")) or {}
-            lifecycle_phase = (
-                "open" if entry.get("open") else "closed" if "open" in entry else ""
-            )
-            waiting_on = entry.get("waiting_on")
+            pending_action = pending_actions.get(c.get("discussion_id"))
             lifecycle_suffix = (
-                f", {lifecycle_phase}:{waiting_on}"
-                if waiting_on
-                else f", {lifecycle_phase}" if lifecycle_phase else ""
+                f", pending:{pending_action.get('action')}"
+                if pending_action
+                else ", closed"
             )
             data_lines.append(
                 f"llm: {c.get('discussion_id')} -> {decision.get('discussion_action')}{lifecycle_suffix} ({reason})"

@@ -72,14 +72,18 @@ built up across stages, so not every field is present at every point.
 - ``failed`` (``bool``): Whether the result failed.
 - ``route`` (``str``): Routing bucket from ``ROUTE_ORDER``.
 - ``facts`` (``dict``): Deterministic facts described below.
-- ``discussions`` (``list[dict]``): Unresolved discussions. Internal.
-- ``classifications`` (``list[dict]``): Immutable per-discussion decisions. Internal.
-- ``discussion_state`` (``dict[str, dict]``): Aggregate lifecycle state by discussion id;
-    each entry includes an ``open`` boolean.
+- ``review_threads`` (``list[dict]``): Unresolved inline review threads. Internal.
+- ``mainline_actions`` (``list[dict]``): Top-level action ledger items. Internal.
+- ``review_thread_classifications`` (``list[dict]``): Current inline actions. Internal.
+- ``mainline_action_classifications`` (``list[dict]``): Immutable ledger decisions. Internal.
+- ``pending_actions`` (``dict[str, dict]``): Ephemeral current actions by discussion id;
+    each entry contains ``action`` and ``since``.
+- ``mainline_history`` (``dict[str, dict]``): Durable evidence and confirmation by
+    mainline action id.
 - ``error`` (``str``): Failure detail, present only on failure paths.
 
 Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
-``discussion_state`` survives into the cached dashboard state (see
+``mainline_history`` survives into the cached dashboard state (see
 ``stored_result``).
 
 ``facts`` (one per PR) — built in two stages:
@@ -104,7 +108,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_approver_activity_at       str (iso)
     last_external_activity_at       str (iso)
 
-  Stage 2 — add_wait_age_facts (depends on routing + discussions):
+    Stage 2 — add_wait_age_facts (depends on routing + pending actions):
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
                                                   or PR creation time.
@@ -163,7 +167,7 @@ from github_cli import (
 )
 from classification import (
     DISCUSSION_RECENT_COMMENTS_LIMIT,
-    classify_discussions,
+    classify_discussion_domains,
     is_conflict_resolution_comment,
     normalize_discussion_action,
     prune_classification_cache,
@@ -330,10 +334,12 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         })
     for c in raw["issue_comments"]:
         login = reviewer_actor_login(c.get("user") or {})
+        timestamp = c.get("updated_at") or c.get("created_at") or ""
         events.append({
             "source_id": c.get("id"),
             "kind": "issue-comment",
-            "timestamp": c.get("updated_at") or c.get("created_at") or "",
+            "timestamp": timestamp,
+            "updated_timestamp": timestamp,
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
             "body": c.get("body") or "",
@@ -363,7 +369,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "source_id": r.get("id"),
             "kind": "review-state",
             "timestamp": r.get("submitted_at") or "",
-            "confirmation_timestamp": r.get("updated_at") or r.get("submitted_at") or "",
+            "updated_timestamp": r.get("updated_at") or r.get("submitted_at") or "",
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
             "body": r.get("body") or "",
@@ -576,61 +582,35 @@ def group_review_threads(
     return discussions
 
 
-def group_pr_conversation_items(
-    raw: dict[str, Any],
-    author: str,
-    reviewers: set[str],
+def derive_mainline_actions(
+    events: list[dict[str, Any]],
     facts: dict[str, Any],
 ) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
-    for c in raw["issue_comments"]:
-        actor = reviewer_actor_login(c.get("user") or {})
-        comment = discussion_comment(c.get("updated_at") or c.get("created_at") or "", actor, author, reviewers, c.get("body") or "")
-        if (
-            c.get("id") is not None
-            and actor
-            and comment["timestamp"]
-            and comment["actor_role"] in ("approver", "outsider")
-            and comment["body"]
-            and not (facts.get("conflicts") == "no" and is_conflict_resolution_comment(comment["body"]))
-        ):
-            items.append(add_discussion_facts({
-                "discussion_id": f"pr-issue-comment-{c['id']}",
-                "discussion_kind": "pr-conversation-item",
-                "source_kind": "issue-comment",
-                "source_id": c["id"],
-                "requester": actor,
-                "review_state": None,
-                "root_timestamp": comment["timestamp"],
-                "path": None,
-                "line": None,
-                "resolved": False,
-                "comments": [comment],
-            }, [comment], facts))
-
-    # GitHub renders review bodies inline in the PR conversation. Each body is
-    # its own ledger item because top-level comments have no native discussion or
-    # resolved state.
-    for r in raw["reviews"]:
-        state = r.get("state") or ""
+    for event in events:
+        source_kind = event.get("kind") or ""
+        if source_kind not in ("issue-comment", "review-state"):
+            continue
+        state = event.get("state") or ""
         if state == "DISMISSED":
             continue
-        body = (r.get("body") or "").strip()
-        if not body and state != "CHANGES_REQUESTED":
+        body = truncate(event.get("body") or "")
+        if source_kind == "review-state" and not body and state != "CHANGES_REQUESTED":
             continue
-        actor = reviewer_actor_login(r.get("user") or {})
-        comment = discussion_comment(
-            r.get("updated_at") or r.get("submitted_at") or "",
-            actor,
-            author,
-            reviewers,
-            body,
-        )
+        root_timestamp = event.get("updated_timestamp") or event.get("timestamp") or ""
+        comment = {
+            "timestamp": root_timestamp,
+            "actor": event.get("actor") or "",
+            "actor_role": event.get("actor_role"),
+            "body": body,
+            "positive_reactors": [],
+        }
         if (
-            r.get("id") is not None
-            and actor
+            event.get("source_id") is not None
+            and comment["actor"]
             and comment["timestamp"]
             and comment["actor_role"] in ("approver", "outsider")
+            and (comment["body"] or state == "CHANGES_REQUESTED")
             and not (
                 state != "CHANGES_REQUESTED"
                 and facts.get("conflicts") == "no"
@@ -638,13 +618,17 @@ def group_pr_conversation_items(
             )
         ):
             items.append(add_discussion_facts({
-                "discussion_id": f"pr-review-{r['id']}",
+                "discussion_id": (
+                    f"pr-issue-comment-{event['source_id']}"
+                    if source_kind == "issue-comment"
+                    else f"pr-review-{event['source_id']}"
+                ),
                 "discussion_kind": "pr-conversation-item",
-                "source_kind": "review-state",
-                "source_id": r["id"],
-                "requester": actor,
-                "review_state": state,
-                "root_timestamp": comment["timestamp"],
+                "source_kind": source_kind,
+                "source_id": event["source_id"],
+                "requester": comment["actor"],
+                "review_state": state or None,
+                "root_timestamp": root_timestamp,
                 "path": None,
                 "line": None,
                 "resolved": False,
@@ -652,17 +636,6 @@ def group_pr_conversation_items(
             }, [comment], facts))
     items.sort(key=lambda item: item["root_timestamp"])
     return items
-
-
-def group_discussions(
-    raw: dict[str, Any],
-    events: list[dict[str, Any]],
-    author: str,
-    reviewers: set[str],
-    facts: dict[str, Any],
-) -> list[dict[str, Any]]:
-    review_threads = group_review_threads(raw, author, reviewers, facts)
-    return review_threads + group_pr_conversation_items(raw, author, reviewers, facts)
 
 
 def first_author_evidence(
@@ -703,7 +676,7 @@ def first_reviewer_confirmation(
 ) -> str | None:
     candidates = []
     for e in events:
-        timestamp = e.get("confirmation_timestamp") or e["timestamp"]
+        timestamp = e.get("updated_timestamp") or e["timestamp"]
         if required_review_state:
             matches_confirmation = (
                 e.get("kind") == "review-state"
@@ -728,39 +701,32 @@ def first_reviewer_confirmation(
     return min(candidates) if candidates else None
 
 
-def mainline_terminal_entry(
+def mainline_pending_action(
     action: str,
     evidence_at: str,
-    evidence_kind: Any,
     root_timestamp: str,
-) -> dict[str, Any]:
+) -> dict[str, str] | None:
     if action == "external":
-        return {"open": True, "waiting_on": "external", "waiting_since": root_timestamp}
+        return {"action": "external", "since": root_timestamp}
     if action == "unclear":
-        return {"open": True, "waiting_on": "reviewer", "waiting_since": root_timestamp}
+        return {"action": "reviewer", "since": root_timestamp}
     if action != "author":
-        return {"open": False}
+        return None
     if not evidence_at:
-        return {"open": True, "waiting_on": "author", "waiting_since": root_timestamp}
-    return {
-        "open": True,
-        "waiting_on": "reviewer",
-        "waiting_since": evidence_at,
-        "evidence": {"kind": evidence_kind, "timestamp": evidence_at},
-    }
+        return {"action": "author", "since": root_timestamp}
+    return {"action": "reviewer", "since": evidence_at}
 
 
 def compute_excluded_source_events(
-    discussions: list[dict[str, Any]],
+    mainline_actions: list[dict[str, Any]],
     events: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
     by_id: dict[str, dict[str, Any]],
 ) -> set[tuple[str, int]]:
     grouped = {
         (discussion["source_kind"], discussion["source_id"])
-        for discussion in discussions
-        if discussion.get("discussion_kind") == "pr-conversation-item"
-        and discussion.get("source_kind")
+        for discussion in mainline_actions
+        if discussion.get("source_kind")
         and isinstance(discussion.get("source_id"), int)
     }
     excluded = {
@@ -774,8 +740,7 @@ def compute_excluded_source_events(
     excluded.update({
         (discussion["source_kind"], discussion["source_id"])
         for classification in classifications
-        if classification.get("discussion_kind") == "pr-conversation-item"
-        and normalize_discussion_action(
+        if normalize_discussion_action(
             (classification.get("decision") or {}).get("discussion_action") or ""
         ) in OPEN_DISCUSSION_ACTIONS
         if (discussion := by_id.get(classification.get("discussion_id") or ""))
@@ -785,42 +750,47 @@ def compute_excluded_source_events(
     return excluded
 
 
-def build_discussion_state(
-    discussions: list[dict[str, Any]],
+def build_review_thread_pending_actions(
+    review_threads: list[dict[str, Any]],
+    classifications: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    by_id = discussions_by_id(review_threads)
+    pending_actions: dict[str, dict[str, Any]] = {}
+    for classification in classifications:
+        action = normalize_discussion_action(
+            (classification.get("decision") or {}).get("discussion_action") or ""
+        )
+        discussion = by_id.get(classification.get("discussion_id") or "")
+        comments = (discussion or {}).get("comments") or []
+        if action != "none" and comments:
+            pending_actions[classification["discussion_id"]] = {
+                "action": action,
+                "since": comments[-1].get("timestamp") or "",
+            }
+    return pending_actions
+
+
+def advance_mainline_actions(
+    mainline_actions: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
     events: list[dict[str, Any]],
     pr_metadata: dict[str, Any],
     author: str,
-    previous_state: dict[str, dict[str, Any]] | None = None,
-) -> dict[str, dict[str, Any]]:
-    by_id = discussions_by_id(discussions)
-    discussion_state: dict[str, dict[str, Any]] = {
-        classification["discussion_id"]: (
-            {"open": False}
-            if normalize_discussion_action(
-                (classification.get("decision") or {}).get("discussion_action") or ""
-            ) == "none"
-            else {
-                "open": True,
-                "waiting_on": normalize_discussion_action(
-                    (classification.get("decision") or {}).get("discussion_action") or ""
-                ),
-            }
-        )
-        for classification in classifications
-    }
+    previous_history: dict[str, dict[str, Any]] | None = None,
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    by_id = discussions_by_id(mainline_actions)
+    pending_actions: dict[str, dict[str, Any]] = {}
+    mainline_history: dict[str, dict[str, Any]] = {}
     excluded_source_events = compute_excluded_source_events(
-        discussions, events, classifications, by_id
+        mainline_actions, events, classifications, by_id
     )
     for classification in classifications:
-        if classification.get("discussion_kind") != "pr-conversation-item":
-            continue
         discussion = by_id.get(classification.get("discussion_id") or "")
         decision = classification.get("decision") or {}
         if not discussion:
             continue
         action = normalize_discussion_action(decision.get("discussion_action") or "")
-        previous_entry = (previous_state or {}).get(discussion["discussion_id"]) or {}
+        previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
         previous_evidence = previous_entry.get("evidence") or {}
         previous_evidence_at = previous_evidence.get("timestamp") or ""
         previous_confirmation_at = (previous_entry.get("confirmation") or {}).get("timestamp") or ""
@@ -855,23 +825,27 @@ def build_discussion_state(
                 previous_confirmation_at=previous_confirmation_at,
             )
             if confirmation_at:
-                discussion_state[discussion["discussion_id"]] = {
-                    "open": False,
-                    **(
-                        {"evidence": {"kind": decision.get("evidence_kind"), "timestamp": evidence_at}}
-                        if evidence_at
-                        else {}
-                    ),
+                mainline_history[discussion["discussion_id"]] = {
+                    **({"evidence": {
+                        "kind": decision.get("evidence_kind"),
+                        "timestamp": evidence_at,
+                    }} if evidence_at else {}),
                     "confirmation": {"timestamp": confirmation_at},
                 }
                 continue
-        discussion_state[discussion["discussion_id"]] = mainline_terminal_entry(
-            action,
-            evidence_at,
-            decision.get("evidence_kind"),
-            discussion.get("root_timestamp") or "",
+        pending_action = mainline_pending_action(
+            action, evidence_at, discussion.get("root_timestamp") or ""
         )
-    return discussion_state
+        if pending_action:
+            pending_actions[discussion["discussion_id"]] = pending_action
+        if evidence_at:
+            mainline_history[discussion["discussion_id"]] = {
+                "evidence": {
+                    "kind": decision.get("evidence_kind"),
+                    "timestamp": evidence_at,
+                },
+            }
+    return pending_actions, mainline_history
 
 
 # ---------------------------------------------------------------- routing
@@ -885,29 +859,23 @@ ROUTE_DISCUSSION_ACTIONS = {
 }
 
 
-def pending_action(entry: dict[str, Any]) -> str:
-    if not entry.get("open"):
-        return "none"
-    return normalize_discussion_action(entry.get("waiting_on") or "")
-
-
-def action_counts(discussion_state: dict[str, dict[str, Any]]) -> dict[str, int]:
+def action_counts(pending_actions: dict[str, dict[str, Any]]) -> dict[str, int]:
     counts = {"author": 0, "reviewer": 0, "external": 0, "none": 0, "unclear": 0}
-    for entry in discussion_state.values():
-        counts[pending_action(entry)] += 1
+    for entry in pending_actions.values():
+        counts[normalize_discussion_action(entry.get("action") or "")] += 1
     return counts
 
 
-def has_blocking_discussion(discussion_state: dict[str, dict[str, Any]]) -> bool:
-    for entry in discussion_state.values():
-        action = pending_action(entry)
+def has_blocking_action(pending_actions: dict[str, dict[str, Any]]) -> bool:
+    for entry in pending_actions.values():
+        action = normalize_discussion_action(entry.get("action") or "")
         if action in ("reviewer", "unclear"):
             return True
     return False
 
 
-def route_pr(facts: dict[str, Any], discussion_state: dict[str, dict[str, Any]], required_approvals: int) -> str:
-    counts = action_counts(discussion_state)
+def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], required_approvals: int) -> str:
+    counts = action_counts(pending_actions)
     # Copilot PRs are mapped back to a human author when possible. Maintenance
     # bot PRs have no useful author route and need only one approval.
     is_maintenance_bot = facts.get("is_maintenance_bot")
@@ -923,7 +891,7 @@ def route_pr(facts: dict[str, Any], discussion_state: dict[str, dict[str, Any]],
         return "author"
     if counts["external"]:
         return "external"
-    if facts.get("approval_count", 0) >= approval_threshold and not has_blocking_discussion(discussion_state):
+    if facts.get("approval_count", 0) >= approval_threshold and not has_blocking_action(pending_actions):
         return "maintainer"
     return "approver"
 
@@ -932,24 +900,14 @@ def discussions_by_id(discussions: list[dict[str, Any]]) -> dict[str, dict[str, 
     return {t["discussion_id"]: t for t in discussions}
 
 
-def discussion_latest_comment_ts(discussion: dict[str, Any] | None) -> datetime | None:
-    comments = (discussion or {}).get("comments") or []
-    if not comments:
-        return None
-    return parse_ts(comments[-1].get("timestamp") or "")
-
-
-def oldest_discussion_wait_ts(
-    discussions: list[dict[str, Any]],
-    discussion_state: dict[str, dict[str, Any]],
+def oldest_pending_action_ts(
+    pending_actions: dict[str, dict[str, Any]],
     actions: set[str],
 ) -> datetime | None:
-    by_id = discussions_by_id(discussions)
     timestamps = [
-        parse_ts(entry.get("waiting_since") or "")
-        or discussion_latest_comment_ts(by_id.get(discussion_id))
-        for discussion_id, entry in discussion_state.items()
-        if pending_action(entry) in actions
+        parse_ts(entry.get("since") or "")
+        for entry in pending_actions.values()
+        if normalize_discussion_action(entry.get("action") or "") in actions
     ]
     timestamps = [ts for ts in timestamps if ts is not None]
     return min(timestamps) if timestamps else None
@@ -968,11 +926,10 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
 def add_wait_age_facts(
     facts: dict[str, Any],
     route: str,
-    discussions: list[dict[str, Any]],
-    discussion_state: dict[str, dict[str, Any]],
+    pending_actions: dict[str, dict[str, Any]],
 ) -> None:
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
-    wait_ts = oldest_discussion_wait_ts(discussions, discussion_state, actions) if actions else None
+    wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
     if wait_ts is None:
         wait_ts, basis = fallback_wait_ts(route, facts)
@@ -990,14 +947,12 @@ OPEN_DISCUSSION_ACTIONS = {"author", "reviewer", "external", "unclear"}
 
 
 def reviewers_with_open_threads(
-    discussions: list[dict[str, Any]],
-    discussion_state: dict[str, dict[str, Any]],
+    review_threads: list[dict[str, Any]],
+    pending_actions: dict[str, dict[str, Any]],
 ) -> set[str]:
     logins: set[str] = set()
-    for discussion in discussions:
-        if discussion.get("discussion_kind") != "review-comment-thread":
-            continue
-        action = pending_action(discussion_state.get(discussion["discussion_id"]) or {})
+    for discussion in review_threads:
+        action = (pending_actions.get(discussion["discussion_id"]) or {}).get("action")
         if action not in OPEN_DISCUSSION_ACTIONS:
             continue
         for comment in discussion.get("comments") or []:
@@ -1007,14 +962,12 @@ def reviewers_with_open_threads(
 
 
 def reviewers_with_mainline_feedback(
-    discussions: list[dict[str, Any]],
-    discussion_state: dict[str, dict[str, Any]],
+    mainline_actions: list[dict[str, Any]],
+    pending_actions: dict[str, dict[str, Any]],
 ) -> set[str]:
     logins: set[str] = set()
-    for discussion in discussions:
-        if discussion.get("discussion_kind") != "pr-conversation-item":
-            continue
-        action = pending_action(discussion_state.get(discussion["discussion_id"]) or {})
+    for discussion in mainline_actions:
+        action = (pending_actions.get(discussion["discussion_id"]) or {}).get("action")
         if action not in OPEN_DISCUSSION_ACTIONS:
             continue
         if discussion.get("requester"):
@@ -1025,8 +978,9 @@ def reviewers_with_mainline_feedback(
 def add_reviewers(
     facts: dict[str, Any],
     events: list[dict[str, Any]],
-    discussions: list[dict[str, Any]],
-    discussion_state: dict[str, dict[str, Any]],
+    review_threads: list[dict[str, Any]],
+    mainline_actions: list[dict[str, Any]],
+    pending_actions: dict[str, dict[str, Any]],
 ) -> None:
     # Reviewers to display in the dashboard, each flagged with their review
     # stance: approved (by an approver-team member), approved_non_team (an
@@ -1042,8 +996,8 @@ def add_reviewers(
     approved = {r for r, s in states.items() if s == "APPROVED" and r in approvers}
     approved_non_team = {r for r, s in states.items() if s == "APPROVED" and r not in approvers}
     changes_requested = {r for r, s in states.items() if s == "CHANGES_REQUESTED" and r in approvers}
-    with_open = reviewers_with_open_threads(discussions, discussion_state)
-    with_mainline = reviewers_with_mainline_feedback(discussions, discussion_state)
+    with_open = reviewers_with_open_threads(review_threads, pending_actions)
+    with_mainline = reviewers_with_mainline_feedback(mainline_actions, pending_actions)
     candidates = (
         approved
         | approved_non_team
@@ -1078,7 +1032,7 @@ def build_pr_result(
     reviewers: set[str],
     model: str,
     required_approvals: int,
-    previous_discussion_state: dict[str, dict[str, Any]] | None = None,
+    previous_mainline_history: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
     try:
@@ -1088,17 +1042,32 @@ def build_pr_result(
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events)
-        discussions = group_discussions(raw, events, author, reviewers, facts)
-        classifications = classify_discussions(number, discussions, model)
-        discussion_state = build_discussion_state(
-            discussions,
-            classifications,
+        review_threads = group_review_threads(raw, author, reviewers, facts)
+        mainline_actions = derive_mainline_actions(events, facts)
+        review_thread_classifications, mainline_action_classifications = (
+            classify_discussion_domains(
+                number, review_threads, mainline_actions, model
+            )
+        )
+        review_thread_pending_actions = build_review_thread_pending_actions(
+            review_threads, review_thread_classifications
+        )
+        mainline_pending_actions, mainline_history = advance_mainline_actions(
+            mainline_actions,
+            mainline_action_classifications,
             events,
             raw["pr_metadata"],
             author,
-            previous_discussion_state,
+            previous_mainline_history,
         )
-        failed_classifications = [c for c in classifications if c.get("failed")]
+        pending_actions = review_thread_pending_actions | mainline_pending_actions
+        failed_classifications = [
+            classification
+            for classification in (
+                review_thread_classifications + mainline_action_classifications
+            )
+            if classification.get("failed")
+        ]
         if failed_classifications:
             return {
                 "pr_number": number,
@@ -1106,23 +1075,30 @@ def build_pr_result(
                 "pr_url": raw["pr"].get("url") or "",
                 "failed": True,
                 "facts": facts,
-                "discussions": discussions,
-                "classifications": classifications,
+                "review_threads": review_threads,
+                "mainline_actions": mainline_actions,
+                "review_thread_classifications": review_thread_classifications,
+                "mainline_action_classifications": mainline_action_classifications,
                 "route": "unknown",
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
-        route = route_pr(facts, discussion_state, required_approvals)
-        add_wait_age_facts(facts, route, discussions, discussion_state)
-        add_reviewers(facts, events, discussions, discussion_state)
+        route = route_pr(facts, pending_actions, required_approvals)
+        add_wait_age_facts(facts, route, pending_actions)
+        add_reviewers(
+            facts, events, review_threads, mainline_actions, pending_actions
+        )
         return {
             "pr_number": number,
             "pr_title": raw["pr"].get("title") or "",
             "pr_url": raw["pr"].get("url") or "",
             "failed": False,
             "facts": facts,
-            "discussions": discussions,
-            "classifications": classifications,
-            "discussion_state": discussion_state,
+            "review_threads": review_threads,
+            "mainline_actions": mainline_actions,
+            "review_thread_classifications": review_thread_classifications,
+            "mainline_action_classifications": mainline_action_classifications,
+            "pending_actions": pending_actions,
+            "mainline_history": mainline_history,
             "route": route,
         }
     except TransientGhError as e:
@@ -1130,8 +1106,10 @@ def build_pr_result(
             "pr_number": number,
             "failed": True,
             "facts": {},
-            "discussions": [],
-            "classifications": [],
+            "review_threads": [],
+            "mainline_actions": [],
+            "review_thread_classifications": [],
+            "mainline_action_classifications": [],
             "route": "transient-failure",
             "error": repr(e),
         }
@@ -1145,8 +1123,10 @@ def build_pr_result(
             "pr_number": number,
             "failed": True,
             "facts": {},
-            "discussions": [],
-            "classifications": [],
+            "review_threads": [],
+            "mainline_actions": [],
+            "review_thread_classifications": [],
+            "mainline_action_classifications": [],
             "route": "unknown",
             "error": repr(e),
         }
@@ -1184,7 +1164,7 @@ def build_dashboard_update_for_pr(
         reviewers,
         model,
         required_approvals,
-        previous_discussion_state=(starting_pr_result or {}).get("discussion_state") or {},
+        previous_mainline_history=(starting_pr_result or {}).get("mainline_history") or {},
     )
     if trigger_pr_result is None:
         results.pop(pr_number, None)
@@ -1375,12 +1355,18 @@ def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
         print(f"    url: {result.get('pr_url')}", file=sys.stderr)
     discussions = {
         discussion.get("discussion_id"): discussion
-        for discussion in (result.get("discussions") or [])
+        for discussion in (
+            (result.get("review_threads") or [])
+            + (result.get("mainline_actions") or [])
+        )
         if isinstance(discussion, dict) and discussion.get("discussion_id")
     }
     failed_classifications = [
         classification
-        for classification in (result.get("classifications") or [])
+        for classification in (
+            (result.get("review_thread_classifications") or [])
+            + (result.get("mainline_action_classifications") or [])
+        )
         if classification.get("failed")
     ]
     for classification in failed_classifications:
