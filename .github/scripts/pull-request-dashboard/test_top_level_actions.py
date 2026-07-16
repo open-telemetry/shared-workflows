@@ -113,6 +113,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "comments": [{"timestamp": ROOT_TIMESTAMP}],
             },
             {
+                "discussion_id": "unclear",
+                "comments": [{"timestamp": ROOT_TIMESTAMP}],
+            },
+            {
                 "discussion_id": "closed",
                 "comments": [{"timestamp": ROOT_TIMESTAMP}],
             },
@@ -121,6 +125,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {
                 "discussion_id": "open",
                 "decision": {"discussion_action": "author"},
+            },
+            {
+                "discussion_id": "unclear",
+                "decision": {"discussion_action": "unclear"},
             },
             {
                 "discussion_id": "closed",
@@ -134,7 +142,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertEqual(
             pending_actions,
-            {"open": {"action": "author", "since": ROOT_TIMESTAMP}},
+            {
+                "open": {"action": "author", "since": ROOT_TIMESTAMP},
+                "unclear": {"action": "reviewer", "since": ROOT_TIMESTAMP},
+            },
         )
 
     @patch("classification.print_copilot_otel_file")

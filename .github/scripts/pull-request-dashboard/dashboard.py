@@ -750,7 +750,7 @@ def build_review_thread_pending_actions(
         comments = (discussion or {}).get("comments") or []
         if action != "none" and comments:
             pending_actions[classification["discussion_id"]] = {
-                "action": action,
+                "action": "reviewer" if action == "unclear" else action,
                 "since": comments[-1].get("timestamp") or "",
             }
     return pending_actions
