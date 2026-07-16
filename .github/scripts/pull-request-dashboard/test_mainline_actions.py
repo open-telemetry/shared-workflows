@@ -876,6 +876,42 @@ class MainlineActionLedgerTest(unittest.TestCase):
         self.assertFalse(discussion_state["code"]["open"])
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
+    def test_reviewer_confirmation_survives_later_author_evidence(self) -> None:
+        discussions = [mainline_discussion("code")]
+        confirmation = event(
+            "review-state",
+            "2026-07-14T03:00:00Z",
+            "reviewer",
+            "approver",
+            state="APPROVED",
+        )
+        first_state = build_discussion_state(
+            discussions,
+            [classification("code", "commit")],
+            [confirmation],
+            {},
+            "author",
+        )
+
+        refreshed_state = build_discussion_state(
+            discussions,
+            [classification("code", "commit")],
+            [confirmation, event("commit", "2026-07-14T04:00:00Z", "author", "author")],
+            {},
+            "author",
+            first_state,
+        )
+
+        self.assertFalse(refreshed_state["code"]["open"])
+        self.assertEqual(
+            refreshed_state["code"]["confirmation"]["timestamp"],
+            "2026-07-14T03:00:00Z",
+        )
+        self.assertEqual(
+            refreshed_state["code"]["evidence"]["timestamp"],
+            "2026-07-14T04:00:00Z",
+        )
+
     def test_later_actionable_request_does_not_confirm_older_item(self) -> None:
         discussions = [
             mainline_discussion("first", source_kind="issue-comment", source_id=101),

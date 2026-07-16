@@ -699,6 +699,7 @@ def first_reviewer_confirmation(
     evidence_at: str,
     excluded_source_events: set[tuple[str, int]],
     required_review_state: str | None = None,
+    previous_confirmation_at: str = "",
 ) -> str | None:
     candidates = []
     for e in events:
@@ -717,7 +718,7 @@ def first_reviewer_confirmation(
                 or e.get("kind") == "issue-comment"
             )
         if (
-            timestamp > evidence_at
+            (timestamp > evidence_at or timestamp == previous_confirmation_at)
             and is_substantive_activity(e)
             and (e.get("actor") or "").lower() == requester.lower()
             and (e.get("kind"), e.get("source_id")) not in excluded_source_events
@@ -822,6 +823,9 @@ def build_discussion_state(
         previous_entry = (previous_state or {}).get(discussion["discussion_id"]) or {}
         previous_evidence = previous_entry.get("evidence") or {}
         previous_evidence_at = previous_evidence.get("timestamp") or ""
+        previous_confirmation_at = (previous_entry.get("confirmation") or {}).get("timestamp") or ""
+        if previous_confirmation_at <= (discussion.get("root_timestamp") or ""):
+            previous_confirmation_at = ""
         if (
             previous_evidence.get("kind") == decision.get("evidence_kind")
             and previous_evidence_at > (discussion.get("root_timestamp") or "")
@@ -848,6 +852,7 @@ def build_discussion_state(
                     if discussion.get("review_state") == "CHANGES_REQUESTED"
                     else None
                 ),
+                previous_confirmation_at=previous_confirmation_at,
             )
             if confirmation_at:
                 discussion_state[discussion["discussion_id"]] = {
