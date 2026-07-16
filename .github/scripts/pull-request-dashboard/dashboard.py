@@ -340,6 +340,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "source_id": c.get("id"),
             "kind": "issue-comment",
             "timestamp": timestamp,
+            "created_timestamp": c.get("created_at") or timestamp,
             "updated_timestamp": timestamp,
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
@@ -654,13 +655,16 @@ def collect_author_evidence(
         and isinstance(timestamp, str)
         and timestamp > root_timestamp
     }
-    for kind, event_kind in (("commit", "commit"), ("reply", "issue-comment")):
+    for kind, event_kind, timestamp_key in (
+        ("commit", "commit", "timestamp"),
+        ("reply", "issue-comment", "created_timestamp"),
+    ):
         candidates = [
-            e["timestamp"]
+            e.get(timestamp_key) or e["timestamp"]
             for e in events
             if e.get("actor_role") == "author"
             and e.get("kind") == event_kind
-            and e["timestamp"] > root_timestamp
+            and (e.get(timestamp_key) or e["timestamp"]) > root_timestamp
             and is_substantive_activity(e)
         ]
         if candidates:

@@ -635,6 +635,39 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertEqual(top_level_history["reply"]["evidence"], {"reply": "2026-07-14T03:00:00Z"})
 
+    def test_edited_old_author_comment_does_not_count_as_reply(self) -> None:
+        events = normalize_events(
+            {
+                "commits": [],
+                "issue_comments": [
+                    {
+                        "id": 101,
+                        "created_at": "2026-07-14T00:00:00Z",
+                        "updated_at": "2026-07-14T03:00:00Z",
+                        "user": {"login": "author"},
+                        "body": "An earlier comment edited later.",
+                    }
+                ],
+                "review_comments": [],
+                "reviews": [],
+            },
+            "author",
+            {"reviewer"},
+        )
+
+        pending_actions, top_level_history = advance_top_level_actions(
+            [top_level_item("code")],
+            [classification("code", "reply")],
+            events,
+            {},
+            "author",
+        )
+
+        self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
+        self.assertEqual(events[0]["created_timestamp"], "2026-07-14T00:00:00Z")
+        self.assertEqual(pending_actions["code"]["action"], "author")
+        self.assertNotIn("code", top_level_history)
+
     def test_compound_action_waits_for_all_required_evidence(self) -> None:
         discussions = [top_level_item("compound")]
         classifications = [classification("compound", "commit", "description")]
