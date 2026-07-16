@@ -96,7 +96,7 @@ def top_level_items_from_raw(
         {
             "commits": [],
             "issue_comments": raw.get("issue_comments") or [],
-            "review_comments": [],
+            "review_comments": raw.get("review_comments") or [],
             "reviews": raw.get("reviews") or [],
         },
         "author",
@@ -581,6 +581,45 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "required_evidence_kinds": ["commit"],
                 "reason": "Reviewer explicitly requested changes",
             },
+        )
+
+    def test_empty_changes_requested_review_with_inline_comments_uses_threads_only(
+        self,
+    ) -> None:
+        raw = {
+            "issue_comments": [],
+            "review_comments": [
+                {
+                    "id": 301,
+                    "pull_request_review_id": 201,
+                    "created_at": ROOT_TIMESTAMP,
+                    "user": {"login": "reviewer"},
+                    "body": "Please update this line.",
+                }
+            ],
+            "reviews": [
+                {
+                    "id": 201,
+                    "submitted_at": ROOT_TIMESTAMP,
+                    "user": {"login": "reviewer"},
+                    "state": "CHANGES_REQUESTED",
+                    "body": "",
+                },
+                {
+                    "id": 202,
+                    "submitted_at": ROOT_TIMESTAMP,
+                    "user": {"login": "reviewer"},
+                    "state": "CHANGES_REQUESTED",
+                    "body": "",
+                },
+            ],
+        }
+
+        items = top_level_items_from_raw(raw)
+
+        self.assertEqual(
+            [item["discussion_id"] for item in items],
+            ["pr-review-202"],
         )
 
     def test_commit_advances_only_commit_action(self) -> None:

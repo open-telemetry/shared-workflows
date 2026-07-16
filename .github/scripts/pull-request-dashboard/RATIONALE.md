@@ -161,8 +161,10 @@ the implementation understandable and operationally cheap.
 - An active **Request changes** review initially waits on the author. Matching
   author evidence hands the PR back to reviewers and removes 📌, while GitHub's
   🔴 change-request state remains. A later approval or dismissal clears that
-  state. An empty change-request review is a deterministic author action and
-  does not need an LLM action classification.
+  state. An empty change-request review without inline comments is a
+  deterministic author action and does not need an LLM action classification.
+  When the review has inline comments, those threads define the actions instead
+  of creating a duplicate top-level item.
 - Description edits use the pull request's GraphQL `lastEditedAt` and `editor`
   fields instead of the general `updatedAt`, which also changes for unrelated
   PR activity.

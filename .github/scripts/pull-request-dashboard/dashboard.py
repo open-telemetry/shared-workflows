@@ -354,6 +354,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         login = reviewer_actor_login(c.get("user") or {})
         events.append({
             "source_id": c.get("id"),
+            "review_id": c.get("pull_request_review_id"),
             "kind": "review-comment",
             "timestamp": c.get("updated_at") or c.get("created_at") or "",
             "actor": login,
@@ -589,6 +590,12 @@ def derive_top_level_items(
     facts: dict[str, Any],
 ) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
+    review_ids_with_inline_comments = {
+        event.get("review_id")
+        for event in events
+        if event.get("kind") == "review-comment"
+        and event.get("review_id") is not None
+    }
     for event in events:
         source_kind = event.get("kind") or ""
         if source_kind not in ("issue-comment", "review-state"):
@@ -597,7 +604,14 @@ def derive_top_level_items(
         if state == "DISMISSED":
             continue
         body = truncate(event.get("body") or "")
-        if source_kind == "review-state" and not body and state != "CHANGES_REQUESTED":
+        if (
+            source_kind == "review-state"
+            and not body
+            and (
+                state != "CHANGES_REQUESTED"
+                or event.get("source_id") in review_ids_with_inline_comments
+            )
+        ):
             continue
         root_timestamp = event.get("updated_timestamp") or event.get("timestamp") or ""
         comment = {
