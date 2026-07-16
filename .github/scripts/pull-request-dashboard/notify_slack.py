@@ -60,6 +60,10 @@ def notify_slack_from_state(
     for number, result in results.items():
         result["pr_title"] = current_prs.get(number, {}).get("title") or ""
 
+    if not open_pr_numbers.issubset(results):
+        print("dashboard backfill incomplete; skipping Slack notifications", file=sys.stderr)
+        return []
+
     saved_notifications = load_notifications()
 
     updated_notifications, delivery_errors = next_notifications(
