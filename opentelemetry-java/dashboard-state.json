@@ -697,11 +697,18 @@
         "created_at": "2026-07-14T04:45:59+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-14T22:33:29+00:00",
-        "last_approver_activity_at": "2026-07-14T22:33:29+00:00",
+        "last_activity_at": "2026-07-16T15:24:05+00:00",
+        "last_approver_activity_at": "2026-07-16T15:24:04+00:00",
         "last_author_activity_at": "2026-07-14T04:44:47+00:00",
         "last_external_activity_at": "",
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jack-berg",
+            "open_thread": true
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -710,13 +717,13 @@
             "open_thread": false
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-14T04:44:47+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-16T15:24:04+00:00"
       },
       "failed": false,
       "pr_number": 8597,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8597",
-      "route": "approver"
+      "route": "author"
     },
     "8599": {
       "facts": {
