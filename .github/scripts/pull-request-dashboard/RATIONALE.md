@@ -158,13 +158,12 @@ the implementation understandable and operationally cheap.
   approval-based routing then decides whether the PR waits on reviewers or
   maintainers; ordinary items do not have a separate requester-confirmation
   phase.
-- An active **Request changes** review initially waits on the author. Matching
-  author evidence hands the PR back to reviewers and removes 📌, while GitHub's
-  🔴 change-request state remains. A later approval or dismissal clears that
-  state. An empty change-request review without inline comments is a
-  deterministic author action and does not need an LLM action classification.
-  When the review has inline comments, those threads define the actions instead
-  of creating a duplicate top-level item.
+- An active **Request changes** review with a non-empty summary initially waits
+  on the author. Matching author evidence hands the PR back to reviewers and
+  removes 📌, while GitHub's 🔴 change-request state remains. A later approval
+  or dismissal clears that state. An empty review summary is ignored: inline
+  comments define their own actions, while a bodyless review with no inline
+  comments has no concrete request for the dashboard to track.
 - Description edits use the pull request's GraphQL `lastEditedAt` and `editor`
   fields instead of the general `updatedAt`, which also changes for unrelated
   PR activity.

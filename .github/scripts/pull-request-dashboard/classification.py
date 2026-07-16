@@ -451,25 +451,6 @@ def cached_classification_record(record: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def deterministic_classification_record(discussion: dict[str, Any]) -> dict[str, Any] | None:
-    comments = discussion.get("comments") or []
-    has_body = any((comment.get("body") or "").strip() for comment in comments)
-    if (
-        discussion.get("review_state") == "CHANGES_REQUESTED"
-        and not has_body
-    ):
-        return classification_record(
-            discussion,
-            {
-                "discussion_action": "author",
-                "required_evidence_kinds": ["commit"],
-                "reason": "Reviewer explicitly requested changes",
-            },
-            failed=False,
-        )
-    return None
-
-
 def prune_classification_cache(open_pr_numbers: set[int]) -> None:
     if not CLASSIFICATION_CACHE_DIR.exists():
         return
@@ -554,10 +535,6 @@ def classify_top_level_items(
     classifications_by_id: dict[str, dict[str, Any]] = {}
     uncached: list[tuple[dict[str, Any], str]] = []
     for discussion in discussions:
-        deterministic_record = deterministic_classification_record(discussion)
-        if deterministic_record is not None:
-            classifications_by_id[discussion["discussion_id"]] = deterministic_record
-            continue
         key, record = cached_classification(
             discussion,
             model,

@@ -83,9 +83,8 @@ summary that is not attached to an inline review thread.
   actionable top-level feedback item independently. 📌 means that one or more
   of those items are waiting on the author.
 - **Request changes** uses GitHub's blocking review state. 🔴 remains until a
-  later approval or dismissal clears that state. An empty change-request review
-  with inline comments relies on those threads rather than creating a duplicate
-  top-level feedback item.
+  later approval or dismissal clears that state. Empty review summaries are
+  ignored; any inline comments are tracked through their own threads.
 
 ### Evidence for top-level feedback
 
