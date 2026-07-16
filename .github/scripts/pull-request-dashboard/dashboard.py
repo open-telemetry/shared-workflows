@@ -126,8 +126,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   approved_non_team means someone
                                                   outside the team approved,
                                                   changes_requested means an
-                                                  approver-team member's latest
-                                                  review is CHANGES_REQUESTED,
+                                                  reviewer's latest review is
+                                                  CHANGES_REQUESTED,
                                                   open_thread means they own an
                                                   unresolved discussion,
                                                   and top_level_feedback means
@@ -963,8 +963,8 @@ def add_reviewers(
 ) -> None:
     # Reviewers to display in the dashboard, each flagged with their review
     # stance: approved (by an approver-team member), approved_non_team (an
-    # approval from someone outside the team), changes_requested (an
-    # approver-team member's latest review blocks), open_thread (they own an
+    # approval from someone outside the team), changes_requested (their latest
+    # review blocks), open_thread (they own an
     # unresolved discussion), and top_level_feedback (their top-level feedback
     # still needs author action). The renderer turns these into icons.
     # Reviewers are everyone who reviewed, owns an open discussion, otherwise
@@ -973,7 +973,7 @@ def add_reviewers(
     approvers = approver_logins(events)
     approved = {r for r, s in states.items() if s == "APPROVED" and r in approvers}
     approved_non_team = {r for r, s in states.items() if s == "APPROVED" and r not in approvers}
-    changes_requested = {r for r, s in states.items() if s == "CHANGES_REQUESTED" and r in approvers}
+    changes_requested = {r for r, s in states.items() if s == "CHANGES_REQUESTED"}
     with_open = reviewers_with_open_threads(review_threads, pending_actions)
     with_top_level = reviewers_with_top_level_feedback(top_level_items, pending_actions)
     candidates = (

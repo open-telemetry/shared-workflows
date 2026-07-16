@@ -1464,6 +1464,33 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(reviewer_icon(reviewer), "🔴")
         self.assertEqual(reviewer_logins_for_notification(facts), ["reviewer"])
 
+    def test_outsider_changes_requested_reviewer_remains_visible_after_handoff(self) -> None:
+        discussions = [top_level_item("code", requester="outsider")]
+        discussions[0]["review_state"] = "CHANGES_REQUESTED"
+        pending_actions = {
+            "code": {"action": "reviewer", "since": "2026-07-14T02:00:00Z"},
+        }
+        facts = {"approval_count": 0, "is_maintenance_bot": False, "assignees": []}
+        events = [
+            event(
+                "review-state",
+                ROOT_TIMESTAMP,
+                "outsider",
+                "outsider",
+                state="CHANGES_REQUESTED",
+            )
+        ]
+
+        self.assertEqual(route_pr(facts, pending_actions, 1), "approver")
+        add_reviewers(facts, events, [], discussions, pending_actions)
+
+        reviewer = facts["reviewers"][0]
+        self.assertEqual(reviewer["login"], "outsider")
+        self.assertTrue(reviewer["changes_requested"])
+        self.assertFalse(reviewer["top_level_feedback"])
+        self.assertEqual(reviewer_icon(reviewer), "🔴")
+        self.assertEqual(reviewer_logins_for_notification(facts), ["outsider"])
+
     def test_inline_and_top_level_feedback_keep_both_badges(self) -> None:
         top_level = top_level_item("top_level")
         top_level["comments"] = [
