@@ -713,8 +713,11 @@ def requires_title_edit_lookup(
         if not discussion:
             continue
         previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
-        title_evidence_at = (previous_entry.get("evidence") or {}).get("title") or ""
-        if title_evidence_at <= (discussion.get("root_timestamp") or ""):
+        previous_evidence = previous_entry.get("evidence") or {}
+        root_timestamp = discussion.get("root_timestamp") or ""
+        if (previous_evidence.get("reply") or "") > root_timestamp:
+            continue
+        if (previous_evidence.get("title") or "") <= root_timestamp:
             return True
     return False
 

@@ -727,13 +727,24 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 },
             )
         )
-        self.assertTrue(
+        self.assertFalse(
             requires_title_edit_lookup(
                 [discussion],
                 [title_classification],
                 {
                     "title": top_level_history_record(
                         "reply", "2026-07-14T03:00:00Z"
+                    ),
+                },
+            )
+        )
+        self.assertTrue(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                {
+                    "title": top_level_history_record(
+                        "reply", "2026-07-14T00:00:00Z"
                     ),
                 },
             )
