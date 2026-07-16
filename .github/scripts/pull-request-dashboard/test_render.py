@@ -27,6 +27,14 @@ class RenderTest(unittest.TestCase):
                             "reason": "Confirmed",
                         },
                     },
+                    {
+                        "discussion_id": "top_level_note",
+                        "discussion_kind": "top-level-feedback",
+                        "decision": {
+                            "discussion_action": "none",
+                            "reason": "Informational",
+                        },
+                    },
                 ],
                 "pending_actions": {
                     "inline": {
@@ -40,6 +48,7 @@ class RenderTest(unittest.TestCase):
         markdown = "\n".join(lines)
         self.assertIn("inline -> author, pending:author", markdown)
         self.assertIn("top_level -> author, addressed", markdown)
+        self.assertIn("top_level_note -> none, no-action", markdown)
 
     def test_reviewer_legend_includes_top_level_feedback(self) -> None:
         markdown = render_pr_tables([], {})

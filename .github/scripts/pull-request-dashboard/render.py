@@ -181,6 +181,8 @@ def render_diagnostics_section(
             pending_action = pending_actions.get(c.get("discussion_id"))
             if pending_action:
                 lifecycle_suffix = f", pending:{pending_action.get('action')}"
+            elif decision.get("discussion_action") == "none":
+                lifecycle_suffix = ", no-action"
             elif c.get("discussion_kind") == "top-level-feedback":
                 lifecycle_suffix = ", addressed"
             else:
