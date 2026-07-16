@@ -78,8 +78,8 @@ built up across stages, so not every field is present at every point.
 - ``mainline_action_classifications`` (``list[dict]``): Immutable ledger decisions. Internal.
 - ``pending_actions`` (``dict[str, dict]``): Ephemeral current actions by discussion id;
     each entry contains ``action`` and ``since``.
-- ``mainline_history`` (``dict[str, dict]``): Durable evidence and confirmation by
-    mainline action id.
+- ``mainline_history`` (``dict[str, dict]``): Durable evidence timestamps by
+    mainline action id and evidence kind.
 - ``error`` (``str``): Failure detail, present only on failure paths.
 
 Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
@@ -132,8 +132,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   unresolved discussion,
                                                   and mainline_feedback means
                                                   their top-level request still
-                                                  needs author action or reviewer
-                                                  confirmation.
+                                                  needs author action.
 
 Stage-2 fields are absent on failure paths (failed is True). Human-readable
 ``age`` strings (e.g. ``3h``) are derived at render time from these
@@ -156,6 +155,7 @@ from github_cli import (
     TransientGhError,
     detect_repo,
     fetch_pr_review_data,
+    fetch_pr_title_edits,
     fetch_review_threads,
     gh_api,
     gh_pr_checks,
@@ -167,6 +167,7 @@ from github_cli import (
 )
 from classification import (
     DISCUSSION_RECENT_COMMENTS_LIMIT,
+    MAINLINE_EVIDENCE_KINDS,
     classify_discussion_domains,
     is_conflict_resolution_comment,
     normalize_discussion_action,
@@ -638,116 +639,101 @@ def derive_mainline_actions(
     return items
 
 
-def first_author_evidence(
+def collect_author_evidence(
     discussion: dict[str, Any],
-    decision: dict[str, Any],
     events: list[dict[str, Any]],
     pr_metadata: dict[str, Any],
     author: str,
-) -> str | None:
+    previous_entry: dict[str, Any],
+) -> dict[str, str]:
     root_timestamp = discussion.get("root_timestamp") or ""
-    evidence_kind = decision.get("evidence_kind") or ""
-    candidates: list[str] = []
-    event_kind = {"reply": "issue-comment", "commit": "commit"}.get(evidence_kind)
-    if event_kind:
-        candidates.extend(
+    evidence = {
+        kind: timestamp
+        for kind, timestamp in (previous_entry.get("evidence") or {}).items()
+        if kind in MAINLINE_EVIDENCE_KINDS
+        and isinstance(timestamp, str)
+        and timestamp > root_timestamp
+    }
+    for kind, event_kind in (("commit", "commit"), ("reply", "issue-comment")):
+        candidates = [
             e["timestamp"]
             for e in events
             if e.get("actor_role") == "author"
             and e.get("kind") == event_kind
             and e["timestamp"] > root_timestamp
             and is_substantive_activity(e)
+        ]
+        if candidates:
+            evidence[kind] = min(candidates + ([evidence[kind]] if kind in evidence else []))
+    edited_at = pr_metadata.get("lastEditedAt") or ""
+    editor = actor_login(pr_metadata.get("editor") or {})
+    if edited_at > root_timestamp and editor.lower() == author.lower():
+        evidence["description"] = min(
+            edited_at,
+            evidence.get("description") or edited_at,
         )
-    if evidence_kind == "description":
-        edited_at = pr_metadata.get("lastEditedAt") or ""
-        editor = actor_login(pr_metadata.get("editor") or {})
-        if edited_at > root_timestamp and editor.lower() == author.lower():
-            candidates.append(edited_at)
-    return min(candidates) if candidates else None
+    title_edit_timestamps = [
+        edit.get("createdAt") or ""
+        for edit in pr_metadata.get("titleEdits") or []
+        if actor_login(edit.get("actor") or {}).lower() == author.lower()
+        and (edit.get("createdAt") or "") > root_timestamp
+    ]
+    if title_edit_timestamps:
+        evidence["title"] = min(
+            title_edit_timestamps + ([evidence["title"]] if "title" in evidence else [])
+        )
+    return evidence
 
 
-def first_reviewer_confirmation(
+def evidence_satisfied_at(
+    required_kinds: list[str],
+    evidence: dict[str, str],
+) -> str:
+    if evidence.get("reply"):
+        return evidence["reply"]
+    if not required_kinds or any(kind not in evidence for kind in required_kinds):
+        return ""
+    return max(evidence[kind] for kind in required_kinds)
+
+
+def requires_title_edit_lookup(
+    mainline_actions: list[dict[str, Any]],
+    classifications: list[dict[str, Any]],
+    previous_history: dict[str, dict[str, Any]] | None = None,
+) -> bool:
+    by_id = discussions_by_id(mainline_actions)
+    for classification in classifications:
+        decision = classification.get("decision") or {}
+        if (
+            normalize_discussion_action(decision.get("discussion_action") or "") != "author"
+            or "title" not in (decision.get("required_evidence_kinds") or [])
+        ):
+            continue
+        discussion = by_id.get(classification.get("discussion_id") or "")
+        if not discussion:
+            continue
+        previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
+        title_evidence_at = (previous_entry.get("evidence") or {}).get("title") or ""
+        if title_evidence_at <= (discussion.get("root_timestamp") or ""):
+            return True
+    return False
+
+
+def first_change_request_clearance(
     events: list[dict[str, Any]],
     requester: str,
     evidence_at: str,
-    excluded_source_events: set[tuple[str, int]],
-    required_review_state: str | None = None,
-    previous_confirmation_at: str = "",
 ) -> str | None:
-    candidates = []
-    for e in events:
-        timestamp = e.get("updated_timestamp") or e["timestamp"]
-        if required_review_state:
-            matches_confirmation = (
-                e.get("kind") == "review-state"
-                and e.get("state") == required_review_state
-            )
-        else:
-            matches_confirmation = (
-                (
-                    e.get("kind") == "review-state"
-                    and e.get("state") in ("APPROVED", "COMMENTED")
-                )
-                or e.get("kind") == "issue-comment"
-            )
-        if (
-            (timestamp > evidence_at or timestamp == previous_confirmation_at)
-            and is_substantive_activity(e)
-            and (e.get("actor") or "").lower() == requester.lower()
-            and (e.get("kind"), e.get("source_id")) not in excluded_source_events
-            and matches_confirmation
-        ):
-            candidates.append(timestamp)
+    candidates = [
+        e.get("updated_timestamp") or e["timestamp"]
+        for e in events
+        if e.get("kind") == "review-state"
+        and e.get("state") in ("APPROVED", "DISMISSED")
+        and (e.get("updated_timestamp") or e["timestamp"]) > evidence_at
+        and is_substantive_activity(e)
+        and (e.get("actor") or "").lower() == requester.lower()
+    ]
     return min(candidates) if candidates else None
-
-
-def mainline_pending_action(
-    action: str,
-    evidence_at: str,
-    root_timestamp: str,
-) -> dict[str, str] | None:
-    if action == "external":
-        return {"action": "external", "since": root_timestamp}
-    if action == "unclear":
-        return {"action": "reviewer", "since": root_timestamp}
-    if action != "author":
-        return None
-    if not evidence_at:
-        return {"action": "author", "since": root_timestamp}
-    return {"action": "reviewer", "since": evidence_at}
-
-
-def compute_excluded_source_events(
-    mainline_actions: list[dict[str, Any]],
-    events: list[dict[str, Any]],
-    classifications: list[dict[str, Any]],
-    by_id: dict[str, dict[str, Any]],
-) -> set[tuple[str, int]]:
-    grouped = {
-        (discussion["source_kind"], discussion["source_id"])
-        for discussion in mainline_actions
-        if discussion.get("source_kind")
-        and isinstance(discussion.get("source_id"), int)
-    }
-    excluded = {
-        (event["kind"], event["source_id"])
-        for event in events
-        if event.get("kind") in ("issue-comment", "review-state")
-        and isinstance(event.get("source_id"), int)
-        and is_conflict_resolution_comment(event.get("body") or "")
-        and (event["kind"], event["source_id"]) not in grouped
-    }
-    excluded.update({
-        (discussion["source_kind"], discussion["source_id"])
-        for classification in classifications
-        if normalize_discussion_action(
-            (classification.get("decision") or {}).get("discussion_action") or ""
-        ) in OPEN_DISCUSSION_ACTIONS
-        if (discussion := by_id.get(classification.get("discussion_id") or ""))
-        and discussion.get("source_kind")
-        and isinstance(discussion.get("source_id"), int)
-    })
-    return excluded
 
 
 def build_review_thread_pending_actions(
@@ -781,70 +767,56 @@ def advance_mainline_actions(
     by_id = discussions_by_id(mainline_actions)
     pending_actions: dict[str, dict[str, Any]] = {}
     mainline_history: dict[str, dict[str, Any]] = {}
-    excluded_source_events = compute_excluded_source_events(
-        mainline_actions, events, classifications, by_id
-    )
     for classification in classifications:
         discussion = by_id.get(classification.get("discussion_id") or "")
         decision = classification.get("decision") or {}
         if not discussion:
             continue
         action = normalize_discussion_action(decision.get("discussion_action") or "")
+        root_timestamp = discussion.get("root_timestamp") or ""
+        if action == "external":
+            pending_actions[discussion["discussion_id"]] = {
+                "action": "external",
+                "since": root_timestamp,
+            }
+            continue
+        if action == "unclear":
+            pending_actions[discussion["discussion_id"]] = {
+                "action": "reviewer",
+                "since": root_timestamp,
+            }
+            continue
+        if action != "author":
+            continue
         previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
-        previous_evidence = previous_entry.get("evidence") or {}
-        previous_evidence_at = previous_evidence.get("timestamp") or ""
-        previous_confirmation_at = (previous_entry.get("confirmation") or {}).get("timestamp") or ""
-        if previous_confirmation_at <= (discussion.get("root_timestamp") or ""):
-            previous_confirmation_at = ""
-        if (
-            previous_evidence.get("kind") == decision.get("evidence_kind")
-            and previous_evidence_at > (discussion.get("root_timestamp") or "")
-        ):
-            evidence_at = previous_evidence_at
-        else:
-            evidence_at = ""
-        if action == "author":
-            evidence_candidates = [
-                first_author_evidence(discussion, decision, events, pr_metadata, author),
-                evidence_at,
-            ]
-            valid_evidence = [timestamp for timestamp in evidence_candidates if timestamp]
-            if valid_evidence:
-                evidence_at = min(valid_evidence)
-        if action in OPEN_DISCUSSION_ACTIONS:
-            confirmation_at = first_reviewer_confirmation(
+        evidence = collect_author_evidence(
+            discussion,
+            events,
+            pr_metadata,
+            author,
+            previous_entry,
+        )
+        required_kinds = decision.get("required_evidence_kinds") or []
+        evidence_at = evidence_satisfied_at(required_kinds, evidence)
+        if evidence:
+            mainline_history[discussion["discussion_id"]] = {"evidence": evidence}
+        if not evidence_at:
+            pending_actions[discussion["discussion_id"]] = {
+                "action": "author",
+                "since": root_timestamp,
+            }
+            continue
+        if discussion.get("review_state") == "CHANGES_REQUESTED":
+            clearance_at = first_change_request_clearance(
                 events,
                 discussion.get("requester") or "",
-                evidence_at or discussion.get("root_timestamp") or "",
-                excluded_source_events,
-                required_review_state=(
-                    "APPROVED"
-                    if discussion.get("review_state") == "CHANGES_REQUESTED"
-                    else None
-                ),
-                previous_confirmation_at=previous_confirmation_at,
+                evidence_at,
             )
-            if confirmation_at:
-                mainline_history[discussion["discussion_id"]] = {
-                    **({"evidence": {
-                        "kind": decision.get("evidence_kind"),
-                        "timestamp": evidence_at,
-                    }} if evidence_at else {}),
-                    "confirmation": {"timestamp": confirmation_at},
+            if not clearance_at:
+                pending_actions[discussion["discussion_id"]] = {
+                    "action": "reviewer",
+                    "since": evidence_at,
                 }
-                continue
-        pending_action = mainline_pending_action(
-            action, evidence_at, discussion.get("root_timestamp") or ""
-        )
-        if pending_action:
-            pending_actions[discussion["discussion_id"]] = pending_action
-        if evidence_at:
-            mainline_history[discussion["discussion_id"]] = {
-                "evidence": {
-                    "kind": decision.get("evidence_kind"),
-                    "timestamp": evidence_at,
-                },
-            }
     return pending_actions, mainline_history
 
 
@@ -885,8 +857,8 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     #   2. Otherwise a discussion waiting on something external -> "external".
     #   3. If there are enough approvals and no inline or top-level item is
     #      still waiting on a reviewer or is unclear -> "maintainer".
-    #   4. Otherwise the PR is still waiting on approvers, including for
-    #      confirmation of addressed top-level feedback.
+    #   4. Otherwise the PR is still waiting on approvers, including for an
+    #      addressed CHANGES_REQUESTED review to be approved or dismissed.
     if counts["author"] and not is_maintenance_bot:
         return "author"
     if counts["external"]:
@@ -968,7 +940,7 @@ def reviewers_with_mainline_feedback(
     logins: set[str] = set()
     for discussion in mainline_actions:
         action = (pending_actions.get(discussion["discussion_id"]) or {}).get("action")
-        if action not in OPEN_DISCUSSION_ACTIONS:
+        if action != "author":
             continue
         if discussion.get("requester"):
             logins.add(discussion["requester"])
@@ -986,9 +958,8 @@ def add_reviewers(
     # stance: approved (by an approver-team member), approved_non_team (an
     # approval from someone outside the team), changes_requested (an
     # approver-team member's latest review blocks), open_thread (they own an
-    # unresolved discussion), and mainline_feedback (their top-level
-    # request still needs action or confirmation). The renderer turns these
-    # into icons.
+    # unresolved discussion), and mainline_feedback (their top-level request
+    # still needs author action). The renderer turns these into icons.
     # Reviewers are everyone who reviewed, owns an open discussion, otherwise
     # commented, or is a PR assignee, sorted alphabetically (case-insensitive).
     states = latest_review_states(events)
@@ -1049,6 +1020,14 @@ def build_pr_result(
                 number, review_threads, mainline_actions, model
             )
         )
+        if requires_title_edit_lookup(
+            mainline_actions,
+            mainline_action_classifications,
+            previous_mainline_history,
+        ):
+            raw["pr_metadata"]["titleEdits"] = fetch_pr_title_edits(
+                owner, repo_name, number
+            )
         review_thread_pending_actions = build_review_thread_pending_actions(
             review_threads, review_thread_classifications
         )

@@ -9,7 +9,6 @@ from unittest.mock import patch
 from state import (
     BACKFILL_STATE_VERSION,
     DASHBOARD_STATE_VERSION,
-    NOTIFICATION_COMPATIBLE_STATE_VERSIONS,
     NOTIFICATION_STATE_VERSION,
     backfill_state_path,
     dashboard_state_path,
@@ -70,15 +69,35 @@ class StateTest(unittest.TestCase):
             )
 
     def test_notification_state_version_is_independent(self) -> None:
-        self.assertEqual(NOTIFICATION_STATE_VERSION, 5)
-        self.assertEqual(NOTIFICATION_COMPATIBLE_STATE_VERSIONS, {3, 4, 5})
-        self.assertEqual(DASHBOARD_STATE_VERSION, 7)
+        self.assertEqual(BACKFILL_STATE_VERSION, 3)
+        self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 4)
+
+    def test_backfill_state_preserves_version_three_cursor(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            backfill_state_path().write_text(
+                json.dumps(
+                    {
+                        "version": 3,
+                        "cursor": {"last_pr_number": 78},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                load_backfill_state(),
+                {
+                    "version": BACKFILL_STATE_VERSION,
+                    "cursor": {"last_pr_number": 78},
+                },
+            )
 
     def test_notification_state_write_ignores_dashboard_version(self) -> None:
         with (
             tempfile.TemporaryDirectory() as temp_dir,
             patch("state._state_dir", Path(temp_dir)),
-            patch("state.DASHBOARD_STATE_VERSION", 7),
+            patch("state.DASHBOARD_STATE_VERSION", 4),
         ):
             save_notifications({"123": {"last_notified_at": "2026-07-14T03:00:00Z"}})
 
@@ -98,8 +117,8 @@ class StateTest(unittest.TestCase):
                 "mainline_history": {
                     "pr-review-456": {
                         "evidence": {
-                            "kind": "commit",
-                            "timestamp": "2026-07-14T03:00:00Z",
+                            "commit": "2026-07-14T03:00:00Z",
+                            "description": "2026-07-14T04:00:00Z",
                         },
                     },
                 },
@@ -111,8 +130,8 @@ class StateTest(unittest.TestCase):
             {
                 "pr-review-456": {
                     "evidence": {
-                        "kind": "commit",
-                        "timestamp": "2026-07-14T03:00:00Z",
+                        "commit": "2026-07-14T03:00:00Z",
+                        "description": "2026-07-14T04:00:00Z",
                     },
                 },
             },

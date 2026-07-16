@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -100,16 +101,18 @@ Use these discussion_action labels:
     - none: the comment is social, informational, or asks for no follow-up
     - unclear: there is not enough information to decide
 
-Use these evidence_kind labels when discussion_action is author:
+Use required_evidence_kinds when discussion_action is author. Include every
+independently observable kind needed to address the complete comment:
     - commit: committed file changes could satisfy the request
     - description: editing the pull request description could satisfy the request
+    - title: editing the pull request title could satisfy the request
     - reply: an explicit author reply is needed; use this for questions, decisions,
-        title/label/milestone changes, or other actions without tracked evidence
-Use external, none, or unclear to match the corresponding discussion_action.
+        or other actions without tracked evidence
+Use an empty list for external, none, or unclear. A compound request can require
+multiple kinds, such as ["commit", "description"].
 
 When an item has review_state CHANGES_REQUESTED, GitHub already requires author
-action. Choose only which author evidence kind applies: commit, description,
-or reply.
+action. Choose only which author evidence kinds apply.
 
 Optional suggestions and small notes are still author actions when they request
 a change or response. Pure approval, thanks, summaries, and observations with
@@ -117,7 +120,7 @@ no requested or implied follow-up map to none.
 
 Respond with a single JSON object and nothing else. Include exactly one result
 for every input discussion_id and copy each discussion_id exactly:
-{{"items": [{{"discussion_id": "input id", "discussion_action": "author" | "external" | "none" | "unclear", "evidence_kind": "commit" | "description" | "reply" | "external" | "none" | "unclear", "reason": "short explanation grounded in this item"}}]}}
+{{"items": [{{"discussion_id": "input id", "discussion_action": "author" | "external" | "none" | "unclear", "required_evidence_kinds": ["commit" | "title" | "description" | "reply"], "reason": "short explanation grounded in this item"}}]}}
 
 ---BEGIN COMMENTS---
 {discussions}
@@ -125,13 +128,7 @@ for every input discussion_id and copy each discussion_id exactly:
 """
 
 DISCUSSION_ACTIONS = ("author", "reviewer", "external", "none", "unclear")
-MAINLINE_EVIDENCE_BY_ACTION = {
-    "author": {"commit", "description", "reply"},
-    "external": {"external"},
-    "none": {"none"},
-    "unclear": {"unclear"},
-}
-EVIDENCE_KINDS = set().union(*MAINLINE_EVIDENCE_BY_ACTION.values())
+MAINLINE_EVIDENCE_KINDS = ("commit", "title", "description", "reply")
 
 def print_copilot_otel_file(path: Path) -> None:
     if not path.exists():
@@ -181,9 +178,9 @@ def normalize_discussion_action(action: str) -> str:
 
 def parse_discussion_decision(
     response_text: str,
-    require_evidence_kind: bool = False,
+    require_evidence_kinds: bool = False,
     forced_action: str | None = None,
-) -> tuple[dict[str, str], bool]:
+) -> tuple[dict[str, Any], bool]:
     obj = extract_json_object(response_text) if response_text else None
     if not obj:
         return {"discussion_action": "unclear", "reason": "LLM did not return valid JSON"}, False
@@ -192,17 +189,27 @@ def parse_discussion_decision(
     valid_action = raw_action.lower().strip() in (*DISCUSSION_ACTIONS, "approver")
     if forced_action is not None:
         action = forced_action
-        valid_action = forced_action in MAINLINE_EVIDENCE_BY_ACTION
+        valid_action = forced_action in DISCUSSION_ACTIONS
     reason = truncate(str(obj.get("reason") or ""), 300)
     if not reason:
         reason = "No reason provided"
     decision = {"discussion_action": action, "reason": reason}
-    evidence_kind = str(obj.get("evidence_kind") or "").lower().strip()
-    valid_evidence_kind = evidence_kind in EVIDENCE_KINDS
-    if evidence_kind:
-        decision["evidence_kind"] = evidence_kind if valid_evidence_kind else "unclear"
-    valid_evidence_pair = evidence_kind in MAINLINE_EVIDENCE_BY_ACTION.get(action, set())
-    return decision, valid_action and (valid_evidence_pair or not require_evidence_kind)
+    raw_evidence_kinds = obj.get("required_evidence_kinds")
+    evidence_kinds = (
+        [str(kind).lower().strip() for kind in raw_evidence_kinds]
+        if isinstance(raw_evidence_kinds, list)
+        else []
+    )
+    valid_evidence_kinds = (
+        isinstance(raw_evidence_kinds, list)
+        and all(kind in MAINLINE_EVIDENCE_KINDS for kind in evidence_kinds)
+        and ((action == "author" and bool(evidence_kinds)) or (action != "author" and not evidence_kinds))
+    )
+    if isinstance(raw_evidence_kinds, list):
+        decision["required_evidence_kinds"] = [
+            kind for kind in MAINLINE_EVIDENCE_KINDS if kind in evidence_kinds
+        ]
+    return decision, valid_action and (valid_evidence_kinds or not require_evidence_kinds)
 
 
 def is_conflict_resolution_comment(body: str) -> bool:
@@ -235,6 +242,15 @@ def discussion_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
         for comment in (discussion.get("comments") or [])
     ]
     return prompt_thread
+
+
+def mainline_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
+    comments = discussion.get("comments") or []
+    return {
+        "discussion_id": discussion["discussion_id"],
+        "review_state": discussion.get("review_state"),
+        "body": "\n\n".join(comment.get("body") or "" for comment in comments),
+    }
 
 
 def discussion_prompt(discussion: dict[str, Any]) -> str:
@@ -323,14 +339,15 @@ def run_llm_for_discussion(discussion: dict[str, Any], model: str) -> dict[str, 
 
 
 def mainline_batch_prompt(discussions: list[dict[str, Any]]) -> str:
-    prompt_discussions = [discussion_prompt_input(discussion) for discussion in discussions]
+    prompt_discussions = [mainline_prompt_input(discussion) for discussion in discussions]
     discussions_text = json.dumps(prompt_discussions, indent=2, sort_keys=True)
     prompt = MAINLINE_BATCH_PROMPT_TEMPLATE.format(discussions=discussions_text)
     if len(prompt) <= MAX_PROMPT_CHARS:
         return prompt
     for discussion in prompt_discussions:
-        for comment in discussion.get("comments") or []:
-            comment["body"] = truncate(comment.get("body") or "", DISCUSSION_COMMENT_BODY_MAX_CHARS)
+        discussion["body"] = truncate(
+            discussion.get("body") or "", DISCUSSION_COMMENT_BODY_MAX_CHARS
+        )
     discussions_text = json.dumps(prompt_discussions, indent=2, sort_keys=True)
     return MAINLINE_BATCH_PROMPT_TEMPLATE.format(discussions=discussions_text)
 
@@ -360,7 +377,7 @@ def run_llm_for_mainline_batch(
         item = response_by_id.get(discussion_id)
         decision, valid_response = parse_discussion_decision(
             json.dumps(item) if item is not None else "",
-            require_evidence_kind=True,
+            require_evidence_kinds=True,
             forced_action=(
                 "author"
                 if discussion.get("review_state") == "CHANGES_REQUESTED"
@@ -394,12 +411,13 @@ def discussion_cache_key(
     discussion: dict[str, Any],
     model: str,
     prompt_template: str,
+    prompt_input: Callable[[dict[str, Any]], dict[str, Any]] = discussion_prompt_input,
 ) -> str:
     cache_key_json = json.dumps(
         {
             "model": model,
             "prompt_template": prompt_template,
-            "discussion": discussion_prompt_input(discussion),
+            "discussion": prompt_input(discussion),
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -444,7 +462,7 @@ def deterministic_classification_record(discussion: dict[str, Any]) -> dict[str,
             discussion,
             {
                 "discussion_action": "author",
-                "evidence_kind": "commit",
+                "required_evidence_kinds": ["commit"],
                 "reason": "Reviewer explicitly requested changes",
             },
             failed=False,
@@ -468,8 +486,9 @@ def cached_classification(
     prompt_template: str,
     cache_in: dict[str, dict[str, Any]],
     cache_out: dict[str, dict[str, Any]],
+    prompt_input: Callable[[dict[str, Any]], dict[str, Any]] = discussion_prompt_input,
 ) -> tuple[str, dict[str, Any] | None]:
-    key = discussion_cache_key(discussion, model, prompt_template)
+    key = discussion_cache_key(discussion, model, prompt_template, prompt_input)
     cached = cache_in.get(key)
     if not isinstance(cached, dict):
         return key, None
@@ -540,7 +559,12 @@ def classify_mainline_actions(
             classifications_by_id[discussion["discussion_id"]] = deterministic_record
             continue
         key, record = cached_classification(
-            discussion, model, MAINLINE_BATCH_PROMPT_TEMPLATE, cache_in, cache_out
+            discussion,
+            model,
+            MAINLINE_BATCH_PROMPT_TEMPLATE,
+            cache_in,
+            cache_out,
+            mainline_prompt_input,
         )
         if record is not None:
             classifications_by_id[discussion["discussion_id"]] = record
@@ -551,8 +575,16 @@ def classify_mainline_actions(
         classifications_by_id[discussion["discussion_id"]] = classification_record(
             discussion,
             {
-                "discussion_action": "unclear",
-                "evidence_kind": "unclear",
+                "discussion_action": (
+                    "author"
+                    if discussion.get("review_state") == "CHANGES_REQUESTED"
+                    else "unclear"
+                ),
+                "required_evidence_kinds": (
+                    ["commit"]
+                    if discussion.get("review_state") == "CHANGES_REQUESTED"
+                    else []
+                ),
                 "reason": "Deferred by per-PR classification limit",
             },
             failed=False,
@@ -569,7 +601,7 @@ def classify_mainline_actions(
                     discussion,
                     {
                         "discussion_action": "unclear",
-                        "evidence_kind": "unclear",
+                        "required_evidence_kinds": [],
                         "reason": "LLM timeout",
                     },
                     failed=True,
@@ -588,7 +620,7 @@ def classify_mainline_actions(
                     discussion,
                     {
                         "discussion_action": "unclear",
-                        "evidence_kind": "unclear",
+                        "required_evidence_kinds": [],
                         "reason": f"LLM failed: {e!r}",
                     },
                     failed=True,

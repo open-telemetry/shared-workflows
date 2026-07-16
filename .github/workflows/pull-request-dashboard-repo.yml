@@ -117,11 +117,9 @@ jobs:
 
           body=$(cat <<EOF
           ${MARKER}
-          This PR has review comments. Review suggestions, whether from maintainers or automated reviewers, aren't always correct or required. Please evaluate each comment on its merits, then make sure each thread has a clear outcome.
+          This PR has review comments. Evaluate each on its merits; suggestions aren't always correct or required.
 
-          For inline comments, reply with the outcome or mark the thread as resolved. The dashboard returns top-level requests to reviewers after matching author activity, but keeps them visibly pending until a reviewer confirms the result.
-
-          Reviewers: prefer inline comments for feedback that needs an explicit reply or resolution. Use **Request changes** for blocking feedback that cannot be attached to a changed line.
+          For inline comments, reply with the outcome or resolve the thread. For comments not attached to a line, make any needed updates; a reply with the outcome is also helpful, especially when no change is made.
 
           Status across open PRs is visible on the [pull request dashboard](${dashboard_url}).
           EOF

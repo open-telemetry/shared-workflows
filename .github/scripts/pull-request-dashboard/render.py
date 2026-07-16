@@ -179,11 +179,12 @@ def render_diagnostics_section(
             decision = c.get("decision") or {}
             reason = (decision.get("reason") or "").replace("\n", " ")
             pending_action = pending_actions.get(c.get("discussion_id"))
-            lifecycle_suffix = (
-                f", pending:{pending_action.get('action')}"
-                if pending_action
-                else ", closed"
-            )
+            if pending_action:
+                lifecycle_suffix = f", pending:{pending_action.get('action')}"
+            elif c.get("discussion_kind") == "pr-conversation-item":
+                lifecycle_suffix = ", addressed"
+            else:
+                lifecycle_suffix = ", closed"
             data_lines.append(
                 f"llm: {c.get('discussion_id')} -> {decision.get('discussion_action')}{lifecycle_suffix} ({reason})"
             )
@@ -227,7 +228,7 @@ def render_pr_tables(
     )
     reviewers_note = (
         "Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · "
-        "💬 open discussion · 📌 tracked top-level action · 🔴 changes requested."
+        "💬 open discussion · 📌 author action pending · 🔴 changes requested."
     )
     out: list[str] = [
         "> [!NOTE]",

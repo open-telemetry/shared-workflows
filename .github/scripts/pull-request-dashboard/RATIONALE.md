@@ -109,8 +109,8 @@ the implementation understandable and operationally cheap.
 ## Classification Cache
 
 - LLM classification cache is stored with `actions/cache`.
-- Unchanged review threads reuse cached classifications and avoid new Copilot
-  calls.
+- Unchanged review threads and top-level items reuse cached classifications and
+  avoid new Copilot calls.
 - Cache keys are scoped by target repository and by either PR number or
   backfill.
 - Targeted PR runs restore their PR-specific cache first, then fall back to the
@@ -125,33 +125,53 @@ the implementation understandable and operationally cheap.
   top-level comments have no equivalent completion signal.
 - Each top-level reviewer comment or review body is therefore classified as a
   separate action item with a stable GitHub-derived id. The LLM decides only
-  whether the root comment is actionable and which observable evidence type
-  could address it: a commit, PR description edit, or explicit reply.
+  whether the root comment is actionable and which observable evidence kinds
+  could address it: a commit, PR title edit, PR description edit, explicit
+  reply, or a combination of those signals.
+- Each refresh reconstructs these independent items with a linear scan of the
+  comments and reviews already fetched from GitHub. They are not threaded, and
+  the reconstructed list is not stored as a second ledger. This keeps edited or
+  deleted source comments authoritative without additional reconciliation.
+  Cached classifications avoid repeated LLM calls, while dashboard state
+  retains the evidence already observed for each item.
+- Evidence requirements are an all-of list for compound comments. For example,
+  a request to update code and the PR description waits for both a commit and a
+  description edit. A later explicit author reply always addresses the item,
+  regardless of the predicted kinds, because it can communicate pushback,
+  clarification, or another valid outcome that automation cannot infer.
+- Title edits use GitHub's `RenamedTitleEvent` pull request timeline items,
+  including the event actor and creation time. They remain separate from
+  description edits so compound requests can require either or both. The
+  timeline is queried only when a classified title requirement has no
+  previously recorded qualifying title edit.
 - Each model call classifies up to ten uncached top-level items independently,
   while retaining a separate cache entry for every item. A refresh processes
   at most 200 such items per PR; excess items remain visible as non-failing
   unclear actions and are classified by later refreshes. This bounds both call
   count and prompt size without allowing one long-lived PR to monopolize the
   workflow or model quota.
-- Lifecycle transitions are deterministic. A new item waits on the author;
-  matching author activity moves it to reviewer confirmation; a later review or
-  comment from the requesting reviewer closes it, even when the dashboard did
-  not recognize separate author evidence. The item remains visible with a 📌
-  marker until that confirmation occurs.
-- An empty **Request changes** review is a deterministic author action. It does
-  not need an LLM classification, and another changes-requested review does not
-  count as confirmation of the earlier request.
+- Lifecycle transitions are deterministic. An ordinary new item waits on the
+  author with 📌 visible. Once all expected evidence is observed, or the author
+  explicitly replies, the item is addressed and the pin disappears. Normal
+  approval-based routing then decides whether the PR waits on reviewers or
+  maintainers; ordinary items do not have a separate requester-confirmation
+  phase.
+- An active **Request changes** review initially waits on the author. Matching
+  author evidence hands the PR back to reviewers and removes 📌, while GitHub's
+  🔴 change-request state remains. A later approval or dismissal clears that
+  state. An empty change-request review is a deterministic author action and
+  does not need an LLM action classification.
 - Description edits use the pull request's GraphQL `lastEditedAt` and `editor`
   fields instead of the general `updatedAt`, which also changes for unrelated
   PR activity.
-- Once matching author evidence is observed, its kind and timestamp are
-  retained in the cached PR result. Evidence is reused only when its kind still
-  matches the current classification and its timestamp remains newer than the
+- The earliest timestamp for every observed evidence kind is retained in the
+  cached PR result. Evidence is reused only when it remains newer than the
   item's root, so later metadata edits cannot regress the handoff and an edited
-  request cannot inherit evidence that predates its new text.
-- Moving an item to reviewer confirmation may happen before the request is fully
-  satisfied. That recoverable early handoff is preferable to leaving a PR
-  indefinitely assigned to an author who already pushed or edited the PR.
+  request cannot inherit evidence that predates its new text. Ordinary
+  requester-confirmation timestamps are not persisted.
+- Matching evidence can address an item before the request is fully satisfied.
+  That recoverable early handoff is preferable to leaving a PR indefinitely
+  assigned to an author who already pushed, edited the description, or replied.
 - Reviewers should prefer inline comments when feedback needs explicit closure.
   Blocking PR-wide feedback should use GitHub's **Request changes** review state;
   ordinary top-level comments remain a softer coordination mechanism.

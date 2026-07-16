@@ -10,12 +10,9 @@ DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
-DASHBOARD_STATE_VERSION = 7
-BACKFILL_STATE_VERSION = 5
-NOTIFICATION_STATE_VERSION = 5
-# Versions 3 and 4 were written while notification state shared the dashboard
-# version. Keep this fixed migration set independent of future dashboard bumps.
-NOTIFICATION_COMPATIBLE_STATE_VERSIONS = {3, 4, 5}
+DASHBOARD_STATE_VERSION = 4
+BACKFILL_STATE_VERSION = 3
+NOTIFICATION_STATE_VERSION = 3
 _state_dir: Path | None = None
 
 
@@ -57,7 +54,6 @@ def empty_backfill_state() -> dict[str, Any]:
 def load_state_file(
     path: Path,
     current_version: int,
-    compatible_versions: set[int] | None = None,
 ) -> dict[str, Any] | None:
     if not path.exists():
         return None
@@ -71,8 +67,7 @@ def load_state_file(
         return None
     if not isinstance(data, dict):
         return None
-    compatible_versions = compatible_versions or {current_version}
-    if data.get("version") not in compatible_versions:
+    if data.get("version") != current_version:
         print(
             f"state version changed; regenerating {path}",
             file=sys.stderr,
@@ -121,11 +116,7 @@ def save_dashboard_state_cache(state: dict[str, Any]) -> None:
 
 
 def load_notification_state_file(path: Path) -> dict[str, Any] | None:
-    state = load_state_file(
-        path,
-        NOTIFICATION_STATE_VERSION,
-        compatible_versions=NOTIFICATION_COMPATIBLE_STATE_VERSIONS,
-    )
+    state = load_state_file(path, NOTIFICATION_STATE_VERSION)
     if state is not None and not isinstance(state.get("prs"), dict):
         state["prs"] = {}
     return state

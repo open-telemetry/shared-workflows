@@ -151,6 +151,60 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
 """
 
 
+PR_TITLE_EDITS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
+    repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+            timelineItems(
+                first: 100,
+                after: $after,
+                itemTypes: [RENAMED_TITLE_EVENT]
+            ) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                nodes {
+                    ... on RenamedTitleEvent {
+                        actor {
+                            login
+                        }
+                        createdAt
+                    }
+                }
+            }
+        }
+    }
+}
+"""
+
+
+def fetch_pr_title_edits(owner: str, repo_name: str, number: int) -> list[dict[str, Any]]:
+    edits: list[dict[str, Any]] = []
+    after: str | None = None
+    while True:
+        data = gh_graphql(
+            PR_TITLE_EDITS_QUERY,
+            {"owner": owner, "name": repo_name, "number": number, "after": after},
+        )
+        pull_request = (((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {})
+        connection = pull_request.get("timelineItems") or {}
+        edits.extend(
+            {
+                "actor": node.get("actor") or {},
+                "createdAt": node.get("createdAt") or "",
+            }
+            for node in connection.get("nodes") or []
+            if node.get("createdAt")
+        )
+        page_info = connection.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            return edits
+        after = page_info.get("endCursor") or None
+        if after is None:
+            return edits
+
+
 def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, Any]:
     metadata: dict[str, Any] = {}
     reviews: list[dict[str, Any]] = []

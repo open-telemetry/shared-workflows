@@ -6,7 +6,7 @@ from render import render_diagnostics_section, render_pr_tables
 
 
 class RenderTest(unittest.TestCase):
-    def test_diagnostics_render_pending_actions_and_closed_items(self) -> None:
+    def test_diagnostics_distinguish_addressed_mainline_items(self) -> None:
         lines = render_diagnostics_section({
             123: {
                 "review_thread_classifications": [
@@ -21,6 +21,7 @@ class RenderTest(unittest.TestCase):
                 "mainline_action_classifications": [
                     {
                         "discussion_id": "mainline",
+                        "discussion_kind": "pr-conversation-item",
                         "decision": {
                             "discussion_action": "author",
                             "reason": "Confirmed",
@@ -38,13 +39,13 @@ class RenderTest(unittest.TestCase):
 
         markdown = "\n".join(lines)
         self.assertIn("inline -> author, pending:author", markdown)
-        self.assertIn("mainline -> author, closed", markdown)
+        self.assertIn("mainline -> author, addressed", markdown)
 
     def test_reviewer_legend_includes_top_level_action(self) -> None:
         markdown = render_pr_tables([], {})
 
         self.assertIn(
-            "💬 open discussion · 📌 tracked top-level action · 🔴 changes requested.",
+            "💬 open discussion · 📌 author action pending · 🔴 changes requested.",
             markdown,
         )
 
