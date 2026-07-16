@@ -782,6 +782,34 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 },
             )
         )
+        self.assertFalse(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                events=[
+                    event(
+                        "issue-comment",
+                        "2026-07-14T03:00:00Z",
+                        "author",
+                        "author",
+                    )
+                ],
+            )
+        )
+        self.assertTrue(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                events=[
+                    event(
+                        "issue-comment",
+                        "2026-07-14T00:00:00Z",
+                        "author",
+                        "author",
+                    )
+                ],
+            )
+        )
 
     def test_maintainer_cherry_pick_uses_original_author_date(self) -> None:
         events = normalize_events(
@@ -937,6 +965,43 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             top_level_history["description"]["evidence"],
             {"description": "2026-07-14T03:00:00Z"},
         )
+
+    def test_unclear_item_preserves_description_evidence_for_later_classification(self) -> None:
+        discussions = [top_level_item("description")]
+        unclear_classification = classification("description", "description")
+        unclear_classification["decision"]["discussion_action"] = "unclear"
+
+        pending_actions, first_history = advance_top_level_actions(
+            discussions,
+            [unclear_classification],
+            [],
+            {
+                "lastEditedAt": "2026-07-14T03:00:00Z",
+                "editor": {"login": "author"},
+            },
+            "author",
+        )
+
+        self.assertEqual(pending_actions["description"]["action"], "reviewer")
+        self.assertEqual(
+            first_history["description"]["evidence"],
+            {"description": "2026-07-14T03:00:00Z"},
+        )
+
+        refreshed_pending_actions, refreshed_history = advance_top_level_actions(
+            discussions,
+            [classification("description", "description")],
+            [],
+            {
+                "lastEditedAt": "2026-07-14T04:00:00Z",
+                "editor": {"login": "maintainer"},
+            },
+            "author",
+            first_history,
+        )
+
+        self.assertNotIn("description", refreshed_pending_actions)
+        self.assertEqual(refreshed_history, first_history)
 
     def test_persisted_description_evidence_keeps_item_addressed(self) -> None:
         discussions = [top_level_item("description")]

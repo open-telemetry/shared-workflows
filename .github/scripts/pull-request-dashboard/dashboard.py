@@ -704,6 +704,7 @@ def requires_title_edit_lookup(
     top_level_items: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
     previous_history: dict[str, dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
 ) -> bool:
     by_id = discussions_by_id(top_level_items)
     for classification in classifications:
@@ -720,6 +721,14 @@ def requires_title_edit_lookup(
         previous_evidence = previous_entry.get("evidence") or {}
         root_timestamp = discussion.get("root_timestamp") or ""
         if (previous_evidence.get("reply") or "") > root_timestamp:
+            continue
+        if any(
+            event.get("actor_role") == "author"
+            and event.get("kind") == "issue-comment"
+            and (event.get("created_timestamp") or event["timestamp"]) > root_timestamp
+            and is_substantive_activity(event)
+            for event in events or []
+        ):
             continue
         if (previous_evidence.get("title") or "") <= root_timestamp:
             return True
@@ -781,6 +790,18 @@ def advance_top_level_actions(
             continue
         action = normalize_discussion_action(decision.get("discussion_action") or "")
         root_timestamp = discussion.get("root_timestamp") or ""
+        if action not in ("author", "external", "unclear"):
+            continue
+        previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
+        evidence = collect_author_evidence(
+            discussion,
+            events,
+            pr_metadata,
+            author,
+            previous_entry,
+        )
+        if evidence:
+            top_level_history[discussion["discussion_id"]] = {"evidence": evidence}
         if action == "external":
             pending_actions[discussion["discussion_id"]] = {
                 "action": "external",
@@ -793,20 +814,8 @@ def advance_top_level_actions(
                 "since": root_timestamp,
             }
             continue
-        if action != "author":
-            continue
-        previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
-        evidence = collect_author_evidence(
-            discussion,
-            events,
-            pr_metadata,
-            author,
-            previous_entry,
-        )
         required_kinds = decision.get("required_evidence_kinds") or []
         evidence_at = evidence_satisfied_at(required_kinds, evidence)
-        if evidence:
-            top_level_history[discussion["discussion_id"]] = {"evidence": evidence}
         if not evidence_at:
             pending_actions[discussion["discussion_id"]] = {
                 "action": "author",
@@ -1031,6 +1040,7 @@ def build_pr_result(
             top_level_items,
             top_level_classifications,
             previous_top_level_history,
+            events,
         ):
             raw["pr_metadata"]["titleEdits"] = fetch_pr_title_edits(
                 owner, repo_name, number
