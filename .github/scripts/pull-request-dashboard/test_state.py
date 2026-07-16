@@ -104,7 +104,7 @@ class StateTest(unittest.TestCase):
             state = json.loads(notification_state_path().read_text(encoding="utf-8"))
             self.assertEqual(state["version"], NOTIFICATION_STATE_VERSION)
 
-    def test_stored_result_preserves_mainline_history(self) -> None:
+    def test_stored_result_preserves_top_level_history(self) -> None:
         result = stored_result(
             {
                 "pr_number": 123,
@@ -114,7 +114,7 @@ class StateTest(unittest.TestCase):
                         "since": "2026-07-14T02:00:00Z",
                     },
                 },
-                "mainline_history": {
+                "top_level_history": {
                     "pr-review-456": {
                         "evidence": {
                             "commit": "2026-07-14T03:00:00Z",
@@ -126,7 +126,7 @@ class StateTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            result["mainline_history"],
+            result["top_level_history"],
             {
                 "pr-review-456": {
                     "evidence": {

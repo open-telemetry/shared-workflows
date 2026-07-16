@@ -73,17 +73,17 @@ built up across stages, so not every field is present at every point.
 - ``route`` (``str``): Routing bucket from ``ROUTE_ORDER``.
 - ``facts`` (``dict``): Deterministic facts described below.
 - ``review_threads`` (``list[dict]``): Unresolved inline review threads. Internal.
-- ``mainline_actions`` (``list[dict]``): Top-level action ledger items. Internal.
+- ``top_level_items`` (``list[dict]``): Top-level feedback items. Internal.
 - ``review_thread_classifications`` (``list[dict]``): Current inline actions. Internal.
-- ``mainline_action_classifications`` (``list[dict]``): Immutable ledger decisions. Internal.
+- ``top_level_classifications`` (``list[dict]``): Immutable ledger decisions. Internal.
 - ``pending_actions`` (``dict[str, dict]``): Ephemeral current actions by discussion id;
     each entry contains ``action`` and ``since``.
-- ``mainline_history`` (``dict[str, dict]``): Durable evidence timestamps by
-    mainline action id and evidence kind.
+- ``top_level_history`` (``dict[str, dict]``): Durable evidence timestamps by
+    top_level action id and evidence kind.
 - ``error`` (``str``): Failure detail, present only on failure paths.
 
 Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
-``mainline_history`` survives into the cached dashboard state (see
+``top_level_history`` survives into the cached dashboard state (see
 ``stored_result``).
 
 ``facts`` (one per PR) — built in two stages:
@@ -120,7 +120,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   "approved_non_team": bool,
                                                   "changes_requested": bool,
                                                   "open_thread": bool,
-                                                  "mainline_feedback": bool}; approved
+                                                  "top_level_feedback": bool}; approved
                                                   means an approver-team member
                                                   is in the APPROVED state,
                                                   approved_non_team means someone
@@ -130,8 +130,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   review is CHANGES_REQUESTED,
                                                   open_thread means they own an
                                                   unresolved discussion,
-                                                  and mainline_feedback means
-                                                  their top-level request still
+                                                  and top_level_feedback means
+                                                  their top-level feedback still
                                                   needs author action.
 
 Stage-2 fields are absent on failure paths (failed is True). Human-readable
@@ -167,7 +167,7 @@ from github_cli import (
 )
 from classification import (
     DISCUSSION_RECENT_COMMENTS_LIMIT,
-    MAINLINE_EVIDENCE_KINDS,
+    TOP_LEVEL_EVIDENCE_KINDS,
     classify_discussion_domains,
     is_conflict_resolution_comment,
     normalize_discussion_action,
@@ -583,7 +583,7 @@ def group_review_threads(
     return discussions
 
 
-def derive_mainline_actions(
+def derive_top_level_items(
     events: list[dict[str, Any]],
     facts: dict[str, Any],
 ) -> list[dict[str, Any]]:
@@ -624,7 +624,7 @@ def derive_mainline_actions(
                     if source_kind == "issue-comment"
                     else f"pr-review-{event['source_id']}"
                 ),
-                "discussion_kind": "pr-conversation-item",
+                "discussion_kind": "top-level-feedback",
                 "source_kind": source_kind,
                 "source_id": event["source_id"],
                 "requester": comment["actor"],
@@ -650,7 +650,7 @@ def collect_author_evidence(
     evidence = {
         kind: timestamp
         for kind, timestamp in (previous_entry.get("evidence") or {}).items()
-        if kind in MAINLINE_EVIDENCE_KINDS
+        if kind in TOP_LEVEL_EVIDENCE_KINDS
         and isinstance(timestamp, str)
         and timestamp > root_timestamp
     }
@@ -697,11 +697,11 @@ def evidence_satisfied_at(
 
 
 def requires_title_edit_lookup(
-    mainline_actions: list[dict[str, Any]],
+    top_level_items: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
     previous_history: dict[str, dict[str, Any]] | None = None,
 ) -> bool:
-    by_id = discussions_by_id(mainline_actions)
+    by_id = discussions_by_id(top_level_items)
     for classification in classifications:
         decision = classification.get("decision") or {}
         if (
@@ -756,17 +756,17 @@ def build_review_thread_pending_actions(
     return pending_actions
 
 
-def advance_mainline_actions(
-    mainline_actions: list[dict[str, Any]],
+def advance_top_level_actions(
+    top_level_items: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
     events: list[dict[str, Any]],
     pr_metadata: dict[str, Any],
     author: str,
     previous_history: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
-    by_id = discussions_by_id(mainline_actions)
+    by_id = discussions_by_id(top_level_items)
     pending_actions: dict[str, dict[str, Any]] = {}
-    mainline_history: dict[str, dict[str, Any]] = {}
+    top_level_history: dict[str, dict[str, Any]] = {}
     for classification in classifications:
         discussion = by_id.get(classification.get("discussion_id") or "")
         decision = classification.get("decision") or {}
@@ -799,7 +799,7 @@ def advance_mainline_actions(
         required_kinds = decision.get("required_evidence_kinds") or []
         evidence_at = evidence_satisfied_at(required_kinds, evidence)
         if evidence:
-            mainline_history[discussion["discussion_id"]] = {"evidence": evidence}
+            top_level_history[discussion["discussion_id"]] = {"evidence": evidence}
         if not evidence_at:
             pending_actions[discussion["discussion_id"]] = {
                 "action": "author",
@@ -817,7 +817,7 @@ def advance_mainline_actions(
                     "action": "reviewer",
                     "since": evidence_at,
                 }
-    return pending_actions, mainline_history
+    return pending_actions, top_level_history
 
 
 # ---------------------------------------------------------------- routing
@@ -855,7 +855,7 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     # Precedence:
     #   1. A discussion waiting on the author -> "author".
     #   2. Otherwise a discussion waiting on something external -> "external".
-    #   3. If there are enough approvals and no inline or top-level item is
+    #   3. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer or is unclear -> "maintainer".
     #   4. Otherwise the PR is still waiting on approvers, including for an
     #      addressed CHANGES_REQUESTED review to be approved or dismissed.
@@ -933,12 +933,12 @@ def reviewers_with_open_threads(
     return logins
 
 
-def reviewers_with_mainline_feedback(
-    mainline_actions: list[dict[str, Any]],
+def reviewers_with_top_level_feedback(
+    top_level_items: list[dict[str, Any]],
     pending_actions: dict[str, dict[str, Any]],
 ) -> set[str]:
     logins: set[str] = set()
-    for discussion in mainline_actions:
+    for discussion in top_level_items:
         action = (pending_actions.get(discussion["discussion_id"]) or {}).get("action")
         if action != "author":
             continue
@@ -951,14 +951,14 @@ def add_reviewers(
     facts: dict[str, Any],
     events: list[dict[str, Any]],
     review_threads: list[dict[str, Any]],
-    mainline_actions: list[dict[str, Any]],
+    top_level_items: list[dict[str, Any]],
     pending_actions: dict[str, dict[str, Any]],
 ) -> None:
     # Reviewers to display in the dashboard, each flagged with their review
     # stance: approved (by an approver-team member), approved_non_team (an
     # approval from someone outside the team), changes_requested (an
     # approver-team member's latest review blocks), open_thread (they own an
-    # unresolved discussion), and mainline_feedback (their top-level request
+    # unresolved discussion), and top_level_feedback (their top-level feedback
     # still needs author action). The renderer turns these into icons.
     # Reviewers are everyone who reviewed, owns an open discussion, otherwise
     # commented, or is a PR assignee, sorted alphabetically (case-insensitive).
@@ -968,13 +968,13 @@ def add_reviewers(
     approved_non_team = {r for r, s in states.items() if s == "APPROVED" and r not in approvers}
     changes_requested = {r for r, s in states.items() if s == "CHANGES_REQUESTED" and r in approvers}
     with_open = reviewers_with_open_threads(review_threads, pending_actions)
-    with_mainline = reviewers_with_mainline_feedback(mainline_actions, pending_actions)
+    with_top_level = reviewers_with_top_level_feedback(top_level_items, pending_actions)
     candidates = (
         approved
         | approved_non_team
         | changes_requested
         | with_open
-        | with_mainline
+        | with_top_level
         | commenting_reviewers(events)
         | set(facts.get("assignees") or [])
     )
@@ -986,7 +986,7 @@ def add_reviewers(
             "approved_non_team": login in approved_non_team,
             "changes_requested": login in changes_requested,
             "open_thread": login in with_open,
-            "mainline_feedback": login in with_mainline,
+            "top_level_feedback": login in with_top_level,
         }
         for login in sorted(candidates, key=str.lower)
     ]
@@ -1003,7 +1003,7 @@ def build_pr_result(
     reviewers: set[str],
     model: str,
     required_approvals: int,
-    previous_mainline_history: dict[str, dict[str, Any]] | None = None,
+    previous_top_level_history: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
     try:
@@ -1014,16 +1014,16 @@ def build_pr_result(
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events)
         review_threads = group_review_threads(raw, author, reviewers, facts)
-        mainline_actions = derive_mainline_actions(events, facts)
-        review_thread_classifications, mainline_action_classifications = (
+        top_level_items = derive_top_level_items(events, facts)
+        review_thread_classifications, top_level_classifications = (
             classify_discussion_domains(
-                number, review_threads, mainline_actions, model
+                number, review_threads, top_level_items, model
             )
         )
         if requires_title_edit_lookup(
-            mainline_actions,
-            mainline_action_classifications,
-            previous_mainline_history,
+            top_level_items,
+            top_level_classifications,
+            previous_top_level_history,
         ):
             raw["pr_metadata"]["titleEdits"] = fetch_pr_title_edits(
                 owner, repo_name, number
@@ -1031,19 +1031,19 @@ def build_pr_result(
         review_thread_pending_actions = build_review_thread_pending_actions(
             review_threads, review_thread_classifications
         )
-        mainline_pending_actions, mainline_history = advance_mainline_actions(
-            mainline_actions,
-            mainline_action_classifications,
+        top_level_pending_actions, top_level_history = advance_top_level_actions(
+            top_level_items,
+            top_level_classifications,
             events,
             raw["pr_metadata"],
             author,
-            previous_mainline_history,
+            previous_top_level_history,
         )
-        pending_actions = review_thread_pending_actions | mainline_pending_actions
+        pending_actions = review_thread_pending_actions | top_level_pending_actions
         failed_classifications = [
             classification
             for classification in (
-                review_thread_classifications + mainline_action_classifications
+                review_thread_classifications + top_level_classifications
             )
             if classification.get("failed")
         ]
@@ -1055,16 +1055,16 @@ def build_pr_result(
                 "failed": True,
                 "facts": facts,
                 "review_threads": review_threads,
-                "mainline_actions": mainline_actions,
+                "top_level_items": top_level_items,
                 "review_thread_classifications": review_thread_classifications,
-                "mainline_action_classifications": mainline_action_classifications,
+                "top_level_classifications": top_level_classifications,
                 "route": "unknown",
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
         route = route_pr(facts, pending_actions, required_approvals)
         add_wait_age_facts(facts, route, pending_actions)
         add_reviewers(
-            facts, events, review_threads, mainline_actions, pending_actions
+            facts, events, review_threads, top_level_items, pending_actions
         )
         return {
             "pr_number": number,
@@ -1073,11 +1073,11 @@ def build_pr_result(
             "failed": False,
             "facts": facts,
             "review_threads": review_threads,
-            "mainline_actions": mainline_actions,
+            "top_level_items": top_level_items,
             "review_thread_classifications": review_thread_classifications,
-            "mainline_action_classifications": mainline_action_classifications,
+            "top_level_classifications": top_level_classifications,
             "pending_actions": pending_actions,
-            "mainline_history": mainline_history,
+            "top_level_history": top_level_history,
             "route": route,
         }
     except TransientGhError as e:
@@ -1086,9 +1086,9 @@ def build_pr_result(
             "failed": True,
             "facts": {},
             "review_threads": [],
-            "mainline_actions": [],
+            "top_level_items": [],
             "review_thread_classifications": [],
-            "mainline_action_classifications": [],
+            "top_level_classifications": [],
             "route": "transient-failure",
             "error": repr(e),
         }
@@ -1103,9 +1103,9 @@ def build_pr_result(
             "failed": True,
             "facts": {},
             "review_threads": [],
-            "mainline_actions": [],
+            "top_level_items": [],
             "review_thread_classifications": [],
-            "mainline_action_classifications": [],
+            "top_level_classifications": [],
             "route": "unknown",
             "error": repr(e),
         }
@@ -1143,7 +1143,7 @@ def build_dashboard_update_for_pr(
         reviewers,
         model,
         required_approvals,
-        previous_mainline_history=(starting_pr_result or {}).get("mainline_history") or {},
+        previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
     )
     if trigger_pr_result is None:
         results.pop(pr_number, None)
@@ -1336,7 +1336,7 @@ def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
         discussion.get("discussion_id"): discussion
         for discussion in (
             (result.get("review_threads") or [])
-            + (result.get("mainline_actions") or [])
+            + (result.get("top_level_items") or [])
         )
         if isinstance(discussion, dict) and discussion.get("discussion_id")
     }
@@ -1344,7 +1344,7 @@ def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
         classification
         for classification in (
             (result.get("review_thread_classifications") or [])
-            + (result.get("mainline_action_classifications") or [])
+            + (result.get("top_level_classifications") or [])
         )
         if classification.get("failed")
     ]

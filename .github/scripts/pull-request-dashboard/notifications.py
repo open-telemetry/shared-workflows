@@ -136,7 +136,7 @@ def reviewer_logins_for_notification(facts: dict[str, Any]) -> list[str]:
         and (
             not (reviewer.get("approved") or reviewer.get("approved_non_team"))
             or reviewer.get("open_thread")
-            or reviewer.get("mainline_feedback")
+            or reviewer.get("top_level_feedback")
         )
     ]
 

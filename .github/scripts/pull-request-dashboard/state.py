@@ -168,7 +168,7 @@ def stored_result(result: dict[str, Any]) -> dict[str, Any]:
         "failed": bool(result.get("failed")),
         "route": result.get("route") or "unknown",
         "facts": result.get("facts") or {},
-        "mainline_history": result.get("mainline_history") or {},
+        "top_level_history": result.get("top_level_history") or {},
     }
 
 

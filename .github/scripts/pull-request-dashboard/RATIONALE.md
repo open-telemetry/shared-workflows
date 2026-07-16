@@ -109,8 +109,8 @@ the implementation understandable and operationally cheap.
 ## Classification Cache
 
 - LLM classification cache is stored with `actions/cache`.
-- Unchanged review threads and top-level items reuse cached classifications and
-  avoid new Copilot calls.
+- Unchanged review threads and top-level feedback items reuse cached
+  classifications and avoid new Copilot calls.
 - Cache keys are scoped by target repository and by either PR number or
   backfill.
 - Targeted PR runs restore their PR-specific cache first, then fall back to the
@@ -119,22 +119,24 @@ the implementation understandable and operationally cheap.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
   latest usable snapshot without concurrent writers overwriting each other.
 
-## Top-Level Review Comments
+## Top-Level Feedback
 
 - GitHub gives inline review threads explicit replies and a resolved state, but
-  top-level comments have no equivalent completion signal.
-- Each top-level reviewer comment or review body is therefore classified as a
-  separate action item with a stable GitHub-derived id. The LLM decides only
-  whether the root comment is actionable and which observable evidence kinds
-  could address it: a commit, PR title edit, PR description edit, explicit
-  reply, or a combination of those signals.
+  top-level feedback has no equivalent completion signal. Top-level feedback
+  means a standalone PR comment or submitted review summary that is not
+  attached to an inline review thread.
+- Each top-level feedback item is therefore classified independently with a
+  stable GitHub-derived id. The LLM decides only whether the source is
+  actionable and which observable evidence kinds could address it: a commit,
+  PR title edit, PR description edit, explicit reply, or a combination of those
+  signals.
 - Each refresh reconstructs these independent items with a linear scan of the
   comments and reviews already fetched from GitHub. They are not threaded, and
   the reconstructed list is not stored as a second ledger. This keeps edited or
   deleted source comments authoritative without additional reconciliation.
   Cached classifications avoid repeated LLM calls, while dashboard state
   retains the evidence already observed for each item.
-- Evidence requirements are an all-of list for compound comments. For example,
+- Evidence requirements are an all-of list for compound feedback. For example,
   a request to update code and the PR description waits for both a commit and a
   description edit. A later explicit author reply always addresses the item,
   regardless of the predicted kinds, because it can communicate pushback,
@@ -144,12 +146,12 @@ the implementation understandable and operationally cheap.
   description edits so compound requests can require either or both. The
   timeline is queried only when a classified title requirement has no
   previously recorded qualifying title edit.
-- Each model call classifies up to ten uncached top-level items independently,
-  while retaining a separate cache entry for every item. A refresh processes
-  at most 200 such items per PR; excess items remain visible as non-failing
-  unclear actions and are classified by later refreshes. This bounds both call
-  count and prompt size without allowing one long-lived PR to monopolize the
-  workflow or model quota.
+- Each model call classifies up to ten uncached top-level feedback items
+  independently, while retaining a separate cache entry for every item. A
+  refresh processes at most 200 such items per PR; excess items remain visible
+  as non-failing unclear actions and are classified by later refreshes. This
+  bounds both call count and prompt size without allowing one long-lived PR to
+  monopolize the workflow or model quota.
 - Lifecycle transitions are deterministic. An ordinary new item waits on the
   author with 📌 visible. Once all expected evidence is observed, or the author
   explicitly replies, the item is addressed and the pin disappears. Normal
@@ -174,7 +176,7 @@ the implementation understandable and operationally cheap.
   assigned to an author who already pushed, edited the description, or replied.
 - Reviewers should prefer inline comments when feedback needs explicit closure.
   Blocking PR-wide feedback should use GitHub's **Request changes** review state;
-  ordinary top-level comments remain a softer coordination mechanism.
+  ordinary top-level feedback remains a softer coordination mechanism.
 
 ## Slack Notifications
 

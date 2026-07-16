@@ -109,7 +109,7 @@ def reviewer_icon(reviewer: dict[str, Any]) -> str:
     discussion_icons = []
     if reviewer.get("open_thread"):
         discussion_icons.append("💬")
-    if reviewer.get("mainline_feedback"):
+    if reviewer.get("top_level_feedback"):
         discussion_icons.append("📌")
     if reviewer.get("changes_requested"):
         discussion_icons.append("🔴")
@@ -159,7 +159,7 @@ def render_diagnostics_section(
         number for number in sorted(results, reverse=True)
         if (
             results[number].get("review_thread_classifications")
-            or results[number].get("mainline_action_classifications")
+            or results[number].get("top_level_classifications")
             or results[number].get("error")
         )
     ]
@@ -173,7 +173,7 @@ def render_diagnostics_section(
         data_lines.append(f"PR #{number}")
         classifications = (
             (result.get("review_thread_classifications") or [])
-            + (result.get("mainline_action_classifications") or [])
+            + (result.get("top_level_classifications") or [])
         )
         for c in classifications:
             decision = c.get("decision") or {}
@@ -181,7 +181,7 @@ def render_diagnostics_section(
             pending_action = pending_actions.get(c.get("discussion_id"))
             if pending_action:
                 lifecycle_suffix = f", pending:{pending_action.get('action')}"
-            elif c.get("discussion_kind") == "pr-conversation-item":
+            elif c.get("discussion_kind") == "top-level-feedback":
                 lifecycle_suffix = ", addressed"
             else:
                 lifecycle_suffix = ", closed"
