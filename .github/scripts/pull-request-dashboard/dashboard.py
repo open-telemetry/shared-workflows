@@ -725,11 +725,11 @@ def first_change_request_clearance(
     evidence_at: str,
 ) -> str | None:
     candidates = [
-        e.get("updated_timestamp") or e["timestamp"]
+        e["timestamp"]
         for e in events
         if e.get("kind") == "review-state"
-        and e.get("state") in ("APPROVED", "DISMISSED")
-        and (e.get("updated_timestamp") or e["timestamp"]) > evidence_at
+        and e.get("state") == "APPROVED"
+        and e["timestamp"] > evidence_at
         and is_substantive_activity(e)
         and (e.get("actor") or "").lower() == requester.lower()
     ]

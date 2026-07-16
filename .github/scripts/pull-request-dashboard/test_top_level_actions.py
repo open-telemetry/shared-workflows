@@ -1034,7 +1034,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
-    def test_dismissal_clears_addressed_changes_requested_item(self) -> None:
+    def test_unrelated_dismissal_does_not_clear_changes_requested_item(self) -> None:
         discussions = [top_level_item("code")]
         discussions[0]["review_state"] = "CHANGES_REQUESTED"
         pending_actions, top_level_history = advance_top_level_actions(
@@ -1054,7 +1054,34 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             "author",
         )
 
-        self.assertNotIn("code", pending_actions)
+        self.assertEqual(pending_actions["code"]["action"], "reviewer")
+        self.assertEqual(
+            top_level_history["code"]["evidence"],
+            {"commit": "2026-07-14T02:00:00Z"},
+        )
+
+    def test_edited_old_approval_does_not_clear_changes_requested_item(self) -> None:
+        discussions = [top_level_item("code")]
+        discussions[0]["review_state"] = "CHANGES_REQUESTED"
+        pending_actions, top_level_history = advance_top_level_actions(
+            discussions,
+            [classification("code", "commit")],
+            [
+                event(
+                    "review-state",
+                    "2026-07-14T01:30:00Z",
+                    "reviewer",
+                    "approver",
+                    state="APPROVED",
+                    updated_timestamp="2026-07-14T03:00:00Z",
+                ),
+                event("commit", "2026-07-14T02:00:00Z", "author", "author"),
+            ],
+            {},
+            "author",
+        )
+
+        self.assertEqual(pending_actions["code"]["action"], "reviewer")
         self.assertEqual(
             top_level_history["code"]["evidence"],
             {"commit": "2026-07-14T02:00:00Z"},
