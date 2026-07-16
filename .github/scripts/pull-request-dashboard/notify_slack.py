@@ -13,8 +13,8 @@ from github_cli import detect_repo, list_open_prs, normalize_repo, repo_state_ke
 from notifications import next_notifications
 from state import (
     load_dashboard_state_cache,
+    load_notification_state_file,
     load_notifications,
-    load_state_file,
     notification_state_path,
     results_from_dashboard_state,
     save_notifications,
@@ -33,7 +33,7 @@ def last_notifications(
         return None
     merged_notifications = saved_notifications
     if retry_snapshot_path and retry_snapshot_path.exists():
-        retry_snapshot_state = load_state_file(retry_snapshot_path)
+        retry_snapshot_state = load_notification_state_file(retry_snapshot_path)
         if retry_snapshot_state is not None:
             merged_notifications = union_merge_notifications(
                 merged_notifications,

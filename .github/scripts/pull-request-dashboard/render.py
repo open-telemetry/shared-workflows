@@ -106,17 +106,21 @@ WORD_JOINER = "\u2060"
 
 
 def reviewer_icon(reviewer: dict[str, Any]) -> str:
+    discussion_icons = []
+    if reviewer.get("open_thread"):
+        discussion_icons.append("💬")
+    if reviewer.get("mainline_feedback"):
+        discussion_icons.append("📌")
     if reviewer.get("changes_requested"):
-        return "🔴"
+        discussion_icons.append("🔴")
+        return WORD_JOINER.join(discussion_icons)
     if reviewer.get("approved"):
-        return f"💬{WORD_JOINER}✅" if reviewer.get("open_thread") else "✅"
-    if reviewer.get("approved_non_team"):
+        discussion_icons.append("✅")
+    elif reviewer.get("approved_non_team"):
         # A black/gray check distinguishes a non-code-owner approval from a
         # code-owner approval; only code-owner approvals count toward merge.
-        return f"💬{WORD_JOINER}✔️" if reviewer.get("open_thread") else "✔️"
-    if reviewer.get("open_thread"):
-        return "💬"
-    return ""
+        discussion_icons.append("✔️")
+    return WORD_JOINER.join(discussion_icons)
 
 
 # Friendlier display names for bot reviewers whose login is verbose.
@@ -161,11 +165,24 @@ def render_diagnostics_section(
     data_lines: list[str] = []
     for number in prs_with_content:
         result = results[number]
+        discussion_state = result.get("discussion_state") or {}
         data_lines.append(f"PR #{number}")
         for c in result.get("classifications") or []:
             decision = c.get("decision") or {}
             reason = (decision.get("reason") or "").replace("\n", " ")
-            data_lines.append(f"llm: {c.get('discussion_id')} -> {decision.get('discussion_action')} ({reason})")
+            entry = discussion_state.get(c.get("discussion_id")) or {}
+            lifecycle_phase = (
+                "open" if entry.get("open") else "closed" if "open" in entry else ""
+            )
+            waiting_on = entry.get("waiting_on")
+            lifecycle_suffix = (
+                f", {lifecycle_phase}:{waiting_on}"
+                if waiting_on
+                else f", {lifecycle_phase}" if lifecycle_phase else ""
+            )
+            data_lines.append(
+                f"llm: {c.get('discussion_id')} -> {decision.get('discussion_action')}{lifecycle_suffix} ({reason})"
+            )
         error = result.get("error")
         if error:
             data_lines.append(f"error: {error}")
@@ -206,7 +223,7 @@ def render_pr_tables(
     )
     reviewers_note = (
         "Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · "
-        "💬 open thread · 🔴 changes requested."
+        "💬 open discussion · 📌 tracked top-level action · 🔴 changes requested."
     )
     out: list[str] = [
         "> [!NOTE]",

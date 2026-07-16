@@ -18,8 +18,9 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   - ✅ approved
   - ✔️ approved (non-code-owner — does **not** count toward merge requirements)
   - 💬 has an open (unresolved) review thread on the PR
+  - 📌 has a tracked top-level comment that still needs author action or reviewer confirmation
   - 🔴 requested changes
-  - Combinations such as 💬✅ mean approved but with an open thread still outstanding.
+  - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has both an unresolved inline thread and a tracked top-level action; ✅ may accompany either or both.
 - **CI** — Aggregate check status across the PR:
   - ✅ all checks passing
   - ⏳ at least one check pending, none failing
@@ -76,8 +77,20 @@ After the dashboard issue exists, the workflow adds one guidance comment to a
 PR the first time a submitted review includes inline comments. A hidden marker
 prevents repeat comments on later reviews or workflow runs.
 
-The comment asks authors to give each review thread a clear outcome. This keeps
-the dashboard from treating stale or ambiguous threads as the wrong next action.
+The guidance asks authors to give each review thread a clear outcome. Inline
+review threads should receive a reply or be marked resolved. Reviewers should
+prefer inline comments for feedback requiring an explicit response because
+GitHub gives those discussions a clear reply-and-resolve lifecycle. Blocking
+feedback that cannot be attached to a changed line should use **Request
+changes**.
+
+GitHub does not provide a resolved state for top-level comments, so the
+dashboard tracks each actionable top-level request independently. It identifies
+the expected evidence type, such as a commit, PR description edit, or explicit
+reply. Matching author activity returns the PR to reviewers, while the 📌 marker
+remains until a later reviewer action confirms the handoff. See
+[`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md#top-level-review-comments)
+for the tradeoffs behind this behavior.
 
 ## Configuration
 

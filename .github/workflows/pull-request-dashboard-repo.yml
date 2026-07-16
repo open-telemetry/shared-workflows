@@ -119,9 +119,9 @@ jobs:
           ${MARKER}
           This PR has review comments. Review suggestions, whether from maintainers or automated reviewers, aren't always correct or required. Please evaluate each comment on its merits, then make sure each thread has a clear outcome.
 
-          For example, link to the commit if you applied a suggestion, explain why it wasn't applied, or ask a follow-up question.
+          For inline comments, reply with the outcome or mark the thread as resolved. The dashboard returns top-level requests to reviewers after matching author activity, but keeps them visibly pending until a reviewer confirms the result.
 
-          Automation flags a PR for human review once every review thread has a reply or is marked as resolved.
+          Reviewers: prefer inline comments for feedback that needs an explicit reply or resolution. Use **Request changes** for blocking feedback that cannot be attached to a changed line.
 
           Status across open PRs is visible on the [pull request dashboard](${dashboard_url}).
           EOF

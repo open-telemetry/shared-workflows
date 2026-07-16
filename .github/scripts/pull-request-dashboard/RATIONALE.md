@@ -119,6 +119,43 @@ the implementation understandable and operationally cheap.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
   latest usable snapshot without concurrent writers overwriting each other.
 
+## Top-Level Review Comments
+
+- GitHub gives inline review threads explicit replies and a resolved state, but
+  top-level comments have no equivalent completion signal.
+- Each top-level reviewer comment or review body is therefore classified as a
+  separate action item with a stable GitHub-derived id. The LLM decides only
+  whether the root comment is actionable and which observable evidence type
+  could address it: a commit, PR description edit, or explicit reply.
+- Each model call classifies up to ten uncached top-level items independently,
+  while retaining a separate cache entry for every item. A refresh processes
+  at most 200 such items per PR; excess items remain visible as non-failing
+  unclear actions and are classified by later refreshes. This bounds both call
+  count and prompt size without allowing one long-lived PR to monopolize the
+  workflow or model quota.
+- Lifecycle transitions are deterministic. A new item waits on the author;
+  matching author activity moves it to reviewer confirmation; a later review or
+  comment from the requesting reviewer closes it, even when the dashboard did
+  not recognize separate author evidence. The item remains visible with a 📌
+  marker until that confirmation occurs.
+- An empty **Request changes** review is a deterministic author action. It does
+  not need an LLM classification, and another changes-requested review does not
+  count as confirmation of the earlier request.
+- Description edits use the pull request's GraphQL `lastEditedAt` and `editor`
+  fields instead of the general `updatedAt`, which also changes for unrelated
+  PR activity.
+- Once matching author evidence is observed, its kind and timestamp are
+  retained in the cached PR result. Evidence is reused only when its kind still
+  matches the current classification and its timestamp remains newer than the
+  item's root, so later metadata edits cannot regress the handoff and an edited
+  request cannot inherit evidence that predates its new text.
+- Moving an item to reviewer confirmation may happen before the request is fully
+  satisfied. That recoverable early handoff is preferable to leaving a PR
+  indefinitely assigned to an author who already pushed or edited the PR.
+- Reviewers should prefer inline comments when feedback needs explicit closure.
+  Blocking PR-wide feedback should use GitHub's **Request changes** review state;
+  ordinary top-level comments remain a softer coordination mechanism.
+
 ## Slack Notifications
 
 - Slack notification state is PR-granular. It does not track notification

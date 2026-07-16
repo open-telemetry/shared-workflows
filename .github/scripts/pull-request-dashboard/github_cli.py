@@ -121,6 +121,77 @@ def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     return last
 
 
+PR_METADATA_QUERY = """
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
+    repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+            lastEditedAt
+            editor {
+                login
+            }
+            reviews(first: 100, after: $after) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                nodes {
+                    fullDatabaseId
+                    body
+                    state
+                    submittedAt
+                    updatedAt
+                    author {
+                        login
+                    }
+                }
+            }
+        }
+    }
+}
+"""
+
+
+def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, Any]:
+    metadata: dict[str, Any] = {}
+    reviews: list[dict[str, Any]] = []
+    after: str | None = None
+    while True:
+        data = gh_graphql(
+            PR_METADATA_QUERY,
+            {"owner": owner, "name": repo_name, "number": number, "after": after},
+        )
+        pull_request = (((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {})
+        metadata["lastEditedAt"] = pull_request.get("lastEditedAt")
+        metadata["editor"] = pull_request.get("editor")
+        connection = pull_request.get("reviews") or {}
+        for review in connection.get("nodes") or []:
+            # The numeric database id is the stable `source_id` used downstream
+            # to build discussion ids and exclusion keys, all of which require an
+            # int. `fullDatabaseId` is only null for unsubmitted PENDING reviews,
+            # which the API never returns for a token that is not their author,
+            # so a review without a usable id is dropped rather than given a
+            # synthetic id that would be filtered back out (or collide).
+            try:
+                database_id = int(review.get("fullDatabaseId"))
+            except (TypeError, ValueError):
+                continue
+            reviews.append({
+                "id": database_id,
+                "user": review.get("author") or {},
+                "state": review.get("state") or "",
+                "body": review.get("body") or "",
+                "submitted_at": review.get("submittedAt") or "",
+                "updated_at": review.get("updatedAt") or "",
+            })
+        page_info = connection.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            break
+        after = page_info.get("endCursor") or None
+        if after is None:
+            break
+    return {"reviews": reviews, "pr_metadata": metadata}
+
+
 def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
     cmd = [
         "gh", "pr", "checks", str(number), "--repo", repo, "--json",
