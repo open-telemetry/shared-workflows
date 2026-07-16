@@ -158,10 +158,10 @@ from github_cli import (
     repo_state_key,
 )
 from classification import (
-    THREAD_RECENT_COMMENTS_LIMIT,
-    classify_threads,
+    DISCUSSION_RECENT_COMMENTS_LIMIT,
+    classify_discussions,
     is_conflict_resolution_comment,
-    normalize_thread_action,
+    normalize_discussion_action,
     prune_classification_cache,
 )
 from state import (
@@ -477,7 +477,7 @@ def compute_facts(
     return facts
 
 
-def thread_comment(
+def discussion_comment(
     timestamp: str,
     actor: str,
     author: str,
@@ -494,12 +494,12 @@ def thread_comment(
     }
 
 
-def add_thread_facts(
+def add_discussion_facts(
     thread: dict[str, Any],
     comments: list[dict[str, Any]],
     facts: dict[str, Any],
 ) -> dict[str, Any]:
-    thread["thread_facts"] = {
+    thread["discussion_facts"] = {
         "latest_comment_role": comments[-1].get("actor_role"),
         "current_conflicts": facts.get("conflicts"),
     }
@@ -535,7 +535,7 @@ def group_review_threads(
         comments = []
         for c in ((thread.get("comments") or {}).get("nodes") or []):
             actor = reviewer_actor_login(c.get("author") or {})
-            comments.append(thread_comment(
+            comments.append(discussion_comment(
                 c.get("updatedAt") or c.get("createdAt") or "",
                 actor,
                 author,
@@ -547,9 +547,9 @@ def group_review_threads(
         comments.sort(key=lambda c: c["timestamp"])
         if not comments:
             continue
-        threads.append(add_thread_facts({
-            "thread_id": thread.get("id") or f"review-thread-{len(threads) + 1}",
-            "thread_kind": "review-comment-thread",
+        threads.append(add_discussion_facts({
+            "discussion_id": thread.get("id") or f"review-thread-{len(threads) + 1}",
+            "discussion_kind": "review-comment-thread",
             "path": thread.get("path"),
             "line": thread.get("line"),
             "resolved": False,
@@ -581,7 +581,7 @@ def group_pr_conversation(
     comments = []
     for c in raw["issue_comments"]:
         actor = reviewer_actor_login(c.get("user") or {})
-        comment = thread_comment(c.get("updated_at") or c.get("created_at") or "", actor, author, reviewers, c.get("body") or "")
+        comment = discussion_comment(c.get("updated_at") or c.get("created_at") or "", actor, author, reviewers, c.get("body") or "")
         if comment["timestamp"] and comment["actor_role"] != "bot" and comment["body"]:
             comments.append(comment)
     # GitHub renders top-level review bodies inline in the PR conversation,
@@ -595,7 +595,7 @@ def group_pr_conversation(
         if not body:
             continue
         actor = reviewer_actor_login(r.get("user") or {})
-        comment = thread_comment(
+        comment = discussion_comment(
             r.get("submitted_at") or "", actor, author, reviewers, f"[review: {state}] {body}",
         )
         if comment["timestamp"] and comment["actor_role"] != "bot":
@@ -616,12 +616,12 @@ def group_pr_conversation(
 
     if facts.get("conflicts") == "no":
         selected = [c for c in selected if not is_conflict_resolution_comment(c.get("body") or "")]
-    selected = selected[-THREAD_RECENT_COMMENTS_LIMIT:]
+    selected = selected[-DISCUSSION_RECENT_COMMENTS_LIMIT:]
     if not selected:
         return []
-    return [add_thread_facts({
-        "thread_id": "pr-conversation",
-        "thread_kind": "pr-conversation",
+    return [add_discussion_facts({
+        "discussion_id": "pr-conversation",
+        "discussion_kind": "pr-conversation",
         "path": None,
         "line": None,
         "resolved": False,
@@ -629,7 +629,7 @@ def group_pr_conversation(
     }, selected, facts)]
 
 
-def group_discussion_threads(
+def group_discussions(
     raw: dict[str, Any],
     events: list[dict[str, Any]],
     author: str,
@@ -643,7 +643,7 @@ def group_discussion_threads(
 # ---------------------------------------------------------------- routing
 
 
-ROUTE_THREAD_ACTIONS = {
+ROUTE_DISCUSSION_ACTIONS = {
     "author": "author",
     "approver": "reviewer",
     "maintainer": "reviewer",
@@ -654,15 +654,15 @@ ROUTE_THREAD_ACTIONS = {
 def action_counts(classifications: list[dict[str, Any]]) -> dict[str, int]:
     counts = {"author": 0, "reviewer": 0, "external": 0, "none": 0, "unclear": 0}
     for c in classifications:
-        action = normalize_thread_action((c.get("decision") or {}).get("thread_action") or "")
+        action = normalize_discussion_action((c.get("decision") or {}).get("discussion_action") or "")
         counts[action] += 1
     return counts
 
 
-def has_blocking_review_thread(classifications: list[dict[str, Any]]) -> bool:
+def has_blocking_discussion(classifications: list[dict[str, Any]]) -> bool:
     for c in classifications:
-        action = normalize_thread_action((c.get("decision") or {}).get("thread_action") or "")
-        if action in ("reviewer", "unclear") and c.get("thread_kind") != "pr-conversation":
+        action = normalize_discussion_action((c.get("decision") or {}).get("discussion_action") or "")
+        if action in ("reviewer", "unclear") and c.get("discussion_kind") != "pr-conversation":
             return True
     return False
 
@@ -685,32 +685,32 @@ def route_pr(facts: dict[str, Any], classifications: list[dict[str, Any]], requi
         return "author"
     if counts["external"]:
         return "external"
-    if facts.get("approval_count", 0) >= approval_threshold and not has_blocking_review_thread(classifications):
+    if facts.get("approval_count", 0) >= approval_threshold and not has_blocking_discussion(classifications):
         return "maintainer"
     return "approver"
 
 
-def threads_by_id(threads: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {t["thread_id"]: t for t in threads}
+def discussions_by_id(threads: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {t["discussion_id"]: t for t in threads}
 
 
-def thread_latest_comment_ts(thread: dict[str, Any] | None) -> datetime | None:
+def discussion_latest_comment_ts(thread: dict[str, Any] | None) -> datetime | None:
     comments = (thread or {}).get("comments") or []
     if not comments:
         return None
     return parse_ts(comments[-1].get("timestamp") or "")
 
 
-def oldest_thread_wait_ts(
+def oldest_discussion_wait_ts(
     threads: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
     action: str,
 ) -> datetime | None:
-    by_id = threads_by_id(threads)
+    by_id = discussions_by_id(threads)
     timestamps = [
-        thread_latest_comment_ts(by_id.get(c.get("thread_id") or ""))
+        discussion_latest_comment_ts(by_id.get(c.get("discussion_id") or ""))
         for c in classifications
-        if normalize_thread_action((c.get("decision") or {}).get("thread_action") or "") == action
+        if normalize_discussion_action((c.get("decision") or {}).get("discussion_action") or "") == action
     ]
     timestamps = [ts for ts in timestamps if ts is not None]
     return min(timestamps) if timestamps else None
@@ -732,8 +732,8 @@ def add_wait_age_facts(
     threads: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
 ) -> None:
-    action = ROUTE_THREAD_ACTIONS.get(route)
-    wait_ts = oldest_thread_wait_ts(threads, classifications, action) if action else None
+    action = ROUTE_DISCUSSION_ACTIONS.get(route)
+    wait_ts = oldest_discussion_wait_ts(threads, classifications, action) if action else None
     basis = "oldest_pending_thread" if wait_ts else ""
     if wait_ts is None:
         wait_ts, basis = fallback_wait_ts(route, facts)
@@ -747,24 +747,24 @@ def add_wait_age_facts(
 # Thread actions that count as an open, unresolved discussion. A reviewer who
 # commented in such a thread is not yet satisfied, even if they have approved.
 # "none" means no follow-up is needed, so it does not block a clear check.
-OPEN_THREAD_ACTIONS = {"author", "reviewer", "external", "unclear"}
+OPEN_DISCUSSION_ACTIONS = {"author", "reviewer", "external", "unclear"}
 
 
 def reviewers_with_open_threads(
     threads: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
 ) -> set[str]:
-    by_id = threads_by_id(threads)
+    by_id = discussions_by_id(threads)
     logins: set[str] = set()
     for c in classifications:
         # The synthetic PR conversation contributes to the PR's routing bucket,
         # but it is not a reviewer-owned discussion thread for badges.
-        if c.get("thread_kind") == "pr-conversation":
+        if c.get("discussion_kind") == "pr-conversation":
             continue
-        action = normalize_thread_action((c.get("decision") or {}).get("thread_action") or "")
-        if action not in OPEN_THREAD_ACTIONS:
+        action = normalize_discussion_action((c.get("decision") or {}).get("discussion_action") or "")
+        if action not in OPEN_DISCUSSION_ACTIONS:
             continue
-        thread = by_id.get(c.get("thread_id") or "")
+        thread = by_id.get(c.get("discussion_id") or "")
         if not thread:
             continue
         for comment in thread.get("comments") or []:
@@ -833,8 +833,8 @@ def build_pr_result(
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events)
-        threads = group_discussion_threads(raw, events, author, reviewers, facts)
-        classifications = classify_threads(number, threads, model)
+        threads = group_discussions(raw, events, author, reviewers, facts)
+        classifications = classify_discussions(number, threads, model)
         failed_classifications = [c for c in classifications if c.get("failed")]
         if failed_classifications:
             return {
@@ -1061,9 +1061,9 @@ def log_failed_classification_diagnostics(
     decision = classification.get("decision") or {}
     print(
         "    failed classification: "
-        f"thread_id={classification.get('thread_id') or '<unknown>'} "
-        f"kind={classification.get('thread_kind') or '<unknown>'} "
-        f"action={decision.get('thread_action') or '<unknown>'} "
+        f"discussion_id={classification.get('discussion_id') or '<unknown>'} "
+        f"kind={classification.get('discussion_kind') or '<unknown>'} "
+        f"action={decision.get('discussion_action') or '<unknown>'} "
         f"reason={log_line_value(decision.get('reason')) or '<none>'}",
         file=sys.stderr,
     )
@@ -1101,9 +1101,9 @@ def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
     if result.get("pr_url"):
         print(f"    url: {result.get('pr_url')}", file=sys.stderr)
     threads = {
-        thread.get("thread_id"): thread
+        thread.get("discussion_id"): thread
         for thread in (result.get("threads") or [])
-        if isinstance(thread, dict) and thread.get("thread_id")
+        if isinstance(thread, dict) and thread.get("discussion_id")
     }
     failed_classifications = [
         classification
@@ -1113,7 +1113,7 @@ def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
     for classification in failed_classifications:
         log_failed_classification_diagnostics(
             classification,
-            threads.get(classification.get("thread_id")),
+            threads.get(classification.get("discussion_id")),
         )
 
 

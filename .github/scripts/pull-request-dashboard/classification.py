@@ -14,13 +14,13 @@ from typing import Any
 from utils import truncate
 
 
-LLM_THREAD_TIMEOUT_SECONDS = 180
+LLM_DISCUSSION_TIMEOUT_SECONDS = 180
 CLASSIFICATION_CACHE_DIR = Path(__file__).resolve().parent / ".cache" / "classifications"
-THREAD_RECENT_COMMENTS_LIMIT = 20
-THREAD_COMMENT_BODY_MAX_CHARS = 500
+DISCUSSION_RECENT_COMMENTS_LIMIT = 20
+DISCUSSION_COMMENT_BODY_MAX_CHARS = 500
 MAX_PROMPT_CHARS = 18_000
 
-THREAD_PROMPT_TEMPLATE = """You are triaging one pull request discussion thread.
+DISCUSSION_PROMPT_TEMPLATE = """You are triaging one pull request discussion thread.
 
 Classify ONLY this one thread. You are not deciding the final dashboard section.
 The final routing is computed later from deterministic facts and all thread
@@ -75,7 +75,7 @@ Guidance:
     reacts positively, classify as author.
 
 Respond with a single JSON object and nothing else:
-{{"thread_action": "author" | "reviewer" | "external" | "none" | "unclear", "reason": "short explanation grounded in this thread"}}
+{{"discussion_action": "author" | "reviewer" | "external" | "none" | "unclear", "reason": "short explanation grounded in this thread"}}
 
 ---BEGIN THREAD---
 {thread}
@@ -119,7 +119,7 @@ def extract_json_object(s: str) -> dict[str, Any] | None:
     return objects[-1] if objects else None
 
 
-def normalize_thread_action(action: str) -> str:
+def normalize_discussion_action(action: str) -> str:
     action = (action or "").lower().strip()
     if action in ("author", "reviewer", "external", "none", "unclear"):
         return action
@@ -128,12 +128,12 @@ def normalize_thread_action(action: str) -> str:
     return "unclear"
 
 
-def parse_thread_decision(response_text: str) -> tuple[dict[str, str], bool]:
+def parse_discussion_decision(response_text: str) -> tuple[dict[str, str], bool]:
     obj = extract_json_object(response_text) if response_text else None
     if not obj:
-        return {"thread_action": "unclear", "reason": "LLM did not return valid JSON"}, False
-    raw_action = str(obj.get("thread_action") or obj.get("route") or "")
-    action = normalize_thread_action(raw_action)
+        return {"discussion_action": "unclear", "reason": "LLM did not return valid JSON"}, False
+    raw_action = str(obj.get("discussion_action") or obj.get("route") or "")
+    action = normalize_discussion_action(raw_action)
     valid_action = raw_action.lower().strip() in (
         "author",
         "reviewer",
@@ -145,7 +145,7 @@ def parse_thread_decision(response_text: str) -> tuple[dict[str, str], bool]:
     reason = truncate(str(obj.get("reason") or ""), 300)
     if not reason:
         reason = "No reason provided"
-    return {"thread_action": action, "reason": reason}, valid_action
+    return {"discussion_action": action, "reason": reason}, valid_action
 
 
 def is_conflict_resolution_comment(body: str) -> bool:
@@ -161,7 +161,7 @@ def participant_role(actor_role: str) -> str:
     return "reviewer"
 
 
-def thread_prompt_input(thread: dict[str, Any]) -> dict[str, Any]:
+def discussion_prompt_input(thread: dict[str, Any]) -> dict[str, Any]:
     prompt_thread = {
         key: value
         for key, value in thread.items()
@@ -180,23 +180,23 @@ def thread_prompt_input(thread: dict[str, Any]) -> dict[str, Any]:
     return prompt_thread
 
 
-def thread_prompt(thread: dict[str, Any]) -> str:
-    prompt_thread = thread_prompt_input(thread)
+def discussion_prompt(thread: dict[str, Any]) -> str:
+    prompt_thread = discussion_prompt_input(thread)
     thread_text = json.dumps(prompt_thread, indent=2, sort_keys=True)
-    prompt = THREAD_PROMPT_TEMPLATE.format(thread=thread_text)
+    prompt = DISCUSSION_PROMPT_TEMPLATE.format(thread=thread_text)
     if len(prompt) <= MAX_PROMPT_CHARS:
         return prompt
     trimmed = dict(prompt_thread)
     comments = [dict(c) for c in prompt_thread.get("comments") or []]
     for c in comments:
-        c["body"] = truncate(c.get("body") or "", THREAD_COMMENT_BODY_MAX_CHARS)
-    trimmed["comments"] = comments[-THREAD_RECENT_COMMENTS_LIMIT:]
+        c["body"] = truncate(c.get("body") or "", DISCUSSION_COMMENT_BODY_MAX_CHARS)
+    trimmed["comments"] = comments[-DISCUSSION_RECENT_COMMENTS_LIMIT:]
     thread_text = json.dumps(trimmed, indent=2, sort_keys=True)
-    return THREAD_PROMPT_TEMPLATE.format(thread=thread_text)
+    return DISCUSSION_PROMPT_TEMPLATE.format(thread=thread_text)
 
 
-def run_llm_for_thread(thread: dict[str, Any], model: str) -> dict[str, Any]:
-    prompt = thread_prompt(thread)
+def run_llm_for_discussion(thread: dict[str, Any], model: str) -> dict[str, Any]:
+    prompt = discussion_prompt(thread)
     with tempfile.TemporaryDirectory(prefix="copilot-otel-") as otel_dir:
         otel_path = Path(otel_dir) / "copilot-otel.jsonl"
         env = os.environ.copy()
@@ -208,16 +208,16 @@ def run_llm_for_thread(thread: dict[str, Any], model: str) -> dict[str, Any]:
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=LLM_THREAD_TIMEOUT_SECONDS,
+            timeout=LLM_DISCUSSION_TIMEOUT_SECONDS,
             env=env,
         )
         print_copilot_otel_file(otel_path)
     response_text = proc.stdout
-    decision, valid_response = parse_thread_decision(response_text)
+    decision, valid_response = parse_discussion_decision(response_text)
     failed = proc.returncode != 0 or not valid_response
     record = {
-        "thread_id": thread["thread_id"],
-        "thread_kind": thread["thread_kind"],
+        "discussion_id": thread["discussion_id"],
+        "discussion_kind": thread["discussion_kind"],
         "_copilot_cli_call": True,
         "failed": failed,
         "decision": decision,
@@ -236,12 +236,12 @@ def run_llm_for_thread(thread: dict[str, Any], model: str) -> dict[str, Any]:
     return record
 
 
-def thread_cache_key(thread: dict[str, Any], model: str) -> str:
+def discussion_cache_key(thread: dict[str, Any], model: str) -> str:
     cache_key_json = json.dumps(
         {
             "model": model,
-            "prompt_template": THREAD_PROMPT_TEMPLATE,
-            "thread": thread_prompt_input(thread),
+            "prompt_template": DISCUSSION_PROMPT_TEMPLATE,
+            "thread": discussion_prompt_input(thread),
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -285,30 +285,30 @@ def prune_classification_cache(open_pr_numbers: set[int]) -> None:
             path.unlink()
 
 
-def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
+def classify_discussions(number: int, threads: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
     cache_in = load_classification_cache(number)
     cache_out: dict[str, dict[str, Any]] = {}
     classifications: list[dict[str, Any]] = []
     for thread in threads:
-        key = thread_cache_key(thread, model)
+        key = discussion_cache_key(thread, model)
         cached = cache_in.get(key)
         if isinstance(cached, dict):
             record = cached_classification_record(cached)
-            record["thread_id"] = thread["thread_id"]
-            record["thread_kind"] = thread["thread_kind"]
+            record["discussion_id"] = thread["discussion_id"]
+            record["discussion_kind"] = thread["discussion_kind"]
             classifications.append(record)
             cache_out[key] = record
             continue
         try:
-            record = run_llm_for_thread(thread, model)
+            record = run_llm_for_discussion(thread, model)
         except subprocess.TimeoutExpired as e:
             record = {
-                "thread_id": thread["thread_id"],
-                "thread_kind": thread["thread_kind"],
+                "discussion_id": thread["discussion_id"],
+                "discussion_kind": thread["discussion_kind"],
                 "_copilot_cli_call": True,
                 "failed": True,
-                "error": f"Copilot CLI timed out after {LLM_THREAD_TIMEOUT_SECONDS}s",
-                "decision": {"thread_action": "unclear", "reason": "LLM timeout"},
+                "error": f"Copilot CLI timed out after {LLM_DISCUSSION_TIMEOUT_SECONDS}s",
+                "decision": {"discussion_action": "unclear", "reason": "LLM timeout"},
             }
             if e.stdout and e.stdout.strip():
                 record["response_text"] = e.stdout
@@ -316,16 +316,16 @@ def classify_threads(number: int, threads: list[dict[str, Any]], model: str) -> 
                 record["stderr"] = e.stderr
         except Exception as e:
             print(
-                f"  warning: thread {thread['thread_id']} on PR #{number} failed to classify:",
+                f"  warning: thread {thread['discussion_id']} on PR #{number} failed to classify:",
                 file=sys.stderr,
             )
             traceback.print_exc()
             record = {
-                "thread_id": thread["thread_id"],
-                "thread_kind": thread["thread_kind"],
+                "discussion_id": thread["discussion_id"],
+                "discussion_kind": thread["discussion_kind"],
                 "failed": True,
                 "error": f"LLM failed: {e!r}",
-                "decision": {"thread_action": "unclear", "reason": f"LLM failed: {e!r}"},
+                "decision": {"discussion_action": "unclear", "reason": f"LLM failed: {e!r}"},
             }
         classifications.append(record)
         if not record.get("failed"):

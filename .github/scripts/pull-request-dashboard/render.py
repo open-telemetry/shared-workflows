@@ -165,7 +165,7 @@ def render_diagnostics_section(
         for c in result.get("classifications") or []:
             decision = c.get("decision") or {}
             reason = (decision.get("reason") or "").replace("\n", " ")
-            data_lines.append(f"llm: {c.get('thread_id')} -> {decision.get('thread_action')} ({reason})")
+            data_lines.append(f"llm: {c.get('discussion_id')} -> {decision.get('discussion_action')} ({reason})")
         error = result.get("error")
         if error:
             data_lines.append(f"error: {error}")
