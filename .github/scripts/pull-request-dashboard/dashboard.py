@@ -100,6 +100,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   from approver-team members.
     ci_failing_count                int           Required checks only; absent
                                                   when checks could not be fetched.
+    ci_failing_since                str (iso)     Earliest completion time among
+                                                  current required failures.
     ci_pending_count                int           Required checks only; absent
                                                   when checks could not be fetched.
     conflicts                       str           "yes" | "no" | "unknown".
@@ -495,6 +497,8 @@ def compute_facts(
     checks = raw["checks"]
     failing = [c for c in checks or [] if c.get("bucket") in ("fail", "cancel")]
     pending = [c for c in checks or [] if c.get("bucket") == "pending"]
+    failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
+    failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
     last_activity_ts = parse_ts(pr["updatedAt"])
     created_ts = parse_ts(pr["createdAt"])
     author_activity_ts = latest_substantive_activity(events, {"author"})
@@ -518,6 +522,8 @@ def compute_facts(
     }
     if checks is not None:
         facts["ci_failing_count"] = len(failing)
+        if failing_timestamps:
+            facts["ci_failing_since"] = format_ts(min(failing_timestamps))
         facts["ci_pending_count"] = len(pending)
     return facts
 
@@ -904,6 +910,9 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
         if facts.get("ci_failing_count", 0) > 0:
+            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
+            if ci_failing_since is not None:
+                return ci_failing_since, "ci_failure"
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
         return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
     if route == "external":

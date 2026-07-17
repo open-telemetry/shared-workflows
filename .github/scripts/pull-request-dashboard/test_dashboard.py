@@ -169,18 +169,43 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
                 self.assertEqual(expected_route, route_pr(facts, {}, 2))
 
-    def test_required_ci_failure_waits_since_latest_author_activity(self) -> None:
-        facts = {
-            "ci_failing_count": 1,
-            "created_at": "2026-07-14T01:00:00Z",
-            "last_author_activity_at": "2026-07-14T02:00:00Z",
-            "last_approver_activity_at": "2026-07-14T03:00:00Z",
-        }
+    def test_required_ci_failure_waits_since_first_current_failure(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-17T03:00:00Z",
+                    "createdAt": "2026-07-14T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                },
+                "checks": [
+                    {
+                        "bucket": "fail",
+                        "completed_at": "2026-07-17T02:00:00Z",
+                    },
+                    {
+                        "bucket": "cancel",
+                        "completed_at": "2026-07-17T01:00:00Z",
+                    },
+                ],
+            },
+            "author",
+            [
+                {
+                    "actor_role": "author",
+                    "kind": "issue-comment",
+                    "body": "old activity",
+                    "timestamp": "2026-07-14T02:00:00Z",
+                }
+            ],
+        )
 
         add_wait_age_facts(facts, "author", {})
 
-        self.assertEqual("2026-07-14T02:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
+        self.assertEqual("2026-07-17T01:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("ci_failure", facts["waiting_age_basis"])
 
 
 if __name__ == "__main__":
