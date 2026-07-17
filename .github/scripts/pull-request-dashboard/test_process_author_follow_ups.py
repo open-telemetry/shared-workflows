@@ -566,6 +566,70 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
         self.assertEqual(updated, {"1": previous})
 
+    @patch.object(process_author_follow_ups, "execute_action")
+    def test_targeted_author_result_preserves_due_cycle_without_action(
+        self,
+        execute_action,
+    ) -> None:
+        previous = follow_up_entry(
+            waiting_on_author_since="2026-07-01T00:00:00Z",
+        )
+
+        updated = process_author_follow_ups.next_author_follow_ups(
+            "open-telemetry/example",
+            {1: author_result()},
+            {1},
+            {"1": previous},
+            NOW,
+            stale_enabled=True,
+            refreshed_pr_numbers={1},
+            reset_only=True,
+        )
+
+        self.assertEqual(updated, {"1": previous})
+        execute_action.assert_not_called()
+
+    @patch.object(process_author_follow_ups, "remove_stale_label")
+    def test_targeted_route_departure_clears_cycle(
+        self,
+        remove_stale_label,
+    ) -> None:
+        updated = process_author_follow_ups.next_author_follow_ups(
+            "open-telemetry/example",
+            {1: {"route": "approver", "facts": {}}},
+            {1},
+            {
+                "1": follow_up_entry(
+                    stale_applied_at="2026-07-10T00:00:00Z",
+                    stale_label_owned=True,
+                )
+            },
+            NOW,
+            stale_enabled=True,
+            refreshed_pr_numbers={1},
+            reset_only=True,
+        )
+
+        self.assertEqual(updated, {})
+        remove_stale_label.assert_called_once_with("open-telemetry/example", 1)
+
+    def test_targeted_run_preserves_unselected_missing_cycle(self) -> None:
+        selected = follow_up_entry()
+        unselected = follow_up_entry(stale_label_owned=True)
+
+        updated = process_author_follow_ups.next_author_follow_ups(
+            "open-telemetry/example",
+            {1: author_result()},
+            {1},
+            {"1": selected, "2": unselected},
+            NOW,
+            stale_enabled=True,
+            refreshed_pr_numbers={1},
+            reset_only=True,
+        )
+
+        self.assertEqual(updated, {"1": selected, "2": unselected})
+
 
 if __name__ == "__main__":
     unittest.main()

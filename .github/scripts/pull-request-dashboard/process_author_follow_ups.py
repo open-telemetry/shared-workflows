@@ -432,6 +432,7 @@ def next_author_follow_ups(
     stale_enabled: bool,
     current_prs: dict[int, dict[str, Any]] | None = None,
     refreshed_pr_numbers: set[int] | None = None,
+    reset_only: bool = False,
 ) -> dict[str, Any]:
     updated_follow_ups: dict[str, Any] = {}
     result_keys = {str(number) for number in results}
@@ -439,6 +440,13 @@ def next_author_follow_ups(
         key = str(number)
         previous = previous_follow_ups.get(key)
         if refreshed_pr_numbers is not None and number not in refreshed_pr_numbers:
+            if previous is not None:
+                updated_follow_ups[key] = previous
+            continue
+        if reset_only and (
+            result.get("failed")
+            or result.get("route") in ("author", "transient-failure", "unknown")
+        ):
             if previous is not None:
                 updated_follow_ups[key] = previous
             continue
@@ -472,6 +480,13 @@ def next_author_follow_ups(
             number = int(key)
         except ValueError:
             continue
+        if (
+            reset_only
+            and refreshed_pr_numbers is not None
+            and number not in refreshed_pr_numbers
+        ):
+            updated_follow_ups[key] = previous
+            continue
         if previous.get("stale_label_owned"):
             remove_stale_label(repo, number)
     return updated_follow_ups
@@ -491,6 +506,7 @@ def process_author_follow_ups(
     stale_enabled: bool,
     now: datetime,
     refreshed_pr_numbers: set[int],
+    reset_only: bool = False,
     retry_snapshot_path: Path | None = None,
 ) -> int:
     dashboard_state = load_dashboard_state_cache()
@@ -514,6 +530,7 @@ def process_author_follow_ups(
         stale_enabled,
         current_prs,
         refreshed_pr_numbers,
+        reset_only,
     )
     if updated == previous and author_follow_up_state_path().exists():
         print("author follow-up state unchanged", file=sys.stderr)
@@ -531,6 +548,11 @@ def main() -> int:
         "--pr-numbers",
         required=True,
         help="comma-separated PR numbers refreshed by the current dashboard run",
+    )
+    parser.add_argument(
+        "--reset-only",
+        action="store_true",
+        help="clear departed routes without evaluating due follow-up actions",
     )
     args = parser.parse_args()
 
@@ -550,6 +572,7 @@ def main() -> int:
                 args.stale,
                 utc_now(),
                 {int(number) for number in args.pr_numbers.split(",") if number},
+                args.reset_only,
                 retry_snapshot_path,
             ),
             state_branch=args.state_branch,

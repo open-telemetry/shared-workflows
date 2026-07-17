@@ -101,6 +101,12 @@ the implementation understandable and operationally cheap.
 - A non-PR run evaluates lifecycle actions only for PR results refreshed and
   accepted during that run. Older cached results remain available for dashboard
   rendering but cannot trigger nudges, stale labeling, or closure.
+- A targeted PR refresh runs lifecycle processing in reset-only mode. A
+  confirmed departure from the author route clears that PR's cycle and owned
+  stale label immediately, while an author-routed or transient result preserves
+  prior state without advancing clocks or executing due actions. Other PRs are
+  untouched. Non-targeted runs remain responsible for nudges, stale labeling,
+  and closure.
 - Escalation state is stored separately from dashboard routing and Slack
   notification state. Hidden per-cycle comment markers make retries idempotent
   if a GitHub mutation succeeds before a state-branch push is rejected. For
