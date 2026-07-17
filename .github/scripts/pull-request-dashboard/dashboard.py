@@ -98,10 +98,12 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     is_draft                        bool
     approval_count                  int           Current unique APPROVED reviews
                                                   from approver-team members.
-    ci_failing_count                int           Absent when checks could not
-                                                  be fetched.
-    ci_pending_count                int           Absent when checks could not
-                                                  be fetched.
+    ci_failing_count                int           Required checks only; absent
+                                                  when checks could not be fetched.
+    ci_failing_since                str (iso)     Earliest completion time among
+                                                  current required failures.
+    ci_pending_count                int           Required checks only; absent
+                                                  when checks could not be fetched.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
     last_activity_at                str (iso)
@@ -168,6 +170,8 @@ from github_cli import (
     gh_api,
     gh_pr_checks,
     gh_pr_view,
+    gh_required_check_contexts,
+    include_missing_required_checks,
     list_open_prs,
     load_reviewer_set,
     normalize_repo,
@@ -277,18 +281,24 @@ def fetch_pr_raw(
             f"/repos/{owner}/{repo_name}/pulls/{number}/commits?per_page=100",
             True,
         )
-        f_checks = pool.submit(gh_pr_checks, repo, number)
         f_threads = pool.submit(fetch_review_threads, owner, repo_name, number)
         f_review_data = pool.submit(fetch_pr_review_data, owner, repo_name, number)
+        pr = f_pr.result()
+        f_checks = pool.submit(gh_pr_checks, repo, pr["id"])
+        f_required_contexts = pool.submit(
+            gh_required_check_contexts, repo, pr["baseRefName"]
+        )
         review_data = f_review_data.result() or {}
         return {
             "summary": pr_summary,
-            "pr": f_pr.result(),
+            "pr": pr,
             "issue_comments": f_issue.result() or [],
             "review_comments": f_revcom.result() or [],
             "reviews": review_data.get("reviews") or [],
             "commits": f_commits.result() or [],
-            "checks": f_checks.result(),
+            "checks": include_missing_required_checks(
+                f_checks.result(), f_required_contexts.result()
+            ),
             "review_threads": f_threads.result() or [],
             "pr_metadata": review_data.get("pr_metadata") or {},
         }
@@ -485,8 +495,10 @@ def compute_facts(
 ) -> dict[str, Any]:
     pr = raw["pr"]
     checks = raw["checks"]
-    failing = [c for c in checks or [] if (c.get("state") or "").upper() in ("FAILURE", "ERROR")]
-    pending = [c for c in checks or [] if (c.get("state") or "").upper() in ("PENDING", "QUEUED", "IN_PROGRESS")]
+    failing = [c for c in checks or [] if c.get("bucket") in ("fail", "cancel")]
+    pending = [c for c in checks or [] if c.get("bucket") == "pending"]
+    failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
+    failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
     last_activity_ts = parse_ts(pr["updatedAt"])
     created_ts = parse_ts(pr["createdAt"])
     author_activity_ts = latest_substantive_activity(events, {"author"})
@@ -510,6 +522,8 @@ def compute_facts(
     }
     if checks is not None:
         facts["ci_failing_count"] = len(failing)
+        if failing_timestamps:
+            facts["ci_failing_since"] = format_ts(min(failing_timestamps))
         facts["ci_pending_count"] = len(pending)
     return facts
 
@@ -857,11 +871,14 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
-    #   1. A discussion waiting on the author -> "author".
-    #   2. Otherwise a discussion waiting on something external -> "external".
-    #   3. If there are enough approvals and no inline or top-level feedback is
+    #   1. A required status check failure -> "author".
+    #   2. A discussion waiting on the author -> "author".
+    #   3. Otherwise a discussion waiting on something external -> "external".
+    #   4. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer or is unclear -> "maintainer".
-    #   4. Otherwise the PR is still waiting on approvers.
+    #   5. Otherwise the PR is still waiting on approvers.
+    if facts.get("ci_failing_count", 0) > 0 and not is_maintenance_bot:
+        return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
     if counts["external"]:
@@ -892,6 +909,11 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
     if route in ("approver", "maintainer"):
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
+        if facts.get("ci_failing_count", 0) > 0:
+            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
+            if ci_failing_since is not None:
+                return ci_failing_since, "ci_failure"
+            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
         return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
     if route == "external":
         return parse_ts(facts.get("last_external_activity_at") or ""), "last_external_activity"
@@ -906,8 +928,13 @@ def add_wait_age_facts(
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
-    if wait_ts is None:
-        wait_ts, basis = fallback_wait_ts(route, facts)
+    fallback_ts, fallback_basis = fallback_wait_ts(route, facts)
+    if wait_ts is None or (
+        fallback_basis == "ci_failure"
+        and fallback_ts is not None
+        and fallback_ts < wait_ts
+    ):
+        wait_ts, basis = fallback_ts, fallback_basis
     if wait_ts is None:
         wait_ts = parse_ts(facts.get("created_at") or "")
         basis = "created"

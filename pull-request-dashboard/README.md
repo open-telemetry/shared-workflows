@@ -21,10 +21,10 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   - 📌 has tracked top-level feedback that still needs author action
   - 🔴 requested changes
   - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has both an unresolved inline thread and tracked top-level feedback; ✅ may accompany either or both.
-- **CI** — Aggregate check status across the PR:
-  - ✅ all checks passing
-  - ⏳ at least one check pending, none failing
-  - ❌ at least one check failing
+- **CI** — Aggregate check status across the PR's required status checks. Optional checks do not affect this column:
+  - ✅ all required checks passing
+  - ⏳ at least one required check pending, none failing
+  - ❌ at least one required check failing
   - `?` check data could not be fetched
 - **Conflicts** — Whether the PR has merge conflicts against its base branch:
   - ✅ no conflicts
@@ -143,6 +143,13 @@ author has the next action, it also links separately to unresolved inline review
 threads and top-level feedback when possible, and asks the author to give each
 review feedback item a clear outcome. Draft PRs show that they are waiting for
 the author to mark them ready for review.
+
+A failing required status check routes a human-authored PR to the author ahead
+of review and approval state. The live comment calls out required CI failures
+explicitly and combines that reason with review feedback when both need author
+action. Optional check failures do not affect routing. Maintenance-bot PRs keep
+their maintainer-oriented routing because the bot cannot act on a dashboard
+request.
 
 A hidden marker lets the workflow update the comment in place. Existing one-time
 guidance comments are upgraded rather than duplicated. Clear outcomes keep stale

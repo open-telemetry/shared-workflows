@@ -44,6 +44,68 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("[Feedback 1]", body)
         self.assertIn("give each review feedback item a clear outcome", body)
 
+    def test_waiting_on_author_names_required_ci_failure(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {"author": "alice", "ci_failing_count": 1},
+            },
+        )
+
+        self.assertIn(
+            "**Status:** Waiting on @alice to fix the failing required status check.",
+            body,
+        )
+
+    def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "author": "alice",
+                    "ci_failing_count": 2,
+                    "author_action_review_thread_urls": [
+                        "https://github.com/open-telemetry/example/pull/1#discussion_r1",
+                    ],
+                },
+            },
+        )
+
+        self.assertIn(
+            "**Status:** Waiting on @alice to fix failing required status checks "
+            "and address or respond to review feedback.",
+            body,
+        )
+
+    def test_non_author_routes_also_name_required_ci_failures(self) -> None:
+        cases = (
+            (
+                "maintainer",
+                1,
+                "Waiting on maintainers to merge the pull request. "
+                "A required status check is also failing.",
+            ),
+            (
+                "approver",
+                2,
+                "Waiting on reviewers to review the latest changes. "
+                "Required status checks are also failing.",
+            ),
+        )
+        for route, failing_count, expected in cases:
+            with self.subTest(route=route):
+                body = pr_status_comment.render_status_comment(
+                    self.pr(),
+                    {
+                        "route": route,
+                        "facts": {"ci_failing_count": failing_count},
+                    },
+                )
+
+                self.assertIn(f"**Status:** {expected}", body)
+
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
             f"https://github.com/open-telemetry/example/pull/1#discussion_r{index}"
