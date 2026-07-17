@@ -13,10 +13,10 @@ from state import load_accepted_dashboard_state
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
-AUTHOR_ACTION_DISCUSSION_LINK_LIMIT = 20
+AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 AUTHOR_GUIDANCE = (
-    "Please give every review discussion a clear outcome: link to the commit that addresses it, "
-    "explain why no change is needed, ask a follow-up question, or resolve the discussion."
+    "Please give each review feedback item a clear outcome: link to the commit that addresses it, "
+    "explain why no change is needed, or ask a follow-up question."
 )
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 # Remove after migrating open PRs as described by the post-rollout
@@ -61,15 +61,38 @@ def render_status_comment(
     ]
 
     if not terminal and result and result.get("route") == "author":
-        urls = (result.get("facts") or {}).get("author_action_discussion_urls") or []
-        if urls:
-            lines.extend(["", "Unresolved discussions waiting on the author:"])
-            displayed_urls = urls[:AUTHOR_ACTION_DISCUSSION_LINK_LIMIT]
-            lines.extend(f"- [Discussion {index}]({url})" for index, url in enumerate(displayed_urls, start=1))
+        facts = result.get("facts") or {}
+        feedback_sections = (
+            (
+                "Unresolved inline review threads waiting on the author:",
+                "Thread",
+                "inline review thread",
+                "inline review threads",
+                facts.get("author_action_review_thread_urls") or [],
+            ),
+            (
+                "Top-level feedback waiting on the author:",
+                "Feedback",
+                "top-level feedback item",
+                "top-level feedback items",
+                facts.get("author_action_top_level_feedback_urls") or [],
+            ),
+        )
+        remaining_limit = AUTHOR_ACTION_FEEDBACK_LINK_LIMIT
+        for heading, label, singular, plural, urls in feedback_sections:
+            if not urls:
+                continue
+            lines.extend(["", heading])
+            displayed_urls = urls[:remaining_limit]
+            lines.extend(
+                f"- [{label} {index}]({url})"
+                for index, url in enumerate(displayed_urls, start=1)
+            )
             remaining_count = len(urls) - len(displayed_urls)
             if remaining_count:
-                noun = "discussion" if remaining_count == 1 else "discussions"
-                lines.append(f"- {remaining_count} more unresolved {noun} not shown")
+                noun = singular if remaining_count == 1 else plural
+                lines.append(f"- {remaining_count} more {noun} not shown")
+            remaining_limit -= len(displayed_urls)
 
     if not terminal:
         lines.extend(["", AUTHOR_GUIDANCE])

@@ -15,7 +15,7 @@ class RoutePresentationTest(unittest.TestCase):
 
     def test_author_status_includes_effective_author(self) -> None:
         self.assertEqual(
-            "Waiting on @alice to address or respond to unresolved review discussions.",
+            "Waiting on @alice to address or respond to review feedback.",
             route_status("author", "@alice"),
         )
 

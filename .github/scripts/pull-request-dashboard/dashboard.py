@@ -115,9 +115,13 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   or PR creation time.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
-    author_action_discussion_urls   list[str]     Canonical links to unresolved
-                                                  review discussions routed to
-                                                  the author.
+    author_action_review_thread_urls
+                                    list[str]     Canonical links to unresolved
+                                                  inline review threads routed
+                                                  to the author.
+    author_action_top_level_feedback_urls
+                                    list[str]     Canonical links to top-level
+                                                  feedback routed to the author.
     reviewers                       list[dict]    Reviewers to display (added by
                                                   add_reviewers). Each entry is
                                                   {"login": str, "approved": bool,
@@ -1080,8 +1084,11 @@ def build_pr_result(
             }
         route = route_pr(facts, pending_actions, required_approvals)
         add_wait_age_facts(facts, route, pending_actions)
-        facts["author_action_discussion_urls"] = author_action_discussion_urls(
-            review_threads + top_level_items, pending_actions
+        facts["author_action_review_thread_urls"] = author_action_discussion_urls(
+            review_threads, pending_actions
+        )
+        facts["author_action_top_level_feedback_urls"] = author_action_discussion_urls(
+            top_level_items, pending_actions
         )
         add_reviewers(
             facts, events, review_threads, top_level_items, pending_actions

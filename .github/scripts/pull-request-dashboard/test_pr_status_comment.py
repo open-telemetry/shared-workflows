@@ -17,31 +17,41 @@ class RenderStatusCommentTest(unittest.TestCase):
         pr.update(overrides)
         return pr
 
-    def test_waiting_on_author_links_discussions(self) -> None:
+    def test_waiting_on_author_splits_review_feedback_links(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
             {
                 "route": "author",
                 "facts": {
                     "author": "alice",
-                    "author_action_discussion_urls": [
+                    "author_action_review_thread_urls": [
                         "https://github.com/open-telemetry/example/pull/1#discussion_r1",
+                    ],
+                    "author_action_top_level_feedback_urls": [
+                        "https://github.com/open-telemetry/example/pull/1#pullrequestreview-2",
                     ],
                 },
             },
         )
 
         self.assertIn(
-            "**Status:** Waiting on @alice to address or respond to unresolved review discussions.",
+            "**Status:** Waiting on @alice to address or respond to review feedback.",
             body,
         )
-        self.assertIn("[Discussion 1]", body)
-        self.assertIn("give every review discussion a clear outcome", body)
+        self.assertIn("Unresolved inline review threads waiting on the author:", body)
+        self.assertIn("[Thread 1]", body)
+        self.assertIn("Top-level feedback waiting on the author:", body)
+        self.assertIn("[Feedback 1]", body)
+        self.assertIn("give each review feedback item a clear outcome", body)
 
-    def test_waiting_on_author_caps_discussion_links(self) -> None:
-        urls = [
+    def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
+        review_thread_urls = [
             f"https://github.com/open-telemetry/example/pull/1#discussion_r{index}"
-            for index in range(pr_status_comment.AUTHOR_ACTION_DISCUSSION_LINK_LIMIT + 2)
+            for index in range(pr_status_comment.AUTHOR_ACTION_FEEDBACK_LINK_LIMIT - 1)
+        ]
+        top_level_feedback_urls = [
+            f"https://github.com/open-telemetry/example/pull/1#pullrequestreview-{index}"
+            for index in range(3)
         ]
 
         body = pr_status_comment.render_status_comment(
@@ -50,14 +60,16 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "route": "author",
                 "facts": {
                     "author": "alice",
-                    "author_action_discussion_urls": urls,
+                    "author_action_review_thread_urls": review_thread_urls,
+                    "author_action_top_level_feedback_urls": top_level_feedback_urls,
                 },
             },
         )
 
-        self.assertEqual(pr_status_comment.AUTHOR_ACTION_DISCUSSION_LINK_LIMIT, body.count("- [Discussion "))
-        self.assertIn("- 2 more unresolved discussions not shown", body)
-        self.assertNotIn(urls[-1], body)
+        self.assertEqual(len(review_thread_urls), body.count("- [Thread "))
+        self.assertEqual(1, body.count("- [Feedback "))
+        self.assertIn("- 2 more top-level feedback items not shown", body)
+        self.assertNotIn(top_level_feedback_urls[-1], body)
 
     def test_draft_waits_on_author(self) -> None:
         body = pr_status_comment.render_status_comment(self.pr(draft=True), None)
@@ -74,15 +86,18 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn("**Status:** This pull request has been merged.", body)
-        self.assertNotIn("give every review discussion a clear outcome", body)
+        self.assertNotIn("give each review feedback item a clear outcome", body)
 
-    def test_terminal_pr_has_no_author_discussion_links(self) -> None:
+    def test_terminal_pr_has_no_author_feedback_links(self) -> None:
         result = {
             "route": "author",
             "facts": {
                 "author": "alice",
-                "author_action_discussion_urls": [
+                "author_action_review_thread_urls": [
                     "https://github.com/open-telemetry/example/pull/1#discussion_r1",
+                ],
+                "author_action_top_level_feedback_urls": [
+                    "https://github.com/open-telemetry/example/pull/1#pullrequestreview-2",
                 ],
             },
         }
@@ -91,8 +106,10 @@ class RenderStatusCommentTest(unittest.TestCase):
             with self.subTest(overrides=overrides):
                 body = pr_status_comment.render_status_comment(self.pr(**overrides), result)
 
-                self.assertNotIn("Unresolved discussions waiting on the author", body)
-                self.assertNotIn("[Discussion 1]", body)
+                self.assertNotIn("Unresolved inline review threads waiting on the author", body)
+                self.assertNotIn("Top-level feedback waiting on the author", body)
+                self.assertNotIn("[Thread 1]", body)
+                self.assertNotIn("[Feedback 1]", body)
 
     def test_blank_login_falls_back_to_author(self) -> None:
         body = pr_status_comment.render_status_comment(

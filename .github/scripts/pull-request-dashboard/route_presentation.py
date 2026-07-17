@@ -12,7 +12,7 @@ ROUTE_PRESENTATION = {
     },
     "author": {
         "dashboard_label": "Waiting on authors",
-        "status": "Waiting on {author} to address or respond to unresolved review discussions.",
+        "status": "Waiting on {author} to address or respond to review feedback.",
     },
     "external": {
         "dashboard_label": "Waiting on external",
