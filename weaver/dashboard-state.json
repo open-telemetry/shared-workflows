@@ -295,10 +295,12 @@
     },
     "1600": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/weaver/pull/1600#discussion_r3605453628"
+        ],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
@@ -307,17 +309,26 @@
         "is_draft": false,
         "is_maintenance_bot": false,
         "last_activity_at": "2026-07-17T16:42:55+00:00",
-        "last_approver_activity_at": "",
+        "last_approver_activity_at": "2026-07-17T18:57:50+00:00",
         "last_author_activity_at": "2026-07-17T16:08:17+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-17T16:08:17+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-17T18:57:50+00:00"
       },
       "failed": false,
       "pr_number": 1600,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1600",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "845": {
