@@ -8292,7 +8292,9 @@
         "approval_count": 0,
         "assignees": [],
         "author": "callegarimattia",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49727#discussion_r3605318013"
+        ],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 3,
         "ci_pending_count": 0,
@@ -8300,18 +8302,27 @@
         "created_at": "2026-07-17T15:49:02+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-17T15:53:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-17T18:27:24+00:00",
+        "last_approver_activity_at": "2026-07-17T18:27:24+00:00",
         "last_author_activity_at": "2026-07-17T15:50:37+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-17T15:50:37+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "TylerHelmuth",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-17T18:27:24+00:00"
       },
       "failed": false,
       "pr_number": 49727,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49727",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "49728": {
