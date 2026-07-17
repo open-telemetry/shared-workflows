@@ -269,6 +269,7 @@ query($id: ID!, $after: String) {
                                         isRequired(pullRequestId: $id)
                                     }
                                     ... on CheckRun {
+                                        databaseId
                                         name
                                         status
                                         conclusion
@@ -335,9 +336,16 @@ def normalize_required_check(node: dict[str, Any]) -> dict[str, Any]:
         "link": (node.get("targetUrl") if is_status else node.get("detailsUrl")) or "",
         "started_at": (node.get("createdAt") if is_status else node.get("startedAt")) or "",
         "completed_at": (node.get("createdAt") if is_status else node.get("completedAt")) or "",
+        "check_run_id": None if is_status else node.get("databaseId"),
         "integration_id": None if is_status else app.get("databaseId"),
         "status_context": is_status,
     }
+
+
+def check_attempt_order(check: dict[str, Any]) -> tuple[int, int | str]:
+    if check["status_context"]:
+        return 0, check["started_at"]
+    return 1, check["check_run_id"] or 0
 
 
 def gh_pr_checks(repo: str, pr_id: str) -> list[dict[str, Any]] | None:
@@ -359,7 +367,7 @@ def gh_pr_checks(repo: str, pr_id: str) -> list[dict[str, Any]] | None:
                 check = normalize_required_check(node)
                 identity = (check["name"], check["integration_id"])
                 previous = checks_by_identity.get(identity)
-                if previous is None or check["started_at"] >= previous["started_at"]:
+                if previous is None or check_attempt_order(check) >= check_attempt_order(previous):
                     checks_by_identity[identity] = check
             page_info = contexts.get("pageInfo") or {}
             if not page_info.get("hasNextPage"):

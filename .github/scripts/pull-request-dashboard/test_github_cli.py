@@ -26,9 +26,10 @@ class GithubCliTest(unittest.TestCase):
                                         "nodes": [
                                             {
                                                 "__typename": "CheckRun",
+                                                "databaseId": 100,
                                                 "name": "build",
                                                 "status": "COMPLETED",
-                                                "conclusion": "SUCCESS",
+                                                "conclusion": "FAILURE",
                                                 "startedAt": "2026-07-17T00:30:00Z",
                                                 "completedAt": "2026-07-17T01:00:00Z",
                                                 "isRequired": True,
@@ -36,6 +37,7 @@ class GithubCliTest(unittest.TestCase):
                                             },
                                             {
                                                 "__typename": "CheckRun",
+                                                "databaseId": 200,
                                                 "name": "build",
                                                 "status": "COMPLETED",
                                                 "conclusion": "FAILURE",
@@ -43,6 +45,17 @@ class GithubCliTest(unittest.TestCase):
                                                 "completedAt": "2026-07-17T02:00:00Z",
                                                 "isRequired": True,
                                                 "checkSuite": {"app": {"databaseId": 2}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "databaseId": 101,
+                                                "name": "build",
+                                                "status": "QUEUED",
+                                                "conclusion": None,
+                                                "startedAt": None,
+                                                "completedAt": None,
+                                                "isRequired": True,
+                                                "checkSuite": {"app": {"databaseId": 1}},
                                             },
                                             {
                                                 "__typename": "CheckRun",
@@ -61,7 +74,7 @@ class GithubCliTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            [("build", 1, "pass"), ("build", 2, "fail")],
+            [("build", 1, "pending"), ("build", 2, "fail")],
             [
                 (check["name"], check["integration_id"], check["bucket"])
                 for check in gh_pr_checks("open-telemetry/example", "PR_id") or []
