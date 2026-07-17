@@ -220,7 +220,7 @@ def render_pr_tables(
     )
     reviewers_note = (
         "Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · "
-        "💬 open review thread · 📌 author action pending · 🔴 changes requested."
+        "💬 open review thread · 📌 top-level feedback needs author action · 🔴 changes requested."
     )
     out: list[str] = [
         "> [!NOTE]",

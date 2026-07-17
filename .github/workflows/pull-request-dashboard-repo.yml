@@ -52,7 +52,7 @@ jobs:
     permissions:
       contents: write
     environment: protected
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     outputs:
       initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
     steps:
@@ -127,6 +127,13 @@ jobs:
           fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
 
+      - name: Report GitHub App rate limits
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
+
   update-pr-status-comment:
     needs: update-dashboard
     if: >-
@@ -180,7 +187,7 @@ jobs:
     permissions:
       contents: write
     environment: protected
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -225,7 +232,7 @@ jobs:
     permissions:
       contents: read
     environment: protected
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
