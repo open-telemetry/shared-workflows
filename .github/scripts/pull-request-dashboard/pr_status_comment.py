@@ -204,21 +204,21 @@ def update_status_comments_from_state(
         print("dashboard result state not found; skipping PR status comment", file=sys.stderr)
         return []
 
-    rollout_state = load_status_comment_rollout_state()
+    saved_rollout_state = load_status_comment_rollout_state()
+    if open_pr_numbers is None:
+        raise RuntimeError("open PR numbers are required for a status comment update")
+    rollout_state = prepare_rollout_state(saved_rollout_state, open_pr_numbers)
     if pr_number is not None:
         publish_pr_status(repo, pr_number, dashboard_state)
         pending = set(rollout_state["pending_pr_numbers"])
-        if pr_number in pending:
-            pending.remove(pr_number)
-            rollout_state["pending_pr_numbers"] = sorted(pending)
-            if not pending and rollout_state["target_revision"] == STATUS_COMMENT_REVISION:
-                rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
+        pending.discard(pr_number)
+        rollout_state["pending_pr_numbers"] = sorted(pending)
+        if not pending and rollout_state["target_revision"] == STATUS_COMMENT_REVISION:
+            rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
+        if rollout_state != saved_rollout_state:
             save_status_comment_rollout_state(rollout_state)
         return []
 
-    if open_pr_numbers is None:
-        raise RuntimeError("open PR numbers are required for a rollout update")
-    rollout_state = prepare_rollout_state(rollout_state, open_pr_numbers)
     rollout_pr_numbers = rollout_state["pending_pr_numbers"][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
     errors: list[str] = []
@@ -262,9 +262,7 @@ def update_status_comments_with_state(
     state_dir: Path,
     pr_number: int | None,
 ) -> int:
-    open_pr_numbers = None
-    if pr_number is None:
-        open_pr_numbers = list_all_open_pr_numbers(repo)
+    open_pr_numbers = list_all_open_pr_numbers(repo)
     repo_key = repo_state_key(repo)
     errors_file = rollout_errors_path()
     errors_file.unlink(missing_ok=True)

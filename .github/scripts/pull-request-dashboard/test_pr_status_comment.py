@@ -307,7 +307,7 @@ class RolloutStateTest(unittest.TestCase):
         status = pr_status_comment.update_status_comments_from_state(
             "open-telemetry/example",
             12,
-            None,
+            {12},
         )
 
         self.assertEqual([], status)
@@ -317,6 +317,67 @@ class RolloutStateTest(unittest.TestCase):
             pr_status_comment.STATUS_COMMENT_REVISION,
             saved_state["completed_revision"],
         )
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": 0,
+            "completed_revision": 0,
+            "pending_pr_numbers": [],
+        },
+    )
+    def test_targeted_refresh_initializes_revision_without_requeueing_itself(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        _publish_pr_status: object,
+        save_rollout: Mock,
+    ) -> None:
+        status = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            12,
+            {12, 34},
+        )
+
+        self.assertEqual([], status)
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual(pr_status_comment.STATUS_COMMENT_REVISION, saved_state["target_revision"])
+        self.assertEqual([34], saved_state["pending_pr_numbers"])
+        self.assertEqual(0, saved_state["completed_revision"])
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": 0,
+            "completed_revision": 0,
+            "pending_pr_numbers": [],
+        },
+    )
+    def test_closed_targeted_pr_still_initializes_revision(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        _publish_pr_status: object,
+        save_rollout: Mock,
+    ) -> None:
+        status = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            12,
+            {34},
+        )
+
+        self.assertEqual([], status)
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual(pr_status_comment.STATUS_COMMENT_REVISION, saved_state["target_revision"])
+        self.assertEqual([34], saved_state["pending_pr_numbers"])
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(
