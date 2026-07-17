@@ -44,18 +44,20 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
         self.assertNotIn("url", threads[0]["comments"][0])
 
     def test_author_action_urls_use_thread_url_and_deduplicate(self) -> None:
-        threads = [
+        discussions = [
             {"discussion_id": "thread-1", "discussion_url": "https://example.test/discussion/1"},
             {"discussion_id": "thread-2", "discussion_url": "https://example.test/discussion/1"},
+            {"discussion_id": "top-level-1", "discussion_url": "https://example.test/discussion/2"},
         ]
         pending_actions = {
             "thread-1": {"action": "author"},
             "thread-2": {"action": "author"},
+            "top-level-1": {"action": "author"},
         }
 
         self.assertEqual(
-            ["https://example.test/discussion/1"],
-            author_action_discussion_urls(threads, pending_actions),
+            ["https://example.test/discussion/1", "https://example.test/discussion/2"],
+            author_action_discussion_urls(discussions, pending_actions),
         )
 
     def test_discussion_url_is_excluded_from_classifier_input(self) -> None:

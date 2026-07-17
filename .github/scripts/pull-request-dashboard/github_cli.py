@@ -136,6 +136,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                 }
                 nodes {
                     fullDatabaseId
+                    url
                     body
                     state
                     submittedAt
@@ -231,6 +232,7 @@ def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, A
                 continue
             reviews.append({
                 "id": database_id,
+                "url": review.get("url") or "",
                 "user": review.get("author") or {},
                 "state": review.get("state") or "",
                 "body": review.get("body") or "",

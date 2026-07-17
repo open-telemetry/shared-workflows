@@ -20,6 +20,7 @@ class GithubCliTest(unittest.TestCase):
                                 "nodes": [
                                     {
                                         "fullDatabaseId": "4700712792",
+                                        "url": "https://example.test/review/4700712792",
                                         "author": {"login": "reviewer-1"},
                                         "state": "COMMENTED",
                                         "body": "Please clarify this.",
@@ -46,6 +47,7 @@ class GithubCliTest(unittest.TestCase):
                                 "nodes": [
                                     {
                                         "fullDatabaseId": "5000000000",
+                                        "url": "https://example.test/review/5000000000",
                                         "author": {"login": "reviewer-2"},
                                         "state": "APPROVED",
                                         "body": "Looks good.",
@@ -67,6 +69,7 @@ class GithubCliTest(unittest.TestCase):
                 "reviews": [
                     {
                         "id": 4700712792,
+                        "url": "https://example.test/review/4700712792",
                         "user": {"login": "reviewer-1"},
                         "state": "COMMENTED",
                         "body": "Please clarify this.",
@@ -75,6 +78,7 @@ class GithubCliTest(unittest.TestCase):
                     },
                     {
                         "id": 5000000000,
+                        "url": "https://example.test/review/5000000000",
                         "user": {"login": "reviewer-2"},
                         "state": "APPROVED",
                         "body": "Looks good.",

@@ -341,6 +341,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         timestamp = c.get("updated_at") or c.get("created_at") or ""
         events.append({
             "source_id": c.get("id"),
+            "discussion_url": c.get("html_url") or "",
             "kind": "issue-comment",
             "timestamp": timestamp,
             "created_timestamp": c.get("created_at") or timestamp,
@@ -372,6 +373,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         state = r.get("state") or ""
         events.append({
             "source_id": r.get("id"),
+            "discussion_url": r.get("url") or "",
             "kind": "review-state",
             "timestamp": r.get("submitted_at") or "",
             "updated_timestamp": r.get("updated_at") or r.get("submitted_at") or "",
@@ -633,6 +635,7 @@ def derive_top_level_items(
                 "discussion_kind": "top-level-feedback",
                 "source_kind": source_kind,
                 "source_id": event["source_id"],
+                "discussion_url": event.get("discussion_url") or "",
                 "requester": comment["actor"],
                 "review_state": state or None,
                 "root_timestamp": root_timestamp,
@@ -906,10 +909,10 @@ def add_wait_age_facts(
 
 
 def author_action_discussion_urls(
-    review_threads: list[dict[str, Any]],
+    discussions: list[dict[str, Any]],
     pending_actions: dict[str, dict[str, Any]],
 ) -> list[str]:
-    by_id = discussions_by_id(review_threads)
+    by_id = discussions_by_id(discussions)
     urls: list[str] = []
     for discussion_id, entry in pending_actions.items():
         action = normalize_discussion_action(entry.get("action") or "")
@@ -1075,7 +1078,7 @@ def build_pr_result(
         route = route_pr(facts, pending_actions, required_approvals)
         add_wait_age_facts(facts, route, pending_actions)
         facts["author_action_discussion_urls"] = author_action_discussion_urls(
-            review_threads, pending_actions
+            review_threads + top_level_items, pending_actions
         )
         add_reviewers(
             facts, events, review_threads, top_level_items, pending_actions
