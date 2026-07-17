@@ -106,17 +106,21 @@ WORD_JOINER = "\u2060"
 
 
 def reviewer_icon(reviewer: dict[str, Any]) -> str:
+    discussion_icons = []
+    if reviewer.get("open_thread"):
+        discussion_icons.append("💬")
+    if reviewer.get("top_level_feedback"):
+        discussion_icons.append("📌")
     if reviewer.get("changes_requested"):
-        return "🔴"
+        discussion_icons.append("🔴")
+        return WORD_JOINER.join(discussion_icons)
     if reviewer.get("approved"):
-        return f"💬{WORD_JOINER}✅" if reviewer.get("open_thread") else "✅"
-    if reviewer.get("approved_non_team"):
+        discussion_icons.append("✅")
+    elif reviewer.get("approved_non_team"):
         # A black/gray check distinguishes a non-code-owner approval from a
         # code-owner approval; only code-owner approvals count toward merge.
-        return f"💬{WORD_JOINER}✔️" if reviewer.get("open_thread") else "✔️"
-    if reviewer.get("open_thread"):
-        return "💬"
-    return ""
+        discussion_icons.append("✔️")
+    return WORD_JOINER.join(discussion_icons)
 
 
 # Friendlier display names for bot reviewers whose login is verbose.
@@ -153,7 +157,11 @@ def render_diagnostics_section(
 ) -> list[str]:
     prs_with_content = [
         number for number in sorted(results, reverse=True)
-        if (results[number].get("classifications") or results[number].get("error"))
+        if (
+            results[number].get("review_thread_classifications")
+            or results[number].get("top_level_classifications")
+            or results[number].get("error")
+        )
     ]
     if not prs_with_content:
         return []
@@ -161,11 +169,27 @@ def render_diagnostics_section(
     data_lines: list[str] = []
     for number in prs_with_content:
         result = results[number]
+        pending_actions = result.get("pending_actions") or {}
         data_lines.append(f"PR #{number}")
-        for c in result.get("classifications") or []:
+        classifications = (
+            (result.get("review_thread_classifications") or [])
+            + (result.get("top_level_classifications") or [])
+        )
+        for c in classifications:
             decision = c.get("decision") or {}
             reason = (decision.get("reason") or "").replace("\n", " ")
-            data_lines.append(f"llm: {c.get('thread_id')} -> {decision.get('thread_action')} ({reason})")
+            pending_action = pending_actions.get(c.get("discussion_id"))
+            if pending_action:
+                lifecycle_suffix = f", pending:{pending_action.get('action')}"
+            elif decision.get("discussion_action") == "none":
+                lifecycle_suffix = ", no-action"
+            elif c.get("discussion_kind") == "top-level-feedback":
+                lifecycle_suffix = ", addressed"
+            else:
+                lifecycle_suffix = ", closed"
+            data_lines.append(
+                f"llm: {c.get('discussion_id')} -> {decision.get('discussion_action')}{lifecycle_suffix} ({reason})"
+            )
         error = result.get("error")
         if error:
             data_lines.append(f"error: {error}")
@@ -206,7 +230,7 @@ def render_pr_tables(
     )
     reviewers_note = (
         "Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · "
-        "💬 open thread · 🔴 changes requested."
+        "💬 open discussion · 📌 author action pending · 🔴 changes requested."
     )
     out: list[str] = [
         "> [!NOTE]",

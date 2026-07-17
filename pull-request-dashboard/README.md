@@ -18,8 +18,9 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   - ✅ approved
   - ✔️ approved (non-code-owner — does **not** count toward merge requirements)
   - 💬 has an open (unresolved) review thread on the PR
+  - 📌 has tracked top-level feedback that still needs author action
   - 🔴 requested changes
-  - Combinations such as 💬✅ mean approved but with an open thread still outstanding.
+  - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has both an unresolved inline thread and tracked top-level feedback; ✅ may accompany either or both.
 - **CI** — Aggregate check status across the PR:
   - ✅ all checks passing
   - ⏳ at least one check pending, none failing
@@ -70,14 +71,79 @@ Ask a maintainer or admin to add the repository under [Repository access](https:
 
 Once the PR is merged, the dashboard will pick up your repository on its next hourly backfill run. To run it sooner, see [Manual backfill run](#manual-backfill-run). The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title; if it does not exist, the publish step creates the label and issue.
 
+## Review feedback lifecycle
+
+Inline review threads and top-level feedback have different lifecycles on
+GitHub. Top-level feedback means a standalone PR comment or submitted review
+summary that is not attached to an inline review thread.
+
+- An inline thread remains on the dashboard until someone marks the conversation
+  resolved on GitHub or GitHub marks its code anchor outdated. An author reply
+  can hand the dashboard action back to reviewers, but it does not close the
+  thread. After addressing it, authors should reply with the outcome and, when
+  appropriate, resolve the conversation.
+- Top-level feedback has no resolved state. The dashboard therefore tracks each
+  actionable top-level feedback item independently. 📌 means that one or more
+  of those items are waiting on the author.
+- Reviewer badges reflect GitHub's latest review state. A `CHANGES_REQUESTED`
+  state affects only the reviewer's badge; it does not affect dashboard
+  classification or routing. 🔴 remains until a later approval or dismissal
+  clears that state. Empty review summaries are ignored; any inline comments
+  are tracked through their own threads.
+
+### Evidence for top-level feedback
+
+For each actionable top-level feedback item, the dashboard identifies one or
+more kinds of observable author evidence:
+
+| Evidence | Used when the request asks for | Observable signal |
+| -------- | ------------------------------ | ----------------- |
+| `commit` | Code, tests, documentation files, or other repository changes | A later commit attributed to the PR author |
+| `description` | A PR description update | A later description edit by the PR author |
+| `title` | A PR title update | A later title rename by the PR author |
+| `reply` | An answer, decision, clarification, or action without another tracked signal | A later standalone PR comment by the author |
+
+A compound feedback item can require multiple evidence kinds. For example, a
+request to change the implementation and update the PR description requires
+both a later commit and a later description edit. One commit is sufficient
+observable evidence for a request containing several code changes; the
+dashboard does not try to prove that every requested edit appears in that
+commit.
+
+An explicit author reply always addresses the item, even when another evidence
+kind was expected. This lets authors explain why a suggestion was not applied,
+ask a clarifying question, or otherwise close the dashboard action.
+The dashboard intentionally treats evidence as a handoff signal, not proof that
+the reviewer agrees with the outcome.
+
+Title and description edits are tracked separately, so a compound request can
+require either or both.
+
+### Routing after evidence
+
+| Item | Before accepted evidence | After accepted evidence | When it clears |
+| ---- | ------------------------ | ----------------------- | -------------- |
+| Top-level author action | Waiting on the author; 📌 is visible | Addressed; 📌 disappears and normal approval-based routing resumes | Immediately after all expected evidence is observed, or after an explicit author reply |
+
+GitHub remains responsible for enforcing blocking review states when a
+maintainer attempts to merge.
+
+This can hand a PR back to reviewers before every requested change is actually
+complete, such as when an unrelated commit matches the expected evidence kind.
+That handoff is deliberate: reviewers can see the activity and respond, while
+the dashboard avoids leaving an active author indefinitely marked as blocked.
+
 ## One-time PR guidance comment
 
 After the dashboard issue exists, the workflow adds one guidance comment to a
 PR the first time a submitted review includes inline comments. A hidden marker
 prevents repeat comments on later reviews or workflow runs.
 
-The comment asks authors to give each review thread a clear outcome. This keeps
-the dashboard from treating stale or ambiguous threads as the wrong next action.
+The guidance asks authors to give each review thread a clear outcome and points
+reviewers toward the feedback mechanism with the lifecycle they need. Reviewers
+should prefer inline comments for feedback requiring explicit resolution. See
+[`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md#top-level-feedback)
+for the tradeoffs behind this behavior.
 
 ## Configuration
 
