@@ -225,9 +225,10 @@ def current_human_activity(
             None,
         )
         if head_commit:
-            committer = str((head_commit.get("committer") or {}).get("login") or "")
-            commit_author = str((head_commit.get("author") or {}).get("login") or "")
-            if (committer or commit_author).lower() == author:
+            if any(
+                is_human_actor(head_commit.get(field))
+                for field in ("committer", "author")
+            ):
                 timestamps.append(now)
     return max(timestamps, default=None)
 

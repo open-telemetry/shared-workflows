@@ -108,6 +108,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
     last_external_activity_at       str (iso)
+    human_head_observed_at          str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
     waiting_since                   str (iso)     Oldest pending discussion, or
@@ -226,6 +227,19 @@ _COPILOT_COMMITTER_LOGINS = {"copilot"}
 _COPILOT_PR_AUTHORS = {"app/copilot-swe-agent", "copilot"}
 _COPILOT_REVIEWER_LOGINS = {"copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
 _MAINTENANCE_BOT_PR_AUTHORS = {"app/otelbot", "app/renovate"}
+
+
+def is_human_commit_actor(actor: dict[str, Any] | None) -> bool:
+    actor = actor or {}
+    login = actor_login(actor).lower()
+    actor_type = actor.get("type") or actor.get("__typename")
+    return bool(
+        login
+        and actor_type != "Bot"
+        and not login.startswith("app/")
+        and not login.endswith("[bot]")
+        and login not in _COPILOT_COMMITTER_LOGINS
+    )
 
 
 def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
@@ -517,18 +531,17 @@ def compute_facts(
     return facts
 
 
-def add_author_head_observation(
+def add_human_head_observation(
     facts: dict[str, Any],
     raw: dict[str, Any],
-    author: str,
     previous_result: dict[str, Any] | None,
     observed_at: datetime,
 ) -> None:
     head_sha = str(raw["pr"].get("headRefOid") or "")
     previous_facts = (previous_result or {}).get("facts") or {}
     previous_head_sha = str(previous_facts.get("head_sha") or "")
-    author_head_observed_at = parse_ts(
-        previous_facts.get("author_head_observed_at") or ""
+    human_head_observed_at = parse_ts(
+        previous_facts.get("human_head_observed_at") or ""
     )
     head_commit = next(
         (
@@ -539,18 +552,14 @@ def add_author_head_observation(
         None,
     )
     if previous_head_sha and head_sha != previous_head_sha and head_commit:
-        committer = actor_login(head_commit.get("committer") or {})
-        commit_author = actor_login(head_commit.get("author") or {})
-        if (committer or commit_author).lower() == author.lower():
-            author_head_observed_at = observed_at
+        if any(
+            is_human_commit_actor(head_commit.get(field))
+            for field in ("committer", "author")
+        ):
+            human_head_observed_at = observed_at
 
     facts["head_sha"] = head_sha
-    facts["author_head_observed_at"] = format_ts(author_head_observed_at)
-    author_activity = parse_ts(facts.get("last_author_activity_at") or "")
-    if author_head_observed_at is not None and (
-        author_activity is None or author_head_observed_at > author_activity
-    ):
-        facts["last_author_activity_at"] = format_ts(author_head_observed_at)
+    facts["human_head_observed_at"] = format_ts(human_head_observed_at)
 
 
 def discussion_comment(
@@ -1073,7 +1082,7 @@ def build_pr_result(
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events)
-        add_author_head_observation(facts, raw, author, previous_result, utc_now())
+        add_human_head_observation(facts, raw, previous_result, utc_now())
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         review_thread_classifications, top_level_classifications = (

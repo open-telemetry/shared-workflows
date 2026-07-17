@@ -178,8 +178,8 @@ configured repository.
 
 Repositories with `stale_waiting_on_author` enabled apply `Stale` after one
 quiet week following the general nudge and close after another quiet week.
-Author pushes and author or reviewer comments and reviews restart the current
-escalation stage. Activity after stale labeling removes a dashboard-managed
+Human pushes, comments, and reviews restart the current escalation stage.
+Activity after stale labeling removes a dashboard-managed
 `Stale` label before starting a fresh one-week stale wait. Manually removing a
 dashboard-managed `Stale` label has the same effect. Bot activity, reactions,
 label or assignment changes, checks, and edits to existing comments do not

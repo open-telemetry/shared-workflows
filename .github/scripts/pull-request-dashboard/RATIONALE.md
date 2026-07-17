@@ -87,17 +87,19 @@ the implementation understandable and operationally cheap.
 - Both nudges apply to every configured repository. Stale labeling and closure
   require the repository-level `stale_waiting_on_author` option.
 - The general nudge clock is unaffected by activity while the PR remains routed
-  to the author. After that nudge, author pushes and human comments and reviews
+  to the author. After that nudge, human pushes, comments, and reviews
   restart the current one-week quiet stage. Activity after stale labeling
   removes a dashboard-owned `Stale` label before restarting the stale wait.
   Leaving the author route clears the lifecycle.
-- Substantive human activity consists of author commits, human issue or review
+- Substantive human activity consists of human commits, human issue or review
   comments, and submitted human reviews. Bot and dashboard activity, reactions,
   label or assignment changes, checks, and edits to existing comments do not
   reset a quiet stage. Commit author and committer dates are metadata rather
-  than push times, so an author-attributed head-SHA change uses the time the
-  dashboard first observes that change. Closure also compares the live head SHA
-  with the accepted dashboard result to catch a push after the refresh.
+  than push times, so a human-attributed head-SHA change uses the time the
+  dashboard first observes that change. This includes a reviewer helping by
+  pushing to the author's branch, while bot-only changes remain excluded.
+  Closure also compares the live head SHA with the accepted dashboard result to
+  catch a push after the refresh.
 - A non-PR run evaluates lifecycle actions only for PR results refreshed and
   accepted during that run. Older cached results remain available for dashboard
   rendering but cannot trigger nudges, stale labeling, or closure.

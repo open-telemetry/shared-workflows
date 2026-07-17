@@ -20,6 +20,7 @@ def latest_human_activity(facts: dict[str, Any]) -> datetime | None:
             "last_author_activity_at",
             "last_approver_activity_at",
             "last_external_activity_at",
+            "human_head_observed_at",
         )
     ]
     return max((timestamp for timestamp in timestamps if timestamp is not None), default=None)

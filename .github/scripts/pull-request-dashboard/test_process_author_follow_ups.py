@@ -39,7 +39,7 @@ def author_result() -> dict[str, object]:
             "last_external_activity_at": "",
             "waiting_since": CYCLE_ID,
             "head_sha": "accepted-head",
-            "author_head_observed_at": "",
+            "human_head_observed_at": "",
             "author_action_review_thread_urls": [
                 "https://github.com/open-telemetry/example/pull/1#discussion_r1"
             ],
@@ -173,6 +173,46 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
                 "sha": "new-head",
                 "author": {"login": "alice"},
                 "committer": {"login": "alice"},
+                "commit": {
+                    "author": {"date": "2020-01-01T00:00:00Z"},
+                    "committer": {"date": "2020-01-01T00:00:00Z"},
+                },
+            }],
+        ]
+
+        activity = process_author_follow_ups.current_human_activity(
+            "open-telemetry/example",
+            1,
+            author_result(),
+            NOW,
+        )
+
+        self.assertEqual(activity, NOW)
+
+    @patch.object(
+        process_author_follow_ups,
+        "fetch_pr_review_data",
+        return_value={"reviews": []},
+    )
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={"headRefOid": "new-head"},
+    )
+    @patch.object(process_author_follow_ups, "gh_api")
+    def test_current_human_activity_observes_reviewer_push(
+        self,
+        gh_api,
+        _gh_pr_view,
+        _fetch_pr_review_data,
+    ) -> None:
+        gh_api.side_effect = [
+            [],
+            [],
+            [{
+                "sha": "new-head",
+                "author": {"login": "reviewer", "type": "User"},
+                "committer": {"login": "web-flow", "type": "User"},
                 "commit": {
                     "author": {"date": "2020-01-01T00:00:00Z"},
                     "committer": {"date": "2020-01-01T00:00:00Z"},

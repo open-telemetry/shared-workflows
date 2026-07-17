@@ -15,6 +15,7 @@ def result(
     route: str = "author",
     author_activity: str = "2026-07-10T00:00:00Z",
     approver_activity: str = "",
+    human_head_activity: str = "",
     waiting_since: str = "2026-07-10T00:00:00Z",
 ) -> dict[str, Any]:
     return {
@@ -23,6 +24,7 @@ def result(
             "last_author_activity_at": author_activity,
             "last_approver_activity_at": approver_activity,
             "last_external_activity_at": "",
+            "human_head_observed_at": human_head_activity,
             "waiting_since": waiting_since,
         },
     }
@@ -95,6 +97,22 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
         self.assertIsNone(action)
         assert updated is not None
         self.assertEqual(updated["handoff_nudged_at"], "")
+
+    def test_reviewer_push_does_not_trigger_handoff_nudge(self) -> None:
+        action, updated = plan_follow_up(
+            result(
+                author_activity="",
+                human_head_activity="2026-07-16T00:00:00Z",
+                waiting_since="2026-07-12T00:00:00Z",
+            ),
+            entry(waiting_on_author_since="2026-07-12T00:00:00Z"),
+            NOW,
+            stale_enabled=False,
+        )
+
+        self.assertIsNone(action)
+        assert updated is not None
+        self.assertEqual(updated["pending_handoff_since"], "")
 
     def test_handoff_nudge_clock_does_not_use_author_route_start(self) -> None:
         action, updated = plan_follow_up(
@@ -350,6 +368,24 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
         assert updated is not None
         self.assertEqual(updated["stale_applied_at"], "")
         self.assertEqual(updated["stale_reset_at"], "2026-07-11T00:00:00+00:00")
+
+    def test_reviewer_push_removes_stale_and_resets_escalation(self) -> None:
+        action, updated = plan_follow_up(
+            result(
+                author_activity="",
+                human_head_activity="2026-07-16T00:00:00Z",
+            ),
+            entry(
+                general_nudged_at="2026-07-01T00:00:00Z",
+                stale_applied_at="2026-07-15T00:00:00Z",
+            ),
+            NOW,
+            stale_enabled=True,
+        )
+
+        self.assertEqual(action, "remove-stale")
+        assert updated is not None
+        self.assertEqual(updated["stale_reset_at"], "2026-07-16T00:00:00+00:00")
 
     def test_leaving_author_route_clears_cycle_after_stale_removal(self) -> None:
         action, updated = plan_follow_up(
