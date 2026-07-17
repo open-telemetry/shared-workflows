@@ -14,10 +14,6 @@ on:
         required: false
         default: ""
         type: string
-      trigger_action:
-        required: false
-        default: ""
-        type: string
       required_approvals:
         required: false
         default: 1
@@ -62,7 +58,7 @@ jobs:
     environment: protected
     runs-on: cncf-ubuntu-2-8-x86
     outputs:
-      initial_backfill_complete: ${{ steps.bootstrap-status.outputs.complete }}
+      initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -112,6 +108,7 @@ jobs:
           echo "$GITHUB_WORKSPACE/.github/scripts/pull-request-dashboard/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Generate and update dashboard state
+        id: dashboard-update
         env:
           TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
@@ -124,7 +121,7 @@ jobs:
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          dashboard_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
+          dashboard_args=(--state-branch "$state_branch" --repo "$REPO_NAME" --github-output "$GITHUB_OUTPUT")
           dashboard_args+=(--required-approvals "$REQUIRED_APPROVALS")
           for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
             dashboard_args+=(--approver-team "$team")
@@ -133,19 +130,6 @@ jobs:
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
-
-      - name: Read dashboard bootstrap status
-        id: bootstrap-status
-        env:
-          REPO_NAME: ${{ inputs.repository }}
-        run: |
-          set -euo pipefail
-          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          complete=$(python3 .github/scripts/pull-request-dashboard/pr_status_comment.py \
-            --state-branch "$state_branch" \
-            --repo "$REPO_NAME" \
-            --check-initial-backfill-complete)
-          echo "complete=$complete" >> "$GITHUB_OUTPUT"
 
   update-pr-status-comment:
     needs: update-dashboard

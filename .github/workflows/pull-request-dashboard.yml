@@ -17,10 +17,6 @@ on:
         description: Event that requested the refresh.
         required: false
         type: string
-      trigger_action:
-        description: Event action that requested the refresh.
-        required: false
-        type: string
       trigger_review_id:
         description: Deprecated compatibility input; accepted and ignored during webhook rollout.
         required: false
@@ -55,7 +51,6 @@ jobs:
       matrix: ${{ steps.targets.outputs.matrix }}
       pr_number: ${{ steps.trigger.outputs.pr_number }}
       trigger_event: ${{ steps.trigger.outputs.event }}
-      trigger_action: ${{ steps.trigger.outputs.action }}
       dashboard_precondition_met: ${{ steps.dashboard-precondition.outputs.met }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -69,12 +64,10 @@ jobs:
           TARGET_REPOSITORY_FROM_INPUT: ${{ inputs.repository }}
           PR_FROM_INPUT: ${{ inputs.pr_number }}
           TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
-          TRIGGER_ACTION_FROM_INPUT: ${{ inputs.trigger_action }}
         run: |
           set -euo pipefail
           pr_number=""
           trigger_event=""
-          trigger_action=""
 
           case "$EVENT_NAME" in
             schedule)
@@ -83,7 +76,6 @@ jobs:
             workflow_dispatch)
               pr_number="$PR_FROM_INPUT"
               trigger_event="${TRIGGER_EVENT_FROM_INPUT:-workflow_dispatch}"
-              trigger_action="$TRIGGER_ACTION_FROM_INPUT"
               ;;
           esac
 
@@ -95,13 +87,9 @@ jobs:
             [[ "$trigger_event" =~ ^(schedule|workflow_dispatch|check_suite|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
               || { echo "bad trigger event: $trigger_event"; exit 1; }
           fi
-          if [[ -n "$trigger_action" ]]; then
-            [[ "$trigger_action" =~ ^[a-z_]{1,32}$ ]] || { echo "bad trigger action: $trigger_action"; exit 1; }
-          fi
           {
             echo "pr_number=$pr_number"
             echo "event=$trigger_event"
-            echo "action=$trigger_action"
           } >> "$GITHUB_OUTPUT"
 
       - name: Resolve target repositories
@@ -168,7 +156,6 @@ jobs:
       repository: ${{ matrix.name }}
       pr_number: ${{ needs.resolve-targets.outputs.pr_number }}
       trigger_event: ${{ needs.resolve-targets.outputs.trigger_event }}
-      trigger_action: ${{ needs.resolve-targets.outputs.trigger_action }}
       required_approvals: ${{ matrix.required_approvals || 1 }}
       approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
       slack_channel: ${{ matrix.slack_channel }}

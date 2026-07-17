@@ -45,7 +45,11 @@ def dashboard_markdown_path() -> Path:
 
 
 def empty_state() -> dict[str, Any]:
-    return {"version": DASHBOARD_STATE_VERSION, "prs": {}}
+    return {
+        "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: False,
+        "prs": {},
+    }
 
 
 def initial_backfill_complete(state: dict[str, Any] | None) -> bool:
@@ -109,14 +113,22 @@ def save_backfill_state(state: dict[str, Any]) -> None:
 
 def load_dashboard_state_cache() -> dict[str, Any] | None:
     state = load_state_file(dashboard_state_path(), DASHBOARD_STATE_VERSION)
-    if state is not None and not isinstance(state.get("prs"), dict):
-        state["prs"] = {}
-    return state
+    if state is None:
+        return None
+    prs = state.get("prs")
+    return {
+        "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
+        "prs": prs if isinstance(prs, dict) else {},
+    }
 
 
 def save_dashboard_state_cache(state: dict[str, Any]) -> None:
-    stored = dict(state)
-    stored.setdefault("prs", {})
+    prs = state.get("prs")
+    stored = {
+        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
+        "prs": prs if isinstance(prs, dict) else {},
+    }
     save_state_file(dashboard_state_path(), stored, DASHBOARD_STATE_VERSION)
 
 
@@ -194,6 +206,7 @@ def results_from_dashboard_state(state: dict[str, Any], open_pr_numbers: set[int
 def dashboard_state_from_results(results: dict[int, dict[str, Any]]) -> dict[str, Any]:
     return {
         "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: False,
         "prs": {str(number): stored_result(result) for number, result in sorted(results.items())},
     }
 
@@ -209,7 +222,8 @@ def update_dashboard_state_for_pr(
         prs.pop(key, None)
     else:
         prs[key] = stored_result(result)
-    updated = dict(state)
-    updated["version"] = DASHBOARD_STATE_VERSION
-    updated["prs"] = prs
-    return updated
+    return {
+        "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
+        "prs": prs,
+    }

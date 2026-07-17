@@ -19,6 +19,7 @@ from state import (
     load_notifications,
     notification_state_path,
     save_state_file,
+    save_dashboard_state_cache,
     save_notifications,
     stored_result,
     update_dashboard_state_for_pr,
@@ -48,7 +49,7 @@ class StateTest(unittest.TestCase):
     def test_state_specific_loaders_own_payload_defaults(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
             dashboard_state_path().write_text(
-                json.dumps({"version": DASHBOARD_STATE_VERSION}),
+                json.dumps({"version": DASHBOARD_STATE_VERSION, "unknown": "discard me"}),
                 encoding="utf-8",
             )
             notification_state_path().write_text(
@@ -62,12 +63,29 @@ class StateTest(unittest.TestCase):
 
             self.assertEqual(
                 load_dashboard_state_cache(),
-                {"version": DASHBOARD_STATE_VERSION, "prs": {}},
+                {
+                    "version": DASHBOARD_STATE_VERSION,
+                    "initial_backfill_complete": False,
+                    "prs": {},
+                },
             )
             self.assertEqual(load_notifications(), {})
             self.assertEqual(
                 load_backfill_state(),
                 {"version": BACKFILL_STATE_VERSION, "cursor": {}},
+            )
+
+    def test_dashboard_state_save_writes_explicit_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            save_dashboard_state_cache({"unknown": "discard me"})
+
+            self.assertEqual(
+                json.loads(dashboard_state_path().read_text(encoding="utf-8")),
+                {
+                    "version": DASHBOARD_STATE_VERSION,
+                    "initial_backfill_complete": False,
+                    "prs": {},
+                },
             )
 
     def test_notification_state_version_is_independent(self) -> None:
@@ -98,10 +116,18 @@ class StateTest(unittest.TestCase):
     def test_targeted_update_preserves_initial_backfill_marker(self) -> None:
         state = empty_state()
         state["initial_backfill_complete"] = True
+        state["unknown"] = "discard me"
 
         updated = update_dashboard_state_for_pr(state, 123, None)
 
-        self.assertTrue(updated["initial_backfill_complete"])
+        self.assertEqual(
+            updated,
+            {
+                "version": DASHBOARD_STATE_VERSION,
+                "initial_backfill_complete": True,
+                "prs": {},
+            },
+        )
 
     def test_notification_state_write_ignores_dashboard_version(self) -> None:
         with (

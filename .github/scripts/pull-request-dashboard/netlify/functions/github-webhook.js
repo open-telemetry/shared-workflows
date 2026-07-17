@@ -7,11 +7,6 @@ const WORKFLOW_REPOSITORY = "shared-workflows";
 const WORKFLOW_ID = "pull-request-dashboard.yml";
 const WORKFLOW_REF = "main";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
-const DASHBOARD_COMMENT_MARKERS = [
-  "<!-- pull-request-dashboard-status -->",
-  "<!-- review-guidance -->",
-  "<!-- copilot-review-guidance -->",
-];
 
 const ALLOWED_ACTIONS = {
   check_suite: new Set(["completed", "requested", "rerequested"]),
@@ -96,7 +91,6 @@ async function handle(event) {
     repository: repository.name,
     pr_number: String(prNumber),
     trigger_event: eventName,
-    trigger_action: action,
   });
 
   return response(202, {
@@ -104,7 +98,6 @@ async function handle(event) {
     repository: repository.fullName,
     pr_number: prNumber,
     trigger_event: eventName,
-    trigger_action: action,
   });
 }
 
@@ -114,12 +107,10 @@ function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
   }
   const comment = payload.comment || {};
   const app = comment.performed_via_github_app || {};
-  const body = comment.body || "";
   const commentAuthor = comment.user || {};
   const sender = payload.sender || {};
   return (
     app.slug === DASHBOARD_APP_SLUG &&
-    DASHBOARD_COMMENT_MARKERS.some((marker) => body.includes(marker)) &&
     Boolean(sender.id) &&
     sender.id === commentAuthor.id
   );

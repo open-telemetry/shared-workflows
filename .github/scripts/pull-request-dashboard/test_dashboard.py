@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from classification import discussion_prompt_input
 from dashboard import (
     author_action_discussion_urls,
     complete_initial_backfill_if_ready,
     group_review_threads,
+    write_initial_backfill_output,
 )
 
 
@@ -77,10 +81,10 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
 
 class InitialBackfillCompletionTest(unittest.TestCase):
     def test_marks_complete_only_after_all_open_prs_are_cached(self) -> None:
-        state = {"prs": {"1": {}}}
+        state = {"initial_backfill_complete": False, "prs": {"1": {}}}
 
         self.assertFalse(complete_initial_backfill_if_ready(state, {1, 2}))
-        self.assertNotIn("initial_backfill_complete", state)
+        self.assertFalse(state["initial_backfill_complete"])
 
         state["prs"]["2"] = {}
         self.assertTrue(complete_initial_backfill_if_ready(state, {1, 2}))
@@ -92,6 +96,22 @@ class InitialBackfillCompletionTest(unittest.TestCase):
 
         self.assertTrue(complete_initial_backfill_if_ready(state, set()))
         self.assertTrue(state["initial_backfill_complete"])
+
+    def test_writes_initial_backfill_status_to_github_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for name, state, expected in (
+                ("incomplete", None, "false"),
+                ("complete", {"initial_backfill_complete": True, "prs": {}}, "true"),
+            ):
+                with self.subTest(name=name):
+                    output_path = Path(temp_dir) / name
+                    with patch("dashboard.load_dashboard_state_cache", return_value=state):
+                        write_initial_backfill_output(output_path)
+
+                    self.assertEqual(
+                        f"initial_backfill_complete={expected}\n",
+                        output_path.read_text(encoding="utf-8"),
+                    )
 
 
 if __name__ == "__main__":

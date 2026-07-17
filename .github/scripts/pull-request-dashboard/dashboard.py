@@ -16,6 +16,7 @@ Usage:
                                                                --approver-team TEAM
                                                                [--approver-team TEAM]
                                                                [--pr-number N]
+                                                               [--github-output PATH]
                                                                [--model NAME]
 
 Architecture overview
@@ -1611,6 +1612,12 @@ def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir: Path)
     return update_dashboard_for_pr_number(args, state_dir)
 
 
+def write_initial_backfill_output(github_output: Path) -> None:
+    complete = initial_backfill_complete(load_dashboard_state_cache())
+    with github_output.open("a", encoding="utf-8") as output:
+        output.write(f"initial_backfill_complete={'true' if complete else 'false'}\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
@@ -1633,13 +1640,21 @@ def main() -> int:
         help="minimum non-bot approvals needed before a PR can route to maintainers",
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
+    parser.add_argument(
+        "--github-output",
+        type=Path,
+        help="append initial_backfill_complete to this GitHub Actions output file",
+    )
     args = parser.parse_args()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")
     with state_branch.temporary_state_dir() as state_dir:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
-        return update_dashboard_via_state_branch(args, state_dir)
+        status = update_dashboard_via_state_branch(args, state_dir)
+        if status == 0 and args.github_output:
+            write_initial_backfill_output(args.github_output)
+        return status
 
 
 if __name__ == "__main__":
