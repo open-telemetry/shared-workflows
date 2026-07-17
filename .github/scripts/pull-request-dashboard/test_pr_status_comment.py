@@ -276,7 +276,7 @@ class RolloutStateTest(unittest.TestCase):
             open_pr_numbers,
         )
 
-        self.assertEqual(0, status)
+        self.assertEqual([], status)
         self.assertEqual(
             list(range(1, 51)),
             [call.args[1] for call in publish_pr_status.call_args_list],
@@ -310,7 +310,7 @@ class RolloutStateTest(unittest.TestCase):
             None,
         )
 
-        self.assertEqual(0, status)
+        self.assertEqual([], status)
         saved_state = save_rollout.call_args.args[0]
         self.assertEqual([], saved_state["pending_pr_numbers"])
         self.assertEqual(
@@ -319,7 +319,11 @@ class RolloutStateTest(unittest.TestCase):
         )
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
-    @patch.object(pr_status_comment, "publish_pr_status", side_effect=RuntimeError("failed"))
+    @patch.object(
+        pr_status_comment,
+        "publish_pr_status",
+        side_effect=[RuntimeError("failed"), None],
+    )
     @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
     @patch.object(
         pr_status_comment,
@@ -330,21 +334,24 @@ class RolloutStateTest(unittest.TestCase):
             "pending_pr_numbers": [],
         },
     )
-    def test_failed_comment_write_does_not_advance_queue(
+    def test_failed_comment_write_retains_only_failed_pr_and_continues(
         self,
         _load_rollout: object,
         _load_dashboard: object,
-        _publish_pr_status: object,
+        publish_pr_status: Mock,
         save_rollout: Mock,
     ) -> None:
-        with self.assertRaisesRegex(RuntimeError, "failed"):
-            pr_status_comment.update_status_comments_from_state(
-                "open-telemetry/example",
-                None,
-                {12},
-            )
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            None,
+            {12, 34},
+        )
 
-        save_rollout.assert_not_called()
+        self.assertEqual(["PR #12: failed"], errors)
+        self.assertEqual([12, 34], [call.args[1] for call in publish_pr_status.call_args_list])
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([12], saved_state["pending_pr_numbers"])
+        self.assertEqual(0, saved_state["completed_revision"])
 
 
 if __name__ == "__main__":

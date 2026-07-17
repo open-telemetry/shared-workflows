@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -190,11 +191,11 @@ def update_status_comments_from_state(
     repo: str,
     pr_number: int | None,
     open_pr_numbers: set[int] | None,
-) -> int:
+) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
         print("dashboard result state not found; skipping PR status comment", file=sys.stderr)
-        return 0
+        return []
 
     rollout_state = load_status_comment_rollout_state()
     if pr_number is not None:
@@ -206,20 +207,45 @@ def update_status_comments_from_state(
             if not pending and rollout_state["target_revision"] == STATUS_COMMENT_REVISION:
                 rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
             save_status_comment_rollout_state(rollout_state)
-        return 0
+        return []
 
     if open_pr_numbers is None:
         raise RuntimeError("open PR numbers are required for a rollout update")
     rollout_state = prepare_rollout_state(rollout_state, open_pr_numbers)
     rollout_pr_numbers = rollout_state["pending_pr_numbers"][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    successful_pr_numbers: set[int] = set()
+    errors: list[str] = []
     for number in rollout_pr_numbers:
-        publish_pr_status(repo, number, dashboard_state)
+        try:
+            publish_pr_status(repo, number, dashboard_state)
+        except Exception as e:
+            errors.append(f"PR #{number}: {e}")
+        else:
+            successful_pr_numbers.add(number)
 
-    pending = set(rollout_state["pending_pr_numbers"]) - set(rollout_pr_numbers)
+    pending = set(rollout_state["pending_pr_numbers"]) - successful_pr_numbers
     rollout_state["pending_pr_numbers"] = sorted(pending)
     if not pending:
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
     save_status_comment_rollout_state(rollout_state)
+    return errors
+
+
+def rollout_errors_path() -> Path:
+    return Path(os.environ.get("RUNNER_TEMP", ".")) / "status-comment-rollout-errors.txt"
+
+
+def update_status_comments(
+    repo: str,
+    pr_number: int | None,
+    open_pr_numbers: set[int] | None,
+    errors_file: Path,
+) -> int:
+    errors = update_status_comments_from_state(repo, pr_number, open_pr_numbers)
+    if errors:
+        errors_file.write_text("\n".join(errors) + "\n", encoding="utf-8")
+    else:
+        errors_file.unlink(missing_ok=True)
     return 0
 
 
@@ -233,17 +259,27 @@ def update_status_comments_with_state(
     if pr_number is None:
         open_pr_numbers = {pr["number"] for pr in list_open_prs(repo)}
     repo_key = repo_state_key(repo)
-    return state_branch.push_state_changes(
+    errors_file = rollout_errors_path()
+    errors_file.unlink(missing_ok=True)
+    status = state_branch.push_state_changes(
         state_dir,
         "Update status comment rollout state",
-        lambda: update_status_comments_from_state(
+        lambda: update_status_comments(
             repo,
             pr_number,
             open_pr_numbers,
+            errors_file,
         ),
         state_branch=state_branch_name,
         add_paths=[f"{repo_key}/{status_comment_rollout_state_path().name}"],
     )
+    if status != 0:
+        return status
+    if not errors_file.exists():
+        return 0
+    print("Status comment rollout failed:", file=sys.stderr)
+    print(errors_file.read_text(encoding="utf-8").rstrip(), file=sys.stderr)
+    return 1
 
 
 def main() -> int:
