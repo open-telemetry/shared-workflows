@@ -953,7 +953,13 @@ def oldest_pending_action_ts(
 
 def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
     if route in ("approver", "maintainer"):
-        return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
+        author_activity = parse_ts(facts.get("last_author_activity_at") or "")
+        author_head_activity = parse_ts(facts.get("author_head_observed_at") or "")
+        if author_head_activity is not None and (
+            author_activity is None or author_head_activity > author_activity
+        ):
+            return author_head_activity, "author_head_observed"
+        return author_activity, "last_author_activity"
     if route == "author":
         return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
     if route == "external":

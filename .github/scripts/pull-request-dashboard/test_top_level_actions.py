@@ -474,6 +474,18 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(facts["waiting_since"], "2026-07-14T01:00:00+00:00")
         self.assertEqual(facts["waiting_age_basis"], "oldest_pending_thread")
 
+    def test_approver_fallback_uses_observed_author_head_change(self) -> None:
+        facts = {
+            "last_author_activity_at": "2026-07-14T04:00:00Z",
+            "author_head_observed_at": "2026-07-17T01:00:00Z",
+            "created_at": "2026-07-13T01:00:00Z",
+        }
+
+        add_wait_age_facts(facts, "approver", {})
+
+        self.assertEqual(facts["waiting_since"], "2026-07-17T01:00:00+00:00")
+        self.assertEqual(facts["waiting_age_basis"], "author_head_observed")
+
     @patch("dashboard.build_pr_result")
     def test_dashboard_refresh_reuses_stored_top_level_history(self, build_result) -> None:
         build_result.return_value = None
