@@ -203,10 +203,21 @@ class RequiredCiRoutingTest(unittest.TestCase):
             ],
         )
 
-        add_wait_age_facts(facts, "author", {})
+        cases = (
+            ("2026-07-17T03:00:00Z", "2026-07-17T01:00:00+00:00", "ci_failure"),
+            ("2026-07-16T23:00:00Z", "2026-07-16T23:00:00+00:00", "oldest_pending_thread"),
+        )
+        for discussion_since, waiting_since, basis in cases:
+            with self.subTest(discussion_since=discussion_since):
+                current_facts = dict(facts)
+                add_wait_age_facts(
+                    current_facts,
+                    "author",
+                    {"thread": {"action": "author", "since": discussion_since}},
+                )
 
-        self.assertEqual("2026-07-17T01:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("ci_failure", facts["waiting_age_basis"])
+                self.assertEqual(waiting_since, current_facts["waiting_since"])
+                self.assertEqual(basis, current_facts["waiting_age_basis"])
 
 
 if __name__ == "__main__":

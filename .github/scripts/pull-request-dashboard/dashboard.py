@@ -928,8 +928,13 @@ def add_wait_age_facts(
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
-    if wait_ts is None:
-        wait_ts, basis = fallback_wait_ts(route, facts)
+    fallback_ts, fallback_basis = fallback_wait_ts(route, facts)
+    if wait_ts is None or (
+        fallback_basis == "ci_failure"
+        and fallback_ts is not None
+        and fallback_ts < wait_ts
+    ):
+        wait_ts, basis = fallback_ts, fallback_basis
     if wait_ts is None:
         wait_ts = parse_ts(facts.get("created_at") or "")
         basis = "created"
