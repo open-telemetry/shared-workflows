@@ -286,7 +286,11 @@ def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
 
 
 def gh_required_check_contexts(repo: str, base_branch: str) -> list[str]:
-    rules = gh_api(f"/repos/{repo}/rules/branches/{quote(base_branch, safe='')}")
+    encoded_branch = quote(base_branch, safe="")
+    rules = gh_api(
+        f"/repos/{repo}/rules/branches/{encoded_branch}?per_page=100",
+        paginate=True,
+    )
     contexts: list[str] = []
     for rule in rules or []:
         if rule.get("type") != "required_status_checks":

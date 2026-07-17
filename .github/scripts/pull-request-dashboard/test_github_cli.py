@@ -65,7 +65,8 @@ class GithubCliTest(unittest.TestCase):
             gh_required_check_contexts("open-telemetry/example", "release/1.x"),
         )
         api.assert_called_once_with(
-            "/repos/open-telemetry/example/rules/branches/release%2F1.x"
+            "/repos/open-telemetry/example/rules/branches/release%2F1.x?per_page=100",
+            paginate=True,
         )
 
     def test_missing_required_checks_are_pending(self) -> None:

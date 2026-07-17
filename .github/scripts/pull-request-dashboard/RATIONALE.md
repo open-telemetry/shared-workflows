@@ -130,8 +130,12 @@ the implementation understandable and operationally cheap.
 
 - Reported CI facts come from `gh pr checks --required`, so optional check
   failures do not make the dashboard report a failing PR or change its route.
-  Effective rules for the PR's base branch supply configured required contexts;
-  a context that has not reported yet is shown as pending rather than passing.
+  Paginated effective rulesets for the PR's base branch supply configured
+  required contexts; a context that has not reported yet is shown as pending
+  rather than passing.
+- Classic branch-protection required status checks are not discovered when they
+  have not reported. This is an accepted limitation because configured
+  OpenTelemetry repositories use rulesets for required status checks.
 - A failing required status check routes a human-authored PR to the author
   before discussion and approval routing. The live PR status comment names the
   CI failure, including when review feedback also needs author action.
