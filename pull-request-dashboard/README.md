@@ -77,8 +77,11 @@ Inline review threads and top-level feedback have different lifecycles on
 GitHub. Top-level feedback means a standalone PR comment or submitted review
 summary that is not attached to an inline review thread.
 
-- An inline thread remains open until someone resolves it. Authors should reply
-  with the outcome and/or resolve the thread after addressing it.
+- An inline thread remains on the dashboard until someone marks the conversation
+  resolved on GitHub or GitHub marks its code anchor outdated. An author reply
+  can hand the dashboard action back to reviewers, but it does not close the
+  thread. After addressing it, authors should reply with the outcome and, when
+  appropriate, resolve the conversation.
 - Top-level feedback has no resolved state. The dashboard therefore tracks each
   actionable top-level feedback item independently. 📌 means that one or more
   of those items are waiting on the author.
