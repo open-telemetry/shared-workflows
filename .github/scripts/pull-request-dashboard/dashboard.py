@@ -1444,6 +1444,7 @@ def remove_cached_dashboard_prs(
     state_prs = dict(dashboard_state.get("prs") or {})
     for number in pr_numbers_to_remove:
         state_prs.pop(str(number), None)
+        enqueue_status_comment_update(number)
     dashboard_state["prs"] = state_prs
     return save_dashboard_update_state(args, dashboard_state, False)
 

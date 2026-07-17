@@ -13,6 +13,7 @@ from dashboard import (
     author_action_discussion_urls,
     complete_initial_backfill_if_ready,
     group_review_threads,
+    remove_cached_dashboard_prs,
     write_initial_backfill_output,
 )
 
@@ -162,6 +163,30 @@ class InitialBackfillCompletionTest(unittest.TestCase):
 
 
 class StatusCommentQueueTest(unittest.TestCase):
+    @patch("dashboard.save_dashboard_update_state", return_value=0)
+    @patch("dashboard.enqueue_status_comment_update")
+    @patch(
+        "dashboard.load_dashboard_state_cache",
+        return_value={"prs": {"12": {}, "34": {}, "56": {}}},
+    )
+    def test_removed_dashboard_results_enqueue_status_comments(
+        self,
+        _load_state: object,
+        enqueue_update: object,
+        save_state: object,
+    ) -> None:
+        args = Namespace(pr_number=None)
+
+        status = remove_cached_dashboard_prs(args, {12, 34})
+
+        self.assertEqual(0, status)
+        self.assertEqual(
+            [unittest.mock.call(12), unittest.mock.call(34)],
+            sorted(enqueue_update.call_args_list, key=lambda call: call.args[0]),
+        )
+        saved_state = save_state.call_args.args[1]
+        self.assertEqual({"56": {}}, saved_state["prs"])
+
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
     @patch("dashboard.merge_dashboard_update_with_latest_state")
