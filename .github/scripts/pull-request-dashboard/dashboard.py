@@ -54,9 +54,10 @@ succeeds does a follow-up publishing job fetch the accepted dashboard state,
 render the dashboard body, and publish it to the dashboard issue.
 
 Runs without --pr-number use backfill and store progress in
-backfill-state.json. A selected PR advances that cursor after a successful
-refresh; a failure leaves the cursor in place so scheduled failure reporting
-continues until the blocked refresh is fixed. Single-PR runs are
+backfill-state.json. Every attempted PR advances that cursor. Failures are
+recorded separately from accepted dashboard state, later PRs continue to
+refresh, and the workflow exits nonzero while an open PR is still recorded as
+having failed processing. Single-PR runs are
 optimistic-concurrency updates of just one PR slot in the cached state.
 
 Field schemas
@@ -1251,10 +1252,12 @@ def dashboard_state_pr_numbers(state: dict[str, Any]) -> set[int]:
 def complete_initial_backfill_if_ready(
     state: dict[str, Any],
     open_pr_numbers: set[int],
+    failed_pr_numbers: set[int] | None = None,
 ) -> bool:
     if initial_backfill_complete(state):
         return False
-    if not open_pr_numbers.issubset(dashboard_state_pr_numbers(state)):
+    attempted_pr_numbers = dashboard_state_pr_numbers(state) | (failed_pr_numbers or set())
+    if not open_pr_numbers.issubset(attempted_pr_numbers):
         return False
     state[INITIAL_BACKFILL_COMPLETE_KEY] = True
     return True
@@ -1275,6 +1278,30 @@ def backfill_cursor_pr_number(backfill_state: dict[str, Any]) -> int | None:
 
 def set_backfill_cursor_pr_number(backfill_state: dict[str, Any], number: int) -> None:
     backfill_state["cursor"] = {"last_pr_number": number}
+
+
+def backfill_failed_pr_numbers(backfill_state: dict[str, Any]) -> set[int]:
+    numbers: set[int] = set()
+    for value in (backfill_state.get("failed_pr_numbers") or []):
+        try:
+            numbers.add(int(value))
+        except (TypeError, ValueError):
+            continue
+    return numbers
+
+
+def set_backfill_pr_failed(
+    backfill_state: dict[str, Any],
+    number: int,
+    failed: bool,
+) -> set[int]:
+    failed_pr_numbers = backfill_failed_pr_numbers(backfill_state)
+    if failed:
+        failed_pr_numbers.add(number)
+    else:
+        failed_pr_numbers.discard(number)
+    backfill_state["failed_pr_numbers"] = sorted(failed_pr_numbers)
+    return failed_pr_numbers
 
 
 def round_robin_numbers(numbers: list[int], last_number: int | None) -> list[int]:
@@ -1426,11 +1453,12 @@ def save_dashboard_update_state(
     return 0
 
 
-def update_backfill_cursor(pr_number: int) -> int:
+def update_backfill_progress(pr_number: int, *, failed: bool) -> set[int]:
     backfill_state = load_backfill_state()
     set_backfill_cursor_pr_number(backfill_state, pr_number)
+    failed_pr_numbers = set_backfill_pr_failed(backfill_state, pr_number, failed)
     save_backfill_state(backfill_state)
-    return 0
+    return failed_pr_numbers
 
 
 def remove_cached_dashboard_prs(
@@ -1588,19 +1616,28 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 open_non_draft_pr_numbers,
             )
             if not dashboard_state_unchanged and reject_failed_dashboard_result(calculation.trigger_pr_result):
-                return 1
+                failed_pr_numbers = update_backfill_progress(pr_number, failed=True)
+                initial_backfill_completed = complete_initial_backfill_if_ready(
+                    dashboard_state,
+                    open_non_draft_pr_numbers,
+                    failed_pr_numbers,
+                )
+                return save_dashboard_update_state(
+                    args,
+                    dashboard_state,
+                    not initial_backfill_completed,
+                )
+            failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
             initial_backfill_completed = complete_initial_backfill_if_ready(
                 calculation.dashboard_state,
                 open_non_draft_pr_numbers,
+                failed_pr_numbers,
             )
-            status = save_dashboard_update_state(
+            return save_dashboard_update_state(
                 args,
                 calculation.dashboard_state,
                 dashboard_state_unchanged and not initial_backfill_completed,
             )
-            if status != 0:
-                return status
-            return update_backfill_cursor(pr_number)
 
         status = state_branch.push_state_changes(
             state_dir,
@@ -1610,6 +1647,17 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         )
         if status != 0:
             return status
+    unresolved_failed_pr_numbers = (
+        backfill_failed_pr_numbers(load_backfill_state())
+        & open_non_draft_pr_numbers
+    )
+    if unresolved_failed_pr_numbers:
+        failed_list = ", ".join(f"#{number}" for number in sorted(unresolved_failed_pr_numbers))
+        print(
+            f"backfill completed with PR(s) still recorded as failed: {failed_list}",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 
@@ -1659,7 +1707,7 @@ def main() -> int:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
         status = update_dashboard_via_state_branch(args, state_dir)
-        if status == 0 and args.github_output:
+        if args.github_output:
             write_initial_backfill_output(args.github_output)
         return status
 

@@ -188,7 +188,7 @@ def parse_discussion_decision(
     reason = truncate(str(obj.get("reason") or ""), 300)
     if not reason:
         reason = "No reason provided"
-    decision = {"discussion_action": action, "reason": reason}
+    decision: dict[str, Any] = {"discussion_action": action, "reason": reason}
     raw_evidence_kinds = obj.get("required_evidence_kinds")
     evidence_kinds = (
         [str(kind).lower().strip() for kind in raw_evidence_kinds]
@@ -283,7 +283,7 @@ def run_copilot(prompt: str, model: str) -> subprocess.CompletedProcess[str]:
 
 def classification_record(
     discussion: dict[str, Any],
-    decision: dict[str, str],
+    decision: dict[str, Any],
     *,
     failed: bool,
     cli_call: bool = False,
@@ -346,10 +346,10 @@ def top_level_batch_prompt(discussions: list[dict[str, Any]]) -> str:
     return TOP_LEVEL_BATCH_PROMPT_TEMPLATE.format(discussions=discussions_text)
 
 
-def run_llm_for_top_level_batch(
+def _run_llm_for_top_level_batch_once(
     discussions: list[dict[str, Any]],
     model: str,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], set[str]]:
     proc = run_copilot(top_level_batch_prompt(discussions), model)
     response = extract_json_object(proc.stdout)
     items = response.get("items") if isinstance(response, dict) else None
@@ -366,6 +366,7 @@ def run_llm_for_top_level_batch(
                 response_by_id[discussion_id] = item
 
     records: list[dict[str, Any]] = []
+    retryable_ids: set[str] = set()
     for index, discussion in enumerate(discussions):
         discussion_id = discussion["discussion_id"]
         item = response_by_id.get(discussion_id)
@@ -373,6 +374,8 @@ def run_llm_for_top_level_batch(
             json.dumps(item) if item is not None else "",
             require_evidence_kinds=True,
         )
+        if not valid_response or discussion_id in duplicate_ids:
+            retryable_ids.add(discussion_id)
         failed = proc.returncode != 0 or not valid_response or discussion_id in duplicate_ids
         error = None
         if failed:
@@ -393,7 +396,52 @@ def run_llm_for_top_level_batch(
             response_text=proc.stdout,
             stderr=proc.stderr,
         ))
-    return records
+    return records, retryable_ids
+
+
+def run_llm_for_top_level_batch(
+    discussions: list[dict[str, Any]],
+    model: str,
+) -> list[dict[str, Any]]:
+    records, retryable_ids = _run_llm_for_top_level_batch_once(discussions, model)
+    if not retryable_ids:
+        return records
+
+    records_by_id = {record["discussion_id"]: record for record in records}
+    for discussion in discussions:
+        discussion_id = discussion["discussion_id"]
+        if discussion_id not in retryable_ids:
+            continue
+        try:
+            retry_records, _ = _run_llm_for_top_level_batch_once([discussion], model)
+            records_by_id[discussion_id] = retry_records[0]
+        except subprocess.TimeoutExpired as e:
+            records_by_id[discussion_id] = classification_record(
+                discussion,
+                {
+                    "discussion_action": "unclear",
+                    "required_evidence_kinds": [],
+                    "reason": "LLM timeout",
+                },
+                failed=True,
+                cli_call=True,
+                error=f"Copilot CLI timed out after {LLM_DISCUSSION_TIMEOUT_SECONDS}s",
+                response_text=e.stdout if isinstance(e.stdout, str) else None,
+                stderr=e.stderr if isinstance(e.stderr, str) else None,
+            )
+        except Exception as e:
+            records_by_id[discussion_id] = classification_record(
+                discussion,
+                {
+                    "discussion_action": "unclear",
+                    "required_evidence_kinds": [],
+                    "reason": f"LLM failed: {e!r}",
+                },
+                failed=True,
+                cli_call=True,
+                error=f"LLM failed: {e!r}",
+            )
+    return [records_by_id[discussion["discussion_id"]] for discussion in discussions]
 
 
 def discussion_cache_key(
@@ -493,8 +541,8 @@ def classify_review_threads(
                 failed=True,
                 cli_call=True,
                 error=f"Copilot CLI timed out after {LLM_DISCUSSION_TIMEOUT_SECONDS}s",
-                response_text=e.stdout,
-                stderr=e.stderr,
+                response_text=e.stdout if isinstance(e.stdout, str) else None,
+                stderr=e.stderr if isinstance(e.stderr, str) else None,
             )
         except Exception as e:
             print(
@@ -565,8 +613,8 @@ def classify_top_level_items(
                     failed=True,
                     cli_call=(index == 0),
                     error=f"Copilot CLI timed out after {LLM_DISCUSSION_TIMEOUT_SECONDS}s",
-                    response_text=e.stdout,
-                    stderr=e.stderr,
+                    response_text=e.stdout if isinstance(e.stdout, str) else None,
+                    stderr=e.stderr if isinstance(e.stderr, str) else None,
                 )
                 for index, discussion in enumerate(batch_discussions)
             ]

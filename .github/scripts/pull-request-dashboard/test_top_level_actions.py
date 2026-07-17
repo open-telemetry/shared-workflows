@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
-from subprocess import CompletedProcess
+from subprocess import CompletedProcess, TimeoutExpired
 from unittest.mock import patch
 
 from dashboard import (
@@ -67,6 +67,29 @@ def classification(discussion_id: str, *evidence_kinds: str) -> dict:
             "reason": "action requested",
         },
     }
+
+
+def top_level_batch_result(
+    discussion_id: str,
+    action: str = "none",
+    evidence_kinds: list[str] | None = None,
+    reason: str = "No action",
+) -> dict:
+    return {
+        "discussion_id": discussion_id,
+        "discussion_action": action,
+        "required_evidence_kinds": evidence_kinds or [],
+        "reason": reason,
+    }
+
+
+def copilot_batch_response(*items: dict) -> CompletedProcess[str]:
+    return CompletedProcess(
+        args=[],
+        returncode=0,
+        stdout=json.dumps({"items": items}),
+        stderr="",
+    )
 
 
 def event(kind: str, timestamp: str, actor: str, actor_role: str, **values: object) -> dict:
@@ -150,56 +173,119 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
-    def test_top_level_batch_maps_ids_and_rejects_incomplete_results(
+    def test_top_level_batch_retries_only_invalid_results(
         self,
         run_copilot,
         _print_otel,
     ) -> None:
-        run_copilot.return_value = CompletedProcess(
-            args=[],
-            returncode=0,
-            stdout=json.dumps({
-                "items": [
-                    {
-                        "discussion_id": "second",
-                        "discussion_action": "none",
-                        "required_evidence_kinds": [],
-                        "reason": "No action",
-                    },
-                    {
-                        "discussion_id": "first",
-                        "discussion_action": "author",
-                        "required_evidence_kinds": ["commit", "description"],
-                        "reason": "Change requested",
-                    },
-                    {
-                        "discussion_id": "second",
-                        "discussion_action": "none",
-                        "required_evidence_kinds": [],
-                        "reason": "Duplicate",
-                    },
-                ],
-            }),
-            stderr="",
-        )
+        run_copilot.side_effect = [
+            copilot_batch_response(
+                top_level_batch_result("second"),
+                top_level_batch_result(
+                    "first",
+                    "author",
+                    ["commit", "description"],
+                    "Change requested",
+                ),
+                top_level_batch_result(
+                    "invalid",
+                    "author",
+                    reason="Missing required evidence",
+                ),
+                top_level_batch_result("second", reason="Duplicate"),
+            ),
+            copilot_batch_response(
+                top_level_batch_result("second", reason="Recovered duplicate"),
+            ),
+            copilot_batch_response(
+                top_level_batch_result(
+                    "missing",
+                    "external",
+                    reason="Recovered missing result",
+                ),
+            ),
+            copilot_batch_response(
+                top_level_batch_result(
+                    "invalid",
+                    "author",
+                    ["reply"],
+                    "Recovered invalid result",
+                ),
+            ),
+        ]
         discussions = [
             top_level_item("first"),
             top_level_item("second"),
             top_level_item("missing"),
+            top_level_item("invalid"),
         ]
 
         records = run_llm_for_top_level_batch(discussions, "model")
 
-        self.assertEqual([record["discussion_id"] for record in records], ["first", "second", "missing"])
+        self.assertEqual(
+            [record["discussion_id"] for record in records],
+            ["first", "second", "missing", "invalid"],
+        )
         self.assertEqual(
             records[0]["decision"]["required_evidence_kinds"],
             ["commit", "description"],
         )
+        self.assertEqual(records[0]["decision"]["reason"], "Change requested")
+        self.assertEqual(records[1]["decision"]["reason"], "Recovered duplicate")
+        self.assertEqual(records[2]["decision"]["reason"], "Recovered missing result")
+        self.assertEqual(records[3]["decision"]["reason"], "Recovered invalid result")
+        self.assertTrue(all(not record["failed"] for record in records))
+        self.assertEqual(run_copilot.call_count, 4)
+        retry_prompts = [call.args[0][2] for call in run_copilot.call_args_list[1:]]
+        for retry_prompt, discussion_id in zip(
+            retry_prompts,
+            ("second", "missing", "invalid"),
+            strict=True,
+        ):
+            self.assertIn(f'"discussion_id": "{discussion_id}"', retry_prompt)
+            self.assertEqual(retry_prompt.count('"discussion_id":'), 2)
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_top_level_batch_rejects_invalid_retry(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.side_effect = [
+            copilot_batch_response(),
+            copilot_batch_response(),
+        ]
+
+        records = run_llm_for_top_level_batch([top_level_item("missing")], "model")
+
+        self.assertEqual(run_copilot.call_count, 2)
+        self.assertTrue(records[0]["failed"])
+        self.assertIn("this discussion_id", records[0]["error"])
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_top_level_batch_preserves_valid_results_when_retry_times_out(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.side_effect = [
+            copilot_batch_response(
+                top_level_batch_result("valid", reason="Valid first-pass result"),
+            ),
+            TimeoutExpired(cmd=[], timeout=180),
+        ]
+
+        records = run_llm_for_top_level_batch(
+            [top_level_item("valid"), top_level_item("missing")],
+            "model",
+        )
+
         self.assertFalse(records[0]["failed"])
+        self.assertEqual(records[0]["decision"]["reason"], "Valid first-pass result")
         self.assertTrue(records[1]["failed"])
-        self.assertIn("duplicate discussion_id", records[1]["error"])
-        self.assertTrue(records[2]["failed"])
-        self.assertIn("this discussion_id", records[2]["error"])
+        self.assertIn("timed out", records[1]["error"])
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
