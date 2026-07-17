@@ -422,7 +422,6 @@ def include_missing_required_checks(
             check.get("name") == context
             and (
                 integration_id is None
-                or check.get("status_context")
                 or check.get("integration_id") == integration_id
             )
             for check in checks

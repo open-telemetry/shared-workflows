@@ -148,6 +148,13 @@ class GithubCliTest(unittest.TestCase):
                 },
                 {
                     "name": "build",
+                    "state": "SUCCESS",
+                    "bucket": "pass",
+                    "integration_id": None,
+                    "status_context": True,
+                },
+                {
+                    "name": "build",
                     "state": "EXPECTED",
                     "bucket": "pending",
                     "workflow": "",
@@ -160,13 +167,22 @@ class GithubCliTest(unittest.TestCase):
                 },
             ],
             include_missing_required_checks(
-                [{
-                    "name": "build",
-                    "state": "SUCCESS",
-                    "bucket": "pass",
-                    "integration_id": 1,
-                    "status_context": False,
-                }],
+                [
+                    {
+                        "name": "build",
+                        "state": "SUCCESS",
+                        "bucket": "pass",
+                        "integration_id": 1,
+                        "status_context": False,
+                    },
+                    {
+                        "name": "build",
+                        "state": "SUCCESS",
+                        "bucket": "pass",
+                        "integration_id": None,
+                        "status_context": True,
+                    },
+                ],
                 [
                     {"context": "build", "integration_id": 1},
                     {"context": "build", "integration_id": 2},
