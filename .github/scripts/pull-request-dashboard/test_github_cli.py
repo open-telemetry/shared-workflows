@@ -3,7 +3,13 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from github_cli import fetch_pr_review_data, fetch_pr_title_edits, gh_pr_checks
+from github_cli import (
+    fetch_pr_review_data,
+    fetch_pr_title_edits,
+    gh_pr_checks,
+    gh_required_check_contexts,
+    include_missing_required_checks,
+)
 
 
 class GithubCliTest(unittest.TestCase):
@@ -18,6 +24,71 @@ class GithubCliTest(unittest.TestCase):
             [{"name": "build", "state": "FAILURE"}],
         )
         self.assertIn("--required", run.call_args.args[0])
+
+    @patch("github_cli.subprocess.run")
+    def test_gh_pr_checks_distinguishes_no_reported_checks_from_failure(self, run) -> None:
+        run.return_value.returncode = 1
+        run.return_value.stdout = ""
+        run.return_value.stderr = "no required checks reported on the 'feature' branch"
+
+        self.assertEqual([], gh_pr_checks("open-telemetry/example", 123))
+
+        run.return_value.stderr = "GraphQL: Resource not accessible"
+
+        self.assertIsNone(gh_pr_checks("open-telemetry/example", 123))
+
+    @patch("github_cli.gh_api")
+    def test_required_check_contexts_include_all_effective_branch_rules(self, api) -> None:
+        api.return_value = [
+            {
+                "type": "required_status_checks",
+                "parameters": {
+                    "required_status_checks": [
+                        {"context": "EasyCLA", "integration_id": 17893},
+                        {"context": "build", "integration_id": 15368},
+                    ],
+                },
+            },
+            {
+                "type": "required_status_checks",
+                "parameters": {
+                    "required_status_checks": [
+                        {"context": "build", "integration_id": 15368},
+                    ],
+                },
+            },
+            {"type": "pull_request", "parameters": {}},
+        ]
+
+        self.assertEqual(
+            ["EasyCLA", "build"],
+            gh_required_check_contexts("open-telemetry/example", "release/1.x"),
+        )
+        api.assert_called_once_with(
+            "/repos/open-telemetry/example/rules/branches/release%2F1.x"
+        )
+
+    def test_missing_required_checks_are_pending(self) -> None:
+        self.assertEqual(
+            [
+                {"name": "EasyCLA", "state": "SUCCESS", "bucket": "pass"},
+                {
+                    "name": "build",
+                    "state": "EXPECTED",
+                    "bucket": "pending",
+                    "workflow": "",
+                    "description": "Required check has not reported yet.",
+                    "link": "",
+                },
+            ],
+            include_missing_required_checks(
+                [{"name": "EasyCLA", "state": "SUCCESS", "bucket": "pass"}],
+                ["EasyCLA", "build"],
+            ),
+        )
+
+    def test_check_fetch_failure_remains_unknown(self) -> None:
+        self.assertIsNone(include_missing_required_checks(None, ["build"]))
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_review_data_normalizes_paginated_reviews_and_metadata(self, graphql) -> None:

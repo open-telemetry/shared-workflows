@@ -5,6 +5,7 @@ import os
 import subprocess
 import time
 from typing import Any
+from urllib.parse import quote
 
 
 GH_RETRY_ATTEMPTS = 4
@@ -108,7 +109,7 @@ def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
         "number", "title", "url", "author", "state", "isDraft",
         "mergeable", "mergeStateStatus", "createdAt", "updatedAt",
-        "reviewDecision", "assignees",
+        "reviewDecision", "assignees", "baseRefName",
     ])
     cmd = ["gh", "pr", "view", str(number), "--repo", repo, "--json", fields]
     last: dict[str, Any] = {}
@@ -263,10 +264,14 @@ def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
             errors="replace",
         )
         stdout = proc.stdout.strip()
-        if proc.returncode == 8 and not stdout:
-            return None
         if proc.returncode in (0, 1, 2, 8):
             if not stdout:
+                stderr = proc.stderr.strip()
+                if (
+                    "no checks reported on" in stderr
+                    or "no required checks reported on" in stderr
+                ):
+                    return []
                 return None
             try:
                 checks = json.loads(stdout)
@@ -278,6 +283,43 @@ def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
             return None
         sleep_for_retry(attempt)
     return None
+
+
+def gh_required_check_contexts(repo: str, base_branch: str) -> list[str]:
+    rules = gh_api(f"/repos/{repo}/rules/branches/{quote(base_branch, safe='')}")
+    contexts: list[str] = []
+    for rule in rules or []:
+        if rule.get("type") != "required_status_checks":
+            continue
+        parameters = rule.get("parameters") or {}
+        for check in parameters.get("required_status_checks") or []:
+            context = check.get("context") or ""
+            if context and context not in contexts:
+                contexts.append(context)
+    return contexts
+
+
+def include_missing_required_checks(
+    checks: list[dict[str, Any]] | None,
+    required_contexts: list[str],
+) -> list[dict[str, Any]] | None:
+    if checks is None:
+        return None
+    complete = list(checks)
+    reported_names = {check.get("name") for check in checks}
+    complete.extend(
+        {
+            "name": context,
+            "state": "EXPECTED",
+            "bucket": "pending",
+            "workflow": "",
+            "description": "Required check has not reported yet.",
+            "link": "",
+        }
+        for context in required_contexts
+        if context not in reported_names
+    )
+    return complete
 
 
 def list_open_prs(repo: str) -> list[dict[str, Any]]:

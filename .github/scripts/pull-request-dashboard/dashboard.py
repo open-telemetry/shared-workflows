@@ -168,6 +168,8 @@ from github_cli import (
     gh_api,
     gh_pr_checks,
     gh_pr_view,
+    gh_required_check_contexts,
+    include_missing_required_checks,
     list_open_prs,
     load_reviewer_set,
     normalize_repo,
@@ -281,14 +283,18 @@ def fetch_pr_raw(
         f_threads = pool.submit(fetch_review_threads, owner, repo_name, number)
         f_review_data = pool.submit(fetch_pr_review_data, owner, repo_name, number)
         review_data = f_review_data.result() or {}
+        pr = f_pr.result()
+        required_contexts = gh_required_check_contexts(repo, pr["baseRefName"])
         return {
             "summary": pr_summary,
-            "pr": f_pr.result(),
+            "pr": pr,
             "issue_comments": f_issue.result() or [],
             "review_comments": f_revcom.result() or [],
             "reviews": review_data.get("reviews") or [],
             "commits": f_commits.result() or [],
-            "checks": f_checks.result(),
+            "checks": include_missing_required_checks(
+                f_checks.result(), required_contexts
+            ),
             "review_threads": f_threads.result() or [],
             "pr_metadata": review_data.get("pr_metadata") or {},
         }
