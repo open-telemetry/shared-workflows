@@ -128,11 +128,11 @@ the implementation understandable and operationally cheap.
 
 ## Required Status Checks
 
-- Reported CI facts come from `gh pr checks --required`, so optional check
-  failures do not make the dashboard report a failing PR or change its route.
-  Paginated effective rulesets for the PR's base branch supply configured
-  required contexts; a context that has not reported yet is shown as pending
-  rather than passing.
+- Reported CI facts come from the PR's GraphQL status-check rollup, filtered by
+  each context's `isRequired` result, so optional check failures do not make the
+  dashboard report a failing PR or change its route. Paginated effective
+  rulesets for the PR's base branch supply configured required contexts; a
+  context that has not reported yet is shown as pending rather than passing.
 - Classic branch-protection required status checks are not discovered when they
   have not reported. This is an accepted limitation because configured
   OpenTelemetry repositories use rulesets for required status checks.
