@@ -143,6 +143,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 self.assertEqual(1, body.count("**Status:**"))
                 self.assertNotIn("**Next action:**", body)
                 self.assertNotIn("**Waiting on:**", body)
+                self.assertNotIn("give each review feedback item a clear outcome", body)
 
 
 class UpsertStatusCommentTest(unittest.TestCase):

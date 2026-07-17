@@ -139,13 +139,13 @@ After the first full dashboard run has populated repository state, each targeted
 PR update creates or updates one dashboard-managed status comment on that PR.
 The comment shows who has the next action and what the PR is waiting on. When the
 author has the next action, it also links separately to unresolved inline review
-threads and top-level feedback when possible. Draft PRs show that they are
-waiting for the author to mark them ready for review.
+threads and top-level feedback when possible, and asks the author to give each
+review feedback item a clear outcome. Draft PRs show that they are waiting for
+the author to mark them ready for review.
 
 A hidden marker lets the workflow update the comment in place. Existing one-time
-guidance comments are upgraded rather than duplicated. The comment also asks
-authors to give each review feedback item a clear outcome, which keeps stale or
-ambiguous feedback from being routed to the wrong person.
+guidance comments are upgraded rather than duplicated. Clear outcomes keep stale
+or ambiguous feedback from being routed to the wrong person.
 
 Reviewers should prefer inline comments for feedback requiring explicit
 resolution. See

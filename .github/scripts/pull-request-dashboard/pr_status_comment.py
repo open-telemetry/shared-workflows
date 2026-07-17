@@ -94,7 +94,7 @@ def render_status_comment(
                 lines.append(f"- {remaining_count} more {noun} not shown")
             remaining_limit -= len(displayed_urls)
 
-    if not terminal:
+    if not terminal and result and result.get("route") == "author":
         lines.extend(["", AUTHOR_GUIDANCE])
     lines.append("")
     return "\n".join(lines)
