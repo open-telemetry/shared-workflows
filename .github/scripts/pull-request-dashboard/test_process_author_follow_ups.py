@@ -291,10 +291,24 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         "ensure_status_comment",
         return_value="https://github.com/open-telemetry/example/pull/1#issuecomment-1",
     )
+    @patch.object(
+        process_author_follow_ups,
+        "current_human_activity",
+        return_value=datetime(2026, 7, 1, tzinfo=timezone.utc),
+    )
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
+    @patch.object(
+        process_author_follow_ups,
+        "issue_details",
+        return_value={"state": "open", "pull_request": {"url": "pulls/1"}},
+    )
     @patch.object(process_author_follow_ups, "lifecycle_comments", return_value=[])
     def test_new_nudge_links_status_comment(
         self,
         _lifecycle_comments,
+        _issue_details,
+        _current_author_route,
+        _current_human_activity,
         _ensure_status_comment,
         post_comment,
     ) -> None:
@@ -312,6 +326,115 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         self.assertIn("@alice, this pull request is still waiting on your follow-up", body)
         self.assertIn("[dashboard status comment]", body)
         self.assertIn(process_author_follow_ups.HANDOFF_NUDGE_MARKER_PREFIX, body)
+
+    @patch.object(process_author_follow_ups, "post_comment")
+    @patch.object(process_author_follow_ups, "ensure_status_comment")
+    @patch.object(process_author_follow_ups, "current_human_activity")
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
+    @patch.object(
+        process_author_follow_ups,
+        "issue_details",
+        return_value={"state": "closed", "pull_request": {}},
+    )
+    @patch.object(process_author_follow_ups, "lifecycle_comments", return_value=[])
+    def test_nudge_is_cancelled_when_pr_closed(
+        self,
+        _lifecycle_comments,
+        _issue_details,
+        current_author_route,
+        current_human_activity,
+        ensure_status_comment,
+        post_comment,
+    ) -> None:
+        result = process_author_follow_ups.execute_action(
+            "handoff-nudge",
+            "open-telemetry/example",
+            1,
+            author_result(),
+            follow_up_entry(),
+            follow_up_entry(),
+            NOW,
+        )
+
+        self.assertIsNone(result)
+        current_author_route.assert_not_called()
+        current_human_activity.assert_not_called()
+        ensure_status_comment.assert_not_called()
+        post_comment.assert_not_called()
+
+    @patch.object(process_author_follow_ups, "post_comment")
+    @patch.object(process_author_follow_ups, "ensure_status_comment")
+    @patch.object(process_author_follow_ups, "current_human_activity")
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=False)
+    @patch.object(
+        process_author_follow_ups,
+        "issue_details",
+        return_value={"state": "open", "pull_request": {"url": "pulls/1"}},
+    )
+    @patch.object(process_author_follow_ups, "lifecycle_comments", return_value=[])
+    def test_nudge_is_cancelled_when_author_route_departed(
+        self,
+        _lifecycle_comments,
+        _issue_details,
+        _current_author_route,
+        current_human_activity,
+        ensure_status_comment,
+        post_comment,
+    ) -> None:
+        result = process_author_follow_ups.execute_action(
+            "general-nudge",
+            "open-telemetry/example",
+            1,
+            author_result(),
+            follow_up_entry(),
+            follow_up_entry(),
+            NOW,
+        )
+
+        self.assertIsNone(result)
+        current_human_activity.assert_not_called()
+        ensure_status_comment.assert_not_called()
+        post_comment.assert_not_called()
+
+    @patch.object(process_author_follow_ups, "post_comment")
+    @patch.object(process_author_follow_ups, "ensure_status_comment")
+    @patch.object(
+        process_author_follow_ups,
+        "current_human_activity",
+        return_value=datetime(2026, 7, 16, tzinfo=timezone.utc),
+    )
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
+    @patch.object(
+        process_author_follow_ups,
+        "issue_details",
+        return_value={"state": "open", "pull_request": {"url": "pulls/1"}},
+    )
+    @patch.object(process_author_follow_ups, "lifecycle_comments", return_value=[])
+    def test_nudge_is_deferred_for_new_human_activity(
+        self,
+        _lifecycle_comments,
+        _issue_details,
+        _current_author_route,
+        _current_human_activity,
+        ensure_status_comment,
+        post_comment,
+    ) -> None:
+        previous = follow_up_entry(general_nudged_at="")
+        updated = follow_up_entry(general_nudged_at="2026-07-17T00:00:00+00:00")
+
+        result = process_author_follow_ups.execute_action(
+            "general-nudge",
+            "open-telemetry/example",
+            1,
+            author_result(),
+            previous,
+            updated,
+            NOW,
+        )
+
+        self.assertEqual(result, previous)
+        ensure_status_comment.assert_not_called()
+        post_comment.assert_not_called()
 
     def test_general_nudge_has_independent_marker_and_message(self) -> None:
         body = process_author_follow_ups.render_nudge(

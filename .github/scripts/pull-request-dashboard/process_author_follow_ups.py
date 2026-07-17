@@ -329,6 +329,29 @@ def execute_action(
             return updated
         if result is None:
             raise RuntimeError(f"cannot nudge PR #{pr_number} without dashboard result")
+        issue = issue_details(repo, pr_number)
+        if issue.get("state") != "open" or not issue.get("pull_request"):
+            print(
+                f"cancelled {action} on closed PR #{pr_number} after live recheck",
+                file=sys.stderr,
+            )
+            return None
+        if not current_author_route(repo, pr_number, result):
+            print(
+                f"cancelled {action} on PR #{pr_number} after route recheck",
+                file=sys.stderr,
+            )
+            return None
+        accepted_activity = latest_human_activity(result.get("facts") or {})
+        current_activity = current_human_activity(repo, pr_number, result, now)
+        if current_activity is not None and (
+            accepted_activity is None or current_activity > accepted_activity
+        ):
+            print(
+                f"deferred {action} on PR #{pr_number} after activity recheck",
+                file=sys.stderr,
+            )
+            return dict(previous) if previous is not None else None
         status_url = ensure_status_comment(repo, pr_number, result)
         post_comment(repo, pr_number, render_nudge(result, status_url, cycle_id, action))
         print(f"sent {action} on PR #{pr_number}", file=sys.stderr)

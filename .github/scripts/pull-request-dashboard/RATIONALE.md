@@ -106,7 +106,10 @@ the implementation understandable and operationally cheap.
   SHA with the accepted dashboard result to catch a push after the refresh.
 - A non-PR run evaluates lifecycle actions only for PR results refreshed and
   accepted during that run. Older cached results remain available for dashboard
-  rendering but cannot trigger nudges, stale labeling, or closure.
+  rendering but cannot trigger nudges, stale labeling, or closure. Immediately
+  before a due nudge, the executor also confirms that the PR remains open and
+  routed to the author and that no newer human activity has appeared since the
+  accepted refresh.
 - A targeted PR refresh runs lifecycle processing in reset-only mode. A
   confirmed departure from the author route clears that PR's cycle and owned
   stale label immediately, while an author-routed or transient result preserves
