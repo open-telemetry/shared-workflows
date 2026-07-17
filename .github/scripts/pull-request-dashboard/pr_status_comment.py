@@ -7,9 +7,9 @@ import argparse
 import sys
 from typing import Any
 
-from github_cli import detect_repo, gh_api, normalize_repo, repo_state_key, run_gh
-from state import initial_backfill_complete, load_dashboard_state_cache, set_state_dir
-import state_branch
+from github_cli import detect_repo, gh_api, normalize_repo, run_gh
+from route_presentation import route_status
+from state import load_accepted_dashboard_state
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
@@ -25,19 +25,8 @@ LEGACY_MARKERS = (
 )
 
 
-def load_accepted_dashboard_state(repo: str, state_branch_name: str) -> dict[str, Any] | None:
-    if not state_branch.fetch_state_branch(state_branch_name, required=False):
-        return None
-    with state_branch.temporary_state_dir() as checkout_dir:
-        try:
-            state_branch.run([
-                "git", "worktree", "add", "--quiet", "--detach", str(checkout_dir),
-                state_branch.remote_ref(state_branch_name),
-            ])
-            set_state_dir(checkout_dir / repo_state_key(repo))
-            return load_dashboard_state_cache()
-        finally:
-            state_branch.remove_existing_state_dir(checkout_dir)
+def author_mention(author: str) -> str:
+    return f"@{author}" if author != "the author" else author
 
 
 def render_status_comment(
@@ -49,44 +38,24 @@ def render_status_comment(
     terminal = bool(pr.get("merged")) or state == "closed"
 
     if pr.get("merged"):
-        next_action = "No one"
-        waiting_on = "This pull request has been merged."
+        status = "This pull request has been merged."
     elif state == "closed":
-        next_action = "No one"
-        waiting_on = "This pull request has been closed."
+        status = "This pull request has been closed."
     elif pr.get("draft"):
-        next_action = f"@{author}" if author != "the author" else author
-        waiting_on = "The author to mark this pull request ready for review."
+        status = f"Waiting on {author_mention(author)} to mark this pull request ready for review."
     elif result is None:
-        next_action = "Dashboard maintainers"
-        waiting_on = "The dashboard to finish refreshing this pull request."
+        status = "Waiting for the dashboard to finish refreshing this pull request."
     else:
         facts = result.get("facts") or {}
         route = result.get("route") or "unknown"
-        if route == "author":
-            effective_author = (facts.get("author") or author).strip()
-            next_action = f"@{effective_author}" if effective_author != "the author" else effective_author
-            waiting_on = "The author to address or respond to unresolved review discussions."
-        elif route == "approver":
-            next_action = "Reviewers"
-            waiting_on = "Reviewers to review the latest changes."
-        elif route == "maintainer":
-            next_action = "Maintainers"
-            waiting_on = "A maintainer to merge the pull request."
-        elif route == "external":
-            next_action = "External"
-            waiting_on = "An external dependency or decision."
-        else:
-            next_action = "Dashboard maintainers"
-            waiting_on = "The dashboard to determine the next action."
+        effective_author = (facts.get("author") or author).strip()
+        status = route_status(route, author_mention(effective_author))
 
     lines = [
         STATUS_MARKER,
         "## Pull request dashboard status",
         "",
-        f"**Next action:** {next_action}",
-        "",
-        f"**Waiting on:** {waiting_on}",
+        f"**Status:** {status}",
     ]
 
     if not terminal and result and result.get("route") == "author":
@@ -161,21 +130,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument("--pr-number", type=int, help="pull request to update")
-    parser.add_argument(
-        "--check-initial-backfill-complete",
-        action="store_true",
-        help='print "true" when the initial dashboard backfill is complete, otherwise "false"',
-    )
+    parser.add_argument("--pr-number", type=int, required=True, help="pull request to update")
     args = parser.parse_args()
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     dashboard_state = load_accepted_dashboard_state(repo, args.state_branch)
-    if args.check_initial_backfill_complete:
-        print("true" if initial_backfill_complete(dashboard_state) else "false")
-        return 0
-    if args.pr_number is None:
-        parser.error("--pr-number is required unless --check-initial-backfill-complete is set")
     if dashboard_state is None:
         print("dashboard result state not found; skipping PR status comment", file=sys.stderr)
         return 0

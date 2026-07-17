@@ -3,18 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from route_presentation import ROUTE_ORDER, route_label
 from utils import actor_login, activity_age, parse_ts, seconds_since
-
-
-ROUTE_LABELS = {
-    "maintainer": "Waiting on maintainers",
-    "approver": "Waiting on reviewers",
-    "author": "Waiting on authors",
-    "external": "Waiting on external",
-    "transient-failure": "Transient GitHub failure retrieving PR data",
-    "unknown": "Unknown",
-}
-ROUTE_ORDER = ["maintainer", "approver", "author", "external", "transient-failure", "unknown"]
 
 
 def _md_escape(s: str) -> str:
@@ -262,7 +252,7 @@ def render_pr_tables(
             continue
         rows.sort(key=row_sort_key, reverse=True)
         rows, truncated = _limit_rows(rows, max_rows_per_section)
-        out.append(f"## {ROUTE_LABELS.get(route, route)}")
+        out.append(f"## {route_label(route)}")
         out.append("")
         out.append("| PR | Author | Reviewers | CI | Conflicts | Age |")
         out.append("|---|---|---|:---:|:---:|:---:|")

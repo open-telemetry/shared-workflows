@@ -25,6 +25,22 @@ def temporary_state_dir() -> Iterator[Path]:
         yield Path(temp_root) / "state"
 
 
+@contextmanager
+def accepted_state_dir(state_branch: str, required: bool) -> Iterator[Path | None]:
+    with temporary_state_dir() as checkout_dir:
+        if not fetch_state_branch(state_branch, required=required):
+            yield None
+            return
+        try:
+            run([
+                "git", "worktree", "add", "--quiet", "--detach", str(checkout_dir),
+                remote_ref(state_branch),
+            ])
+            yield checkout_dir
+        finally:
+            remove_existing_state_dir(checkout_dir)
+
+
 def run(cmd: list[str], check: bool = True, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, check=check, cwd=cwd, text=True)
 

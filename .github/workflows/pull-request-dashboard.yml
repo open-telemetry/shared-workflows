@@ -17,6 +17,10 @@ on:
         description: Event that requested the refresh.
         required: false
         type: string
+      trigger_action:
+        description: Deprecated compatibility input; accepted and ignored during webhook rollout.
+        required: false
+        type: string
       trigger_review_id:
         description: Deprecated compatibility input; accepted and ignored during webhook rollout.
         required: false
@@ -126,10 +130,9 @@ jobs:
           fi
 
           state_branch="otelbot/pull-request-dashboard-state/${REPO_NAME}"
-          initial_backfill_complete=$(python3 .github/scripts/pull-request-dashboard/pr_status_comment.py \
+          initial_backfill_complete=$(python3 .github/scripts/pull-request-dashboard/state.py \
             --repo "$REPO_NAME" \
-            --state-branch "$state_branch" \
-            --check-initial-backfill-complete)
+            --state-branch "$state_branch")
           if [[ "$initial_backfill_complete" == "true" ]]; then
             echo "met=true" >> "$GITHUB_OUTPUT"
             exit 0

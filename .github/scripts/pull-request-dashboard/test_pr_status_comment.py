@@ -1,38 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
 import unittest
 from unittest.mock import patch
 
 import pr_status_comment
-
-
-class LoadAcceptedDashboardStateTest(unittest.TestCase):
-    @patch.object(pr_status_comment.state_branch, "fetch_state_branch", return_value=True)
-    @patch.object(pr_status_comment.state_branch, "run")
-    @patch.object(pr_status_comment.state_branch, "remove_existing_state_dir")
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"version": 3, "prs": {}})
-    def test_worktree_checkout_is_quiet(
-        self,
-        _load_state: object,
-        _remove_state_dir: object,
-        run: object,
-        _fetch_state_branch: object,
-    ) -> None:
-        checkout_dir = Path("checkout")
-        with patch.object(pr_status_comment.state_branch, "temporary_state_dir") as temporary_state_dir:
-            temporary_state_dir.return_value.__enter__.return_value = checkout_dir
-
-            state = pr_status_comment.load_accepted_dashboard_state(
-                "open-telemetry/example",
-                "state-branch",
-            )
-
-        self.assertEqual({"version": 3, "prs": {}}, state)
-        run.assert_called_once_with([
-            "git", "worktree", "add", "--quiet", "--detach", "checkout",
-            "refs/remotes/origin/state-branch",
-        ])
 
 
 class RenderStatusCommentTest(unittest.TestCase):
@@ -60,7 +31,10 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("**Next action:** @alice", body)
+        self.assertIn(
+            "**Status:** Waiting on @alice to address or respond to unresolved review discussions.",
+            body,
+        )
         self.assertIn("[Discussion 1]", body)
         self.assertIn("give every review discussion a clear outcome", body)
 
@@ -88,8 +62,10 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_draft_waits_on_author(self) -> None:
         body = pr_status_comment.render_status_comment(self.pr(draft=True), None)
 
-        self.assertIn("**Next action:** @alice", body)
-        self.assertIn("mark this pull request ready for review", body)
+        self.assertIn(
+            "**Status:** Waiting on @alice to mark this pull request ready for review.",
+            body,
+        )
 
     def test_merged_pr_has_no_author_guidance(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -97,8 +73,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             None,
         )
 
-        self.assertIn("**Next action:** No one", body)
-        self.assertIn("has been merged", body)
+        self.assertIn("**Status:** This pull request has been merged.", body)
         self.assertNotIn("give every review discussion a clear outcome", body)
 
     def test_terminal_pr_has_no_author_discussion_links(self) -> None:
@@ -125,8 +100,32 @@ class RenderStatusCommentTest(unittest.TestCase):
             None,
         )
 
-        self.assertIn("**Next action:** the author", body)
-        self.assertNotIn("**Next action:** @", body)
+        self.assertIn(
+            "**Status:** Waiting on the author to mark this pull request ready for review.",
+            body,
+        )
+        self.assertNotIn("**Status:** Waiting on @", body)
+
+    def test_routes_render_one_status_sentence(self) -> None:
+        expected_statuses = {
+            "approver": "Waiting on reviewers to review the latest changes.",
+            "maintainer": "Waiting on maintainers to merge the pull request.",
+            "external": "Waiting on an external dependency or decision.",
+            "transient-failure": "Waiting on dashboard maintainers to determine the next action.",
+            "unknown": "Waiting on dashboard maintainers to determine the next action.",
+        }
+
+        for route, expected in expected_statuses.items():
+            with self.subTest(route=route):
+                body = pr_status_comment.render_status_comment(
+                    self.pr(),
+                    {"route": route, "facts": {}},
+                )
+
+                self.assertIn(f"**Status:** {expected}", body)
+                self.assertEqual(1, body.count("**Status:**"))
+                self.assertNotIn("**Next action:**", body)
+                self.assertNotIn("**Waiting on:**", body)
 
 
 class UpsertStatusCommentTest(unittest.TestCase):

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
 from typing import Any
+
+from github_cli import detect_repo, normalize_repo, repo_state_key
+import state_branch
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
@@ -123,6 +127,19 @@ def load_dashboard_state_cache() -> dict[str, Any] | None:
     }
 
 
+def load_accepted_dashboard_state(
+    repo: str,
+    state_branch_name: str,
+    *,
+    required: bool = False,
+) -> dict[str, Any] | None:
+    with state_branch.accepted_state_dir(state_branch_name, required=required) as checkout_dir:
+        if checkout_dir is None:
+            return None
+        set_state_dir(checkout_dir / repo_state_key(repo))
+        return load_dashboard_state_cache()
+
+
 def save_dashboard_state_cache(state: dict[str, Any]) -> None:
     prs = state.get("prs")
     stored = {
@@ -227,3 +244,19 @@ def update_dashboard_state_for_pr(
         INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
         "prs": prs,
     }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read accepted PR dashboard state.")
+    parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
+    parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
+    args = parser.parse_args()
+
+    repo = normalize_repo(args.repo) if args.repo else detect_repo()
+    dashboard_state = load_accepted_dashboard_state(repo, args.state_branch)
+    print("true" if initial_backfill_complete(dashboard_state) else "false")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

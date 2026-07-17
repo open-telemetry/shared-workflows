@@ -179,6 +179,14 @@ def render_dashboard_markdown(repo: str, large_repo: bool) -> Path:
     return output_path
 
 
+def publish_accepted_dashboard(repo: str, state_branch_name: str, large_repo: bool) -> None:
+    with state_branch.accepted_state_dir(state_branch_name, required=True) as state_dir:
+        if state_dir is None:
+            raise RuntimeError(f"required state branch not found: {state_branch_name}")
+        set_state_dir(state_dir / repo_state_key(repo))
+        publish_dashboard(repo, render_dashboard_markdown(repo, large_repo))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
@@ -195,11 +203,7 @@ def main() -> int:
     args = parser.parse_args()
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
-    with state_branch.temporary_state_dir() as state_dir:
-        set_state_dir(state_dir / repo_state_key(repo))
-        state_branch.configure_git()
-        state_branch.checkout_state(state_dir, args.state_branch, require_existing=True)
-        publish_dashboard(repo, render_dashboard_markdown(repo, args.large_repo))
+    publish_accepted_dashboard(repo, args.state_branch, args.large_repo)
     return 0
 
 
