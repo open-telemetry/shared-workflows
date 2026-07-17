@@ -15,6 +15,50 @@ from dashboard import (
 
 
 class ReviewThreadDiscussionUrlTest(unittest.TestCase):
+    def test_group_review_threads_ignores_author_only_annotations(self) -> None:
+        thread = {
+            "id": "thread-1",
+            "isResolved": False,
+            "isOutdated": False,
+            "comments": {
+                "nodes": [
+                    {
+                        "url": "https://example.test/discussion/1",
+                        "body": "todo: automate this later",
+                        "createdAt": "2026-07-14T01:00:00Z",
+                        "author": {"login": "author"},
+                    },
+                ],
+            },
+        }
+
+        self.assertEqual(
+            group_review_threads(
+                {"review_threads": [thread]},
+                "author",
+                {"reviewer"},
+                {"conflicts": "no"},
+            ),
+            [],
+        )
+
+        thread["comments"]["nodes"].append({
+            "url": "https://example.test/discussion/2",
+            "body": "Please handle this in the current PR.",
+            "createdAt": "2026-07-14T02:00:00Z",
+            "author": {"login": "reviewer"},
+        })
+
+        self.assertEqual(
+            len(group_review_threads(
+                {"review_threads": [thread]},
+                "author",
+                {"reviewer"},
+                {"conflicts": "no"},
+            )),
+            1,
+        )
+
     def test_group_review_threads_stores_first_comment_url_on_thread(self) -> None:
         threads = group_review_threads(
             {
