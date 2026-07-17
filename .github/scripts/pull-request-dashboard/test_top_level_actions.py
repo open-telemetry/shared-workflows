@@ -173,7 +173,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
-    def test_top_level_batch_retries_only_invalid_results(
+    def test_top_level_batch_fails_invalid_results_without_retry(
         self,
         run_copilot,
         _print_otel,
@@ -194,24 +194,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 ),
                 top_level_batch_result("second", reason="Duplicate"),
             ),
-            copilot_batch_response(
-                top_level_batch_result("second", reason="Recovered duplicate"),
-            ),
-            copilot_batch_response(
-                top_level_batch_result(
-                    "missing",
-                    "external",
-                    reason="Recovered missing result",
-                ),
-            ),
-            copilot_batch_response(
-                top_level_batch_result(
-                    "invalid",
-                    "author",
-                    ["reply"],
-                    "Recovered invalid result",
-                ),
-            ),
         ]
         discussions = [
             top_level_item("first"),
@@ -231,61 +213,36 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ["commit", "description"],
         )
         self.assertEqual(records[0]["decision"]["reason"], "Change requested")
-        self.assertEqual(records[1]["decision"]["reason"], "Recovered duplicate")
-        self.assertEqual(records[2]["decision"]["reason"], "Recovered missing result")
-        self.assertEqual(records[3]["decision"]["reason"], "Recovered invalid result")
-        self.assertTrue(all(not record["failed"] for record in records))
-        self.assertEqual(run_copilot.call_count, 4)
-        retry_prompts = [call.args[0][2] for call in run_copilot.call_args_list[1:]]
-        for retry_prompt, discussion_id in zip(
-            retry_prompts,
-            ("second", "missing", "invalid"),
-            strict=True,
-        ):
-            self.assertIn(f'"discussion_id": "{discussion_id}"', retry_prompt)
-            self.assertEqual(retry_prompt.count('"discussion_id":'), 2)
+        self.assertFalse(records[0]["failed"])
+        self.assertTrue(records[1]["failed"])
+        self.assertIn("duplicate discussion_id", records[1]["error"])
+        self.assertTrue(records[2]["failed"])
+        self.assertIn("this discussion_id", records[2]["error"])
+        self.assertTrue(records[3]["failed"])
+        self.assertIn("this discussion_id", records[3]["error"])
+        self.assertEqual(run_copilot.call_count, 1)
+        prompt = run_copilot.call_args.args[0][2]
+        self.assertIn("Return exactly 4 items", prompt)
+        self.assertIn(
+            '["first", "second", "missing", "invalid"]',
+            prompt,
+        )
+        self.assertIn("Never merge, deduplicate", prompt)
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
-    def test_top_level_batch_rejects_invalid_retry(
+    def test_top_level_batch_rejects_missing_result(
         self,
         run_copilot,
         _print_otel,
     ) -> None:
-        run_copilot.side_effect = [
-            copilot_batch_response(),
-            copilot_batch_response(),
-        ]
+        run_copilot.return_value = copilot_batch_response()
 
         records = run_llm_for_top_level_batch([top_level_item("missing")], "model")
 
-        self.assertEqual(run_copilot.call_count, 2)
+        self.assertEqual(run_copilot.call_count, 1)
         self.assertTrue(records[0]["failed"])
         self.assertIn("this discussion_id", records[0]["error"])
-
-    @patch("classification.print_copilot_otel_file")
-    @patch("classification.subprocess.run")
-    def test_top_level_batch_preserves_valid_results_when_retry_times_out(
-        self,
-        run_copilot,
-        _print_otel,
-    ) -> None:
-        run_copilot.side_effect = [
-            copilot_batch_response(
-                top_level_batch_result("valid", reason="Valid first-pass result"),
-            ),
-            TimeoutExpired(cmd=[], timeout=180),
-        ]
-
-        records = run_llm_for_top_level_batch(
-            [top_level_item("valid"), top_level_item("missing")],
-            "model",
-        )
-
-        self.assertFalse(records[0]["failed"])
-        self.assertEqual(records[0]["decision"]["reason"], "Valid first-pass result")
-        self.assertTrue(records[1]["failed"])
-        self.assertIn("timed out", records[1]["error"])
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
@@ -338,6 +295,46 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ["top-level"],
         )
         self.assertEqual(len(save_cache.call_args.args[1]), 2)
+
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_top_level_batch")
+    def test_later_run_classifies_only_failed_top_level_item(
+        self,
+        run_batch,
+        load_cache,
+        save_cache,
+    ) -> None:
+        valid = top_level_item("valid")
+        missing = top_level_item("missing")
+        run_batch.return_value = [
+            classification("valid", "commit"),
+            {
+                "discussion_id": "missing",
+                "discussion_kind": "top-level-feedback",
+                "failed": True,
+                "decision": {
+                    "discussion_action": "unclear",
+                    "required_evidence_kinds": [],
+                    "reason": "Missing result",
+                },
+            },
+        ]
+
+        classify_discussion_domains(123, [], [valid, missing], "model")
+
+        cached = save_cache.call_args.args[1]
+        self.assertEqual(len(cached), 1)
+        load_cache.return_value = cached
+        run_batch.reset_mock()
+        run_batch.return_value = [classification("missing", "commit")]
+
+        classify_discussion_domains(123, [], [valid, missing], "model")
+
+        self.assertEqual(
+            [discussion["discussion_id"] for discussion in run_batch.call_args.args[0]],
+            ["missing"],
+        )
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
