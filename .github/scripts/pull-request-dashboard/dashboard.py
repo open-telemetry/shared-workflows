@@ -738,14 +738,14 @@ def requires_title_edit_lookup(
 def first_change_request_clearance(
     events: list[dict[str, Any]],
     requester: str,
-    evidence_at: str,
+    after_timestamp: str,
 ) -> str | None:
     candidates = [
         e["timestamp"]
         for e in events
         if e.get("kind") == "review-state"
         and e.get("state") == "APPROVED"
-        and e["timestamp"] > evidence_at
+        and e["timestamp"] > after_timestamp
         and is_substantive_activity(e)
         and (e.get("actor") or "").lower() == requester.lower()
     ]
@@ -814,6 +814,12 @@ def advance_top_level_actions(
                 "since": root_timestamp,
             }
             continue
+        if discussion.get("review_state") == "CHANGES_REQUESTED" and first_change_request_clearance(
+            events,
+            discussion.get("requester") or "",
+            root_timestamp,
+        ):
+            continue
         required_kinds = decision.get("required_evidence_kinds") or []
         evidence_at = evidence_satisfied_at(required_kinds, evidence)
         if not evidence_at:
@@ -823,16 +829,10 @@ def advance_top_level_actions(
             }
             continue
         if discussion.get("review_state") == "CHANGES_REQUESTED":
-            clearance_at = first_change_request_clearance(
-                events,
-                discussion.get("requester") or "",
-                evidence_at,
-            )
-            if not clearance_at:
-                pending_actions[discussion["discussion_id"]] = {
-                    "action": "reviewer",
-                    "since": evidence_at,
-                }
+            pending_actions[discussion["discussion_id"]] = {
+                "action": "reviewer",
+                "since": evidence_at,
+            }
     return pending_actions, top_level_history
 
 

@@ -1176,7 +1176,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [
                 event(
                     "review-state",
-                    "2026-07-14T01:30:00Z",
+                    "2026-07-14T00:30:00Z",
                     "reviewer",
                     "approver",
                     state="APPROVED",
@@ -1194,7 +1194,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"commit": "2026-07-14T02:00:00Z"},
         )
 
-    def test_approval_before_changes_requested_evidence_does_not_clear_item(self) -> None:
+    def test_approval_rescinds_changes_requested_item_without_author_evidence(self) -> None:
         discussions = [top_level_item("code")]
         discussions[0]["review_state"] = "CHANGES_REQUESTED"
         classifications = [classification("code", "commit")]
@@ -1206,16 +1206,15 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "approver",
                 state="APPROVED",
             ),
-            event("commit", "2026-07-14T03:00:00Z", "author", "author"),
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
             discussions, classifications, events, {}, "author"
         )
 
-        self.assertEqual(pending_actions["code"]["action"], "reviewer")
+        self.assertNotIn("code", pending_actions)
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
-        self.assertEqual(top_level_history["code"]["evidence"], {"commit": "2026-07-14T03:00:00Z"})
+        self.assertNotIn("code", top_level_history)
 
     def test_reviewer_activity_does_not_close_ordinary_item_without_author_evidence(self) -> None:
         events = normalize_events(
