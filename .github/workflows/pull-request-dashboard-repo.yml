@@ -138,13 +138,12 @@ jobs:
     needs: update-dashboard
     if: >-
       needs.update-dashboard.result == 'success' &&
-      needs.update-dashboard.outputs.initial_backfill_complete == 'true' &&
-      inputs.pr_number != ''
+      needs.update-dashboard.outputs.initial_backfill_complete == 'true'
     concurrency:
-      group: ${{ github.workflow }}-status-${{ inputs.repository }}-${{ inputs.pr_number }}
+      group: ${{ github.workflow }}-status-${{ inputs.repository }}
       cancel-in-progress: false
     permissions:
-      contents: read
+      contents: write
     environment: protected
     runs-on: ubuntu-latest
     steps:
@@ -165,15 +164,17 @@ jobs:
       - name: Update PR status comment
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ inputs.pr_number }}
           REPO_NAME: ${{ inputs.repository }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          python3 .github/scripts/pull-request-dashboard/pr_status_comment.py \
-            --state-branch "$state_branch" \
-            --repo "$REPO_NAME" \
-            --pr-number "$PR_NUMBER"
+          status_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
+          if [[ -n "${PR_NUMBER:-}" ]]; then
+            status_args+=(--pr-number "$PR_NUMBER")
+          fi
+          python3 .github/scripts/pull-request-dashboard/pr_status_comment.py "${status_args[@]}"
 
   notify-slack:
     needs: update-dashboard

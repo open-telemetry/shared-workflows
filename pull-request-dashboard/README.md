@@ -151,9 +151,11 @@ action. Optional check failures do not affect routing. Maintenance-bot PRs keep
 their maintainer-oriented routing because the bot cannot act on a dashboard
 request.
 
-A hidden marker lets the workflow update the comment in place. Existing one-time
-guidance comments are upgraded rather than duplicated. Clear outcomes keep stale
-or ambiguous feedback from being routed to the wrong person.
+A hidden marker lets the workflow update the comment in place and upgrade
+existing one-time guidance comments rather than creating duplicates. Status
+comments are refreshed automatically when their dashboard status or format
+changes, including on inactive pull requests. Clear outcomes keep stale or
+ambiguous feedback from being routed to the wrong person.
 
 Reviewers should prefer inline comments for feedback requiring explicit
 resolution. See
@@ -164,45 +166,17 @@ Targeted updates received before the first full dashboard run are ignored.
 
 ## Configuration
 
-The target repository GitHub App is installed on each configured repository.
-The workflow creates repository-scoped app installation tokens with
-`PR_DASHBOARD_CLIENT_ID` and `PR_DASHBOARD_PRIVATE_KEY`, then uses those tokens for
-API reads/writes and approver team membership reads in the target repository.
+The dashboard uses repository-scoped GitHub App access to read and update each
+configured repository and to read approver team membership.
 
-Slack notifications use the shared `SLACK_WEBHOOK_URL` secret. Each repository
-can route notifications to its own `slack_channel` and map GitHub logins to
-Slack user IDs via `slack_user_mapping`. Repositories without `slack_channel`
-configured skip Slack notification processing.
+Each repository can route Slack notifications to its own `slack_channel` and
+map GitHub logins to Slack user IDs via `slack_user_mapping`. Repositories
+without `slack_channel` configured do not send Slack notifications.
 
 ## Prerequisites
 
-The target repository GitHub App must be installed on your repository. See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for the GitHub App configuration this repo uses.
-
-## State
-
-Dashboard state is stored on the shared state branch configured by
-`DASHBOARD_STATE_BRANCH`. State files are namespaced by target repository, for
-example:
-
-```text
-semantic-conventions-genai/dashboard-state.json
-opentelemetry-java-instrumentation/dashboard-state.json
-```
-
-This lets one central workflow manage multiple target repositories without
-state collisions.
-
-## Implementation
-
-The workflow YAML and supporting scripts live in this repo:
-
-- [`.github/workflows/pull-request-dashboard.yml`](../.github/workflows/pull-request-dashboard.yml) — top-level orchestrator
-- [`.github/workflows/pull-request-dashboard-repo.yml`](../.github/workflows/pull-request-dashboard-repo.yml) — per-repository job
-- [`.github/workflows/pull-request-dashboard-deploy-webhook.yml`](../.github/workflows/pull-request-dashboard-deploy-webhook.yml) — webhook bridge deploy
-- [`.github/scripts/pull-request-dashboard/`](../.github/scripts/pull-request-dashboard/) — Python scripts, state handling, rendering
-
-See [`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md) for the architecture and tradeoffs behind the design.
-See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for GitHub App webhook permissions and dispatch setup.
+The target repository GitHub App must be installed on your repository. Follow
+the repository-access step under [How to opt in](#how-to-opt-in).
 
 ## Manual backfill run
 
@@ -211,5 +185,5 @@ To manually run a dashboard backfill, open the
 choose **Run workflow**, and populate the `repository` field with the target
 repository name under `open-telemetry`, for example
 `opentelemetry-java-instrumentation`. Leave `repository` empty to backfill every
-configured repository. Each repository is subject to the PR cap so large repos
-cannot consume the dashboard App's hourly API quota in a single run.
+configured repository. Each run processes at most 50 PRs per repository; run it
+again to continue through larger repositories.

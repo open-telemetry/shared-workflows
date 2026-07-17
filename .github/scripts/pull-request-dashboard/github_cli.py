@@ -443,11 +443,33 @@ def include_missing_required_checks(
     return complete
 
 
+def _list_open_pulls(repo: str) -> list[dict[str, Any]]:
+    return gh_api(
+        f"/repos/{repo}/pulls?state=open&per_page=100",
+        paginate=True,
+    ) or []
+
+
 def list_open_prs(repo: str) -> list[dict[str, Any]]:
-    return run_gh_json([
-        "gh", "pr", "list", "--repo", repo, "--state", "open", "--limit", "500",
-        "--json", "number,title,author,isDraft,updatedAt,url",
-    ])
+    return [
+        {
+            "number": pull["number"],
+            "title": pull["title"],
+            "author": pull.get("user"),
+            "isDraft": pull.get("draft", False),
+            "updatedAt": pull.get("updated_at"),
+            "url": pull.get("html_url"),
+        }
+        for pull in _list_open_pulls(repo)
+    ]
+
+
+def list_all_open_pr_numbers(repo: str) -> set[int]:
+    return {
+        pull["number"]
+        for pull in _list_open_pulls(repo)
+        if isinstance(pull, dict) and isinstance(pull.get("number"), int)
+    }
 
 
 def detect_repo() -> str:
