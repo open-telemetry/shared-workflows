@@ -3,10 +3,26 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from github_cli import fetch_pr_review_data, fetch_pr_title_edits
+from github_cli import fetch_pr_review_data, fetch_pr_title_edits, list_all_open_pr_numbers
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.gh_api")
+    def test_list_all_open_pr_numbers_uses_paginated_rest_api(self, gh_api) -> None:
+        gh_api.return_value = [
+            {"number": number}
+            for number in range(1, 502)
+        ]
+
+        self.assertEqual(
+            set(range(1, 502)),
+            list_all_open_pr_numbers("open-telemetry/example"),
+        )
+        gh_api.assert_called_once_with(
+            "/repos/open-telemetry/example/pulls?state=open&per_page=100",
+            paginate=True,
+        )
+
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_review_data_normalizes_paginated_reviews_and_metadata(self, graphql) -> None:
         graphql.side_effect = [

@@ -287,6 +287,18 @@ def list_open_prs(repo: str) -> list[dict[str, Any]]:
     ])
 
 
+def list_all_open_pr_numbers(repo: str) -> set[int]:
+    pulls = gh_api(
+        f"/repos/{repo}/pulls?state=open&per_page=100",
+        paginate=True,
+    )
+    return {
+        pull["number"]
+        for pull in pulls or []
+        if isinstance(pull, dict) and isinstance(pull.get("number"), int)
+    }
+
+
 def detect_repo() -> str:
     proc = subprocess.run(
         ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],

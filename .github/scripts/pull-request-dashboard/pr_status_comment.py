@@ -9,7 +9,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from github_cli import detect_repo, gh_api, list_open_prs, normalize_repo, repo_state_key, run_gh
+from github_cli import (
+    detect_repo,
+    gh_api,
+    list_all_open_pr_numbers,
+    normalize_repo,
+    repo_state_key,
+    run_gh,
+)
 from route_presentation import route_status
 from state import (
     load_dashboard_state_cache,
@@ -257,7 +264,7 @@ def update_status_comments_with_state(
 ) -> int:
     open_pr_numbers = None
     if pr_number is None:
-        open_pr_numbers = {pr["number"] for pr in list_open_prs(repo)}
+        open_pr_numbers = list_all_open_pr_numbers(repo)
     repo_key = repo_state_key(repo)
     errors_file = rollout_errors_path()
     errors_file.unlink(missing_ok=True)
