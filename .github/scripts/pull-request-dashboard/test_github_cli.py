@@ -3,10 +3,48 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from github_cli import fetch_pr_review_data, fetch_pr_title_edits, list_all_open_pr_numbers
+from github_cli import (
+    fetch_pr_review_data,
+    fetch_pr_title_edits,
+    list_all_open_pr_numbers,
+    list_open_prs,
+)
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.gh_api")
+    def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:
+        gh_api.return_value = [
+            {
+                "number": number,
+                "title": f"PR {number}",
+                "user": {"login": "author"},
+                "draft": number == 501,
+                "updated_at": "2026-07-17T00:00:00Z",
+                "html_url": f"https://example.test/pull/{number}",
+            }
+            for number in range(1, 502)
+        ]
+
+        prs = list_open_prs("open-telemetry/example")
+
+        self.assertEqual(501, len(prs))
+        self.assertEqual(
+            {
+                "number": 501,
+                "title": "PR 501",
+                "author": {"login": "author"},
+                "isDraft": True,
+                "updatedAt": "2026-07-17T00:00:00Z",
+                "url": "https://example.test/pull/501",
+            },
+            prs[-1],
+        )
+        gh_api.assert_called_once_with(
+            "/repos/open-telemetry/example/pulls?state=open&per_page=100",
+            paginate=True,
+        )
+
     @patch("github_cli.gh_api")
     def test_list_all_open_pr_numbers_uses_paginated_rest_api(self, gh_api) -> None:
         gh_api.return_value = [
