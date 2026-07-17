@@ -38,6 +38,8 @@ def author_result() -> dict[str, object]:
             "last_approver_activity_at": "2026-06-30T00:00:00Z",
             "last_external_activity_at": "",
             "waiting_since": CYCLE_ID,
+            "head_sha": "accepted-head",
+            "author_head_observed_at": "",
             "author_action_review_thread_urls": [
                 "https://github.com/open-telemetry/example/pull/1#discussion_r1"
             ],
@@ -65,12 +67,18 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             author_result(),
         ))
 
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={"headRefOid": "accepted-head"},
+    )
     @patch.object(process_author_follow_ups, "fetch_pr_review_data")
     @patch.object(process_author_follow_ups, "gh_api")
     def test_current_human_activity_uses_only_qualifying_event_times(
         self,
         gh_api,
         fetch_pr_review_data,
+        _gh_pr_view,
     ) -> None:
         def api_response(path: str, paginate: bool = False):
             self.assertTrue(paginate)
@@ -136,9 +144,50 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             "open-telemetry/example",
             1,
             author_result(),
+            NOW,
         )
 
         self.assertEqual(activity, datetime(2026, 7, 15, tzinfo=timezone.utc))
+
+    @patch.object(
+        process_author_follow_ups,
+        "fetch_pr_review_data",
+        return_value={"reviews": []},
+    )
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={"headRefOid": "new-head"},
+    )
+    @patch.object(process_author_follow_ups, "gh_api")
+    def test_current_human_activity_observes_old_dated_author_push(
+        self,
+        gh_api,
+        _gh_pr_view,
+        _fetch_pr_review_data,
+    ) -> None:
+        gh_api.side_effect = [
+            [],
+            [],
+            [{
+                "sha": "new-head",
+                "author": {"login": "alice"},
+                "committer": {"login": "alice"},
+                "commit": {
+                    "author": {"date": "2020-01-01T00:00:00Z"},
+                    "committer": {"date": "2020-01-01T00:00:00Z"},
+                },
+            }],
+        ]
+
+        activity = process_author_follow_ups.current_human_activity(
+            "open-telemetry/example",
+            1,
+            author_result(),
+            NOW,
+        )
+
+        self.assertEqual(activity, NOW)
 
     @patch.object(
         process_author_follow_ups,

@@ -94,7 +94,10 @@ the implementation understandable and operationally cheap.
 - Substantive human activity consists of author commits, human issue or review
   comments, and submitted human reviews. Bot and dashboard activity, reactions,
   label or assignment changes, checks, and edits to existing comments do not
-  reset a quiet stage.
+  reset a quiet stage. Commit author and committer dates are metadata rather
+  than push times, so an author-attributed head-SHA change uses the time the
+  dashboard first observes that change. Closure also compares the live head SHA
+  with the accepted dashboard result to catch a push after the refresh.
 - A non-PR run evaluates lifecycle actions only for PR results refreshed and
   accepted during that run. Older cached results remain available for dashboard
   rendering but cannot trigger nudges, stale labeling, or closure.

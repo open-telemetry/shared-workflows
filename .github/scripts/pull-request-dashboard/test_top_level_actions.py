@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import unittest
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from dashboard import (
+    add_author_head_observation,
     add_wait_age_facts,
     add_reviewers,
     advance_top_level_actions,
@@ -107,6 +109,34 @@ def top_level_items_from_raw(
 
 
 class TopLevelActionLedgerTest(unittest.TestCase):
+    def test_author_head_change_uses_observation_time(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-01T00:00:00+00:00"}
+
+        add_author_head_observation(
+            facts,
+            {
+                "pr": {"headRefOid": "new-head"},
+                "commits": [{
+                    "sha": "new-head",
+                    "author": {"login": "author"},
+                    "committer": {"login": "author"},
+                }],
+            },
+            "author",
+            {"facts": {"head_sha": "old-head"}},
+            datetime(2026, 7, 17, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(facts["head_sha"], "new-head")
+        self.assertEqual(
+            facts["author_head_observed_at"],
+            "2026-07-17T00:00:00+00:00",
+        )
+        self.assertEqual(
+            facts["last_author_activity_at"],
+            "2026-07-17T00:00:00+00:00",
+        )
+
     def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
         review_threads = [
             {
@@ -424,6 +454,13 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(
             build_result.call_args.kwargs["previous_top_level_history"],
             previous_state,
+        )
+        self.assertEqual(
+            build_result.call_args.kwargs["previous_result"],
+            {
+                "pr_number": 123,
+                "top_level_history": previous_state,
+            },
         )
 
     def test_top_level_decision_requires_matching_action_and_evidence(self) -> None:

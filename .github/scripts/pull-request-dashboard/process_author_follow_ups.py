@@ -17,6 +17,7 @@ from github_cli import (
     fetch_pr_review_data,
     fetch_review_threads,
     gh_api,
+    gh_pr_view,
     list_open_prs,
     normalize_repo,
     repo_state_key,
@@ -152,6 +153,7 @@ def current_human_activity(
     repo: str,
     pr_number: int,
     result: dict[str, Any],
+    now: datetime,
 ) -> datetime | None:
     owner, repo_name = repo.split("/", 1)
     issue_comments = gh_api(
@@ -166,6 +168,7 @@ def current_human_activity(
         f"/repos/{repo}/pulls/{pr_number}/commits?per_page=100",
         paginate=True,
     )
+    current_pr = gh_pr_view(repo, pr_number)
     review_data = fetch_pr_review_data(owner, repo_name, pr_number)
     if not all(isinstance(items, list) for items in (issue_comments, review_comments, commits)):
         raise RuntimeError(f"could not verify current activity for PR #{pr_number}")
@@ -210,6 +213,22 @@ def current_human_activity(
             timestamp = None
         if timestamp is not None:
             timestamps.append(timestamp)
+    accepted_head_sha = str((result.get("facts") or {}).get("head_sha") or "")
+    current_head_sha = str(current_pr.get("headRefOid") or "")
+    if accepted_head_sha and current_head_sha != accepted_head_sha:
+        head_commit = next(
+            (
+                commit
+                for commit in reversed(commits)
+                if str(commit.get("sha") or "") == current_head_sha
+            ),
+            None,
+        )
+        if head_commit:
+            committer = str((head_commit.get("committer") or {}).get("login") or "")
+            commit_author = str((head_commit.get("author") or {}).get("login") or "")
+            if (committer or commit_author).lower() == author:
+                timestamps.append(now)
     return max(timestamps, default=None)
 
 
@@ -370,7 +389,7 @@ def execute_action(
                 file=sys.stderr,
             )
             return updated
-        human_activity = current_human_activity(repo, pr_number, result)
+        human_activity = current_human_activity(repo, pr_number, result, now)
         if stale_applied_at is None or (
             human_activity is not None and human_activity > stale_applied_at
         ):

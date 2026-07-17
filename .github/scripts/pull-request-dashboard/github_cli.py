@@ -107,7 +107,7 @@ def gh_graphql(query: str, fields: dict[str, Any], token: str | None = None) -> 
 def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
         "number", "title", "url", "author", "state", "isDraft",
-        "mergeable", "mergeStateStatus", "createdAt", "updatedAt",
+        "mergeable", "mergeStateStatus", "createdAt", "updatedAt", "headRefOid",
         "reviewDecision", "assignees",
     ])
     cmd = ["gh", "pr", "view", str(number), "--repo", repo, "--json", fields]

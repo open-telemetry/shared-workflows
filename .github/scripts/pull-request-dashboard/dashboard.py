@@ -195,7 +195,7 @@ from state import (
     update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import actor_login, format_ts, parse_ts, truncate
+from utils import actor_login, format_ts, parse_ts, truncate, utc_now
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
@@ -515,6 +515,42 @@ def compute_facts(
         facts["ci_failing_count"] = len(failing)
         facts["ci_pending_count"] = len(pending)
     return facts
+
+
+def add_author_head_observation(
+    facts: dict[str, Any],
+    raw: dict[str, Any],
+    author: str,
+    previous_result: dict[str, Any] | None,
+    observed_at: datetime,
+) -> None:
+    head_sha = str(raw["pr"].get("headRefOid") or "")
+    previous_facts = (previous_result or {}).get("facts") or {}
+    previous_head_sha = str(previous_facts.get("head_sha") or "")
+    author_head_observed_at = parse_ts(
+        previous_facts.get("author_head_observed_at") or ""
+    )
+    head_commit = next(
+        (
+            commit
+            for commit in reversed(raw["commits"])
+            if str(commit.get("sha") or "") == head_sha
+        ),
+        None,
+    )
+    if previous_head_sha and head_sha != previous_head_sha and head_commit:
+        committer = actor_login(head_commit.get("committer") or {})
+        commit_author = actor_login(head_commit.get("author") or {})
+        if (committer or commit_author).lower() == author.lower():
+            author_head_observed_at = observed_at
+
+    facts["head_sha"] = head_sha
+    facts["author_head_observed_at"] = format_ts(author_head_observed_at)
+    author_activity = parse_ts(facts.get("last_author_activity_at") or "")
+    if author_head_observed_at is not None and (
+        author_activity is None or author_head_observed_at > author_activity
+    ):
+        facts["last_author_activity_at"] = format_ts(author_head_observed_at)
 
 
 def discussion_comment(
@@ -1026,6 +1062,7 @@ def build_pr_result(
     reviewers: set[str],
     model: str,
     required_approvals: int,
+    previous_result: dict[str, Any] | None = None,
     previous_top_level_history: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
@@ -1036,6 +1073,7 @@ def build_pr_result(
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events)
+        add_author_head_observation(facts, raw, author, previous_result, utc_now())
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         review_thread_classifications, top_level_classifications = (
@@ -1173,6 +1211,7 @@ def build_dashboard_update_for_pr(
         reviewers,
         model,
         required_approvals,
+        previous_result=starting_pr_result,
         previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
     )
     if trigger_pr_result is None:
