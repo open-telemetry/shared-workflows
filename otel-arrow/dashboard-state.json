@@ -203,14 +203,16 @@
         "assignees": [],
         "author": "c1ly",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3262#pullrequestreview-4689822171"
+        ],
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
         "created_at": "2026-06-10T04:48:28+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-17T17:50:59+00:00",
+        "last_activity_at": "2026-07-17T23:40:47+00:00",
         "last_approver_activity_at": "2026-07-14T00:22:03+00:00",
         "last_author_activity_at": "2026-07-17T17:34:34+00:00",
         "last_external_activity_at": "2026-06-25T20:14:44+00:00",
@@ -237,16 +239,16 @@
             "changes_requested": false,
             "login": "lquerel",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-17T17:34:34+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-14T00:22:03+00:00"
       },
       "failed": false,
       "pr_number": 3262,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3262",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4671180088": {
           "evidence": {
@@ -261,6 +263,11 @@
         "pr-review-4518004332": {
           "evidence": {
             "commit": "2026-06-18T04:54:47Z"
+          }
+        },
+        "pr-review-4689822171": {
+          "evidence": {
+            "commit": "2026-07-16T00:16:38Z"
           }
         }
       }
