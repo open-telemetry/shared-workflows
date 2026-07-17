@@ -78,6 +78,12 @@ the implementation understandable and operationally cheap.
   capped so one run cannot exhaust the dashboard GitHub App's hourly API quota.
 - Each backfill lists open PRs, prunes cached PRs that are no longer open
   non-draft, then refreshes at most 50 open non-draft PRs.
+- Status-comment rendering rollouts use separate versioned state and a durable
+  queue. Incrementing the implementation revision snapshots all open PRs, then
+  hourly runs update at most 50 queued comments until the rollout completes.
+  Dashboard refreshes atomically queue comments only when their persisted result
+  changes; targeted refreshes update immediately and leave no completed PR
+  pending in the rollout queue.
 - Selected PRs are processed one at a time through the same single-PR merge path
   as targeted refreshes. Each accepted PR update pushes structured state before
   the next selected PR is processed.

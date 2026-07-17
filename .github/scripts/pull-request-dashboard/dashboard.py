@@ -184,6 +184,7 @@ from classification import (
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
+    enqueue_status_comment_update,
     initial_backfill_complete,
     load_dashboard_state_cache,
     load_backfill_state,
@@ -1481,6 +1482,8 @@ def apply_targeted_dashboard_update(args: argparse.Namespace, calculation: Dashb
     )
     if not dashboard_state_unchanged and reject_failed_dashboard_result(merged_calculation.trigger_pr_result):
         return 1
+    if not dashboard_state_unchanged and args.pr_number is not None:
+        enqueue_status_comment_update(args.pr_number)
 
     return save_dashboard_update_state(
         args,
@@ -1589,6 +1592,8 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             )
             if not dashboard_state_unchanged and reject_failed_dashboard_result(calculation.trigger_pr_result):
                 return 1
+            if not dashboard_state_unchanged:
+                enqueue_status_comment_update(pr_number)
             initial_backfill_completed = complete_initial_backfill_if_ready(
                 calculation.dashboard_state,
                 open_non_draft_pr_numbers,
