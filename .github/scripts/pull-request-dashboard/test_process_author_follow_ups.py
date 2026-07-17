@@ -21,7 +21,6 @@ def follow_up_entry(**overrides: object) -> dict[str, object]:
         "waiting_on_author_since": CYCLE_ID,
         "pending_handoff_since": "",
         "handoff_nudged_at": "2026-07-02T00:00:00+00:00",
-        "handoff_suppressed_at": "",
         "general_nudged_at": "2026-07-08T00:00:00+00:00",
         "stale_applied_at": "",
         "stale_reset_at": "",

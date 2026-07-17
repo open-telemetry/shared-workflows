@@ -11,7 +11,6 @@ from utils import format_ts, parse_ts
 FAST_NUDGE_AFTER = timedelta(days=1)
 NUDGE_AFTER = timedelta(weeks=1)
 STAGE_INTERVAL = timedelta(weeks=1)
-HANDOFF_SUPPRESSION_WINDOW = timedelta(days=1)
 
 
 def latest_human_activity(facts: dict[str, Any]) -> datetime | None:
@@ -73,7 +72,6 @@ def plan_follow_up(
             "waiting_on_author_since": waiting_since_value,
             "pending_handoff_since": "",
             "handoff_nudged_at": "",
-            "handoff_suppressed_at": "",
             "general_nudged_at": "",
             "stale_applied_at": "",
             "stale_reset_at": "",
@@ -98,28 +96,9 @@ def plan_follow_up(
         and author_activity >= waiting_since
         and pending_handoff_since is None
     ):
-        suppressed_at = parse_ts(entry.get("handoff_suppressed_at") or "")
-        if suppressed_at is None or (
-            entry.get("general_nudged_at") and author_activity > suppressed_at
-        ):
-            entry["pending_handoff_since"] = format_ts(author_activity)
-            pending_handoff_since = author_activity
+        entry["pending_handoff_since"] = format_ts(author_activity)
+        pending_handoff_since = author_activity
 
-    general_due_at = waiting_since + NUDGE_AFTER
-    if pending_handoff_since is not None:
-        handoff_due_at = pending_handoff_since + FAST_NUDGE_AFTER
-        if (
-            general_due_at - HANDOFF_SUPPRESSION_WINDOW
-            <= handoff_due_at
-            <= general_due_at
-        ):
-            entry["pending_handoff_since"] = ""
-            entry["handoff_suppressed_at"] = format_ts(pending_handoff_since)
-            pending_handoff_since = None
-
-    if not entry.get("general_nudged_at") and now >= general_due_at:
-        entry["general_nudged_at"] = format_ts(now)
-        return "general-nudge", entry
     if (
         not entry.get("handoff_nudged_at")
         and pending_handoff_since is not None
@@ -128,6 +107,16 @@ def plan_follow_up(
         entry["handoff_nudged_at"] = format_ts(now)
         entry["pending_handoff_since"] = ""
         return "handoff-nudge", entry
+
+    handoff_nudged_at = parse_ts(entry.get("handoff_nudged_at") or "")
+    general_baseline = handoff_nudged_at or waiting_since
+    if (
+        not entry.get("general_nudged_at")
+        and pending_handoff_since is None
+        and now - general_baseline >= NUDGE_AFTER
+    ):
+        entry["general_nudged_at"] = format_ts(now)
+        return "general-nudge", entry
 
     if not stale_enabled:
         if entry.get("stale_applied_at"):

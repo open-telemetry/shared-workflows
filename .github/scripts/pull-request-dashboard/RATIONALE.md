@@ -78,15 +78,12 @@ the implementation understandable and operationally cheap.
   without a later human response during the current author-routing period.
   Later author activity without a successful transition out of the author route
   does not postpone it. This prevents repeated activity from indefinitely
-  delaying a nudge when the dashboard still expects the author to act. A
-  handoff nudge due within one day before the general nudge is consumed without
-  delivery, preventing two closely spaced lifecycle comments. Suppression
-  compares the scheduled deadlines rather than actual workflow or comment
-  times, so a delayed hourly run does not change the outcome. A later author
-  action after the general nudge can still start the independent handoff clock.
+  delaying a nudge when the dashboard still expects the author to act. When a
+  handoff and general nudge would otherwise both be due, the handoff is
+  delivered first.
 - The general nudge is due one week after a backfill follow-up job first
-  observes the PR in the author route. Its clock remains due even when the
-  handoff nudge was already posted.
+  observes the PR in the author route, or one week after a delivered handoff
+  nudge when that occurs. This guarantees a full week between the two comments.
 - Both nudges apply to every configured repository. Stale labeling and closure
   require the repository-level `stale_waiting_on_author` option.
 - The general nudge clock is unaffected by activity while the PR remains routed

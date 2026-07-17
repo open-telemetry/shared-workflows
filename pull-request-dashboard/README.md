@@ -157,8 +157,8 @@ Targeted updates received before the first full dashboard run are ignored.
 
 ## Author follow-up lifecycle
 
-Hourly runs process two independent reminder schedules. Manually triggered runs
-without a PR number do the same. Each run evaluates follow-up actions only for
+Hourly runs process two reminder schedules. Manually triggered runs without a
+PR number do the same. Each run evaluates follow-up actions only for
 PRs refreshed during that run. Since a repository refresh is capped at 50 PRs,
 a due action in a larger repository may wait for a later round-robin run, but it
 is delivered as soon as the PR is next refreshed.
@@ -168,12 +168,10 @@ is delivered as soon as the PR is next refreshed.
   action. This catches cases where the author may be waiting for review while
   the dashboard still expects them to act. Later author activity does not reset
   the timer to ensure repeated author activity without a successful transition
-  out of *Waiting on authors* cannot postpone the nudge. If the
-  general nudge is due within one day, the handoff nudge is skipped to avoid two
-  closely spaced comments.
+  out of *Waiting on authors* cannot postpone the nudge.
 - **General nudge:** Every PR still routed to the author receives a nudge one
-  week after it entered that route, even if it already received the handoff
-  nudge.
+  week after it entered that route. If a handoff nudge is posted, the general
+  nudge is instead posted one week after the handoff nudge.
 
 Both nudges link to the dashboard-managed status comment and apply to every
 configured repository.
