@@ -256,6 +256,52 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
         self.assertFalse(result["stale_label_owned"])
 
+    @patch.object(
+        process_author_follow_ups,
+        "stale_label_owned_by_dashboard",
+        return_value=True,
+    )
+    @patch.object(
+        process_author_follow_ups,
+        "issue_label_names",
+        return_value={"stale": "Stale"},
+    )
+    def test_existing_dashboard_stale_label_recovers_ownership(
+        self,
+        _issue_label_names,
+        _stale_label_owned_by_dashboard,
+    ) -> None:
+        self.assertTrue(process_author_follow_ups.add_stale_label(
+            "open-telemetry/example",
+            1,
+        ))
+
+    @patch.object(process_author_follow_ups, "gh_api")
+    def test_latest_stale_label_event_determines_ownership(self, gh_api) -> None:
+        gh_api.return_value = [
+            {
+                "id": 1,
+                "event": "labeled",
+                "created_at": "2026-07-10T00:00:00Z",
+                "label": {"name": "Stale"},
+                "performed_via_github_app": {"slug": "other-app"},
+            },
+            {
+                "id": 2,
+                "event": "labeled",
+                "created_at": "2026-07-11T00:00:00Z",
+                "label": {"name": "stale"},
+                "performed_via_github_app": {
+                    "slug": process_author_follow_ups.DASHBOARD_APP_SLUG,
+                },
+            },
+        ]
+
+        self.assertTrue(process_author_follow_ups.stale_label_owned_by_dashboard(
+            "open-telemetry/example",
+            1,
+        ))
+
     @patch.object(process_author_follow_ups, "remove_stale_label")
     def test_removes_only_dashboard_owned_stale_label(self, remove_stale_label) -> None:
         updated = follow_up_entry(stale_applied_at="")
@@ -281,6 +327,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         )
         remove_stale_label.assert_called_once_with("open-telemetry/example", 1)
 
+    @patch.object(process_author_follow_ups, "remove_stale_label")
     @patch.object(process_author_follow_ups, "run_gh")
     @patch.object(process_author_follow_ups, "post_comment")
     @patch.object(process_author_follow_ups, "lifecycle_comments")
@@ -299,6 +346,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         lifecycle_comments,
         post_comment,
         run_gh,
+        remove_stale_label,
     ) -> None:
         marker = process_author_follow_ups.lifecycle_marker(
             process_author_follow_ups.CLOSE_MARKER_PREFIX,
@@ -331,6 +379,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         self.assertIsNone(updated)
         post_comment.assert_not_called()
         self.assertEqual(run_gh.call_args.args[0][3], "PATCH")
+        remove_stale_label.assert_called_once_with("open-telemetry/example", 1)
 
     @patch.object(process_author_follow_ups, "remove_stale_label")
     @patch.object(process_author_follow_ups, "run_gh")
@@ -377,14 +426,14 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         run_gh.assert_not_called()
 
     @patch.object(process_author_follow_ups, "remove_stale_label")
-    def test_pruned_open_pr_loses_dashboard_owned_stale_label(
+    def test_closed_pr_loses_dashboard_owned_stale_label(
         self,
         remove_stale_label,
     ) -> None:
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {},
-            {1},
+            set(),
             {"1": follow_up_entry(stale_label_owned=True)},
             NOW,
             stale_enabled=True,

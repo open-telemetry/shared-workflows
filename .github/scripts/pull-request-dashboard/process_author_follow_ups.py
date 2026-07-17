@@ -250,7 +250,7 @@ def repository_stale_label(repo: str) -> str:
 def add_stale_label(repo: str, pr_number: int) -> bool:
     current_labels = issue_label_names(repo, pr_number)
     if STALE_LABEL.lower() in current_labels:
-        return False
+        return stale_label_owned_by_dashboard(repo, pr_number)
     label = repository_stale_label(repo)
     run_gh([
         "gh", "api", "--method", "POST",
@@ -258,6 +258,34 @@ def add_stale_label(repo: str, pr_number: int) -> bool:
         "-f", f"labels[]={label}",
     ])
     return True
+
+
+def stale_label_owned_by_dashboard(repo: str, pr_number: int) -> bool:
+    events = gh_api(
+        f"/repos/{repo}/issues/{pr_number}/events?per_page=100",
+        paginate=True,
+    ) or []
+    label_events = [
+        event
+        for event in events
+        if event.get("event") in ("labeled", "unlabeled")
+        and str((event.get("label") or {}).get("name") or "").lower()
+        == STALE_LABEL.lower()
+    ]
+    if not label_events:
+        return False
+    latest = max(
+        label_events,
+        key=lambda event: (
+            str(event.get("created_at") or ""),
+            str(event.get("id") or ""),
+        ),
+    )
+    return bool(
+        latest.get("event") == "labeled"
+        and (latest.get("performed_via_github_app") or {}).get("slug")
+        == DASHBOARD_APP_SLUG
+    )
 
 
 def remove_stale_label(repo: str, pr_number: int) -> None:
@@ -368,6 +396,8 @@ def execute_action(
             f"repos/{repo}/pulls/{pr_number}",
             "-f", "state=closed",
         ])
+        if updated.get("stale_label_owned"):
+            remove_stale_label(repo, pr_number)
         print(f"closed stale PR #{pr_number}", file=sys.stderr)
         return None
 
@@ -423,7 +453,7 @@ def next_author_follow_ups(
             number = int(key)
         except ValueError:
             continue
-        if number in open_pr_numbers and previous.get("stale_label_owned"):
+        if previous.get("stale_label_owned"):
             remove_stale_label(repo, number)
     return updated_follow_ups
 

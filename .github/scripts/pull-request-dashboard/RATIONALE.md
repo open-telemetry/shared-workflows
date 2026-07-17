@@ -103,14 +103,19 @@ the implementation understandable and operationally cheap.
   rendering but cannot trigger nudges, stale labeling, or closure.
 - Escalation state is stored separately from dashboard routing and Slack
   notification state. Hidden per-cycle comment markers make retries idempotent
-  if a GitHub mutation succeeds before a state-branch push is rejected.
+  if a GitHub mutation succeeds before a state-branch push is rejected. For
+  stale labels, the latest matching GitHub label event is the durable ownership
+  receipt, allowing a retry to recover ownership when the label mutation
+  succeeded before lifecycle state was saved.
 - Stage clocks begin only after the preceding GitHub mutation succeeds. Closure
   requires a current open PR with at least one still-unresolved author-action
   thread, the dashboard-owned `Stale` label, and no subsequent substantive human
   activity. This live recheck protects against a thread being resolved after
   the dashboard refresh without producing another activity event.
 - The workflow records whether it added `Stale` and removes only labels it owns
-  when activity, manual label removal, or a route change resets escalation.
+  when activity, manual label removal, or a route change resets escalation. It
+  also removes an owned label after closure; if that cleanup fails, retained
+  lifecycle state lets a later run remove it from the closed PR.
 
 ## Backfill
 
