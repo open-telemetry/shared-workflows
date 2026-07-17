@@ -78,7 +78,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-
             pull-request-dashboard-classifications-${{ inputs.repository }}-all-
@@ -88,7 +88,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ inputs.repository }}-all-
 
@@ -133,7 +133,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Save shared backfill classification cache
         # Preserve valid classifications even when another item fails the update.
@@ -141,7 +141,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Report GitHub App rate limits
         if: always()
