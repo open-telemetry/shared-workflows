@@ -205,6 +205,13 @@ jobs:
           fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
 
+      - name: Report GitHub App rate limits
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
+
   notify-slack:
     needs: update-dashboard
     if: >-
