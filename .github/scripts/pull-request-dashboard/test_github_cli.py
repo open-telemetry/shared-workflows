@@ -13,29 +13,64 @@ from github_cli import (
 
 
 class GithubCliTest(unittest.TestCase):
-    @patch("github_cli.subprocess.run")
-    def test_gh_pr_checks_fetches_only_required_checks(self, run) -> None:
-        run.return_value.returncode = 1
-        run.return_value.stdout = '[{"name":"build","state":"FAILURE"}]'
-        run.return_value.stderr = ""
+    @patch("github_cli.gh_graphql")
+    def test_gh_pr_checks_preserves_reporting_app_identity(self, graphql) -> None:
+        graphql.return_value = {
+            "data": {
+                "node": {
+                    "commits": {
+                        "nodes": [{
+                            "commit": {
+                                "statusCheckRollup": {
+                                    "contexts": {
+                                        "nodes": [
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "SUCCESS",
+                                                "startedAt": "2026-07-17T00:30:00Z",
+                                                "completedAt": "2026-07-17T01:00:00Z",
+                                                "isRequired": True,
+                                                "checkSuite": {"app": {"databaseId": 1}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "FAILURE",
+                                                "startedAt": "2026-07-17T01:30:00Z",
+                                                "completedAt": "2026-07-17T02:00:00Z",
+                                                "isRequired": True,
+                                                "checkSuite": {"app": {"databaseId": 2}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "optional",
+                                                "isRequired": False,
+                                            },
+                                        ],
+                                        "pageInfo": {"hasNextPage": False},
+                                    },
+                                },
+                            },
+                        }],
+                    },
+                },
+            },
+        }
 
         self.assertEqual(
-            gh_pr_checks("open-telemetry/example", 123),
-            [{"name": "build", "state": "FAILURE"}],
+            [("build", 1, "pass"), ("build", 2, "fail")],
+            [
+                (check["name"], check["integration_id"], check["bucket"])
+                for check in gh_pr_checks("open-telemetry/example", "PR_id") or []
+            ],
         )
-        self.assertIn("--required", run.call_args.args[0])
 
-    @patch("github_cli.subprocess.run")
-    def test_gh_pr_checks_distinguishes_no_reported_checks_from_failure(self, run) -> None:
-        run.return_value.returncode = 1
-        run.return_value.stdout = ""
-        run.return_value.stderr = "no required checks reported on the 'feature' branch"
-
-        self.assertEqual([], gh_pr_checks("open-telemetry/example", 123))
-
-        run.return_value.stderr = "GraphQL: Resource not accessible"
-
-        self.assertIsNone(gh_pr_checks("open-telemetry/example", 123))
+    @patch("github_cli.gh_graphql", side_effect=RuntimeError("unavailable"))
+    def test_gh_pr_checks_failure_returns_unknown(self, _graphql) -> None:
+        self.assertIsNone(gh_pr_checks("open-telemetry/example", "PR_id"))
 
     @patch("github_cli.gh_api")
     def test_required_check_contexts_include_all_effective_branch_rules(self, api) -> None:
@@ -61,7 +96,10 @@ class GithubCliTest(unittest.TestCase):
         ]
 
         self.assertEqual(
-            ["EasyCLA", "build"],
+            [
+                {"context": "EasyCLA", "integration_id": 17893},
+                {"context": "build", "integration_id": 15368},
+            ],
             gh_required_check_contexts("open-telemetry/example", "release/1.x"),
         )
         api.assert_called_once_with(
@@ -88,7 +126,13 @@ class GithubCliTest(unittest.TestCase):
     def test_missing_required_checks_are_pending(self) -> None:
         self.assertEqual(
             [
-                {"name": "EasyCLA", "state": "SUCCESS", "bucket": "pass"},
+                {
+                    "name": "build",
+                    "state": "SUCCESS",
+                    "bucket": "pass",
+                    "integration_id": 1,
+                    "status_context": False,
+                },
                 {
                     "name": "build",
                     "state": "EXPECTED",
@@ -96,16 +140,31 @@ class GithubCliTest(unittest.TestCase):
                     "workflow": "",
                     "description": "Required check has not reported yet.",
                     "link": "",
+                    "started_at": "",
+                    "completed_at": "",
+                    "integration_id": 2,
+                    "status_context": False,
                 },
             ],
             include_missing_required_checks(
-                [{"name": "EasyCLA", "state": "SUCCESS", "bucket": "pass"}],
-                ["EasyCLA", "build"],
+                [{
+                    "name": "build",
+                    "state": "SUCCESS",
+                    "bucket": "pass",
+                    "integration_id": 1,
+                    "status_context": False,
+                }],
+                [
+                    {"context": "build", "integration_id": 1},
+                    {"context": "build", "integration_id": 2},
+                ],
             ),
         )
 
     def test_check_fetch_failure_remains_unknown(self) -> None:
-        self.assertIsNone(include_missing_required_checks(None, ["build"]))
+        self.assertIsNone(include_missing_required_checks(
+            None, [{"context": "build", "integration_id": 1}]
+        ))
         self.assertIsNone(include_missing_required_checks([], None))
 
     @patch("github_cli.gh_graphql")

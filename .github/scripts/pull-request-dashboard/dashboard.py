@@ -279,12 +279,14 @@ def fetch_pr_raw(
             f"/repos/{owner}/{repo_name}/pulls/{number}/commits?per_page=100",
             True,
         )
-        f_checks = pool.submit(gh_pr_checks, repo, number)
         f_threads = pool.submit(fetch_review_threads, owner, repo_name, number)
         f_review_data = pool.submit(fetch_pr_review_data, owner, repo_name, number)
-        review_data = f_review_data.result() or {}
         pr = f_pr.result()
-        required_contexts = gh_required_check_contexts(repo, pr["baseRefName"])
+        f_checks = pool.submit(gh_pr_checks, repo, pr["id"])
+        f_required_contexts = pool.submit(
+            gh_required_check_contexts, repo, pr["baseRefName"]
+        )
+        review_data = f_review_data.result() or {}
         return {
             "summary": pr_summary,
             "pr": pr,
@@ -293,7 +295,7 @@ def fetch_pr_raw(
             "reviews": review_data.get("reviews") or [],
             "commits": f_commits.result() or [],
             "checks": include_missing_required_checks(
-                f_checks.result(), required_contexts
+                f_checks.result(), f_required_contexts.result()
             ),
             "review_threads": f_threads.result() or [],
             "pr_metadata": review_data.get("pr_metadata") or {},

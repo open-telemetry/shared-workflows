@@ -107,7 +107,7 @@ def gh_graphql(query: str, fields: dict[str, Any], token: str | None = None) -> 
 
 def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
-        "number", "title", "url", "author", "state", "isDraft",
+        "id", "number", "title", "url", "author", "state", "isDraft",
         "mergeable", "mergeStateStatus", "createdAt", "updatedAt",
         "reviewDecision", "assignees", "baseRefName",
     ])
@@ -249,43 +249,129 @@ def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, A
     return {"reviews": reviews, "pr_metadata": metadata}
 
 
-def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
-    cmd = [
-        "gh", "pr", "checks", str(number), "--repo", repo, "--required", "--json",
-        "name,state,bucket,workflow,description,link",
-    ]
-    for attempt in range(GH_RETRY_ATTEMPTS):
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding="utf-8",
-            errors="replace",
-        )
-        stdout = proc.stdout.strip()
-        if proc.returncode in (0, 1, 2, 8):
-            if not stdout:
-                stderr = proc.stderr.strip()
-                if (
-                    "no checks reported on" in stderr
-                    or "no required checks reported on" in stderr
-                ):
-                    return []
-                return None
-            try:
-                checks = json.loads(stdout)
-            except json.JSONDecodeError:
-                return None
-            return checks if isinstance(checks, list) else None
-        stderr = proc.stderr.strip()
-        if attempt == GH_RETRY_ATTEMPTS - 1 or not is_retryable_gh_error(stderr):
-            return None
-        sleep_for_retry(attempt)
-    return None
+PR_CHECKS_QUERY = """
+query($id: ID!, $after: String) {
+    node(id: $id) {
+        ... on PullRequest {
+            commits(last: 1) {
+                nodes {
+                    commit {
+                        statusCheckRollup {
+                            contexts(first: 100, after: $after) {
+                                nodes {
+                                    __typename
+                                    ... on StatusContext {
+                                        context
+                                        state
+                                        targetUrl
+                                        createdAt
+                                        description
+                                        isRequired(pullRequestId: $id)
+                                    }
+                                    ... on CheckRun {
+                                        name
+                                        status
+                                        conclusion
+                                        startedAt
+                                        completedAt
+                                        detailsUrl
+                                        isRequired(pullRequestId: $id)
+                                        checkSuite {
+                                            app {
+                                                databaseId
+                                            }
+                                            workflowRun {
+                                                workflow {
+                                                    name
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                pageInfo {
+                                    hasNextPage
+                                    endCursor
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+"""
 
 
-def gh_required_check_contexts(repo: str, base_branch: str) -> list[str] | None:
+def check_bucket(state: str) -> str:
+    if state == "SUCCESS":
+        return "pass"
+    if state in ("SKIPPED", "NEUTRAL"):
+        return "skipping"
+    if state in ("ERROR", "FAILURE", "TIMED_OUT", "ACTION_REQUIRED"):
+        return "fail"
+    if state == "CANCELLED":
+        return "cancel"
+    return "pending"
+
+
+def normalize_required_check(node: dict[str, Any]) -> dict[str, Any]:
+    is_status = node.get("__typename") == "StatusContext"
+    suite = node.get("checkSuite") or {}
+    app = suite.get("app") or {}
+    workflow_run = suite.get("workflowRun") or {}
+    workflow = workflow_run.get("workflow") or {}
+    state = (
+        node.get("state")
+        if is_status
+        else node.get("conclusion") or node.get("status")
+    ) or ""
+    return {
+        "name": (node.get("context") if is_status else node.get("name")) or "",
+        "state": state,
+        "bucket": check_bucket(state),
+        "workflow": workflow.get("name") or "",
+        "description": node.get("description") or "",
+        "link": (node.get("targetUrl") if is_status else node.get("detailsUrl")) or "",
+        "started_at": (node.get("createdAt") if is_status else node.get("startedAt")) or "",
+        "completed_at": (node.get("createdAt") if is_status else node.get("completedAt")) or "",
+        "integration_id": None if is_status else app.get("databaseId"),
+        "status_context": is_status,
+    }
+
+
+def gh_pr_checks(repo: str, pr_id: str) -> list[dict[str, Any]] | None:
+    del repo
+    checks_by_identity: dict[tuple[str, int | None], dict[str, Any]] = {}
+    after: str | None = None
+    try:
+        while True:
+            data = gh_graphql(PR_CHECKS_QUERY, {"id": pr_id, "after": after})
+            pull_request = (data.get("data") or {}).get("node") or {}
+            commits = pull_request.get("commits") or {}
+            commit_nodes = commits.get("nodes") or []
+            commit = (commit_nodes[0] if commit_nodes else {}).get("commit") or {}
+            rollup = commit.get("statusCheckRollup") or {}
+            contexts = rollup.get("contexts") or {}
+            for node in contexts.get("nodes") or []:
+                if not node.get("isRequired"):
+                    continue
+                check = normalize_required_check(node)
+                identity = (check["name"], check["integration_id"])
+                previous = checks_by_identity.get(identity)
+                if previous is None or check["started_at"] >= previous["started_at"]:
+                    checks_by_identity[identity] = check
+            page_info = contexts.get("pageInfo") or {}
+            if not page_info.get("hasNextPage"):
+                return list(checks_by_identity.values())
+            after = page_info.get("endCursor") or None
+            if after is None:
+                return list(checks_by_identity.values())
+    except RuntimeError:
+        return None
+
+
+def gh_required_check_contexts(repo: str, base_branch: str) -> list[dict[str, Any]] | None:
     encoded_branch = quote(base_branch, safe="")
     try:
         rules = gh_api(
@@ -294,38 +380,55 @@ def gh_required_check_contexts(repo: str, base_branch: str) -> list[str] | None:
         )
     except RuntimeError:
         return None
-    contexts: list[str] = []
+    contexts: list[dict[str, Any]] = []
     for rule in rules or []:
         if rule.get("type") != "required_status_checks":
             continue
         parameters = rule.get("parameters") or {}
         for check in parameters.get("required_status_checks") or []:
             context = check.get("context") or ""
-            if context and context not in contexts:
-                contexts.append(context)
+            requirement = {
+                "context": context,
+                "integration_id": check.get("integration_id"),
+            }
+            if context and requirement not in contexts:
+                contexts.append(requirement)
     return contexts
 
 
 def include_missing_required_checks(
     checks: list[dict[str, Any]] | None,
-    required_contexts: list[str] | None,
+    required_contexts: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]] | None:
     if checks is None or required_contexts is None:
         return None
     complete = list(checks)
-    reported_names = {check.get("name") for check in checks}
-    complete.extend(
-        {
+    for requirement in required_contexts:
+        context = requirement["context"]
+        integration_id = requirement.get("integration_id")
+        reported = any(
+            check.get("name") == context
+            and (
+                integration_id is None
+                or check.get("status_context")
+                or check.get("integration_id") == integration_id
+            )
+            for check in checks
+        )
+        if reported:
+            continue
+        complete.append({
             "name": context,
             "state": "EXPECTED",
             "bucket": "pending",
             "workflow": "",
             "description": "Required check has not reported yet.",
             "link": "",
-        }
-        for context in required_contexts
-        if context not in reported_names
-    )
+            "started_at": "",
+            "completed_at": "",
+            "integration_id": integration_id,
+            "status_context": False,
+        })
     return complete
 
 
