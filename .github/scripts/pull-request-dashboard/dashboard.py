@@ -1462,6 +1462,14 @@ def update_backfill_progress(pr_number: int, *, failed: bool) -> set[int]:
     return failed_pr_numbers
 
 
+def clear_backfill_pr_failure(pr_number: int) -> None:
+    backfill_state = load_backfill_state()
+    if pr_number not in backfill_failed_pr_numbers(backfill_state):
+        return
+    set_backfill_pr_failed(backfill_state, pr_number, False)
+    save_backfill_state(backfill_state)
+
+
 def remove_cached_dashboard_prs(
     args: argparse.Namespace,
     pr_numbers_to_remove: set[int],
@@ -1510,6 +1518,10 @@ def apply_targeted_dashboard_update(args: argparse.Namespace, calculation: Dashb
     )
     if not dashboard_state_unchanged and reject_failed_dashboard_result(merged_calculation.trigger_pr_result):
         return 1
+    if merged_calculation.trigger_pr_result is not None and not has_failed_dashboard_result(
+        merged_calculation.trigger_pr_result
+    ):
+        clear_backfill_pr_failure(args.pr_number)
 
     return save_dashboard_update_state(
         args,

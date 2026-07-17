@@ -11,6 +11,7 @@ from classification import discussion_prompt_input
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     DashboardUpdate,
+    apply_targeted_dashboard_update,
     author_action_discussion_urls,
     backfill_failed_pr_numbers,
     complete_initial_backfill_if_ready,
@@ -254,6 +255,38 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
         self.assertEqual(set_backfill_pr_failed(state, 1, False), {2})
         self.assertEqual(state["failed_pr_numbers"], [2])
+
+    def test_successful_targeted_update_clears_recorded_failure(self) -> None:
+        args = SimpleNamespace(pr_number=1)
+        calculation = DashboardUpdate(
+            results={},
+            dashboard_state={"prs": {"1": {"pr_number": 1}}},
+            trigger_pr_result={"pr_number": 1, "failed": False},
+        )
+        backfill_state = {
+            "cursor": {"last_pr_number": 7},
+            "failed_pr_numbers": [1, 2],
+        }
+        saved_backfill_state: dict = {}
+
+        with (
+            patch(
+                "dashboard.merge_dashboard_update_with_latest_state",
+                return_value=(calculation, False),
+            ),
+            patch("dashboard.load_backfill_state", return_value=deepcopy(backfill_state)),
+            patch(
+                "dashboard.save_backfill_state",
+                side_effect=lambda state: saved_backfill_state.update(deepcopy(state)),
+            ),
+            patch("dashboard.save_dashboard_update_state", return_value=0) as save_dashboard,
+        ):
+            status = apply_targeted_dashboard_update(args, calculation)
+
+        self.assertEqual(status, 0)
+        self.assertEqual(saved_backfill_state["cursor"], {"last_pr_number": 7})
+        self.assertEqual(saved_backfill_state["failed_pr_numbers"], [2])
+        save_dashboard.assert_called_once_with(args, calculation.dashboard_state, False)
 
     def test_emits_initial_backfill_status_only_for_accepted_state_outcomes(self) -> None:
         for status, should_emit in (
