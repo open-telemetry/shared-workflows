@@ -285,12 +285,15 @@ def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
     return None
 
 
-def gh_required_check_contexts(repo: str, base_branch: str) -> list[str]:
+def gh_required_check_contexts(repo: str, base_branch: str) -> list[str] | None:
     encoded_branch = quote(base_branch, safe="")
-    rules = gh_api(
-        f"/repos/{repo}/rules/branches/{encoded_branch}?per_page=100",
-        paginate=True,
-    )
+    try:
+        rules = gh_api(
+            f"/repos/{repo}/rules/branches/{encoded_branch}?per_page=100",
+            paginate=True,
+        )
+    except RuntimeError:
+        return None
     contexts: list[str] = []
     for rule in rules or []:
         if rule.get("type") != "required_status_checks":
@@ -305,9 +308,9 @@ def gh_required_check_contexts(repo: str, base_branch: str) -> list[str]:
 
 def include_missing_required_checks(
     checks: list[dict[str, Any]] | None,
-    required_contexts: list[str],
+    required_contexts: list[str] | None,
 ) -> list[dict[str, Any]] | None:
-    if checks is None:
+    if checks is None or required_contexts is None:
         return None
     complete = list(checks)
     reported_names = {check.get("name") for check in checks}

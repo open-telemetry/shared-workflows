@@ -69,6 +69,22 @@ class GithubCliTest(unittest.TestCase):
             paginate=True,
         )
 
+    @patch("github_cli.gh_api")
+    def test_required_check_context_failure_returns_unknown(self, api) -> None:
+        for error in (
+            RuntimeError("forbidden"),
+            Exception("unexpected parsing failure"),
+        ):
+            with self.subTest(error=type(error).__name__):
+                api.side_effect = error
+                if isinstance(error, RuntimeError):
+                    self.assertIsNone(
+                        gh_required_check_contexts("open-telemetry/example", "main")
+                    )
+                else:
+                    with self.assertRaises(Exception):
+                        gh_required_check_contexts("open-telemetry/example", "main")
+
     def test_missing_required_checks_are_pending(self) -> None:
         self.assertEqual(
             [
@@ -90,6 +106,7 @@ class GithubCliTest(unittest.TestCase):
 
     def test_check_fetch_failure_remains_unknown(self) -> None:
         self.assertIsNone(include_missing_required_checks(None, ["build"]))
+        self.assertIsNone(include_missing_required_checks([], None))
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_review_data_normalizes_paginated_reviews_and_metadata(self, graphql) -> None:
