@@ -109,6 +109,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_approver_activity_at       str (iso)
     last_external_activity_at       str (iso)
     human_head_observed_at          str (iso)
+    author_head_observed_at         str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
     waiting_since                   str (iso)     Oldest pending discussion, or
@@ -442,7 +443,9 @@ def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[s
     timestamps = [
         parse_ts(e.get("activity_timestamp") or e["timestamp"])
         for e in events
-        if e.get("actor_role") in actor_roles and is_substantive_activity(e)
+        if e.get("kind") != "commit"
+        and e.get("actor_role") in actor_roles
+        and is_substantive_activity(e)
     ]
     timestamps = [ts for ts in timestamps if ts is not None]
     return max(timestamps) if timestamps else None
@@ -534,6 +537,7 @@ def compute_facts(
 def add_human_head_observation(
     facts: dict[str, Any],
     raw: dict[str, Any],
+    author: str,
     previous_result: dict[str, Any] | None,
     observed_at: datetime,
 ) -> None:
@@ -542,6 +546,9 @@ def add_human_head_observation(
     previous_head_sha = str(previous_facts.get("head_sha") or "")
     human_head_observed_at = parse_ts(
         previous_facts.get("human_head_observed_at") or ""
+    )
+    author_head_observed_at = parse_ts(
+        previous_facts.get("author_head_observed_at") or ""
     )
     head_commit = next(
         (
@@ -552,14 +559,22 @@ def add_human_head_observation(
         None,
     )
     if previous_head_sha and head_sha != previous_head_sha and head_commit:
-        if any(
+        is_human_head = any(
             is_human_commit_actor(head_commit.get(field))
             for field in ("committer", "author")
-        ):
+        )
+        if is_human_head:
             human_head_observed_at = observed_at
+            head_logins = {
+                actor_login(head_commit.get(field)).lower()
+                for field in ("committer", "author")
+            }
+            if author.lower() in head_logins:
+                author_head_observed_at = observed_at
 
     facts["head_sha"] = head_sha
     facts["human_head_observed_at"] = format_ts(human_head_observed_at)
+    facts["author_head_observed_at"] = format_ts(author_head_observed_at)
 
 
 def discussion_comment(
@@ -1082,7 +1097,7 @@ def build_pr_result(
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events)
-        add_human_head_observation(facts, raw, previous_result, utc_now())
+        add_human_head_observation(facts, raw, author, previous_result, utc_now())
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         review_thread_classifications, top_level_classifications = (

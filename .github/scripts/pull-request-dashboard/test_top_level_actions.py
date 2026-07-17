@@ -122,6 +122,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     "committer": {"login": "author"},
                 }],
             },
+            "author",
             {"facts": {"head_sha": "old-head"}},
             datetime(2026, 7, 17, tzinfo=timezone.utc),
         )
@@ -129,6 +130,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(facts["head_sha"], "new-head")
         self.assertEqual(
             facts["human_head_observed_at"],
+            "2026-07-17T00:00:00+00:00",
+        )
+        self.assertEqual(
+            facts["author_head_observed_at"],
             "2026-07-17T00:00:00+00:00",
         )
         self.assertEqual(
@@ -149,6 +154,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     "committer": {"login": "web-flow", "type": "User"},
                 }],
             },
+            "author",
             {"facts": {"head_sha": "old-head"}},
             datetime(2026, 7, 17, tzinfo=timezone.utc),
         )
@@ -157,6 +163,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             facts["human_head_observed_at"],
             "2026-07-17T00:00:00+00:00",
         )
+        self.assertEqual(facts["author_head_observed_at"], "")
 
     def test_bot_head_change_does_not_use_observation_time(self) -> None:
         facts = {"last_author_activity_at": "2026-07-01T00:00:00+00:00"}
@@ -171,11 +178,13 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     "committer": {"login": "automation[bot]", "type": "Bot"},
                 }],
             },
+            "author",
             {"facts": {"head_sha": "old-head"}},
             datetime(2026, 7, 17, tzinfo=timezone.utc),
         )
 
         self.assertEqual(facts["human_head_observed_at"], "")
+        self.assertEqual(facts["author_head_observed_at"], "")
 
     def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
         review_threads = [
@@ -748,6 +757,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertEqual(pending_actions["code"]["action"], "author")
         self.assertNotIn("code", top_level_history)
+
+    def test_substantive_activity_ignores_commit_metadata_time(self) -> None:
+        events = [
+            event("issue-comment", "2026-07-14T00:00:00Z", "author", "author"),
+            event("commit", "2099-07-14T00:00:00Z", "author", "author"),
+        ]
+
+        activity = latest_substantive_activity(events, {"author"})
+
+        assert activity is not None
+        self.assertEqual(activity.isoformat(), "2026-07-14T00:00:00+00:00")
 
     def test_compound_action_waits_for_all_required_evidence(self) -> None:
         discussions = [top_level_item("compound")]

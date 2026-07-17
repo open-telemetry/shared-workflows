@@ -16,6 +16,7 @@ def result(
     author_activity: str = "2026-07-10T00:00:00Z",
     approver_activity: str = "",
     human_head_activity: str = "",
+    author_head_activity: str = "",
     waiting_since: str = "2026-07-10T00:00:00Z",
 ) -> dict[str, Any]:
     return {
@@ -25,6 +26,7 @@ def result(
             "last_approver_activity_at": approver_activity,
             "last_external_activity_at": "",
             "human_head_observed_at": human_head_activity,
+            "author_head_observed_at": author_head_activity,
             "waiting_since": waiting_since,
         },
     }
@@ -113,6 +115,23 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
         self.assertIsNone(action)
         assert updated is not None
         self.assertEqual(updated["pending_handoff_since"], "")
+
+    def test_old_dated_author_push_uses_observation_time_for_handoff(self) -> None:
+        action, updated = plan_follow_up(
+            result(
+                author_activity="",
+                human_head_activity="2026-07-16T00:00:00Z",
+                author_head_activity="2026-07-16T00:00:00Z",
+                waiting_since="2026-07-12T00:00:00Z",
+            ),
+            entry(waiting_on_author_since="2026-07-12T00:00:00Z"),
+            NOW,
+            stale_enabled=False,
+        )
+
+        self.assertEqual(action, "handoff-nudge")
+        assert updated is not None
+        self.assertEqual(updated["handoff_nudged_at"], "2026-07-17T00:00:00+00:00")
 
     def test_handoff_nudge_clock_does_not_use_author_route_start(self) -> None:
         action, updated = plan_follow_up(

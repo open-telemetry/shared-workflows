@@ -110,8 +110,8 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
                     "author": {"login": "alice"},
                     "committer": {"login": "alice"},
                     "commit": {
-                        "author": {"date": "2026-07-14T00:00:00Z"},
-                        "committer": {"date": "2026-07-14T00:00:00Z"},
+                        "author": {"date": "2099-07-14T00:00:00Z"},
+                        "committer": {"date": "2099-07-14T00:00:00Z"},
                     },
                 },
                 {

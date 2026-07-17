@@ -27,13 +27,29 @@ def latest_human_activity(facts: dict[str, Any]) -> datetime | None:
 
 
 def qualifying_author_activity(facts: dict[str, Any]) -> datetime | None:
-    author_activity = parse_ts(facts.get("last_author_activity_at") or "")
+    author_activity = max(
+        (
+            timestamp
+            for timestamp in (
+                parse_ts(facts.get("last_author_activity_at") or ""),
+                parse_ts(facts.get("author_head_observed_at") or ""),
+            )
+            if timestamp is not None
+        ),
+        default=None,
+    )
     if author_activity is None:
         return None
+    author_head_activity = parse_ts(facts.get("author_head_observed_at") or "")
+    human_head_activity = parse_ts(facts.get("human_head_observed_at") or "")
     other_activity = [
         parse_ts(facts.get("last_approver_activity_at") or ""),
         parse_ts(facts.get("last_external_activity_at") or ""),
     ]
+    if human_head_activity is not None and (
+        author_head_activity is None or human_head_activity > author_head_activity
+    ):
+        other_activity.append(human_head_activity)
     if any(activity is not None and activity >= author_activity for activity in other_activity):
         return None
     return author_activity
@@ -44,6 +60,12 @@ def latest_other_human_activity(facts: dict[str, Any]) -> datetime | None:
         parse_ts(facts.get("last_approver_activity_at") or ""),
         parse_ts(facts.get("last_external_activity_at") or ""),
     ]
+    author_head_activity = parse_ts(facts.get("author_head_observed_at") or "")
+    human_head_activity = parse_ts(facts.get("human_head_observed_at") or "")
+    if human_head_activity is not None and (
+        author_head_activity is None or human_head_activity > author_head_activity
+    ):
+        timestamps.append(human_head_activity)
     return max((timestamp for timestamp in timestamps if timestamp is not None), default=None)
 
 

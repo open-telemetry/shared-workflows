@@ -196,23 +196,6 @@ def current_human_activity(
             if timestamp is not None:
                 timestamps.append(timestamp)
 
-    author = str((result.get("facts") or {}).get("author") or "").lower()
-    for commit in commits:
-        commit_data = commit.get("commit") or {}
-        commit_author = commit_data.get("author") or {}
-        commit_committer = commit_data.get("committer") or {}
-        author_actor = commit.get("author") or {}
-        committer_actor = commit.get("committer") or {}
-        if str(committer_actor.get("login") or "").lower() == author:
-            timestamp = parse_ts(
-                commit_committer.get("date") or commit_author.get("date") or ""
-            )
-        elif str(author_actor.get("login") or "").lower() == author:
-            timestamp = parse_ts(commit_author.get("date") or "")
-        else:
-            timestamp = None
-        if timestamp is not None:
-            timestamps.append(timestamp)
     accepted_head_sha = str((result.get("facts") or {}).get("head_sha") or "")
     current_head_sha = str(current_pr.get("headRefOid") or "")
     if accepted_head_sha and current_head_sha != accepted_head_sha:
