@@ -1,22 +1,26 @@
 from __future__ import annotations
 
+from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
 import tempfile
-from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 from classification import discussion_prompt_input
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     DashboardUpdate,
+    add_wait_age_facts,
     apply_targeted_dashboard_update,
     author_action_discussion_urls,
     backfill_failed_pr_numbers,
     complete_initial_backfill_if_ready,
+    compute_facts,
     group_review_threads,
     main,
+    remove_cached_dashboard_prs,
+    route_pr,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
@@ -166,10 +170,172 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                         output_path.read_text(encoding="utf-8"),
                     )
 
+class StatusCommentQueueTest(unittest.TestCase):
+    @patch("dashboard.save_dashboard_update_state", return_value=0)
+    @patch("dashboard.enqueue_status_comment_update")
+    @patch(
+        "dashboard.load_dashboard_state_cache",
+        return_value={"prs": {"12": {}, "34": {}, "56": {}}},
+    )
+    def test_removed_dashboard_results_enqueue_status_comments(
+        self,
+        _load_state: Mock,
+        enqueue_update: Mock,
+        save_state: Mock,
+    ) -> None:
+        args = Namespace(pr_number=None)
+
+        status = remove_cached_dashboard_prs(args, {12, 34})
+
+        self.assertEqual(0, status)
+        self.assertEqual(
+            [call(12), call(34)],
+            sorted(enqueue_update.call_args_list, key=lambda call: call.args[0]),
+        )
+        saved_state = save_state.call_args.args[1]
+        self.assertEqual({"56": {}}, saved_state["prs"])
+
+    @patch("dashboard.save_dashboard_update_state", return_value=0)
+    @patch("dashboard.enqueue_status_comment_update")
+    @patch("dashboard.merge_dashboard_update_with_latest_state")
+    def test_targeted_state_change_enqueues_status_comment(
+        self,
+        merge_update: Mock,
+        enqueue_update: Mock,
+        _save_state: Mock,
+    ) -> None:
+        calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
+        merge_update.return_value = (calculation, False)
+
+        status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
+
+        self.assertEqual(0, status)
+        enqueue_update.assert_called_once_with(12)
+
+    @patch("dashboard.save_dashboard_update_state", return_value=0)
+    @patch("dashboard.enqueue_status_comment_update")
+    @patch("dashboard.merge_dashboard_update_with_latest_state")
+    def test_unchanged_targeted_state_does_not_enqueue_status_comment(
+        self,
+        merge_update: Mock,
+        enqueue_update: Mock,
+        _save_state: Mock,
+    ) -> None:
+        calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
+        merge_update.return_value = (calculation, True)
+
+        status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
+
+        self.assertEqual(0, status)
+        enqueue_update.assert_not_called()
+
+
+class RequiredCiRoutingTest(unittest.TestCase):
+    def test_required_check_buckets_control_ci_facts_and_author_routing(self) -> None:
+        cases = (
+            ("TIMED_OUT", "fail", 1, 0, "author"),
+            ("ACTION_REQUIRED", "fail", 1, 0, "author"),
+            ("STARTUP_FAILURE", "fail", 1, 0, "author"),
+            ("CANCELLED", "cancel", 1, 0, "author"),
+            ("IN_PROGRESS", "pending", 0, 1, "approver"),
+            ("SKIPPED", "skipping", 0, 0, "approver"),
+            ("SUCCESS", "pass", 0, 0, "approver"),
+        )
+        for state, bucket, failing, pending, route in cases:
+            with self.subTest(state=state, bucket=bucket):
+                facts = compute_facts(
+                    {
+                        "pr": {
+                            "updatedAt": "2026-07-14T03:00:00Z",
+                            "createdAt": "2026-07-14T01:00:00Z",
+                            "author": {"login": "author"},
+                            "assignees": [],
+                            "mergeStateStatus": "CLEAN",
+                            "mergeable": "MERGEABLE",
+                        },
+                        "checks": [{"state": state, "bucket": bucket}],
+                    },
+                    "author",
+                    [],
+                )
+
+                self.assertEqual(failing, facts["ci_failing_count"])
+                self.assertEqual(pending, facts["ci_pending_count"])
+                self.assertEqual(route, route_pr(facts, {}, 1))
+
+    def test_required_ci_failure_routes_to_author_before_approval_state(self) -> None:
+        facts = {
+            "approval_count": 1,
+            "ci_failing_count": 1,
+            "is_maintenance_bot": False,
+        }
+
+        self.assertEqual("author", route_pr(facts, {}, 1))
+
+    def test_required_ci_failure_preserves_maintenance_bot_routing(self) -> None:
+        for approval_count, expected_route in ((0, "approver"), (1, "maintainer")):
+            with self.subTest(approval_count=approval_count):
+                facts = {
+                    "approval_count": approval_count,
+                    "ci_failing_count": 1,
+                    "is_maintenance_bot": True,
+                }
+
+                self.assertEqual(expected_route, route_pr(facts, {}, 2))
+
+    def test_required_ci_failure_waits_since_first_current_failure(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-17T03:00:00Z",
+                    "createdAt": "2026-07-14T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                },
+                "checks": [
+                    {
+                        "bucket": "fail",
+                        "completed_at": "2026-07-17T02:00:00Z",
+                    },
+                    {
+                        "bucket": "cancel",
+                        "completed_at": "2026-07-17T01:00:00Z",
+                    },
+                ],
+            },
+            "author",
+            [
+                {
+                    "actor_role": "author",
+                    "kind": "issue-comment",
+                    "body": "old activity",
+                    "timestamp": "2026-07-14T02:00:00Z",
+                }
+            ],
+        )
+
+        cases = (
+            ("2026-07-17T03:00:00Z", "2026-07-17T01:00:00+00:00", "ci_failure"),
+            ("2026-07-16T23:00:00Z", "2026-07-16T23:00:00+00:00", "oldest_pending_thread"),
+        )
+        for discussion_since, waiting_since, basis in cases:
+            with self.subTest(discussion_since=discussion_since):
+                current_facts = dict(facts)
+                add_wait_age_facts(
+                    current_facts,
+                    "author",
+                    {"thread": {"action": "author", "since": discussion_since}},
+                )
+
+                self.assertEqual(waiting_since, current_facts["waiting_since"])
+                self.assertEqual(basis, current_facts["waiting_age_basis"])
+
 
 class BackfillFailureIsolationTest(unittest.TestCase):
     def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
-        args = SimpleNamespace(
+        args = Namespace(
             repo="repo",
             approver_team=["approvers"],
             state_branch="state",
@@ -257,7 +423,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         self.assertEqual(state["failed_pr_numbers"], [2])
 
     def test_successful_targeted_update_clears_recorded_failure(self) -> None:
-        args = SimpleNamespace(pr_number=1)
+        args = Namespace(pr_number=1)
         calculation = DashboardUpdate(
             results={},
             dashboard_state={"prs": {"1": {"pr_number": 1}}},

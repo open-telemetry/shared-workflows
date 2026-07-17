@@ -5,6 +5,7 @@ import os
 import subprocess
 import time
 from typing import Any
+from urllib.parse import quote, urlparse
 
 
 GH_RETRY_ATTEMPTS = 4
@@ -106,9 +107,9 @@ def gh_graphql(query: str, fields: dict[str, Any], token: str | None = None) -> 
 
 def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
-        "number", "title", "url", "author", "state", "isDraft",
+        "id", "number", "title", "url", "author", "state", "isDraft",
         "mergeable", "mergeStateStatus", "createdAt", "updatedAt",
-        "reviewDecision", "assignees",
+        "reviewDecision", "assignees", "baseRefName",
     ])
     cmd = ["gh", "pr", "view", str(number), "--repo", repo, "--json", fields]
     last: dict[str, Any] = {}
@@ -248,43 +249,227 @@ def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, A
     return {"reviews": reviews, "pr_metadata": metadata}
 
 
-def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
-    cmd = [
-        "gh", "pr", "checks", str(number), "--repo", repo, "--json",
-        "name,state,bucket,workflow,description,link",
-    ]
-    for attempt in range(GH_RETRY_ATTEMPTS):
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding="utf-8",
-            errors="replace",
+PR_CHECKS_QUERY = """
+query($id: ID!, $after: String) {
+    node(id: $id) {
+        ... on PullRequest {
+            commits(last: 1) {
+                nodes {
+                    commit {
+                        statusCheckRollup {
+                            contexts(first: 100, after: $after) {
+                                nodes {
+                                    __typename
+                                    ... on StatusContext {
+                                        context
+                                        state
+                                        targetUrl
+                                        createdAt
+                                        description
+                                        isRequired(pullRequestId: $id)
+                                    }
+                                    ... on CheckRun {
+                                        name
+                                        status
+                                        conclusion
+                                        startedAt
+                                        completedAt
+                                        detailsUrl
+                                        url
+                                        isRequired(pullRequestId: $id)
+                                        checkSuite {
+                                            app {
+                                                databaseId
+                                            }
+                                            workflowRun {
+                                                workflow {
+                                                    name
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                pageInfo {
+                                    hasNextPage
+                                    endCursor
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+"""
+
+
+def check_bucket(state: str) -> str:
+    if state == "SUCCESS":
+        return "pass"
+    if state in ("SKIPPED", "NEUTRAL"):
+        return "skipping"
+    if state in ("ERROR", "FAILURE", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"):
+        return "fail"
+    if state == "CANCELLED":
+        return "cancel"
+    return "pending"
+
+
+def normalize_required_check(node: dict[str, Any]) -> dict[str, Any]:
+    is_status = node.get("__typename") == "StatusContext"
+    suite = node.get("checkSuite") or {}
+    app = suite.get("app") or {}
+    workflow_run = suite.get("workflowRun") or {}
+    workflow = workflow_run.get("workflow") or {}
+    state = (
+        node.get("state")
+        if is_status
+        else node.get("conclusion") or node.get("status")
+    ) or ""
+    return {
+        "name": (node.get("context") if is_status else node.get("name")) or "",
+        "state": state,
+        "bucket": check_bucket(state),
+        "workflow": workflow.get("name") or "",
+        "description": node.get("description") or "",
+        "link": (node.get("targetUrl") if is_status else node.get("detailsUrl")) or "",
+        "started_at": (node.get("createdAt") if is_status else node.get("startedAt")) or "",
+        "completed_at": (node.get("createdAt") if is_status else node.get("completedAt")) or "",
+        "check_run_id": None if is_status else check_run_id(node["url"]),
+        "integration_id": None if is_status else app.get("databaseId"),
+        "status_context": is_status,
+    }
+
+
+def check_run_id(url: str) -> int:
+    return int(urlparse(url).path.rstrip("/").rsplit("/", 1)[-1])
+
+
+def check_attempt_order(check: dict[str, Any]) -> tuple[int, int | str]:
+    if check["status_context"]:
+        return 0, check["started_at"]
+    return 1, check["check_run_id"] or 0
+
+
+def gh_pr_checks(repo: str, pr_id: str) -> list[dict[str, Any]] | None:
+    del repo
+    checks_by_identity: dict[tuple[str, int | None], dict[str, Any]] = {}
+    after: str | None = None
+    try:
+        while True:
+            data = gh_graphql(PR_CHECKS_QUERY, {"id": pr_id, "after": after})
+            pull_request = (data.get("data") or {}).get("node") or {}
+            commits = pull_request.get("commits") or {}
+            commit_nodes = commits.get("nodes") or []
+            commit = (commit_nodes[0] if commit_nodes else {}).get("commit") or {}
+            rollup = commit.get("statusCheckRollup") or {}
+            contexts = rollup.get("contexts") or {}
+            for node in contexts.get("nodes") or []:
+                if not node.get("isRequired"):
+                    continue
+                check = normalize_required_check(node)
+                identity = (check["name"], check["integration_id"])
+                previous = checks_by_identity.get(identity)
+                if previous is None or check_attempt_order(check) >= check_attempt_order(previous):
+                    checks_by_identity[identity] = check
+            page_info = contexts.get("pageInfo") or {}
+            if not page_info.get("hasNextPage"):
+                return list(checks_by_identity.values())
+            after = page_info.get("endCursor") or None
+            if after is None:
+                return list(checks_by_identity.values())
+    except RuntimeError:
+        return None
+
+
+def gh_required_check_contexts(repo: str, base_branch: str) -> list[dict[str, Any]] | None:
+    encoded_branch = quote(base_branch, safe="")
+    try:
+        rules = gh_api(
+            f"/repos/{repo}/rules/branches/{encoded_branch}?per_page=100",
+            paginate=True,
         )
-        stdout = proc.stdout.strip()
-        if proc.returncode == 8 and not stdout:
-            return None
-        if proc.returncode in (0, 1, 2, 8):
-            if not stdout:
-                return None
-            try:
-                checks = json.loads(stdout)
-            except json.JSONDecodeError:
-                return None
-            return checks if isinstance(checks, list) else None
-        stderr = proc.stderr.strip()
-        if attempt == GH_RETRY_ATTEMPTS - 1 or not is_retryable_gh_error(stderr):
-            return None
-        sleep_for_retry(attempt)
-    return None
+    except RuntimeError:
+        return None
+    contexts: list[dict[str, Any]] = []
+    for rule in rules or []:
+        if rule.get("type") != "required_status_checks":
+            continue
+        parameters = rule.get("parameters") or {}
+        for check in parameters.get("required_status_checks") or []:
+            context = check.get("context") or ""
+            requirement = {
+                "context": context,
+                "integration_id": check.get("integration_id"),
+            }
+            if context and requirement not in contexts:
+                contexts.append(requirement)
+    return contexts
+
+
+def include_missing_required_checks(
+    checks: list[dict[str, Any]] | None,
+    required_contexts: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]] | None:
+    if checks is None or required_contexts is None:
+        return None
+    complete = list(checks)
+    for requirement in required_contexts:
+        context = requirement["context"]
+        integration_id = requirement.get("integration_id")
+        reported = any(
+            check.get("name") == context
+            and (
+                integration_id is None
+                or check.get("integration_id") == integration_id
+            )
+            for check in checks
+        )
+        if reported:
+            continue
+        complete.append({
+            "name": context,
+            "state": "EXPECTED",
+            "bucket": "pending",
+            "workflow": "",
+            "description": "Required check has not reported yet.",
+            "link": "",
+            "started_at": "",
+            "completed_at": "",
+            "integration_id": integration_id,
+            "status_context": False,
+        })
+    return complete
+
+
+def _list_open_pulls(repo: str) -> list[dict[str, Any]]:
+    return gh_api(
+        f"/repos/{repo}/pulls?state=open&per_page=100",
+        paginate=True,
+    ) or []
 
 
 def list_open_prs(repo: str) -> list[dict[str, Any]]:
-    return run_gh_json([
-        "gh", "pr", "list", "--repo", repo, "--state", "open", "--limit", "500",
-        "--json", "number,title,author,isDraft,updatedAt,url",
-    ])
+    return [
+        {
+            "number": pull["number"],
+            "title": pull["title"],
+            "author": pull.get("user"),
+            "isDraft": pull.get("draft", False),
+            "updatedAt": pull.get("updated_at"),
+            "url": pull.get("html_url"),
+        }
+        for pull in _list_open_pulls(repo)
+    ]
+
+
+def list_all_open_pr_numbers(repo: str) -> set[int]:
+    return {
+        pull["number"]
+        for pull in _list_open_pulls(repo)
+        if isinstance(pull, dict) and isinstance(pull.get("number"), int)
+    }
 
 
 def detect_repo() -> str:

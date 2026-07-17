@@ -78,6 +78,12 @@ the implementation understandable and operationally cheap.
   capped so one run cannot exhaust the dashboard GitHub App's hourly API quota.
 - Each backfill lists open PRs, prunes cached PRs that are no longer open
   non-draft, then refreshes at most 50 open non-draft PRs.
+- Status-comment rendering rollouts use separate versioned state and a durable
+  queue. Incrementing the implementation revision snapshots all open PRs, then
+  hourly runs update at most 50 queued comments until the rollout completes.
+  Dashboard refreshes atomically queue comments only when their persisted result
+  changes; targeted refreshes update immediately and leave no completed PR
+  pending in the rollout queue.
 - Selected PRs are processed one at a time through the same single-PR merge path
   as targeted refreshes. Each accepted PR update pushes structured state before
   the next selected PR is processed.
@@ -136,6 +142,23 @@ the implementation understandable and operationally cheap.
   restores valid sibling classifications and sends only the still-uncached
   items to the model. The original run remains failed so the item is visible
   for operational triage.
+
+## Required Status Checks
+
+- Reported CI facts come from the PR's GraphQL status-check rollup, filtered by
+  each context's `isRequired` result, so optional check failures do not make the
+  dashboard report a failing PR or change its route. Paginated effective
+  rulesets for the PR's base branch supply configured required contexts; a
+  context that has not reported yet is shown as pending rather than passing.
+- Classic branch-protection required status checks are not discovered when they
+  have not reported. This is an accepted limitation because configured
+  OpenTelemetry repositories use rulesets for required status checks.
+- A failing required status check routes a human-authored PR to the author
+  before discussion and approval routing. The live PR status comment names the
+  CI failure, including when review feedback also needs author action.
+- Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
+  respond to a dashboard action. Pending required checks affect the CI column
+  but do not change who owns the next action.
 
 ## Top-Level Feedback
 
