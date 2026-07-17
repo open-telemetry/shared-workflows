@@ -106,7 +106,13 @@ the implementation understandable and operationally cheap.
   if a GitHub mutation succeeds before a state-branch push is rejected. For
   stale labels, the latest matching GitHub label event is the durable ownership
   receipt, allowing a retry to recover ownership when the label mutation
-  succeeded before lifecycle state was saved.
+  succeeded before lifecycle state was saved. Once saved, ownership represents
+  the dashboard-managed stale lifecycle rather than one specific label event.
+  Removing and reapplying `Stale` is not substantive activity and does not
+  supersede that lifecycle. Later qualifying activity clears the stale stage
+  and removes the current `Stale` label regardless of who most recently applied
+  it; otherwise closure remains gated by the full quiet period and the live
+  activity check.
 - Stage clocks begin only after the preceding GitHub mutation succeeds. Closure
   requires a current open PR with at least one still-unresolved author-action
   thread, the dashboard-owned `Stale` label, and no subsequent substantive human
