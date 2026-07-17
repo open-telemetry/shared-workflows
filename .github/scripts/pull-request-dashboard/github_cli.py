@@ -5,7 +5,7 @@ import os
 import subprocess
 import time
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 
 GH_RETRY_ATTEMPTS = 4
@@ -269,13 +269,13 @@ query($id: ID!, $after: String) {
                                         isRequired(pullRequestId: $id)
                                     }
                                     ... on CheckRun {
-                                        databaseId
                                         name
                                         status
                                         conclusion
                                         startedAt
                                         completedAt
                                         detailsUrl
+                                        url
                                         isRequired(pullRequestId: $id)
                                         checkSuite {
                                             app {
@@ -309,7 +309,7 @@ def check_bucket(state: str) -> str:
         return "pass"
     if state in ("SKIPPED", "NEUTRAL"):
         return "skipping"
-    if state in ("ERROR", "FAILURE", "TIMED_OUT", "ACTION_REQUIRED"):
+    if state in ("ERROR", "FAILURE", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"):
         return "fail"
     if state == "CANCELLED":
         return "cancel"
@@ -336,10 +336,14 @@ def normalize_required_check(node: dict[str, Any]) -> dict[str, Any]:
         "link": (node.get("targetUrl") if is_status else node.get("detailsUrl")) or "",
         "started_at": (node.get("createdAt") if is_status else node.get("startedAt")) or "",
         "completed_at": (node.get("createdAt") if is_status else node.get("completedAt")) or "",
-        "check_run_id": None if is_status else node.get("databaseId"),
+        "check_run_id": None if is_status else check_run_id(node["url"]),
         "integration_id": None if is_status else app.get("databaseId"),
         "status_context": is_status,
     }
+
+
+def check_run_id(url: str) -> int:
+    return int(urlparse(url).path.rstrip("/").rsplit("/", 1)[-1])
 
 
 def check_attempt_order(check: dict[str, Any]) -> tuple[int, int | str]:

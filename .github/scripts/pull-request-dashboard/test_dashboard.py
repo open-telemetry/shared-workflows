@@ -122,6 +122,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
         cases = (
             ("TIMED_OUT", "fail", 1, 0, "author"),
             ("ACTION_REQUIRED", "fail", 1, 0, "author"),
+            ("STARTUP_FAILURE", "fail", 1, 0, "author"),
             ("CANCELLED", "cancel", 1, 0, "author"),
             ("IN_PROGRESS", "pending", 0, 1, "approver"),
             ("SKIPPED", "skipping", 0, 0, "approver"),
