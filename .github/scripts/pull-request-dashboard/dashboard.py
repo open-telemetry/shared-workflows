@@ -802,6 +802,8 @@ def advance_top_level_actions(
         )
         if evidence:
             top_level_history[discussion["discussion_id"]] = {"evidence": evidence}
+        if evidence.get("reply"):
+            continue
         if action == "external":
             pending_actions[discussion["discussion_id"]] = {
                 "action": "external",

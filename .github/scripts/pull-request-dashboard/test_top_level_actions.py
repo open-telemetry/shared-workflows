@@ -1486,6 +1486,32 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 self.assertNotIn(action, top_level_history)
                 self.assertEqual(classifications[0]["decision"]["discussion_action"], action)
 
+    def test_author_reply_closes_external_and_unclear_items(self) -> None:
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                created_timestamp="2026-07-14T03:00:00Z",
+            ),
+        ]
+        for action in ("external", "unclear"):
+            with self.subTest(action=action):
+                discussions = [top_level_item(action)]
+                classifications = [classification(action, action)]
+                classifications[0]["decision"]["discussion_action"] = action
+
+                pending_actions, top_level_history = advance_top_level_actions(
+                    discussions, classifications, events, {}, "author"
+                )
+
+                self.assertNotIn(action, pending_actions)
+                self.assertEqual(
+                    top_level_history[action]["evidence"],
+                    {"reply": "2026-07-14T03:00:00Z"},
+                )
+
     def test_changes_requested_reviewer_handoff_uses_red_without_pin(self) -> None:
         discussions = [top_level_item("code")]
         discussions[0]["review_state"] = "CHANGES_REQUESTED"
