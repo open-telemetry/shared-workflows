@@ -19,6 +19,8 @@ AUTHOR_GUIDANCE = (
     "explain why no change is needed, ask a follow-up question, or resolve the discussion."
 )
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
+# Remove after migrating open PRs as described by the post-rollout
+# compatibility cleanup in WEBHOOK_SETUP.md.
 LEGACY_MARKERS = (
     "<!-- review-guidance -->",
     "<!-- copilot-review-guidance -->",
