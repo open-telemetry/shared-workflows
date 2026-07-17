@@ -145,6 +145,15 @@ def upsert_status_comment(repo: str, pr_number: int, body: str) -> None:
     ])
 
 
+def ensure_status_comment(repo: str, pr_number: int, result: dict[str, Any] | None) -> str:
+    pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
+    upsert_status_comment(repo, pr_number, render_status_comment(pr, result))
+    comments = managed_status_comments(repo, pr_number)
+    if not comments:
+        raise RuntimeError(f"managed status comment was not found after updating PR #{pr_number}")
+    return comments[0].get("html_url") or ""
+
+
 def publish_pr_status(repo: str, pr_number: int, dashboard_state: dict[str, Any]) -> None:
     pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
     result = (dashboard_state.get("prs") or {}).get(str(pr_number))

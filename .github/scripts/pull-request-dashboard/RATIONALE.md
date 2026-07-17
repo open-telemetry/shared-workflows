@@ -21,9 +21,9 @@ the implementation understandable and operationally cheap.
 - State for each target repository lives on its own state branch under
   `otelbot/pull-request-dashboard-state/<repository>`, with files still
   namespaced by repository name inside the branch.
-- The state branch stores structured dashboard and notification state. The
-  publishing job renders markdown from accepted dashboard state and the target
-  repository's current open PR list.
+- The state branch stores structured dashboard, notification, and author
+  follow-up state. The publishing job renders markdown from accepted dashboard
+  state and the target repository's current open PR list.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
 
@@ -57,9 +57,9 @@ the implementation understandable and operationally cheap.
 
 ## State Branch
 
-- Dashboard and notification state are stored on a git branch rather than in the
-  live dashboard issue body.
-- Dashboard and notification state files are namespaced by target repository.
+- Dashboard, notification, and author follow-up state are stored on a git branch
+  rather than in the live dashboard issue body.
+- State files are namespaced by target repository.
 - Each target repository uses a separate state branch so unrelated repositories
   do not contend on the same git ref during scheduled and webhook-driven runs.
 - Updates use `git push --force-with-lease`, so git refs provide the durable
@@ -71,6 +71,34 @@ the implementation understandable and operationally cheap.
   partial dashboard is exposed.
 - Targeted PR runs compute the triggered PR and merge that one PR slot with the
   latest accepted state on each state-branch compare-and-swap retry.
+
+## Author Follow-Up
+
+- The handoff nudge is due one day after the first substantive author action
+  without a later human response during the current author-routing period.
+  Later author activity without a successful transition out of the author route
+  does not postpone it. This prevents repeated activity from indefinitely
+  delaying a nudge when the dashboard still expects the author to act. A
+  handoff nudge due within one day before the general nudge is consumed without
+  delivery, preventing two closely spaced lifecycle comments.
+- The general nudge is due one week after a backfill follow-up job first
+  observes the PR in the author route. Its clock remains due even when the
+  handoff nudge was already posted.
+- Both nudges apply to every configured repository. Stale labeling and closure
+  require the repository-level `stale_waiting_on_author` option.
+- The general nudge clock is unaffected by activity while the PR remains routed
+  to the author. After that nudge, author pushes and human comments and reviews
+  restart the current one-week quiet stage. Activity after stale labeling
+  removes a dashboard-owned `Stale` label before restarting the stale wait.
+  Leaving the author route clears the lifecycle.
+- Escalation state is stored separately from dashboard routing and Slack
+  notification state. Hidden per-cycle comment markers make retries idempotent
+  if a GitHub mutation succeeds before a state-branch push is rejected.
+- Stage clocks begin only after the preceding GitHub mutation succeeds. Closure
+  requires a current open PR still routed to the author with the dashboard-owned
+  `Stale` label and no subsequent substantive human activity.
+- The workflow records whether it added `Stale` and removes only labels it owns
+  when activity, manual label removal, or a route change resets escalation.
 
 ## Backfill
 

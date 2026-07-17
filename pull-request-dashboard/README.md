@@ -4,7 +4,7 @@ A centralized shared workflow that builds and publishes a per-repository pull re
 
 The workflow runs from `open-telemetry/shared-workflows` and targets the repositories listed in [`repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json). Target repositories do not need to host any workflow files.
 
-Webhook-triggered incremental runs keep active dashboards close to real time. Hourly backfill runs provide a backstop for missed or failed targeted refreshes.
+Webhook-triggered incremental runs keep active dashboards close to real time. Hourly runs provide a backstop for missed or failed targeted refreshes.
 
 The classification cache reuses prior results for unchanged review threads, minimizing Copilot token usage.
 
@@ -66,10 +66,11 @@ Fields:
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
+| `stale_waiting_on_author` | no | If `true`, apply `Stale` after one quiet week following the general nudge and close after another quiet week. Subsequent human activity restarts the current escalation stage. Nudges apply to every repository. Defaults to `false`. |
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
-Once the PR is merged, the dashboard will pick up your repository on its next hourly backfill run. To run it sooner, see [Manual backfill run](#manual-backfill-run). The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title; if it does not exist, the publish step creates the label and issue.
+Once the PR is merged, the dashboard will pick up your repository on its next hourly run. To run it sooner, see [Manual dashboard run](#manual-dashboard-run). The dashboard issue is discovered dynamically in your repository by the `dashboard` label and `Pull Request Dashboard` title; if it does not exist, the publish step creates the label and issue.
 
 ## Review feedback lifecycle
 
@@ -154,6 +155,43 @@ for the tradeoffs behind this behavior.
 
 Targeted updates received before the first full dashboard run are ignored.
 
+## Author follow-up lifecycle
+
+Hourly runs process two independent reminder schedules. Manually triggered runs
+without a PR number do the same:
+
+- **Handoff nudge:** If the author acts, nobody else responds, and the PR remains
+  in *Waiting on authors*, the dashboard posts a nudge one day after the first
+  action. This catches cases where the author may be waiting for review while
+  the dashboard still expects them to act. Later author activity does not reset
+  the timer to ensure repeated author activity without a successful transition
+  out of *Waiting on authors* cannot postpone the nudge. If the
+  general nudge is due within one day, the handoff nudge is skipped to avoid two
+  closely spaced comments.
+- **General nudge:** Every PR still routed to the author receives a nudge one
+  week after it entered that route, even if it already received the handoff
+  nudge.
+
+Both nudges link to the dashboard-managed status comment and apply to every
+configured repository.
+
+Repositories with `stale_waiting_on_author` enabled apply `Stale` after one
+quiet week following the general nudge and close after another quiet week.
+Author pushes and author or reviewer comments and reviews restart the current
+escalation stage. Activity after stale labeling removes a dashboard-managed
+`Stale` label before starting a fresh one-week stale wait. Manually removing a
+dashboard-managed `Stale` label has the same effect. Bot activity, reactions,
+label or assignment changes, checks, and edits to existing comments do not
+count as human activity.
+
+All follow-up actions apply only while the PR remains in *Waiting on authors*.
+Leaving that route clears the cycle and removes a dashboard-managed `Stale`
+label; a label that already existed before dashboard escalation is not removed.
+
+At most one handoff nudge and one general nudge are posted during an
+uninterrupted *Waiting on authors* period. Repositories that do not enable stale
+handling receive only these reminders.
+
 ## Configuration
 
 The target repository GitHub App is installed on each configured repository.
@@ -196,12 +234,12 @@ The workflow YAML and supporting scripts live in this repo:
 See [`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md) for the architecture and tradeoffs behind the design.
 See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for GitHub App webhook permissions and dispatch setup.
 
-## Manual backfill run
+## Manual dashboard run
 
-To manually run a dashboard backfill, open the
+To run the dashboard manually, open the
 [Pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml),
 choose **Run workflow**, and populate the `repository` field with the target
 repository name under `open-telemetry`, for example
-`opentelemetry-java-instrumentation`. Leave `repository` empty to backfill every
+`opentelemetry-java-instrumentation`. Leave `repository` empty to update every
 configured repository. Each repository is subject to the PR cap so large repos
 cannot consume the dashboard App's hourly API quota in a single run.

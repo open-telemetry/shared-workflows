@@ -30,6 +30,10 @@ on:
         required: false
         default: false
         type: boolean
+      stale_waiting_on_author:
+        required: false
+        default: false
+        type: boolean
     secrets:
       PR_DASHBOARD_PRIVATE_KEY:
         required: true
@@ -220,6 +224,49 @@ jobs:
           fi
 
           python3 .github/scripts/pull-request-dashboard/notify_slack.py "${notify_args[@]}"
+
+  author-follow-up:
+    needs: update-dashboard
+    if: >-
+      needs.update-dashboard.result == 'success' &&
+      needs.update-dashboard.outputs.initial_backfill_complete == 'true' &&
+      inputs.pr_number == ''
+    concurrency:
+      group: ${{ github.workflow }}-author-follow-up-${{ inputs.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ inputs.repository }}
+          permission-issues: write
+          permission-pull-requests: ${{ inputs.stale_waiting_on_author && 'write' || 'read' }}
+
+      - name: Process author follow-ups
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ inputs.repository }}
+          STALE_WAITING_ON_AUTHOR: ${{ inputs.stale_waiting_on_author }}
+        run: |
+          set -euo pipefail
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          follow_up_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
+          if [[ "$STALE_WAITING_ON_AUTHOR" == "true" ]]; then
+            follow_up_args+=(--stale)
+          fi
+          python3 .github/scripts/pull-request-dashboard/process_author_follow_ups.py "${follow_up_args[@]}"
 
   publish-dashboard:
     needs: update-dashboard

@@ -217,5 +217,41 @@ class ManagedStatusCommentsTest(unittest.TestCase):
         self.assertEqual([2, 3], [comment["id"] for comment in comments])
 
 
+class EnsureStatusCommentTest(unittest.TestCase):
+    @patch.object(
+        pr_status_comment,
+        "managed_status_comments",
+        return_value=[{"html_url": "https://github.com/open-telemetry/example/pull/1#issuecomment-1"}],
+    )
+    @patch.object(pr_status_comment, "upsert_status_comment")
+    @patch.object(
+        pr_status_comment,
+        "gh_api",
+        return_value={
+            "state": "open",
+            "draft": False,
+            "merged": False,
+            "user": {"login": "alice"},
+        },
+    )
+    def test_returns_managed_status_comment_url(
+        self,
+        _gh_api: object,
+        upsert_status_comment: object,
+        _managed_status_comments: object,
+    ) -> None:
+        url = pr_status_comment.ensure_status_comment(
+            "open-telemetry/example",
+            1,
+            {"route": "author", "facts": {"author": "alice"}},
+        )
+
+        self.assertEqual(
+            url,
+            "https://github.com/open-telemetry/example/pull/1#issuecomment-1",
+        )
+        upsert_status_comment.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

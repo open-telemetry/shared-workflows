@@ -143,6 +143,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                     updatedAt
                     author {
                         login
+                        __typename
                     }
                 }
             }
@@ -283,7 +284,7 @@ def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
 def list_open_prs(repo: str) -> list[dict[str, Any]]:
     return run_gh_json([
         "gh", "pr", "list", "--repo", repo, "--state", "open", "--limit", "500",
-        "--json", "number,title,author,isDraft,updatedAt,url",
+        "--json", "number,title,author,isDraft,updatedAt,url,labels",
     ])
 
 

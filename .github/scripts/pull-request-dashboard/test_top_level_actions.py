@@ -12,6 +12,7 @@ from dashboard import (
     build_review_thread_pending_actions,
     build_dashboard_update_for_pr,
     derive_top_level_items,
+    latest_substantive_activity,
     normalize_events,
     requires_title_edit_lookup,
     route_pr,
@@ -662,6 +663,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
         self.assertEqual(events[0]["created_timestamp"], "2026-07-14T00:00:00Z")
+        self.assertEqual(
+            latest_substantive_activity(events, {"author"}).isoformat(),
+            "2026-07-14T00:00:00+00:00",
+        )
         self.assertEqual(pending_actions["code"]["action"], "author")
         self.assertNotIn("code", top_level_history)
 

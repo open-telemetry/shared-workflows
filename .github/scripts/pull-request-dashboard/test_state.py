@@ -9,7 +9,12 @@ import unittest
 from unittest.mock import patch
 
 from state import (
+    AUTHOR_FOLLOW_UP_STATE_VERSION,
     BACKFILL_STATE_VERSION,
+        author_follow_up_state_path,
+        load_author_follow_ups,
+        load_author_follow_up_state_file,
+        save_author_follow_ups,
     DASHBOARD_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
     backfill_state_path,
@@ -145,6 +150,7 @@ class StateTest(unittest.TestCase):
             )
 
     def test_notification_state_version_is_independent(self) -> None:
+        self.assertEqual(AUTHOR_FOLLOW_UP_STATE_VERSION, 2)
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
         self.assertEqual(DASHBOARD_STATE_VERSION, 4)
@@ -195,6 +201,36 @@ class StateTest(unittest.TestCase):
 
             state = json.loads(notification_state_path().read_text(encoding="utf-8"))
             self.assertEqual(state["version"], NOTIFICATION_STATE_VERSION)
+
+    def test_author_follow_up_state_is_independently_versioned(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            follow_ups = {
+                "123": {
+                    "waiting_on_author_since": "2026-07-14T03:00:00Z",
+                    "handoff_nudged_at": "",
+                    "general_nudged_at": "",
+                    "stale_applied_at": "",
+                }
+            }
+
+            save_author_follow_ups(follow_ups)
+
+            self.assertEqual(load_author_follow_ups(), follow_ups)
+            state = json.loads(author_follow_up_state_path().read_text(encoding="utf-8"))
+            self.assertEqual(state["version"], AUTHOR_FOLLOW_UP_STATE_VERSION)
+
+    def test_author_follow_up_state_file_loader_normalizes_missing_prs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "author-follow-up-state.json"
+            path.write_text(
+                json.dumps({"version": AUTHOR_FOLLOW_UP_STATE_VERSION}),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                load_author_follow_up_state_file(path),
+                {"version": AUTHOR_FOLLOW_UP_STATE_VERSION, "prs": {}},
+            )
 
     def test_stored_result_preserves_top_level_history(self) -> None:
         result = stored_result(

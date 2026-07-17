@@ -12,11 +12,13 @@ import state_branch
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
+AUTHOR_FOLLOW_UP_STATE_FILE = "author-follow-up-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
 DASHBOARD_STATE_VERSION = 4
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
+AUTHOR_FOLLOW_UP_STATE_VERSION = 2
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -38,6 +40,10 @@ def dashboard_state_path() -> Path:
 
 def notification_state_path() -> Path:
     return state_dir() / "notification-state.json"
+
+
+def author_follow_up_state_path() -> Path:
+    return state_dir() / AUTHOR_FOLLOW_UP_STATE_FILE
 
 
 def backfill_state_path() -> Path:
@@ -169,6 +175,28 @@ def load_notifications() -> dict[str, Any] | None:
 
 def save_notifications(notifications: dict[str, Any]) -> None:
     _save_notification_state_file({"prs": notifications})
+
+
+def load_author_follow_up_state_file(path: Path) -> dict[str, Any] | None:
+    state = load_state_file(path, AUTHOR_FOLLOW_UP_STATE_VERSION)
+    if state is not None and not isinstance(state.get("prs"), dict):
+        state["prs"] = {}
+    return state
+
+
+def load_author_follow_ups() -> dict[str, Any]:
+    state = load_author_follow_up_state_file(author_follow_up_state_path())
+    if state is None:
+        return {}
+    return state["prs"]
+
+
+def save_author_follow_ups(follow_ups: dict[str, Any]) -> None:
+    save_state_file(
+        author_follow_up_state_path(),
+        {"prs": follow_ups},
+        AUTHOR_FOLLOW_UP_STATE_VERSION,
+    )
 
 
 def union_merge_notifications(

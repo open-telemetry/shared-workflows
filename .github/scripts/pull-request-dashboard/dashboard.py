@@ -351,6 +351,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "discussion_url": c.get("html_url") or "",
             "kind": "issue-comment",
             "timestamp": timestamp,
+            "activity_timestamp": c.get("created_at") or timestamp,
             "created_timestamp": c.get("created_at") or timestamp,
             "updated_timestamp": timestamp,
             "actor": login,
@@ -367,6 +368,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "source_id": c.get("id"),
             "kind": "review-comment",
             "timestamp": c.get("updated_at") or c.get("created_at") or "",
+            "activity_timestamp": c.get("created_at") or "",
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
             "body": c.get("body") or "",
@@ -383,6 +385,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "discussion_url": r.get("url") or "",
             "kind": "review-state",
             "timestamp": r.get("submitted_at") or "",
+            "activity_timestamp": r.get("submitted_at") or "",
             "updated_timestamp": r.get("updated_at") or r.get("submitted_at") or "",
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
@@ -423,7 +426,7 @@ def compute_conflicts(pr: dict[str, Any]) -> str:
 
 def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[str]) -> datetime | None:
     timestamps = [
-        parse_ts(e["timestamp"])
+        parse_ts(e.get("activity_timestamp") or e["timestamp"])
         for e in events
         if e.get("actor_role") in actor_roles and is_substantive_activity(e)
     ]
