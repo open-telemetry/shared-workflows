@@ -51,7 +51,7 @@ Repository permissions:
 - Contents: read-only
 - Issues: read and write
 - Metadata: read-only
-- Pull requests: read and write
+- Pull requests: read-only
 
 Organization permissions:
 
@@ -63,14 +63,14 @@ Permission rationale:
 | ---------- | ------ | ---------------- |
 | Checks | Read | Required to subscribe to check-suite events and to read check data for dashboard rows. |
 | Contents | Read | Reads PR commits and repository metadata needed by pull/commit APIs. |
-| Issues | Read and write | Finds/creates/updates the dashboard issue and reads existing PR conversation comments before posting review guidance. |
+| Issues | Read and write | Finds/creates/updates the dashboard issue and creates or updates the dashboard-managed PR status comment. |
 | Metadata | Read | Required by GitHub for GitHub App repository access. |
-| Pull requests | Read and write | Required to subscribe to PR review/comment/thread events, read PR details, reviews, review comments, commits, and GraphQL review threads, and post review-guidance comments on PRs. |
+| Pull requests | Read | Required to subscribe to PR review/comment/thread events and read PR details, reviews, review comments, commits, and GraphQL review threads. |
 | Members | Read | Reads approver-team membership configured in `repositories.json`. |
 
 The dashboard does not create inline review comments, submit reviews, or resolve
-review threads. It does create PR conversation comments for review guidance,
-which requires `Pull requests: read and write`.
+review threads. It creates and updates one PR conversation comment through the
+issues API, which requires `Issues: read and write`.
 
 Subscribe to events:
 
@@ -87,8 +87,8 @@ Event rationale:
 | ----- | ---------------- |
 | Check suite | Refreshes CI status when checks are requested, rerequested, or completed. |
 | Pull request | Refreshes dashboard rows when PR state, draft status, labels, assignees, branches, or metadata change. |
-| Issue comment | Refreshes PR conversation state when PR issue comments are created, edited, or deleted. |
-| Pull request review | Refreshes approval/change-request state and posts guidance for submitted reviews with review comments. |
+| Issue comment | Refreshes PR conversation state when PR issue comments are created, edited, or deleted. Events for the dashboard App's own marked status comment are ignored. |
+| Pull request review | Refreshes approval/change-request state and the live PR status comment. |
 | Pull request review comment | Refreshes inline review-comment discussion state. |
 | Pull request review thread | Refreshes when inline review threads are resolved or unresolved. |
 
@@ -155,8 +155,7 @@ The webhook bridge should dispatch `pull-request-dashboard.yml` in
   "repository": "opentelemetry-java-instrumentation",
   "pr_number": "12345",
   "trigger_event": "pull_request_review_comment",
-  "trigger_action": "created",
-  "trigger_review_id": "67890"
+  "trigger_action": "created"
 }
 ```
 
@@ -164,6 +163,4 @@ Notes:
 
 - `repository` is the short repository name under `open-telemetry`.
 - Omit `pr_number` or set it to an empty string for a backfill.
-- `trigger_review_id` is only required for `pull_request_review` `submitted`
-  events when review guidance may need to be posted.
 - The central workflow validates these inputs before using them.

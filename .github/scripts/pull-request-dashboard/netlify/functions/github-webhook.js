@@ -6,6 +6,12 @@ const OWNER = "open-telemetry";
 const WORKFLOW_REPOSITORY = "shared-workflows";
 const WORKFLOW_ID = "pull-request-dashboard.yml";
 const WORKFLOW_REF = "main";
+const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
+const DASHBOARD_COMMENT_MARKERS = [
+  "<!-- pull-request-dashboard-status -->",
+  "<!-- review-guidance -->",
+  "<!-- copilot-review-guidance -->",
+];
 
 const ALLOWED_ACTIONS = {
   check_suite: new Set(["completed", "requested", "rerequested"]),
@@ -34,6 +40,8 @@ exports.handler = async (event) => {
     return response(error.statusCode || 500, { error: error.publicMessage || "internal server error" });
   }
 };
+
+exports.isDashboardSelfTriggeredCommentEvent = isDashboardSelfTriggeredCommentEvent;
 
 async function handle(event) {
   if (event.httpMethod !== "POST") {
@@ -64,6 +72,9 @@ async function handle(event) {
   if (!ALLOWED_ACTIONS[eventName].has(action)) {
     return response(202, { status: "ignored", reason: `unsupported action: ${eventName}.${action || "missing"}` });
   }
+  if (isDashboardSelfTriggeredCommentEvent(eventName, payload)) {
+    return response(202, { status: "ignored", reason: "dashboard-managed comment" });
+  }
 
   const repository = readRepository(payload);
   if (!repository.fullName) {
@@ -78,7 +89,6 @@ async function handle(event) {
     return response(202, { status: "ignored", reason: "no pull request number found" });
   }
 
-  const triggerReviewId = extractTriggerReviewId(payload);
   const dispatcherJwt = createAppJwt({ appId: config.dispatcherAppId, privateKey: config.dispatcherPrivateKey });
   const installationId = await findRepositoryInstallationId(dispatcherJwt, `${OWNER}/${WORKFLOW_REPOSITORY}`);
   const installationToken = await createInstallationToken(dispatcherJwt, installationId);
@@ -87,7 +97,6 @@ async function handle(event) {
     pr_number: String(prNumber),
     trigger_event: eventName,
     trigger_action: action,
-    trigger_review_id: triggerReviewId ? String(triggerReviewId) : "",
   });
 
   return response(202, {
@@ -96,8 +105,24 @@ async function handle(event) {
     pr_number: prNumber,
     trigger_event: eventName,
     trigger_action: action,
-    trigger_review_id: triggerReviewId,
   });
+}
+
+function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
+  if (eventName !== "issue_comment") {
+    return false;
+  }
+  const comment = payload.comment || {};
+  const app = comment.performed_via_github_app || {};
+  const body = comment.body || "";
+  const commentAuthor = comment.user || {};
+  const sender = payload.sender || {};
+  return (
+    app.slug === DASHBOARD_APP_SLUG &&
+    DASHBOARD_COMMENT_MARKERS.some((marker) => body.includes(marker)) &&
+    Boolean(sender.id) &&
+    sender.id === commentAuthor.id
+  );
 }
 
 function loadConfig() {
@@ -129,10 +154,6 @@ function readRepository(payload) {
     name,
     owner: repository.owner && repository.owner.login,
   };
-}
-
-function extractTriggerReviewId(payload) {
-  return payload.review && payload.review.id;
 }
 
 function readRawBody(event) {

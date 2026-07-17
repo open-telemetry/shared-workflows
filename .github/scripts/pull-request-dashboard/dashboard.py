@@ -114,6 +114,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   or PR creation time.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
+    author_action_discussion_urls   list[str]     Canonical links to unresolved
+                                                  review discussions routed to
+                                                  the author.
     reviewers                       list[dict]    Reviewers to display (added by
                                                   add_reviewers). Each entry is
                                                   {"login": str, "approved": bool,
@@ -557,8 +560,9 @@ def group_review_threads(
         # as live.
         if discussion.get("isResolved") or discussion.get("isOutdated"):
             continue
+        raw_comments = (discussion.get("comments") or {}).get("nodes") or []
         comments = []
-        for c in ((discussion.get("comments") or {}).get("nodes") or []):
+        for c in raw_comments:
             actor = reviewer_actor_login(c.get("author") or {})
             comments.append(discussion_comment(
                 c.get("updatedAt") or c.get("createdAt") or "",
@@ -578,6 +582,7 @@ def group_review_threads(
             "path": discussion.get("path"),
             "line": discussion.get("line"),
             "resolved": False,
+            "discussion_url": raw_comments[0].get("url") if raw_comments else "",
             "comments": comments,
         }, comments, facts))
     discussions.sort(key=lambda t: t["comments"][-1]["timestamp"])
@@ -900,6 +905,23 @@ def add_wait_age_facts(
     facts["waiting_age_basis"] = basis
 
 
+def author_action_discussion_urls(
+    review_threads: list[dict[str, Any]],
+    pending_actions: dict[str, dict[str, Any]],
+) -> list[str]:
+    by_id = discussions_by_id(review_threads)
+    urls: list[str] = []
+    for discussion_id, entry in pending_actions.items():
+        action = normalize_discussion_action(entry.get("action") or "")
+        if action != "author":
+            continue
+        thread = by_id.get(discussion_id)
+        url = (thread or {}).get("discussion_url") or ""
+        if url and url not in urls:
+            urls.append(url)
+    return urls
+
+
 # Discussion actions that count as open and unresolved. A reviewer who commented
 # in such a discussion is not yet satisfied, even if they have approved.
 # "none" means no follow-up is needed, so it does not block a clear check.
@@ -1052,6 +1074,9 @@ def build_pr_result(
             }
         route = route_pr(facts, pending_actions, required_approvals)
         add_wait_age_facts(facts, route, pending_actions)
+        facts["author_action_discussion_urls"] = author_action_discussion_urls(
+            review_threads, pending_actions
+        )
         add_reviewers(
             facts, events, review_threads, top_level_items, pending_actions
         )

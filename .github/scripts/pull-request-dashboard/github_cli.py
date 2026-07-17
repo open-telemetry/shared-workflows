@@ -341,6 +341,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                         }
                         nodes {
                             id
+                            url
                             body
                             createdAt
                             updatedAt
@@ -377,6 +378,7 @@ query($thread_id: ID!, $after: String) {
                 }
                 nodes {
                     id
+                    url
                     body
                     createdAt
                     updatedAt

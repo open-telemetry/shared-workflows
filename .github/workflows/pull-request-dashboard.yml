@@ -22,10 +22,9 @@ on:
         required: false
         type: string
       trigger_review_id:
-        description: Pull request review id that requested the refresh.
+        description: Deprecated compatibility input; accepted and ignored during webhook rollout.
         required: false
         type: string
-
 permissions:
   contents: read
 
@@ -35,11 +34,12 @@ permissions:
 #
 # Dashboard state is loaded live, so only the latest pending webhook refresh is
 # needed. Manual runs remain separate because they can refresh large
-# repositories that webhooks skip. Submitted reviews remain distinct because
-# their review id is required to post review guidance.
+# repositories that webhooks skip. Submitted reviews can coalesce with generic
+# PR refreshes because the live status comment no longer depends on a specific
+# review id.
 concurrency:
   group: >-
-    pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || 'backfill' }}-${{ inputs.trigger_event == 'pull_request_review' && inputs.trigger_action == 'submitted' && inputs.trigger_review_id || github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
+    pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || 'backfill' }}-${{ github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
   cancel-in-progress: false
 
 env:
@@ -56,7 +56,6 @@ jobs:
       pr_number: ${{ steps.trigger.outputs.pr_number }}
       trigger_event: ${{ steps.trigger.outputs.event }}
       trigger_action: ${{ steps.trigger.outputs.action }}
-      trigger_review_id: ${{ steps.trigger.outputs.review_id }}
       dashboard_precondition_met: ${{ steps.dashboard-precondition.outputs.met }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -71,13 +70,11 @@ jobs:
           PR_FROM_INPUT: ${{ inputs.pr_number }}
           TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
           TRIGGER_ACTION_FROM_INPUT: ${{ inputs.trigger_action }}
-          TRIGGER_REVIEW_ID_FROM_INPUT: ${{ inputs.trigger_review_id }}
         run: |
           set -euo pipefail
           pr_number=""
           trigger_event=""
           trigger_action=""
-          trigger_review_id=""
 
           case "$EVENT_NAME" in
             schedule)
@@ -87,7 +84,6 @@ jobs:
               pr_number="$PR_FROM_INPUT"
               trigger_event="${TRIGGER_EVENT_FROM_INPUT:-workflow_dispatch}"
               trigger_action="$TRIGGER_ACTION_FROM_INPUT"
-              trigger_review_id="$TRIGGER_REVIEW_ID_FROM_INPUT"
               ;;
           esac
 
@@ -102,15 +98,10 @@ jobs:
           if [[ -n "$trigger_action" ]]; then
             [[ "$trigger_action" =~ ^[a-z_]{1,32}$ ]] || { echo "bad trigger action: $trigger_action"; exit 1; }
           fi
-          if [[ -n "$trigger_review_id" ]]; then
-            [[ "$trigger_review_id" =~ ^[1-9][0-9]{0,19}$ ]] || { echo "bad review id: $trigger_review_id"; exit 1; }
-          fi
-
           {
             echo "pr_number=$pr_number"
             echo "event=$trigger_event"
             echo "action=$trigger_action"
-            echo "review_id=$trigger_review_id"
           } >> "$GITHUB_OUTPUT"
 
       - name: Resolve target repositories
@@ -134,22 +125,11 @@ jobs:
           echo "repository=$(jq -r '.[0].name' <<< "$matrix")" >> "$GITHUB_OUTPUT"
           echo "$matrix" | jq .
 
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        if: steps.trigger.outputs.pr_number != ''
-        id: dashboard-token
-        with:
-          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
-          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-          owner: open-telemetry
-          repositories: ${{ steps.targets.outputs.repository }}
-          permission-issues: read
-
       - name: Check dashboard precondition
         id: dashboard-precondition
         env:
-          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           TRIGGER_PR_NUMBER: ${{ steps.trigger.outputs.pr_number }}
-          REPO: open-telemetry/${{ steps.targets.outputs.repository }}
+          REPO_NAME: ${{ steps.targets.outputs.repository }}
         run: |
           set -euo pipefail
           if [[ -z "$TRIGGER_PR_NUMBER" ]]; then
@@ -157,17 +137,21 @@ jobs:
             exit 0
           fi
 
-          dashboard_exists=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --repo "$REPO" --check-dashboard-exists)
-          if [[ "$dashboard_exists" == "true" ]]; then
+          state_branch="otelbot/pull-request-dashboard-state/${REPO_NAME}"
+          state_exists=$(python3 .github/scripts/pull-request-dashboard/pr_status_comment.py \
+            --repo "$REPO_NAME" \
+            --state-branch "$state_branch" \
+            --check-state-exists)
+          if [[ "$state_exists" == "true" ]]; then
             echo "met=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "$dashboard_exists" == "false" ]]; then
-            echo "Dashboard issue does not exist yet; skipping targeted refresh."
+          if [[ "$state_exists" == "false" ]]; then
+            echo "Dashboard state does not exist yet; skipping targeted refresh."
             echo "met=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "unexpected dashboard existence result: $dashboard_exists" >&2
+          echo "unexpected dashboard state result: $state_exists" >&2
           exit 1
 
   run-repo-dashboard:
@@ -185,7 +169,6 @@ jobs:
       pr_number: ${{ needs.resolve-targets.outputs.pr_number }}
       trigger_event: ${{ needs.resolve-targets.outputs.trigger_event }}
       trigger_action: ${{ needs.resolve-targets.outputs.trigger_action }}
-      trigger_review_id: ${{ needs.resolve-targets.outputs.trigger_review_id }}
       required_approvals: ${{ matrix.required_approvals || 1 }}
       approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
       slack_channel: ${{ matrix.slack_channel }}
