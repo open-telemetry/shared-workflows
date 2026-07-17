@@ -426,10 +426,18 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
 
     def test_top_level_decision_requires_matching_action_and_evidence(self) -> None:
-        _, reviewer_valid = parse_discussion_decision(
-            '{"discussion_action":"reviewer","required_evidence_kinds":["commit"],"reason":"invalid action"}',
-            require_evidence_kinds=True,
-        )
+        for action in ("reviewer", "approver"):
+            with self.subTest(action=action):
+                _, valid = parse_discussion_decision(
+                    json.dumps({
+                        "discussion_action": action,
+                        "required_evidence_kinds": [],
+                        "reason": "unsupported top-level action",
+                    }),
+                    require_evidence_kinds=True,
+                )
+
+                self.assertFalse(valid)
         _, mismatched_valid = parse_discussion_decision(
             '{"discussion_action":"author","required_evidence_kinds":[],"reason":"invalid evidence"}',
             require_evidence_kinds=True,
@@ -439,7 +447,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             require_evidence_kinds=True,
         )
 
-        self.assertFalse(reviewer_valid)
         self.assertFalse(mismatched_valid)
         self.assertTrue(external_valid)
         self.assertEqual(external["discussion_action"], "external")

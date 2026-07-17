@@ -125,6 +125,7 @@ for every input discussion_id and copy each discussion_id exactly:
 """
 
 DISCUSSION_ACTIONS = ("author", "reviewer", "external", "none", "unclear")
+TOP_LEVEL_DISCUSSION_ACTIONS = ("author", "external", "none", "unclear")
 TOP_LEVEL_EVIDENCE_KINDS = ("commit", "title", "description", "reply")
 
 def print_copilot_otel_file(path: Path) -> None:
@@ -182,7 +183,8 @@ def parse_discussion_decision(
         return {"discussion_action": "unclear", "reason": "LLM did not return valid JSON"}, False
     raw_action = str(obj.get("discussion_action") or obj.get("route") or "")
     action = normalize_discussion_action(raw_action)
-    valid_action = raw_action.lower().strip() in (*DISCUSSION_ACTIONS, "approver")
+    valid_actions = TOP_LEVEL_DISCUSSION_ACTIONS if require_evidence_kinds else (*DISCUSSION_ACTIONS, "approver")
+    valid_action = raw_action.lower().strip() in valid_actions
     reason = truncate(str(obj.get("reason") or ""), 300)
     if not reason:
         reason = "No reason provided"
