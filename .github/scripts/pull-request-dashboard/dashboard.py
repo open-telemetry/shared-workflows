@@ -485,8 +485,8 @@ def compute_facts(
 ) -> dict[str, Any]:
     pr = raw["pr"]
     checks = raw["checks"]
-    failing = [c for c in checks or [] if (c.get("state") or "").upper() in ("FAILURE", "ERROR")]
-    pending = [c for c in checks or [] if (c.get("state") or "").upper() in ("PENDING", "QUEUED", "IN_PROGRESS")]
+    failing = [c for c in checks or [] if c.get("bucket") in ("fail", "cancel")]
+    pending = [c for c in checks or [] if c.get("bucket") == "pending"]
     last_activity_ts = parse_ts(pr["updatedAt"])
     created_ts = parse_ts(pr["createdAt"])
     author_activity_ts = latest_substantive_activity(events, {"author"})

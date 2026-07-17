@@ -10,6 +10,7 @@ from dashboard import (
     add_wait_age_facts,
     author_action_discussion_urls,
     complete_initial_backfill_if_ready,
+    compute_facts,
     group_review_threads,
     route_pr,
     write_initial_backfill_output,
@@ -117,6 +118,37 @@ class InitialBackfillCompletionTest(unittest.TestCase):
 
 
 class RequiredCiRoutingTest(unittest.TestCase):
+    def test_required_check_buckets_control_ci_facts_and_author_routing(self) -> None:
+        cases = (
+            ("TIMED_OUT", "fail", 1, 0, "author"),
+            ("ACTION_REQUIRED", "fail", 1, 0, "author"),
+            ("CANCELLED", "cancel", 1, 0, "author"),
+            ("IN_PROGRESS", "pending", 0, 1, "approver"),
+            ("SKIPPED", "skipping", 0, 0, "approver"),
+            ("SUCCESS", "pass", 0, 0, "approver"),
+        )
+        for state, bucket, failing, pending, route in cases:
+            with self.subTest(state=state, bucket=bucket):
+                facts = compute_facts(
+                    {
+                        "pr": {
+                            "updatedAt": "2026-07-14T03:00:00Z",
+                            "createdAt": "2026-07-14T01:00:00Z",
+                            "author": {"login": "author"},
+                            "assignees": [],
+                            "mergeStateStatus": "CLEAN",
+                            "mergeable": "MERGEABLE",
+                        },
+                        "checks": [{"state": state, "bucket": bucket}],
+                    },
+                    "author",
+                    [],
+                )
+
+                self.assertEqual(failing, facts["ci_failing_count"])
+                self.assertEqual(pending, facts["ci_pending_count"])
+                self.assertEqual(route, route_pr(facts, {}, 1))
+
     def test_required_ci_failure_routes_to_author_before_approval_state(self) -> None:
         facts = {
             "approval_count": 1,
