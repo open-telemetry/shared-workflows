@@ -132,6 +132,10 @@ the implementation understandable and operationally cheap.
   latest usable snapshot without concurrent writers overwriting each other.
 - Cache snapshots are saved even when the update job fails, preserving valid
   classifications produced before or alongside an isolated failed item.
+- Failed classifications are not cached or retried in the same run. A later run
+  restores valid sibling classifications and sends only the still-uncached
+  items to the model. The original run remains failed so the item is visible
+  for operational triage.
 
 ## Top-Level Feedback
 

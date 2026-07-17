@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
-from subprocess import CompletedProcess, TimeoutExpired
+from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from dashboard import (
