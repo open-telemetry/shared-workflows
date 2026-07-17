@@ -124,8 +124,9 @@ the implementation understandable and operationally cheap.
 - Stage clocks begin only after the preceding GitHub mutation succeeds. Closure
   requires a current open PR with at least one still-unresolved author-action
   thread, the dashboard-owned `Stale` label, and no subsequent substantive human
-  activity. This live recheck protects against a thread being resolved after
-  the dashboard refresh without producing another activity event.
+  activity. Stale labeling performs the same live route and activity checks
+  before adding the label. These rechecks protect against activity or a thread
+  resolution after the dashboard refresh but before the follow-up job acts.
 - The workflow records whether it added `Stale` and removes only labels it owns
   when activity, manual label removal, or a route change resets escalation. It
   also removes an owned label after closure; if that cleanup fails, retained

@@ -11,7 +11,7 @@ import sys
 from typing import Any
 from urllib.parse import quote
 
-from author_follow_up import plan_follow_up
+from author_follow_up import latest_human_activity, plan_follow_up
 from github_cli import (
     detect_repo,
     fetch_pr_review_data,
@@ -352,6 +352,31 @@ def execute_action(
         return updated
 
     if action == "stale":
+        accepted_activity = latest_human_activity((result or {}).get("facts") or {})
+        current_activity = (
+            current_human_activity(repo, pr_number, result, now)
+            if result is not None
+            else None
+        )
+        route_is_current = bool(
+            result is not None
+            and result.get("route") == "author"
+            and current_author_route(repo, pr_number, result)
+        )
+        has_new_activity = bool(
+            current_activity is not None
+            and (accepted_activity is None or current_activity > accepted_activity)
+        )
+        if not route_is_current or has_new_activity:
+            reset_at = current_activity if has_new_activity else now
+            updated["stale_applied_at"] = ""
+            updated["stale_reset_at"] = format_ts(reset_at)
+            updated.pop("stale_label_owned", None)
+            print(
+                f"deferred stale label for PR #{pr_number} after live recheck",
+                file=sys.stderr,
+            )
+            return updated
         updated["stale_label_owned"] = add_stale_label(repo, pr_number)
         if updated["stale_label_owned"]:
             updated["stale_applied_at"] = format_ts(now)

@@ -325,10 +325,18 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         self.assertIn(process_author_follow_ups.GENERAL_NUDGE_MARKER_PREFIX, body)
         self.assertNotIn(process_author_follow_ups.HANDOFF_NUDGE_MARKER_PREFIX, body)
 
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
+    @patch.object(
+        process_author_follow_ups,
+        "current_human_activity",
+        return_value=datetime(2026, 7, 1, tzinfo=timezone.utc),
+    )
     @patch.object(process_author_follow_ups, "add_stale_label", return_value=False)
     def test_existing_stale_label_is_not_claimed_as_dashboard_owned(
         self,
         _add_stale_label,
+        _current_human_activity,
+        _current_author_route,
     ) -> None:
         updated = follow_up_entry(stale_applied_at="2026-07-17T00:00:00+00:00")
 
@@ -343,6 +351,60 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         )
 
         self.assertFalse(result["stale_label_owned"])
+
+    @patch.object(process_author_follow_ups, "add_stale_label")
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=False)
+    @patch.object(
+        process_author_follow_ups,
+        "current_human_activity",
+        return_value=datetime(2026, 7, 1, tzinfo=timezone.utc),
+    )
+    def test_stale_is_deferred_after_live_route_departure(
+        self,
+        _current_human_activity,
+        _current_author_route,
+        add_stale_label,
+    ) -> None:
+        updated = process_author_follow_ups.execute_action(
+            "stale",
+            "open-telemetry/example",
+            1,
+            author_result(),
+            follow_up_entry(),
+            follow_up_entry(stale_applied_at="2026-07-17T00:00:00+00:00"),
+            NOW,
+        )
+
+        self.assertEqual(updated["stale_applied_at"], "")
+        self.assertEqual(updated["stale_reset_at"], "2026-07-17T00:00:00+00:00")
+        add_stale_label.assert_not_called()
+
+    @patch.object(process_author_follow_ups, "add_stale_label")
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
+    @patch.object(
+        process_author_follow_ups,
+        "current_human_activity",
+        return_value=datetime(2026, 7, 16, tzinfo=timezone.utc),
+    )
+    def test_stale_is_deferred_after_new_live_activity(
+        self,
+        _current_human_activity,
+        _current_author_route,
+        add_stale_label,
+    ) -> None:
+        updated = process_author_follow_ups.execute_action(
+            "stale",
+            "open-telemetry/example",
+            1,
+            author_result(),
+            follow_up_entry(),
+            follow_up_entry(stale_applied_at="2026-07-17T00:00:00+00:00"),
+            NOW,
+        )
+
+        self.assertEqual(updated["stale_applied_at"], "")
+        self.assertEqual(updated["stale_reset_at"], "2026-07-16T00:00:00+00:00")
+        add_stale_label.assert_not_called()
 
     @patch.object(
         process_author_follow_ups,
