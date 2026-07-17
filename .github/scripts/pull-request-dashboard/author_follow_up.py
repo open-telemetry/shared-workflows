@@ -88,12 +88,13 @@ def plan_follow_up(
         return None, None
 
     facts = result.get("facts") or {}
+    author_activity = qualifying_author_activity(facts)
     if not entry:
         waiting_since_value = format_ts(now)
         entry = {
             "cycle_id": waiting_since_value,
             "waiting_on_author_since": waiting_since_value,
-            "pending_handoff_since": "",
+            "pending_handoff_since": format_ts(author_activity),
             "handoff_nudged_at": "",
             "general_nudged_at": "",
             "stale_applied_at": "",
@@ -103,7 +104,6 @@ def plan_follow_up(
     if waiting_since is None:
         return None, entry
 
-    author_activity = qualifying_author_activity(facts)
     other_activity = latest_other_human_activity(facts)
     pending_handoff_since = parse_ts(entry.get("pending_handoff_since") or "")
     if (

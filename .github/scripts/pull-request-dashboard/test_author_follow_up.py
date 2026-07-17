@@ -49,7 +49,10 @@ def entry(**overrides: str) -> dict[str, str]:
 class AuthorFollowUpPolicyTest(unittest.TestCase):
     def test_new_cycle_starts_when_author_route_is_first_observed(self) -> None:
         action, updated = plan_follow_up(
-            result(waiting_since="2026-06-01T00:00:00Z"),
+            result(
+                author_activity="",
+                waiting_since="2026-06-01T00:00:00Z",
+            ),
             None,
             NOW,
             stale_enabled=False,
@@ -58,6 +61,22 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
         self.assertIsNone(action)
         assert updated is not None
         self.assertEqual(updated["waiting_on_author_since"], "2026-07-17T00:00:00+00:00")
+
+    def test_new_cycle_uses_qualified_author_activity_for_handoff(self) -> None:
+        action, updated = plan_follow_up(
+            result(
+                author_activity="2026-07-16T00:00:00Z",
+                waiting_since="2026-06-01T00:00:00Z",
+            ),
+            None,
+            NOW,
+            stale_enabled=False,
+        )
+
+        self.assertEqual(action, "handoff-nudge")
+        assert updated is not None
+        self.assertEqual(updated["waiting_on_author_since"], "2026-07-17T00:00:00+00:00")
+        self.assertEqual(updated["handoff_nudged_at"], "2026-07-17T00:00:00+00:00")
 
     def test_author_must_be_latest_substantive_actor(self) -> None:
         self.assertIsNotNone(qualifying_author_activity(result()["facts"]))
