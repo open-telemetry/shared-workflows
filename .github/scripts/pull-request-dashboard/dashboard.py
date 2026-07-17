@@ -202,6 +202,7 @@ from utils import actor_login, format_ts, parse_ts, truncate
 DEFAULT_MODEL = "gpt-5.4-mini"
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
 DEFAULT_BACKFILL_MAX_PRS = 50
+BACKFILL_RECORDED_FAILURE_STATUS = 2
 
 # ---------------------------------------------------------------- model helpers
 
@@ -1657,7 +1658,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             f"backfill completed with PR(s) still recorded as failed: {failed_list}",
             file=sys.stderr,
         )
-        return 1
+        return BACKFILL_RECORDED_FAILURE_STATUS
     return 0
 
 
@@ -1707,7 +1708,7 @@ def main() -> int:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
         status = update_dashboard_via_state_branch(args, state_dir)
-        if args.github_output:
+        if args.github_output and status in (0, BACKFILL_RECORDED_FAILURE_STATUS):
             write_initial_backfill_output(args.github_output)
         return status
 

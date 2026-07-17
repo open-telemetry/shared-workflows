@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from classification import discussion_prompt_input
 from dashboard import (
+    BACKFILL_RECORDED_FAILURE_STATUS,
     DashboardUpdate,
     author_action_discussion_urls,
     backfill_failed_pr_numbers,
@@ -242,7 +243,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             status = update_dashboard_for_backfill(args, Path("state"))
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
-        self.assertEqual(status, 1)
+        self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
         self.assertEqual(dashboard_state["prs"], {"2": {"pr_number": 2, "failed": False, "route": "reviewer"}})
         self.assertTrue(dashboard_state["initial_backfill_complete"])
         self.assertEqual(backfill_state["cursor"], {"last_pr_number": 2})
@@ -254,33 +255,41 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         self.assertEqual(set_backfill_pr_failed(state, 1, False), {2})
         self.assertEqual(state["failed_pr_numbers"], [2])
 
-    def test_failed_backfill_still_emits_initial_backfill_status(self) -> None:
-        with (
-            tempfile.TemporaryDirectory() as temp_dir,
-            patch(
-                "sys.argv",
-                [
-                    "dashboard.py",
-                    "--state-branch",
-                    "state",
-                    "--repo",
-                    "repo",
-                    "--approver-team",
-                    "approvers",
-                    "--github-output",
-                    str(Path(temp_dir) / "output"),
-                ],
-            ),
-            patch("dashboard.state_branch.temporary_state_dir") as temporary_state_dir,
-            patch("dashboard.update_dashboard_via_state_branch", return_value=1),
-            patch("dashboard.write_initial_backfill_output") as write_output,
+    def test_emits_initial_backfill_status_only_for_accepted_state_outcomes(self) -> None:
+        for status, should_emit in (
+            (0, True),
+            (BACKFILL_RECORDED_FAILURE_STATUS, True),
+            (1, False),
         ):
-            temporary_state_dir.return_value.__enter__.return_value = Path(temp_dir)
+            with (
+                self.subTest(status=status),
+                tempfile.TemporaryDirectory() as temp_dir,
+                patch(
+                    "sys.argv",
+                    [
+                        "dashboard.py",
+                        "--state-branch",
+                        "state",
+                        "--repo",
+                        "repo",
+                        "--approver-team",
+                        "approvers",
+                        "--github-output",
+                        str(Path(temp_dir) / "output"),
+                    ],
+                ),
+                patch("dashboard.state_branch.temporary_state_dir") as temporary_state_dir,
+                patch("dashboard.update_dashboard_via_state_branch", return_value=status),
+                patch("dashboard.write_initial_backfill_output") as write_output,
+            ):
+                temporary_state_dir.return_value.__enter__.return_value = Path(temp_dir)
 
-            status = main()
+                self.assertEqual(main(), status)
 
-        self.assertEqual(status, 1)
-        write_output.assert_called_once_with(Path(temp_dir) / "output")
+            if should_emit:
+                write_output.assert_called_once_with(Path(temp_dir) / "output")
+            else:
+                write_output.assert_not_called()
 
 
 if __name__ == "__main__":
