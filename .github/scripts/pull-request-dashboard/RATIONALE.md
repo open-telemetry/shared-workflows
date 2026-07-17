@@ -64,8 +64,11 @@ the implementation understandable and operationally cheap.
   do not contend on the same git ref during scheduled and webhook-driven runs.
 - Updates use `git push --force-with-lease`, so git refs provide the durable
   compare-and-swap boundary for concurrent same-repository runs.
-- A missing repository state branch is bootstrapped by the next non-PR backfill;
-  targeted PR runs skip until initial dashboard state exists.
+- A missing repository state branch is bootstrapped by non-PR backfills. The
+  dashboard state records when every open non-draft PR has been populated at
+  least once. Targeted PR runs, dashboard publishing, status comments, and
+  Slack notifications skip until that initial backfill is complete, so no
+  partial dashboard is exposed.
 - Targeted PR runs compute the triggered PR and merge that one PR slot with the
   latest accepted state on each state-branch compare-and-swap retry.
 
@@ -87,6 +90,11 @@ the implementation understandable and operationally cheap.
   `backfill-state.json`. The cursor is the last successfully refreshed PR
   number, and the next run continues after it in sorted PR-number order,
   wrapping when needed.
+- Initial-backfill completion is stored in dashboard state and becomes true in
+  the same accepted state commit that populates the final missing open
+  non-draft PR. Once set, it remains true. New PRs do not reset bootstrap; they
+  appear after their first targeted refresh or backfill, while existing
+  dashboard entries and Slack reminders continue normally.
 - A selected PR failure stops the run without advancing the cursor. This can
   temporarily block later PRs, but it keeps the scheduled workflow failure issue
   open and pointing at the blocked backfill until the failure is fixed.

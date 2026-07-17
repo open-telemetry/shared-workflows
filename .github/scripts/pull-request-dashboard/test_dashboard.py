@@ -3,7 +3,11 @@ from __future__ import annotations
 import unittest
 
 from classification import discussion_prompt_input
-from dashboard import author_action_discussion_urls, group_review_threads
+from dashboard import (
+    author_action_discussion_urls,
+    complete_initial_backfill_if_ready,
+    group_review_threads,
+)
 
 
 class ReviewThreadDiscussionUrlTest(unittest.TestCase):
@@ -69,6 +73,25 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
         })
 
         self.assertNotIn("discussion_url", prompt_input)
+
+
+class InitialBackfillCompletionTest(unittest.TestCase):
+    def test_marks_complete_only_after_all_open_prs_are_cached(self) -> None:
+        state = {"prs": {"1": {}}}
+
+        self.assertFalse(complete_initial_backfill_if_ready(state, {1, 2}))
+        self.assertNotIn("initial_backfill_complete", state)
+
+        state["prs"]["2"] = {}
+        self.assertTrue(complete_initial_backfill_if_ready(state, {1, 2}))
+        self.assertTrue(state["initial_backfill_complete"])
+        self.assertFalse(complete_initial_backfill_if_ready(state, {1, 2}))
+
+    def test_empty_repository_completes_initial_backfill(self) -> None:
+        state = {"prs": {}}
+
+        self.assertTrue(complete_initial_backfill_if_ready(state, set()))
+        self.assertTrue(state["initial_backfill_complete"])
 
 
 if __name__ == "__main__":

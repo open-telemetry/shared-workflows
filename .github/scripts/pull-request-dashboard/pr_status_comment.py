@@ -8,7 +8,7 @@ import sys
 from typing import Any
 
 from github_cli import detect_repo, gh_api, normalize_repo, repo_state_key, run_gh
-from state import load_dashboard_state_cache, set_state_dir
+from state import initial_backfill_complete, load_dashboard_state_cache, set_state_dir
 import state_branch
 
 
@@ -163,19 +163,19 @@ def main() -> int:
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
     parser.add_argument("--pr-number", type=int, help="pull request to update")
     parser.add_argument(
-        "--check-state-exists",
+        "--check-initial-backfill-complete",
         action="store_true",
-        help='print "true" when accepted dashboard state exists, otherwise "false"',
+        help='print "true" when the initial dashboard backfill is complete, otherwise "false"',
     )
     args = parser.parse_args()
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     dashboard_state = load_accepted_dashboard_state(repo, args.state_branch)
-    if args.check_state_exists:
-        print("true" if dashboard_state is not None else "false")
+    if args.check_initial_backfill_complete:
+        print("true" if initial_backfill_complete(dashboard_state) else "false")
         return 0
     if args.pr_number is None:
-        parser.error("--pr-number is required unless --check-state-exists is set")
+        parser.error("--pr-number is required unless --check-initial-backfill-complete is set")
     if dashboard_state is None:
         print("dashboard result state not found; skipping PR status comment", file=sys.stderr)
         return 0

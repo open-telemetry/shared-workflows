@@ -12,6 +12,7 @@ from state import (
     NOTIFICATION_STATE_VERSION,
     backfill_state_path,
     dashboard_state_path,
+    empty_state,
     load_backfill_state,
     load_dashboard_state_cache,
     load_state_file,
@@ -20,6 +21,7 @@ from state import (
     save_state_file,
     save_notifications,
     stored_result,
+    update_dashboard_state_for_pr,
 )
 
 
@@ -92,6 +94,14 @@ class StateTest(unittest.TestCase):
                     "cursor": {"last_pr_number": 78},
                 },
             )
+
+    def test_targeted_update_preserves_initial_backfill_marker(self) -> None:
+        state = empty_state()
+        state["initial_backfill_complete"] = True
+
+        updated = update_dashboard_state_for_pr(state, 123, None)
+
+        self.assertTrue(updated["initial_backfill_complete"])
 
     def test_notification_state_write_ignores_dashboard_version(self) -> None:
         with (

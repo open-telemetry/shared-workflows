@@ -13,6 +13,7 @@ BACKFILL_STATE_FILE = "backfill-state.json"
 DASHBOARD_STATE_VERSION = 4
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
+INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
 
@@ -45,6 +46,10 @@ def dashboard_markdown_path() -> Path:
 
 def empty_state() -> dict[str, Any]:
     return {"version": DASHBOARD_STATE_VERSION, "prs": {}}
+
+
+def initial_backfill_complete(state: dict[str, Any] | None) -> bool:
+    return bool(state and state.get(INITIAL_BACKFILL_COMPLETE_KEY) is True)
 
 
 def empty_backfill_state() -> dict[str, Any]:
@@ -204,7 +209,7 @@ def update_dashboard_state_for_pr(
         prs.pop(key, None)
     else:
         prs[key] = stored_result(result)
-    return {
-        "version": DASHBOARD_STATE_VERSION,
-        "prs": prs,
-    }
+    updated = dict(state)
+    updated["version"] = DASHBOARD_STATE_VERSION
+    updated["prs"] = prs
+    return updated

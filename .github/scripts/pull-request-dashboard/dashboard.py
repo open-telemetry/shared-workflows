@@ -177,7 +177,9 @@ from classification import (
     prune_classification_cache,
 )
 from state import (
+    INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
+    initial_backfill_complete,
     load_dashboard_state_cache,
     load_backfill_state,
     results_from_dashboard_state,
@@ -1238,6 +1240,18 @@ def dashboard_state_pr_numbers(state: dict[str, Any]) -> set[int]:
     return numbers
 
 
+def complete_initial_backfill_if_ready(
+    state: dict[str, Any],
+    open_pr_numbers: set[int],
+) -> bool:
+    if initial_backfill_complete(state):
+        return False
+    if not open_pr_numbers.issubset(dashboard_state_pr_numbers(state)):
+        return False
+    state[INITIAL_BACKFILL_COMPLETE_KEY] = True
+    return True
+
+
 def backfill_cursor_pr_number(backfill_state: dict[str, Any]) -> int | None:
     cursor = backfill_state.get("cursor") or {}
     if not isinstance(cursor, dict):
@@ -1535,6 +1549,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     if not selection.selected_prs:
         def save_current_dashboard_state() -> int:
             dashboard_state = load_dashboard_state_cache() or empty_state()
+            complete_initial_backfill_if_ready(dashboard_state, open_non_draft_pr_numbers)
             return save_dashboard_update_state(args, dashboard_state, False)
 
         return state_branch.push_state_changes(
@@ -1566,10 +1581,14 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             )
             if not dashboard_state_unchanged and reject_failed_dashboard_result(calculation.trigger_pr_result):
                 return 1
+            initial_backfill_completed = complete_initial_backfill_if_ready(
+                calculation.dashboard_state,
+                open_non_draft_pr_numbers,
+            )
             status = save_dashboard_update_state(
                 args,
                 calculation.dashboard_state,
-                dashboard_state_unchanged,
+                dashboard_state_unchanged and not initial_backfill_completed,
             )
             if status != 0:
                 return status

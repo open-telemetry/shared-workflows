@@ -6,10 +6,16 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 from github_cli import detect_repo, gh_graphql, list_open_prs, normalize_repo, repo_state_key, run_gh
 from render import render_pr_tables
-from state import dashboard_markdown_path, load_dashboard_state_cache, results_from_dashboard_state, set_state_dir
+from state import (
+    dashboard_markdown_path,
+    load_dashboard_state_cache,
+    results_from_dashboard_state,
+    set_state_dir,
+)
 import state_branch
 
 
@@ -62,13 +68,6 @@ def find_dashboard_issue(repo: str) -> int | None:
         if not page_info["hasNextPage"]:
             return None
         after = page_info["endCursor"] or ""
-
-
-def dashboard_issue_url(repo: str) -> str:
-    number = find_dashboard_issue(repo)
-    if number is None:
-        raise RuntimeError(f"dashboard issue not found in {repo}")
-    return f"https://github.com/{repo}/issues/{number}"
 
 
 def ensure_dashboard_label(repo: str) -> None:
@@ -139,6 +138,17 @@ def publish_dashboard(repo: str, dashboard_body: Path) -> None:
     ])
 
 
+def publishable_prs(
+    prs: list[dict[str, Any]],
+    results: dict[int, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        pr
+        for pr in prs
+        if pr.get("isDraft") or pr.get("number") in results
+    ]
+
+
 def render_dashboard_markdown(repo: str, large_repo: bool) -> Path:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -148,7 +158,7 @@ def render_dashboard_markdown(repo: str, large_repo: bool) -> Path:
     open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
     results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)
     md = render_pr_tables(
-        prs,
+        publishable_prs(prs, results),
         results,
         max_rows_per_section=LARGE_REPO_MAX_ROWS_PER_SECTION if large_repo else None,
         skip_drafts=large_repo,
@@ -173,17 +183,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
     parser.add_argument(
-        "--print-dashboard-url",
-        action="store_true",
-        help="print the dashboard issue URL and exit",
-    )
-    parser.add_argument(
-        "--check-dashboard-exists",
-        action="store_true",
-        help="print \"true\" if the dashboard issue exists, otherwise \"false\", and exit",
-    )
-    parser.add_argument(
         "--state-branch",
+        required=True,
         help="git branch used for workflow state",
     )
     parser.add_argument(
@@ -194,17 +195,6 @@ def main() -> int:
     args = parser.parse_args()
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
-    if args.check_dashboard_exists:
-        print("true" if find_dashboard_issue(repo) is not None else "false")
-        return 0
-
-    if args.print_dashboard_url:
-        print(dashboard_issue_url(repo))
-        return 0
-
-    if not args.state_branch:
-        parser.error("--state-branch is required unless --print-dashboard-url or --check-dashboard-exists is set")
-
     with state_branch.temporary_state_dir() as state_dir:
         set_state_dir(state_dir / repo_state_key(repo))
         state_branch.configure_git()

@@ -138,20 +138,20 @@ jobs:
           fi
 
           state_branch="otelbot/pull-request-dashboard-state/${REPO_NAME}"
-          state_exists=$(python3 .github/scripts/pull-request-dashboard/pr_status_comment.py \
+          initial_backfill_complete=$(python3 .github/scripts/pull-request-dashboard/pr_status_comment.py \
             --repo "$REPO_NAME" \
             --state-branch "$state_branch" \
-            --check-state-exists)
-          if [[ "$state_exists" == "true" ]]; then
+            --check-initial-backfill-complete)
+          if [[ "$initial_backfill_complete" == "true" ]]; then
             echo "met=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "$state_exists" == "false" ]]; then
-            echo "Dashboard state does not exist yet; skipping targeted refresh."
+          if [[ "$initial_backfill_complete" == "false" ]]; then
+            echo "Initial dashboard backfill is incomplete; skipping targeted refresh."
             echo "met=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "unexpected dashboard state result: $state_exists" >&2
+          echo "unexpected initial backfill result: $initial_backfill_complete" >&2
           exit 1
 
   run-repo-dashboard:
