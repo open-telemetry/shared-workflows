@@ -456,6 +456,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             "issue_comments": [
                 {
                     "id": 101,
+                    "html_url": "https://example.test/issue-comment/101",
                     "created_at": ROOT_TIMESTAMP,
                     "updated_at": ROOT_TIMESTAMP,
                     "user": {"login": "reviewer"},
@@ -465,6 +466,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             "reviews": [
                 {
                     "id": 202,
+                    "url": "https://example.test/review/202",
                     "submitted_at": "2026-07-14T02:00:00Z",
                     "updated_at": "2026-07-14T03:00:00Z",
                     "user": {"login": "reviewer"},
@@ -489,6 +491,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(
             [item["discussion_id"] for item in items],
             ["pr-issue-comment-101", "pr-review-202"],
+        )
+        self.assertEqual(
+            [item["discussion_url"] for item in items],
+            ["https://example.test/issue-comment/101", "https://example.test/review/202"],
         )
         self.assertEqual(items[1]["root_timestamp"], "2026-07-14T03:00:00Z")
         review_event = next(event for event in events if event["kind"] == "review-state")

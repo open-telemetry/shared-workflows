@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import nullcontext, redirect_stdout
+from io import StringIO
 import json
 from pathlib import Path
 import tempfile
@@ -12,18 +14,75 @@ from state import (
     NOTIFICATION_STATE_VERSION,
     backfill_state_path,
     dashboard_state_path,
+    empty_state,
+    load_accepted_dashboard_state,
     load_backfill_state,
     load_dashboard_state_cache,
     load_state_file,
     load_notifications,
+    main,
     notification_state_path,
     save_state_file,
+    save_dashboard_state_cache,
     save_notifications,
     stored_result,
+    update_dashboard_state_for_pr,
 )
 
 
 class StateTest(unittest.TestCase):
+    @patch(
+        "state.load_accepted_dashboard_state",
+        return_value={"initial_backfill_complete": True, "prs": {}},
+    )
+    def test_cli_prints_initial_backfill_readiness(self, load_state: object) -> None:
+        output = StringIO()
+        with (
+            patch("sys.argv", [
+                "state.py",
+                "--repo", "example",
+                "--state-branch", "state-branch",
+            ]),
+            redirect_stdout(output),
+        ):
+            status = main()
+
+        self.assertEqual(0, status)
+        self.assertEqual("true\n", output.getvalue())
+        load_state.assert_called_once_with("open-telemetry/example", "state-branch")
+
+    def test_loads_accepted_dashboard_state_from_state_branch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkout_dir = Path(temp_dir)
+            state_path = checkout_dir / "example" / "dashboard-state.json"
+            state_path.parent.mkdir()
+            state_path.write_text(
+                json.dumps({
+                    "version": DASHBOARD_STATE_VERSION,
+                    "initial_backfill_complete": True,
+                    "prs": {"123": {"route": "author"}},
+                }),
+                encoding="utf-8",
+            )
+            with patch(
+                "state.state_branch.accepted_state_dir",
+                return_value=nullcontext(checkout_dir),
+            ) as accepted_state_dir:
+                dashboard_state = load_accepted_dashboard_state(
+                    "open-telemetry/example",
+                    "state-branch",
+                )
+
+        self.assertEqual(
+            dashboard_state,
+            {
+                "version": DASHBOARD_STATE_VERSION,
+                "initial_backfill_complete": True,
+                "prs": {"123": {"route": "author"}},
+            },
+        )
+        accepted_state_dir.assert_called_once_with("state-branch", required=False)
+
     def test_versioned_state_helpers_preserve_arbitrary_payloads(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "state.json"
@@ -46,7 +105,7 @@ class StateTest(unittest.TestCase):
     def test_state_specific_loaders_own_payload_defaults(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
             dashboard_state_path().write_text(
-                json.dumps({"version": DASHBOARD_STATE_VERSION}),
+                json.dumps({"version": DASHBOARD_STATE_VERSION, "unknown": "discard me"}),
                 encoding="utf-8",
             )
             notification_state_path().write_text(
@@ -60,12 +119,29 @@ class StateTest(unittest.TestCase):
 
             self.assertEqual(
                 load_dashboard_state_cache(),
-                {"version": DASHBOARD_STATE_VERSION, "prs": {}},
+                {
+                    "version": DASHBOARD_STATE_VERSION,
+                    "initial_backfill_complete": False,
+                    "prs": {},
+                },
             )
             self.assertEqual(load_notifications(), {})
             self.assertEqual(
                 load_backfill_state(),
                 {"version": BACKFILL_STATE_VERSION, "cursor": {}},
+            )
+
+    def test_dashboard_state_save_writes_explicit_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            save_dashboard_state_cache({"unknown": "discard me"})
+
+            self.assertEqual(
+                json.loads(dashboard_state_path().read_text(encoding="utf-8")),
+                {
+                    "version": DASHBOARD_STATE_VERSION,
+                    "initial_backfill_complete": False,
+                    "prs": {},
+                },
             )
 
     def test_notification_state_version_is_independent(self) -> None:
@@ -92,6 +168,22 @@ class StateTest(unittest.TestCase):
                     "cursor": {"last_pr_number": 78},
                 },
             )
+
+    def test_targeted_update_preserves_initial_backfill_marker(self) -> None:
+        state = empty_state()
+        state["initial_backfill_complete"] = True
+        state["unknown"] = "discard me"
+
+        updated = update_dashboard_state_for_pr(state, 123, None)
+
+        self.assertEqual(
+            updated,
+            {
+                "version": DASHBOARD_STATE_VERSION,
+                "initial_backfill_complete": True,
+                "prs": {},
+            },
+        )
 
     def test_notification_state_write_ignores_dashboard_version(self) -> None:
         with (

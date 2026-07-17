@@ -133,17 +133,26 @@ complete, such as when an unrelated commit matches the expected evidence kind.
 That handoff is deliberate: reviewers can see the activity and respond, while
 the dashboard avoids leaving an active author indefinitely marked as blocked.
 
-## One-time PR guidance comment
+## Live PR status comment
 
-After the dashboard issue exists, the workflow adds one guidance comment to a
-PR the first time a submitted review includes inline comments. A hidden marker
-prevents repeat comments on later reviews or workflow runs.
+After the first full dashboard run has populated repository state, each targeted
+PR update creates or updates one dashboard-managed status comment on that PR.
+The comment shows who has the next action and what the PR is waiting on. When the
+author has the next action, it also links separately to unresolved inline review
+threads and top-level feedback when possible. Draft PRs show that they are
+waiting for the author to mark them ready for review.
 
-The guidance asks authors to give each review thread a clear outcome and points
-reviewers toward the feedback mechanism with the lifecycle they need. Reviewers
-should prefer inline comments for feedback requiring explicit resolution. See
+A hidden marker lets the workflow update the comment in place. Existing one-time
+guidance comments are upgraded rather than duplicated. The comment also asks
+authors to give each review feedback item a clear outcome, which keeps stale or
+ambiguous feedback from being routed to the wrong person.
+
+Reviewers should prefer inline comments for feedback requiring explicit
+resolution. See
 [`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md#top-level-feedback)
 for the tradeoffs behind this behavior.
+
+Targeted updates received before the first full dashboard run are ignored.
 
 ## Configuration
 

@@ -224,7 +224,7 @@ def discussion_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
     prompt_thread = {
         key: value
         for key, value in discussion.items()
-        if key != "comments"
+        if key not in ("comments", "discussion_url")
     }
     prompt_thread["comments"] = [
         {

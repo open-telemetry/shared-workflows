@@ -16,6 +16,7 @@ Usage:
                                                                --approver-team TEAM
                                                                [--approver-team TEAM]
                                                                [--pr-number N]
+                                                               [--github-output PATH]
                                                                [--model NAME]
 
 Architecture overview
@@ -114,6 +115,13 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   or PR creation time.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
+    author_action_review_thread_urls
+                                    list[str]     Canonical links to unresolved
+                                                  inline review threads routed
+                                                  to the author.
+    author_action_top_level_feedback_urls
+                                    list[str]     Canonical links to top-level
+                                                  feedback routed to the author.
     reviewers                       list[dict]    Reviewers to display (added by
                                                   add_reviewers). Each entry is
                                                   {"login": str, "approved": bool,
@@ -174,7 +182,9 @@ from classification import (
     prune_classification_cache,
 )
 from state import (
+    INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
+    initial_backfill_complete,
     load_dashboard_state_cache,
     load_backfill_state,
     results_from_dashboard_state,
@@ -338,6 +348,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         timestamp = c.get("updated_at") or c.get("created_at") or ""
         events.append({
             "source_id": c.get("id"),
+            "discussion_url": c.get("html_url") or "",
             "kind": "issue-comment",
             "timestamp": timestamp,
             "created_timestamp": c.get("created_at") or timestamp,
@@ -369,6 +380,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         state = r.get("state") or ""
         events.append({
             "source_id": r.get("id"),
+            "discussion_url": r.get("url") or "",
             "kind": "review-state",
             "timestamp": r.get("submitted_at") or "",
             "updated_timestamp": r.get("updated_at") or r.get("submitted_at") or "",
@@ -557,8 +569,9 @@ def group_review_threads(
         # as live.
         if discussion.get("isResolved") or discussion.get("isOutdated"):
             continue
+        raw_comments = (discussion.get("comments") or {}).get("nodes") or []
         comments = []
-        for c in ((discussion.get("comments") or {}).get("nodes") or []):
+        for c in raw_comments:
             actor = reviewer_actor_login(c.get("author") or {})
             comments.append(discussion_comment(
                 c.get("updatedAt") or c.get("createdAt") or "",
@@ -578,6 +591,7 @@ def group_review_threads(
             "path": discussion.get("path"),
             "line": discussion.get("line"),
             "resolved": False,
+            "discussion_url": raw_comments[0].get("url") if raw_comments else "",
             "comments": comments,
         }, comments, facts))
     discussions.sort(key=lambda t: t["comments"][-1]["timestamp"])
@@ -628,6 +642,7 @@ def derive_top_level_items(
                 "discussion_kind": "top-level-feedback",
                 "source_kind": source_kind,
                 "source_id": event["source_id"],
+                "discussion_url": event.get("discussion_url") or "",
                 "requester": comment["actor"],
                 "review_state": state or None,
                 "root_timestamp": root_timestamp,
@@ -900,6 +915,23 @@ def add_wait_age_facts(
     facts["waiting_age_basis"] = basis
 
 
+def author_action_discussion_urls(
+    discussions: list[dict[str, Any]],
+    pending_actions: dict[str, dict[str, Any]],
+) -> list[str]:
+    by_id = discussions_by_id(discussions)
+    urls: list[str] = []
+    for discussion_id, entry in pending_actions.items():
+        action = normalize_discussion_action(entry.get("action") or "")
+        if action != "author":
+            continue
+        thread = by_id.get(discussion_id)
+        url = (thread or {}).get("discussion_url") or ""
+        if url and url not in urls:
+            urls.append(url)
+    return urls
+
+
 # Discussion actions that count as open and unresolved. A reviewer who commented
 # in such a discussion is not yet satisfied, even if they have approved.
 # "none" means no follow-up is needed, so it does not block a clear check.
@@ -1052,6 +1084,12 @@ def build_pr_result(
             }
         route = route_pr(facts, pending_actions, required_approvals)
         add_wait_age_facts(facts, route, pending_actions)
+        facts["author_action_review_thread_urls"] = author_action_discussion_urls(
+            review_threads, pending_actions
+        )
+        facts["author_action_top_level_feedback_urls"] = author_action_discussion_urls(
+            top_level_items, pending_actions
+        )
         add_reviewers(
             facts, events, review_threads, top_level_items, pending_actions
         )
@@ -1208,6 +1246,18 @@ def dashboard_state_pr_numbers(state: dict[str, Any]) -> set[int]:
         except ValueError:
             continue
     return numbers
+
+
+def complete_initial_backfill_if_ready(
+    state: dict[str, Any],
+    open_pr_numbers: set[int],
+) -> bool:
+    if initial_backfill_complete(state):
+        return False
+    if not open_pr_numbers.issubset(dashboard_state_pr_numbers(state)):
+        return False
+    state[INITIAL_BACKFILL_COMPLETE_KEY] = True
+    return True
 
 
 def backfill_cursor_pr_number(backfill_state: dict[str, Any]) -> int | None:
@@ -1507,6 +1557,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     if not selection.selected_prs:
         def save_current_dashboard_state() -> int:
             dashboard_state = load_dashboard_state_cache() or empty_state()
+            complete_initial_backfill_if_ready(dashboard_state, open_non_draft_pr_numbers)
             return save_dashboard_update_state(args, dashboard_state, False)
 
         return state_branch.push_state_changes(
@@ -1538,10 +1589,14 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             )
             if not dashboard_state_unchanged and reject_failed_dashboard_result(calculation.trigger_pr_result):
                 return 1
+            initial_backfill_completed = complete_initial_backfill_if_ready(
+                calculation.dashboard_state,
+                open_non_draft_pr_numbers,
+            )
             status = save_dashboard_update_state(
                 args,
                 calculation.dashboard_state,
-                dashboard_state_unchanged,
+                dashboard_state_unchanged and not initial_backfill_completed,
             )
             if status != 0:
                 return status
@@ -1562,6 +1617,12 @@ def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir: Path)
     if args.pr_number is None:
         return update_dashboard_for_backfill(args, state_dir)
     return update_dashboard_for_pr_number(args, state_dir)
+
+
+def write_initial_backfill_output(github_output: Path) -> None:
+    complete = initial_backfill_complete(load_dashboard_state_cache())
+    with github_output.open("a", encoding="utf-8") as output:
+        output.write(f"initial_backfill_complete={'true' if complete else 'false'}\n")
 
 
 def main() -> int:
@@ -1586,13 +1647,21 @@ def main() -> int:
         help="minimum non-bot approvals needed before a PR can route to maintainers",
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
+    parser.add_argument(
+        "--github-output",
+        type=Path,
+        help="append initial_backfill_complete to this GitHub Actions output file",
+    )
     args = parser.parse_args()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")
     with state_branch.temporary_state_dir() as state_dir:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
-        return update_dashboard_via_state_branch(args, state_dir)
+        status = update_dashboard_via_state_branch(args, state_dir)
+        if status == 0 and args.github_output:
+            write_initial_backfill_output(args.github_output)
+        return status
 
 
 if __name__ == "__main__":

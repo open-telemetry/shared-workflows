@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
 from typing import Any
+
+from github_cli import detect_repo, normalize_repo, repo_state_key
+import state_branch
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
@@ -13,6 +17,7 @@ BACKFILL_STATE_FILE = "backfill-state.json"
 DASHBOARD_STATE_VERSION = 4
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
+INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
 
@@ -44,7 +49,15 @@ def dashboard_markdown_path() -> Path:
 
 
 def empty_state() -> dict[str, Any]:
-    return {"version": DASHBOARD_STATE_VERSION, "prs": {}}
+    return {
+        "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: False,
+        "prs": {},
+    }
+
+
+def initial_backfill_complete(state: dict[str, Any] | None) -> bool:
+    return bool(state and state.get(INITIAL_BACKFILL_COMPLETE_KEY) is True)
 
 
 def empty_backfill_state() -> dict[str, Any]:
@@ -104,14 +117,35 @@ def save_backfill_state(state: dict[str, Any]) -> None:
 
 def load_dashboard_state_cache() -> dict[str, Any] | None:
     state = load_state_file(dashboard_state_path(), DASHBOARD_STATE_VERSION)
-    if state is not None and not isinstance(state.get("prs"), dict):
-        state["prs"] = {}
-    return state
+    if state is None:
+        return None
+    prs = state.get("prs")
+    return {
+        "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
+        "prs": prs if isinstance(prs, dict) else {},
+    }
+
+
+def load_accepted_dashboard_state(
+    repo: str,
+    state_branch_name: str,
+    *,
+    required: bool = False,
+) -> dict[str, Any] | None:
+    with state_branch.accepted_state_dir(state_branch_name, required=required) as checkout_dir:
+        if checkout_dir is None:
+            return None
+        set_state_dir(checkout_dir / repo_state_key(repo))
+        return load_dashboard_state_cache()
 
 
 def save_dashboard_state_cache(state: dict[str, Any]) -> None:
-    stored = dict(state)
-    stored.setdefault("prs", {})
+    prs = state.get("prs")
+    stored = {
+        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
+        "prs": prs if isinstance(prs, dict) else {},
+    }
     save_state_file(dashboard_state_path(), stored, DASHBOARD_STATE_VERSION)
 
 
@@ -189,6 +223,7 @@ def results_from_dashboard_state(state: dict[str, Any], open_pr_numbers: set[int
 def dashboard_state_from_results(results: dict[int, dict[str, Any]]) -> dict[str, Any]:
     return {
         "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: False,
         "prs": {str(number): stored_result(result) for number, result in sorted(results.items())},
     }
 
@@ -206,5 +241,22 @@ def update_dashboard_state_for_pr(
         prs[key] = stored_result(result)
     return {
         "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
         "prs": prs,
     }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read accepted PR dashboard state.")
+    parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
+    parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
+    args = parser.parse_args()
+
+    repo = normalize_repo(args.repo) if args.repo else detect_repo()
+    dashboard_state = load_accepted_dashboard_state(repo, args.state_branch)
+    print("true" if initial_backfill_complete(dashboard_state) else "false")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

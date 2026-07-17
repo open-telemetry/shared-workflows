@@ -10,18 +10,6 @@ on:
         required: false
         default: ""
         type: string
-      trigger_event:
-        required: false
-        default: ""
-        type: string
-      trigger_action:
-        required: false
-        default: ""
-        type: string
-      trigger_review_id:
-        required: false
-        default: ""
-        type: string
       required_approvals:
         required: false
         default: 1
@@ -57,75 +45,6 @@ env:
   DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
 
 jobs:
-  post-review-guidance:
-    if: >-
-      inputs.pr_number != '' &&
-      inputs.trigger_event == 'pull_request_review' &&
-      inputs.trigger_action == 'submitted' &&
-      inputs.trigger_review_id != ''
-    concurrency:
-      group: ${{ github.workflow }}-guidance-${{ inputs.repository }}-${{ inputs.trigger_review_id }}
-      cancel-in-progress: false
-    permissions:
-      contents: read
-    # The protected environment provides environment-level vars such as
-    # PR_DASHBOARD_CLIENT_ID. The GitHub docs suggest environment secrets should
-    # also be available to called reusable workflow jobs, but testing showed
-    # they resolve empty here. Passing the required secrets explicitly through
-    # workflow_call.secrets does work, so secrets are part of the reusable
-    # workflow contract above.
-    environment: protected
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: dashboard-token
-        with:
-          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
-          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-          owner: open-telemetry
-          repositories: ${{ inputs.repository }}
-          permission-issues: write
-          permission-pull-requests: write
-
-      - name: Post review guidance
-        env:
-          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          REVIEW_ID: ${{ inputs.trigger_review_id }}
-          REPO: open-telemetry/${{ inputs.repository }}
-          MARKER: "<!-- review-guidance -->"
-          LEGACY_MARKER: "<!-- copilot-review-guidance -->"
-        run: |
-          set -euo pipefail
-          dashboard_url=$(python3 .github/scripts/pull-request-dashboard/publish_dashboard.py --repo "$REPO" --print-dashboard-url)
-
-          if gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-            --jq '.[] | select((.body | contains("'"${MARKER}"'")) or (.body | contains("'"${LEGACY_MARKER}"'"))) | .id' | grep -q .; then
-            echo "Guidance comment already posted on PR #${PR_NUMBER}; skipping."
-            exit 0
-          fi
-
-          review_comment_count=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}/comments" --jq '.[].id' | wc -l | tr -d ' ')
-          if [[ "$review_comment_count" == "0" ]]; then
-            echo "Review ${REVIEW_ID} has no review comments; skipping guidance comment."
-            exit 0
-          fi
-
-          body=$(cat <<EOF
-          ${MARKER}
-          This PR has review comments. Evaluate each on its merits; suggestions aren't always correct or required.
-
-          For inline comments, reply with the outcome or resolve the thread. For comments not attached to a line, make any needed updates; a reply with the outcome is also helpful, especially when no change is made.
-
-          Status across open PRs is visible on the [pull request dashboard](${dashboard_url}).
-          EOF
-          )
-          gh api --method POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -f body="$body"
-
   update-dashboard:
     concurrency:
       group: ${{ github.workflow }}-state-${{ inputs.repository }}-${{ inputs.pr_number || 'backfill' }}
@@ -134,6 +53,8 @@ jobs:
       contents: write
     environment: protected
     runs-on: ubuntu-latest
+    outputs:
+      initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -183,6 +104,7 @@ jobs:
           echo "$GITHUB_WORKSPACE/.github/scripts/pull-request-dashboard/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Generate and update dashboard state
+        id: dashboard-update
         env:
           TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
@@ -195,7 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          dashboard_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
+          dashboard_args=(--state-branch "$state_branch" --repo "$REPO_NAME" --github-output "$GITHUB_OUTPUT")
           dashboard_args+=(--required-approvals "$REQUIRED_APPROVALS")
           for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
             dashboard_args+=(--approver-team "$team")
@@ -212,11 +134,53 @@ jobs:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
         run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
 
+  update-pr-status-comment:
+    needs: update-dashboard
+    if: >-
+      needs.update-dashboard.result == 'success' &&
+      needs.update-dashboard.outputs.initial_backfill_complete == 'true' &&
+      inputs.pr_number != ''
+    concurrency:
+      group: ${{ github.workflow }}-status-${{ inputs.repository }}-${{ inputs.pr_number }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ inputs.repository }}
+          permission-issues: write
+          permission-pull-requests: read
+
+      - name: Update PR status comment
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          REPO_NAME: ${{ inputs.repository }}
+        run: |
+          set -euo pipefail
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          python3 .github/scripts/pull-request-dashboard/pr_status_comment.py \
+            --state-branch "$state_branch" \
+            --repo "$REPO_NAME" \
+            --pr-number "$PR_NUMBER"
+
   notify-slack:
     needs: update-dashboard
     if: >-
       needs.update-dashboard.result == 'success' &&
-      (inputs.trigger_event == 'schedule' || inputs.pr_number != '')
+      needs.update-dashboard.outputs.initial_backfill_complete == 'true' &&
+      (github.event_name == 'schedule' || inputs.pr_number != '')
     concurrency:
       group: ${{ github.workflow }}-notify-${{ inputs.repository }}-${{ inputs.pr_number || 'backfill' }}
       cancel-in-progress: false
@@ -259,7 +223,9 @@ jobs:
 
   publish-dashboard:
     needs: update-dashboard
-    if: needs.update-dashboard.result == 'success'
+    if: >-
+      needs.update-dashboard.result == 'success' &&
+      needs.update-dashboard.outputs.initial_backfill_complete == 'true'
     concurrency:
       group: ${{ github.workflow }}-publish-${{ inputs.repository }}
       cancel-in-progress: true
