@@ -281,7 +281,7 @@ def stale_label_owned_by_dashboard(repo: str, pr_number: int) -> bool:
         label_events,
         key=lambda event: (
             str(event.get("created_at") or ""),
-            str(event.get("id") or ""),
+            int(event.get("id") or 0),
         ),
     )
     return bool(

@@ -591,14 +591,14 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
     def test_latest_stale_label_event_determines_ownership(self, gh_api) -> None:
         gh_api.return_value = [
             {
-                "id": 1,
+                "id": 9,
                 "event": "labeled",
-                "created_at": "2026-07-10T00:00:00Z",
+                "created_at": "2026-07-11T00:00:00Z",
                 "label": {"name": "Stale"},
                 "performed_via_github_app": {"slug": "other-app"},
             },
             {
-                "id": 2,
+                "id": 10,
                 "event": "labeled",
                 "created_at": "2026-07-11T00:00:00Z",
                 "label": {"name": "stale"},
