@@ -81,7 +81,8 @@ summary that is not attached to an inline review thread.
   resolved on GitHub or GitHub marks its code anchor outdated. An author reply
   can hand the dashboard action back to reviewers, but it does not close the
   thread. After addressing it, authors should reply with the outcome and, when
-  appropriate, resolve the conversation.
+  appropriate, resolve the conversation. Author-only inline threads are treated
+  as annotations rather than review feedback unless a non-author joins them.
 - Top-level feedback has no resolved state. The dashboard therefore tracks each
   actionable top-level feedback item independently. 📌 means that one or more
   of those items are waiting on the author.

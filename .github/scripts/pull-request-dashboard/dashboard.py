@@ -583,7 +583,7 @@ def group_review_threads(
             ))
         comments = [c for c in comments if c["timestamp"]]
         comments.sort(key=lambda c: c["timestamp"])
-        if not comments:
+        if not comments or all(c["actor_role"] == "author" for c in comments):
             continue
         discussions.append(add_discussion_facts({
             "discussion_id": discussion.get("id") or f"review-discussion-{len(discussions) + 1}",
