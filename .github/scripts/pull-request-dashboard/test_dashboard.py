@@ -158,6 +158,17 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
         self.assertEqual("author", route_pr(facts, {}, 1))
 
+    def test_required_ci_failure_preserves_maintenance_bot_routing(self) -> None:
+        for approval_count, expected_route in ((0, "approver"), (1, "maintainer")):
+            with self.subTest(approval_count=approval_count):
+                facts = {
+                    "approval_count": approval_count,
+                    "ci_failing_count": 1,
+                    "is_maintenance_bot": True,
+                }
+
+                self.assertEqual(expected_route, route_pr(facts, {}, 2))
+
     def test_required_ci_failure_waits_since_latest_author_activity(self) -> None:
         facts = {
             "ci_failing_count": 1,
