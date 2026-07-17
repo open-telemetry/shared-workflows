@@ -98,10 +98,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     is_draft                        bool
     approval_count                  int           Current unique APPROVED reviews
                                                   from approver-team members.
-    ci_failing_count                int           Absent when checks could not
-                                                  be fetched.
-    ci_pending_count                int           Absent when checks could not
-                                                  be fetched.
+    ci_failing_count                int           Required checks only; absent
+                                                  when checks could not be fetched.
+    ci_pending_count                int           Required checks only; absent
+                                                  when checks could not be fetched.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
     last_activity_at                str (iso)
@@ -857,11 +857,14 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
-    #   1. A discussion waiting on the author -> "author".
-    #   2. Otherwise a discussion waiting on something external -> "external".
-    #   3. If there are enough approvals and no inline or top-level feedback is
+    #   1. A required status check failure -> "author".
+    #   2. A discussion waiting on the author -> "author".
+    #   3. Otherwise a discussion waiting on something external -> "external".
+    #   4. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer or is unclear -> "maintainer".
-    #   4. Otherwise the PR is still waiting on approvers.
+    #   5. Otherwise the PR is still waiting on approvers.
+    if facts.get("ci_failing_count", 0) > 0 and not is_maintenance_bot:
+        return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
     if counts["external"]:
@@ -892,6 +895,8 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
     if route in ("approver", "maintainer"):
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
+        if facts.get("ci_failing_count", 0) > 0:
+            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
         return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
     if route == "external":
         return parse_ts(facts.get("last_external_activity_at") or ""), "last_external_activity"

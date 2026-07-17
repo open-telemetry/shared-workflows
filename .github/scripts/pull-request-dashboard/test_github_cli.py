@@ -3,10 +3,22 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from github_cli import fetch_pr_review_data, fetch_pr_title_edits
+from github_cli import fetch_pr_review_data, fetch_pr_title_edits, gh_pr_checks
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.subprocess.run")
+    def test_gh_pr_checks_fetches_only_required_checks(self, run) -> None:
+        run.return_value.returncode = 1
+        run.return_value.stdout = '[{"name":"build","state":"FAILURE"}]'
+        run.return_value.stderr = ""
+
+        self.assertEqual(
+            gh_pr_checks("open-telemetry/example", 123),
+            [{"name": "build", "state": "FAILURE"}],
+        )
+        self.assertIn("--required", run.call_args.args[0])
+
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_review_data_normalizes_paginated_reviews_and_metadata(self, graphql) -> None:
         graphql.side_effect = [

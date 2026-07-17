@@ -14,7 +14,7 @@ DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
-DASHBOARD_STATE_VERSION = 4
+DASHBOARD_STATE_VERSION = 5
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"

@@ -126,6 +126,17 @@ the implementation understandable and operationally cheap.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
   latest usable snapshot without concurrent writers overwriting each other.
 
+## Required Status Checks
+
+- CI facts come from `gh pr checks --required`, so optional check failures do
+  not make the dashboard report a failing PR or change its route.
+- A failing required status check routes a human-authored PR to the author
+  before discussion and approval routing. The live PR status comment names the
+  CI failure, including when review feedback also needs author action.
+- Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
+  respond to a dashboard action. Pending required checks affect the CI column
+  but do not change who owns the next action.
+
 ## Top-Level Feedback
 
 - GitHub gives inline review threads explicit replies and a resolved state, but

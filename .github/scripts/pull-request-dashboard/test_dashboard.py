@@ -7,9 +7,11 @@ from unittest.mock import patch
 
 from classification import discussion_prompt_input
 from dashboard import (
+    add_wait_age_facts,
     author_action_discussion_urls,
     complete_initial_backfill_if_ready,
     group_review_threads,
+    route_pr,
     write_initial_backfill_output,
 )
 
@@ -112,6 +114,30 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                         f"initial_backfill_complete={expected}\n",
                         output_path.read_text(encoding="utf-8"),
                     )
+
+
+class RequiredCiRoutingTest(unittest.TestCase):
+    def test_required_ci_failure_routes_to_author_before_approval_state(self) -> None:
+        facts = {
+            "approval_count": 1,
+            "ci_failing_count": 1,
+            "is_maintenance_bot": False,
+        }
+
+        self.assertEqual("author", route_pr(facts, {}, 1))
+
+    def test_required_ci_failure_waits_since_latest_author_activity(self) -> None:
+        facts = {
+            "ci_failing_count": 1,
+            "created_at": "2026-07-14T01:00:00Z",
+            "last_author_activity_at": "2026-07-14T02:00:00Z",
+            "last_approver_activity_at": "2026-07-14T03:00:00Z",
+        }
+
+        add_wait_age_facts(facts, "author", {})
+
+        self.assertEqual("2026-07-14T02:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
 
 
 if __name__ == "__main__":

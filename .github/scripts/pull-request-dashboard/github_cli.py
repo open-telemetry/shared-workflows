@@ -250,7 +250,7 @@ def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, A
 
 def gh_pr_checks(repo: str, number: int) -> list[dict[str, Any]] | None:
     cmd = [
-        "gh", "pr", "checks", str(number), "--repo", repo, "--json",
+        "gh", "pr", "checks", str(number), "--repo", repo, "--required", "--json",
         "name,state,bucket,workflow,description,link",
     ]
     for attempt in range(GH_RETRY_ATTEMPTS):
