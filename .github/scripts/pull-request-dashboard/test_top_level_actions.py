@@ -186,6 +186,29 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(facts["human_head_observed_at"], "")
         self.assertEqual(facts["author_head_observed_at"], "")
 
+    def test_neutral_committer_does_not_make_bot_head_human(self) -> None:
+        for committer in ("web-flow", "copilot"):
+            with self.subTest(committer=committer):
+                facts = {"last_author_activity_at": "2026-07-01T00:00:00+00:00"}
+
+                add_human_head_observation(
+                    facts,
+                    {
+                        "pr": {"headRefOid": "new-head"},
+                        "commits": [{
+                            "sha": "new-head",
+                            "author": {"login": "automation[bot]", "type": "Bot"},
+                            "committer": {"login": committer, "type": "User"},
+                        }],
+                    },
+                    "author",
+                    {"facts": {"head_sha": "old-head"}},
+                    datetime(2026, 7, 17, tzinfo=timezone.utc),
+                )
+
+                self.assertEqual(facts["human_head_observed_at"], "")
+                self.assertEqual(facts["author_head_observed_at"], "")
+
     def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
         review_threads = [
             {

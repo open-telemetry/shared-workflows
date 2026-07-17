@@ -5,6 +5,7 @@ from typing import Any
 
 
 DEFAULT_TRUNCATE_CHARS = 1200
+NEUTRAL_COMMIT_ACTOR_LOGINS = {"copilot", "web-flow"}
 
 
 def parse_ts(s: str | None) -> datetime | None:
@@ -46,6 +47,19 @@ def truncate(s: str, n: int = DEFAULT_TRUNCATE_CHARS) -> str:
 
 def actor_login(obj: dict[str, Any] | None) -> str:
     return ((obj or {}).get("login") or "").strip()
+
+
+def is_human_commit_actor(actor: dict[str, Any] | None) -> bool:
+    actor = actor or {}
+    login = actor_login(actor).lower()
+    actor_type = actor.get("type") or actor.get("__typename")
+    return bool(
+        login
+        and actor_type != "Bot"
+        and not login.startswith("app/")
+        and not login.endswith("[bot]")
+        and login not in NEUTRAL_COMMIT_ACTOR_LOGINS
+    )
 
 
 def format_ts(ts: datetime | None) -> str:

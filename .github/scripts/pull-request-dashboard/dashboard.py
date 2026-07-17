@@ -197,7 +197,7 @@ from state import (
     update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import actor_login, format_ts, parse_ts, truncate, utc_now
+from utils import actor_login, format_ts, is_human_commit_actor, parse_ts, truncate, utc_now
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
@@ -224,23 +224,9 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:
 # `app/<slug>` form, while the Pulls/commits endpoint's `committer.login`
 # field can return the bare `copilot` slug. Do not treat either form as the
 # human author behind a Copilot-authored PR.
-_COPILOT_COMMITTER_LOGINS = {"copilot"}
 _COPILOT_PR_AUTHORS = {"app/copilot-swe-agent", "copilot"}
 _COPILOT_REVIEWER_LOGINS = {"copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
 _MAINTENANCE_BOT_PR_AUTHORS = {"app/otelbot", "app/renovate"}
-
-
-def is_human_commit_actor(actor: dict[str, Any] | None) -> bool:
-    actor = actor or {}
-    login = actor_login(actor).lower()
-    actor_type = actor.get("type") or actor.get("__typename")
-    return bool(
-        login
-        and actor_type != "Bot"
-        and not login.startswith("app/")
-        and not login.endswith("[bot]")
-        and login not in _COPILOT_COMMITTER_LOGINS
-    )
 
 
 def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
@@ -261,11 +247,10 @@ def human_author_for_copilot_pr(raw: dict[str, Any]) -> str:
     if not commits:
         return ""
     first_commit = commits[0]
-    login = actor_login(first_commit.get("committer") or {})
-    low = login.lower()
-    if not login or low in _COPILOT_COMMITTER_LOGINS:
+    committer = first_commit.get("committer") or {}
+    if not is_human_commit_actor(committer):
         return ""
-    return login
+    return actor_login(committer)
 
 
 def fetch_pr_raw(

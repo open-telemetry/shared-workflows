@@ -231,6 +231,44 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
     @patch.object(
         process_author_follow_ups,
+        "fetch_pr_review_data",
+        return_value={"reviews": []},
+    )
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={"headRefOid": "new-head"},
+    )
+    @patch.object(process_author_follow_ups, "gh_api")
+    def test_current_human_activity_ignores_neutral_bot_committers(
+        self,
+        gh_api,
+        _gh_pr_view,
+        _fetch_pr_review_data,
+    ) -> None:
+        for committer in ("web-flow", "copilot"):
+            with self.subTest(committer=committer):
+                gh_api.side_effect = [
+                    [],
+                    [],
+                    [{
+                        "sha": "new-head",
+                        "author": {"login": "automation[bot]", "type": "Bot"},
+                        "committer": {"login": committer, "type": "User"},
+                    }],
+                ]
+
+                activity = process_author_follow_ups.current_human_activity(
+                    "open-telemetry/example",
+                    1,
+                    author_result(),
+                    NOW,
+                )
+
+                self.assertIsNone(activity)
+
+    @patch.object(
+        process_author_follow_ups,
         "load_author_follow_ups",
         return_value={"1": {"stale_label_owned": False}},
     )

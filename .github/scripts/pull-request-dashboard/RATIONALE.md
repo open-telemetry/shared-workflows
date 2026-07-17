@@ -99,7 +99,9 @@ the implementation understandable and operationally cheap.
   activity clocks and live mutation guards exclude them. A human-attributed
   head-SHA change instead uses the time the dashboard first observes that
   change. This includes a reviewer helping by pushing to the author's branch,
-  while bot-only changes remain excluded. An
+  while bot-only changes remain excluded. Generic commit identities such as
+  `web-flow` and bare `copilot` are neutral and require another human-linked
+  author or committer. An
   author-attributed head change also records a separate observation timestamp
   for the handoff nudge; a later reviewer head change counts as the human
   response that ends that handoff candidate. Closure also compares the live head

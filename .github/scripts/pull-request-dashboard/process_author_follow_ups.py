@@ -34,7 +34,7 @@ from state import (
     set_state_dir,
 )
 import state_branch
-from utils import format_ts, parse_ts, utc_now
+from utils import format_ts, is_human_commit_actor, parse_ts, utc_now
 
 
 HANDOFF_NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-handoff-nudge:"
@@ -209,7 +209,7 @@ def current_human_activity(
         )
         if head_commit:
             if any(
-                is_human_actor(head_commit.get(field))
+                is_human_commit_actor(head_commit.get(field))
                 for field in ("committer", "author")
             ):
                 timestamps.append(now)
