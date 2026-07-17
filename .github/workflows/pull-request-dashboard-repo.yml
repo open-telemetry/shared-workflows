@@ -267,10 +267,14 @@ jobs:
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          follow_up_pr_numbers="$REFRESHED_PR_NUMBERS"
+          if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
+            follow_up_pr_numbers="$TRIGGER_PR_NUMBER"
+          fi
           follow_up_args=(
             --state-branch "$state_branch"
             --repo "$REPO_NAME"
-            --pr-numbers "$REFRESHED_PR_NUMBERS"
+            --pr-numbers "$follow_up_pr_numbers"
           )
           if [[ "$STALE_WAITING_ON_AUTHOR" == "true" ]]; then
             follow_up_args+=(--stale)
