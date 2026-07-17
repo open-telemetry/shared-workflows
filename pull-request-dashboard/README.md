@@ -158,7 +158,10 @@ Targeted updates received before the first full dashboard run are ignored.
 ## Author follow-up lifecycle
 
 Hourly runs process two independent reminder schedules. Manually triggered runs
-without a PR number do the same:
+without a PR number do the same. Each run evaluates follow-up actions only for
+PRs refreshed during that run. Since a repository refresh is capped at 50 PRs,
+a due action in a larger repository may wait for a later round-robin run, but it
+is delivered as soon as the PR is next refreshed.
 
 - **Handoff nudge:** If the author acts, nobody else responds, and the PR remains
   in *Waiting on authors*, the dashboard posts a nudge one day after the first
@@ -202,7 +205,9 @@ API reads/writes and approver team membership reads in the target repository.
 Slack notifications use the shared `SLACK_WEBHOOK_URL` secret. Each repository
 can route notifications to its own `slack_channel` and map GitHub logins to
 Slack user IDs via `slack_user_mapping`. Repositories without `slack_channel`
-configured skip Slack notification processing.
+configured skip Slack notification processing. Scheduled Slack follow-ups are
+also limited to PRs refreshed during the current hourly run, so a stale cached
+route cannot produce a reminder.
 
 ## Prerequisites
 

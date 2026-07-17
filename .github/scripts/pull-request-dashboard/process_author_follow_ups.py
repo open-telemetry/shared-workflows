@@ -15,6 +15,7 @@ from author_follow_up import plan_follow_up
 from github_cli import (
     detect_repo,
     fetch_pr_review_data,
+    fetch_review_threads,
     gh_api,
     list_open_prs,
     normalize_repo,
@@ -212,6 +213,24 @@ def current_human_activity(
     return max(timestamps, default=None)
 
 
+def current_author_route(repo: str, pr_number: int, result: dict[str, Any]) -> bool:
+    facts = result.get("facts") or {}
+    top_level_urls = set(facts.get("author_action_top_level_feedback_urls") or [])
+    if top_level_urls:
+        return True
+
+    expected_urls = set(facts.get("author_action_review_thread_urls") or [])
+    if not expected_urls:
+        return False
+    owner, repo_name = repo.split("/", 1)
+    current_urls = {
+        str(((thread.get("comments") or {}).get("nodes") or [{}])[0].get("url") or "")
+        for thread in fetch_review_threads(owner, repo_name, pr_number)
+        if not thread.get("isResolved") and not thread.get("isOutdated")
+    }
+    return bool(expected_urls & current_urls)
+
+
 def repository_stale_label(repo: str) -> str:
     labels = gh_api(f"/repos/{repo}/labels?per_page=100", paginate=True) or []
     for label in labels:
@@ -310,6 +329,7 @@ def execute_action(
         if (
             result is None
             or result.get("route") != "author"
+            or not current_author_route(repo, pr_number, result)
             or STALE_LABEL.lower() not in current_labels
         ):
             if updated.get("stale_label_owned") and STALE_LABEL.lower() in current_labels:
@@ -362,12 +382,17 @@ def next_author_follow_ups(
     now: datetime,
     stale_enabled: bool,
     current_prs: dict[int, dict[str, Any]] | None = None,
+    refreshed_pr_numbers: set[int] | None = None,
 ) -> dict[str, Any]:
     updated_follow_ups: dict[str, Any] = {}
     result_keys = {str(number) for number in results}
     for number, result in sorted(results.items()):
         key = str(number)
         previous = previous_follow_ups.get(key)
+        if refreshed_pr_numbers is not None and number not in refreshed_pr_numbers:
+            if previous is not None:
+                updated_follow_ups[key] = previous
+            continue
         current_pr = (current_prs or {}).get(number) or {}
         if (
             current_prs is not None
@@ -416,6 +441,7 @@ def process_author_follow_ups(
     repo: str,
     stale_enabled: bool,
     now: datetime,
+    refreshed_pr_numbers: set[int],
     retry_snapshot_path: Path | None = None,
 ) -> int:
     dashboard_state = load_dashboard_state_cache()
@@ -438,6 +464,7 @@ def process_author_follow_ups(
         now,
         stale_enabled,
         current_prs,
+        refreshed_pr_numbers,
     )
     if updated == previous and author_follow_up_state_path().exists():
         print("author follow-up state unchanged", file=sys.stderr)
@@ -451,6 +478,11 @@ def main() -> int:
     parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
     parser.add_argument("--stale", action="store_true", help="enable stale labeling and closure")
+    parser.add_argument(
+        "--pr-numbers",
+        required=True,
+        help="comma-separated PR numbers refreshed by the current dashboard run",
+    )
     args = parser.parse_args()
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
@@ -468,6 +500,7 @@ def main() -> int:
                 repo,
                 args.stale,
                 utc_now(),
+                {int(number) for number in args.pr_numbers.split(",") if number},
                 retry_snapshot_path,
             ),
             state_branch=args.state_branch,

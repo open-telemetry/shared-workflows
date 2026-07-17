@@ -11,6 +11,7 @@ from dashboard import (
     complete_initial_backfill_if_ready,
     group_review_threads,
     write_initial_backfill_output,
+    write_refreshed_pr_numbers_output,
 )
 
 
@@ -112,6 +113,20 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                         f"initial_backfill_complete={expected}\n",
                         output_path.read_text(encoding="utf-8"),
                     )
+
+    def test_writes_refreshed_pr_numbers_to_github_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "output"
+
+            write_refreshed_pr_numbers_output(
+                output_path,
+                [{"number": 3}, {"number": 8}],
+            )
+
+            self.assertEqual(
+                "refreshed_pr_numbers=3,8\n",
+                output_path.read_text(encoding="utf-8"),
+            )
 
 
 if __name__ == "__main__":

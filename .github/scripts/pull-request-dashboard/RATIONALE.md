@@ -80,7 +80,10 @@ the implementation understandable and operationally cheap.
   does not postpone it. This prevents repeated activity from indefinitely
   delaying a nudge when the dashboard still expects the author to act. A
   handoff nudge due within one day before the general nudge is consumed without
-  delivery, preventing two closely spaced lifecycle comments.
+  delivery, preventing two closely spaced lifecycle comments. Suppression
+  compares the scheduled deadlines rather than actual workflow or comment
+  times, so a delayed hourly run does not change the outcome. A later author
+  action after the general nudge can still start the independent handoff clock.
 - The general nudge is due one week after a backfill follow-up job first
   observes the PR in the author route. Its clock remains due even when the
   handoff nudge was already posted.
@@ -91,12 +94,21 @@ the implementation understandable and operationally cheap.
   restart the current one-week quiet stage. Activity after stale labeling
   removes a dashboard-owned `Stale` label before restarting the stale wait.
   Leaving the author route clears the lifecycle.
+- Substantive human activity consists of author commits, human issue or review
+  comments, and submitted human reviews. Bot and dashboard activity, reactions,
+  label or assignment changes, checks, and edits to existing comments do not
+  reset a quiet stage.
+- A non-PR run evaluates lifecycle actions only for PR results refreshed and
+  accepted during that run. Older cached results remain available for dashboard
+  rendering but cannot trigger nudges, stale labeling, or closure.
 - Escalation state is stored separately from dashboard routing and Slack
   notification state. Hidden per-cycle comment markers make retries idempotent
   if a GitHub mutation succeeds before a state-branch push is rejected.
 - Stage clocks begin only after the preceding GitHub mutation succeeds. Closure
-  requires a current open PR still routed to the author with the dashboard-owned
-  `Stale` label and no subsequent substantive human activity.
+  requires a current open PR with at least one still-unresolved author-action
+  thread, the dashboard-owned `Stale` label, and no subsequent substantive human
+  activity. This live recheck protects against a thread being resolved after
+  the dashboard refresh without producing another activity event.
 - The workflow records whether it added `Stale` and removes only labels it owns
   when activity, manual label removal, or a route change resets escalation.
 
@@ -109,6 +121,10 @@ the implementation understandable and operationally cheap.
 - Selected PRs are processed one at a time through the same single-PR merge path
   as targeted refreshes. Each accepted PR update pushes structured state before
   the next selected PR is processed.
+- The update job exposes the exact selected PR numbers to downstream jobs.
+  Scheduled Slack follow-ups and author lifecycle mutations are restricted to
+  that fresh set; unselected cached rows can still render but cannot cause an
+  external side effect.
 - The one-PR transaction size keeps state-branch compare-and-swap retries cheap:
   a rejected push retries one PR instead of refreshing a whole large repository
   and spending the same GitHub GraphQL rate-limit budget again. Backfill retries
@@ -121,8 +137,9 @@ the implementation understandable and operationally cheap.
 - Initial-backfill completion is stored in dashboard state and becomes true in
   the same accepted state commit that populates the final missing open
   non-draft PR. Once set, it remains true. New PRs do not reset bootstrap; they
-  appear after their first targeted refresh or backfill, while existing
-  dashboard entries and Slack reminders continue normally.
+  appear after their first targeted refresh or backfill. Existing cached rows
+  remain visible, while reminders resume when each PR is next selected for a
+  fresh backfill result.
 - A selected PR failure stops the run without advancing the cursor. This can
   temporarily block later PRs, but it keeps the scheduled workflow failure issue
   open and pointing at the blocked backfill until the failure is fixed.
@@ -222,10 +239,10 @@ the implementation understandable and operationally cheap.
 - When a mapped assignee is added after a PR was already notified during the
   same waiting period, that assignee may wait until the next follow-up cadence
   instead of receiving an immediate initial notification.
-- Scheduled runs send only due follow-up reminders. Targeted PR refreshes send
-  only the triggering PR's initial notification. This keeps webhook-driven
-  refreshes from sweeping unrelated PR reminders while preserving the hourly
-  reminder pass.
+- Scheduled runs send due follow-up reminders only for PRs refreshed during the
+  current backfill. Targeted PR refreshes send only the triggering PR's initial
+  notification. This prevents stale cached routing from producing a reminder
+  while keeping webhook-driven refreshes from sweeping unrelated PRs.
 - Slack notifications are sent only for dashboard state that has already been
   accepted on the state branch. A newer dashboard update can land after the
   notification job checks out state, so a notification can be slightly late

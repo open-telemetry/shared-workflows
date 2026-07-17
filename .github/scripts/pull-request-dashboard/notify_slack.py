@@ -107,7 +107,11 @@ def notify_slack_with_state(args: argparse.Namespace, state_dir: Path) -> int:
     retry_snapshot_path = notification_retry_snapshot_path()
     delivery_errors_file = delivery_errors_path()
     delivery_errors_file.unlink(missing_ok=True)
-    notification_numbers = {args.pr_number} if args.pr_number is not None else None
+    notification_numbers = (
+        {args.pr_number}
+        if args.pr_number is not None
+        else {int(number) for number in args.pr_numbers.split(",") if number}
+    )
     notification_kinds = {"initial"} if args.pr_number is not None else {"follow-up"}
     status = state_branch.push_state_changes(
         state_dir,
@@ -140,10 +144,15 @@ def main() -> int:
         required=True,
         help="git branch used for workflow state",
     )
-    parser.add_argument(
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument(
         "--pr-number",
         type=int,
-        help="send initial notifications for one pull request; omit to send due follow-up notifications only",
+        help="send initial notifications for one freshly updated pull request",
+    )
+    selection.add_argument(
+        "--pr-numbers",
+        help="comma-separated freshly updated PR numbers eligible for follow-up notifications",
     )
     args = parser.parse_args()
     with state_branch.temporary_state_dir() as state_dir:

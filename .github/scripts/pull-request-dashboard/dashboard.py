@@ -1535,6 +1535,8 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         backfill_state,
         DEFAULT_BACKFILL_MAX_PRS,
     )
+    if args.github_output:
+        write_refreshed_pr_numbers_output(args.github_output, selection.selected_prs)
 
     if selection.cached_pr_numbers_to_remove:
         status = state_branch.push_state_changes(
@@ -1626,6 +1628,15 @@ def write_initial_backfill_output(github_output: Path) -> None:
     complete = initial_backfill_complete(load_dashboard_state_cache())
     with github_output.open("a", encoding="utf-8") as output:
         output.write(f"initial_backfill_complete={'true' if complete else 'false'}\n")
+
+
+def write_refreshed_pr_numbers_output(
+    github_output: Path,
+    selected_prs: list[dict[str, Any]],
+) -> None:
+    numbers = ",".join(str(pr["number"]) for pr in selected_prs)
+    with github_output.open("a", encoding="utf-8") as output:
+        output.write(f"refreshed_pr_numbers={numbers}\n")
 
 
 def main() -> int:

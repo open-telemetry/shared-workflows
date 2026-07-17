@@ -39,11 +39,33 @@ def author_result() -> dict[str, object]:
             "last_approver_activity_at": "2026-06-30T00:00:00Z",
             "last_external_activity_at": "",
             "waiting_since": CYCLE_ID,
+            "author_action_review_thread_urls": [
+                "https://github.com/open-telemetry/example/pull/1#discussion_r1"
+            ],
+            "author_action_top_level_feedback_urls": [],
         },
     }
 
 
 class ProcessAuthorFollowUpsTest(unittest.TestCase):
+    @patch.object(process_author_follow_ups, "fetch_review_threads")
+    def test_current_author_route_requires_an_unresolved_author_thread(
+        self,
+        fetch_review_threads,
+    ) -> None:
+        expected_url = author_result()["facts"]["author_action_review_thread_urls"][0]
+        fetch_review_threads.return_value = [{
+            "isResolved": True,
+            "isOutdated": False,
+            "comments": {"nodes": [{"url": expected_url}]},
+        }]
+
+        self.assertFalse(process_author_follow_ups.current_author_route(
+            "open-telemetry/example",
+            1,
+            author_result(),
+        ))
+
     @patch.object(process_author_follow_ups, "fetch_pr_review_data")
     @patch.object(process_author_follow_ups, "gh_api")
     def test_current_human_activity_uses_only_qualifying_event_times(
@@ -262,6 +284,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
     @patch.object(process_author_follow_ups, "run_gh")
     @patch.object(process_author_follow_ups, "post_comment")
     @patch.object(process_author_follow_ups, "lifecycle_comments")
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
     @patch.object(
         process_author_follow_ups,
         "current_human_activity",
@@ -272,6 +295,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         self,
         issue_details,
         _current_human_activity,
+        _current_author_route,
         lifecycle_comments,
         post_comment,
         run_gh,
@@ -311,6 +335,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
     @patch.object(process_author_follow_ups, "remove_stale_label")
     @patch.object(process_author_follow_ups, "run_gh")
     @patch.object(process_author_follow_ups, "lifecycle_comments", return_value=[])
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
     @patch.object(
         process_author_follow_ups,
         "current_human_activity",
@@ -321,6 +346,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         self,
         issue_details,
         _current_human_activity,
+        _current_author_route,
         _lifecycle_comments,
         run_gh,
         remove_stale_label,
@@ -424,6 +450,21 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             {"1": previous},
             NOW,
             stale_enabled=True,
+        )
+
+        self.assertEqual(updated, {"1": previous})
+
+    def test_unrefreshed_result_preserves_cycle_without_action(self) -> None:
+        previous = follow_up_entry()
+
+        updated = process_author_follow_ups.next_author_follow_ups(
+            "open-telemetry/example",
+            {1: author_result()},
+            {1},
+            {"1": previous},
+            NOW,
+            stale_enabled=True,
+            refreshed_pr_numbers=set(),
         )
 
         self.assertEqual(updated, {"1": previous})

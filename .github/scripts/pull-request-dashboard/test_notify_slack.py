@@ -1,12 +1,43 @@
 from __future__ import annotations
 
+import argparse
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
-from notify_slack import notify_slack_from_state
+from notify_slack import notify_slack_from_state, notify_slack_with_state
 
 
 class NotifySlackTest(unittest.TestCase):
+    @patch(
+        "notify_slack.notification_state_path",
+        return_value=Path("state/notification-state.json"),
+    )
+    @patch("notify_slack.notify_slack", return_value=0)
+    @patch("notify_slack.state_branch.push_state_changes")
+    def test_scheduled_run_uses_only_refreshed_pr_numbers(
+        self,
+        push_state_changes,
+        notify_slack,
+        _notification_state_path,
+    ) -> None:
+        push_state_changes.side_effect = lambda _state_dir, _message, update, **_kwargs: update()
+        args = argparse.Namespace(
+            repo="owner/repo",
+            state_branch="dashboard-state",
+            pr_number=None,
+            pr_numbers="2,5",
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict("os.environ", {"RUNNER_TEMP": temp_dir}):
+                status = notify_slack_with_state(args, Path(temp_dir) / "state")
+
+        self.assertEqual(status, 0)
+        self.assertEqual(notify_slack.call_args.args[3], {2, 5})
+        self.assertEqual(notify_slack.call_args.args[4], {"follow-up"})
+
     @patch("notify_slack.save_notifications")
     @patch("notify_slack.load_notifications")
     @patch("notify_slack.list_open_prs")
