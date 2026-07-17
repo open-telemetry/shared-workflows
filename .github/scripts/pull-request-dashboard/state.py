@@ -15,7 +15,7 @@ BACKFILL_STATE_FILE = "backfill-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
-DASHBOARD_STATE_VERSION = 4
+DASHBOARD_STATE_VERSION = 5
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1

@@ -132,6 +132,23 @@ the implementation understandable and operationally cheap.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
   latest usable snapshot without concurrent writers overwriting each other.
 
+## Required Status Checks
+
+- Reported CI facts come from the PR's GraphQL status-check rollup, filtered by
+  each context's `isRequired` result, so optional check failures do not make the
+  dashboard report a failing PR or change its route. Paginated effective
+  rulesets for the PR's base branch supply configured required contexts; a
+  context that has not reported yet is shown as pending rather than passing.
+- Classic branch-protection required status checks are not discovered when they
+  have not reported. This is an accepted limitation because configured
+  OpenTelemetry repositories use rulesets for required status checks.
+- A failing required status check routes a human-authored PR to the author
+  before discussion and approval routing. The live PR status comment names the
+  CI failure, including when review feedback also needs author action.
+- Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
+  respond to a dashboard action. Pending required checks affect the CI column
+  but do not change who owns the next action.
+
 ## Top-Level Feedback
 
 - GitHub gives inline review threads explicit replies and a resolved state, but

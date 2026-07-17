@@ -71,7 +71,30 @@ def render_status_comment(
         facts = result.get("facts") or {}
         route = result.get("route") or "unknown"
         effective_author = (facts.get("author") or author).strip()
-        status = route_status(route, author_mention(effective_author))
+        mention = author_mention(effective_author)
+        failing_count = facts.get("ci_failing_count", 0)
+        if route == "author" and failing_count > 0:
+            check_action = (
+                "fix the failing required status check"
+                if failing_count == 1
+                else "fix failing required status checks"
+            )
+            has_review_feedback = bool(
+                facts.get("author_action_review_thread_urls")
+                or facts.get("author_action_top_level_feedback_urls")
+            )
+            if has_review_feedback:
+                check_action += " and address or respond to review feedback"
+            status = f"Waiting on {mention} to {check_action}."
+        else:
+            status = route_status(route, mention)
+            if failing_count > 0:
+                check_subject = (
+                    "A required status check is"
+                    if failing_count == 1
+                    else "Required status checks are"
+                )
+                status += f" {check_subject} also failing."
 
     lines = [
         STATUS_MARKER,
