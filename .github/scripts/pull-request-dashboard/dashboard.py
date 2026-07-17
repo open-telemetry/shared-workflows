@@ -735,23 +735,6 @@ def requires_title_edit_lookup(
     return False
 
 
-def first_change_request_clearance(
-    events: list[dict[str, Any]],
-    requester: str,
-    after_timestamp: str,
-) -> str | None:
-    candidates = [
-        e["timestamp"]
-        for e in events
-        if e.get("kind") == "review-state"
-        and e.get("state") == "APPROVED"
-        and e["timestamp"] > after_timestamp
-        and is_substantive_activity(e)
-        and (e.get("actor") or "").lower() == requester.lower()
-    ]
-    return min(candidates) if candidates else None
-
-
 def build_review_thread_pending_actions(
     review_threads: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
@@ -816,24 +799,12 @@ def advance_top_level_actions(
                 "since": root_timestamp,
             }
             continue
-        if discussion.get("review_state") == "CHANGES_REQUESTED" and first_change_request_clearance(
-            events,
-            discussion.get("requester") or "",
-            root_timestamp,
-        ):
-            continue
         required_kinds = decision.get("required_evidence_kinds") or []
         evidence_at = evidence_satisfied_at(required_kinds, evidence)
         if not evidence_at:
             pending_actions[discussion["discussion_id"]] = {
                 "action": "author",
                 "since": root_timestamp,
-            }
-            continue
-        if discussion.get("review_state") == "CHANGES_REQUESTED":
-            pending_actions[discussion["discussion_id"]] = {
-                "action": "reviewer",
-                "since": evidence_at,
             }
     return pending_actions, top_level_history
 
@@ -875,8 +846,7 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     #   2. Otherwise a discussion waiting on something external -> "external".
     #   3. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer or is unclear -> "maintainer".
-    #   4. Otherwise the PR is still waiting on approvers, including for an
-    #      addressed CHANGES_REQUESTED review to be approved or dismissed.
+    #   4. Otherwise the PR is still waiting on approvers.
     if counts["author"] and not is_maintenance_bot:
         return "author"
     if counts["external"]:

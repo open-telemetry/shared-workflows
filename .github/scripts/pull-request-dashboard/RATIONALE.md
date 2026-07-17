@@ -158,12 +158,10 @@ the implementation understandable and operationally cheap.
   approval-based routing then decides whether the PR waits on reviewers or
   maintainers; ordinary items do not have a separate requester-confirmation
   phase.
-- An active **Request changes** review with a non-empty summary initially waits
-  on the author. Matching author evidence hands the PR back to reviewers and
-  removes 📌, while GitHub's 🔴 change-request state remains. A later approval
-  or dismissal clears that state. An empty review summary is ignored: inline
-  comments define their own actions, while a bodyless review with no inline
-  comments has no concrete request for the dashboard to track.
+- Review summaries are classified like other top-level feedback, independently
+  of review state. A `CHANGES_REQUESTED` state affects only the reviewer's
+  badge; it does not affect dashboard actions or routing. Empty review summaries
+  are ignored; their inline comments, if any, define independent actions.
 - Description edits use the pull request's GraphQL `lastEditedAt` and `editor`
   fields instead of the general `updatedAt`, which also changes for unrelated
   PR activity.

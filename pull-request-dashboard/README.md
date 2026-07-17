@@ -82,9 +82,11 @@ summary that is not attached to an inline review thread.
 - Top-level feedback has no resolved state. The dashboard therefore tracks each
   actionable top-level feedback item independently. 📌 means that one or more
   of those items are waiting on the author.
-- **Request changes** uses GitHub's blocking review state. 🔴 remains until a
-  later approval or dismissal clears that state. Empty review summaries are
-  ignored; any inline comments are tracked through their own threads.
+- Reviewer badges reflect GitHub's latest review state. A `CHANGES_REQUESTED`
+  state affects only the reviewer's badge; it does not affect dashboard
+  classification or routing. 🔴 remains until a later approval or dismissal
+  clears that state. Empty review summaries are ignored; any inline comments
+  are tracked through their own threads.
 
 ### Evidence for top-level feedback
 
@@ -107,7 +109,7 @@ commit.
 
 An explicit author reply always addresses the item, even when another evidence
 kind was expected. This lets authors explain why a suggestion was not applied,
-ask a clarifying question, or otherwise hand the decision back to reviewers.
+ask a clarifying question, or otherwise close the dashboard action.
 The dashboard intentionally treats evidence as a handoff signal, not proof that
 the reviewer agrees with the outcome.
 
@@ -118,8 +120,10 @@ require either or both.
 
 | Item | Before accepted evidence | After accepted evidence | When it clears |
 | ---- | ------------------------ | ----------------------- | -------------- |
-| Ordinary top-level feedback | Waiting on the author; 📌 is visible | Addressed; 📌 disappears and normal approval-based routing resumes | Immediately after all expected evidence is observed, or after an explicit author reply |
-| **Request changes** review | Waiting on the author; 📌 and 🔴 are visible | Waiting on reviewers; 📌 disappears and 🔴 remains | A later approval or dismissal clears GitHub's change-request state |
+| Top-level author action | Waiting on the author; 📌 is visible | Addressed; 📌 disappears and normal approval-based routing resumes | Immediately after all expected evidence is observed, or after an explicit author reply |
+
+GitHub remains responsible for enforcing blocking review states when a
+maintainer attempts to merge.
 
 This can hand a PR back to reviewers before every requested change is actually
 complete, such as when an unrelated commit matches the expected evidence kind.

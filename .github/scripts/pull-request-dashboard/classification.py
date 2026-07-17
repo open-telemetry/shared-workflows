@@ -111,9 +111,6 @@ independently observable kind needed to address the complete feedback item:
 Use an empty list for external, none, or unclear. A compound request can require
 multiple kinds, such as ["commit", "description"].
 
-When an item has review_state CHANGES_REQUESTED, GitHub already requires author
-action. Choose only which author evidence kinds apply.
-
 Optional suggestions and small notes are still author actions when they request
 a change or response. Pure approval, thanks, summaries, and observations with
 no requested or implied follow-up map to none.
@@ -179,7 +176,6 @@ def normalize_discussion_action(action: str) -> str:
 def parse_discussion_decision(
     response_text: str,
     require_evidence_kinds: bool = False,
-    forced_action: str | None = None,
 ) -> tuple[dict[str, Any], bool]:
     obj = extract_json_object(response_text) if response_text else None
     if not obj:
@@ -187,9 +183,6 @@ def parse_discussion_decision(
     raw_action = str(obj.get("discussion_action") or obj.get("route") or "")
     action = normalize_discussion_action(raw_action)
     valid_action = raw_action.lower().strip() in (*DISCUSSION_ACTIONS, "approver")
-    if forced_action is not None:
-        action = forced_action
-        valid_action = forced_action in DISCUSSION_ACTIONS
     reason = truncate(str(obj.get("reason") or ""), 300)
     if not reason:
         reason = "No reason provided"
@@ -248,7 +241,6 @@ def top_level_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
     comments = discussion.get("comments") or []
     return {
         "discussion_id": discussion["discussion_id"],
-        "review_state": discussion.get("review_state"),
         "body": "\n\n".join(comment.get("body") or "" for comment in comments),
     }
 
@@ -378,11 +370,6 @@ def run_llm_for_top_level_batch(
         decision, valid_response = parse_discussion_decision(
             json.dumps(item) if item is not None else "",
             require_evidence_kinds=True,
-            forced_action=(
-                "author"
-                if discussion.get("review_state") == "CHANGES_REQUESTED"
-                else None
-            ),
         )
         failed = proc.returncode != 0 or not valid_response or discussion_id in duplicate_ids
         error = None
@@ -552,16 +539,8 @@ def classify_top_level_items(
         classifications_by_id[discussion["discussion_id"]] = classification_record(
             discussion,
             {
-                "discussion_action": (
-                    "author"
-                    if discussion.get("review_state") == "CHANGES_REQUESTED"
-                    else "unclear"
-                ),
-                "required_evidence_kinds": (
-                    ["commit"]
-                    if discussion.get("review_state") == "CHANGES_REQUESTED"
-                    else []
-                ),
+                "discussion_action": "unclear",
+                "required_evidence_kinds": [],
                 "reason": "Deferred by per-PR classification limit",
             },
             failed=False,

@@ -20,6 +20,7 @@ from classification import (
     classify_discussion_domains,
     parse_discussion_decision,
     run_llm_for_top_level_batch,
+    top_level_prompt_input,
 )
 from notifications import reviewer_logins_for_notification
 from render import reviewer_icon
@@ -342,7 +343,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
     @patch("classification.run_llm_for_top_level_batch")
-    def test_deferred_changes_requested_remains_an_author_action(
+    def test_deferred_changes_requested_uses_normal_fallback(
         self,
         run_batch,
         _load_cache,
@@ -360,9 +361,22 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(
             classifications[0]["decision"],
             {
-                "discussion_action": "author",
-                "required_evidence_kinds": ["commit"],
+                "discussion_action": "unclear",
+                "required_evidence_kinds": [],
                 "reason": "Deferred by per-PR classification limit",
+            },
+        )
+
+    def test_top_level_prompt_input_ignores_review_state(self) -> None:
+        discussion = top_level_item("change-request")
+        discussion["review_state"] = "CHANGES_REQUESTED"
+        discussion["comments"] = [{"body": "Please update the implementation."}]
+
+        self.assertEqual(
+            top_level_prompt_input(discussion),
+            {
+                "discussion_id": "change-request",
+                "body": "Please update the implementation.",
             },
         )
 
@@ -429,23 +443,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertFalse(mismatched_valid)
         self.assertTrue(external_valid)
         self.assertEqual(external["discussion_action"], "external")
-
-    def test_changes_requested_forces_author_action(self) -> None:
-        decision, valid = parse_discussion_decision(
-            '{"discussion_action":"none","required_evidence_kinds":["commit","title"],"reason":"code change requested"}',
-            require_evidence_kinds=True,
-            forced_action="author",
-        )
-        _, invalid_evidence = parse_discussion_decision(
-            '{"discussion_action":"external","required_evidence_kinds":[],"reason":"invalid evidence"}',
-            require_evidence_kinds=True,
-            forced_action="author",
-        )
-
-        self.assertTrue(valid)
-        self.assertEqual(decision["discussion_action"], "author")
-        self.assertEqual(decision["required_evidence_kinds"], ["commit", "title"])
-        self.assertFalse(invalid_evidence)
 
     def test_top_level_feedback_gets_stable_individual_items(self) -> None:
         raw = {
@@ -1115,106 +1112,34 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"description": "2026-07-14T03:00:00Z"},
         )
 
-    def test_approval_clears_addressed_changes_requested_item(self) -> None:
-        discussions = [top_level_item("code")]
-        discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        classifications = [classification("code", "commit")]
-        events = [
-            event("commit", "2026-07-14T02:00:00Z", "author", "author"),
-            event(
-                "review-state",
+    def test_review_state_does_not_change_action_lifecycle(self) -> None:
+        evidence_events = {
+            "commit": event("commit", "2026-07-14T03:00:00Z", "author", "author"),
+            "reply": event(
+                "issue-comment",
                 "2026-07-14T03:00:00Z",
-                "reviewer",
-                "approver",
-                state="APPROVED",
+                "author",
+                "author",
+                created_timestamp="2026-07-14T03:00:00Z",
             ),
-        ]
+        }
+        for evidence_kind, evidence_event in evidence_events.items():
+            with self.subTest(evidence_kind=evidence_kind):
+                discussion = top_level_item("code")
+                discussion["review_state"] = "CHANGES_REQUESTED"
+                pending_actions, top_level_history = advance_top_level_actions(
+                    [discussion],
+                    [classification("code", "commit")],
+                    [evidence_event],
+                    {},
+                    "author",
+                )
 
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
-        )
-
-        self.assertNotIn("code", pending_actions)
-        self.assertEqual(
-            top_level_history["code"]["evidence"],
-            {"commit": "2026-07-14T02:00:00Z"},
-        )
-        self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
-
-    def test_unrelated_dismissal_does_not_clear_changes_requested_item(self) -> None:
-        discussions = [top_level_item("code")]
-        discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions,
-            [classification("code", "commit")],
-            [
-                event("commit", "2026-07-14T02:00:00Z", "author", "author"),
-                event(
-                    "review-state",
-                    "2026-07-14T03:00:00Z",
-                    "reviewer",
-                    "approver",
-                    state="DISMISSED",
-                ),
-            ],
-            {},
-            "author",
-        )
-
-        self.assertEqual(pending_actions["code"]["action"], "reviewer")
-        self.assertEqual(
-            top_level_history["code"]["evidence"],
-            {"commit": "2026-07-14T02:00:00Z"},
-        )
-
-    def test_edited_old_approval_does_not_clear_changes_requested_item(self) -> None:
-        discussions = [top_level_item("code")]
-        discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions,
-            [classification("code", "commit")],
-            [
-                event(
-                    "review-state",
-                    "2026-07-14T00:30:00Z",
-                    "reviewer",
-                    "approver",
-                    state="APPROVED",
-                    updated_timestamp="2026-07-14T03:00:00Z",
-                ),
-                event("commit", "2026-07-14T02:00:00Z", "author", "author"),
-            ],
-            {},
-            "author",
-        )
-
-        self.assertEqual(pending_actions["code"]["action"], "reviewer")
-        self.assertEqual(
-            top_level_history["code"]["evidence"],
-            {"commit": "2026-07-14T02:00:00Z"},
-        )
-
-    def test_approval_rescinds_changes_requested_item_without_author_evidence(self) -> None:
-        discussions = [top_level_item("code")]
-        discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        classifications = [classification("code", "commit")]
-        events = [
-            event(
-                "review-state",
-                "2026-07-14T02:00:00Z",
-                "reviewer",
-                "approver",
-                state="APPROVED",
-            ),
-        ]
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
-        )
-
-        self.assertNotIn("code", pending_actions)
-        self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
-        self.assertNotIn("code", top_level_history)
+                self.assertEqual(pending_actions, {})
+                self.assertEqual(
+                    top_level_history["code"]["evidence"],
+                    {evidence_kind: "2026-07-14T03:00:00Z"},
+                )
 
     def test_reviewer_activity_does_not_close_ordinary_item_without_author_evidence(self) -> None:
         events = normalize_events(
@@ -1408,7 +1333,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertNotIn("code", top_level_history)
         self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
 
-    def test_commented_review_does_not_clear_changes_requested_item(self) -> None:
+    def test_review_state_does_not_block_routing_after_author_evidence(self) -> None:
         discussions = [top_level_item("code")]
         discussions[0]["review_state"] = "CHANGES_REQUESTED"
         classifications = [classification("code", "commit")]
@@ -1435,32 +1360,9 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             discussions, classifications, events, {}, "author"
         )
 
-        self.assertEqual(pending_actions["code"]["action"], "reviewer")
+        self.assertEqual(pending_actions, {})
         self.assertIn("evidence", top_level_history["code"])
-        self.assertEqual(route_pr(facts, pending_actions, 1), "approver")
-
-    def test_different_reviewer_does_not_close_item(self) -> None:
-        discussions = [top_level_item("code")]
-        discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        classifications = [classification("code", "commit")]
-        events = [
-            event("commit", "2026-07-14T02:00:00Z", "author", "author"),
-            event(
-                "review-state",
-                "2026-07-14T03:00:00Z",
-                "other-reviewer",
-                "approver",
-                state="APPROVED",
-            ),
-        ]
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
-        )
-
-        self.assertEqual(pending_actions["code"]["action"], "reviewer")
-        self.assertEqual(top_level_history["code"]["evidence"], {"commit": "2026-07-14T02:00:00Z"})
-        self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
+        self.assertEqual(route_pr(facts, pending_actions, 1), "maintainer")
 
     def test_reviewer_activity_does_not_close_external_and_unclear_items(self) -> None:
         events = [
@@ -1512,17 +1414,15 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     {"reply": "2026-07-14T03:00:00Z"},
                 )
 
-    def test_changes_requested_reviewer_handoff_uses_red_without_pin(self) -> None:
+    def test_changes_requested_is_visual_only_after_action_clears(self) -> None:
         discussions = [top_level_item("code")]
         discussions[0]["review_state"] = "CHANGES_REQUESTED"
         discussions[0]["comments"] = [
             event("issue-comment", ROOT_TIMESTAMP, "reviewer", "approver"),
         ]
         classifications = [classification("code", "commit")]
-        pending_actions = {
-            "code": {"action": "reviewer", "since": "2026-07-14T02:00:00Z"},
-        }
-        facts = {"approval_count": 0, "is_maintenance_bot": False, "assignees": []}
+        pending_actions = {}
+        facts = {"approval_count": 1, "is_maintenance_bot": False, "assignees": []}
         events = [
             event(
                 "review-state",
@@ -1533,7 +1433,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqual(route_pr(facts, pending_actions, 1), "approver")
+        self.assertEqual(route_pr(facts, pending_actions, 1), "maintainer")
         add_reviewers(facts, events, [], discussions, pending_actions)
         reviewer = facts["reviewers"][0]
         self.assertFalse(reviewer["top_level_feedback"])
@@ -1541,12 +1441,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(reviewer_icon(reviewer), "🔴")
         self.assertEqual(reviewer_logins_for_notification(facts), ["reviewer"])
 
-    def test_outsider_changes_requested_reviewer_remains_visible_after_handoff(self) -> None:
+    def test_outsider_changes_requested_reviewer_remains_visible(self) -> None:
         discussions = [top_level_item("code", requester="outsider")]
         discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        pending_actions = {
-            "code": {"action": "reviewer", "since": "2026-07-14T02:00:00Z"},
-        }
+        pending_actions = {}
         facts = {"approval_count": 0, "is_maintenance_bot": False, "assignees": []}
         events = [
             event(
