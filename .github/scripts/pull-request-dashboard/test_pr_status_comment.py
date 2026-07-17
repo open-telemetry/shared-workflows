@@ -79,6 +79,33 @@ class RenderStatusCommentTest(unittest.TestCase):
             body,
         )
 
+    def test_non_author_routes_also_name_required_ci_failures(self) -> None:
+        cases = (
+            (
+                "maintainer",
+                1,
+                "Waiting on maintainers to merge the pull request. "
+                "A required status check is also failing.",
+            ),
+            (
+                "approver",
+                2,
+                "Waiting on reviewers to review the latest changes. "
+                "Required status checks are also failing.",
+            ),
+        )
+        for route, failing_count, expected in cases:
+            with self.subTest(route=route):
+                body = pr_status_comment.render_status_comment(
+                    self.pr(),
+                    {
+                        "route": route,
+                        "facts": {"ci_failing_count": failing_count},
+                    },
+                )
+
+                self.assertIn(f"**Status:** {expected}", body)
+
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
             f"https://github.com/open-telemetry/example/pull/1#discussion_r{index}"

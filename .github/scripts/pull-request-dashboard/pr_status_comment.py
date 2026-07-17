@@ -68,6 +68,13 @@ def render_status_comment(
             status = f"Waiting on {mention} to {check_action}."
         else:
             status = route_status(route, mention)
+            if failing_count > 0:
+                check_subject = (
+                    "A required status check is"
+                    if failing_count == 1
+                    else "Required status checks are"
+                )
+                status += f" {check_subject} also failing."
 
     lines = [
         STATUS_MARKER,
