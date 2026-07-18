@@ -158,6 +158,12 @@ the implementation understandable and operationally cheap.
   capped so one run cannot exhaust the dashboard GitHub App's hourly API quota.
 - Each backfill lists open PRs, prunes cached PRs that are no longer open
   non-draft, then refreshes at most 50 open non-draft PRs.
+- Status-comment rendering rollouts use separate versioned state and a durable
+  queue. Incrementing the implementation revision snapshots all open PRs, then
+  hourly runs update at most 50 queued comments until the rollout completes.
+  Dashboard refreshes atomically queue comments only when their persisted result
+  changes; targeted refreshes update immediately and leave no completed PR
+  pending in the rollout queue.
 - Selected PRs are processed one at a time through the same single-PR merge path
   as targeted refreshes. Each accepted PR update pushes structured state before
   the next selected PR is processed.
@@ -171,18 +177,22 @@ the implementation understandable and operationally cheap.
   refetch the selected PR; targeted PR retries reuse the already computed PR
   result and only redo the latest-state merge and state save.
 - Backfill progress is stored separately from dashboard state in
-  `backfill-state.json`. The cursor is the last successfully refreshed PR
-  number, and the next run continues after it in sorted PR-number order,
-  wrapping when needed.
+  `backfill-state.json`. The cursor is the last attempted PR number, and the
+  next run continues after it in sorted PR-number order, wrapping when needed.
+  Failed PR numbers are stored beside the cursor and are removed after a later
+  successful refresh.
 - Initial-backfill completion is stored in dashboard state and becomes true in
-  the same accepted state commit that populates the final missing open
-  non-draft PR. Once set, it remains true. New PRs do not reset bootstrap; they
-  appear after their first targeted refresh or backfill. Existing cached rows
-  remain visible, while reminders resume when each PR is next selected for a
-  fresh backfill result.
-- A selected PR failure stops the run without advancing the cursor. This can
-  temporarily block later PRs, but it keeps the scheduled workflow failure issue
-  open and pointing at the blocked backfill until the failure is fixed.
+  the same accepted state commit that attempts the final missing open non-draft
+  PR. Failed PR data is not accepted into dashboard state, but a recorded failed
+  attempt cannot block initial publication. Once set, completion remains true.
+  New PRs do not reset bootstrap; they appear after their first successful
+  targeted refresh or backfill.
+- A selected PR failure is recorded outside dashboard state, advances the
+  cursor, and does not stop later selected PRs. The backfill still exits nonzero
+  while any open PR is still recorded as having failed processing, keeping
+  scheduled failure reporting active. Publish and notification jobs consume
+  only accepted state, so untrusted PR content cannot deny service to the rest
+  of the repository.
 - The cursor deliberately does not rely on PR `updatedAt`; prior testing showed
   `updatedAt` is not a safe freshness key for every comment, review-comment, or
   thread event the dashboard needs.
@@ -210,6 +220,29 @@ the implementation understandable and operationally cheap.
   key, so targeted runs do not overwrite the backfill cache namespace.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
   latest usable snapshot without concurrent writers overwriting each other.
+- Cache snapshots are saved even when the update job fails, preserving valid
+  classifications produced before or alongside an isolated failed item.
+- Failed classifications are not cached or retried in the same run. A later run
+  restores valid sibling classifications and sends only the still-uncached
+  items to the model. The original run remains failed so the item is visible
+  for operational triage.
+
+## Required Status Checks
+
+- Reported CI facts come from the PR's GraphQL status-check rollup, filtered by
+  each context's `isRequired` result, so optional check failures do not make the
+  dashboard report a failing PR or change its route. Paginated effective
+  rulesets for the PR's base branch supply configured required contexts; a
+  context that has not reported yet is shown as pending rather than passing.
+- Classic branch-protection required status checks are not discovered when they
+  have not reported. This is an accepted limitation because configured
+  OpenTelemetry repositories use rulesets for required status checks.
+- A failing required status check routes a human-authored PR to the author
+  before discussion and approval routing. The live PR status comment names the
+  CI failure, including when review feedback also needs author action.
+- Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
+  respond to a dashboard action. Pending required checks affect the CI column
+  but do not change who owns the next action.
 
 ## Top-Level Feedback
 

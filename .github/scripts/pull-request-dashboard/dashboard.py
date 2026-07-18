@@ -54,9 +54,10 @@ succeeds does a follow-up publishing job fetch the accepted dashboard state,
 render the dashboard body, and publish it to the dashboard issue.
 
 Runs without --pr-number use backfill and store progress in
-backfill-state.json. A selected PR advances that cursor after a successful
-refresh; a failure leaves the cursor in place so scheduled failure reporting
-continues until the blocked refresh is fixed. Single-PR runs are
+backfill-state.json. Every attempted PR advances that cursor. Failures are
+recorded separately from accepted dashboard state, later PRs continue to
+refresh, and the workflow exits nonzero while an open PR is still recorded as
+having failed processing. Single-PR runs are
 optimistic-concurrency updates of just one PR slot in the cached state.
 
 Field schemas
@@ -98,10 +99,12 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     is_draft                        bool
     approval_count                  int           Current unique APPROVED reviews
                                                   from approver-team members.
-    ci_failing_count                int           Absent when checks could not
-                                                  be fetched.
-    ci_pending_count                int           Absent when checks could not
-                                                  be fetched.
+    ci_failing_count                int           Required checks only; absent
+                                                  when checks could not be fetched.
+    ci_failing_since                str (iso)     Earliest completion time among
+                                                  current required failures.
+    ci_pending_count                int           Required checks only; absent
+                                                  when checks could not be fetched.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
     last_activity_at                str (iso)
@@ -171,6 +174,8 @@ from github_cli import (
     gh_api,
     gh_pr_checks,
     gh_pr_view,
+    gh_required_check_contexts,
+    include_missing_required_checks,
     list_open_prs,
     load_reviewer_set,
     normalize_repo,
@@ -187,6 +192,7 @@ from classification import (
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
+    enqueue_status_comment_update,
     initial_backfill_complete,
     load_dashboard_state_cache,
     load_backfill_state,
@@ -212,6 +218,7 @@ from utils import (
 DEFAULT_MODEL = "gpt-5.4-mini"
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
 DEFAULT_BACKFILL_MAX_PRS = 50
+BACKFILL_RECORDED_FAILURE_STATUS = 2
 
 # ---------------------------------------------------------------- model helpers
 
@@ -286,18 +293,24 @@ def fetch_pr_raw(
             f"/repos/{owner}/{repo_name}/pulls/{number}/commits?per_page=100",
             True,
         )
-        f_checks = pool.submit(gh_pr_checks, repo, number)
         f_threads = pool.submit(fetch_review_threads, owner, repo_name, number)
         f_review_data = pool.submit(fetch_pr_review_data, owner, repo_name, number)
+        pr = f_pr.result()
+        f_checks = pool.submit(gh_pr_checks, repo, pr["id"])
+        f_required_contexts = pool.submit(
+            gh_required_check_contexts, repo, pr["baseRefName"]
+        )
         review_data = f_review_data.result() or {}
         return {
             "summary": pr_summary,
-            "pr": f_pr.result(),
+            "pr": pr,
             "issue_comments": f_issue.result() or [],
             "review_comments": f_revcom.result() or [],
             "reviews": review_data.get("reviews") or [],
             "commits": f_commits.result() or [],
-            "checks": f_checks.result(),
+            "checks": include_missing_required_checks(
+                f_checks.result(), f_required_contexts.result()
+            ),
             "review_threads": f_threads.result() or [],
             "pr_metadata": review_data.get("pr_metadata") or {},
         }
@@ -499,8 +512,10 @@ def compute_facts(
 ) -> dict[str, Any]:
     pr = raw["pr"]
     checks = raw["checks"]
-    failing = [c for c in checks or [] if (c.get("state") or "").upper() in ("FAILURE", "ERROR")]
-    pending = [c for c in checks or [] if (c.get("state") or "").upper() in ("PENDING", "QUEUED", "IN_PROGRESS")]
+    failing = [c for c in checks or [] if c.get("bucket") in ("fail", "cancel")]
+    pending = [c for c in checks or [] if c.get("bucket") == "pending"]
+    failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
+    failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
     last_activity_ts = parse_ts(pr["updatedAt"])
     created_ts = parse_ts(pr["createdAt"])
     author_activity_ts = latest_substantive_activity(events, {"author"})
@@ -524,6 +539,8 @@ def compute_facts(
     }
     if checks is not None:
         facts["ci_failing_count"] = len(failing)
+        if failing_timestamps:
+            facts["ci_failing_since"] = format_ts(min(failing_timestamps))
         facts["ci_pending_count"] = len(pending)
     return facts
 
@@ -635,7 +652,7 @@ def group_review_threads(
             ))
         comments = [c for c in comments if c["timestamp"]]
         comments.sort(key=lambda c: c["timestamp"])
-        if not comments:
+        if not comments or all(c["actor_role"] == "author" for c in comments):
             continue
         discussions.append(add_discussion_facts({
             "discussion_id": discussion.get("id") or f"review-discussion-{len(discussions) + 1}",
@@ -909,11 +926,14 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
-    #   1. A discussion waiting on the author -> "author".
-    #   2. Otherwise a discussion waiting on something external -> "external".
-    #   3. If there are enough approvals and no inline or top-level feedback is
+    #   1. A required status check failure -> "author".
+    #   2. A discussion waiting on the author -> "author".
+    #   3. Otherwise a discussion waiting on something external -> "external".
+    #   4. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer or is unclear -> "maintainer".
-    #   4. Otherwise the PR is still waiting on approvers.
+    #   5. Otherwise the PR is still waiting on approvers.
+    if facts.get("ci_failing_count", 0) > 0 and not is_maintenance_bot:
+        return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
     if counts["external"]:
@@ -950,6 +970,11 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
             return author_head_activity, "author_head_observed"
         return author_activity, "last_author_activity"
     if route == "author":
+        if facts.get("ci_failing_count", 0) > 0:
+            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
+            if ci_failing_since is not None:
+                return ci_failing_since, "ci_failure"
+            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
         return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
     if route == "external":
         return parse_ts(facts.get("last_external_activity_at") or ""), "last_external_activity"
@@ -964,8 +989,13 @@ def add_wait_age_facts(
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
-    if wait_ts is None:
-        wait_ts, basis = fallback_wait_ts(route, facts)
+    fallback_ts, fallback_basis = fallback_wait_ts(route, facts)
+    if wait_ts is None or (
+        fallback_basis == "ci_failure"
+        and fallback_ts is not None
+        and fallback_ts < wait_ts
+    ):
+        wait_ts, basis = fallback_ts, fallback_basis
     if wait_ts is None:
         wait_ts = parse_ts(facts.get("created_at") or "")
         basis = "created"
@@ -1314,10 +1344,12 @@ def dashboard_state_pr_numbers(state: dict[str, Any]) -> set[int]:
 def complete_initial_backfill_if_ready(
     state: dict[str, Any],
     open_pr_numbers: set[int],
+    failed_pr_numbers: set[int] | None = None,
 ) -> bool:
     if initial_backfill_complete(state):
         return False
-    if not open_pr_numbers.issubset(dashboard_state_pr_numbers(state)):
+    attempted_pr_numbers = dashboard_state_pr_numbers(state) | (failed_pr_numbers or set())
+    if not open_pr_numbers.issubset(attempted_pr_numbers):
         return False
     state[INITIAL_BACKFILL_COMPLETE_KEY] = True
     return True
@@ -1338,6 +1370,30 @@ def backfill_cursor_pr_number(backfill_state: dict[str, Any]) -> int | None:
 
 def set_backfill_cursor_pr_number(backfill_state: dict[str, Any], number: int) -> None:
     backfill_state["cursor"] = {"last_pr_number": number}
+
+
+def backfill_failed_pr_numbers(backfill_state: dict[str, Any]) -> set[int]:
+    numbers: set[int] = set()
+    for value in (backfill_state.get("failed_pr_numbers") or []):
+        try:
+            numbers.add(int(value))
+        except (TypeError, ValueError):
+            continue
+    return numbers
+
+
+def set_backfill_pr_failed(
+    backfill_state: dict[str, Any],
+    number: int,
+    failed: bool,
+) -> set[int]:
+    failed_pr_numbers = backfill_failed_pr_numbers(backfill_state)
+    if failed:
+        failed_pr_numbers.add(number)
+    else:
+        failed_pr_numbers.discard(number)
+    backfill_state["failed_pr_numbers"] = sorted(failed_pr_numbers)
+    return failed_pr_numbers
 
 
 def round_robin_numbers(numbers: list[int], last_number: int | None) -> list[int]:
@@ -1489,11 +1545,20 @@ def save_dashboard_update_state(
     return 0
 
 
-def update_backfill_cursor(pr_number: int) -> int:
+def update_backfill_progress(pr_number: int, *, failed: bool) -> set[int]:
     backfill_state = load_backfill_state()
     set_backfill_cursor_pr_number(backfill_state, pr_number)
+    failed_pr_numbers = set_backfill_pr_failed(backfill_state, pr_number, failed)
     save_backfill_state(backfill_state)
-    return 0
+    return failed_pr_numbers
+
+
+def clear_backfill_pr_failure(pr_number: int) -> None:
+    backfill_state = load_backfill_state()
+    if pr_number not in backfill_failed_pr_numbers(backfill_state):
+        return
+    set_backfill_pr_failed(backfill_state, pr_number, False)
+    save_backfill_state(backfill_state)
 
 
 def remove_cached_dashboard_prs(
@@ -1506,6 +1571,7 @@ def remove_cached_dashboard_prs(
     state_prs = dict(dashboard_state.get("prs") or {})
     for number in pr_numbers_to_remove:
         state_prs.pop(str(number), None)
+        enqueue_status_comment_update(number)
     dashboard_state["prs"] = state_prs
     return save_dashboard_update_state(args, dashboard_state, False)
 
@@ -1544,6 +1610,12 @@ def apply_targeted_dashboard_update(args: argparse.Namespace, calculation: Dashb
     )
     if not dashboard_state_unchanged and reject_failed_dashboard_result(merged_calculation.trigger_pr_result):
         return 1
+    if merged_calculation.trigger_pr_result is not None and not has_failed_dashboard_result(
+        merged_calculation.trigger_pr_result
+    ):
+        clear_backfill_pr_failure(args.pr_number)
+    if not dashboard_state_unchanged and args.pr_number is not None:
+        enqueue_status_comment_update(args.pr_number)
 
     return save_dashboard_update_state(
         args,
@@ -1653,19 +1725,30 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 open_non_draft_pr_numbers,
             )
             if not dashboard_state_unchanged and reject_failed_dashboard_result(calculation.trigger_pr_result):
-                return 1
+                failed_pr_numbers = update_backfill_progress(pr_number, failed=True)
+                initial_backfill_completed = complete_initial_backfill_if_ready(
+                    dashboard_state,
+                    open_non_draft_pr_numbers,
+                    failed_pr_numbers,
+                )
+                return save_dashboard_update_state(
+                    args,
+                    dashboard_state,
+                    not initial_backfill_completed,
+                )
+            failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
+            if not dashboard_state_unchanged:
+                enqueue_status_comment_update(pr_number)
             initial_backfill_completed = complete_initial_backfill_if_ready(
                 calculation.dashboard_state,
                 open_non_draft_pr_numbers,
+                failed_pr_numbers,
             )
-            status = save_dashboard_update_state(
+            return save_dashboard_update_state(
                 args,
                 calculation.dashboard_state,
                 dashboard_state_unchanged and not initial_backfill_completed,
             )
-            if status != 0:
-                return status
-            return update_backfill_cursor(pr_number)
 
         status = state_branch.push_state_changes(
             state_dir,
@@ -1675,6 +1758,17 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         )
         if status != 0:
             return status
+    unresolved_failed_pr_numbers = (
+        backfill_failed_pr_numbers(load_backfill_state())
+        & open_non_draft_pr_numbers
+    )
+    if unresolved_failed_pr_numbers:
+        failed_list = ", ".join(f"#{number}" for number in sorted(unresolved_failed_pr_numbers))
+        print(
+            f"backfill completed with PR(s) still recorded as failed: {failed_list}",
+            file=sys.stderr,
+        )
+        return BACKFILL_RECORDED_FAILURE_STATUS
     return 0
 
 
@@ -1733,7 +1827,7 @@ def main() -> int:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
         status = update_dashboard_via_state_branch(args, state_dir)
-        if status == 0 and args.github_output:
+        if args.github_output and status in (0, BACKFILL_RECORDED_FAILURE_STATUS):
             write_initial_backfill_output(args.github_output)
         return status
 

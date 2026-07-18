@@ -17,19 +17,23 @@ from state import (
         save_author_follow_ups,
     DASHBOARD_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
+    STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     backfill_state_path,
     dashboard_state_path,
     empty_state,
+    enqueue_status_comment_update,
     load_accepted_dashboard_state,
     load_backfill_state,
     load_dashboard_state_cache,
     load_state_file,
+    load_status_comment_rollout_state,
     load_notifications,
     main,
     notification_state_path,
     save_state_file,
     save_dashboard_state_cache,
     save_notifications,
+    save_status_comment_rollout_state,
     stored_result,
     update_dashboard_state_for_pr,
 )
@@ -153,7 +157,37 @@ class StateTest(unittest.TestCase):
         self.assertEqual(AUTHOR_FOLLOW_UP_STATE_VERSION, 2)
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 4)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 5)
+        self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
+
+    def test_status_comment_rollout_state_round_trip(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            save_status_comment_rollout_state({
+                "target_revision": 2,
+                "completed_revision": 1,
+                "pending_pr_numbers": [34, 12, 34],
+            })
+
+            self.assertEqual(
+                load_status_comment_rollout_state(),
+                {
+                    "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+                    "target_revision": 2,
+                    "completed_revision": 1,
+                    "pending_pr_numbers": [12, 34],
+                },
+            )
+
+    def test_enqueue_status_comment_update_is_deduplicated(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            enqueue_status_comment_update(34)
+            enqueue_status_comment_update(12)
+            enqueue_status_comment_update(34)
+
+            self.assertEqual(
+                [12, 34],
+                load_status_comment_rollout_state()["pending_pr_numbers"],
+            )
 
     def test_backfill_state_preserves_version_three_cursor(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

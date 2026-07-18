@@ -21,10 +21,10 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   - 📌 has tracked top-level feedback that still needs author action
   - 🔴 requested changes
   - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has both an unresolved inline thread and tracked top-level feedback; ✅ may accompany either or both.
-- **CI** — Aggregate check status across the PR:
-  - ✅ all checks passing
-  - ⏳ at least one check pending, none failing
-  - ❌ at least one check failing
+- **CI** — Aggregate check status across the PR's required status checks. Optional checks do not affect this column:
+  - ✅ all required checks passing
+  - ⏳ at least one required check pending, none failing
+  - ❌ at least one required check failing
   - `?` check data could not be fetched
 - **Conflicts** — Whether the PR has merge conflicts against its base branch:
   - ✅ no conflicts
@@ -82,7 +82,8 @@ summary that is not attached to an inline review thread.
   resolved on GitHub or GitHub marks its code anchor outdated. An author reply
   can hand the dashboard action back to reviewers, but it does not close the
   thread. After addressing it, authors should reply with the outcome and, when
-  appropriate, resolve the conversation.
+  appropriate, resolve the conversation. Author-only inline threads are treated
+  as annotations rather than review feedback unless a non-author joins them.
 - Top-level feedback has no resolved state. The dashboard therefore tracks each
   actionable top-level feedback item independently. 📌 means that one or more
   of those items are waiting on the author.
@@ -140,12 +141,21 @@ After the first full dashboard run has populated repository state, each targeted
 PR update creates or updates one dashboard-managed status comment on that PR.
 The comment shows who has the next action and what the PR is waiting on. When the
 author has the next action, it also links separately to unresolved inline review
-threads and top-level feedback when possible. Draft PRs show that they are
-waiting for the author to mark them ready for review.
+threads and top-level feedback when possible, and asks the author to give each
+review feedback item a clear outcome. Draft PRs show that they are waiting for
+the author to mark them ready for review.
 
-A hidden marker lets the workflow update the comment in place. Existing one-time
-guidance comments are upgraded rather than duplicated. The comment also asks
-authors to give each review feedback item a clear outcome, which keeps stale or
+A failing required status check routes a human-authored PR to the author ahead
+of review and approval state. The live comment calls out required CI failures
+explicitly and combines that reason with review feedback when both need author
+action. Optional check failures do not affect routing. Maintenance-bot PRs keep
+their maintainer-oriented routing because the bot cannot act on a dashboard
+request.
+
+A hidden marker lets the workflow update the comment in place and upgrade
+existing one-time guidance comments rather than creating duplicates. Status
+comments are refreshed automatically when their dashboard status or format
+changes, including on inactive pull requests. Clear outcomes keep stale or
 ambiguous feedback from being routed to the wrong person.
 
 Reviewers should prefer inline comments for feedback requiring explicit
@@ -196,10 +206,8 @@ handling receive only these reminders.
 
 ## Configuration
 
-The target repository GitHub App is installed on each configured repository.
-The workflow creates repository-scoped app installation tokens with
-`PR_DASHBOARD_CLIENT_ID` and `PR_DASHBOARD_PRIVATE_KEY`, then uses those tokens for
-API reads/writes and approver team membership reads in the target repository.
+The dashboard uses repository-scoped GitHub App access to read and update each
+configured repository and to read approver team membership.
 
 Slack notifications use the shared `SLACK_WEBHOOK_URL` secret. Each repository
 can route notifications to its own `slack_channel` and map GitHub logins to
@@ -210,33 +218,8 @@ route cannot produce a reminder.
 
 ## Prerequisites
 
-The target repository GitHub App must be installed on your repository. See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for the GitHub App configuration this repo uses.
-
-## State
-
-Dashboard state is stored on the shared state branch configured by
-`DASHBOARD_STATE_BRANCH`. State files are namespaced by target repository, for
-example:
-
-```text
-semantic-conventions-genai/dashboard-state.json
-opentelemetry-java-instrumentation/dashboard-state.json
-```
-
-This lets one central workflow manage multiple target repositories without
-state collisions.
-
-## Implementation
-
-The workflow YAML and supporting scripts live in this repo:
-
-- [`.github/workflows/pull-request-dashboard.yml`](../.github/workflows/pull-request-dashboard.yml) — top-level orchestrator
-- [`.github/workflows/pull-request-dashboard-repo.yml`](../.github/workflows/pull-request-dashboard-repo.yml) — per-repository job
-- [`.github/workflows/pull-request-dashboard-deploy-webhook.yml`](../.github/workflows/pull-request-dashboard-deploy-webhook.yml) — webhook bridge deploy
-- [`.github/scripts/pull-request-dashboard/`](../.github/scripts/pull-request-dashboard/) — Python scripts, state handling, rendering
-
-See [`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md) for the architecture and tradeoffs behind the design.
-See [`WEBHOOK_SETUP.md`](../.github/scripts/pull-request-dashboard/WEBHOOK_SETUP.md) for GitHub App webhook permissions and dispatch setup.
+The target repository GitHub App must be installed on your repository. Follow
+the repository-access step under [How to opt in](#how-to-opt-in).
 
 ## Manual dashboard run
 
@@ -244,6 +227,7 @@ To run the dashboard manually, open the
 [Pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml),
 choose **Run workflow**, and populate the `repository` field with the target
 repository name under `open-telemetry`, for example
-`opentelemetry-java-instrumentation`. Leave `repository` empty to update every
-configured repository. Each repository is subject to the PR cap so large repos
-cannot consume the dashboard App's hourly API quota in a single run.
+`opentelemetry-java-instrumentation`. Leave `repository` empty to backfill every
+configured repository. Each run processes at most 50 PRs per repository; run it
+again to continue through larger repositories without consuming the dashboard
+App's hourly API quota in a single run.

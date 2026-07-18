@@ -13,12 +13,14 @@ import state_branch
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_FOLLOW_UP_STATE_FILE = "author-follow-up-state.json"
+STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
-DASHBOARD_STATE_VERSION = 4
+DASHBOARD_STATE_VERSION = 5
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
 AUTHOR_FOLLOW_UP_STATE_VERSION = 2
+STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -50,6 +52,10 @@ def backfill_state_path() -> Path:
     return state_dir() / BACKFILL_STATE_FILE
 
 
+def status_comment_rollout_state_path() -> Path:
+    return state_dir() / STATUS_COMMENT_ROLLOUT_STATE_FILE
+
+
 def dashboard_markdown_path() -> Path:
     return state_dir() / DASHBOARD_MARKDOWN_FILE
 
@@ -68,6 +74,15 @@ def initial_backfill_complete(state: dict[str, Any] | None) -> bool:
 
 def empty_backfill_state() -> dict[str, Any]:
     return {"version": BACKFILL_STATE_VERSION, "cursor": {}}
+
+
+def empty_status_comment_rollout_state() -> dict[str, Any]:
+    return {
+        "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+        "target_revision": 0,
+        "completed_revision": 0,
+        "pending_pr_numbers": [],
+    }
 
 
 def load_state_file(
@@ -119,6 +134,55 @@ def save_backfill_state(state: dict[str, Any]) -> None:
     stored = {k: v for k, v in state.items() if k != "prs"}
     stored.setdefault("cursor", {})
     save_state_file(backfill_state_path(), stored, BACKFILL_STATE_VERSION)
+
+
+def load_status_comment_rollout_state() -> dict[str, Any]:
+    state = load_state_file(
+        status_comment_rollout_state_path(),
+        STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+    )
+    if state is None:
+        return empty_status_comment_rollout_state()
+    pending = state.get("pending_pr_numbers")
+    try:
+        target_revision = max(int(state.get("target_revision") or 0), 0)
+        completed_revision = max(int(state.get("completed_revision") or 0), 0)
+    except (TypeError, ValueError):
+        return empty_status_comment_rollout_state()
+    return {
+        "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+        "target_revision": target_revision,
+        "completed_revision": completed_revision,
+        "pending_pr_numbers": (
+            [
+                number
+                for number in pending
+                if isinstance(number, int) and not isinstance(number, bool) and number > 0
+            ]
+            if isinstance(pending, list)
+            else []
+        ),
+    }
+
+
+def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
+    save_state_file(
+        status_comment_rollout_state_path(),
+        {
+            "target_revision": int(state.get("target_revision") or 0),
+            "completed_revision": int(state.get("completed_revision") or 0),
+            "pending_pr_numbers": sorted(set(state.get("pending_pr_numbers") or [])),
+        },
+        STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+    )
+
+
+def enqueue_status_comment_update(pr_number: int) -> None:
+    state = load_status_comment_rollout_state()
+    pending = set(state["pending_pr_numbers"])
+    pending.add(pr_number)
+    state["pending_pr_numbers"] = sorted(pending)
+    save_status_comment_rollout_state(state)
 
 
 def load_dashboard_state_cache() -> dict[str, Any] | None:

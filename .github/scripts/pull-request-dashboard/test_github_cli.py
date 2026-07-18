@@ -3,10 +3,250 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from github_cli import fetch_pr_review_data, fetch_pr_title_edits
+from github_cli import (
+    fetch_pr_review_data,
+    fetch_pr_title_edits,
+    gh_pr_checks,
+    gh_required_check_contexts,
+    include_missing_required_checks,
+    list_all_open_pr_numbers,
+    list_open_prs,
+)
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.gh_api")
+    def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:
+        gh_api.return_value = [
+            {
+                "number": number,
+                "title": f"PR {number}",
+                "user": {"login": "author"},
+                "draft": number == 501,
+                "updated_at": "2026-07-17T00:00:00Z",
+                "html_url": f"https://example.test/pull/{number}",
+            }
+            for number in range(1, 502)
+        ]
+
+        prs = list_open_prs("open-telemetry/example")
+
+        self.assertEqual(501, len(prs))
+        self.assertEqual(
+            {
+                "number": 501,
+                "title": "PR 501",
+                "author": {"login": "author"},
+                "isDraft": True,
+                "updatedAt": "2026-07-17T00:00:00Z",
+                "url": "https://example.test/pull/501",
+            },
+            prs[-1],
+        )
+        gh_api.assert_called_once_with(
+            "/repos/open-telemetry/example/pulls?state=open&per_page=100",
+            paginate=True,
+        )
+
+    @patch("github_cli.gh_api")
+    def test_list_all_open_pr_numbers_uses_paginated_rest_api(self, gh_api) -> None:
+        gh_api.return_value = [
+            {"number": number}
+            for number in range(1, 502)
+        ]
+
+        self.assertEqual(
+            set(range(1, 502)),
+            list_all_open_pr_numbers("open-telemetry/example"),
+        )
+        gh_api.assert_called_once_with(
+            "/repos/open-telemetry/example/pulls?state=open&per_page=100",
+            paginate=True,
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_gh_pr_checks_preserves_reporting_app_identity(self, graphql) -> None:
+        graphql.return_value = {
+            "data": {
+                "node": {
+                    "commits": {
+                        "nodes": [{
+                            "commit": {
+                                "statusCheckRollup": {
+                                    "contexts": {
+                                        "nodes": [
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "FAILURE",
+                                                "startedAt": "2026-07-17T00:30:00Z",
+                                                "completedAt": "2026-07-17T01:00:00Z",
+                                                "url": "https://github.com/open-telemetry/example/runs/87974236999",
+                                                "isRequired": True,
+                                                "checkSuite": {"app": {"databaseId": 1}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "STARTUP_FAILURE",
+                                                "startedAt": "2026-07-17T01:30:00Z",
+                                                "completedAt": "2026-07-17T02:00:00Z",
+                                                "url": "https://github.com/open-telemetry/example/runs/87974237827",
+                                                "isRequired": True,
+                                                "checkSuite": {"app": {"databaseId": 2}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "QUEUED",
+                                                "conclusion": None,
+                                                "startedAt": None,
+                                                "completedAt": None,
+                                                "url": "https://github.com/open-telemetry/example/runs/87974237000",
+                                                "isRequired": True,
+                                                "checkSuite": {"app": {"databaseId": 1}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "optional",
+                                                "isRequired": False,
+                                            },
+                                        ],
+                                        "pageInfo": {"hasNextPage": False},
+                                    },
+                                },
+                            },
+                        }],
+                    },
+                },
+            },
+        }
+
+        self.assertEqual(
+            [("build", 1, "pending"), ("build", 2, "fail")],
+            [
+                (check["name"], check["integration_id"], check["bucket"])
+                for check in gh_pr_checks("open-telemetry/example", "PR_id") or []
+            ],
+        )
+
+    @patch("github_cli.gh_graphql", side_effect=RuntimeError("unavailable"))
+    def test_gh_pr_checks_failure_returns_unknown(self, _graphql) -> None:
+        self.assertIsNone(gh_pr_checks("open-telemetry/example", "PR_id"))
+
+    @patch("github_cli.gh_api")
+    def test_required_check_contexts_include_all_effective_branch_rules(self, api) -> None:
+        api.return_value = [
+            {
+                "type": "required_status_checks",
+                "parameters": {
+                    "required_status_checks": [
+                        {"context": "EasyCLA", "integration_id": 17893},
+                        {"context": "build", "integration_id": 15368},
+                    ],
+                },
+            },
+            {
+                "type": "required_status_checks",
+                "parameters": {
+                    "required_status_checks": [
+                        {"context": "build", "integration_id": 15368},
+                    ],
+                },
+            },
+            {"type": "pull_request", "parameters": {}},
+        ]
+
+        self.assertEqual(
+            [
+                {"context": "EasyCLA", "integration_id": 17893},
+                {"context": "build", "integration_id": 15368},
+            ],
+            gh_required_check_contexts("open-telemetry/example", "release/1.x"),
+        )
+        api.assert_called_once_with(
+            "/repos/open-telemetry/example/rules/branches/release%2F1.x?per_page=100",
+            paginate=True,
+        )
+
+    @patch("github_cli.gh_api")
+    def test_required_check_context_failure_returns_unknown(self, api) -> None:
+        for error in (
+            RuntimeError("forbidden"),
+            Exception("unexpected parsing failure"),
+        ):
+            with self.subTest(error=type(error).__name__):
+                api.side_effect = error
+                if isinstance(error, RuntimeError):
+                    self.assertIsNone(
+                        gh_required_check_contexts("open-telemetry/example", "main")
+                    )
+                else:
+                    with self.assertRaises(Exception):
+                        gh_required_check_contexts("open-telemetry/example", "main")
+
+    def test_missing_required_checks_are_pending(self) -> None:
+        self.assertEqual(
+            [
+                {
+                    "name": "build",
+                    "state": "SUCCESS",
+                    "bucket": "pass",
+                    "integration_id": 1,
+                    "status_context": False,
+                },
+                {
+                    "name": "build",
+                    "state": "SUCCESS",
+                    "bucket": "pass",
+                    "integration_id": None,
+                    "status_context": True,
+                },
+                {
+                    "name": "build",
+                    "state": "EXPECTED",
+                    "bucket": "pending",
+                    "workflow": "",
+                    "description": "Required check has not reported yet.",
+                    "link": "",
+                    "started_at": "",
+                    "completed_at": "",
+                    "integration_id": 2,
+                    "status_context": False,
+                },
+            ],
+            include_missing_required_checks(
+                [
+                    {
+                        "name": "build",
+                        "state": "SUCCESS",
+                        "bucket": "pass",
+                        "integration_id": 1,
+                        "status_context": False,
+                    },
+                    {
+                        "name": "build",
+                        "state": "SUCCESS",
+                        "bucket": "pass",
+                        "integration_id": None,
+                        "status_context": True,
+                    },
+                ],
+                [
+                    {"context": "build", "integration_id": 1},
+                    {"context": "build", "integration_id": 2},
+                ],
+            ),
+        )
+
+    def test_check_fetch_failure_remains_unknown(self) -> None:
+        self.assertIsNone(include_missing_required_checks(
+            None, [{"context": "build", "integration_id": 1}]
+        ))
+        self.assertIsNone(include_missing_required_checks([], None))
+
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_review_data_normalizes_paginated_reviews_and_metadata(self, graphql) -> None:
         graphql.side_effect = [

@@ -1,18 +1,38 @@
 #!/usr/bin/env python3
-"""Create or update the dashboard-managed status comment on a pull request."""
+"""Create or update dashboard-managed status comments and rollout state."""
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+from pathlib import Path
 from typing import Any
 
-from github_cli import detect_repo, gh_api, normalize_repo, run_gh
+from github_cli import (
+    detect_repo,
+    gh_api,
+    list_all_open_pr_numbers,
+    normalize_repo,
+    repo_state_key,
+    run_gh,
+)
 from route_presentation import route_status
-from state import load_accepted_dashboard_state
+from state import (
+    load_dashboard_state_cache,
+    load_status_comment_rollout_state,
+    save_status_comment_rollout_state,
+    set_state_dir,
+    status_comment_rollout_state_path,
+)
+import state_branch
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
+# Increment whenever render_status_comment changes in a way existing comments
+# need to adopt. Hourly runs durably roll the revision out to all open PRs.
+STATUS_COMMENT_REVISION = 1
+STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 AUTHOR_GUIDANCE = (
     "Please give each review feedback item a clear outcome: link to the commit that addresses it, "
@@ -51,10 +71,34 @@ def render_status_comment(
         facts = result.get("facts") or {}
         route = result.get("route") or "unknown"
         effective_author = (facts.get("author") or author).strip()
-        status = route_status(route, author_mention(effective_author))
+        mention = author_mention(effective_author)
+        failing_count = facts.get("ci_failing_count", 0)
+        if route == "author" and failing_count > 0:
+            check_action = (
+                "fix the failing required status check"
+                if failing_count == 1
+                else "fix failing required status checks"
+            )
+            has_review_feedback = bool(
+                facts.get("author_action_review_thread_urls")
+                or facts.get("author_action_top_level_feedback_urls")
+            )
+            if has_review_feedback:
+                check_action += " and address or respond to review feedback"
+            status = f"Waiting on {mention} to {check_action}."
+        else:
+            status = route_status(route, mention)
+            if failing_count > 0:
+                check_subject = (
+                    "A required status check is"
+                    if failing_count == 1
+                    else "Required status checks are"
+                )
+                status += f" {check_subject} also failing."
 
     lines = [
         STATUS_MARKER,
+        f"<!-- pull-request-dashboard-status-revision:{STATUS_COMMENT_REVISION} -->",
         "## Pull request dashboard status",
         "",
         f"**Status:** {status}",
@@ -94,7 +138,7 @@ def render_status_comment(
                 lines.append(f"- {remaining_count} more {noun} not shown")
             remaining_limit -= len(displayed_urls)
 
-    if not terminal:
+    if not terminal and result and result.get("route") == "author":
         lines.extend(["", AUTHOR_GUIDANCE])
     lines.append("")
     return "\n".join(lines)
@@ -160,20 +204,138 @@ def publish_pr_status(repo: str, pr_number: int, dashboard_state: dict[str, Any]
     upsert_status_comment(repo, pr_number, render_status_comment(pr, result))
 
 
+def prepare_rollout_state(
+    rollout_state: dict[str, Any],
+    open_pr_numbers: set[int],
+) -> dict[str, Any]:
+    if rollout_state.get("target_revision") != STATUS_COMMENT_REVISION:
+        return {
+            "target_revision": STATUS_COMMENT_REVISION,
+            "completed_revision": int(rollout_state.get("completed_revision") or 0),
+            "pending_pr_numbers": sorted(open_pr_numbers),
+        }
+    pending = {
+        number
+        for number in rollout_state.get("pending_pr_numbers") or []
+        if number in open_pr_numbers
+    }
+    return {
+        "target_revision": STATUS_COMMENT_REVISION,
+        "completed_revision": int(rollout_state.get("completed_revision") or 0),
+        "pending_pr_numbers": sorted(pending),
+    }
+
+
+def update_status_comments_from_state(
+    repo: str,
+    pr_number: int | None,
+    open_pr_numbers: set[int] | None,
+) -> list[str]:
+    dashboard_state = load_dashboard_state_cache()
+    if dashboard_state is None:
+        print("dashboard result state not found; skipping PR status comment", file=sys.stderr)
+        return []
+
+    saved_rollout_state = load_status_comment_rollout_state()
+    if open_pr_numbers is None:
+        raise RuntimeError("open PR numbers are required for a status comment update")
+    rollout_state = prepare_rollout_state(saved_rollout_state, open_pr_numbers)
+    if pr_number is not None:
+        publish_pr_status(repo, pr_number, dashboard_state)
+        pending = set(rollout_state["pending_pr_numbers"])
+        pending.discard(pr_number)
+        rollout_state["pending_pr_numbers"] = sorted(pending)
+        if not pending and rollout_state["target_revision"] == STATUS_COMMENT_REVISION:
+            rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
+        if rollout_state != saved_rollout_state:
+            save_status_comment_rollout_state(rollout_state)
+        return []
+
+    rollout_pr_numbers = rollout_state["pending_pr_numbers"][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    successful_pr_numbers: set[int] = set()
+    errors: list[str] = []
+    for number in rollout_pr_numbers:
+        try:
+            publish_pr_status(repo, number, dashboard_state)
+        except Exception as e:
+            errors.append(f"PR #{number}: {e}")
+        else:
+            successful_pr_numbers.add(number)
+
+    pending = set(rollout_state["pending_pr_numbers"]) - successful_pr_numbers
+    rollout_state["pending_pr_numbers"] = sorted(pending)
+    if not pending:
+        rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
+    save_status_comment_rollout_state(rollout_state)
+    return errors
+
+
+def rollout_errors_path() -> Path:
+    return Path(os.environ.get("RUNNER_TEMP", ".")) / "status-comment-rollout-errors.txt"
+
+
+def update_status_comments(
+    repo: str,
+    pr_number: int | None,
+    open_pr_numbers: set[int] | None,
+    errors_file: Path,
+) -> int:
+    errors = update_status_comments_from_state(repo, pr_number, open_pr_numbers)
+    if errors:
+        errors_file.write_text("\n".join(errors) + "\n", encoding="utf-8")
+    else:
+        errors_file.unlink(missing_ok=True)
+    return 0
+
+
+def update_status_comments_with_state(
+    repo: str,
+    state_branch_name: str,
+    state_dir: Path,
+    pr_number: int | None,
+) -> int:
+    open_pr_numbers = list_all_open_pr_numbers(repo)
+    repo_key = repo_state_key(repo)
+    errors_file = rollout_errors_path()
+    errors_file.unlink(missing_ok=True)
+    status = state_branch.push_state_changes(
+        state_dir,
+        "Update status comment rollout state",
+        lambda: update_status_comments(
+            repo,
+            pr_number,
+            open_pr_numbers,
+            errors_file,
+        ),
+        state_branch=state_branch_name,
+        add_paths=[f"{repo_key}/{status_comment_rollout_state_path().name}"],
+    )
+    if status != 0:
+        return status
+    if not errors_file.exists():
+        return 0
+    print("Status comment rollout failed:", file=sys.stderr)
+    print(errors_file.read_text(encoding="utf-8").rstrip(), file=sys.stderr)
+    return 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument("--pr-number", type=int, required=True, help="pull request to update")
+    parser.add_argument("--pr-number", type=int, help="targeted pull request to update")
     args = parser.parse_args()
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
-    dashboard_state = load_accepted_dashboard_state(repo, args.state_branch)
-    if dashboard_state is None:
-        print("dashboard result state not found; skipping PR status comment", file=sys.stderr)
-        return 0
-    publish_pr_status(repo, args.pr_number, dashboard_state)
-    return 0
+
+    with state_branch.temporary_state_dir() as state_dir:
+        set_state_dir(state_dir / repo_state_key(repo))
+        return update_status_comments_with_state(
+            repo,
+            args.state_branch,
+            state_dir,
+            args.pr_number,
+        )
 
 
 if __name__ == "__main__":
