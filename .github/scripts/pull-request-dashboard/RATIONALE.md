@@ -117,6 +117,12 @@ the implementation understandable and operationally cheap.
   accepted refresh. Deferring a nudge preserves the current route-period state,
   including a newly created cycle; later author activity retains the original
   handoff candidate, while other or unknown human activity clears it.
+- Dashboard-owned lifecycle clocks use GitHub's whole-second timestamp
+  precision. Each accepted result records when its fetch began; live activity
+  in that same second is treated as potentially newer and defers a mutation.
+  Activity in the same second as stale labeling likewise removes the label or
+  defers closure because GitHub timestamps cannot establish which happened
+  first.
 - A targeted PR refresh runs lifecycle processing in reset-only mode. A
   confirmed departure from the author route clears that PR's cycle and owned
   stale label immediately, while an author-routed or transient result preserves

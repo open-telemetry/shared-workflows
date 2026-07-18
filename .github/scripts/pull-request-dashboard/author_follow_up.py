@@ -108,10 +108,10 @@ def plan_follow_up(
     if stale_applied_at is not None:
         human_activity = latest_human_activity(facts)
         if not stale_enabled or (
-            human_activity is not None and human_activity > stale_applied_at
+            human_activity is not None and human_activity >= stale_applied_at
         ):
             entry["stale_applied_at"] = ""
-            if human_activity is not None and human_activity > stale_applied_at:
+            if human_activity is not None and human_activity >= stale_applied_at:
                 entry["stale_reset_at"] = format_ts(human_activity)
             return "remove-stale", entry
 

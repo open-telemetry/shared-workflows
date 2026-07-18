@@ -259,6 +259,20 @@ def current_author_route(repo: str, pr_number: int, result: dict[str, Any]) -> b
     return bool(expected_urls & current_urls)
 
 
+def has_activity_since_snapshot(
+    result: dict[str, Any],
+    current_activity: datetime | None,
+) -> bool:
+    if current_activity is None:
+        return False
+    facts = result.get("facts") or {}
+    observed_at = parse_ts(facts.get("observed_at") or "")
+    if observed_at is not None:
+        return current_activity >= observed_at
+    accepted_activity = latest_human_activity(facts)
+    return accepted_activity is None or current_activity > accepted_activity
+
+
 def repository_stale_label(repo: str) -> str:
     labels = gh_api(f"/repos/{repo}/labels?per_page=100", paginate=True) or []
     for label in labels:
@@ -367,13 +381,10 @@ def execute_action(
                 file=sys.stderr,
             )
             return None
-        accepted_activity = latest_human_activity(result.get("facts") or {})
         current_activity, current_activity_is_author = (
             current_human_activity_with_author(repo, pr_number, result, now)
         )
-        if current_activity is not None and (
-            accepted_activity is None or current_activity > accepted_activity
-        ):
+        if has_activity_since_snapshot(result, current_activity):
             print(
                 f"deferred {action} on PR #{pr_number} after activity recheck",
                 file=sys.stderr,
@@ -395,7 +406,6 @@ def execute_action(
         return updated
 
     if action == "stale":
-        accepted_activity = latest_human_activity((result or {}).get("facts") or {})
         current_activity = (
             current_human_activity(repo, pr_number, result, now)
             if result is not None
@@ -407,8 +417,8 @@ def execute_action(
             and current_author_route(repo, pr_number, result)
         )
         has_new_activity = bool(
-            current_activity is not None
-            and (accepted_activity is None or current_activity > accepted_activity)
+            result is not None
+            and has_activity_since_snapshot(result, current_activity)
         )
         if not route_is_current or has_new_activity:
             reset_at = current_activity if has_new_activity else now
@@ -460,7 +470,7 @@ def execute_action(
             return updated
         human_activity = current_human_activity(repo, pr_number, result, now)
         if stale_applied_at is None or (
-            human_activity is not None and human_activity > stale_applied_at
+            human_activity is not None and human_activity >= stale_applied_at
         ):
             if updated.get("stale_label_owned"):
                 remove_stale_label(repo, pr_number)

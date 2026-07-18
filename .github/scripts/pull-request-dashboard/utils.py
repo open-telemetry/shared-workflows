@@ -97,4 +97,4 @@ def format_ts(ts: datetime | None) -> str:
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(timezone.utc).replace(microsecond=0)

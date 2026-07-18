@@ -508,6 +508,9 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         ensure_status_comment,
         post_comment,
     ) -> None:
+        accepted = author_result()
+        accepted["facts"]["last_author_activity_at"] = "2026-07-16T00:00:00Z"
+        accepted["facts"]["observed_at"] = "2026-07-16T00:00:00Z"
         previous = follow_up_entry(general_nudged_at="")
         updated = follow_up_entry(general_nudged_at="2026-07-17T00:00:00+00:00")
 
@@ -515,7 +518,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             "general-nudge",
             "open-telemetry/example",
             1,
-            author_result(),
+            accepted,
             previous,
             updated,
             NOW,
@@ -654,11 +657,14 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _current_author_route,
         add_stale_label,
     ) -> None:
+        accepted = author_result()
+        accepted["facts"]["last_author_activity_at"] = "2026-07-16T00:00:00Z"
+        accepted["facts"]["observed_at"] = "2026-07-16T00:00:00Z"
         updated = process_author_follow_ups.execute_action(
             "stale",
             "open-telemetry/example",
             1,
-            author_result(),
+            accepted,
             follow_up_entry(),
             follow_up_entry(stale_applied_at="2026-07-17T00:00:00+00:00"),
             NOW,
@@ -826,7 +832,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             author_result(),
             follow_up_entry(),
             follow_up_entry(
-                stale_applied_at="2026-07-10T00:00:00Z",
+                stale_applied_at="2026-07-16T00:00:00Z",
                 stale_label_owned=True,
             ),
             NOW,

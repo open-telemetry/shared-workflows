@@ -360,7 +360,10 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
 
     def test_closes_after_three_weeks_and_one_week_after_stale(self) -> None:
         action, _updated = plan_follow_up(
-            result(waiting_since="2026-06-20T00:00:00Z"),
+            result(
+                author_activity="2026-07-09T23:59:59Z",
+                waiting_since="2026-06-20T00:00:00Z",
+            ),
             entry(
                 waiting_on_author_since="2026-06-20T00:00:00Z",
                 handoff_nudged_at="2026-06-21T00:00:00Z",
@@ -390,6 +393,22 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
         assert updated is not None
         self.assertEqual(updated["stale_applied_at"], "")
         self.assertEqual(updated["stale_reset_at"], "2026-07-16T00:00:00+00:00")
+
+    def test_same_second_activity_removes_stale_conservatively(self) -> None:
+        action, updated = plan_follow_up(
+            result(author_activity="2026-07-15T00:00:00Z"),
+            entry(
+                general_nudged_at="2026-07-02T00:00:00Z",
+                stale_applied_at="2026-07-15T00:00:00Z",
+                stale_label_owned=True,
+            ),
+            NOW,
+            stale_enabled=True,
+        )
+
+        self.assertEqual(action, "remove-stale")
+        assert updated is not None
+        self.assertEqual(updated["stale_reset_at"], "2026-07-15T00:00:00+00:00")
 
     def test_post_stale_author_activity_removes_stale_before_due_handoff(self) -> None:
         action, updated = plan_follow_up(

@@ -110,6 +110,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_external_activity_at       str (iso)
     human_head_observed_at          str (iso)
     author_head_observed_at         str (iso)
+    observed_at                     str (iso)     Start of the accepted fetch.
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
     waiting_since                   str (iso)     Oldest pending discussion, or
@@ -1085,13 +1086,15 @@ def build_pr_result(
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
     try:
+        observed_at = utc_now()
         raw = fetch_pr_raw(repo, owner, repo_name, pr_summary)
         if raw["pr"].get("state") != "OPEN" or raw["pr"].get("isDraft"):
             return None
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events)
-        add_human_head_observation(facts, raw, author, previous_result, utc_now())
+        facts["observed_at"] = format_ts(observed_at)
+        add_human_head_observation(facts, raw, author, previous_result, observed_at)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         review_thread_classifications, top_level_classifications = (
