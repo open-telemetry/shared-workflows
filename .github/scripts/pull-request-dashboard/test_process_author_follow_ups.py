@@ -544,6 +544,51 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
         self.assertEqual(previous, {"1": {"stale_label_owned": True}})
 
+    @patch.object(process_author_follow_ups, "save_author_follow_ups")
+    @patch.object(process_author_follow_ups, "author_follow_up_state_path")
+    @patch.object(process_author_follow_ups, "next_author_follow_ups")
+    @patch.object(process_author_follow_ups, "previous_author_follow_ups")
+    @patch.object(process_author_follow_ups, "load_author_follow_ups")
+    @patch.object(process_author_follow_ups, "results_from_dashboard_state", return_value={})
+    @patch.object(
+        process_author_follow_ups,
+        "list_open_prs",
+        return_value=[],
+    )
+    @patch.object(
+        process_author_follow_ups,
+        "load_dashboard_state_cache",
+        return_value={},
+    )
+    def test_retry_persists_snapshot_state_to_accepted_checkout(
+        self,
+        _load_dashboard_state_cache,
+        _list_open_prs,
+        _results_from_dashboard_state,
+        load_author_follow_ups,
+        previous_author_follow_ups,
+        next_author_follow_ups,
+        author_follow_up_state_path,
+        save_author_follow_ups,
+    ) -> None:
+        checkout_state = {"1": {"stale_label_owned": False}}
+        retry_state = {"1": {"stale_label_owned": True}}
+        load_author_follow_ups.return_value = checkout_state
+        previous_author_follow_ups.return_value = retry_state
+        next_author_follow_ups.return_value = retry_state
+        author_follow_up_state_path.return_value.exists.return_value = True
+
+        process_author_follow_ups.process_author_follow_ups(
+            "open-telemetry/example",
+            stale_enabled=True,
+            now=NOW,
+            refreshed_pr_numbers={1},
+            retry_snapshot_path=Path("retry-state.json"),
+        )
+
+        next_author_follow_ups.assert_called_once()
+        save_author_follow_ups.assert_called_once_with(retry_state)
+
     @patch.object(process_author_follow_ups, "post_comment")
     @patch.object(process_author_follow_ups, "ensure_status_comment")
     @patch.object(process_author_follow_ups, "lifecycle_comments")

@@ -638,6 +638,7 @@ def process_author_follow_ups(
         pr["number"] for pr in prs if not pr.get("isDraft")
     }
     results = results_from_dashboard_state(dashboard_state, open_non_draft_numbers)
+    checkout_previous = load_author_follow_ups()
     previous = previous_author_follow_ups(retry_snapshot_path)
     updated = next_author_follow_ups(
         repo,
@@ -649,7 +650,7 @@ def process_author_follow_ups(
         refreshed_pr_numbers,
         reset_only,
     )
-    if updated == previous and author_follow_up_state_path().exists():
+    if updated == checkout_previous and author_follow_up_state_path().exists():
         print("author follow-up state unchanged", file=sys.stderr)
         return 0
     save_author_follow_ups(updated)
