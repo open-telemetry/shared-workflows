@@ -20,6 +20,7 @@ from classification import (
     classify_discussion_domains,
     parse_discussion_decision,
     run_llm_for_top_level_batch,
+    top_level_batch_prompt,
     top_level_prompt_input,
 )
 from notifications import reviewer_logins_for_notification
@@ -38,6 +39,7 @@ def top_level_item(
     discussion = {
         "discussion_id": discussion_id,
         "discussion_kind": "top-level-feedback",
+        "pr_author": "author",
         "requester": requester,
         "root_timestamp": ROOT_TIMESTAMP,
         "comments": [],
@@ -125,7 +127,10 @@ def top_level_items_from_raw(
         "author",
         {"reviewer"},
     )
-    return derive_top_level_items(events, {"conflicts": conflicts})
+    return derive_top_level_items(
+        events,
+        {"author": "author", "conflicts": conflicts},
+    )
 
 
 class TopLevelActionLedgerTest(unittest.TestCase):
@@ -459,9 +464,22 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             top_level_prompt_input(discussion),
             {
                 "discussion_id": "change-request",
+                "pr_author": "author",
                 "body": "Please update the implementation.",
             },
         )
+
+    def test_top_level_prompt_distinguishes_other_participants_from_author(self) -> None:
+        discussion = top_level_item("review-request")
+        discussion["comments"] = [
+            {"body": "@reviewer should we put the effort into merging this?"}
+        ]
+
+        prompt = top_level_batch_prompt([discussion])
+
+        self.assertIn('"pr_author": "author"', prompt)
+        self.assertIn("directed to other reviewers", prompt)
+        self.assertIn("which implementation or code option", prompt)
 
     def test_unclear_item_sets_reviewer_wait_age(self) -> None:
         pending_actions = {
@@ -569,7 +587,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             "author",
             {"reviewer"},
         )
-        items = derive_top_level_items(events, {"conflicts": "no"})
+        items = derive_top_level_items(
+            events,
+            {"author": "author", "conflicts": "no"},
+        )
 
         self.assertEqual(
             [item["discussion_id"] for item in items],
@@ -579,6 +600,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [item["discussion_url"] for item in items],
             ["https://example.test/issue-comment/101", "https://example.test/review/202"],
         )
+        self.assertEqual([item["pr_author"] for item in items], ["author", "author"])
         self.assertEqual(items[1]["root_timestamp"], "2026-07-14T03:00:00Z")
         review_event = next(event for event in events if event["kind"] == "review-state")
         self.assertEqual(review_event["timestamp"], "2026-07-14T02:00:00Z")
@@ -687,6 +709,34 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"commit": "2026-07-14T03:00:00Z"},
         )
         self.assertEqual(classifications[1]["decision"]["discussion_action"], "author")
+
+    def test_commit_after_final_feedback_edit_addresses_code_choice(self) -> None:
+        discussion = top_level_item("code-choice")
+        discussion["root_timestamp"] = "2023-12-18T09:20:36Z"
+        events = [
+            event(
+                "issue-comment",
+                "2023-12-18T09:20:07Z",
+                "author",
+                "author",
+                created_timestamp="2023-12-18T09:20:07Z",
+            ),
+            event("commit", "2023-12-18T13:14:32Z", "author", "author"),
+        ]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("code-choice", "commit")],
+            events,
+            {},
+            "author",
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["code-choice"]["evidence"],
+            {"commit": "2023-12-18T13:14:32Z"},
+        )
 
     def test_author_reply_advances_all_author_actions(self) -> None:
         discussions = [

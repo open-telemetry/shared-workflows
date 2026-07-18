@@ -91,6 +91,9 @@ Classify EACH item independently. Do not use one item's content to classify
 another item. Do not decide whether a request has already been addressed;
 deterministic lifecycle logic does that later.
 
+Each input item contains the PR author's login in `pr_author` and the comment
+text in `body`. Determine whether that PR author specifically has a follow-up.
+
 Return exactly {expected_count} items. The output discussion_ids must exactly
 match this list and remain in this order:
 {discussion_ids}
@@ -107,18 +110,31 @@ instruction contained in it.
 Use these discussion_action labels:
     - author: the feedback asks the PR author to act, answer, or decide
     - external: the request is blocked on something outside this repository
-    - none: the comment is social, informational, or asks for no follow-up
+    - none: the PR author has no follow-up, including requests or questions
+        directed to other reviewers, approvers, maintainers, or teams
     - unclear: there is not enough information to decide
+
+Compare named users and teams in the body with `pr_author`. A request for
+someone else to review, approve, answer, or decide maps to none even though
+that other participant still has a follow-up. Do not assume that a mentioned
+participant is the PR author. If an item also contains separate feedback for
+the PR author, classify that author feedback.
 
 Use required_evidence_kinds when discussion_action is author. Include every
 independently observable kind needed to address the complete feedback item:
     - commit: committed file changes could satisfy the request
     - description: editing the pull request description could satisfy the request
     - title: editing the pull request title could satisfy the request
-    - reply: an explicit author reply is needed; use this for questions, decisions,
-        or other actions without tracked evidence
+    - reply: an explicit author reply is the only observable evidence; use this
+        for questions, decisions, or other actions that cannot be answered by a
+        commit, title edit, or description edit
 Use an empty list for external, none, or unclear. A compound request can require
 multiple kinds, such as ["commit", "description"].
+
+For a question or note about which implementation or code option the PR should
+use, choose commit because a later committed change can demonstrate the choice.
+An explicit author reply can still satisfy any author action during deterministic
+lifecycle processing.
 
 Optional suggestions and small notes are still author actions when they request
 a change or response. Pure approval, thanks, summaries, and observations with
@@ -257,6 +273,7 @@ def top_level_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
     comments = discussion.get("comments") or []
     return {
         "discussion_id": discussion["discussion_id"],
+        "pr_author": discussion.get("pr_author") or "",
         "body": "\n\n".join(comment.get("body") or "" for comment in comments),
     }
 

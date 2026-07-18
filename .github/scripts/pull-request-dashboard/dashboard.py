@@ -661,6 +661,7 @@ def derive_top_level_items(
                 "source_id": event["source_id"],
                 "discussion_url": event.get("discussion_url") or "",
                 "requester": comment["actor"],
+                "pr_author": facts.get("author") or "",
                 "review_state": state or None,
                 "root_timestamp": root_timestamp,
                 "path": None,
