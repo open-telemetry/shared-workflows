@@ -180,6 +180,56 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
 }
 """
 
+PR_ISSUE_COMMENT_EDITS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
+    repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+            comments(first: 100, after: $after) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                nodes {
+                    databaseId
+                    createdAt
+                    lastEditedAt
+                }
+            }
+        }
+    }
+}
+"""
+
+
+def fetch_pr_issue_comment_content_timestamps(
+    owner: str,
+    repo_name: str,
+    number: int,
+) -> dict[int, str]:
+    timestamps: dict[int, str] = {}
+    after: str | None = None
+    while True:
+        data = gh_graphql(
+            PR_ISSUE_COMMENT_EDITS_QUERY,
+            {"owner": owner, "name": repo_name, "number": number, "after": after},
+        )
+        pull_request = (((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {})
+        connection = pull_request.get("comments") or {}
+        for comment in connection.get("nodes") or []:
+            try:
+                database_id = int(comment.get("databaseId"))
+            except (TypeError, ValueError):
+                continue
+            timestamp = comment.get("lastEditedAt") or comment.get("createdAt") or ""
+            if timestamp:
+                timestamps[database_id] = timestamp
+        page_info = connection.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            return timestamps
+        after = page_info.get("endCursor") or None
+        if after is None:
+            return timestamps
+
 
 def fetch_pr_title_edits(owner: str, repo_name: str, number: int) -> list[dict[str, Any]]:
     edits: list[dict[str, Any]] = []

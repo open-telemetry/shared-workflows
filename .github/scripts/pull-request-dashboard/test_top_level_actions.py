@@ -807,6 +807,51 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertEqual(top_level_history["reply"]["evidence"], {"reply": "2026-07-14T03:00:00Z"})
 
+    def test_non_content_updates_do_not_reopen_replied_to_feedback(self) -> None:
+        events = normalize_events(
+            {
+                "commits": [],
+                "issue_comments": [
+                    {
+                        "id": 101,
+                        "created_at": "2026-05-27T01:29:41Z",
+                        "updated_at": "2026-05-30T22:09:49Z",
+                        "content_updated_at": "2026-05-27T01:29:41Z",
+                        "user": {"login": "reviewer"},
+                        "body": "Can you mark this as resolving the issue?",
+                    },
+                    {
+                        "id": 102,
+                        "created_at": "2026-05-27T12:07:12Z",
+                        "updated_at": "2026-05-30T22:09:46Z",
+                        "content_updated_at": "2026-05-27T12:07:12Z",
+                        "user": {"login": "author"},
+                        "body": "This PR resolves it only partly.",
+                    },
+                ],
+                "review_comments": [],
+                "reviews": [],
+            },
+            "author",
+            {"reviewer"},
+        )
+        discussion = top_level_item("request")
+        discussion["root_timestamp"] = events[0]["timestamp"]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("request", "description")],
+            events,
+            {},
+            "author",
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["request"]["evidence"],
+            {"reply": "2026-05-27T12:07:12Z"},
+        )
+
     def test_edited_old_author_comment_does_not_count_as_reply(self) -> None:
         events = normalize_events(
             {
@@ -816,6 +861,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                         "id": 101,
                         "created_at": "2026-07-14T00:00:00Z",
                         "updated_at": "2026-07-14T03:00:00Z",
+                        "content_updated_at": "2026-07-14T03:00:00Z",
                         "user": {"login": "author"},
                         "body": "An earlier comment edited later.",
                     }

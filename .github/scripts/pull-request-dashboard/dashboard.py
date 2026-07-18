@@ -165,6 +165,7 @@ from typing import Any
 from github_cli import (
     TransientGhError,
     detect_repo,
+    fetch_pr_issue_comment_content_timestamps,
     fetch_pr_review_data,
     fetch_pr_title_edits,
     fetch_review_threads,
@@ -274,6 +275,12 @@ def fetch_pr_raw(
             f"/repos/{owner}/{repo_name}/issues/{number}/comments?per_page=100",
             True,
         )
+        f_issue_comment_timestamps = pool.submit(
+            fetch_pr_issue_comment_content_timestamps,
+            owner,
+            repo_name,
+            number,
+        )
         f_revcom = pool.submit(
             gh_api,
             f"/repos/{owner}/{repo_name}/pulls/{number}/comments?per_page=100",
@@ -292,10 +299,20 @@ def fetch_pr_raw(
             gh_required_check_contexts, repo, pr["baseRefName"]
         )
         review_data = f_review_data.result() or {}
+        issue_comment_timestamps = f_issue_comment_timestamps.result()
         return {
             "summary": pr_summary,
             "pr": pr,
-            "issue_comments": f_issue.result() or [],
+            "issue_comments": [
+                {
+                    **comment,
+                    "content_updated_at": issue_comment_timestamps.get(comment.get("id"))
+                    or comment.get("created_at")
+                    or comment.get("updated_at")
+                    or "",
+                }
+                for comment in f_issue.result() or []
+            ],
             "review_comments": f_revcom.result() or [],
             "reviews": review_data.get("reviews") or [],
             "commits": f_commits.result() or [],
@@ -360,7 +377,12 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         if c.get("minimized"):
             continue
         login = reviewer_actor_login(c.get("user") or {})
-        timestamp = c.get("updated_at") or c.get("created_at") or ""
+        timestamp = (
+            c.get("content_updated_at")
+            or c.get("created_at")
+            or c.get("updated_at")
+            or ""
+        )
         events.append({
             "source_id": c.get("id"),
             "discussion_url": c.get("html_url") or "",

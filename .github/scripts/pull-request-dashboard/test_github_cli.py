@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from github_cli import (
+    fetch_pr_issue_comment_content_timestamps,
     fetch_pr_review_data,
     fetch_pr_title_edits,
     gh_pr_checks,
@@ -15,6 +16,67 @@ from github_cli import (
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.gh_graphql")
+    def test_fetch_pr_issue_comment_content_timestamps_paginates(self, graphql) -> None:
+        graphql.side_effect = [
+            {
+                "data": {
+                    "repository": {
+                        "pullRequest": {
+                            "comments": {
+                                "nodes": [
+                                    {
+                                        "databaseId": "101",
+                                        "createdAt": "2026-07-14T01:00:00Z",
+                                        "lastEditedAt": None,
+                                    },
+                                    {
+                                        "databaseId": None,
+                                        "createdAt": "2026-07-14T01:30:00Z",
+                                        "lastEditedAt": None,
+                                    },
+                                ],
+                                "pageInfo": {
+                                    "hasNextPage": True,
+                                    "endCursor": "cursor-1",
+                                },
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "data": {
+                    "repository": {
+                        "pullRequest": {
+                            "comments": {
+                                "nodes": [
+                                    {
+                                        "databaseId": "102",
+                                        "createdAt": "2026-07-14T02:00:00Z",
+                                        "lastEditedAt": "2026-07-14T03:00:00Z",
+                                    }
+                                ],
+                                "pageInfo": {"hasNextPage": False},
+                            }
+                        }
+                    }
+                }
+            },
+        ]
+
+        self.assertEqual(
+            fetch_pr_issue_comment_content_timestamps(
+                "open-telemetry", "shared-workflows", 78
+            ),
+            {
+                101: "2026-07-14T01:00:00Z",
+                102: "2026-07-14T03:00:00Z",
+            },
+        )
+        self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
+        self.assertEqual(graphql.call_count, 2)
+
     @patch("github_cli.gh_api")
     def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:
         gh_api.return_value = [
