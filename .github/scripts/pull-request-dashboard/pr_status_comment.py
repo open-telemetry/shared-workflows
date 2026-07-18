@@ -32,7 +32,7 @@ import state_branch
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 5
+STATUS_COMMENT_REVISION = 6
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 STATUS_REPORT_ISSUE_URL = "https://github.com/open-telemetry/shared-workflows/issues/new"
@@ -57,10 +57,6 @@ def accuracy_note(pr: dict[str, Any]) -> str:
         'body': (
             f"PR: {pr.get('html_url') or ''}\n\n"
             "What looks incorrect:\n"
-            "- [ ] Overall `Waiting on` status\n"
-            "- [ ] One or more linked feedback items\n\n"
-            "Expected result:\n\n"
-            "Relevant links and explanation:\n"
         ),
     })}"
     return (

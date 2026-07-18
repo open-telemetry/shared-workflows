@@ -76,7 +76,8 @@ class RenderStatusCommentTest(unittest.TestCase):
                     body,
                 )
                 self.assertIn("PR%3A+https%3A%2F%2Fgithub.com%2F", body)
-                self.assertIn("One+or+more+linked+feedback+items", body)
+                self.assertIn("What+looks+incorrect", body)
+                self.assertNotIn("One+or+more+linked+feedback+items", body)
 
     def test_waiting_on_author_names_required_ci_failure(self) -> None:
         body = pr_status_comment.render_status_comment(
