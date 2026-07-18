@@ -1155,6 +1155,92 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertNotIn("dependency", history)
 
+    def test_satisfied_evidence_is_not_reopened_by_external_reply(self) -> None:
+        discussion = top_level_item("code")
+        events = [
+            event("commit", "2026-07-14T02:00:00Z", "author", "author"),
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="This is blocked on an upstream decision.",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("code", "commit")],
+            events,
+            {},
+            "author",
+            reply_outcomes=top_level_author_comment_outcomes(
+                author_comment_items,
+                [
+                    {
+                        "discussion_id": author_comment_items[0]["discussion_id"],
+                        "decision": {"discussion_action": "external"},
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["code"]["evidence"],
+            {"commit": "2026-07-14T02:00:00Z"},
+        )
+
+    def test_later_satisfying_evidence_clears_external_reply(self) -> None:
+        discussion = top_level_item("code")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T02:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T02:00:00Z",
+                body="This is blocked on an upstream decision.",
+            ),
+            event("commit", "2026-07-14T03:00:00Z", "author", "author"),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("code", "commit")],
+            events,
+            {},
+            "author",
+            reply_outcomes=top_level_author_comment_outcomes(
+                author_comment_items,
+                [
+                    {
+                        "discussion_id": author_comment_items[0]["discussion_id"],
+                        "decision": {"discussion_action": "external"},
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["code"]["evidence"],
+            {"commit": "2026-07-14T03:00:00Z"},
+        )
+
     def test_non_content_updates_do_not_reopen_replied_to_feedback(self) -> None:
         events = normalize_events(
             {

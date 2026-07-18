@@ -993,6 +993,10 @@ def advance_top_level_actions(
                 )
         if evidence.get("reply"):
             continue
+        required_kinds = decision.get("required_evidence_kinds") or []
+        evidence_at = evidence_satisfied_at(required_kinds, evidence)
+        if action == "author" and evidence_at:
+            continue
         reply_outcome = first_external_top_level_author_comment_outcome(
             root_timestamp, events, reply_outcomes
         )
@@ -1014,13 +1018,10 @@ def advance_top_level_actions(
                 "since": root_timestamp,
             }
             continue
-        required_kinds = decision.get("required_evidence_kinds") or []
-        evidence_at = evidence_satisfied_at(required_kinds, evidence)
-        if not evidence_at:
-            pending_actions[discussion["discussion_id"]] = {
-                "action": "author",
-                "since": root_timestamp,
-            }
+        pending_actions[discussion["discussion_id"]] = {
+            "action": "author",
+            "since": root_timestamp,
+        }
     return pending_actions, top_level_history
 
 
