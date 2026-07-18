@@ -126,22 +126,29 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "maintainer",
                 1,
                 "Maintainers",
-                "1 required status check is failing.",
+                ["CodeQL"],
+                "1 required status check is failing. "
+                "Note: CodeQL is failing but is not required.",
             ),
             (
                 "approver",
                 2,
                 "Reviewers",
-                "2 required status checks are failing.",
+                ["CodeQL", "workflow-notification"],
+                "2 required status checks are failing. "
+                "Note: CodeQL and workflow-notification are failing but are not required.",
             ),
         )
-        for route, failing_count, waiting_on, blocked_by in cases:
+        for route, failing_count, waiting_on, non_blocking_failures, blocked_by in cases:
             with self.subTest(route=route):
                 body = pr_status_comment.render_status_comment(
                     self.pr(),
                     {
                         "route": route,
-                        "facts": {"ci_failing_count": failing_count},
+                        "facts": {
+                            "ci_failing_count": failing_count,
+                            "non_blocking_check_failures": non_blocking_failures,
+                        },
                     },
                 )
 
