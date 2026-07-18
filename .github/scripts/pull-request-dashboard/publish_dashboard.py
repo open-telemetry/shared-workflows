@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,23 @@ DASHBOARD_LABEL_COLOR = "cfd3d7"
 DASHBOARD_LABEL_DESCRIPTION = "Pull request dashboard"
 ISSUE_BODY_MAX_CHARS = 65536
 LARGE_REPO_MAX_ROWS_PER_SECTION = 100
+
+
+def parse_labels_to_display_json(raw: str) -> list[str]:
+    try:
+        labels_to_display = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"--labels-to-display-json must be valid JSON: {e.msg} at char {e.pos}"
+        ) from e
+    if not isinstance(labels_to_display, list) or any(
+        not isinstance(pattern, str) or not pattern.strip()
+        for pattern in labels_to_display
+    ):
+        raise RuntimeError(
+            "--labels-to-display-json must be a JSON array of non-blank strings"
+        )
+    return labels_to_display
 
 
 # GraphQL is used instead of the REST `/repos/{repo}/issues` list endpoint
@@ -149,7 +167,11 @@ def publishable_prs(
     ]
 
 
-def render_dashboard_markdown(repo: str, large_repo: bool) -> Path:
+def render_dashboard_markdown(
+    repo: str,
+    large_repo: bool,
+    labels_to_display: list[str] | None = None,
+) -> Path:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
         raise RuntimeError("dashboard state not found")
@@ -162,6 +184,7 @@ def render_dashboard_markdown(repo: str, large_repo: bool) -> Path:
         results,
         max_rows_per_section=LARGE_REPO_MAX_ROWS_PER_SECTION if large_repo else None,
         skip_drafts=large_repo,
+        labels_to_display=labels_to_display,
     )
     output_path = dashboard_markdown_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -179,12 +202,20 @@ def render_dashboard_markdown(repo: str, large_repo: bool) -> Path:
     return output_path
 
 
-def publish_accepted_dashboard(repo: str, state_branch_name: str, large_repo: bool) -> None:
+def publish_accepted_dashboard(
+    repo: str,
+    state_branch_name: str,
+    large_repo: bool,
+    labels_to_display: list[str] | None = None,
+) -> None:
     with state_branch.accepted_state_dir(state_branch_name, required=True) as state_dir:
         if state_dir is None:
             raise RuntimeError(f"required state branch not found: {state_branch_name}")
         set_state_dir(state_dir / repo_state_key(repo))
-        publish_dashboard(repo, render_dashboard_markdown(repo, large_repo))
+        publish_dashboard(
+            repo,
+            render_dashboard_markdown(repo, large_repo, labels_to_display),
+        )
 
 
 def main() -> int:
@@ -200,10 +231,20 @@ def main() -> int:
         action="store_true",
         help="apply large-repo rendering presets",
     )
+    parser.add_argument(
+        "--labels-to-display-json",
+        default="[]",
+        help="JSON array of label name patterns to display",
+    )
     args = parser.parse_args()
 
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
-    publish_accepted_dashboard(repo, args.state_branch, args.large_repo)
+    publish_accepted_dashboard(
+        repo,
+        args.state_branch,
+        args.large_repo,
+        parse_labels_to_display_json(args.labels_to_display_json),
+    )
     return 0
 
 
