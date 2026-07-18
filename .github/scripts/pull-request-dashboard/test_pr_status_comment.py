@@ -68,6 +68,10 @@ class RenderStatusCommentTest(unittest.TestCase):
                     "https://github.com/open-telemetry/shared-workflows/issues/new?",
                     body,
                 )
+                self.assertIn(
+                    "template=incorrect-pr-dashboard-status.md",
+                    body,
+                )
                 self.assertIn("PR%3A+https%3A%2F%2Fgithub.com%2F", body)
 
     def test_waiting_on_author_names_required_ci_failure(self) -> None:
