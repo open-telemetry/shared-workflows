@@ -170,8 +170,9 @@ is delivered as soon as the PR is next refreshed.
   the timer to ensure repeated author activity without a successful transition
   out of *Waiting on authors* cannot postpone the nudge.
 - **General nudge:** Every PR still routed to the author receives a nudge one
-  week after it entered that route. If a handoff nudge is posted, the general
-  nudge is instead posted one week after the handoff nudge.
+  week after an eligible follow-up run first observes it in that route. If a
+  handoff nudge is posted, the general nudge is instead posted one week after
+  the handoff nudge.
 
 Both nudges link to the dashboard-managed status comment and apply to every
 configured repository.
@@ -181,9 +182,9 @@ quiet week following the general nudge and close after another quiet week.
 Human pushes, comments, and reviews restart the current escalation stage.
 Activity after stale labeling removes a dashboard-managed
 `Stale` label before starting a fresh one-week stale wait. Manually removing a
-dashboard-managed `Stale` label has the same effect. Bot activity, reactions,
-label or assignment changes, checks, and edits to existing comments do not
-count as human activity.
+dashboard-managed `Stale` label has the same effect when the dashboard next
+observes the label as absent. Bot activity, reactions, label or assignment
+changes, checks, and edits to existing comments do not count as human activity.
 
 All follow-up actions apply only while the PR remains in *Waiting on authors*.
 Leaving that route clears the cycle and removes a dashboard-managed `Stale`
