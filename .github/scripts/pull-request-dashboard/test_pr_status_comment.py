@@ -127,6 +127,36 @@ class RenderStatusCommentTest(unittest.TestCase):
             body,
         )
 
+    def test_required_ci_action_limits_non_blocking_failure_names(self) -> None:
+        long_name = "x" * (pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT + 1)
+        failures = [
+            long_name,
+            *(
+                f"check-{index:02d}"
+                for index in range(pr_status_comment.NON_BLOCKING_CHECK_FAILURE_LIMIT + 1)
+            ),
+        ]
+
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "non_blocking_check_failures": failures,
+                },
+            },
+        )
+
+        truncated_name = (
+            "x" * pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT
+            + " ...\\[truncated\\]"
+        )
+        self.assertIn(truncated_name, body)
+        self.assertIn("2 additional non-blocking check failures are not shown.", body)
+        self.assertNotIn("check-19", body)
+        self.assertNotIn("check-20", body)
+
     def test_non_blocking_failures_do_not_create_a_standalone_action(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

@@ -25,16 +25,18 @@ from state import (
     set_state_dir,
     status_comment_rollout_state_path,
 )
-from utils import markdown_escape
+from utils import markdown_escape, truncate
 import state_branch
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 5
+STATUS_COMMENT_REVISION = 6
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
+NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
+NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT = 200
 AUTHOR_GUIDANCE = (
     "For each item, link to the commit that addresses it, explain why no change is needed, "
     "or ask a follow-up question."
@@ -61,13 +63,25 @@ def render_status_comment(
     non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
     non_blocking_failure_note = ""
     if non_blocking_check_failures:
+        displayed_failures = non_blocking_check_failures[
+            :NON_BLOCKING_CHECK_FAILURE_LIMIT
+        ]
         names = format_list([
-            markdown_escape(name) for name in non_blocking_check_failures
+            markdown_escape(truncate(name, NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT))
+            for name in displayed_failures
         ])
         verb = "is" if len(non_blocking_check_failures) == 1 else "are"
         non_blocking_failure_note = (
             f" Note: {names} {verb} failing but {verb} not required."
         )
+        omitted_count = len(non_blocking_check_failures) - len(displayed_failures)
+        if omitted_count:
+            noun = "failure" if omitted_count == 1 else "failures"
+            omitted_verb = "is" if omitted_count == 1 else "are"
+            non_blocking_failure_note += (
+                f" {omitted_count} additional non-blocking check {noun} "
+                f"{omitted_verb} not shown."
+            )
 
     feedback_indent: str | None = None
 
