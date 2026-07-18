@@ -114,7 +114,9 @@ the implementation understandable and operationally cheap.
   rendering but cannot trigger nudges, stale labeling, or closure. Immediately
   before a due nudge, the executor also confirms that the PR remains open and
   routed to the author and that no newer human activity has appeared since the
-  accepted refresh.
+  accepted refresh. Deferring a nudge preserves the current route-period state,
+  including a newly created cycle; later author activity retains the original
+  handoff candidate, while other or unknown human activity clears it.
 - A targeted PR refresh runs lifecycle processing in reset-only mode. A
   confirmed departure from the author route clears that PR's cycle and owned
   stale label immediately, while an author-routed or transient result preserves

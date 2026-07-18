@@ -11,7 +11,7 @@ import sys
 from typing import Any
 from urllib.parse import quote
 
-from author_follow_up import latest_human_activity, plan_follow_up
+from author_follow_up import latest_human_activity, plan_follow_up, qualifying_author_activity
 from github_cli import (
     detect_repo,
     fetch_pr_review_data,
@@ -155,6 +155,15 @@ def current_human_activity(
     result: dict[str, Any],
     now: datetime,
 ) -> datetime | None:
+    return current_human_activity_with_author(repo, pr_number, result, now)[0]
+
+
+def current_human_activity_with_author(
+    repo: str,
+    pr_number: int,
+    result: dict[str, Any],
+    now: datetime,
+) -> tuple[datetime | None, bool]:
     owner, repo_name = repo.split("/", 1)
     issue_comments = gh_api(
         f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
@@ -176,7 +185,8 @@ def current_human_activity(
     if not isinstance(reviews, list):
         raise RuntimeError(f"could not verify current reviews for PR #{pr_number}")
 
-    timestamps: list[datetime] = []
+    author = str((result.get("facts") or {}).get("author") or "").lower()
+    activities: list[tuple[datetime, bool]] = []
     for comment in issue_comments:
         if (
             is_human_actor(comment.get("user"))
@@ -184,29 +194,51 @@ def current_human_activity(
         ):
             timestamp = parse_ts(comment.get("created_at") or "")
             if timestamp is not None:
-                timestamps.append(timestamp)
+                login = str((comment.get("user") or {}).get("login") or "").lower()
+                activities.append((timestamp, login == author))
     for comment in review_comments:
         if is_human_actor(comment.get("user")):
             timestamp = parse_ts(comment.get("created_at") or "")
             if timestamp is not None:
-                timestamps.append(timestamp)
+                login = str((comment.get("user") or {}).get("login") or "").lower()
+                activities.append((timestamp, login == author))
     for review in reviews:
         if is_human_actor(review.get("user")):
             timestamp = parse_ts(review.get("submitted_at") or "")
             if timestamp is not None:
-                timestamps.append(timestamp)
+                login = str((review.get("user") or {}).get("login") or "").lower()
+                activities.append((timestamp, login == author))
 
     accepted_head_sha = str((result.get("facts") or {}).get("head_sha") or "")
     current_head_sha = str(current_pr.get("headRefOid") or "")
     if accepted_head_sha and current_head_sha != accepted_head_sha:
         new_commits = commit_delta(commits, accepted_head_sha, current_head_sha)
-        if new_commits is None or any(
-            is_human_commit_actor(commit.get(field))
-            for commit in new_commits
-            for field in ("committer", "author")
-        ):
-            timestamps.append(now)
-    return max(timestamps, default=None)
+        if new_commits is None:
+            activities.append((now, False))
+        else:
+            human_actors = [
+                commit.get(field)
+                for commit in new_commits
+                for field in ("committer", "author")
+                if is_human_commit_actor(commit.get(field))
+            ]
+            if human_actors:
+                activities.append((
+                    now,
+                    any(
+                        str((actor or {}).get("login") or "").lower() == author
+                        for actor in human_actors
+                    ),
+                ))
+    if not activities:
+        return None, False
+    latest = max(timestamp for timestamp, _is_author in activities)
+    is_author = all(
+        activity_is_author
+        for timestamp, activity_is_author in activities
+        if timestamp == latest
+    )
+    return latest, is_author
 
 
 def current_author_route(repo: str, pr_number: int, result: dict[str, Any]) -> bool:
@@ -336,7 +368,9 @@ def execute_action(
             )
             return None
         accepted_activity = latest_human_activity(result.get("facts") or {})
-        current_activity = current_human_activity(repo, pr_number, result, now)
+        current_activity, current_activity_is_author = (
+            current_human_activity_with_author(repo, pr_number, result, now)
+        )
         if current_activity is not None and (
             accepted_activity is None or current_activity > accepted_activity
         ):
@@ -344,7 +378,17 @@ def execute_action(
                 f"deferred {action} on PR #{pr_number} after activity recheck",
                 file=sys.stderr,
             )
-            return dict(previous) if previous is not None else None
+            deferred = dict(previous) if previous is not None else dict(updated)
+            deferred[timestamp_field] = ""
+            if action == "handoff-nudge":
+                if current_activity_is_author:
+                    if previous is None:
+                        deferred["pending_handoff_since"] = format_ts(
+                            qualifying_author_activity(result.get("facts") or {})
+                        )
+                else:
+                    deferred["pending_handoff_since"] = ""
+            return deferred
         status_url = ensure_status_comment(repo, pr_number, result)
         post_comment(repo, pr_number, render_nudge(result, status_url, cycle_id, action))
         print(f"sent {action} on PR #{pr_number}", file=sys.stderr)

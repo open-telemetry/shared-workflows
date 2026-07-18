@@ -382,8 +382,8 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
     )
     @patch.object(
         process_author_follow_ups,
-        "current_human_activity",
-        return_value=datetime(2026, 7, 1, tzinfo=timezone.utc),
+        "current_human_activity_with_author",
+        return_value=(datetime(2026, 7, 1, tzinfo=timezone.utc), True),
     )
     @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
     @patch.object(
@@ -397,7 +397,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _lifecycle_comments,
         _issue_details,
         _current_author_route,
-        _current_human_activity,
+        _current_human_activity_with_author,
         _ensure_status_comment,
         post_comment,
     ) -> None:
@@ -418,7 +418,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
     @patch.object(process_author_follow_ups, "post_comment")
     @patch.object(process_author_follow_ups, "ensure_status_comment")
-    @patch.object(process_author_follow_ups, "current_human_activity")
+    @patch.object(process_author_follow_ups, "current_human_activity_with_author")
     @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
     @patch.object(
         process_author_follow_ups,
@@ -431,7 +431,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _lifecycle_comments,
         _issue_details,
         current_author_route,
-        current_human_activity,
+        current_human_activity_with_author,
         ensure_status_comment,
         post_comment,
     ) -> None:
@@ -447,13 +447,13 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
         self.assertIsNone(result)
         current_author_route.assert_not_called()
-        current_human_activity.assert_not_called()
+        current_human_activity_with_author.assert_not_called()
         ensure_status_comment.assert_not_called()
         post_comment.assert_not_called()
 
     @patch.object(process_author_follow_ups, "post_comment")
     @patch.object(process_author_follow_ups, "ensure_status_comment")
-    @patch.object(process_author_follow_ups, "current_human_activity")
+    @patch.object(process_author_follow_ups, "current_human_activity_with_author")
     @patch.object(process_author_follow_ups, "current_author_route", return_value=False)
     @patch.object(
         process_author_follow_ups,
@@ -466,7 +466,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _lifecycle_comments,
         _issue_details,
         _current_author_route,
-        current_human_activity,
+        current_human_activity_with_author,
         ensure_status_comment,
         post_comment,
     ) -> None:
@@ -481,7 +481,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         )
 
         self.assertIsNone(result)
-        current_human_activity.assert_not_called()
+        current_human_activity_with_author.assert_not_called()
         ensure_status_comment.assert_not_called()
         post_comment.assert_not_called()
 
@@ -489,8 +489,8 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
     @patch.object(process_author_follow_ups, "ensure_status_comment")
     @patch.object(
         process_author_follow_ups,
-        "current_human_activity",
-        return_value=datetime(2026, 7, 16, tzinfo=timezone.utc),
+        "current_human_activity_with_author",
+        return_value=(datetime(2026, 7, 16, tzinfo=timezone.utc), False),
     )
     @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
     @patch.object(
@@ -504,7 +504,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _lifecycle_comments,
         _issue_details,
         _current_author_route,
-        _current_human_activity,
+        _current_human_activity_with_author,
         ensure_status_comment,
         post_comment,
     ) -> None:
@@ -522,6 +522,56 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         )
 
         self.assertEqual(result, previous)
+        ensure_status_comment.assert_not_called()
+        post_comment.assert_not_called()
+
+    @patch.object(process_author_follow_ups, "post_comment")
+    @patch.object(process_author_follow_ups, "ensure_status_comment")
+    @patch.object(
+        process_author_follow_ups,
+        "current_human_activity_with_author",
+        return_value=(datetime(2026, 7, 17, tzinfo=timezone.utc), True),
+    )
+    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
+    @patch.object(
+        process_author_follow_ups,
+        "issue_details",
+        return_value={"state": "open", "pull_request": {"url": "pulls/1"}},
+    )
+    @patch.object(process_author_follow_ups, "lifecycle_comments", return_value=[])
+    def test_first_handoff_deferral_preserves_cycle_and_candidate(
+        self,
+        _lifecycle_comments,
+        _issue_details,
+        _current_author_route,
+        _current_human_activity_with_author,
+        ensure_status_comment,
+        post_comment,
+    ) -> None:
+        result = author_result()
+        result["facts"]["last_author_activity_at"] = "2026-07-16T00:00:00Z"
+        updated = follow_up_entry(
+            cycle_id="2026-07-17T00:00:00+00:00",
+            waiting_on_author_since="2026-07-17T00:00:00+00:00",
+            pending_handoff_since="",
+            handoff_nudged_at="2026-07-17T00:00:00+00:00",
+            general_nudged_at="",
+        )
+
+        deferred = process_author_follow_ups.execute_action(
+            "handoff-nudge",
+            "open-telemetry/example",
+            1,
+            result,
+            None,
+            updated,
+            NOW,
+        )
+
+        assert deferred is not None
+        self.assertEqual(deferred["waiting_on_author_since"], "2026-07-17T00:00:00+00:00")
+        self.assertEqual(deferred["pending_handoff_since"], "2026-07-16T00:00:00+00:00")
+        self.assertEqual(deferred["handoff_nudged_at"], "")
         ensure_status_comment.assert_not_called()
         post_comment.assert_not_called()
 
