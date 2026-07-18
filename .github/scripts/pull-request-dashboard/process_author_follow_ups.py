@@ -17,7 +17,10 @@ from github_cli import (
     fetch_pr_review_data,
     fetch_review_threads,
     gh_api,
+    gh_pr_checks,
     gh_pr_view,
+    gh_required_check_contexts,
+    include_missing_required_checks,
     list_open_prs,
     normalize_repo,
     repo_state_key,
@@ -271,15 +274,30 @@ def current_author_route(repo: str, pr_number: int, result: dict[str, Any]) -> b
         return True
 
     expected_urls = set(facts.get("author_action_review_thread_urls") or [])
-    if not expected_urls:
+    if expected_urls:
+        owner, repo_name = repo.split("/", 1)
+        current_urls = {
+            str(((thread.get("comments") or {}).get("nodes") or [{}])[0].get("url") or "")
+            for thread in fetch_review_threads(owner, repo_name, pr_number)
+            if not thread.get("isResolved") and not thread.get("isOutdated")
+        }
+        if expected_urls & current_urls:
+            return True
+
+    if facts.get("ci_failing_count", 0) <= 0 or facts.get("is_maintenance_bot"):
         return False
-    owner, repo_name = repo.split("/", 1)
-    current_urls = {
-        str(((thread.get("comments") or {}).get("nodes") or [{}])[0].get("url") or "")
-        for thread in fetch_review_threads(owner, repo_name, pr_number)
-        if not thread.get("isResolved") and not thread.get("isOutdated")
-    }
-    return bool(expected_urls & current_urls)
+    pr_id = str(current_pr.get("id") or "")
+    base_branch = str(current_pr.get("baseRefName") or "")
+    if not pr_id or not base_branch:
+        return False
+    checks = include_missing_required_checks(
+        gh_pr_checks(repo, pr_id),
+        gh_required_check_contexts(repo, base_branch),
+    )
+    return bool(
+        checks is not None
+        and any(check.get("bucket") in ("fail", "cancel") for check in checks)
+    )
 
 
 def has_activity_since_snapshot(

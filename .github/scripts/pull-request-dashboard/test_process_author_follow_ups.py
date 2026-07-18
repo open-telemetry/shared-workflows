@@ -131,6 +131,62 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         ))
         fetch_review_threads.assert_not_called()
 
+    @patch.object(process_author_follow_ups, "include_missing_required_checks")
+    @patch.object(
+        process_author_follow_ups,
+        "gh_required_check_contexts",
+        return_value=[],
+    )
+    @patch.object(process_author_follow_ups, "gh_pr_checks", return_value=[])
+    @patch.object(process_author_follow_ups, "fetch_review_threads")
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={
+            "id": "PR_id",
+            "state": "OPEN",
+            "isDraft": False,
+            "updatedAt": "2026-07-17T00:00:00Z",
+            "baseRefName": "main",
+        },
+    )
+    def test_current_author_route_revalidates_ci_only_route(
+        self,
+        _gh_pr_view,
+        fetch_review_threads,
+        gh_pr_checks,
+        gh_required_check_contexts,
+        include_missing_required_checks,
+    ) -> None:
+        result = author_result()
+        result["facts"]["author_action_review_thread_urls"] = []
+        result["facts"]["ci_failing_count"] = 1
+
+        for checks, expected in (
+            ([{"bucket": "fail"}], True),
+            ([{"bucket": "cancel"}], True),
+            ([{"bucket": "pass"}], False),
+            (None, False),
+        ):
+            with self.subTest(checks=checks):
+                include_missing_required_checks.return_value = checks
+
+                self.assertEqual(
+                    expected,
+                    process_author_follow_ups.current_author_route(
+                        "open-telemetry/example",
+                        1,
+                        result,
+                    ),
+                )
+
+        fetch_review_threads.assert_not_called()
+        gh_pr_checks.assert_called_with("open-telemetry/example", "PR_id")
+        gh_required_check_contexts.assert_called_with(
+            "open-telemetry/example",
+            "main",
+        )
+
     @patch.object(
         process_author_follow_ups,
         "gh_pr_view",
