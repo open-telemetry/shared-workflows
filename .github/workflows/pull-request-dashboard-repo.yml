@@ -158,7 +158,6 @@ jobs:
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ inputs.repository }}
-          permission-issues: write
           permission-pull-requests: write
 
       - name: Update PR status comment
