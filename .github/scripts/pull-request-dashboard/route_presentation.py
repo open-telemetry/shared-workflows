@@ -4,27 +4,33 @@ from __future__ import annotations
 ROUTE_PRESENTATION = {
     "maintainer": {
         "dashboard_label": "Waiting on maintainers",
-        "status": "Waiting on maintainers to merge the pull request.",
+        "status_waiting_on": "Maintainers",
+        "status_next_step": "Merge when ready.",
     },
     "approver": {
         "dashboard_label": "Waiting on reviewers",
-        "status": "Waiting on reviewers to review the latest changes.",
+        "status_waiting_on": "Reviewers",
+        "status_next_step": "Review the latest changes.",
     },
     "author": {
         "dashboard_label": "Waiting on authors",
-        "status": "Waiting on {author} to address or respond to review feedback.",
+        "status_waiting_on": "Author",
+        "status_next_step": "Address or respond to review feedback.",
     },
     "external": {
         "dashboard_label": "Waiting on external",
-        "status": "Waiting on an external dependency or decision.",
+        "status_waiting_on": "An external dependency or decision",
+        "status_next_step": "Resolve it before work can continue.",
     },
     "transient-failure": {
         "dashboard_label": "Transient GitHub failure retrieving PR data",
-        "status": "Waiting on dashboard maintainers to determine the next action.",
+        "status_waiting_on": "Pull request dashboard maintainers",
+        "status_next_step": "Determine the next action.",
     },
     "unknown": {
         "dashboard_label": "Unknown",
-        "status": "Waiting on dashboard maintainers to determine the next action.",
+        "status_waiting_on": "Pull request dashboard maintainers",
+        "status_next_step": "Determine the next action.",
     },
 }
 ROUTE_ORDER = list(ROUTE_PRESENTATION)
@@ -34,6 +40,9 @@ def route_label(route: str) -> str:
     return ROUTE_PRESENTATION.get(route, ROUTE_PRESENTATION["unknown"])["dashboard_label"]
 
 
-def route_status(route: str, author: str = "the author") -> str:
-    template = ROUTE_PRESENTATION.get(route, ROUTE_PRESENTATION["unknown"])["status"]
-    return template.format(author=author)
+def route_status_summary(route: str) -> tuple[str, str]:
+    presentation = ROUTE_PRESENTATION.get(route, ROUTE_PRESENTATION["unknown"])
+    return (
+        presentation["status_waiting_on"],
+        presentation["status_next_step"],
+    )

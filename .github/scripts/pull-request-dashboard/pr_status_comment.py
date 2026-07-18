@@ -17,7 +17,7 @@ from github_cli import (
     repo_state_key,
     run_gh,
 )
-from route_presentation import route_status
+from route_presentation import route_status_summary
 from state import (
     load_dashboard_state_cache,
     load_status_comment_rollout_state,
@@ -31,12 +31,12 @@ import state_branch
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 1
+STATUS_COMMENT_REVISION = 2
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 AUTHOR_GUIDANCE = (
-    "Please give each review feedback item a clear outcome: link to the commit that addresses it, "
-    "explain why no change is needed, or ask a follow-up question."
+    "For each item, link to the commit that addresses it, explain why no change is needed, "
+    "or ask a follow-up question."
 )
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 # Remove after migrating open PRs as described by the post-rollout
@@ -47,101 +47,135 @@ LEGACY_MARKERS = (
 )
 
 
-def author_mention(author: str) -> str:
-    return f"@{author}" if author != "the author" else author
-
-
 def render_status_comment(
     pr: dict[str, Any],
     result: dict[str, Any] | None,
 ) -> str:
-    author = ((pr.get("user") or {}).get("login") or "").strip() or "the author"
     state = (pr.get("state") or "").lower()
-    terminal = bool(pr.get("merged")) or state == "closed"
+    facts = (result or {}).get("facts") or {}
+    review_thread_urls = facts.get("author_action_review_thread_urls") or []
+    top_level_feedback_urls = facts.get("author_action_top_level_feedback_urls") or []
+    feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
+    failing_count = facts.get("ci_failing_count", 0)
+
+    feedback_indent: str | None = None
 
     if pr.get("merged"):
-        status = "This pull request has been merged."
+        summary = ["- **Status:** Merged."]
     elif state == "closed":
-        status = "This pull request has been closed."
+        summary = ["- **Status:** Closed."]
     elif pr.get("draft"):
-        status = f"Waiting on {author_mention(author)} to mark this pull request ready for review."
+        summary = [
+            "- **Waiting on:** Author",
+            "- **Next step:** Move out of draft to request review.",
+        ]
     elif result is None:
-        status = "Waiting for the dashboard to finish refreshing this pull request."
+        summary = [
+            "- **Waiting on:** Pull request dashboard",
+            "- **Next step:** Finish refreshing this pull request.",
+        ]
     else:
-        facts = result.get("facts") or {}
         route = result.get("route") or "unknown"
-        effective_author = (facts.get("author") or author).strip()
-        mention = author_mention(effective_author)
-        failing_count = facts.get("ci_failing_count", 0)
-        if route == "author" and failing_count > 0:
-            check_action = (
-                "fix the failing required status check"
-                if failing_count == 1
-                else "fix failing required status checks"
-            )
-            has_review_feedback = bool(
-                facts.get("author_action_review_thread_urls")
-                or facts.get("author_action_top_level_feedback_urls")
-            )
-            if has_review_feedback:
-                check_action += " and address or respond to review feedback"
-            status = f"Waiting on {mention} to {check_action}."
-        else:
-            status = route_status(route, mention)
-            if failing_count > 0:
-                check_subject = (
-                    "A required status check is"
+        if route == "author":
+            waiting_on, fallback_next_step = route_status_summary(route)
+            check_action = None
+            if failing_count:
+                check_action = (
+                    "Investigate the failing required status check"
                     if failing_count == 1
-                    else "Required status checks are"
+                    else "Investigate the failing required status checks"
                 )
-                status += f" {check_subject} also failing."
+            noun = "item" if feedback_count == 1 else "items"
+            feedback_action = f"Address or respond to {feedback_count} review feedback {noun}:"
+            if check_action and feedback_count:
+                summary = [
+                    f"- **Waiting on:** {waiting_on}",
+                    "- **Next steps:**",
+                    f"  - {check_action}.",
+                    f"  - {feedback_action}",
+                ]
+                feedback_indent = "    "
+            elif feedback_count:
+                summary = [
+                    f"- **Waiting on:** {waiting_on}",
+                    f"- **Next step:** {feedback_action}",
+                ]
+                feedback_indent = "  "
+            elif check_action:
+                summary = [
+                    f"- **Waiting on:** {waiting_on}",
+                    f"- **Next step:** {check_action}.",
+                ]
+            else:
+                summary = [
+                    f"- **Waiting on:** {waiting_on}",
+                    f"- **Next step:** {fallback_next_step}",
+                ]
+        else:
+            waiting_on, next_step = route_status_summary(route)
+            summary = [
+                f"- **Waiting on:** {waiting_on}",
+                f"- **Next step:** {next_step}",
+            ]
+            if failing_count:
+                check_summary = (
+                    "1 required status check is failing."
+                    if failing_count == 1
+                    else f"{failing_count} required status checks are failing."
+                )
+                summary.append(f"- **Also blocked by:** {check_summary}")
 
     lines = [
         STATUS_MARKER,
         f"<!-- pull-request-dashboard-status-revision:{STATUS_COMMENT_REVISION} -->",
         "## Pull request dashboard status",
         "",
-        f"**Status:** {status}",
+        *summary,
     ]
 
-    if not terminal and result and result.get("route") == "author":
-        facts = result.get("facts") or {}
-        feedback_sections = (
-            (
-                "Unresolved inline review threads waiting on the author:",
-                "Thread",
-                "inline review thread",
-                "inline review threads",
-                facts.get("author_action_review_thread_urls") or [],
-            ),
-            (
-                "Top-level feedback waiting on the author:",
-                "Feedback",
-                "top-level feedback item",
-                "top-level feedback items",
-                facts.get("author_action_top_level_feedback_urls") or [],
-            ),
-        )
-        remaining_limit = AUTHOR_ACTION_FEEDBACK_LINK_LIMIT
-        for heading, label, singular, plural, urls in feedback_sections:
-            if not urls:
-                continue
-            lines.extend(["", heading])
-            displayed_urls = urls[:remaining_limit]
-            lines.extend(
-                f"- [{label} {index}]({url})"
-                for index, url in enumerate(displayed_urls, start=1)
+    if feedback_indent is not None and feedback_count:
+        lines.extend(
+            feedback_breakdown_lines(
+                review_thread_urls,
+                top_level_feedback_urls,
+                feedback_indent,
             )
-            remaining_count = len(urls) - len(displayed_urls)
-            if remaining_count:
-                noun = singular if remaining_count == 1 else plural
-                lines.append(f"- {remaining_count} more {noun} not shown")
-            remaining_limit -= len(displayed_urls)
-
-    if not terminal and result and result.get("route") == "author":
-        lines.extend(["", AUTHOR_GUIDANCE])
+        )
     lines.append("")
     return "\n".join(lines)
+
+
+def feedback_breakdown_lines(
+    review_thread_urls: list[str],
+    top_level_feedback_urls: list[str],
+    indent: str,
+) -> list[str]:
+    feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
+    sections = (
+        ("Inline threads", review_thread_urls),
+        ("Top-level feedback", top_level_feedback_urls),
+    )
+    lines: list[str] = []
+    remaining_limit = AUTHOR_ACTION_FEEDBACK_LINK_LIMIT
+    shown = 0
+    for label, urls in sections:
+        displayed_urls = urls[:remaining_limit]
+        if not displayed_urls:
+            continue
+        links = ", ".join(
+            f"[{index}]({url})"
+            for index, url in enumerate(displayed_urls, start=shown + 1)
+        )
+        lines.append(f"{indent}- **{label}:** {links}")
+        shown += len(displayed_urls)
+        remaining_limit -= len(displayed_urls)
+    if shown < feedback_count:
+        lines.append(
+            f"{indent}- _Showing {shown} of {feedback_count} feedback links; "
+            "resolve the remaining items from the pull request's conversation._"
+        )
+    lines.append(f"{indent}- _{AUTHOR_GUIDANCE}_")
+    return lines
 
 
 def managed_status_comments(repo: str, pr_number: int) -> list[dict[str, Any]]:
