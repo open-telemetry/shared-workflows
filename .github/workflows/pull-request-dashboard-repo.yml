@@ -180,8 +180,7 @@ jobs:
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ inputs.repository }}
-          permission-issues: write
-          permission-pull-requests: read
+          permission-pull-requests: write
 
       - name: Update PR status comment
         env:
@@ -275,7 +274,7 @@ jobs:
           repositories: ${{ inputs.repository }}
           permission-checks: read
           permission-issues: write
-          permission-pull-requests: ${{ inputs.pr_number == '' && inputs.stale_waiting_on_author && 'write' || 'read' }}
+          permission-pull-requests: ${{ inputs.pr_number == '' && 'write' || 'read' }}
 
       - name: Process author follow-ups
         env:
