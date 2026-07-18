@@ -761,7 +761,7 @@ def top_level_author_comment_outcomes(
     return outcomes
 
 
-def first_top_level_author_comment_outcome(
+def first_external_top_level_author_comment_outcome(
     root_timestamp: str,
     events: list[dict[str, Any]],
     outcomes: dict[int, dict[str, str]] | None,
@@ -776,7 +776,7 @@ def first_top_level_author_comment_outcome(
             event.get("kind") == "issue-comment"
             and event.get("actor_role") == "author"
             and timestamp > root_timestamp
-            and outcome is not None
+            and (outcome or {}).get("action") == "external"
         ):
             return outcome
     return None
@@ -993,7 +993,9 @@ def advance_top_level_actions(
                 )
         if evidence.get("reply"):
             continue
-        reply_outcome = first_top_level_author_comment_outcome(root_timestamp, events, reply_outcomes)
+        reply_outcome = first_external_top_level_author_comment_outcome(
+            root_timestamp, events, reply_outcomes
+        )
         if reply_outcome is not None and reply_outcome.get("action") == "external":
             pending_actions[discussion["discussion_id"]] = {
                 "action": "external",

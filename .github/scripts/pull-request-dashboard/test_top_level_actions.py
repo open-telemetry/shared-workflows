@@ -1100,6 +1100,61 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertNotIn("dependency", history)
 
+    def test_later_external_reply_supersedes_author_self_deferral(self) -> None:
+        discussion = top_level_item("dependency")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T02:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T02:00:00Z",
+                body="I'll investigate this.",
+            ),
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=103,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="This is blocked on an upstream specification decision.",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            events,
+            {},
+            "author",
+            reply_outcomes=top_level_author_comment_outcomes(
+                author_comment_items,
+                [
+                    {
+                        "discussion_id": author_comment_items[0]["discussion_id"],
+                        "decision": {"discussion_action": "author"},
+                    },
+                    {
+                        "discussion_id": author_comment_items[1]["discussion_id"],
+                        "decision": {"discussion_action": "external"},
+                    },
+                ],
+            ),
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T03:00:00Z"},
+        )
+        self.assertNotIn("dependency", history)
+
     def test_non_content_updates_do_not_reopen_replied_to_feedback(self) -> None:
         events = normalize_events(
             {
