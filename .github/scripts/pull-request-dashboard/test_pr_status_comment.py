@@ -85,39 +85,6 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("  - Address or respond to 1 review feedback item:", body)
         self.assertIn("    - **Inline threads:** [1]", body)
 
-    def test_waiting_on_author_names_merge_conflicts(self) -> None:
-        body = pr_status_comment.render_status_comment(
-            self.pr(),
-            {
-                "route": "author",
-                "facts": {"author": "alice", "conflicts": "yes"},
-            },
-        )
-
-        self.assertIn("- **Waiting on:** Author", body)
-        self.assertIn("- **Next step:** Resolve the merge conflicts.", body)
-        self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
-
-    def test_waiting_on_author_combines_conflicts_and_review_feedback(self) -> None:
-        body = pr_status_comment.render_status_comment(
-            self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author": "alice",
-                    "conflicts": "yes",
-                    "author_action_review_thread_urls": [
-                        "https://github.com/open-telemetry/example/pull/1#discussion_r1",
-                    ],
-                },
-            },
-        )
-
-        self.assertIn("- **Next steps:**", body)
-        self.assertIn("  - Resolve the merge conflicts.", body)
-        self.assertIn("  - Address or respond to 1 review feedback item:", body)
-        self.assertIn("    - **Inline threads:** [1]", body)
-
     def test_non_author_routes_also_name_required_ci_failures(self) -> None:
         cases = (
             (

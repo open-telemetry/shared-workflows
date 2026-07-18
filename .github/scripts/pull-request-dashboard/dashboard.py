@@ -985,15 +985,12 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
     #   1. A required status check failure -> "author".
-    #   2. A merge conflict -> "author".
-    #   3. A discussion waiting on the author -> "author".
-    #   4. Otherwise a discussion waiting on something external -> "external".
-    #   5. If there are enough approvals and no inline or top-level feedback is
+    #   2. A discussion waiting on the author -> "author".
+    #   3. Otherwise a discussion waiting on something external -> "external".
+    #   4. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer or is unclear -> "maintainer".
-    #   6. Otherwise the PR is still waiting on approvers.
+    #   5. Otherwise the PR is still waiting on approvers.
     if facts.get("ci_failing_count", 0) > 0 and not is_maintenance_bot:
-        return "author"
-    if facts.get("conflicts") == "yes" and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
@@ -1029,8 +1026,6 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
             ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
             if ci_failing_since is not None:
                 return ci_failing_since, "ci_failure"
-            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
-        if facts.get("conflicts") == "yes":
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
         return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
     if route == "external":

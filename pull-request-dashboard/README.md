@@ -38,10 +38,6 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   to recent PR activity or PR creation time. Format: `<1m`, `Xm`, `Xh`, or
   `Xd`.
 
-A human-authored PR with merge conflicts is routed to the author until the
-conflicts are resolved, even when it would otherwise be waiting on reviewers or
-maintainers.
-
 ## How to opt in
 
 Open a pull request that adds your repository to [`.github/scripts/pull-request-dashboard/repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json):

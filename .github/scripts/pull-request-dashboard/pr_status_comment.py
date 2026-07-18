@@ -31,7 +31,7 @@ import state_branch
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 3
+STATUS_COMMENT_REVISION = 2
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 AUTHOR_GUIDANCE = (
@@ -78,39 +78,39 @@ def render_status_comment(
         route = result.get("route") or "unknown"
         if route == "author":
             waiting_on, fallback_next_step = route_status_summary(route)
-            actions: list[str] = []
+            check_action = None
             if failing_count:
                 check_action = (
                     "Investigate the failing required status check"
                     if failing_count == 1
                     else "Investigate the failing required status checks"
                 )
-                actions.append(f"{check_action}.")
-            if facts.get("conflicts") == "yes":
-                actions.append("Resolve the merge conflicts.")
-            if feedback_count:
-                noun = "item" if feedback_count == 1 else "items"
-                actions.append(
-                    f"Address or respond to {feedback_count} review feedback {noun}:"
-                )
-            if len(actions) > 1:
+            noun = "item" if feedback_count == 1 else "items"
+            feedback_action = f"Address or respond to {feedback_count} review feedback {noun}:"
+            if check_action and feedback_count:
                 summary = [
                     f"- **Waiting on:** {waiting_on}",
                     "- **Next steps:**",
-                    *(f"  - {action}" for action in actions),
+                    f"  - {check_action}.",
+                    f"  - {feedback_action}",
                 ]
-            elif actions:
+                feedback_indent = "    "
+            elif feedback_count:
                 summary = [
                     f"- **Waiting on:** {waiting_on}",
-                    f"- **Next step:** {actions[0]}",
+                    f"- **Next step:** {feedback_action}",
+                ]
+                feedback_indent = "  "
+            elif check_action:
+                summary = [
+                    f"- **Waiting on:** {waiting_on}",
+                    f"- **Next step:** {check_action}.",
                 ]
             else:
                 summary = [
                     f"- **Waiting on:** {waiting_on}",
                     f"- **Next step:** {fallback_next_step}",
                 ]
-            if feedback_count:
-                feedback_indent = "    " if len(actions) > 1 else "  "
         else:
             waiting_on, next_step = route_status_summary(route)
             summary = [

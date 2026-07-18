@@ -564,19 +564,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(facts["waiting_since"], "2026-07-14T01:00:00+00:00")
         self.assertEqual(facts["waiting_age_basis"], "oldest_pending_thread")
 
-    def test_merge_conflict_uses_author_activity_for_wait_age(self) -> None:
-        facts = {
-            "conflicts": "yes",
-            "last_author_activity_at": "2026-07-14T04:00:00Z",
-            "last_approver_activity_at": "2026-07-13T01:00:00Z",
-            "created_at": "2026-07-12T01:00:00Z",
-        }
-
-        add_wait_age_facts(facts, "author", {})
-
-        self.assertEqual(facts["waiting_since"], "2026-07-14T04:00:00+00:00")
-        self.assertEqual(facts["waiting_age_basis"], "last_author_activity")
-
     @patch("dashboard.build_pr_result")
     def test_dashboard_refresh_reuses_stored_top_level_history(self, build_result) -> None:
         build_result.return_value = None
@@ -1747,19 +1734,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(pending_actions, {})
         self.assertIn("evidence", top_level_history["code"])
         self.assertEqual(route_pr(facts, pending_actions, 1), "maintainer")
-
-    def test_merge_conflict_routes_human_author(self) -> None:
-        facts = {
-            "approval_count": 1,
-            "conflicts": "yes",
-            "is_maintenance_bot": False,
-        }
-
-        self.assertEqual(route_pr(facts, {}, 1), "author")
-
-        facts["is_maintenance_bot"] = True
-
-        self.assertEqual(route_pr(facts, {}, 1), "maintainer")
 
     def test_reviewer_activity_does_not_close_external_and_unclear_items(self) -> None:
         events = [
