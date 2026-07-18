@@ -384,6 +384,51 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
     @patch.object(
         process_author_follow_ups,
+        "fetch_pr_review_data",
+        return_value={"reviews": []},
+    )
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={"headRefOid": "reviewer-head"},
+    )
+    @patch.object(process_author_follow_ups, "gh_api")
+    def test_current_human_activity_uses_latest_human_commit_attribution(
+        self,
+        gh_api,
+        _gh_pr_view,
+        _fetch_pr_review_data,
+    ) -> None:
+        gh_api.side_effect = [
+            [],
+            [],
+            [
+                {"sha": "accepted-head"},
+                {
+                    "sha": "author-head",
+                    "author": {"login": "alice", "type": "User"},
+                },
+                {
+                    "sha": "reviewer-head",
+                    "author": {"login": "reviewer", "type": "User"},
+                },
+            ],
+        ]
+
+        activity, is_author = (
+            process_author_follow_ups.current_human_activity_with_author(
+                "open-telemetry/example",
+                1,
+                author_result(),
+                NOW,
+            )
+        )
+
+        self.assertEqual(activity, NOW)
+        self.assertFalse(is_author)
+
+    @patch.object(
+        process_author_follow_ups,
         "load_author_follow_ups",
         return_value={"1": {"stale_label_owned": False}},
     )
