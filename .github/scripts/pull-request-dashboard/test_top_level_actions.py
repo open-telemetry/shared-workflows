@@ -493,6 +493,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             123,
             "model",
             1,
+            [],
             {
                 "prs": {
                     "123": {

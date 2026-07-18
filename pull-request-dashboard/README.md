@@ -48,6 +48,7 @@ Open a pull request that adds your repository to [`.github/scripts/pull-request-
     "name": "example-repo",
     "approver_teams": ["example-approvers"],
     "required_approvals": 1,
+    "non_blocking_check_patterns": ["markdown-link-check / link-check", "codecov/project*"],
     "slack_channel": "#example-maintainers",
     "slack_user_mapping": {
       "octocat": "U0123456789"
@@ -63,6 +64,7 @@ Fields:
 | `name` | yes | Name of the repository under `open-telemetry`. |
 | `approver_teams` | yes | GitHub team slugs whose members count as approvers. |
 | `required_approvals` | yes | Number of approvals required for an open PR to be marked ready to merge. |
+| `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment when required checks are also failing. Matching checks remain informational and do not affect routing or the dashboard CI column. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
@@ -151,9 +153,11 @@ to request review.
 A failing required status check routes a human-authored PR to the author ahead
 of review and approval state. The live comment calls out required CI failures
 explicitly and combines that reason with review feedback when both need author
-action. Optional check failures do not affect routing. Maintenance-bot PRs keep
-their maintainer-oriented routing because the bot cannot act on a dashboard
-request.
+action. When a repository configures `non_blocking_check_patterns`, matching
+failed checks are named in a note alongside the required-check action so
+authors can distinguish them from failures that block merging. Optional check
+failures do not affect routing. Maintenance-bot PRs keep their
+maintainer-oriented routing because the bot cannot act on a dashboard request.
 
 A hidden marker lets the workflow update the comment in place and upgrade
 existing one-time guidance comments rather than creating duplicates. Status

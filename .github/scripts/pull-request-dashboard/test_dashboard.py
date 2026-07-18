@@ -254,6 +254,9 @@ class RequiredCiRoutingTest(unittest.TestCase):
                             "mergeable": "MERGEABLE",
                         },
                         "checks": [{"state": state, "bucket": bucket}],
+                        "non_blocking_check_failures": [
+                            {"name": "workflow-notification", "bucket": "fail"},
+                        ],
                     },
                     "author",
                     [],
@@ -261,6 +264,10 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
                 self.assertEqual(failing, facts["ci_failing_count"])
                 self.assertEqual(pending, facts["ci_pending_count"])
+                self.assertEqual(
+                    ["workflow-notification"],
+                    facts["non_blocking_check_failures"],
+                )
                 self.assertEqual(route, route_pr(facts, {}, 1))
 
     def test_required_ci_failure_routes_to_author_before_approval_state(self) -> None:
@@ -341,6 +348,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             state_branch="state",
             model="model",
             required_approvals=1,
+            non_blocking_check_pattern=[],
         )
         dashboard_state = {
             "initial_backfill_complete": False,
@@ -361,7 +369,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
         def build_update(*call_args) -> DashboardUpdate:
             pr_number = call_args[5]
-            starting_state = call_args[8]
+            starting_state = call_args[9]
             refreshed_pr_numbers.append(pr_number)
             result = {
                 "pr_number": pr_number,

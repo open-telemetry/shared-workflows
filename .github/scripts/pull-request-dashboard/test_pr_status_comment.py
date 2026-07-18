@@ -85,6 +85,41 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("  - Address or respond to 1 review feedback item:", body)
         self.assertIn("    - **Inline threads:** [1]", body)
 
+    def test_required_ci_action_notes_configured_non_blocking_failures(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "ci_failing_count": 2,
+                    "non_blocking_check_failures": [
+                        "CodeQL",
+                        "workflow-notification",
+                    ],
+                },
+            },
+        )
+
+        self.assertIn(
+            "- **Next step:** Investigate the failing required status checks. "
+            "Note: CodeQL and workflow-notification are failing but are not required.",
+            body,
+        )
+
+    def test_non_blocking_failures_do_not_create_a_standalone_action(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "approver",
+                "facts": {
+                    "non_blocking_check_failures": ["workflow-notification"],
+                },
+            },
+        )
+
+        self.assertIn("- **Waiting on:** Reviewers", body)
+        self.assertNotIn("workflow-notification", body)
+
     def test_non_author_routes_also_name_required_ci_failures(self) -> None:
         cases = (
             (

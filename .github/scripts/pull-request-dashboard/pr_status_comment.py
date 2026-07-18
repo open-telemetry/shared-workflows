@@ -31,7 +31,7 @@ import state_branch
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 2
+STATUS_COMMENT_REVISION = 3
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 AUTHOR_GUIDANCE = (
@@ -57,6 +57,7 @@ def render_status_comment(
     top_level_feedback_urls = facts.get("author_action_top_level_feedback_urls") or []
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
     failing_count = facts.get("ci_failing_count", 0)
+    non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
 
     feedback_indent: str | None = None
 
@@ -85,13 +86,20 @@ def render_status_comment(
                     if failing_count == 1
                     else "Investigate the failing required status checks"
                 )
+                check_action += "."
+                if non_blocking_check_failures:
+                    names = format_list(non_blocking_check_failures)
+                    verb = "is" if len(non_blocking_check_failures) == 1 else "are"
+                    check_action += (
+                        f" Note: {names} {verb} failing but {verb} not required."
+                    )
             noun = "item" if feedback_count == 1 else "items"
             feedback_action = f"Address or respond to {feedback_count} review feedback {noun}:"
             if check_action and feedback_count:
                 summary = [
                     f"- **Waiting on:** {waiting_on}",
                     "- **Next steps:**",
-                    f"  - {check_action}.",
+                    f"  - {check_action}",
                     f"  - {feedback_action}",
                 ]
                 feedback_indent = "    "
@@ -104,7 +112,7 @@ def render_status_comment(
             elif check_action:
                 summary = [
                     f"- **Waiting on:** {waiting_on}",
-                    f"- **Next step:** {check_action}.",
+                    f"- **Next step:** {check_action}",
                 ]
             else:
                 summary = [
@@ -143,6 +151,14 @@ def render_status_comment(
         )
     lines.append("")
     return "\n".join(lines)
+
+
+def format_list(values: list[str]) -> str:
+    if len(values) == 1:
+        return values[0]
+    if len(values) == 2:
+        return f"{values[0]} and {values[1]}"
+    return f"{', '.join(values[:-1])}, and {values[-1]}"
 
 
 def feedback_breakdown_lines(
