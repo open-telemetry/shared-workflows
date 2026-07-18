@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 from github_cli import (
     detect_repo,
@@ -31,9 +32,10 @@ import state_branch
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 2
+STATUS_COMMENT_REVISION = 3
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
+STATUS_REPORT_ISSUE_URL = "https://github.com/open-telemetry/shared-workflows/issues/new"
 AUTHOR_GUIDANCE = (
     "For each item, link to the commit that addresses it, explain why no change is needed, "
     "or ask a follow-up question."
@@ -45,6 +47,21 @@ LEGACY_MARKERS = (
     "<!-- review-guidance -->",
     "<!-- copilot-review-guidance -->",
 )
+
+
+def accuracy_note(pr: dict[str, Any]) -> str:
+    report_url = f"{STATUS_REPORT_ISSUE_URL}?{urlencode({
+        'title': 'PR dashboard status looks incorrect',
+        'body': (
+            f"PR: {pr.get('html_url') or ''}\n\n"
+            "Expected status:\n\n"
+            "Why the current status looks incorrect:\n"
+        ),
+    })}"
+    return (
+        "_This automated status may be incorrect. If it looks wrong, "
+        f"[report it]({report_url}) with the status you expected._"
+    )
 
 
 def render_status_comment(
@@ -141,6 +158,8 @@ def render_status_comment(
                 feedback_indent,
             )
         )
+    lines.append("")
+    lines.append(accuracy_note(pr))
     lines.append("")
     return "\n".join(lines)
 
