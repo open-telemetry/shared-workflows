@@ -169,15 +169,18 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         gh_api.side_effect = [
             [],
             [],
-            [{
-                "sha": "new-head",
-                "author": {"login": "alice"},
-                "committer": {"login": "alice"},
-                "commit": {
-                    "author": {"date": "2020-01-01T00:00:00Z"},
-                    "committer": {"date": "2020-01-01T00:00:00Z"},
+            [
+                {"sha": "accepted-head"},
+                {
+                    "sha": "new-head",
+                    "author": {"login": "alice"},
+                    "committer": {"login": "alice"},
+                    "commit": {
+                        "author": {"date": "2020-01-01T00:00:00Z"},
+                        "committer": {"date": "2020-01-01T00:00:00Z"},
+                    },
                 },
-            }],
+            ],
         ]
 
         activity = process_author_follow_ups.current_human_activity(
@@ -209,15 +212,18 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         gh_api.side_effect = [
             [],
             [],
-            [{
-                "sha": "new-head",
-                "author": {"login": "reviewer", "type": "User"},
-                "committer": {"login": "web-flow", "type": "User"},
-                "commit": {
-                    "author": {"date": "2020-01-01T00:00:00Z"},
-                    "committer": {"date": "2020-01-01T00:00:00Z"},
+            [
+                {"sha": "accepted-head"},
+                {
+                    "sha": "new-head",
+                    "author": {"login": "reviewer", "type": "User"},
+                    "committer": {"login": "web-flow", "type": "User"},
+                    "commit": {
+                        "author": {"date": "2020-01-01T00:00:00Z"},
+                        "committer": {"date": "2020-01-01T00:00:00Z"},
+                    },
                 },
-            }],
+            ],
         ]
 
         activity = process_author_follow_ups.current_human_activity(
@@ -251,11 +257,14 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
                 gh_api.side_effect = [
                     [],
                     [],
-                    [{
-                        "sha": "new-head",
-                        "author": {"login": "automation[bot]", "type": "Bot"},
-                        "committer": {"login": committer, "type": "User"},
-                    }],
+                    [
+                        {"sha": "accepted-head"},
+                        {
+                            "sha": "new-head",
+                            "author": {"login": "automation[bot]", "type": "Bot"},
+                            "committer": {"login": committer, "type": "User"},
+                        },
+                    ],
                 ]
 
                 activity = process_author_follow_ups.current_human_activity(
@@ -266,6 +275,48 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
                 )
 
                 self.assertIsNone(activity)
+
+    @patch.object(
+        process_author_follow_ups,
+        "fetch_pr_review_data",
+        return_value={"reviews": []},
+    )
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={"headRefOid": "bot-head"},
+    )
+    @patch.object(process_author_follow_ups, "gh_api")
+    def test_current_human_activity_observes_human_commit_before_bot_tip(
+        self,
+        gh_api,
+        _gh_pr_view,
+        _fetch_pr_review_data,
+    ) -> None:
+        gh_api.side_effect = [
+            [],
+            [],
+            [
+                {"sha": "accepted-head"},
+                {
+                    "sha": "human-head",
+                    "author": {"login": "reviewer", "type": "User"},
+                },
+                {
+                    "sha": "bot-head",
+                    "author": {"login": "automation[bot]", "type": "Bot"},
+                },
+            ],
+        ]
+
+        activity = process_author_follow_ups.current_human_activity(
+            "open-telemetry/example",
+            1,
+            author_result(),
+            NOW,
+        )
+
+        self.assertEqual(activity, NOW)
 
     @patch.object(
         process_author_follow_ups,

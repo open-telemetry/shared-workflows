@@ -197,7 +197,15 @@ from state import (
     update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import actor_login, format_ts, is_human_commit_actor, parse_ts, truncate, utc_now
+from utils import (
+    actor_login,
+    commit_delta,
+    format_ts,
+    is_human_commit_actor,
+    parse_ts,
+    truncate,
+    utc_now,
+)
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
@@ -535,26 +543,21 @@ def add_human_head_observation(
     author_head_observed_at = parse_ts(
         previous_facts.get("author_head_observed_at") or ""
     )
-    head_commit = next(
-        (
-            commit
-            for commit in reversed(raw["commits"])
-            if str(commit.get("sha") or "") == head_sha
-        ),
-        None,
-    )
-    if previous_head_sha and head_sha != previous_head_sha and head_commit:
-        is_human_head = any(
-            is_human_commit_actor(head_commit.get(field))
+    if previous_head_sha and head_sha != previous_head_sha:
+        new_commits = commit_delta(raw["commits"], previous_head_sha, head_sha)
+        has_human_commit = new_commits is None or any(
+            is_human_commit_actor(commit.get(field))
+            for commit in new_commits
             for field in ("committer", "author")
         )
-        if is_human_head:
+        if has_human_commit:
             human_head_observed_at = observed_at
-            head_logins = {
-                actor_login(head_commit.get(field)).lower()
-                for field in ("committer", "author")
-            }
-            if author.lower() in head_logins:
+        if new_commits is not None and any(
+            is_human_commit_actor(commit.get(field))
+            and actor_login(commit.get(field)).lower() == author.lower()
+            for commit in new_commits
+            for field in ("committer", "author")
+        ):
                 author_head_observed_at = observed_at
 
     facts["head_sha"] = head_sha

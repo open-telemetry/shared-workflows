@@ -101,7 +101,10 @@ the implementation understandable and operationally cheap.
   change. This includes a reviewer helping by pushing to the author's branch,
   while bot-only changes remain excluded. Generic commit identities such as
   `web-flow` and bare `copilot` are neutral and require another human-linked
-  author or committer. An
+  author or committer. Every commit between the previously accepted and current
+  heads is inspected, so a later bot commit cannot hide an intervening human
+  push. If that delta cannot be established, the change is treated
+  conservatively as human activity without attributing it to the author. An
   author-attributed head change also records a separate observation timestamp
   for the handoff nudge; a later reviewer head change counts as the human
   response that ends that handoff candidate. Closure also compares the live head

@@ -34,7 +34,7 @@ from state import (
     set_state_dir,
 )
 import state_branch
-from utils import format_ts, is_human_commit_actor, parse_ts, utc_now
+from utils import commit_delta, format_ts, is_human_commit_actor, parse_ts, utc_now
 
 
 HANDOFF_NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-handoff-nudge:"
@@ -199,20 +199,13 @@ def current_human_activity(
     accepted_head_sha = str((result.get("facts") or {}).get("head_sha") or "")
     current_head_sha = str(current_pr.get("headRefOid") or "")
     if accepted_head_sha and current_head_sha != accepted_head_sha:
-        head_commit = next(
-            (
-                commit
-                for commit in reversed(commits)
-                if str(commit.get("sha") or "") == current_head_sha
-            ),
-            None,
-        )
-        if head_commit:
-            if any(
-                is_human_commit_actor(head_commit.get(field))
-                for field in ("committer", "author")
-            ):
-                timestamps.append(now)
+        new_commits = commit_delta(commits, accepted_head_sha, current_head_sha)
+        if new_commits is None or any(
+            is_human_commit_actor(commit.get(field))
+            for commit in new_commits
+            for field in ("committer", "author")
+        ):
+            timestamps.append(now)
     return max(timestamps, default=None)
 
 

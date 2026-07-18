@@ -62,6 +62,36 @@ def is_human_commit_actor(actor: dict[str, Any] | None) -> bool:
     )
 
 
+def commit_delta(
+    commits: list[dict[str, Any]],
+    previous_sha: str,
+    current_sha: str,
+) -> list[dict[str, Any]] | None:
+    previous_index = next(
+        (
+            index
+            for index, commit in enumerate(commits)
+            if str(commit.get("sha") or "") == previous_sha
+        ),
+        None,
+    )
+    current_index = next(
+        (
+            index
+            for index, commit in enumerate(commits)
+            if str(commit.get("sha") or "") == current_sha
+        ),
+        None,
+    )
+    if (
+        previous_index is None
+        or current_index is None
+        or previous_index >= current_index
+    ):
+        return None
+    return commits[previous_index + 1 : current_index + 1]
+
+
 def format_ts(ts: datetime | None) -> str:
     return ts.isoformat() if ts else ""
 

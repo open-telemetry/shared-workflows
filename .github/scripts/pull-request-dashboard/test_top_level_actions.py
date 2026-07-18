@@ -116,11 +116,14 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             facts,
             {
                 "pr": {"headRefOid": "new-head"},
-                "commits": [{
-                    "sha": "new-head",
-                    "author": {"login": "author"},
-                    "committer": {"login": "author"},
-                }],
+                "commits": [
+                    {"sha": "old-head"},
+                    {
+                        "sha": "new-head",
+                        "author": {"login": "author"},
+                        "committer": {"login": "author"},
+                    },
+                ],
             },
             "author",
             {"facts": {"head_sha": "old-head"}},
@@ -148,11 +151,14 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             facts,
             {
                 "pr": {"headRefOid": "new-head"},
-                "commits": [{
-                    "sha": "new-head",
-                    "author": {"login": "reviewer", "type": "User"},
-                    "committer": {"login": "web-flow", "type": "User"},
-                }],
+                "commits": [
+                    {"sha": "old-head"},
+                    {
+                        "sha": "new-head",
+                        "author": {"login": "reviewer", "type": "User"},
+                        "committer": {"login": "web-flow", "type": "User"},
+                    },
+                ],
             },
             "author",
             {"facts": {"head_sha": "old-head"}},
@@ -172,11 +178,14 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             facts,
             {
                 "pr": {"headRefOid": "new-head"},
-                "commits": [{
-                    "sha": "new-head",
-                    "author": {"login": "automation[bot]", "type": "Bot"},
-                    "committer": {"login": "automation[bot]", "type": "Bot"},
-                }],
+                "commits": [
+                    {"sha": "old-head"},
+                    {
+                        "sha": "new-head",
+                        "author": {"login": "automation[bot]", "type": "Bot"},
+                        "committer": {"login": "automation[bot]", "type": "Bot"},
+                    },
+                ],
             },
             "author",
             {"facts": {"head_sha": "old-head"}},
@@ -195,11 +204,14 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     facts,
                     {
                         "pr": {"headRefOid": "new-head"},
-                        "commits": [{
-                            "sha": "new-head",
-                            "author": {"login": "automation[bot]", "type": "Bot"},
-                            "committer": {"login": committer, "type": "User"},
-                        }],
+                        "commits": [
+                            {"sha": "old-head"},
+                            {
+                                "sha": "new-head",
+                                "author": {"login": "automation[bot]", "type": "Bot"},
+                                "committer": {"login": committer, "type": "User"},
+                            },
+                        ],
                     },
                     "author",
                     {"facts": {"head_sha": "old-head"}},
@@ -208,6 +220,33 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
                 self.assertEqual(facts["human_head_observed_at"], "")
                 self.assertEqual(facts["author_head_observed_at"], "")
+
+    def test_intervening_author_commit_is_observed_before_bot_tip(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-01T00:00:00+00:00"}
+
+        add_human_head_observation(
+            facts,
+            {
+                "pr": {"headRefOid": "bot-head"},
+                "commits": [
+                    {"sha": "old-head"},
+                    {
+                        "sha": "author-head",
+                        "author": {"login": "author", "type": "User"},
+                    },
+                    {
+                        "sha": "bot-head",
+                        "author": {"login": "automation[bot]", "type": "Bot"},
+                    },
+                ],
+            },
+            "author",
+            {"facts": {"head_sha": "old-head"}},
+            datetime(2026, 7, 17, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(facts["human_head_observed_at"], "2026-07-17T00:00:00+00:00")
+        self.assertEqual(facts["author_head_observed_at"], "2026-07-17T00:00:00+00:00")
 
     def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
         review_threads = [
