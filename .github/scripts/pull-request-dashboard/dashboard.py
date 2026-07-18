@@ -543,7 +543,7 @@ def compute_facts(
         check.get("name") or ""
         for check in raw.get("non_blocking_check_failures") or []
         if check.get("name")
-    }, key=str.casefold)
+    }, key=lambda name: (name.casefold(), name))
     if non_blocking_check_failures:
         facts["non_blocking_check_failures"] = non_blocking_check_failures
     return facts

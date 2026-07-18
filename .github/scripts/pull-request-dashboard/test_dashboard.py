@@ -231,6 +231,32 @@ class StatusCommentQueueTest(unittest.TestCase):
 
 
 class RequiredCiRoutingTest(unittest.TestCase):
+    def test_non_blocking_check_failures_use_deterministic_casefold_tiebreaker(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-14T03:00:00Z",
+                    "createdAt": "2026-07-14T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                },
+                "checks": [],
+                "non_blocking_check_failures": [
+                    {"name": "codeql", "bucket": "fail"},
+                    {"name": "CodeQL", "bucket": "fail"},
+                ],
+            },
+            "author",
+            [],
+        )
+
+        self.assertEqual(
+            ["CodeQL", "codeql"],
+            facts["non_blocking_check_failures"],
+        )
+
     def test_required_check_buckets_control_ci_facts_and_author_routing(self) -> None:
         cases = (
             ("TIMED_OUT", "fail", 1, 0, "author"),
