@@ -570,13 +570,21 @@ def add_human_head_observation(
         )
         if has_human_commit:
             human_head_observed_at = observed_at
-        if new_commits is not None and any(
-            is_human_commit_actor(commit.get(field))
-            and actor_login(commit.get(field)).lower() == author.lower()
-            for commit in new_commits
-            for field in ("committer", "author")
-        ):
-            author_head_observed_at = observed_at
+        if new_commits is not None:
+            for commit in reversed(new_commits):
+                if classify_commit(commit) == "bot":
+                    continue
+                human_actors = [
+                    commit.get(field)
+                    for field in ("committer", "author")
+                    if is_human_commit_actor(commit.get(field))
+                ]
+                if human_actors and all(
+                    actor_login(actor).lower() == author.lower()
+                    for actor in human_actors
+                ):
+                    author_head_observed_at = observed_at
+                break
 
     facts["head_sha"] = head_sha
     facts["human_head_observed_at"] = format_ts(human_head_observed_at)

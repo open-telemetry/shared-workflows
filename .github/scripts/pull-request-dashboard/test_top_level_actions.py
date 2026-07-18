@@ -283,6 +283,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     {
                         "sha": "bot-head",
                         "author": {"login": "automation[bot]", "type": "Bot"},
+                        "committer": {"login": "automation[bot]", "type": "Bot"},
                     },
                 ],
             },
@@ -293,6 +294,33 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertEqual(facts["human_head_observed_at"], "2026-07-17T00:00:00+00:00")
         self.assertEqual(facts["author_head_observed_at"], "2026-07-17T00:00:00+00:00")
+
+    def test_reviewer_commit_after_author_commit_clears_author_attribution(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-01T00:00:00+00:00"}
+
+        add_human_head_observation(
+            facts,
+            {
+                "pr": {"headRefOid": "reviewer-head"},
+                "commits": [
+                    {"sha": "old-head"},
+                    {
+                        "sha": "author-head",
+                        "author": {"login": "author", "type": "User"},
+                    },
+                    {
+                        "sha": "reviewer-head",
+                        "author": {"login": "reviewer", "type": "User"},
+                    },
+                ],
+            },
+            "author",
+            {"facts": {"head_sha": "old-head"}},
+            datetime(2026, 7, 17, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(facts["human_head_observed_at"], "2026-07-17T00:00:00+00:00")
+        self.assertEqual(facts["author_head_observed_at"], "")
 
     def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
         review_threads = [
