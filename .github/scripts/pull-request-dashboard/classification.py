@@ -643,12 +643,13 @@ def classify_top_level_items(
     return classifications_by_id
 
 
-def classify_discussion_domains(
+def classify_discussion_domains_with_author_replies(
     number: int,
     review_threads: list[dict[str, Any]],
     top_level_items: list[dict[str, Any]],
+    author_reply_items: list[dict[str, Any]],
     model: str,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     cache_in = load_classification_cache(number)
     cache_out: dict[str, dict[str, Any]] = {}
     review_thread_classifications = classify_review_threads(
@@ -657,8 +658,30 @@ def classify_discussion_domains(
     top_level_classifications = classify_top_level_items(
         number, top_level_items, model, cache_in, cache_out
     )
+    author_reply_classifications = classify_review_threads(
+        number, author_reply_items, model, cache_in, cache_out
+    )
     save_classification_cache(number, cache_out)
     return (
         [review_thread_classifications[thread["discussion_id"]] for thread in review_threads],
         [top_level_classifications[action["discussion_id"]] for action in top_level_items],
+        [author_reply_classifications[reply["discussion_id"]] for reply in author_reply_items],
     )
+
+
+def classify_discussion_domains(
+    number: int,
+    review_threads: list[dict[str, Any]],
+    top_level_items: list[dict[str, Any]],
+    model: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    review_thread_classifications, top_level_classifications, _ = (
+        classify_discussion_domains_with_author_replies(
+            number,
+            review_threads,
+            top_level_items,
+            [],
+            model,
+        )
+    )
+    return review_thread_classifications, top_level_classifications

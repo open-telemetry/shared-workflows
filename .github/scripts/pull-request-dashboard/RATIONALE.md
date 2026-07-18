@@ -198,9 +198,11 @@ the implementation understandable and operationally cheap.
   retains the evidence already observed for each item.
 - Evidence requirements are an all-of list for compound feedback. For example,
   a request to update code and the PR description waits for both a commit and a
-  description edit. A later explicit author reply always addresses the item,
-  regardless of the predicted kinds, because it can communicate pushback,
-  clarification, or another valid outcome that automation cannot infer.
+  description edit. A later completed author reply addresses the item regardless
+  of the predicted kinds because it can communicate pushback, clarification, or
+  another valid outcome that automation cannot infer. An author's explicit
+  commitment to future work in the current PR is a self-deferral, not a
+  completed reply, so the item continues waiting on the author.
 - Title edits use GitHub's `RenamedTitleEvent` pull request timeline items,
   including the event actor and creation time. They remain separate from
   description edits so compound requests can require either or both. The
@@ -212,9 +214,10 @@ the implementation understandable and operationally cheap.
   as non-failing unclear actions and are classified by later refreshes. This
   bounds both call count and prompt size without allowing one long-lived PR to
   monopolize the workflow or model quota.
-- Lifecycle transitions are deterministic. An ordinary new item waits on the
+- Lifecycle transitions are deterministic after feedback and author-reply
+  classification. An ordinary new item waits on the
   author with 📌 visible. Once all expected evidence is observed, or the author
-  explicitly replies, the item is addressed and the pin disappears. Normal
+  gives a completed reply, the item is addressed and the pin disappears. Normal
   approval-based routing then decides whether the PR waits on reviewers or
   maintainers; ordinary items do not have a separate requester-confirmation
   phase.

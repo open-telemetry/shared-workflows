@@ -11,6 +11,8 @@ from dashboard import (
     advance_top_level_actions,
     build_review_thread_pending_actions,
     build_dashboard_update_for_pr,
+    completed_author_reply_timestamps,
+    derive_author_reply_items,
     derive_top_level_items,
     normalize_events,
     requires_title_edit_lookup,
@@ -18,6 +20,7 @@ from dashboard import (
 )
 from classification import (
     classify_discussion_domains,
+    classify_discussion_domains_with_author_replies,
     discussion_prompt,
     parse_discussion_decision,
     run_llm_for_top_level_batch,
@@ -324,6 +327,48 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ["top-level"],
         )
         self.assertEqual(len(save_cache.call_args.args[1]), 2)
+
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_top_level_batch", return_value=[])
+    @patch("classification.run_llm_for_discussion")
+    def test_author_replies_use_discussion_classification_cache(
+        self,
+        run_discussion,
+        _run_batch,
+        _load_cache,
+        save_cache,
+    ) -> None:
+        run_discussion.side_effect = lambda discussion, _model: {
+            "discussion_id": discussion["discussion_id"],
+            "discussion_kind": discussion["discussion_kind"],
+            "failed": False,
+            "decision": {
+                "discussion_action": "author",
+                "reason": "Author deferred remaining work.",
+            },
+        }
+        author_reply = review_thread_discussion("author-reply")
+        author_reply["discussion_kind"] = "top-level-author-reply"
+
+        review_classifications, top_level_classifications, reply_classifications = (
+            classify_discussion_domains_with_author_replies(
+                123,
+                [],
+                [],
+                [author_reply],
+                "model",
+            )
+        )
+
+        self.assertEqual(review_classifications, [])
+        self.assertEqual(top_level_classifications, [])
+        self.assertEqual(reply_classifications[0]["discussion_id"], "author-reply")
+        self.assertEqual(
+            reply_classifications[0]["decision"]["discussion_action"],
+            "author",
+        )
+        self.assertEqual(len(save_cache.call_args.args[1]), 1)
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
@@ -819,6 +864,98 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"reply": "2026-07-14T03:00:00Z"},
         )
         self.assertEqual(top_level_history["reply"]["evidence"], {"reply": "2026-07-14T03:00:00Z"})
+
+    def test_author_self_deferral_does_not_close_top_level_feedback(self) -> None:
+        discussion = top_level_item("test-request")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="Thanks, I'll have time this week to test and validate.",
+            ),
+        ]
+        author_reply_items = derive_author_reply_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("test-request", "reply")],
+            events,
+            {},
+            "author",
+            {
+                "test-request": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                }
+            },
+            completed_author_replies=completed_author_reply_timestamps(
+                author_reply_items,
+                [
+                    {
+                        "discussion_id": author_reply_items[0]["discussion_id"],
+                        "decision": {
+                            "discussion_action": "author",
+                            "reason": "Author committed to future testing.",
+                        },
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(pending_actions["test-request"]["action"], "author")
+        self.assertNotIn("test-request", history)
+
+    def test_completed_author_reply_closes_top_level_feedback(self) -> None:
+        discussion = top_level_item("question")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="I tested this and confirmed it works.",
+            ),
+        ]
+        author_reply_items = derive_author_reply_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            events,
+            {},
+            "author",
+            completed_author_replies=completed_author_reply_timestamps(
+                author_reply_items,
+                [
+                    {
+                        "discussion_id": author_reply_items[0]["discussion_id"],
+                        "decision": {
+                            "discussion_action": "reviewer",
+                            "reason": "Author completed testing.",
+                        },
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"]["evidence"],
+            {"reply": "2026-07-14T03:00:00Z"},
+        )
 
     def test_non_content_updates_do_not_reopen_replied_to_feedback(self) -> None:
         events = normalize_events(

@@ -150,6 +150,7 @@ def render_diagnostics_section(
         if (
             results[number].get("review_thread_classifications")
             or results[number].get("top_level_classifications")
+            or results[number].get("author_reply_classifications")
             or results[number].get("error")
         )
     ]
@@ -164,6 +165,7 @@ def render_diagnostics_section(
         classifications = (
             (result.get("review_thread_classifications") or [])
             + (result.get("top_level_classifications") or [])
+            + (result.get("author_reply_classifications") or [])
         )
         for c in classifications:
             decision = c.get("decision") or {}
