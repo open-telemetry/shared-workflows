@@ -49,10 +49,20 @@ def author_result() -> dict[str, object]:
 
 
 class ProcessAuthorFollowUpsTest(unittest.TestCase):
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={
+            "state": "OPEN",
+            "isDraft": False,
+            "updatedAt": "2026-07-01T00:00:00Z",
+        },
+    )
     @patch.object(process_author_follow_ups, "fetch_review_threads")
     def test_current_author_route_requires_an_unresolved_author_thread(
         self,
         fetch_review_threads,
+        _gh_pr_view,
     ) -> None:
         expected_url = author_result()["facts"]["author_action_review_thread_urls"][0]
         fetch_review_threads.return_value = [{
@@ -66,6 +76,60 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             1,
             author_result(),
         ))
+
+    @patch.object(process_author_follow_ups, "fetch_review_threads", return_value=[])
+    @patch.object(process_author_follow_ups, "gh_pr_view")
+    def test_current_author_route_rejects_changed_top_level_metadata(
+        self,
+        gh_pr_view,
+        _fetch_review_threads,
+    ) -> None:
+        result = author_result()
+        result["facts"]["author_action_review_thread_urls"] = []
+        result["facts"]["author_action_top_level_feedback_urls"] = [
+            "https://github.com/open-telemetry/example/pull/1#pullrequestreview-1"
+        ]
+        result["facts"]["observed_at"] = "2026-07-17T00:00:00Z"
+        gh_pr_view.return_value = {
+            "state": "OPEN",
+            "isDraft": False,
+            "updatedAt": "2026-07-17T00:00:00Z",
+        }
+
+        self.assertFalse(process_author_follow_ups.current_author_route(
+            "open-telemetry/example",
+            1,
+            result,
+        ))
+
+    @patch.object(process_author_follow_ups, "fetch_review_threads", return_value=[])
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
+        return_value={
+            "state": "OPEN",
+            "isDraft": True,
+            "updatedAt": "2026-07-01T00:00:00Z",
+        },
+    )
+    def test_current_author_route_rejects_draft_pr(
+        self,
+        _gh_pr_view,
+        fetch_review_threads,
+    ) -> None:
+        result = author_result()
+        result["facts"]["author_action_review_thread_urls"] = []
+        result["facts"]["author_action_top_level_feedback_urls"] = [
+            "https://github.com/open-telemetry/example/pull/1#pullrequestreview-1"
+        ]
+        result["facts"]["observed_at"] = "2026-07-17T00:00:00Z"
+
+        self.assertFalse(process_author_follow_ups.current_author_route(
+            "open-telemetry/example",
+            1,
+            result,
+        ))
+        fetch_review_threads.assert_not_called()
 
     @patch.object(
         process_author_follow_ups,

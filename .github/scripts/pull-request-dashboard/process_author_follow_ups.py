@@ -243,8 +243,22 @@ def current_human_activity_with_author(
 
 def current_author_route(repo: str, pr_number: int, result: dict[str, Any]) -> bool:
     facts = result.get("facts") or {}
+    current_pr = gh_pr_view(repo, pr_number)
+    if (
+        str(current_pr.get("state") or "").upper() != "OPEN"
+        or current_pr.get("isDraft")
+    ):
+        return False
+
     top_level_urls = set(facts.get("author_action_top_level_feedback_urls") or [])
-    if top_level_urls:
+    observed_at = parse_ts(facts.get("observed_at") or "")
+    updated_at = parse_ts(current_pr.get("updatedAt") or "")
+    if (
+        top_level_urls
+        and observed_at is not None
+        and updated_at is not None
+        and updated_at < observed_at
+    ):
         return True
 
     expected_urls = set(facts.get("author_action_review_thread_urls") or [])
