@@ -104,6 +104,17 @@ def plan_follow_up(
     if waiting_since is None:
         return None, entry
 
+    stale_applied_at = parse_ts(entry.get("stale_applied_at") or "")
+    if stale_applied_at is not None:
+        human_activity = latest_human_activity(facts)
+        if not stale_enabled or (
+            human_activity is not None and human_activity > stale_applied_at
+        ):
+            entry["stale_applied_at"] = ""
+            if human_activity is not None and human_activity > stale_applied_at:
+                entry["stale_reset_at"] = format_ts(human_activity)
+            return "remove-stale", entry
+
     other_activity = latest_other_human_activity(facts)
     pending_handoff_since = parse_ts(entry.get("pending_handoff_since") or "")
     if (
@@ -142,18 +153,9 @@ def plan_follow_up(
         return "general-nudge", entry
 
     if not stale_enabled:
-        if entry.get("stale_applied_at"):
-            entry["stale_applied_at"] = ""
-            return "remove-stale", entry
         return None, entry
 
-    stale_applied_at = parse_ts(entry.get("stale_applied_at") or "")
     if stale_applied_at is not None:
-        human_activity = latest_human_activity(facts)
-        if human_activity is not None and human_activity > stale_applied_at:
-            entry["stale_applied_at"] = ""
-            entry["stale_reset_at"] = format_ts(human_activity)
-            return "remove-stale", entry
         if entry.get("stale_label_owned") and now - stale_applied_at >= STAGE_INTERVAL:
             return "close", entry
         return None, entry
