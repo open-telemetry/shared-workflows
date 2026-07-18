@@ -23,7 +23,10 @@
   {
     "name": "opentelemetry-java",
     "approver_teams": ["java-approvers"],
-    "non_blocking_check_patterns": ["markdown-link-check / link-check", "codecov/project*"],
+    "non_blocking_check_patterns": [
+      "markdown-link-check / link-check",
+      "codecov/*"
+    ],
     "slack_channel": "",
     "slack_user_mapping": {}
   },

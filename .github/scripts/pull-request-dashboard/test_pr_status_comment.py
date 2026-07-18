@@ -102,7 +102,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "- **Next step:** Investigate the failing required status checks. "
-            "Note: CodeQL and workflow-notification are failing but are not required.",
+            "Note: CodeQL and workflow-notification are failing but are not required checks.",
             body,
         )
 
@@ -123,7 +123,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "Note: \\[CodeQL\\] &lt;script&gt; &#64;maintainers and "
-            "pipe\\|slash\\\\check &amp; more are failing but are not required.",
+            "pipe\\|slash\\\\check &amp; more are failing but are not required checks.",
             body,
         )
 
@@ -157,19 +157,22 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertNotIn("check-19", body)
         self.assertNotIn("check-20", body)
 
-    def test_non_blocking_failures_do_not_create_a_standalone_action(self) -> None:
+    def test_non_author_route_names_non_blocking_failure(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
             {
                 "route": "approver",
                 "facts": {
-                    "non_blocking_check_failures": ["workflow-notification"],
+                    "non_blocking_check_failures": ["codecov/patch"],
                 },
             },
         )
 
         self.assertIn("- **Waiting on:** Reviewers", body)
-        self.assertNotIn("workflow-notification", body)
+        self.assertIn(
+            "- **Non-blocking check failure:** codecov/patch is failing but is not a required check.",
+            body,
+        )
 
     def test_non_author_routes_also_name_required_ci_failures(self) -> None:
         cases = (
@@ -178,19 +181,26 @@ class RenderStatusCommentTest(unittest.TestCase):
                 1,
                 "Maintainers",
                 ["CodeQL"],
-                "1 required status check is failing. "
-                "Note: CodeQL is failing but is not required.",
+                "1 required status check is failing.",
+                "- **Non-blocking check failure:** CodeQL is failing but is not a required check.",
             ),
             (
                 "approver",
                 2,
                 "Reviewers",
                 ["CodeQL", "workflow-notification"],
-                "2 required status checks are failing. "
-                "Note: CodeQL and workflow-notification are failing but are not required.",
+                "2 required status checks are failing.",
+                "- **Non-blocking check failures:** CodeQL and workflow-notification are failing but are not required checks.",
             ),
         )
-        for route, failing_count, waiting_on, non_blocking_failures, blocked_by in cases:
+        for (
+            route,
+            failing_count,
+            waiting_on,
+            non_blocking_failures,
+            blocked_by,
+            non_blocking_line,
+        ) in cases:
             with self.subTest(route=route):
                 body = pr_status_comment.render_status_comment(
                     self.pr(),
@@ -205,6 +215,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
                 self.assertIn(f"- **Waiting on:** {waiting_on}", body)
                 self.assertIn(f"- **Also blocked by:** {blocked_by}", body)
+                self.assertIn(non_blocking_line, body)
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
