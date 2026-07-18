@@ -546,7 +546,6 @@ def execute_action(
 def next_author_follow_ups(
     repo: str,
     results: dict[int, dict[str, Any]],
-    open_pr_numbers: set[int],
     previous_follow_ups: dict[str, Any],
     now: datetime,
     stale_enabled: bool,
@@ -635,7 +634,6 @@ def process_author_follow_ups(
         return 0
     prs = list_open_prs(repo)
     current_prs = {pr["number"]: pr for pr in prs}
-    open_pr_numbers = {pr["number"] for pr in prs}
     open_non_draft_numbers = {
         pr["number"] for pr in prs if not pr.get("isDraft")
     }
@@ -644,7 +642,6 @@ def process_author_follow_ups(
     updated = next_author_follow_ups(
         repo,
         results,
-        open_pr_numbers,
         previous,
         now,
         stale_enabled,

@@ -1054,7 +1054,6 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {},
-            set(),
             {"1": follow_up_entry(stale_label_owned=True)},
             NOW,
             stale_enabled=True,
@@ -1071,7 +1070,6 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {1: {"route": "approver", "facts": {}}},
-            {1},
             {
                 "1": follow_up_entry(
                     stale_applied_at="2026-07-10T00:00:00Z",
@@ -1093,7 +1091,6 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {1: author_result()},
-            {1},
             {
                 "1": follow_up_entry(
                     stale_applied_at="2026-07-10T00:00:00Z",
@@ -1116,7 +1113,6 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {1: {"failed": True, "route": "transient-failure", "facts": {}}},
-            {1},
             {"1": previous},
             NOW,
             stale_enabled=True,
@@ -1130,7 +1126,6 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {1: author_result()},
-            {1},
             {"1": previous},
             NOW,
             stale_enabled=True,
@@ -1151,7 +1146,6 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {1: author_result()},
-            {1},
             {"1": previous},
             NOW,
             stale_enabled=True,
@@ -1170,7 +1164,6 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {1: {"route": "approver", "facts": {}}},
-            {1},
             {
                 "1": follow_up_entry(
                     stale_applied_at="2026-07-10T00:00:00Z",
@@ -1193,7 +1186,6 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {1: author_result()},
-            {1},
             {"1": selected, "2": unselected},
             NOW,
             stale_enabled=True,
