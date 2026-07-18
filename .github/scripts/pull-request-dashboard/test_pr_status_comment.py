@@ -106,6 +106,27 @@ class RenderStatusCommentTest(unittest.TestCase):
             body,
         )
 
+    def test_required_ci_action_escapes_non_blocking_failure_names(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "non_blocking_check_failures": [
+                        "[CodeQL] <script>\n@maintainers",
+                        r"pipe|slash\check & more",
+                    ],
+                },
+            },
+        )
+
+        self.assertIn(
+            "Note: \\[CodeQL\\] &lt;script&gt; &#64;maintainers and "
+            "pipe\\|slash\\\\check &amp; more are failing but are not required.",
+            body,
+        )
+
     def test_non_blocking_failures_do_not_create_a_standalone_action(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

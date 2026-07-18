@@ -25,13 +25,14 @@ from state import (
     set_state_dir,
     status_comment_rollout_state_path,
 )
+from utils import markdown_escape
 import state_branch
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 4
+STATUS_COMMENT_REVISION = 5
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 AUTHOR_GUIDANCE = (
@@ -60,7 +61,9 @@ def render_status_comment(
     non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
     non_blocking_failure_note = ""
     if non_blocking_check_failures:
-        names = format_list(non_blocking_check_failures)
+        names = format_list([
+            markdown_escape(name) for name in non_blocking_check_failures
+        ])
         verb = "is" if len(non_blocking_check_failures) == 1 else "are"
         non_blocking_failure_note = (
             f" Note: {names} {verb} failing but {verb} not required."

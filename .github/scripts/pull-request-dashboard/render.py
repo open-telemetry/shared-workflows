@@ -4,23 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from route_presentation import ROUTE_ORDER, route_label
-from utils import actor_login, activity_age, parse_ts, seconds_since
-
-
-def _md_escape(s: str) -> str:
-    return (
-        (s or "")
-        .replace("\\", "\\\\")
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("|", "\\|")
-        .replace("[", "\\[")
-        .replace("]", "\\]")
-        .replace("@", "&#64;")
-        .replace("\n", " ")
-        .strip()
-    )
+from utils import actor_login, activity_age, markdown_escape, parse_ts, seconds_since
 
 
 def _limit_rows(rows: list[Any], max_rows: int | None) -> tuple[list[Any], int]:
@@ -48,7 +32,7 @@ def render_draft_pr_section(
     lines.append("|---|---|:---:|")
     for pr in drafts:
         number = pr["number"]
-        title = _md_escape(pr.get("title", ""))
+        title = markdown_escape(pr.get("title", ""))
         author = actor_login(pr.get("author") or {})
         updated = activity_age(parse_ts(pr.get("updatedAt") or ""))
         # GitHub autolinks same-repo PR numbers; avoid full URLs so large
@@ -128,7 +112,7 @@ def reviewers_cell_text(facts: dict[str, Any]) -> str:
     reviewers = facts.get("reviewers") or []
     parts = []
     for reviewer in reviewers:
-        login = _md_escape(reviewer_display_name(reviewer.get("login") or ""))
+        login = markdown_escape(reviewer_display_name(reviewer.get("login") or ""))
         if not login:
             continue
         icon = reviewer_icon(reviewer)
@@ -258,7 +242,7 @@ def render_pr_tables(
         out.append("|---|---|---|:---:|:---:|:---:|")
         for pr in rows:
             number = pr["number"]
-            title = _md_escape(pr.get("title", ""))
+            title = markdown_escape(pr.get("title", ""))
             res = results.get(number) or {}
             facts = res.get("facts") or {}
             author = facts.get("author") or actor_login(pr.get("author") or {})
