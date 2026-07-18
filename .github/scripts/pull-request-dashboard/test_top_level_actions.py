@@ -18,6 +18,7 @@ from dashboard import (
 )
 from classification import (
     classify_discussion_domains,
+    discussion_prompt,
     parse_discussion_decision,
     run_llm_for_top_level_batch,
     top_level_batch_prompt,
@@ -134,6 +135,29 @@ def top_level_items_from_raw(
 
 
 class TopLevelActionLedgerTest(unittest.TestCase):
+    def test_inline_prompt_treats_author_inability_as_completed_reply(self) -> None:
+        discussion = review_thread_discussion("inline")
+        discussion["comments"] = [
+            {
+                "timestamp": "2026-07-17T18:57:50Z",
+                "actor": "reviewer",
+                "actor_role": "approver",
+                "body": "any chance to make it deterministic without relying on sleep?",
+            },
+            {
+                "timestamp": "2026-07-17T20:56:50Z",
+                "actor": "author",
+                "actor_role": "author",
+                "body": "I couldn't find a good way",
+            },
+        ]
+
+        prompt = discussion_prompt(discussion)
+
+        self.assertIn("Require an explicit statement", prompt)
+        self.assertIn("I couldn't find a good way", prompt)
+        self.assertIn("is a completed reply and maps to reviewer", prompt)
+
     def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
         review_threads = [
             {

@@ -68,9 +68,15 @@ Guidance:
     comment is a self-deferral about work still required in this PR ("still
     working on it", "WIP", "I'll update this PR", "will fix this") rather
     than a question or completed reply, classify as author — they have not yet
-    handed the ball back. If the author answers the discussion while mentioning
-    separate follow-up work, treat that as a completed reply unless they say
-    the current PR is still waiting on that work.
+    handed the ball back. Require an explicit statement that the author intends
+    to continue work in the current PR; do not infer it merely because the
+    reviewer may disagree with the answer or the thread remains unresolved.
+    Author pushback or inability to find a requested alternative (for example,
+    "I couldn't find a good way", "I don't think this is needed", or "I'd
+    prefer the current approach") is a completed reply and maps to reviewer.
+    If the author answers the discussion while mentioning separate follow-up
+    work, treat that as a completed reply unless they say the current PR is
+    still waiting on that work.
   - A comment may include positive_reactors: participants who added a positive
     reaction to that comment. A positive reaction can acknowledge a completed
     reply, but it does not by itself mean no one has follow-up. For example,
