@@ -273,6 +273,7 @@ jobs:
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ inputs.repository }}
+          permission-checks: read
           permission-issues: write
           permission-pull-requests: ${{ inputs.pr_number == '' && inputs.stale_waiting_on_author && 'write' || 'read' }}
 
