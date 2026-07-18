@@ -101,14 +101,17 @@ the implementation understandable and operationally cheap.
   change. This includes a reviewer helping by pushing to the author's branch,
   while bot-only changes remain excluded. Generic commit identities such as
   `web-flow` and bare `copilot` are neutral and require another human-linked
-  author or committer. Every commit between the previously accepted and current
-  heads is inspected, so a later bot commit cannot hide an intervening human
-  push. If that delta cannot be established, the change is treated
-  conservatively as human activity without attributing it to the author. An
-  author-attributed head change also records a separate observation timestamp
-  for the handoff nudge; a later reviewer head change counts as the human
-  response that ends that handoff candidate. Closure also compares the live head
-  SHA with the accepted dashboard result to catch a push after the refresh.
+  author or committer. A commit with an unlinked author or committer identity is
+  treated conservatively as human activity without attributing it to the author;
+  only commits whose identities are positively identified as automation are
+  ignored. Every commit between the previously accepted and current heads is
+  inspected, so a later bot commit cannot hide an intervening human push. If
+  that delta cannot be established, the change receives the same conservative
+  treatment. An author-attributed head change also records a separate
+  observation timestamp for the handoff nudge; a later reviewer head change
+  counts as the human response that ends that handoff candidate. Closure also
+  compares the live head SHA with the accepted dashboard result to catch a push
+  after the refresh.
 - A non-PR run evaluates lifecycle actions only for PR results refreshed and
   accepted during that run. Older cached results remain available for dashboard
   rendering but cannot trigger nudges, stale labeling, or closure. Immediately

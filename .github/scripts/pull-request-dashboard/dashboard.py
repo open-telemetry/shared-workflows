@@ -206,6 +206,7 @@ from state import (
 import state_branch
 from utils import (
     actor_login,
+    classify_commit,
     commit_delta,
     format_ts,
     is_human_commit_actor,
@@ -564,9 +565,8 @@ def add_human_head_observation(
     if previous_head_sha and head_sha != previous_head_sha:
         new_commits = commit_delta(raw["commits"], previous_head_sha, head_sha)
         has_human_commit = new_commits is None or any(
-            is_human_commit_actor(commit.get(field))
+            classify_commit(commit) != "bot"
             for commit in new_commits
-            for field in ("committer", "author")
         )
         if has_human_commit:
             human_head_observed_at = observed_at
@@ -576,7 +576,7 @@ def add_human_head_observation(
             for commit in new_commits
             for field in ("committer", "author")
         ):
-                author_head_observed_at = observed_at
+            author_head_observed_at = observed_at
 
     facts["head_sha"] = head_sha
     facts["human_head_observed_at"] = format_ts(human_head_observed_at)

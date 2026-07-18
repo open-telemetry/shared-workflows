@@ -218,6 +218,29 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(facts["human_head_observed_at"], "")
         self.assertEqual(facts["author_head_observed_at"], "")
 
+    def test_unattributed_head_change_is_observed_conservatively(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-01T00:00:00+00:00"}
+
+        add_human_head_observation(
+            facts,
+            {
+                "pr": {"headRefOid": "new-head"},
+                "commits": [
+                    {"sha": "old-head"},
+                    {"sha": "new-head", "author": None, "committer": None},
+                ],
+            },
+            "author",
+            {"facts": {"head_sha": "old-head"}},
+            datetime(2026, 7, 17, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(
+            facts["human_head_observed_at"],
+            "2026-07-17T00:00:00+00:00",
+        )
+        self.assertEqual(facts["author_head_observed_at"], "")
+
     def test_neutral_committer_does_not_make_bot_head_human(self) -> None:
         for committer in ("web-flow", "copilot"):
             with self.subTest(committer=committer):

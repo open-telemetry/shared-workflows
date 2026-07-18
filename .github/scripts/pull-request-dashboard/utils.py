@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 
 DEFAULT_TRUNCATE_CHARS = 1200
@@ -49,17 +49,40 @@ def actor_login(obj: dict[str, Any] | None) -> str:
     return ((obj or {}).get("login") or "").strip()
 
 
-def is_human_commit_actor(actor: dict[str, Any] | None) -> bool:
+def classify_commit_actor(
+    actor: dict[str, Any] | None,
+) -> Literal["human", "bot", "unknown"]:
     actor = actor or {}
     login = actor_login(actor).lower()
+    if not login:
+        return "unknown"
     actor_type = actor.get("type") or actor.get("__typename")
-    return bool(
-        login
-        and actor_type != "Bot"
-        and not login.startswith("app/")
-        and not login.endswith("[bot]")
-        and login not in NEUTRAL_COMMIT_ACTOR_LOGINS
-    )
+    if (
+        actor_type == "Bot"
+        or login.startswith("app/")
+        or login.endswith("[bot]")
+        or login in NEUTRAL_COMMIT_ACTOR_LOGINS
+    ):
+        return "bot"
+    return "human"
+
+
+def is_human_commit_actor(actor: dict[str, Any] | None) -> bool:
+    return classify_commit_actor(actor) == "human"
+
+
+def classify_commit(
+    commit: dict[str, Any],
+) -> Literal["human", "bot", "unknown"]:
+    actor_kinds = {
+        classify_commit_actor(commit.get(field))
+        for field in ("committer", "author")
+    }
+    if "human" in actor_kinds:
+        return "human"
+    if "unknown" in actor_kinds:
+        return "unknown"
+    return "bot"
 
 
 def commit_delta(

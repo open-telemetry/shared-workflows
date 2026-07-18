@@ -34,7 +34,14 @@ from state import (
     set_state_dir,
 )
 import state_branch
-from utils import commit_delta, format_ts, is_human_commit_actor, parse_ts, utc_now
+from utils import (
+    classify_commit,
+    commit_delta,
+    format_ts,
+    is_human_commit_actor,
+    parse_ts,
+    utc_now,
+)
 
 
 HANDOFF_NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-handoff-nudge:"
@@ -217,20 +224,21 @@ def current_human_activity_with_author(
             activities.append((now, False))
         else:
             for commit in reversed(new_commits):
+                if classify_commit(commit) == "bot":
+                    continue
                 human_actors = [
                     commit.get(field)
                     for field in ("committer", "author")
                     if is_human_commit_actor(commit.get(field))
                 ]
-                if human_actors:
-                    activities.append((
-                        now,
-                        all(
-                            str((actor or {}).get("login") or "").lower() == author
-                            for actor in human_actors
-                        ),
-                    ))
-                    break
+                activities.append((
+                    now,
+                    bool(human_actors) and all(
+                        str((actor or {}).get("login") or "").lower() == author
+                        for actor in human_actors
+                    ),
+                ))
+                break
     if not activities:
         return None, False
     latest = max(timestamp for timestamp, _is_author in activities)

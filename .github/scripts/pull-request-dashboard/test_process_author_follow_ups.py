@@ -348,6 +348,44 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
     @patch.object(
         process_author_follow_ups,
         "gh_pr_view",
+        return_value={"headRefOid": "new-head"},
+    )
+    @patch.object(process_author_follow_ups, "gh_api")
+    def test_current_human_activity_observes_unattributed_push(
+        self,
+        gh_api,
+        _gh_pr_view,
+        _fetch_pr_review_data,
+    ) -> None:
+        gh_api.side_effect = [
+            [],
+            [],
+            [
+                {"sha": "accepted-head"},
+                {"sha": "new-head", "author": None, "committer": None},
+            ],
+        ]
+
+        activity, is_author = (
+            process_author_follow_ups.current_human_activity_with_author(
+                "open-telemetry/example",
+                1,
+                author_result(),
+                NOW,
+            )
+        )
+
+        self.assertEqual(activity, NOW)
+        self.assertFalse(is_author)
+
+    @patch.object(
+        process_author_follow_ups,
+        "fetch_pr_review_data",
+        return_value={"reviews": []},
+    )
+    @patch.object(
+        process_author_follow_ups,
+        "gh_pr_view",
         return_value={"headRefOid": "bot-head"},
     )
     @patch.object(process_author_follow_ups, "gh_api")
