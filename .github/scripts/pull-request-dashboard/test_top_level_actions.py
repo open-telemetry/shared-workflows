@@ -655,6 +655,24 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [],
         )
 
+    def test_minimized_issue_comment_is_not_top_level_feedback(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 101,
+                    "html_url": "https://example.test/issue-comment/101",
+                    "created_at": ROOT_TIMESTAMP,
+                    "updated_at": ROOT_TIMESTAMP,
+                    "user": {"login": "reviewer"},
+                    "body": "Please update the documentation.",
+                    "minimized": {"reason": "off-topic"},
+                }
+            ],
+            "reviews": [],
+        }
+
+        self.assertEqual(top_level_items_from_raw(raw), [])
+
     def test_resolved_conflict_review_body_is_not_an_action_item(self) -> None:
         raw = {
             "issue_comments": [],

@@ -357,6 +357,8 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "is_merge_from_base_by_non_author": is_merge_commit(c) and login.lower() != author.lower(),
         })
     for c in raw["issue_comments"]:
+        if c.get("minimized"):
+            continue
         login = reviewer_actor_login(c.get("user") or {})
         timestamp = c.get("updated_at") or c.get("created_at") or ""
         events.append({
