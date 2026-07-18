@@ -149,6 +149,22 @@ the implementation understandable and operationally cheap.
   respond to a dashboard action. Pending required checks affect the CI column
   but do not change who owns the next action.
 
+## Live PR Status Comments
+
+- Feedback totals in the live comment count the canonical author-action links
+  stored in dashboard state, not a separately persisted total of pending-action
+  records. This keeps every counted item tied to an action the comment can
+  present to the author.
+- GitHub provides non-null ids for review threads and non-null canonical URLs
+  for review comments and submitted reviews; issue comments likewise have
+  id-specific URLs. Distinct author-action items should therefore produce
+  distinct links. Missing or colliding URLs indicate malformed upstream data,
+  not a supported state that needs a second count.
+- Feedback links are deduplicated in dashboard state (when the canonical
+  author-action links are collected) and capped at 20 in the comment. If the
+  URL invariants need stronger enforcement, fail the affected PR refresh rather
+  than advertise a larger item count with fewer actionable links.
+
 ## Top-Level Feedback
 
 - GitHub gives inline review threads explicit replies and a resolved state, but

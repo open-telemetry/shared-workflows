@@ -35,18 +35,18 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn(
-            "**Status:** Waiting on @alice to address or respond to review feedback.",
+            "- **Waiting on:** Author",
             body,
         )
+        self.assertIn("- **Next step:** Address or respond to 2 review feedback items:", body)
         self.assertIn(
             f"<!-- pull-request-dashboard-status-revision:{pr_status_comment.STATUS_COMMENT_REVISION} -->",
             body,
         )
-        self.assertIn("Unresolved inline review threads waiting on the author:", body)
-        self.assertIn("[Thread 1]", body)
-        self.assertIn("Top-level feedback waiting on the author:", body)
-        self.assertIn("[Feedback 1]", body)
-        self.assertIn("give each review feedback item a clear outcome", body)
+        self.assertNotIn("### Review feedback", body)
+        self.assertIn("  - **Inline threads:** [1]", body)
+        self.assertIn("  - **Top-level feedback:** [2]", body)
+        self.assertIn(f"  - _{pr_status_comment.AUTHOR_GUIDANCE}_", body)
 
     def test_waiting_on_author_names_required_ci_failure(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -58,9 +58,12 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn(
-            "**Status:** Waiting on @alice to fix the failing required status check.",
+            "- **Waiting on:** Author",
             body,
         )
+        self.assertIn("- **Next step:** Investigate the failing required status check.", body)
+        self.assertNotIn("### Review feedback", body)
+        self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
 
     def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -77,28 +80,27 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn(
-            "**Status:** Waiting on @alice to fix failing required status checks "
-            "and address or respond to review feedback.",
-            body,
-        )
+        self.assertIn("- **Next steps:**", body)
+        self.assertIn("  - Investigate the failing required status checks.", body)
+        self.assertIn("  - Address or respond to 1 review feedback item:", body)
+        self.assertIn("    - **Inline threads:** [1]", body)
 
     def test_non_author_routes_also_name_required_ci_failures(self) -> None:
         cases = (
             (
                 "maintainer",
                 1,
-                "Waiting on maintainers to merge the pull request. "
-                "A required status check is also failing.",
+                "Maintainers",
+                "1 required status check is failing.",
             ),
             (
                 "approver",
                 2,
-                "Waiting on reviewers to review the latest changes. "
-                "Required status checks are also failing.",
+                "Reviewers",
+                "2 required status checks are failing.",
             ),
         )
-        for route, failing_count, expected in cases:
+        for route, failing_count, waiting_on, blocked_by in cases:
             with self.subTest(route=route):
                 body = pr_status_comment.render_status_comment(
                     self.pr(),
@@ -108,7 +110,8 @@ class RenderStatusCommentTest(unittest.TestCase):
                     },
                 )
 
-                self.assertIn(f"**Status:** {expected}", body)
+                self.assertIn(f"- **Waiting on:** {waiting_on}", body)
+                self.assertIn(f"- **Also blocked by:** {blocked_by}", body)
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
@@ -132,16 +135,47 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertEqual(len(review_thread_urls), body.count("- [Thread "))
-        self.assertEqual(1, body.count("- [Feedback "))
-        self.assertIn("- 2 more top-level feedback items not shown", body)
+        self.assertIn("  - **Inline threads:**", body)
+        self.assertIn("  - **Top-level feedback:** [20]", body)
+        self.assertIn(
+            "  - _Showing 20 of 22 feedback links; "
+            "resolve the remaining items from the pull request's conversation._",
+            body,
+        )
         self.assertNotIn(top_level_feedback_urls[-1], body)
+
+    def test_feedback_group_with_no_remaining_link_slots_still_reads_cleanly(self) -> None:
+        review_thread_urls = [
+            f"https://github.com/open-telemetry/example/pull/1#discussion_r{index}"
+            for index in range(pr_status_comment.AUTHOR_ACTION_FEEDBACK_LINK_LIMIT)
+        ]
+
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "author_action_review_thread_urls": review_thread_urls,
+                    "author_action_top_level_feedback_urls": [
+                        "https://github.com/open-telemetry/example/pull/1#issuecomment-1",
+                    ],
+                },
+            },
+        )
+
+        self.assertNotIn("Top-level feedback", body)
+        self.assertIn(
+            "  - _Showing 20 of 21 feedback links; "
+            "resolve the remaining items from the pull request's conversation._",
+            body,
+        )
 
     def test_draft_waits_on_author(self) -> None:
         body = pr_status_comment.render_status_comment(self.pr(draft=True), None)
 
+        self.assertIn("- **Waiting on:** Author", body)
         self.assertIn(
-            "**Status:** Waiting on @alice to mark this pull request ready for review.",
+            "- **Next step:** Move out of draft to request review.",
             body,
         )
 
@@ -151,8 +185,8 @@ class RenderStatusCommentTest(unittest.TestCase):
             None,
         )
 
-        self.assertIn("**Status:** This pull request has been merged.", body)
-        self.assertNotIn("give each review feedback item a clear outcome", body)
+        self.assertIn("**Status:** Merged.", body)
+        self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
 
     def test_terminal_pr_has_no_author_feedback_links(self) -> None:
         result = {
@@ -172,44 +206,39 @@ class RenderStatusCommentTest(unittest.TestCase):
             with self.subTest(overrides=overrides):
                 body = pr_status_comment.render_status_comment(self.pr(**overrides), result)
 
-                self.assertNotIn("Unresolved inline review threads waiting on the author", body)
-                self.assertNotIn("Top-level feedback waiting on the author", body)
-                self.assertNotIn("[Thread 1]", body)
-                self.assertNotIn("[Feedback 1]", body)
+                self.assertNotIn("### Review feedback", body)
+                self.assertNotIn("- **Inline threads", body)
+                self.assertNotIn("- **Top-level feedback", body)
 
-    def test_blank_login_falls_back_to_author(self) -> None:
+    def test_author_login_is_not_mentioned(self) -> None:
         body = pr_status_comment.render_status_comment(
-            self.pr(user={"login": " "}, draft=True),
-            None,
+            self.pr(),
+            {"route": "author", "facts": {"author": "alice"}},
         )
 
-        self.assertIn(
-            "**Status:** Waiting on the author to mark this pull request ready for review.",
-            body,
-        )
-        self.assertNotIn("**Status:** Waiting on @", body)
+        self.assertIn("- **Waiting on:** Author", body)
+        self.assertNotIn("@alice", body)
 
     def test_routes_render_one_status_sentence(self) -> None:
-        expected_statuses = {
-            "approver": "Waiting on reviewers to review the latest changes.",
-            "maintainer": "Waiting on maintainers to merge the pull request.",
-            "external": "Waiting on an external dependency or decision.",
-            "transient-failure": "Waiting on dashboard maintainers to determine the next action.",
-            "unknown": "Waiting on dashboard maintainers to determine the next action.",
+        expected_summaries = {
+            "approver": ("Reviewers", "Review the latest changes."),
+            "maintainer": ("Maintainers", "Merge when ready."),
+            "external": ("An external dependency or decision", "Resolve it before work can continue."),
+            "transient-failure": ("Pull request dashboard maintainers", "Determine the next action."),
+            "unknown": ("Pull request dashboard maintainers", "Determine the next action."),
         }
 
-        for route, expected in expected_statuses.items():
+        for route, (waiting_on, next_step) in expected_summaries.items():
             with self.subTest(route=route):
                 body = pr_status_comment.render_status_comment(
                     self.pr(),
                     {"route": route, "facts": {}},
                 )
 
-                self.assertIn(f"**Status:** {expected}", body)
-                self.assertEqual(1, body.count("**Status:**"))
-                self.assertNotIn("**Next action:**", body)
-                self.assertNotIn("**Waiting on:**", body)
-                self.assertNotIn("give each review feedback item a clear outcome", body)
+                self.assertIn(f"- **Waiting on:** {waiting_on}", body)
+                self.assertIn(f"- **Next step:** {next_step}", body)
+                self.assertNotIn("**Status:**", body)
+                self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
 
 
 class UpsertStatusCommentTest(unittest.TestCase):
