@@ -63,14 +63,16 @@ Permission rationale:
 | ---------- | ------ | ---------------- |
 | Checks | Read | Required to subscribe to check-suite events and to read check data for dashboard rows. |
 | Contents | Read | Reads PR commits and repository metadata needed by pull/commit APIs. |
-| Issues | Read and write | Finds/creates/updates the dashboard issue and creates or updates the dashboard-managed PR status comment. |
+| Issues | Read and write | Finds, creates, and updates the dashboard issue. |
 | Metadata | Read | Required by GitHub for GitHub App repository access. |
-| Pull requests | Read and write | Required to subscribe to PR review/comment/thread events, read PR details, reviews, review comments, commits, and GraphQL review threads, and create or update the dashboard-managed PR status comment. |
+| Pull requests | Read and write | Required to subscribe to PR review/comment/thread events; read PR details, reviews, review comments, commits, and GraphQL review threads; and create the dashboard-managed PR status comment, which is a pull request conversation comment. |
 | Members | Read | Reads approver-team membership configured in `repositories.json`. |
 
 The dashboard does not create inline review comments, submit reviews, or resolve
-review threads. It creates and updates one PR conversation comment through the
-issues API, which requires `Issues: read and write`.
+review threads. It manages one PR conversation comment (create, update, and
+duplicate cleanup) through the issue-comments API. Because that comment lives on
+a pull request, GitHub governs writing it with the `Pull requests` permission;
+`Issues: read and write` covers only the separate dashboard issue.
 
 Subscribe to events:
 
