@@ -170,10 +170,11 @@ the implementation understandable and operationally cheap.
 - Selected PRs are processed one at a time through the same single-PR merge path
   as targeted refreshes. Each accepted PR update pushes structured state before
   the next selected PR is processed.
-- The update job exposes the exact selected PR numbers to downstream jobs.
-  Scheduled Slack follow-ups and author lifecycle mutations are restricted to
-  that fresh set; unselected cached rows can still render but cannot cause an
-  external side effect.
+- The update job exposes only successfully accepted refresh PR numbers to
+  downstream jobs. Scheduled Slack follow-ups and author lifecycle mutations
+  continue after a partial backfill failure but are restricted to that fresh
+  accepted set; rejected and unselected cached rows can still render but cannot
+  cause an external side effect.
 - The one-PR transaction size keeps state-branch compare-and-swap retries cheap:
   a rejected push retries one PR instead of refreshing a whole large repository
   and spending the same GitHub GraphQL rate-limit budget again. Backfill retries

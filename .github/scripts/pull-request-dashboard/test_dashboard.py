@@ -355,13 +355,16 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
 class BackfillFailureIsolationTest(unittest.TestCase):
     def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        github_output = Path(temp_dir.name) / "output"
         args = Namespace(
             repo="repo",
             approver_team=["approvers"],
             state_branch="state",
             model="model",
             required_approvals=1,
-            github_output=None,
+            github_output=github_output,
         )
         dashboard_state = {
             "initial_backfill_complete": False,
@@ -436,6 +439,10 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         self.assertTrue(dashboard_state["initial_backfill_complete"])
         self.assertEqual(backfill_state["cursor"], {"last_pr_number": 2})
         self.assertEqual(backfill_failed_pr_numbers(backfill_state), {1})
+        self.assertEqual(
+            github_output.read_text(encoding="utf-8"),
+            "refreshed_pr_numbers=2\n",
+        )
 
     def test_successful_retry_clears_recorded_failure(self) -> None:
         state = {"failed_pr_numbers": [1, 2]}

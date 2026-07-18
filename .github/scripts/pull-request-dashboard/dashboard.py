@@ -1667,8 +1667,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         backfill_state,
         DEFAULT_BACKFILL_MAX_PRS,
     )
-    if args.github_output:
-        write_refreshed_pr_numbers_output(args.github_output, selection.selected_prs)
+    accepted_prs: list[dict[str, Any]] = []
 
     if selection.cached_pr_numbers_to_remove:
         status = state_branch.push_state_changes(
@@ -1697,15 +1696,22 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             complete_initial_backfill_if_ready(dashboard_state, open_non_draft_pr_numbers)
             return save_dashboard_update_state(args, dashboard_state, False)
 
-        return state_branch.push_state_changes(
+        status = state_branch.push_state_changes(
             state_dir,
             "Update dashboard state",
             save_current_dashboard_state,
             state_branch=args.state_branch,
         )
+        if status == 0 and args.github_output:
+            write_refreshed_pr_numbers_output(args.github_output, accepted_prs)
+        return status
 
     for pr_summary in selection.selected_prs:
+        accepted = False
+
         def update_selected_pr(pr_summary: dict[str, Any] = pr_summary) -> int:
+            nonlocal accepted
+            accepted = False
             pr_number = pr_summary["number"]
             dashboard_state = load_dashboard_state_cache() or empty_state()
             calculation = build_dashboard_update_for_pr(
@@ -1736,6 +1742,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                     dashboard_state,
                     not initial_backfill_completed,
                 )
+            accepted = True
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
             if not dashboard_state_unchanged:
                 enqueue_status_comment_update(pr_number)
@@ -1758,6 +1765,10 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         )
         if status != 0:
             return status
+        if accepted:
+            accepted_prs.append(pr_summary)
+    if args.github_output:
+        write_refreshed_pr_numbers_output(args.github_output, accepted_prs)
     unresolved_failed_pr_numbers = (
         backfill_failed_pr_numbers(load_backfill_state())
         & open_non_draft_pr_numbers

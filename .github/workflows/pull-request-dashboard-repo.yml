@@ -251,7 +251,8 @@ jobs:
   author-follow-up:
     needs: update-dashboard
     if: >-
-      needs.update-dashboard.result == 'success' &&
+      always() &&
+      (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
       needs.update-dashboard.outputs.initial_backfill_complete == 'true'
     concurrency:
       group: ${{ github.workflow }}-author-follow-up-${{ inputs.repository }}
