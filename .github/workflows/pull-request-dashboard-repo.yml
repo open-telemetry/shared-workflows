@@ -75,20 +75,20 @@ jobs:
 
       - name: Restore per-PR classification cache
         if: inputs.pr_number != ''
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-
             pull-request-dashboard-classifications-${{ inputs.repository }}-all-
 
       - name: Restore shared backfill classification cache
         if: inputs.pr_number == ''
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ inputs.repository }}-all-
 
@@ -127,6 +127,22 @@ jobs:
           fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
 
+      - name: Save per-PR classification cache
+        # Preserve valid classifications even when another item fails the update.
+        if: always() && inputs.pr_number != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save shared backfill classification cache
+        # Preserve valid classifications even when another item fails the update.
+        if: always() && inputs.pr_number == ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Report GitHub App rate limits
         if: always()
         continue-on-error: true
@@ -137,7 +153,8 @@ jobs:
   update-pr-status-comment:
     needs: update-dashboard
     if: >-
-      needs.update-dashboard.result == 'success' &&
+      always() &&
+      (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
       needs.update-dashboard.outputs.initial_backfill_complete == 'true'
     concurrency:
       group: ${{ github.workflow }}-status-${{ inputs.repository }}
@@ -179,7 +196,8 @@ jobs:
   notify-slack:
     needs: update-dashboard
     if: >-
-      needs.update-dashboard.result == 'success' &&
+      always() &&
+      (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
       needs.update-dashboard.outputs.initial_backfill_complete == 'true' &&
       (github.event_name == 'schedule' || inputs.pr_number != '')
     concurrency:
@@ -225,7 +243,8 @@ jobs:
   publish-dashboard:
     needs: update-dashboard
     if: >-
-      needs.update-dashboard.result == 'success' &&
+      always() &&
+      (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
       needs.update-dashboard.outputs.initial_backfill_complete == 'true'
     concurrency:
       group: ${{ github.workflow }}-publish-${{ inputs.repository }}

@@ -1,22 +1,28 @@
 from __future__ import annotations
 
 from argparse import Namespace
+from copy import deepcopy
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 from classification import discussion_prompt_input
 from dashboard import (
+    BACKFILL_RECORDED_FAILURE_STATUS,
     DashboardUpdate,
     add_wait_age_facts,
     apply_targeted_dashboard_update,
     author_action_discussion_urls,
+    backfill_failed_pr_numbers,
     complete_initial_backfill_if_ready,
     compute_facts,
     group_review_threads,
+    main,
     remove_cached_dashboard_prs,
     route_pr,
+    set_backfill_pr_failed,
+    update_dashboard_for_backfill,
     write_initial_backfill_output,
 )
 
@@ -173,9 +179,9 @@ class StatusCommentQueueTest(unittest.TestCase):
     )
     def test_removed_dashboard_results_enqueue_status_comments(
         self,
-        _load_state: object,
-        enqueue_update: object,
-        save_state: object,
+        _load_state: Mock,
+        enqueue_update: Mock,
+        save_state: Mock,
     ) -> None:
         args = Namespace(pr_number=None)
 
@@ -183,7 +189,7 @@ class StatusCommentQueueTest(unittest.TestCase):
 
         self.assertEqual(0, status)
         self.assertEqual(
-            [unittest.mock.call(12), unittest.mock.call(34)],
+            [call(12), call(34)],
             sorted(enqueue_update.call_args_list, key=lambda call: call.args[0]),
         )
         saved_state = save_state.call_args.args[1]
@@ -194,9 +200,9 @@ class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.merge_dashboard_update_with_latest_state")
     def test_targeted_state_change_enqueues_status_comment(
         self,
-        merge_update: object,
-        enqueue_update: object,
-        _save_state: object,
+        merge_update: Mock,
+        enqueue_update: Mock,
+        _save_state: Mock,
     ) -> None:
         calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
         merge_update.return_value = (calculation, False)
@@ -211,9 +217,9 @@ class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.merge_dashboard_update_with_latest_state")
     def test_unchanged_targeted_state_does_not_enqueue_status_comment(
         self,
-        merge_update: object,
-        enqueue_update: object,
-        _save_state: object,
+        merge_update: Mock,
+        enqueue_update: Mock,
+        _save_state: Mock,
     ) -> None:
         calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
         merge_update.return_value = (calculation, True)
@@ -325,6 +331,164 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
                 self.assertEqual(waiting_since, current_facts["waiting_since"])
                 self.assertEqual(basis, current_facts["waiting_age_basis"])
+
+
+class BackfillFailureIsolationTest(unittest.TestCase):
+    def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
+        args = Namespace(
+            repo="repo",
+            approver_team=["approvers"],
+            state_branch="state",
+            model="model",
+            required_approvals=1,
+        )
+        dashboard_state = {
+            "initial_backfill_complete": False,
+            "prs": {},
+        }
+        backfill_state = {"cursor": {}}
+        refreshed_pr_numbers: list[int] = []
+
+        def load_dashboard_state() -> dict:
+            return deepcopy(dashboard_state)
+
+        def load_backfill_state() -> dict:
+            return deepcopy(backfill_state)
+
+        def save_backfill_state(state: dict) -> None:
+            backfill_state.clear()
+            backfill_state.update(deepcopy(state))
+
+        def build_update(*call_args) -> DashboardUpdate:
+            pr_number = call_args[5]
+            starting_state = call_args[8]
+            refreshed_pr_numbers.append(pr_number)
+            result = {
+                "pr_number": pr_number,
+                "failed": pr_number == 1,
+                "route": "unknown" if pr_number == 1 else "reviewer",
+            }
+            updated_state = deepcopy(starting_state)
+            updated_state["prs"][str(pr_number)] = result
+            return DashboardUpdate(
+                results={pr_number: result},
+                dashboard_state=updated_state,
+                trigger_pr_result=result,
+            )
+
+        def save_dashboard_state(_args, state: dict, unchanged: bool) -> int:
+            if not unchanged:
+                dashboard_state.clear()
+                dashboard_state.update(deepcopy(state))
+            return 0
+
+        def push_state_changes(_state_dir, _message, update_state, **_kwargs) -> int:
+            return update_state()
+
+        with (
+            patch("dashboard.list_open_prs", return_value=[{"number": 1}, {"number": 2}]),
+            patch("dashboard.prune_classification_cache"),
+            patch("dashboard.load_reviewer_set", return_value={"reviewer"}),
+            patch("dashboard.load_dashboard_state_cache", side_effect=load_dashboard_state),
+            patch("dashboard.load_backfill_state", side_effect=load_backfill_state),
+            patch("dashboard.save_backfill_state", side_effect=save_backfill_state),
+            patch("dashboard.build_dashboard_update_for_pr", side_effect=build_update),
+            patch(
+                "dashboard.merge_dashboard_update_with_latest_state",
+                side_effect=lambda calculation, *_args: (calculation, False),
+            ),
+            patch(
+                "dashboard.reject_failed_dashboard_result",
+                side_effect=lambda result: result["failed"],
+            ),
+            patch("dashboard.save_dashboard_update_state", side_effect=save_dashboard_state),
+            patch("dashboard.state_branch.configure_git"),
+            patch("dashboard.state_branch.checkout_state"),
+            patch("dashboard.state_branch.remove_existing_state_dir"),
+            patch("dashboard.state_branch.push_state_changes", side_effect=push_state_changes),
+        ):
+            status = update_dashboard_for_backfill(args, Path("state"))
+
+        self.assertEqual(refreshed_pr_numbers, [1, 2])
+        self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
+        self.assertEqual(dashboard_state["prs"], {"2": {"pr_number": 2, "failed": False, "route": "reviewer"}})
+        self.assertTrue(dashboard_state["initial_backfill_complete"])
+        self.assertEqual(backfill_state["cursor"], {"last_pr_number": 2})
+        self.assertEqual(backfill_failed_pr_numbers(backfill_state), {1})
+
+    def test_successful_retry_clears_recorded_failure(self) -> None:
+        state = {"failed_pr_numbers": [1, 2]}
+
+        self.assertEqual(set_backfill_pr_failed(state, 1, False), {2})
+        self.assertEqual(state["failed_pr_numbers"], [2])
+
+    def test_successful_targeted_update_clears_recorded_failure(self) -> None:
+        args = Namespace(pr_number=1)
+        calculation = DashboardUpdate(
+            results={},
+            dashboard_state={"prs": {"1": {"pr_number": 1}}},
+            trigger_pr_result={"pr_number": 1, "failed": False},
+        )
+        backfill_state = {
+            "cursor": {"last_pr_number": 7},
+            "failed_pr_numbers": [1, 2],
+        }
+        saved_backfill_state: dict = {}
+
+        with (
+            patch(
+                "dashboard.merge_dashboard_update_with_latest_state",
+                return_value=(calculation, False),
+            ),
+            patch("dashboard.load_backfill_state", return_value=deepcopy(backfill_state)),
+            patch(
+                "dashboard.save_backfill_state",
+                side_effect=lambda state: saved_backfill_state.update(deepcopy(state)),
+            ),
+            patch("dashboard.save_dashboard_update_state", return_value=0) as save_dashboard,
+        ):
+            status = apply_targeted_dashboard_update(args, calculation)
+
+        self.assertEqual(status, 0)
+        self.assertEqual(saved_backfill_state["cursor"], {"last_pr_number": 7})
+        self.assertEqual(saved_backfill_state["failed_pr_numbers"], [2])
+        save_dashboard.assert_called_once_with(args, calculation.dashboard_state, False)
+
+    def test_emits_initial_backfill_status_only_for_accepted_state_outcomes(self) -> None:
+        for status, should_emit in (
+            (0, True),
+            (BACKFILL_RECORDED_FAILURE_STATUS, True),
+            (1, False),
+        ):
+            with (
+                self.subTest(status=status),
+                tempfile.TemporaryDirectory() as temp_dir,
+                patch(
+                    "sys.argv",
+                    [
+                        "dashboard.py",
+                        "--state-branch",
+                        "state",
+                        "--repo",
+                        "repo",
+                        "--approver-team",
+                        "approvers",
+                        "--github-output",
+                        str(Path(temp_dir) / "output"),
+                    ],
+                ),
+                patch("dashboard.state_branch.temporary_state_dir") as temporary_state_dir,
+                patch("dashboard.update_dashboard_via_state_branch", return_value=status),
+                patch("dashboard.write_initial_backfill_output") as write_output,
+            ):
+                temporary_state_dir.return_value.__enter__.return_value = Path(temp_dir)
+
+                self.assertEqual(main(), status)
+
+            if should_emit:
+                write_output.assert_called_once_with(Path(temp_dir) / "output")
+            else:
+                write_output.assert_not_called()
 
 
 if __name__ == "__main__":

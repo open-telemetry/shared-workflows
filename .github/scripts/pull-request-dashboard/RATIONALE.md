@@ -93,17 +93,22 @@ the implementation understandable and operationally cheap.
   refetch the selected PR; targeted PR retries reuse the already computed PR
   result and only redo the latest-state merge and state save.
 - Backfill progress is stored separately from dashboard state in
-  `backfill-state.json`. The cursor is the last successfully refreshed PR
-  number, and the next run continues after it in sorted PR-number order,
-  wrapping when needed.
+  `backfill-state.json`. The cursor is the last attempted PR number, and the
+  next run continues after it in sorted PR-number order, wrapping when needed.
+  Failed PR numbers are stored beside the cursor and are removed after a later
+  successful refresh.
 - Initial-backfill completion is stored in dashboard state and becomes true in
-  the same accepted state commit that populates the final missing open
-  non-draft PR. Once set, it remains true. New PRs do not reset bootstrap; they
-  appear after their first targeted refresh or backfill, while existing
-  dashboard entries and Slack reminders continue normally.
-- A selected PR failure stops the run without advancing the cursor. This can
-  temporarily block later PRs, but it keeps the scheduled workflow failure issue
-  open and pointing at the blocked backfill until the failure is fixed.
+  the same accepted state commit that attempts the final missing open non-draft
+  PR. Failed PR data is not accepted into dashboard state, but a recorded failed
+  attempt cannot block initial publication. Once set, completion remains true.
+  New PRs do not reset bootstrap; they appear after their first successful
+  targeted refresh or backfill.
+- A selected PR failure is recorded outside dashboard state, advances the
+  cursor, and does not stop later selected PRs. The backfill still exits nonzero
+  while any open PR is still recorded as having failed processing, keeping
+  scheduled failure reporting active. Publish and notification jobs consume
+  only accepted state, so untrusted PR content cannot deny service to the rest
+  of the repository.
 - The cursor deliberately does not rely on PR `updatedAt`; prior testing showed
   `updatedAt` is not a safe freshness key for every comment, review-comment, or
   thread event the dashboard needs.
@@ -131,6 +136,12 @@ the implementation understandable and operationally cheap.
   key, so targeted runs do not overwrite the backfill cache namespace.
 - Cache entries are immutable, so rolling keys plus restore prefixes pick up the
   latest usable snapshot without concurrent writers overwriting each other.
+- Cache snapshots are saved even when the update job fails, preserving valid
+  classifications produced before or alongside an isolated failed item.
+- Failed classifications are not cached or retried in the same run. A later run
+  restores valid sibling classifications and sends only the still-uncached
+  items to the model. The original run remains failed so the item is visible
+  for operational triage.
 
 ## Required Status Checks
 
