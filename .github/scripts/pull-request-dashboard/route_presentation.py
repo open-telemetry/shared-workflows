@@ -12,15 +12,15 @@ ROUTE_PRESENTATION = {
         "status_waiting_on": "Reviewers",
         "status_next_step": "Review the latest changes.",
     },
-    "author": {
-        "dashboard_label": "Waiting on authors",
-        "status_waiting_on": "Author",
-        "status_next_step": "Address or respond to review feedback.",
-    },
     "external": {
         "dashboard_label": "Waiting on external",
         "status_waiting_on": "An external dependency or decision",
         "status_next_step": "Resolve it before work can continue.",
+    },
+    "author": {
+        "dashboard_label": "Waiting on authors",
+        "status_waiting_on": "Author",
+        "status_next_step": "Address or respond to review feedback.",
     },
     "transient-failure": {
         "dashboard_label": "Transient GitHub failure retrieving PR data",
