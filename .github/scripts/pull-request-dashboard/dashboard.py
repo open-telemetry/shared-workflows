@@ -404,10 +404,12 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         })
     for c in raw["review_comments"]:
         login = reviewer_actor_login(c.get("user") or {})
+        timestamp = c.get("updated_at") or c.get("created_at") or ""
         events.append({
             "source_id": c.get("id"),
             "kind": "review-comment",
-            "timestamp": c.get("updated_at") or c.get("created_at") or "",
+            "timestamp": timestamp,
+            "created_timestamp": c.get("created_at") or timestamp,
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
             "body": c.get("body") or "",
@@ -434,7 +436,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "is_merge_from_base_by_non_author": False,
         })
     events = [e for e in events if e["timestamp"]]
-    events.sort(key=lambda e: e["timestamp"])
+    events.sort(key=lambda e: e.get("created_timestamp") or e["timestamp"])
     return events
 
 
@@ -768,6 +770,7 @@ def first_external_top_level_author_comment_outcome(
 ) -> dict[str, str] | None:
     if outcomes is None:
         return None
+    external_outcomes: list[dict[str, str]] = []
     for event in events:
         timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
         source_id = event.get("source_id")
@@ -776,10 +779,13 @@ def first_external_top_level_author_comment_outcome(
             event.get("kind") == "issue-comment"
             and event.get("actor_role") == "author"
             and timestamp > root_timestamp
-            and (outcome or {}).get("action") == "external"
+            and outcome is not None
+            and outcome.get("action") == "external"
         ):
-            return outcome
-    return None
+            external_outcomes.append(outcome)
+    if not external_outcomes:
+        return None
+    return min(external_outcomes, key=lambda outcome: outcome["timestamp"])
 
 
 def collect_author_evidence(

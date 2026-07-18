@@ -1155,6 +1155,58 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertNotIn("dependency", history)
 
+    def test_external_reply_uses_creation_order_after_older_comment_edit(self) -> None:
+        discussion = top_level_item("dependency")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T05:00:00Z",
+                "author",
+                "author",
+                source_id=103,
+                created_timestamp="2026-07-14T04:00:00Z",
+                body="This is blocked on a second upstream decision.",
+            ),
+            event(
+                "issue-comment",
+                "2026-07-14T06:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T02:00:00Z",
+                body="This is blocked on the first upstream decision.",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            events,
+            {},
+            "author",
+            reply_outcomes=top_level_author_comment_outcomes(
+                author_comment_items,
+                [
+                    {
+                        "discussion_id": item["discussion_id"],
+                        "decision": {"discussion_action": "external"},
+                    }
+                    for item in author_comment_items
+                ],
+            ),
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T02:00:00Z"},
+        )
+        self.assertNotIn("dependency", history)
+
     def test_satisfied_evidence_is_not_reopened_by_external_reply(self) -> None:
         discussion = top_level_item("code")
         events = [
@@ -1285,6 +1337,39 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             history["request"]["evidence"],
             {"reply": "2026-05-27T12:07:12Z"},
         )
+
+    def test_normalized_events_use_creation_order_not_edit_order(self) -> None:
+        events = normalize_events(
+            {
+                "commits": [],
+                "issue_comments": [
+                    {
+                        "id": 101,
+                        "created_at": "2026-07-14T01:00:00Z",
+                        "updated_at": "2026-07-14T05:00:00Z",
+                        "content_updated_at": "2026-07-14T05:00:00Z",
+                        "user": {"login": "author"},
+                        "body": "Older comment edited later.",
+                    },
+                    {
+                        "id": 102,
+                        "created_at": "2026-07-14T02:00:00Z",
+                        "updated_at": "2026-07-14T02:00:00Z",
+                        "content_updated_at": "2026-07-14T02:00:00Z",
+                        "user": {"login": "author"},
+                        "body": "Newer comment.",
+                    },
+                ],
+                "review_comments": [],
+                "reviews": [],
+            },
+            "author",
+            {"reviewer"},
+        )
+
+        self.assertEqual([event["source_id"] for event in events], [101, 102])
+        self.assertEqual(events[0]["timestamp"], "2026-07-14T05:00:00Z")
+        self.assertEqual(events[0]["created_timestamp"], "2026-07-14T01:00:00Z")
 
     def test_edited_old_author_comment_does_not_count_as_reply(self) -> None:
         events = normalize_events(
