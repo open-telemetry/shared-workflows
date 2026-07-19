@@ -51,14 +51,12 @@ LEGACY_MARKERS = (
 
 
 def accuracy_note(pr: dict[str, Any]) -> str:
-    report_url = f"{STATUS_REPORT_ISSUE_URL}?{urlencode({
-        'template': STATUS_REPORT_ISSUE_TEMPLATE,
-        'title': 'PR dashboard result looks incorrect',
-        'body': (
-            f"PR: {pr.get('html_url') or ''}\n\n"
-            "What looks incorrect:\n"
-        ),
-    })}"
+    query = urlencode({
+        "template": STATUS_REPORT_ISSUE_TEMPLATE,
+        "title": "PR dashboard result looks incorrect",
+        "body": f"PR: {pr.get('html_url') or ''}\n\nWhat looks incorrect:\n",
+    })
+    report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
     return (
         "_This automated status or its linked feedback items may be incorrect. "
         f"If something looks wrong, [report it]({report_url}) with the result you expected._"
