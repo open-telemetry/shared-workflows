@@ -20,9 +20,9 @@ from dashboard import (
 )
 from classification import (
     classify_discussion_domains,
-    classify_discussion_domains_with_top_level_author_comments,
     discussion_prompt,
     parse_discussion_decision,
+    run_llm_for_top_level_author_comment_batch,
     run_llm_for_top_level_reviewer_feedback_batch,
     top_level_reviewer_feedback_batch_prompt,
     top_level_reviewer_feedback_prompt_input,
@@ -135,6 +135,24 @@ def top_level_items_from_raw(
         events,
         {"author": "author", "conflicts": conflicts},
     )
+
+
+def classify_feedback_domains(
+    number: int,
+    review_threads: list[dict],
+    top_level_items: list[dict],
+    model: str,
+) -> tuple[list[dict], list[dict]]:
+    review_classifications, top_level_classifications, _ = (
+        classify_discussion_domains(
+            number,
+            review_threads,
+            top_level_items,
+            [],
+            model,
+        )
+    )
+    return review_classifications, top_level_classifications
 
 
 class TopLevelActionLedgerTest(unittest.TestCase):
@@ -278,6 +296,31 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertTrue(records[0]["failed"])
         self.assertIn("this discussion_id", records[0]["error"])
 
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_author_comment_batch_does_not_require_evidence_kinds(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.return_value = copilot_batch_response(
+            {
+                "discussion_id": "completed-reply",
+                "discussion_action": "none",
+                "reason": "Author completed the handoff.",
+            }
+        )
+        discussion = review_thread_discussion("completed-reply")
+        discussion["discussion_kind"] = "top-level-author-reply"
+
+        records = run_llm_for_top_level_author_comment_batch(
+            [discussion], "model"
+        )
+
+        self.assertFalse(records[0]["failed"])
+        self.assertEqual(records[0]["decision"]["discussion_action"], "none")
+        self.assertNotIn("required_evidence_kinds", records[0]["decision"])
+
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
     @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
@@ -312,7 +355,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         top_level_items = [top_level_item("top-level")]
 
         review_thread_classifications, top_level_classifications = (
-            classify_discussion_domains(123, review_threads, top_level_items, "model")
+            classify_feedback_domains(123, review_threads, top_level_items, "model")
         )
 
         self.assertEqual(run_inline.call_args.args[0]["discussion_id"], "inline")
@@ -357,7 +400,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         author_reply["discussion_kind"] = "top-level-author-reply"
 
         review_classifications, top_level_classifications, reply_classifications = (
-            classify_discussion_domains_with_top_level_author_comments(
+            classify_discussion_domains(
                 123,
                 [],
                 [],
@@ -409,7 +452,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         _review, _top_level, classifications = (
-            classify_discussion_domains_with_top_level_author_comments(
+            classify_discussion_domains(
                 123,
                 [],
                 [],
@@ -453,7 +496,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
         ]
 
-        classify_discussion_domains(123, [], [valid, missing], "model")
+        classify_feedback_domains(123, [], [valid, missing], "model")
 
         cached = save_cache.call_args.args[1]
         self.assertEqual(len(cached), 1)
@@ -461,7 +504,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         run_batch.reset_mock()
         run_batch.return_value = [classification("missing", "commit")]
 
-        classify_discussion_domains(123, [], [valid, missing], "model")
+        classify_feedback_domains(123, [], [valid, missing], "model")
 
         self.assertEqual(
             [discussion["discussion_id"] for discussion in run_batch.call_args.args[0]],
@@ -485,17 +528,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         discussion["comments"] = [{"body": "Could you clarify this?"}]
         discussion["discussion_facts"] = {"current_conflicts": "no"}
 
-        classify_discussion_domains(123, [], [discussion], "model")
+        classify_feedback_domains(123, [], [discussion], "model")
         load_cache.return_value = save_cache.call_args.args[1]
         run_batch.reset_mock()
 
         discussion["discussion_facts"]["current_conflicts"] = "yes"
-        classify_discussion_domains(123, [], [discussion], "model")
+        classify_feedback_domains(123, [], [discussion], "model")
 
         run_batch.assert_not_called()
 
         discussion["comments"][0]["body"] = "Please update the implementation."
-        classify_discussion_domains(123, [], [discussion], "model")
+        classify_feedback_domains(123, [], [discussion], "model")
 
         run_batch.assert_called_once()
 
@@ -525,7 +568,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
         discussions = [top_level_item(f"item-{index}") for index in range(23)]
 
-        _review_thread_classifications, classifications = classify_discussion_domains(
+        _review_thread_classifications, classifications = classify_feedback_domains(
             123, [], discussions, "model"
         )
 
@@ -542,7 +585,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         _load_cache.return_value = save_cache.call_args.args[1]
         run_batch.reset_mock()
 
-        _review_thread_classifications, classifications = classify_discussion_domains(
+        _review_thread_classifications, classifications = classify_feedback_domains(
             123, [], discussions, "model"
         )
 
@@ -568,7 +611,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         discussion["review_state"] = "CHANGES_REQUESTED"
         discussion["comments"] = [{"body": "Please update the implementation."}]
 
-        _review_thread_classifications, classifications = classify_discussion_domains(
+        _review_thread_classifications, classifications = classify_feedback_domains(
             123, [], [discussion], "model"
         )
 
@@ -940,7 +983,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     "evidence": {"reply": "2026-07-14T03:00:00Z"},
                 }
             },
-            reply_outcomes=top_level_author_comment_outcomes(
+            author_comment_outcomes=top_level_author_comment_outcomes(
                 author_reply_items,
                 [
                     {
@@ -982,7 +1025,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
-            reply_outcomes=top_level_author_comment_outcomes(
+            author_comment_outcomes=top_level_author_comment_outcomes(
                 author_reply_items,
                 [
                     {
@@ -1049,7 +1092,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
-            reply_outcomes=top_level_author_comment_outcomes(
+            author_comment_outcomes=top_level_author_comment_outcomes(
                 author_reply_items,
                 classifications,
             ),
@@ -1083,7 +1126,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
-            reply_outcomes=top_level_author_comment_outcomes(
+            author_comment_outcomes=top_level_author_comment_outcomes(
                 author_reply_items,
                 [
                     {
@@ -1134,7 +1177,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
-            reply_outcomes=top_level_author_comment_outcomes(
+            author_comment_outcomes=top_level_author_comment_outcomes(
                 author_comment_items,
                 [
                     {
@@ -1182,7 +1225,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [discussion],
             {"conflicts": "no"},
         )
-        reply_outcomes = top_level_author_comment_outcomes(
+        author_comment_outcomes = top_level_author_comment_outcomes(
             author_comment_items,
             [
                 {
@@ -1207,7 +1250,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     events,
                     {},
                     "author",
-                    reply_outcomes=reply_outcomes,
+                    author_comment_outcomes=author_comment_outcomes,
                 )
 
                 self.assertEqual(
@@ -1243,6 +1286,27 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [discussion],
             {"conflicts": "no"},
         )
+        author_comment_outcomes = top_level_author_comment_outcomes(
+            author_comment_items,
+            [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "decision": {"discussion_action": "external"},
+                }
+                for item in author_comment_items
+            ],
+        )
+
+        self.assertEqual(
+            [
+                (outcome["source_id"], outcome["timestamp"])
+                for outcome in author_comment_outcomes
+            ],
+            [
+                (102, "2026-07-14T02:00:00Z"),
+                (103, "2026-07-14T04:00:00Z"),
+            ],
+        )
 
         pending_actions, history = advance_top_level_actions(
             [discussion],
@@ -1250,16 +1314,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
-            reply_outcomes=top_level_author_comment_outcomes(
-                author_comment_items,
-                [
-                    {
-                        "discussion_id": item["discussion_id"],
-                        "decision": {"discussion_action": "external"},
-                    }
-                    for item in author_comment_items
-                ],
-            ),
+            author_comment_outcomes=author_comment_outcomes,
         )
 
         self.assertEqual(
@@ -1294,7 +1349,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
-            reply_outcomes=top_level_author_comment_outcomes(
+            author_comment_outcomes=top_level_author_comment_outcomes(
                 author_comment_items,
                 [
                     {
@@ -1337,7 +1392,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
-            reply_outcomes=top_level_author_comment_outcomes(
+            author_comment_outcomes=top_level_author_comment_outcomes(
                 author_comment_items,
                 [
                     {

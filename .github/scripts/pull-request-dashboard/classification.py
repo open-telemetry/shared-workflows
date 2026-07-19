@@ -419,8 +419,12 @@ def run_llm_for_discussion(discussion: dict[str, Any], model: str) -> dict[str, 
     )
 
 
-def top_level_reviewer_feedback_batch_prompt(discussions: list[dict[str, Any]]) -> str:
-    prompt_discussions = [top_level_reviewer_feedback_prompt_input(discussion) for discussion in discussions]
+def top_level_batch_prompt(
+    discussions: list[dict[str, Any]],
+    prompt_template: str,
+    prompt_input: Callable[[dict[str, Any]], dict[str, Any]],
+) -> str:
+    prompt_discussions = [prompt_input(discussion) for discussion in discussions]
     discussions_text = json.dumps(prompt_discussions, indent=2, sort_keys=True)
     prompt_args = {
         "expected_count": len(discussions),
@@ -428,7 +432,7 @@ def top_level_reviewer_feedback_batch_prompt(discussions: list[dict[str, Any]]) 
             [discussion["discussion_id"] for discussion in discussions]
         ),
     }
-    prompt = TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE.format(
+    prompt = prompt_template.format(
         discussions=discussions_text,
         **prompt_args,
     )
@@ -439,17 +443,40 @@ def top_level_reviewer_feedback_batch_prompt(discussions: list[dict[str, Any]]) 
             discussion.get("body") or "", DISCUSSION_COMMENT_BODY_MAX_CHARS
         )
     discussions_text = json.dumps(prompt_discussions, indent=2, sort_keys=True)
-    return TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE.format(
+    return prompt_template.format(
         discussions=discussions_text,
         **prompt_args,
     )
 
 
-def run_llm_for_top_level_reviewer_feedback_batch(
+def top_level_reviewer_feedback_batch_prompt(
+    discussions: list[dict[str, Any]],
+) -> str:
+    return top_level_batch_prompt(
+        discussions,
+        TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE,
+        top_level_reviewer_feedback_prompt_input,
+    )
+
+
+def top_level_author_comment_batch_prompt(
+    discussions: list[dict[str, Any]],
+) -> str:
+    return top_level_batch_prompt(
+        discussions,
+        TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE,
+        top_level_author_comment_prompt_input,
+    )
+
+
+def run_llm_for_top_level_batch(
     discussions: list[dict[str, Any]],
     model: str,
+    prompt: str,
+    *,
+    require_evidence_kinds: bool,
 ) -> list[dict[str, Any]]:
-    proc = run_copilot(top_level_reviewer_feedback_batch_prompt(discussions), model)
+    proc = run_copilot(prompt, model)
     response = extract_json_object(proc.stdout)
     items = response.get("items") if isinstance(response, dict) else None
     response_by_id: dict[str, dict[str, Any]] = {}
@@ -470,85 +497,9 @@ def run_llm_for_top_level_reviewer_feedback_batch(
         item = response_by_id.get(discussion_id)
         decision, valid_response = parse_discussion_decision(
             json.dumps(item) if item is not None else "",
-            require_evidence_kinds=True,
+            require_evidence_kinds=require_evidence_kinds,
         )
-        failed = proc.returncode != 0 or not valid_response or discussion_id in duplicate_ids
-        error = None
-        if failed:
-            reasons = []
-            if proc.returncode != 0:
-                reasons.append(f"Copilot CLI exited with status {proc.returncode}")
-            if discussion_id in duplicate_ids:
-                reasons.append("Copilot CLI returned a duplicate discussion_id")
-            elif not valid_response:
-                reasons.append("Copilot CLI did not return a valid classification for this discussion_id")
-            error = "; ".join(reasons)
-        records.append(classification_record(
-            discussion,
-            decision,
-            failed=failed,
-            cli_call=(index == 0),
-            error=error,
-            response_text=proc.stdout,
-            stderr=proc.stderr,
-        ))
-    return records
-
-
-def top_level_author_comment_batch_prompt(discussions: list[dict[str, Any]]) -> str:
-    prompt_discussions = [top_level_author_comment_prompt_input(discussion) for discussion in discussions]
-    discussions_text = json.dumps(prompt_discussions, indent=2, sort_keys=True)
-    prompt_args = {
-        "expected_count": len(discussions),
-        "discussion_ids": json.dumps(
-            [discussion["discussion_id"] for discussion in discussions]
-        ),
-    }
-    prompt = TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE.format(
-        discussions=discussions_text,
-        **prompt_args,
-    )
-    if len(prompt) <= MAX_PROMPT_CHARS:
-        return prompt
-    for discussion in prompt_discussions:
-        discussion["body"] = truncate(
-            discussion.get("body") or "", DISCUSSION_COMMENT_BODY_MAX_CHARS
-        )
-    discussions_text = json.dumps(prompt_discussions, indent=2, sort_keys=True)
-    return TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE.format(
-        discussions=discussions_text,
-        **prompt_args,
-    )
-
-
-def run_llm_for_top_level_author_comment_batch(
-    discussions: list[dict[str, Any]],
-    model: str,
-) -> list[dict[str, Any]]:
-    proc = run_copilot(top_level_author_comment_batch_prompt(discussions), model)
-    response = extract_json_object(proc.stdout)
-    items = response.get("items") if isinstance(response, dict) else None
-    response_by_id: dict[str, dict[str, Any]] = {}
-    duplicate_ids: set[str] = set()
-    if isinstance(items, list):
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            discussion_id = str(item.get("discussion_id") or "")
-            if discussion_id in response_by_id:
-                duplicate_ids.add(discussion_id)
-            else:
-                response_by_id[discussion_id] = item
-
-    records: list[dict[str, Any]] = []
-    for index, discussion in enumerate(discussions):
-        discussion_id = discussion["discussion_id"]
-        item = response_by_id.get(discussion_id)
-        decision, valid_response = parse_discussion_decision(
-            json.dumps(item) if item is not None else "",
-        )
-        action = decision.get("discussion_action") or ""
-        valid_action = action in ("author", "external", "none", "unclear")
+        valid_action = decision.get("discussion_action") in TOP_LEVEL_DISCUSSION_ACTIONS
         failed = (
             proc.returncode != 0
             or not valid_response
@@ -563,9 +514,7 @@ def run_llm_for_top_level_author_comment_batch(
             if discussion_id in duplicate_ids:
                 reasons.append("Copilot CLI returned a duplicate discussion_id")
             elif not valid_response or not valid_action:
-                reasons.append(
-                    "Copilot CLI did not return a valid classification for this discussion_id"
-                )
+                reasons.append("Copilot CLI did not return a valid classification for this discussion_id")
             error = "; ".join(reasons)
         records.append(classification_record(
             discussion,
@@ -577,6 +526,30 @@ def run_llm_for_top_level_author_comment_batch(
             stderr=proc.stderr,
         ))
     return records
+
+
+def run_llm_for_top_level_reviewer_feedback_batch(
+    discussions: list[dict[str, Any]],
+    model: str,
+) -> list[dict[str, Any]]:
+    return run_llm_for_top_level_batch(
+        discussions,
+        model,
+        top_level_reviewer_feedback_batch_prompt(discussions),
+        require_evidence_kinds=True,
+    )
+
+
+def run_llm_for_top_level_author_comment_batch(
+    discussions: list[dict[str, Any]],
+    model: str,
+) -> list[dict[str, Any]]:
+    return run_llm_for_top_level_batch(
+        discussions,
+        model,
+        top_level_author_comment_batch_prompt(discussions),
+        require_evidence_kinds=False,
+    )
 
 
 def discussion_cache_key(
@@ -697,12 +670,35 @@ def classify_review_threads(
     return classifications_by_id
 
 
-def classify_top_level_reviewer_feedback_items(
+def unclear_top_level_decision(
+    reason: str,
+    *,
+    require_evidence_kinds: bool,
+) -> dict[str, Any]:
+    decision: dict[str, Any] = {
+        "discussion_action": "unclear",
+        "reason": reason,
+    }
+    if require_evidence_kinds:
+        decision["required_evidence_kinds"] = []
+    return decision
+
+
+def classify_top_level_items(
     number: int,
     discussions: list[dict[str, Any]],
     model: str,
     cache_in: dict[str, dict[str, Any]],
     cache_out: dict[str, dict[str, Any]],
+    *,
+    prompt_template: str,
+    prompt_input: Callable[[dict[str, Any]], dict[str, Any]],
+    run_batch: Callable[
+        [list[dict[str, Any]], str],
+        list[dict[str, Any]],
+    ],
+    require_evidence_kinds: bool,
+    warning_label: str,
 ) -> dict[str, dict[str, Any]]:
     classifications_by_id: dict[str, dict[str, Any]] = {}
     uncached: list[tuple[dict[str, Any], str]] = []
@@ -710,10 +706,10 @@ def classify_top_level_reviewer_feedback_items(
         key, record = cached_classification(
             discussion,
             model,
-            TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE,
+            prompt_template,
             cache_in,
             cache_out,
-            top_level_reviewer_feedback_prompt_input,
+            prompt_input,
         )
         if record is not None:
             classifications_by_id[discussion["discussion_id"]] = record
@@ -723,11 +719,10 @@ def classify_top_level_reviewer_feedback_items(
             continue
         classifications_by_id[discussion["discussion_id"]] = classification_record(
             discussion,
-            {
-                "discussion_action": "unclear",
-                "required_evidence_kinds": [],
-                "reason": "Deferred by per-PR classification limit",
-            },
+            unclear_top_level_decision(
+                "Deferred by per-PR classification limit",
+                require_evidence_kinds=require_evidence_kinds,
+            ),
             failed=False,
         )
 
@@ -735,91 +730,15 @@ def classify_top_level_reviewer_feedback_items(
         batch = uncached[offset:offset + TOP_LEVEL_CLASSIFICATION_BATCH_SIZE]
         batch_discussions = [discussion for discussion, _key in batch]
         try:
-            records = run_llm_for_top_level_reviewer_feedback_batch(batch_discussions, model)
+            records = run_batch(batch_discussions, model)
         except subprocess.TimeoutExpired as e:
             records = [
                 classification_record(
                     discussion,
-                    {
-                        "discussion_action": "unclear",
-                        "required_evidence_kinds": [],
-                        "reason": "LLM timeout",
-                    },
-                    failed=True,
-                    cli_call=(index == 0),
-                    error=f"Copilot CLI timed out after {LLM_DISCUSSION_TIMEOUT_SECONDS}s",
-                    response_text=e.stdout if isinstance(e.stdout, str) else None,
-                    stderr=e.stderr if isinstance(e.stderr, str) else None,
-                )
-                for index, discussion in enumerate(batch_discussions)
-            ]
-        except Exception as e:
-            print(f"  warning: top_level batch on PR #{number} failed to classify:", file=sys.stderr)
-            traceback.print_exc()
-            records = [
-                classification_record(
-                    discussion,
-                    {
-                        "discussion_action": "unclear",
-                        "required_evidence_kinds": [],
-                        "reason": f"LLM failed: {e!r}",
-                    },
-                    failed=True,
-                    cli_call=(index == 0),
-                    error=f"LLM failed: {e!r}",
-                )
-                for index, discussion in enumerate(batch_discussions)
-            ]
-        for record, (_discussion, key) in zip(records, batch, strict=True):
-            classifications_by_id[record["discussion_id"]] = record
-            if not record.get("failed"):
-                cache_out[key] = cached_classification_record(record)
-    return classifications_by_id
-
-
-def classify_top_level_author_comments(
-    number: int,
-    discussions: list[dict[str, Any]],
-    model: str,
-    cache_in: dict[str, dict[str, Any]],
-    cache_out: dict[str, dict[str, Any]],
-) -> dict[str, dict[str, Any]]:
-    classifications_by_id: dict[str, dict[str, Any]] = {}
-    uncached: list[tuple[dict[str, Any], str]] = []
-    for discussion in discussions:
-        key, record = cached_classification(
-            discussion,
-            model,
-            TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE,
-            cache_in,
-            cache_out,
-            top_level_author_comment_prompt_input,
-        )
-        if record is not None:
-            classifications_by_id[discussion["discussion_id"]] = record
-            continue
-        if len(uncached) < MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR:
-            uncached.append((discussion, key))
-            continue
-        classifications_by_id[discussion["discussion_id"]] = classification_record(
-            discussion,
-            {
-                "discussion_action": "unclear",
-                "reason": "Deferred by per-PR classification limit",
-            },
-            failed=False,
-        )
-
-    for offset in range(0, len(uncached), TOP_LEVEL_CLASSIFICATION_BATCH_SIZE):
-        batch = uncached[offset:offset + TOP_LEVEL_CLASSIFICATION_BATCH_SIZE]
-        batch_discussions = [discussion for discussion, _key in batch]
-        try:
-            records = run_llm_for_top_level_author_comment_batch(batch_discussions, model)
-        except subprocess.TimeoutExpired as e:
-            records = [
-                classification_record(
-                    discussion,
-                    {"discussion_action": "unclear", "reason": "LLM timeout"},
+                    unclear_top_level_decision(
+                        "LLM timeout",
+                        require_evidence_kinds=require_evidence_kinds,
+                    ),
                     failed=True,
                     cli_call=(index == 0),
                     error=f"Copilot CLI timed out after {LLM_DISCUSSION_TIMEOUT_SECONDS}s",
@@ -830,17 +749,17 @@ def classify_top_level_author_comments(
             ]
         except Exception as e:
             print(
-                f"  warning: top_level_author_comment batch on PR #{number} failed to classify:",
+                f"  warning: {warning_label} batch on PR #{number} failed to classify:",
                 file=sys.stderr,
             )
             traceback.print_exc()
             records = [
                 classification_record(
                     discussion,
-                    {
-                        "discussion_action": "unclear",
-                        "reason": f"LLM failed: {e!r}",
-                    },
+                    unclear_top_level_decision(
+                        f"LLM failed: {e!r}",
+                        require_evidence_kinds=require_evidence_kinds,
+                    ),
                     failed=True,
                     cli_call=(index == 0),
                     error=f"LLM failed: {e!r}",
@@ -854,7 +773,49 @@ def classify_top_level_author_comments(
     return classifications_by_id
 
 
-def classify_discussion_domains_with_top_level_author_comments(
+def classify_top_level_reviewer_feedback_items(
+    number: int,
+    discussions: list[dict[str, Any]],
+    model: str,
+    cache_in: dict[str, dict[str, Any]],
+    cache_out: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    return classify_top_level_items(
+        number,
+        discussions,
+        model,
+        cache_in,
+        cache_out,
+        prompt_template=TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE,
+        prompt_input=top_level_reviewer_feedback_prompt_input,
+        run_batch=run_llm_for_top_level_reviewer_feedback_batch,
+        require_evidence_kinds=True,
+        warning_label="top_level",
+    )
+
+
+def classify_top_level_author_comments(
+    number: int,
+    discussions: list[dict[str, Any]],
+    model: str,
+    cache_in: dict[str, dict[str, Any]],
+    cache_out: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    return classify_top_level_items(
+        number,
+        discussions,
+        model,
+        cache_in,
+        cache_out,
+        prompt_template=TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE,
+        prompt_input=top_level_author_comment_prompt_input,
+        run_batch=run_llm_for_top_level_author_comment_batch,
+        require_evidence_kinds=False,
+        warning_label="top_level_author_comment",
+    )
+
+
+def classify_discussion_domains(
     number: int,
     review_threads: list[dict[str, Any]],
     top_level_items: list[dict[str, Any]],
@@ -881,21 +842,3 @@ def classify_discussion_domains_with_top_level_author_comments(
             for item in top_level_author_comment_items
         ],
     )
-
-
-def classify_discussion_domains(
-    number: int,
-    review_threads: list[dict[str, Any]],
-    top_level_items: list[dict[str, Any]],
-    model: str,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    review_thread_classifications, top_level_classifications, _ = (
-        classify_discussion_domains_with_top_level_author_comments(
-            number,
-            review_threads,
-            top_level_items,
-            [],
-            model,
-        )
-    )
-    return review_thread_classifications, top_level_classifications

@@ -180,7 +180,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
 }
 """
 
-PR_ISSUE_COMMENT_EDITS_QUERY = """
+PR_ISSUE_COMMENTS_QUERY = """
 query($owner: String!, $name: String!, $number: Int!, $after: String) {
     repository(owner: $owner, name: $name) {
         pullRequest(number: $number) {
@@ -191,6 +191,11 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                 }
                 nodes {
                     fullDatabaseId
+                    url
+                    body
+                    author {
+                        login
+                    }
                     createdAt
                     lastEditedAt
                     isMinimized
@@ -202,16 +207,16 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
 """
 
 
-def fetch_pr_issue_comment_data(
+def fetch_pr_issue_comments(
     owner: str,
     repo_name: str,
     number: int,
-) -> dict[int, dict[str, Any]]:
-    comments: dict[int, dict[str, Any]] = {}
+) -> list[dict[str, Any]]:
+    comments: list[dict[str, Any]] = []
     after: str | None = None
     while True:
         data = gh_graphql(
-            PR_ISSUE_COMMENT_EDITS_QUERY,
+            PR_ISSUE_COMMENTS_QUERY,
             {"owner": owner, "name": repo_name, "number": number, "after": after},
         )
         pull_request = (((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {})
@@ -221,11 +226,18 @@ def fetch_pr_issue_comment_data(
                 database_id = int(comment.get("fullDatabaseId"))
             except (TypeError, ValueError):
                 continue
-            timestamp = comment.get("lastEditedAt") or comment.get("createdAt") or ""
-            comments[database_id] = {
-                "content_updated_at": timestamp,
+            created_at = comment.get("createdAt") or ""
+            content_updated_at = comment.get("lastEditedAt") or created_at
+            comments.append({
+                "id": database_id,
+                "html_url": comment.get("url") or "",
+                "created_at": created_at,
+                "updated_at": content_updated_at,
+                "content_updated_at": content_updated_at,
                 "minimized": bool(comment.get("isMinimized")),
-            }
+                "user": comment.get("author") or {},
+                "body": comment.get("body") or "",
+            })
         page_info = connection.get("pageInfo") or {}
         if not page_info.get("hasNextPage"):
             return comments

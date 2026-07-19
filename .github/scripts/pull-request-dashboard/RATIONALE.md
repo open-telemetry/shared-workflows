@@ -118,9 +118,10 @@ the implementation understandable and operationally cheap.
 - Review threads are still fetched from GraphQL because the dashboard needs
   thread-level fields such as `isResolved`, `isOutdated`, and canonical thread
   grouping.
-- Top-level issue-comment content timestamps use GraphQL `lastEditedAt` because
-  REST `updated_at` also changes for non-content activity. The dashboard falls
-  back to `createdAt` when a comment has never been edited.
+- Top-level issue comments are fetched entirely through GraphQL because
+  `lastEditedAt` isolates content edits while REST `updated_at` also changes for
+  non-content activity. This avoids a second REST request and metadata join; the
+  dashboard falls back to `createdAt` when a comment has never been edited.
 - `reviewThreads(first: 10)` is intentionally small. The nested
   `comments(first: 100)` connection makes GitHub GraphQL rate-limit cost scale
   with the review-thread page size.

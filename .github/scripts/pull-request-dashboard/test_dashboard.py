@@ -17,6 +17,7 @@ from dashboard import (
     backfill_failed_pr_numbers,
     complete_initial_backfill_if_ready,
     compute_facts,
+    fetch_pr_raw,
     group_review_threads,
     main,
     remove_cached_dashboard_prs,
@@ -25,6 +26,57 @@ from dashboard import (
     update_dashboard_for_backfill,
     write_initial_backfill_output,
 )
+
+
+class FetchPrRawTest(unittest.TestCase):
+    def test_uses_graphql_issue_comments_without_rest_join(self) -> None:
+        issue_comments = [{"id": 101, "body": "GraphQL comment"}]
+        rest_payloads = {
+            "/repos/owner/repo/pulls/7/comments?per_page=100": [
+                {"id": 201, "body": "Review comment"}
+            ],
+            "/repos/owner/repo/pulls/7/commits?per_page=100": [
+                {"sha": "abcdef123456"}
+            ],
+        }
+
+        def gh_api(path: str, paginate: bool) -> list[dict]:
+            self.assertTrue(paginate)
+            return rest_payloads[path]
+
+        with (
+            patch(
+                "dashboard.gh_pr_view",
+                return_value={"id": "PR_node", "baseRefName": "main"},
+            ),
+            patch(
+                "dashboard.fetch_pr_issue_comments",
+                return_value=issue_comments,
+            ) as fetch_issue_comments,
+            patch("dashboard.gh_api", side_effect=gh_api) as rest_api,
+            patch("dashboard.fetch_review_threads", return_value=[]),
+            patch(
+                "dashboard.fetch_pr_review_data",
+                return_value={"reviews": [], "pr_metadata": {}},
+            ),
+            patch("dashboard.gh_pr_checks", return_value=[]),
+            patch("dashboard.gh_required_check_contexts", return_value=[]),
+            patch("dashboard.include_missing_required_checks", return_value=[]),
+        ):
+            raw = fetch_pr_raw(
+                "owner/repo",
+                "owner",
+                "repo",
+                {"number": 7},
+            )
+
+        self.assertEqual(raw["issue_comments"], issue_comments)
+        fetch_issue_comments.assert_called_once_with("owner", "repo", 7)
+        self.assertEqual(rest_api.call_count, 2)
+        self.assertEqual(
+            {call.args[0] for call in rest_api.call_args_list},
+            set(rest_payloads),
+        )
 
 
 class ReviewThreadDiscussionUrlTest(unittest.TestCase):

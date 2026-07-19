@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from github_cli import (
-    fetch_pr_issue_comment_data,
+    fetch_pr_issue_comments,
     fetch_pr_review_data,
     fetch_pr_title_edits,
     gh_pr_checks,
@@ -17,7 +17,7 @@ from github_cli import (
 
 class GithubCliTest(unittest.TestCase):
     @patch("github_cli.gh_graphql")
-    def test_fetch_pr_issue_comment_data_paginates(self, graphql) -> None:
+    def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:
         graphql.side_effect = [
             {
                 "data": {
@@ -27,6 +27,9 @@ class GithubCliTest(unittest.TestCase):
                                 "nodes": [
                                     {
                                         "fullDatabaseId": "5000000101",
+                                        "url": "https://example.test/comment/5000000101",
+                                        "body": "Please update the docs.",
+                                        "author": {"login": "reviewer"},
                                         "createdAt": "2026-07-14T01:00:00Z",
                                         "lastEditedAt": None,
                                         "isMinimized": False,
@@ -55,6 +58,9 @@ class GithubCliTest(unittest.TestCase):
                                 "nodes": [
                                     {
                                         "fullDatabaseId": "5000000102",
+                                        "url": "https://example.test/comment/5000000102",
+                                        "body": "I updated the docs.",
+                                        "author": {"login": "author"},
                                         "createdAt": "2026-07-14T02:00:00Z",
                                         "lastEditedAt": "2026-07-14T03:00:00Z",
                                         "isMinimized": True,
@@ -69,21 +75,35 @@ class GithubCliTest(unittest.TestCase):
         ]
 
         self.assertEqual(
-            fetch_pr_issue_comment_data(
+            fetch_pr_issue_comments(
                 "open-telemetry", "shared-workflows", 78
             ),
-            {
-                5000000101: {
+            [
+                {
+                    "id": 5000000101,
+                    "html_url": "https://example.test/comment/5000000101",
+                    "created_at": "2026-07-14T01:00:00Z",
+                    "updated_at": "2026-07-14T01:00:00Z",
                     "content_updated_at": "2026-07-14T01:00:00Z",
                     "minimized": False,
+                    "user": {"login": "reviewer"},
+                    "body": "Please update the docs.",
                 },
-                5000000102: {
+                {
+                    "id": 5000000102,
+                    "html_url": "https://example.test/comment/5000000102",
+                    "created_at": "2026-07-14T02:00:00Z",
+                    "updated_at": "2026-07-14T03:00:00Z",
                     "content_updated_at": "2026-07-14T03:00:00Z",
                     "minimized": True,
+                    "user": {"login": "author"},
+                    "body": "I updated the docs.",
                 },
-            },
+            ],
         )
         self.assertIn("fullDatabaseId", graphql.call_args_list[0].args[0])
+        self.assertIn("author", graphql.call_args_list[0].args[0])
+        self.assertIn("body", graphql.call_args_list[0].args[0])
         self.assertIn("isMinimized", graphql.call_args_list[0].args[0])
         self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
         self.assertEqual(graphql.call_count, 2)
