@@ -217,10 +217,13 @@ the implementation understandable and operationally cheap.
   monopolize the workflow or model quota.
 - Candidate author replies use a separate classifier with the same batch size,
   per-PR cap, and immutable cache behavior. Its result distinguishes completed
-  replies, author self-deferrals, and external blockers, and associates each
-  comment with the earlier feedback items its content addresses. Timestamp
-  ordering determines which items are candidates, but never applies a comment
-  to every earlier item by itself. Completed reply evidence retains the source
+  replies, author self-deferrals, and external blockers independently for each
+  earlier feedback item the comment addresses. Timestamp ordering determines
+  which items are candidates, but never applies a comment to every earlier item
+  by itself. Candidate sets are split and model-call batches are greedily packed
+  against the fully serialized prompt, so every Copilot CLI argument remains
+  within the configured character limit. Partial results are merged into one
+  cache entry per author comment. Completed reply evidence retains the source
   comment id as well as its timestamp, so comments created in the same second
   cannot be confused. An external author reply moves only its associated
   feedback to external routing.

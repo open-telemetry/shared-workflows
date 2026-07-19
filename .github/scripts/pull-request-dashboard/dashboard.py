@@ -80,8 +80,8 @@ built up across stages, so not every field is present at every point.
     top-level feedback. Internal.
 - ``review_thread_classifications`` (``list[dict]``): Current inline actions. Internal.
 - ``top_level_classifications`` (``list[dict]``): Immutable ledger decisions. Internal.
-- ``top_level_author_comment_classifications`` (``list[dict]``): Whether candidate author
-    replies complete a handoff or defer remaining work. Internal.
+- ``top_level_author_comment_classifications`` (``list[dict]``): Per-feedback outcomes
+    for candidate author replies. Internal.
 - ``pending_actions`` (``dict[str, dict]``): Ephemeral current actions by discussion id;
     each entry contains ``action`` and ``since``.
 - ``top_level_history`` (``dict[str, dict]``): Durable evidence timestamps by
@@ -741,7 +741,7 @@ class AuthorCommentOutcome(TypedDict):
     source_id: int
     action: str
     timestamp: str
-    feedback_ids: list[str]
+    feedback_id: str
 
 
 def top_level_author_comment_outcomes(
@@ -751,30 +751,35 @@ def top_level_author_comment_outcomes(
     by_id = discussions_by_id(top_level_author_comment_items)
     outcomes: list[AuthorCommentOutcome] = []
     for classification in classifications:
+        if classification.get("failed"):
+            continue
         decision = classification.get("decision") or {}
-        action = normalize_discussion_action(decision.get("discussion_action") or "")
-        raw_feedback_ids = decision.get("feedback_ids")
-        feedback_ids = (
-            [feedback_id for feedback_id in raw_feedback_ids if isinstance(feedback_id, str)]
-            if isinstance(raw_feedback_ids, list)
-            else []
-        )
         discussion = by_id.get(classification.get("discussion_id") or "")
         comments = (discussion or {}).get("comments") or []
         timestamp = comments[-1].get("timestamp") if comments else ""
         source_id = (discussion or {}).get("source_id")
-        if (
-            action in ("author", "external", "none", "unclear")
-            and isinstance(source_id, int)
-            and timestamp
-        ):
+        if not isinstance(source_id, int) or not timestamp:
+            continue
+        for feedback_outcome in decision.get("feedback_outcomes") or []:
+            action = normalize_discussion_action(
+                feedback_outcome.get("discussion_action") or ""
+            )
+            feedback_id = feedback_outcome.get("feedback_id")
+            if action not in ("author", "external", "none", "unclear") or not isinstance(
+                feedback_id, str
+            ):
+                continue
             outcomes.append({
                 "source_id": source_id,
                 "action": action,
                 "timestamp": timestamp,
-                "feedback_ids": feedback_ids,
+                "feedback_id": feedback_id,
             })
-    outcomes.sort(key=lambda outcome: (outcome["timestamp"], outcome["source_id"]))
+    outcomes.sort(key=lambda outcome: (
+        outcome["timestamp"],
+        outcome["source_id"],
+        outcome["feedback_id"],
+    ))
     return outcomes
 
 
@@ -786,7 +791,7 @@ def is_completed_author_reply(
     return any(
         outcome["source_id"] == source_id
         and outcome["action"] == "none"
-        and feedback_id in outcome["feedback_ids"]
+        and feedback_id == outcome["feedback_id"]
         for outcome in outcomes
     )
 
@@ -802,7 +807,7 @@ def completed_author_reply_after(
             if (
                 outcome["timestamp"] > root_timestamp
                 and outcome["action"] == "none"
-                and feedback_id in outcome["feedback_ids"]
+                and feedback_id == outcome["feedback_id"]
             ):
                 return outcome["timestamp"], outcome["source_id"]
         return None
@@ -833,7 +838,7 @@ def latest_top_level_author_comment_handoff(
         for outcome in outcomes
         if outcome["timestamp"] > root_timestamp
         and outcome["action"] in ("author", "external")
-        and feedback_id in outcome.get("feedback_ids", [])
+        and feedback_id == outcome["feedback_id"]
     ]
     if not handoffs:
         return None
