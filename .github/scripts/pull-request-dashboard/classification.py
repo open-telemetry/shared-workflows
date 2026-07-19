@@ -164,7 +164,14 @@ TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE = """You are triaging multiple in
 
 Classify EACH comment independently. Each comment was posted after one or more
 top-level reviewer feedback items. Decide what the author's comment means for
-the current pull request handoff.
+the current pull request handoff and which candidate feedback items it addresses.
+
+Each input contains `candidate_feedback`, a list of earlier feedback items with
+their `discussion_id` and text. Return that comment's addressed items in
+`feedback_ids`. Use the content of the comment and feedback to determine the
+association; never include an item merely because it was posted earlier. The
+list may contain multiple IDs or be empty, and every ID must come from that
+comment's `candidate_feedback` list.
 
 Return exactly {expected_count} items. The output discussion_ids must exactly
 match this list and remain in this order:
@@ -195,7 +202,7 @@ a separate future PR maps to none, not author.
 
 Respond with a single JSON object and nothing else. Include exactly one result
 for every input discussion_id and copy each discussion_id exactly:
-{{"items": [{{"discussion_id": "input id", "discussion_action": "author" | "external" | "none" | "unclear", "reason": "short explanation grounded in this comment"}}]}}
+{{"items": [{{"discussion_id": "input id", "discussion_action": "author" | "external" | "none" | "unclear", "feedback_ids": ["candidate feedback discussion id"], "reason": "short explanation grounded in this comment"}}]}}
 
 ---BEGIN AUTHOR FOLLOW-UPS---
 {discussions}
@@ -255,6 +262,7 @@ def normalize_discussion_action(action: str) -> str:
 def parse_discussion_decision(
     response_text: str,
     require_evidence_kinds: bool = False,
+    candidate_feedback_ids: list[str] | None = None,
 ) -> tuple[dict[str, Any], bool]:
     obj = extract_json_object(response_text) if response_text else None
     if not obj:
@@ -282,7 +290,33 @@ def parse_discussion_decision(
         decision["required_evidence_kinds"] = [
             kind for kind in TOP_LEVEL_EVIDENCE_KINDS if kind in evidence_kinds
         ]
-    return decision, valid_action and (valid_evidence_kinds or not require_evidence_kinds)
+    valid_feedback_ids = True
+    if candidate_feedback_ids is not None:
+        raw_feedback_ids = obj.get("feedback_ids")
+        valid_feedback_ids = (
+            isinstance(raw_feedback_ids, list)
+            and all(
+                isinstance(feedback_id, str)
+                and feedback_id in candidate_feedback_ids
+                for feedback_id in raw_feedback_ids
+            )
+            and len(raw_feedback_ids) == len(set(raw_feedback_ids))
+        )
+        decision["feedback_ids"] = (
+            [
+                feedback_id
+                for feedback_id in candidate_feedback_ids
+                if feedback_id in raw_feedback_ids
+            ]
+            if isinstance(raw_feedback_ids, list)
+            else []
+        )
+    return (
+        decision,
+        valid_action
+        and (valid_evidence_kinds or not require_evidence_kinds)
+        and valid_feedback_ids,
+    )
 
 
 def is_conflict_resolution_comment(body: str) -> bool:
@@ -331,6 +365,13 @@ def top_level_author_comment_prompt_input(discussion: dict[str, Any]) -> dict[st
     return {
         "discussion_id": discussion["discussion_id"],
         "body": "\n\n".join(comment.get("body") or "" for comment in comments),
+        "candidate_feedback": [
+            {
+                "discussion_id": feedback.get("discussion_id") or "",
+                "body": feedback.get("body") or "",
+            }
+            for feedback in (discussion.get("candidate_feedback") or [])
+        ],
     }
 
 
@@ -442,6 +483,10 @@ def top_level_batch_prompt(
         discussion["body"] = truncate(
             discussion.get("body") or "", DISCUSSION_COMMENT_BODY_MAX_CHARS
         )
+        for feedback in discussion.get("candidate_feedback") or []:
+            feedback["body"] = truncate(
+                feedback.get("body") or "", DISCUSSION_COMMENT_BODY_MAX_CHARS
+            )
     discussions_text = json.dumps(prompt_discussions, indent=2, sort_keys=True)
     return prompt_template.format(
         discussions=discussions_text,
@@ -475,6 +520,7 @@ def run_llm_for_top_level_batch(
     prompt: str,
     *,
     require_evidence_kinds: bool,
+    require_feedback_ids: bool = False,
 ) -> list[dict[str, Any]]:
     proc = run_copilot(prompt, model)
     response = extract_json_object(proc.stdout)
@@ -498,6 +544,14 @@ def run_llm_for_top_level_batch(
         decision, valid_response = parse_discussion_decision(
             json.dumps(item) if item is not None else "",
             require_evidence_kinds=require_evidence_kinds,
+            candidate_feedback_ids=(
+                [
+                    feedback.get("discussion_id") or ""
+                    for feedback in (discussion.get("candidate_feedback") or [])
+                ]
+                if require_feedback_ids
+                else None
+            ),
         )
         valid_action = decision.get("discussion_action") in TOP_LEVEL_DISCUSSION_ACTIONS
         failed = (
@@ -549,6 +603,7 @@ def run_llm_for_top_level_author_comment_batch(
         model,
         top_level_author_comment_batch_prompt(discussions),
         require_evidence_kinds=False,
+        require_feedback_ids=True,
     )
 
 
@@ -674,6 +729,7 @@ def unclear_top_level_decision(
     reason: str,
     *,
     require_evidence_kinds: bool,
+    require_feedback_ids: bool = False,
 ) -> dict[str, Any]:
     decision: dict[str, Any] = {
         "discussion_action": "unclear",
@@ -681,6 +737,8 @@ def unclear_top_level_decision(
     }
     if require_evidence_kinds:
         decision["required_evidence_kinds"] = []
+    if require_feedback_ids:
+        decision["feedback_ids"] = []
     return decision
 
 
@@ -698,6 +756,7 @@ def classify_top_level_items(
         list[dict[str, Any]],
     ],
     require_evidence_kinds: bool,
+    require_feedback_ids: bool = False,
     warning_label: str,
 ) -> dict[str, dict[str, Any]]:
     classifications_by_id: dict[str, dict[str, Any]] = {}
@@ -722,6 +781,7 @@ def classify_top_level_items(
             unclear_top_level_decision(
                 "Deferred by per-PR classification limit",
                 require_evidence_kinds=require_evidence_kinds,
+                require_feedback_ids=require_feedback_ids,
             ),
             failed=False,
         )
@@ -738,6 +798,7 @@ def classify_top_level_items(
                     unclear_top_level_decision(
                         "LLM timeout",
                         require_evidence_kinds=require_evidence_kinds,
+                        require_feedback_ids=require_feedback_ids,
                     ),
                     failed=True,
                     cli_call=(index == 0),
@@ -759,6 +820,7 @@ def classify_top_level_items(
                     unclear_top_level_decision(
                         f"LLM failed: {e!r}",
                         require_evidence_kinds=require_evidence_kinds,
+                        require_feedback_ids=require_feedback_ids,
                     ),
                     failed=True,
                     cli_call=(index == 0),
@@ -811,6 +873,7 @@ def classify_top_level_author_comments(
         prompt_input=top_level_author_comment_prompt_input,
         run_batch=run_llm_for_top_level_author_comment_batch,
         require_evidence_kinds=False,
+        require_feedback_ids=True,
         warning_label="top_level_author_comment",
     )
 

@@ -217,10 +217,13 @@ the implementation understandable and operationally cheap.
   monopolize the workflow or model quota.
 - Candidate author replies use a separate classifier with the same batch size,
   per-PR cap, and immutable cache behavior. Its result distinguishes completed
-  replies, author self-deferrals, and external blockers. Completed reply
-  evidence retains the source comment id as well as its timestamp, so comments
-  created in the same second cannot be confused. An external author reply moves
-  the corresponding earlier feedback to external routing.
+  replies, author self-deferrals, and external blockers, and associates each
+  comment with the earlier feedback items its content addresses. Timestamp
+  ordering determines which items are candidates, but never applies a comment
+  to every earlier item by itself. Completed reply evidence retains the source
+  comment id as well as its timestamp, so comments created in the same second
+  cannot be confused. An external author reply moves only its associated
+  feedback to external routing.
 - Lifecycle transitions are deterministic after feedback and author-reply
   classification. An ordinary new item waits on the
   author with 📌 visible. Once all expected evidence is observed, or the author

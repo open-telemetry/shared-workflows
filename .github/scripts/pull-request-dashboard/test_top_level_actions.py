@@ -307,11 +307,18 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {
                 "discussion_id": "completed-reply",
                 "discussion_action": "none",
+                "feedback_ids": ["test-request"],
                 "reason": "Author completed the handoff.",
             }
         )
         discussion = review_thread_discussion("completed-reply")
         discussion["discussion_kind"] = "top-level-author-reply"
+        discussion["candidate_feedback"] = [
+            {
+                "discussion_id": "test-request",
+                "body": "Please test this before merging.",
+            }
+        ]
 
         records = run_llm_for_top_level_author_comment_batch(
             [discussion], "model"
@@ -319,7 +326,42 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertFalse(records[0]["failed"])
         self.assertEqual(records[0]["decision"]["discussion_action"], "none")
+        self.assertEqual(records[0]["decision"]["feedback_ids"], ["test-request"])
         self.assertNotIn("required_evidence_kinds", records[0]["decision"])
+        prompt = run_copilot.call_args.args[0][2]
+        self.assertIn("Please test this before merging.", prompt)
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_author_comment_batch_rejects_unknown_feedback_id(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.return_value = copilot_batch_response(
+            {
+                "discussion_id": "author-reply",
+                "discussion_action": "external",
+                "feedback_ids": ["not-a-candidate"],
+                "reason": "Blocked upstream.",
+            }
+        )
+        discussion = review_thread_discussion("author-reply")
+        discussion["discussion_kind"] = "top-level-author-reply"
+        discussion["candidate_feedback"] = [
+            {
+                "discussion_id": "actual-candidate",
+                "body": "Please update the implementation.",
+            }
+        ]
+
+        records = run_llm_for_top_level_author_comment_batch(
+            [discussion], "model"
+        )
+
+        self.assertTrue(records[0]["failed"])
+        self.assertEqual(records[0]["decision"]["feedback_ids"], [])
+        self.assertIn("valid classification", records[0]["error"])
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
@@ -990,6 +1032,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                         "discussion_id": author_reply_items[0]["discussion_id"],
                         "decision": {
                             "discussion_action": "author",
+                            "feedback_ids": ["test-request"],
                             "reason": "Author committed to future testing.",
                         },
                     }
@@ -999,6 +1042,39 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertEqual(pending_actions["test-request"]["action"], "author")
         self.assertNotIn("test-request", history)
+
+    def test_author_comment_candidates_include_only_earlier_feedback(self) -> None:
+        earlier = top_level_item("earlier")
+        earlier["comments"] = [{"body": "Please update the implementation."}]
+        later = top_level_item("later")
+        later["root_timestamp"] = "2026-07-14T04:00:00Z"
+        later["comments"] = [{"body": "Please add another test."}]
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+            ),
+        ]
+
+        items = derive_top_level_author_comment_items(
+            events,
+            [earlier, later],
+            {"conflicts": "no"},
+        )
+
+        self.assertEqual(
+            items[0]["candidate_feedback"],
+            [
+                {
+                    "discussion_id": "earlier",
+                    "body": "Please update the implementation.",
+                }
+            ],
+        )
 
     def test_completed_author_reply_closes_top_level_feedback(self) -> None:
         discussion = top_level_item("question")
@@ -1032,6 +1108,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                         "discussion_id": author_reply_items[0]["discussion_id"],
                         "decision": {
                             "discussion_action": "none",
+                            "feedback_ids": ["question"],
                             "reason": "Author completed testing.",
                         },
                     }
@@ -1078,11 +1155,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         classifications = [
             {
                 "discussion_id": author_reply_items[0]["discussion_id"],
-                "decision": {"discussion_action": "none"},
+                "decision": {
+                    "discussion_action": "none",
+                    "feedback_ids": ["question"],
+                },
             },
             {
                 "discussion_id": author_reply_items[1]["discussion_id"],
-                "decision": {"discussion_action": "author"},
+                "decision": {
+                    "discussion_action": "author",
+                    "feedback_ids": ["question"],
+                },
             },
         ]
 
@@ -1100,6 +1183,47 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertEqual(pending_actions, {})
         self.assertEqual(history["question"]["reply_source_id"], 102)
+
+    def test_author_handoff_only_updates_associated_feedback(self) -> None:
+        discussions = [
+            top_level_item("first-request"),
+            top_level_item("second-request"),
+        ]
+        classifications = [
+            classification("first-request", "commit"),
+            classification("second-request", "reply"),
+        ]
+
+        pending_actions, history = advance_top_level_actions(
+            discussions,
+            classifications,
+            [],
+            {},
+            "author",
+            author_comment_outcomes=[
+                {
+                    "source_id": 102,
+                    "action": "external",
+                    "timestamp": "2026-07-14T03:00:00Z",
+                    "feedback_ids": ["second-request"],
+                }
+            ],
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "first-request": {
+                    "action": "author",
+                    "since": ROOT_TIMESTAMP,
+                },
+                "second-request": {
+                    "action": "external",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
 
     def test_external_author_reply_routes_feedback_external(self) -> None:
         discussion = top_level_item("dependency")
@@ -1131,7 +1255,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [
                     {
                         "discussion_id": author_reply_items[0]["discussion_id"],
-                        "decision": {"discussion_action": "external"},
+                        "decision": {
+                            "discussion_action": "external",
+                            "feedback_ids": ["dependency"],
+                        },
                     }
                 ],
             ),
@@ -1182,11 +1309,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [
                     {
                         "discussion_id": author_comment_items[0]["discussion_id"],
-                        "decision": {"discussion_action": "author"},
+                        "decision": {
+                            "discussion_action": "author",
+                            "feedback_ids": ["dependency"],
+                        },
                     },
                     {
                         "discussion_id": author_comment_items[1]["discussion_id"],
-                        "decision": {"discussion_action": "external"},
+                        "decision": {
+                            "discussion_action": "external",
+                            "feedback_ids": ["dependency"],
+                        },
                     },
                 ],
             ),
@@ -1230,11 +1363,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [
                 {
                     "discussion_id": author_comment_items[0]["discussion_id"],
-                    "decision": {"discussion_action": "external"},
+                    "decision": {
+                        "discussion_action": "external",
+                        "feedback_ids": ["dependency"],
+                    },
                 },
                 {
                     "discussion_id": author_comment_items[1]["discussion_id"],
-                    "decision": {"discussion_action": "author"},
+                    "decision": {
+                        "discussion_action": "author",
+                        "feedback_ids": ["dependency"],
+                    },
                 },
             ],
         )
@@ -1291,7 +1430,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [
                 {
                     "discussion_id": item["discussion_id"],
-                    "decision": {"discussion_action": "external"},
+                    "decision": {
+                        "discussion_action": "external",
+                        "feedback_ids": ["dependency"],
+                    },
                 }
                 for item in author_comment_items
             ],
@@ -1354,7 +1496,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [
                     {
                         "discussion_id": author_comment_items[0]["discussion_id"],
-                        "decision": {"discussion_action": "external"},
+                        "decision": {
+                            "discussion_action": "external",
+                            "feedback_ids": ["code"],
+                        },
                     }
                 ],
             ),
@@ -1397,7 +1542,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [
                     {
                         "discussion_id": author_comment_items[0]["discussion_id"],
-                        "decision": {"discussion_action": "external"},
+                        "decision": {
+                            "discussion_action": "external",
+                            "feedback_ids": ["code"],
+                        },
                     }
                 ],
             ),

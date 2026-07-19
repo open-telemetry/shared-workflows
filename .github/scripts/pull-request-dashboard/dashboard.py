@@ -716,10 +716,22 @@ def derive_top_level_author_comment_items(
             "body": truncate(event.get("body") or ""),
             "positive_reactors": [],
         }
+        candidate_feedback = [
+            {
+                "discussion_id": item["discussion_id"],
+                "body": "\n\n".join(
+                    item_comment.get("body") or ""
+                    for item_comment in (item.get("comments") or [])
+                ),
+            }
+            for item in top_level_items
+            if (item.get("root_timestamp") or "") < timestamp
+        ]
         items.append(add_discussion_facts({
             "discussion_id": f"pr-author-reply-{event['source_id']}",
             "discussion_kind": "top-level-author-reply",
             "source_id": event["source_id"],
+            "candidate_feedback": candidate_feedback,
             "comments": [comment],
         }, [comment], facts))
     return items
@@ -729,6 +741,7 @@ class AuthorCommentOutcome(TypedDict):
     source_id: int
     action: str
     timestamp: str
+    feedback_ids: list[str]
 
 
 def top_level_author_comment_outcomes(
@@ -738,8 +751,13 @@ def top_level_author_comment_outcomes(
     by_id = discussions_by_id(top_level_author_comment_items)
     outcomes: list[AuthorCommentOutcome] = []
     for classification in classifications:
-        action = normalize_discussion_action(
-            (classification.get("decision") or {}).get("discussion_action") or ""
+        decision = classification.get("decision") or {}
+        action = normalize_discussion_action(decision.get("discussion_action") or "")
+        raw_feedback_ids = decision.get("feedback_ids")
+        feedback_ids = (
+            [feedback_id for feedback_id in raw_feedback_ids if isinstance(feedback_id, str)]
+            if isinstance(raw_feedback_ids, list)
+            else []
         )
         discussion = by_id.get(classification.get("discussion_id") or "")
         comments = (discussion or {}).get("comments") or []
@@ -754,6 +772,7 @@ def top_level_author_comment_outcomes(
                 "source_id": source_id,
                 "action": action,
                 "timestamp": timestamp,
+                "feedback_ids": feedback_ids,
             })
     outcomes.sort(key=lambda outcome: (outcome["timestamp"], outcome["source_id"]))
     return outcomes
@@ -762,21 +781,29 @@ def top_level_author_comment_outcomes(
 def is_completed_author_reply(
     outcomes: list[AuthorCommentOutcome],
     source_id: int,
+    feedback_id: str,
 ) -> bool:
     return any(
-        outcome["source_id"] == source_id and outcome["action"] == "none"
+        outcome["source_id"] == source_id
+        and outcome["action"] == "none"
+        and feedback_id in outcome["feedback_ids"]
         for outcome in outcomes
     )
 
 
 def completed_author_reply_after(
+    feedback_id: str,
     root_timestamp: str,
     events: list[dict[str, Any]],
     outcomes: list[AuthorCommentOutcome] | None,
 ) -> tuple[str, int | None] | None:
     if outcomes is not None:
         for outcome in outcomes:
-            if outcome["timestamp"] > root_timestamp and outcome["action"] == "none":
+            if (
+                outcome["timestamp"] > root_timestamp
+                and outcome["action"] == "none"
+                and feedback_id in outcome["feedback_ids"]
+            ):
                 return outcome["timestamp"], outcome["source_id"]
         return None
     candidates = [
@@ -795,6 +822,7 @@ def completed_author_reply_after(
 
 
 def latest_top_level_author_comment_handoff(
+    feedback_id: str,
     root_timestamp: str,
     outcomes: list[AuthorCommentOutcome] | None,
 ) -> dict[str, str] | None:
@@ -805,6 +833,7 @@ def latest_top_level_author_comment_handoff(
         for outcome in outcomes
         if outcome["timestamp"] > root_timestamp
         and outcome["action"] in ("author", "external")
+        and feedback_id in outcome.get("feedback_ids", [])
     ]
     if not handoffs:
         return None
@@ -845,6 +874,7 @@ def collect_author_evidence(
         and is_completed_author_reply(
             author_comment_outcomes,
             previous_reply_source_id,
+            discussion["discussion_id"],
         )
         and previous_reply > root_timestamp
     ):
@@ -865,6 +895,7 @@ def collect_author_evidence(
         )
 
     completed_reply = completed_author_reply_after(
+        discussion["discussion_id"],
         root_timestamp,
         events,
         author_comment_outcomes,
@@ -937,12 +968,14 @@ def requires_title_edit_lookup(
                     and is_completed_author_reply(
                         author_comment_outcomes,
                         previous_reply_source_id,
+                        discussion["discussion_id"],
                     )
                 )
             )
         ):
             continue
         if completed_author_reply_after(
+            discussion["discussion_id"],
             root_timestamp,
             events or [],
             author_comment_outcomes,
@@ -1016,6 +1049,7 @@ def advance_top_level_actions(
         if action == "author" and evidence_at:
             continue
         handoff = latest_top_level_author_comment_handoff(
+            discussion["discussion_id"],
             root_timestamp,
             author_comment_outcomes,
         )
