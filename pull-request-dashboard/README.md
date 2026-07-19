@@ -155,11 +155,10 @@ action. Optional check failures do not affect routing. Maintenance-bot PRs keep
 their maintainer-oriented routing because the bot cannot act on a dashboard
 request.
 
-A hidden marker lets the workflow update the comment in place and upgrade
-existing one-time guidance comments rather than creating duplicates. Status
-comments are refreshed automatically when their dashboard status or format
-changes, including on inactive pull requests. Clear outcomes keep stale or
-ambiguous feedback from being routed to the wrong person.
+A hidden marker lets the workflow update the comment in place rather than
+creating duplicates. Status comments are refreshed automatically when their
+dashboard status or format changes, including on inactive pull requests. Clear
+outcomes keep stale or ambiguous feedback from being routed to the wrong person.
 
 Reviewers should prefer inline comments for feedback requiring explicit
 resolution. See
