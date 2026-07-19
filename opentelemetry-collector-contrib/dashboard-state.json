@@ -1793,17 +1793,20 @@
         ],
         "author": "singhvibhanshu",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48373#issuecomment-5015218620"
+        ],
+        "ci_failing_count": 3,
+        "ci_failing_since": "2026-07-19T09:24:44+00:00",
+        "ci_pending_count": 3,
         "conflicts": "no",
         "created_at": "2026-05-14T16:42:32+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-19T09:29:53+00:00",
+        "last_activity_at": "2026-07-19T09:33:59+00:00",
         "last_approver_activity_at": "2026-07-17T16:58:09+00:00",
-        "last_author_activity_at": "2026-07-19T09:27:04+00:00",
-        "last_external_activity_at": "2026-07-19T09:29:53+00:00",
+        "last_author_activity_at": "2026-07-19T09:17:51+00:00",
+        "last_external_activity_at": "2026-07-19T09:33:32+00:00",
         "reviewers": [
           {
             "approved": false,
@@ -1828,15 +1831,23 @@
             "login": "emreyalvac",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": false,
+            "top_level_feedback": true
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-19T09:27:04+00:00"
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-19T09:24:44+00:00"
       },
       "failed": false,
       "pr_number": 48373,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48373",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4628759839": {
           "evidence": {
