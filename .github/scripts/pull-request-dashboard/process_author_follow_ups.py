@@ -40,7 +40,6 @@ from utils import (
     classify_commit,
     commit_delta,
     format_ts,
-    is_human_commit_actor,
     parse_ts,
     utc_now,
 )
@@ -119,15 +118,6 @@ def current_human_activity(
     result: dict[str, Any],
     now: datetime,
 ) -> datetime | None:
-    return current_human_activity_with_author(repo, pr_number, result, now)[0]
-
-
-def current_human_activity_with_author(
-    repo: str,
-    pr_number: int,
-    result: dict[str, Any],
-    now: datetime,
-) -> tuple[datetime | None, bool]:
     owner, repo_name = repo.split("/", 1)
     issue_comments = gh_api(
         f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
@@ -149,8 +139,7 @@ def current_human_activity_with_author(
     if not isinstance(reviews, list):
         raise RuntimeError(f"could not verify current reviews for PR #{pr_number}")
 
-    author = str((result.get("facts") or {}).get("author") or "").lower()
-    activities: list[tuple[datetime, bool]] = []
+    activities: list[datetime] = []
     for comment in issue_comments:
         if (
             is_human_actor(comment.get("user"))
@@ -158,53 +147,33 @@ def current_human_activity_with_author(
         ):
             timestamp = parse_ts(comment.get("created_at") or "")
             if timestamp is not None:
-                login = str((comment.get("user") or {}).get("login") or "").lower()
-                activities.append((timestamp, login == author))
+                activities.append(timestamp)
     for comment in review_comments:
         if is_human_actor(comment.get("user")):
             timestamp = parse_ts(comment.get("created_at") or "")
             if timestamp is not None:
-                login = str((comment.get("user") or {}).get("login") or "").lower()
-                activities.append((timestamp, login == author))
+                activities.append(timestamp)
     for review in reviews:
         if is_human_actor(review.get("user")):
             timestamp = parse_ts(review.get("submitted_at") or "")
             if timestamp is not None:
-                login = str((review.get("user") or {}).get("login") or "").lower()
-                activities.append((timestamp, login == author))
+                activities.append(timestamp)
 
     accepted_head_sha = str((result.get("facts") or {}).get("head_sha") or "")
     current_head_sha = str(current_pr.get("headRefOid") or "")
     if accepted_head_sha and current_head_sha != accepted_head_sha:
         new_commits = commit_delta(commits, accepted_head_sha, current_head_sha)
         if new_commits is None:
-            activities.append((now, False))
+            activities.append(now)
         else:
             for commit in reversed(new_commits):
                 if classify_commit(commit) == "bot":
                     continue
-                human_actors = [
-                    commit.get(field)
-                    for field in ("committer", "author")
-                    if is_human_commit_actor(commit.get(field))
-                ]
-                activities.append((
-                    now,
-                    bool(human_actors) and all(
-                        str((actor or {}).get("login") or "").lower() == author
-                        for actor in human_actors
-                    ),
-                ))
+                activities.append(now)
                 break
     if not activities:
-        return None, False
-    latest = max(timestamp for timestamp, _is_author in activities)
-    is_author = all(
-        activity_is_author
-        for timestamp, activity_is_author in activities
-        if timestamp == latest
-    )
-    return latest, is_author
+        return None
+    return max(activities)
 
 
 def current_author_route(repo: str, pr_number: int, result: dict[str, Any]) -> bool:

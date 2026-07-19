@@ -274,8 +274,7 @@ jobs:
           owner: open-telemetry
           repositories: ${{ inputs.repository }}
           permission-checks: read
-          permission-issues: write
-          permission-pull-requests: read
+          permission-pull-requests: write
 
       - name: Process author follow-ups
         env:

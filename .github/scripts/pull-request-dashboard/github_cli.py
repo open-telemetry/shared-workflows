@@ -460,7 +460,6 @@ def list_open_prs(repo: str) -> list[dict[str, Any]]:
             "isDraft": pull.get("draft", False),
             "updatedAt": pull.get("updated_at"),
             "url": pull.get("html_url"),
-            **({"labels": pull.get("labels") or []} if "labels" in pull else {}),
         }
         for pull in _list_open_pulls(repo)
     ]

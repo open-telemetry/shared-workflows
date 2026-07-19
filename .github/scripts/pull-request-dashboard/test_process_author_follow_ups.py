@@ -417,17 +417,14 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             ],
         ]
 
-        activity, is_author = (
-            process_author_follow_ups.current_human_activity_with_author(
-                "open-telemetry/example",
-                1,
-                author_result(),
-                NOW,
-            )
+        activity = process_author_follow_ups.current_human_activity(
+            "open-telemetry/example",
+            1,
+            author_result(),
+            NOW,
         )
 
         self.assertEqual(activity, NOW)
-        self.assertFalse(is_author)
 
     @patch.object(
         process_author_follow_ups,
@@ -482,7 +479,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         return_value={"headRefOid": "reviewer-head"},
     )
     @patch.object(process_author_follow_ups, "gh_api")
-    def test_current_human_activity_uses_latest_human_commit_attribution(
+    def test_current_human_activity_uses_latest_human_commit(
         self,
         gh_api,
         _gh_pr_view,
@@ -504,17 +501,14 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             ],
         ]
 
-        activity, is_author = (
-            process_author_follow_ups.current_human_activity_with_author(
-                "open-telemetry/example",
-                1,
-                author_result(),
-                NOW,
-            )
+        activity = process_author_follow_ups.current_human_activity(
+            "open-telemetry/example",
+            1,
+            author_result(),
+            NOW,
         )
 
         self.assertEqual(activity, NOW)
-        self.assertFalse(is_author)
 
     @patch.object(
         process_author_follow_ups,
@@ -626,8 +620,8 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
     )
     @patch.object(
         process_author_follow_ups,
-        "current_human_activity_with_author",
-        return_value=(datetime(2026, 7, 1, tzinfo=timezone.utc), True),
+        "current_human_activity",
+        return_value=datetime(2026, 7, 1, tzinfo=timezone.utc),
     )
     @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
     @patch.object(
@@ -641,7 +635,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _lifecycle_comments,
         _issue_details,
         _current_author_route,
-        _current_human_activity_with_author,
+        _current_human_activity,
         _ensure_status_comment,
         post_comment,
     ) -> None:
@@ -662,7 +656,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
     @patch.object(process_author_follow_ups, "post_comment")
     @patch.object(process_author_follow_ups, "ensure_status_comment")
-    @patch.object(process_author_follow_ups, "current_human_activity_with_author")
+    @patch.object(process_author_follow_ups, "current_human_activity")
     @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
     @patch.object(
         process_author_follow_ups,
@@ -675,7 +669,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _lifecycle_comments,
         _issue_details,
         current_author_route,
-        current_human_activity_with_author,
+        current_human_activity,
         ensure_status_comment,
         post_comment,
     ) -> None:
@@ -691,13 +685,13 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
 
         self.assertIsNone(result)
         current_author_route.assert_not_called()
-        current_human_activity_with_author.assert_not_called()
+        current_human_activity.assert_not_called()
         ensure_status_comment.assert_not_called()
         post_comment.assert_not_called()
 
     @patch.object(process_author_follow_ups, "post_comment")
     @patch.object(process_author_follow_ups, "ensure_status_comment")
-    @patch.object(process_author_follow_ups, "current_human_activity_with_author")
+    @patch.object(process_author_follow_ups, "current_human_activity")
     @patch.object(process_author_follow_ups, "current_author_route", return_value=False)
     @patch.object(
         process_author_follow_ups,
@@ -710,7 +704,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _lifecycle_comments,
         _issue_details,
         _current_author_route,
-        current_human_activity_with_author,
+        current_human_activity,
         ensure_status_comment,
         post_comment,
     ) -> None:
@@ -725,7 +719,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         )
 
         self.assertIsNone(result)
-        current_human_activity_with_author.assert_not_called()
+        current_human_activity.assert_not_called()
         ensure_status_comment.assert_not_called()
         post_comment.assert_not_called()
 
@@ -733,8 +727,8 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
     @patch.object(process_author_follow_ups, "ensure_status_comment")
     @patch.object(
         process_author_follow_ups,
-        "current_human_activity_with_author",
-        return_value=(datetime(2026, 7, 16, tzinfo=timezone.utc), False),
+        "current_human_activity",
+        return_value=datetime(2026, 7, 16, tzinfo=timezone.utc),
     )
     @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
     @patch.object(
@@ -748,7 +742,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         _lifecycle_comments,
         _issue_details,
         _current_author_route,
-        _current_human_activity_with_author,
+        _current_human_activity,
         ensure_status_comment,
         post_comment,
     ) -> None:
