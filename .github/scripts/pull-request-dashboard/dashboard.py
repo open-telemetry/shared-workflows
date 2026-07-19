@@ -786,7 +786,14 @@ def latest_top_level_author_comment_handoff(
             handoffs.append(outcome)
     if not handoffs:
         return None
-    return max(handoffs, key=lambda outcome: outcome["timestamp"])
+    handoffs.sort(key=lambda outcome: outcome["timestamp"])
+    latest_action = handoffs[-1]["action"]
+    since = handoffs[-1]["timestamp"]
+    for handoff in reversed(handoffs[:-1]):
+        if handoff["action"] != latest_action:
+            break
+        since = handoff["timestamp"]
+    return {"action": latest_action, "timestamp": since}
 
 
 def collect_author_evidence(
