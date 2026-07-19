@@ -190,9 +190,10 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                     endCursor
                 }
                 nodes {
-                    databaseId
+                    fullDatabaseId
                     createdAt
                     lastEditedAt
+                    isMinimized
                 }
             }
         }
@@ -201,12 +202,12 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
 """
 
 
-def fetch_pr_issue_comment_content_timestamps(
+def fetch_pr_issue_comment_data(
     owner: str,
     repo_name: str,
     number: int,
-) -> dict[int, str]:
-    timestamps: dict[int, str] = {}
+) -> dict[int, dict[str, Any]]:
+    comments: dict[int, dict[str, Any]] = {}
     after: str | None = None
     while True:
         data = gh_graphql(
@@ -217,18 +218,20 @@ def fetch_pr_issue_comment_content_timestamps(
         connection = pull_request.get("comments") or {}
         for comment in connection.get("nodes") or []:
             try:
-                database_id = int(comment.get("databaseId"))
+                database_id = int(comment.get("fullDatabaseId"))
             except (TypeError, ValueError):
                 continue
             timestamp = comment.get("lastEditedAt") or comment.get("createdAt") or ""
-            if timestamp:
-                timestamps[database_id] = timestamp
+            comments[database_id] = {
+                "content_updated_at": timestamp,
+                "minimized": bool(comment.get("isMinimized")),
+            }
         page_info = connection.get("pageInfo") or {}
         if not page_info.get("hasNextPage"):
-            return timestamps
+            return comments
         after = page_info.get("endCursor") or None
         if after is None:
-            return timestamps
+            return comments
 
 
 def fetch_pr_title_edits(owner: str, repo_name: str, number: int) -> list[dict[str, Any]]:

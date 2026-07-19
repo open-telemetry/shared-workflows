@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from github_cli import (
-    fetch_pr_issue_comment_content_timestamps,
+    fetch_pr_issue_comment_data,
     fetch_pr_review_data,
     fetch_pr_title_edits,
     gh_pr_checks,
@@ -17,7 +17,7 @@ from github_cli import (
 
 class GithubCliTest(unittest.TestCase):
     @patch("github_cli.gh_graphql")
-    def test_fetch_pr_issue_comment_content_timestamps_paginates(self, graphql) -> None:
+    def test_fetch_pr_issue_comment_data_paginates(self, graphql) -> None:
         graphql.side_effect = [
             {
                 "data": {
@@ -26,14 +26,16 @@ class GithubCliTest(unittest.TestCase):
                             "comments": {
                                 "nodes": [
                                     {
-                                        "databaseId": "101",
+                                        "fullDatabaseId": "5000000101",
                                         "createdAt": "2026-07-14T01:00:00Z",
                                         "lastEditedAt": None,
+                                        "isMinimized": False,
                                     },
                                     {
-                                        "databaseId": None,
+                                        "fullDatabaseId": None,
                                         "createdAt": "2026-07-14T01:30:00Z",
                                         "lastEditedAt": None,
+                                        "isMinimized": False,
                                     },
                                 ],
                                 "pageInfo": {
@@ -52,9 +54,10 @@ class GithubCliTest(unittest.TestCase):
                             "comments": {
                                 "nodes": [
                                     {
-                                        "databaseId": "102",
+                                        "fullDatabaseId": "5000000102",
                                         "createdAt": "2026-07-14T02:00:00Z",
                                         "lastEditedAt": "2026-07-14T03:00:00Z",
+                                        "isMinimized": True,
                                     }
                                 ],
                                 "pageInfo": {"hasNextPage": False},
@@ -66,14 +69,22 @@ class GithubCliTest(unittest.TestCase):
         ]
 
         self.assertEqual(
-            fetch_pr_issue_comment_content_timestamps(
+            fetch_pr_issue_comment_data(
                 "open-telemetry", "shared-workflows", 78
             ),
             {
-                101: "2026-07-14T01:00:00Z",
-                102: "2026-07-14T03:00:00Z",
+                5000000101: {
+                    "content_updated_at": "2026-07-14T01:00:00Z",
+                    "minimized": False,
+                },
+                5000000102: {
+                    "content_updated_at": "2026-07-14T03:00:00Z",
+                    "minimized": True,
+                },
             },
         )
+        self.assertIn("fullDatabaseId", graphql.call_args_list[0].args[0])
+        self.assertIn("isMinimized", graphql.call_args_list[0].args[0])
         self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
         self.assertEqual(graphql.call_count, 2)
 
