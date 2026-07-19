@@ -30,7 +30,7 @@ on:
         required: false
         default: false
         type: boolean
-      stale_waiting_on_author:
+      author_follow_up:
         required: false
         default: false
         type: boolean
@@ -250,6 +250,7 @@ jobs:
   author-follow-up:
     needs: update-dashboard
     if: >-
+      inputs.author_follow_up &&
       always() &&
       (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
       needs.update-dashboard.outputs.initial_backfill_complete == 'true'
@@ -274,7 +275,7 @@ jobs:
           repositories: ${{ inputs.repository }}
           permission-checks: read
           permission-issues: write
-          permission-pull-requests: ${{ inputs.pr_number == '' && 'write' || 'read' }}
+          permission-pull-requests: read
 
       - name: Process author follow-ups
         env:
@@ -282,7 +283,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_NAME: ${{ inputs.repository }}
           REFRESHED_PR_NUMBERS: ${{ needs.update-dashboard.outputs.refreshed_pr_numbers }}
-          STALE_WAITING_ON_AUTHOR: ${{ inputs.stale_waiting_on_author }}
           TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           set -euo pipefail
@@ -296,9 +296,6 @@ jobs:
             --repo "$REPO_NAME"
             --pr-numbers "$follow_up_pr_numbers"
           )
-          if [[ "$STALE_WAITING_ON_AUTHOR" == "true" ]]; then
-            follow_up_args+=(--stale)
-          fi
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             follow_up_args+=(--reset-only)
           fi

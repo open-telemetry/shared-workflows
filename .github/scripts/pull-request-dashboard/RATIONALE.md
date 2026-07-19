@@ -84,17 +84,12 @@ the implementation understandable and operationally cheap.
 - The general nudge is due one week after a backfill follow-up job first
   observes the PR in the author route, or one week after a delivered handoff
   nudge when that occurs. This guarantees a full week between the two comments.
-- Both nudges apply to every configured repository. Stale labeling and closure
-  require the repository-level `stale_waiting_on_author` option.
-- The general nudge clock is unaffected by activity while the PR remains routed
-  to the author. After that nudge, human pushes, comments, and reviews
-  restart the current one-week quiet stage. Activity after stale labeling
-  removes a dashboard-owned `Stale` label before restarting the stale wait.
-  Leaving the author route clears the lifecycle.
+- Both nudges require the repository-level `author_follow_up` option. Leaving
+  the author route clears the lifecycle.
 - Substantive human activity consists of observed human head changes, human
   issue or review comments, and submitted human reviews. Bot and dashboard
   activity, reactions, label or assignment changes, checks, and edits to
-  existing comments do not reset a quiet stage. Commit author and committer
+  existing comments do not count as substantive activity. Commit author and committer
   dates are user-controlled metadata rather than push times, so lifecycle
   activity clocks and live mutation guards exclude them. A human-attributed
   head-SHA change instead uses the time the dashboard first observes that
@@ -109,53 +104,26 @@ the implementation understandable and operationally cheap.
   that delta cannot be established, the change receives the same conservative
   treatment. An author-attributed head change also records a separate
   observation timestamp for the handoff nudge; a later reviewer head change
-  counts as the human response that ends that handoff candidate. Closure also
-  compares the live head SHA with the accepted dashboard result to catch a push
-  after the refresh.
-- A non-PR run evaluates lifecycle actions only for PR results refreshed and
-  accepted during that run. Older cached results remain available for dashboard
-  rendering but cannot trigger nudges, stale labeling, or closure. Immediately
-  before a due nudge, the executor also confirms that the PR remains open and
-  routed to the author and that no newer human activity has appeared since the
-  accepted refresh. Deferring a nudge preserves the current route-period state,
-  including a newly created cycle; later author activity retains the original
-  handoff candidate, while other or unknown human activity clears it.
+  counts as the human response that ends that handoff candidate.
+- A non-PR run evaluates nudges only for PR results refreshed and accepted
+  during that run. Older cached results remain available for dashboard
+  rendering but cannot trigger nudges. Immediately before a due nudge, the
+  executor also confirms that the PR remains open and routed to the author and
+  that no newer human activity has appeared since the accepted refresh.
+  Deferring a nudge preserves the current route-period state, including a newly
+  created cycle; later author activity retains the original handoff candidate,
+  while other or unknown human activity clears it.
 - Dashboard-owned lifecycle clocks use GitHub's whole-second timestamp
   precision. Each accepted result records when its fetch began; live activity
-  in that same second is treated as potentially newer and defers a mutation.
-  Activity in the same second as stale labeling likewise removes the label or
-  defers closure because GitHub timestamps cannot establish which happened
-  first.
+  in that same second is treated as potentially newer and defers a nudge.
 - A targeted PR refresh runs lifecycle processing in reset-only mode. A
-  confirmed departure from the author route clears that PR's cycle and owned
-  stale label immediately, while an author-routed or transient result preserves
-  prior state without advancing clocks or executing due actions. Other PRs are
-  untouched. Non-targeted runs remain responsible for nudges, stale labeling,
-  and closure.
-- Escalation state is stored separately from dashboard routing and Slack
+  confirmed departure from the author route clears that PR's cycle, while an
+  author-routed or transient result preserves prior state without advancing
+  clocks or executing due actions. Other PRs are untouched. Non-targeted runs
+  remain responsible for nudges.
+- Author follow-up state is stored separately from dashboard routing and Slack
   notification state. Hidden per-cycle comment markers make retries idempotent
-  if a GitHub mutation succeeds before a state-branch push is rejected. For
-  stale labels, the latest matching GitHub label event is the durable ownership
-  receipt, allowing a retry to recover ownership when the label mutation
-  succeeded before lifecycle state was saved. Once saved, ownership represents
-  the dashboard-managed stale lifecycle rather than one specific label event.
-  Removing and reapplying `Stale` is not substantive activity and does not
-  supersede that lifecycle. Later qualifying activity clears the stale stage
-  and removes the current `Stale` label regardless of who most recently applied
-  it; otherwise closure remains gated by the full quiet period and the live
-  activity check.
-- Stage clocks begin only after the preceding GitHub mutation succeeds. Closure
-  requires a current open PR with a still-live author route, the dashboard-owned
-  `Stale` label, and no subsequent substantive human activity. The live route
-  can be established by unresolved inline feedback, unchanged pending top-level
-  feedback, or failing required CI. Stale labeling performs the same live route
-  and activity checks before adding the label. These rechecks protect against
-  activity or a route change after the dashboard refresh but before the
-  follow-up job acts.
-- The workflow records whether it added `Stale` and removes only labels it owns
-  when activity, manual label removal, or a route change resets escalation. It
-  also removes an owned label after closure; if that cleanup fails, retained
-  lifecycle state lets a later run remove it from the closed PR.
+  if a comment succeeds before a state-branch push is rejected.
 
 ## Backfill
 

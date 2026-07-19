@@ -243,7 +243,6 @@ class StateTest(unittest.TestCase):
                     "waiting_on_author_since": "2026-07-14T03:00:00Z",
                     "handoff_nudged_at": "",
                     "general_nudged_at": "",
-                    "stale_applied_at": "",
                 }
             }
 

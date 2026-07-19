@@ -1,4 +1,4 @@
-"""Lifecycle policy for author follow-up nudges and stale escalation."""
+"""Lifecycle policy for author follow-up nudges."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from utils import format_ts, parse_ts
 
 FAST_NUDGE_AFTER = timedelta(days=1)
 NUDGE_AFTER = timedelta(weeks=1)
-STAGE_INTERVAL = timedelta(weeks=1)
 
 
 def latest_human_activity(facts: dict[str, Any]) -> datetime | None:
@@ -73,7 +72,6 @@ def plan_follow_up(
     result: dict[str, Any] | None,
     previous: dict[str, Any] | None,
     now: datetime,
-    stale_enabled: bool,
 ) -> tuple[str | None, dict[str, Any] | None]:
     entry = dict(previous or {})
     if result and (
@@ -82,9 +80,6 @@ def plan_follow_up(
     ):
         return None, entry or None
     if not result or result.get("route") != "author":
-        if entry.get("stale_applied_at"):
-            entry["stale_applied_at"] = ""
-            return "remove-stale", entry
         return None, None
 
     facts = result.get("facts") or {}
@@ -97,23 +92,10 @@ def plan_follow_up(
             "pending_handoff_since": format_ts(author_activity),
             "handoff_nudged_at": "",
             "general_nudged_at": "",
-            "stale_applied_at": "",
-            "stale_reset_at": "",
         }
     waiting_since = parse_ts(entry.get("waiting_on_author_since") or "")
     if waiting_since is None:
         return None, entry
-
-    stale_applied_at = parse_ts(entry.get("stale_applied_at") or "")
-    if stale_applied_at is not None:
-        human_activity = latest_human_activity(facts)
-        if not stale_enabled or (
-            human_activity is not None and human_activity >= stale_applied_at
-        ):
-            entry["stale_applied_at"] = ""
-            if human_activity is not None and human_activity >= stale_applied_at:
-                entry["stale_reset_at"] = format_ts(human_activity)
-            return "remove-stale", entry
 
     other_activity = latest_other_human_activity(facts)
     pending_handoff_since = parse_ts(entry.get("pending_handoff_since") or "")
@@ -151,26 +133,4 @@ def plan_follow_up(
     ):
         entry["general_nudged_at"] = format_ts(now)
         return "general-nudge", entry
-
-    if not stale_enabled:
-        return None, entry
-
-    if stale_applied_at is not None:
-        if entry.get("stale_label_owned") and now - stale_applied_at >= STAGE_INTERVAL:
-            return "close", entry
-        return None, entry
-
-    general_nudged_at = parse_ts(entry.get("general_nudged_at") or "")
-    if general_nudged_at is None:
-        return None, entry
-    stale_baseline = general_nudged_at
-    human_activity = latest_human_activity(facts)
-    if human_activity is not None and human_activity > stale_baseline:
-        stale_baseline = human_activity
-    stale_reset_at = parse_ts(entry.get("stale_reset_at") or "")
-    if stale_reset_at is not None and stale_reset_at > stale_baseline:
-        stale_baseline = stale_reset_at
-    if now - stale_baseline >= STAGE_INTERVAL:
-        entry["stale_applied_at"] = format_ts(now)
-        return "stale", entry
     return None, entry

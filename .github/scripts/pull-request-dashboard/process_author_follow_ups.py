@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Post author handoff nudges and optionally escalate inactive pull requests."""
+"""Post author follow-up nudges."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 import sys
 from typing import Any
-from urllib.parse import quote
 
 from author_follow_up import latest_human_activity, plan_follow_up, qualifying_author_activity
 from github_cli import (
@@ -49,10 +48,6 @@ from utils import (
 
 HANDOFF_NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-handoff-nudge:"
 GENERAL_NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-general-nudge:"
-CLOSE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-close:"
-STALE_LABEL = "Stale"
-STALE_LABEL_COLOR = "ededed"
-STALE_LABEL_DESCRIPTION = "Inactive pull request"
 
 
 def lifecycle_marker(prefix: str, cycle_id: str) -> str:
@@ -94,17 +89,25 @@ def render_nudge(
     facts = result.get("facts") or {}
     author = (facts.get("author") or "").strip()
     mention = f"@{author}, " if author else ""
+    has_pending_feedback = bool(
+        facts.get("author_action_review_thread_urls")
+        or facts.get("author_action_top_level_feedback_urls")
+    )
+    reason = (
+        "Some review feedback still needs an explicit reply or resolution."
+        if has_pending_feedback
+        else "Required checks are still failing and need your attention."
+    )
     if kind == "handoff-nudge":
         message = (
             f"{mention}this pull request is still waiting on your follow-up and has not been "
-            "routed back to reviewers. Some review feedback still needs an explicit reply or "
-            "resolution."
+            f"routed back to reviewers. {reason}"
         )
         marker_prefix = HANDOFF_NUDGE_MARKER_PREFIX
     elif kind == "general-nudge":
         message = (
             f"{mention}this pull request has been waiting on your follow-up for one week. "
-            "Some review feedback still needs an explicit reply or resolution."
+            f"{reason}"
         )
         marker_prefix = GENERAL_NUDGE_MARKER_PREFIX
     else:
@@ -118,33 +121,8 @@ def render_nudge(
     ])
 
 
-def render_close_comment(cycle_id: str) -> str:
-    return "\n".join([
-        lifecycle_marker(CLOSE_MARKER_PREFIX, cycle_id),
-        (
-            "Closing this pull request after the general and stale reminders, including a "
-            "quiet week after stale labeling. "
-            "It can be reopened when the remaining review feedback has an explicit outcome and "
-            "the pull request is ready to return to review."
-        ),
-        "",
-    ])
-
-
-def issue_label_names(repo: str, pr_number: int) -> dict[str, str]:
-    return label_names(issue_details(repo, pr_number))
-
-
 def issue_details(repo: str, pr_number: int) -> dict[str, Any]:
     return gh_api(f"/repos/{repo}/issues/{pr_number}") or {}
-
-
-def label_names(value: dict[str, Any]) -> dict[str, str]:
-    return {
-        str(label.get("name") or "").lower(): str(label.get("name") or "")
-        for label in value.get("labels") or []
-        if label.get("name")
-    }
 
 
 def is_human_actor(actor: dict[str, Any] | None) -> bool:
@@ -314,73 +292,6 @@ def has_activity_since_snapshot(
     return accepted_activity is None or current_activity > accepted_activity
 
 
-def repository_stale_label(repo: str) -> str:
-    labels = gh_api(f"/repos/{repo}/labels?per_page=100", paginate=True) or []
-    for label in labels:
-        name = str(label.get("name") or "")
-        if name.lower() == STALE_LABEL.lower():
-            return name
-    run_gh([
-        "gh", "api", "--method", "POST",
-        f"repos/{repo}/labels",
-        "-f", f"name={STALE_LABEL}",
-        "-f", f"color={STALE_LABEL_COLOR}",
-        "-f", f"description={STALE_LABEL_DESCRIPTION}",
-    ])
-    return STALE_LABEL
-
-
-def add_stale_label(repo: str, pr_number: int) -> bool:
-    current_labels = issue_label_names(repo, pr_number)
-    if STALE_LABEL.lower() in current_labels:
-        return stale_label_owned_by_dashboard(repo, pr_number)
-    label = repository_stale_label(repo)
-    run_gh([
-        "gh", "api", "--method", "POST",
-        f"repos/{repo}/issues/{pr_number}/labels",
-        "-f", f"labels[]={label}",
-    ])
-    return True
-
-
-def stale_label_owned_by_dashboard(repo: str, pr_number: int) -> bool:
-    events = gh_api(
-        f"/repos/{repo}/issues/{pr_number}/events?per_page=100",
-        paginate=True,
-    ) or []
-    label_events = [
-        event
-        for event in events
-        if event.get("event") in ("labeled", "unlabeled")
-        and str((event.get("label") or {}).get("name") or "").lower()
-        == STALE_LABEL.lower()
-    ]
-    if not label_events:
-        return False
-    latest = max(
-        label_events,
-        key=lambda event: (
-            str(event.get("created_at") or ""),
-            int(event.get("id") or 0),
-        ),
-    )
-    return bool(
-        latest.get("event") == "labeled"
-        and (latest.get("performed_via_github_app") or {}).get("slug")
-        == DASHBOARD_APP_SLUG
-    )
-
-
-def remove_stale_label(repo: str, pr_number: int) -> None:
-    label = issue_label_names(repo, pr_number).get(STALE_LABEL.lower())
-    if not label:
-        return
-    run_gh([
-        "gh", "api", "--method", "DELETE",
-        f"repos/{repo}/issues/{pr_number}/labels/{quote(label, safe='')}",
-    ])
-
-
 def execute_action(
     action: str,
     repo: str,
@@ -446,100 +357,6 @@ def execute_action(
         print(f"sent {action} on PR #{pr_number}", file=sys.stderr)
         return updated
 
-    if action == "stale":
-        current_activity = (
-            current_human_activity(repo, pr_number, result, now)
-            if result is not None
-            else None
-        )
-        route_is_current = bool(
-            result is not None
-            and result.get("route") == "author"
-            and current_author_route(repo, pr_number, result)
-        )
-        has_new_activity = bool(
-            result is not None
-            and has_activity_since_snapshot(result, current_activity)
-        )
-        if not route_is_current or has_new_activity:
-            reset_at = current_activity if has_new_activity else now
-            updated["stale_applied_at"] = ""
-            updated["stale_reset_at"] = format_ts(reset_at)
-            updated.pop("stale_label_owned", None)
-            print(
-                f"deferred stale label for PR #{pr_number} after live recheck",
-                file=sys.stderr,
-            )
-            return updated
-        updated["stale_label_owned"] = add_stale_label(repo, pr_number)
-        if updated["stale_label_owned"]:
-            updated["stale_applied_at"] = format_ts(now)
-        print(f"marked PR #{pr_number} stale", file=sys.stderr)
-        return updated
-
-    if action == "remove-stale":
-        if (previous or {}).get("stale_label_owned"):
-            remove_stale_label(repo, pr_number)
-            print(f"removed dashboard-managed stale label from PR #{pr_number}", file=sys.stderr)
-        updated.pop("stale_label_owned", None)
-        return updated
-
-    if action == "close":
-        issue = issue_details(repo, pr_number)
-        current_labels = label_names(issue)
-        stale_applied_at = parse_ts(updated.get("stale_applied_at") or "")
-        if (
-            issue.get("state") != "open"
-            or not issue.get("pull_request")
-        ):
-            return None
-        if (
-            result is None
-            or result.get("route") != "author"
-            or not current_author_route(repo, pr_number, result)
-            or STALE_LABEL.lower() not in current_labels
-        ):
-            if updated.get("stale_label_owned") and STALE_LABEL.lower() in current_labels:
-                remove_stale_label(repo, pr_number)
-            updated["stale_applied_at"] = ""
-            updated["stale_reset_at"] = format_ts(now)
-            updated.pop("stale_label_owned", None)
-            print(
-                f"deferred closure of PR #{pr_number} after current-state recheck",
-                file=sys.stderr,
-            )
-            return updated
-        human_activity = current_human_activity(repo, pr_number, result, now)
-        if stale_applied_at is None or (
-            human_activity is not None and human_activity >= stale_applied_at
-        ):
-            if updated.get("stale_label_owned"):
-                remove_stale_label(repo, pr_number)
-            updated["stale_applied_at"] = ""
-            updated["stale_reset_at"] = format_ts(human_activity or now)
-            updated.pop("stale_label_owned", None)
-            print(
-                f"deferred closure of PR #{pr_number} after current-activity recheck",
-                file=sys.stderr,
-            )
-            return updated
-        marker = lifecycle_marker(CLOSE_MARKER_PREFIX, cycle_id)
-        existing_close_comment = matching_comment(
-            lifecycle_comments(repo, pr_number),
-            marker,
-        )
-        if not existing_close_comment:
-            post_comment(repo, pr_number, render_close_comment(cycle_id))
-        run_gh([
-            "gh", "api", "--method", "PATCH",
-            f"repos/{repo}/pulls/{pr_number}",
-            "-f", "state=closed",
-        ])
-        if updated.get("stale_label_owned"):
-            remove_stale_label(repo, pr_number)
-        print(f"closed stale PR #{pr_number}", file=sys.stderr)
-        return None
-
     raise ValueError(f"unsupported author follow-up action: {action}")
 
 
@@ -548,8 +365,6 @@ def next_author_follow_ups(
     results: dict[int, dict[str, Any]],
     previous_follow_ups: dict[str, Any],
     now: datetime,
-    stale_enabled: bool,
-    current_prs: dict[int, dict[str, Any]] | None = None,
     refreshed_pr_numbers: set[int] | None = None,
     reset_only: bool = False,
 ) -> dict[str, Any]:
@@ -569,19 +384,7 @@ def next_author_follow_ups(
             if previous is not None:
                 updated_follow_ups[key] = previous
             continue
-        current_pr = (current_prs or {}).get(number) or {}
-        if (
-            current_prs is not None
-            and previous
-            and previous.get("stale_label_owned")
-            and previous.get("stale_applied_at")
-            and STALE_LABEL.lower() not in label_names(current_pr)
-        ):
-            previous = dict(previous)
-            previous["stale_applied_at"] = ""
-            previous["stale_reset_at"] = format_ts(now)
-            previous.pop("stale_label_owned", None)
-        action, updated = plan_follow_up(result, previous, now, stale_enabled)
+        action, updated = plan_follow_up(result, previous, now)
         if action and updated is not None:
             updated = execute_action(action, repo, number, result, previous, updated, now)
         if (
@@ -606,8 +409,6 @@ def next_author_follow_ups(
         ):
             updated_follow_ups[key] = previous
             continue
-        if previous.get("stale_label_owned"):
-            remove_stale_label(repo, number)
     return updated_follow_ups
 
 
@@ -622,7 +423,6 @@ def previous_author_follow_ups(retry_snapshot_path: Path | None) -> dict[str, An
 
 def process_author_follow_ups(
     repo: str,
-    stale_enabled: bool,
     now: datetime,
     refreshed_pr_numbers: set[int],
     reset_only: bool = False,
@@ -633,7 +433,6 @@ def process_author_follow_ups(
         print("dashboard state not found; skipping author follow-ups", file=sys.stderr)
         return 0
     prs = list_open_prs(repo)
-    current_prs = {pr["number"]: pr for pr in prs}
     open_non_draft_numbers = {
         pr["number"] for pr in prs if not pr.get("isDraft")
     }
@@ -645,8 +444,6 @@ def process_author_follow_ups(
         results,
         previous,
         now,
-        stale_enabled,
-        current_prs,
         refreshed_pr_numbers,
         reset_only,
     )
@@ -661,7 +458,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument("--stale", action="store_true", help="enable stale labeling and closure")
     parser.add_argument(
         "--pr-numbers",
         required=True,
@@ -687,7 +483,6 @@ def main() -> int:
             "Update author follow-up state",
             lambda: process_author_follow_ups(
                 repo,
-                args.stale,
                 utc_now(),
                 {int(number) for number in args.pr_numbers.split(",") if number},
                 args.reset_only,

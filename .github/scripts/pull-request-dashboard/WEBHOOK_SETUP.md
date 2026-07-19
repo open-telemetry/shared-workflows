@@ -65,16 +65,14 @@ Permission rationale:
 | Contents | Read | Reads PR commits and repository metadata needed by pull/commit APIs. |
 | Issues | Read and write | Finds, creates, and updates the dashboard issue. |
 | Metadata | Read | Required by GitHub for GitHub App repository access. |
-| Pull requests | Read and write | Required to subscribe to PR review/comment/thread events; read PR details, reviews, review comments, commits, and GraphQL review threads; create the dashboard-managed PR status comment; and close stale PRs for repositories that opt in. |
+| Pull requests | Read and write | Required to subscribe to PR review/comment/thread events; read PR details, reviews, review comments, commits, and GraphQL review threads; and create the dashboard-managed PR status comment. |
 | Members | Read | Reads approver-team membership configured in `repositories.json`. |
 
 The dashboard does not create inline review comments, submit reviews, or resolve
 review threads. It manages one PR conversation comment (create, update, and
 duplicate cleanup) through the issue-comments API. Because that comment lives on
-a pull request, GitHub governs writing it with the `Pull requests` permission;
-the same permission enables automatic closure when a repository configures
-`stale_waiting_on_author`. `Issues: read and write` covers only the separate
-dashboard issue.
+a pull request, GitHub governs writing it with the `Pull requests` permission.
+`Issues: read and write` covers only the separate dashboard issue.
 
 Subscribe to events:
 

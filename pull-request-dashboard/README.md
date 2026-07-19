@@ -48,6 +48,7 @@ Open a pull request that adds your repository to [`.github/scripts/pull-request-
     "name": "example-repo",
     "approver_teams": ["example-approvers"],
     "required_approvals": 1,
+    "author_follow_up": true,
     "slack_channel": "#example-maintainers",
     "slack_user_mapping": {
       "octocat": "U0123456789"
@@ -66,7 +67,7 @@ Fields:
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
-| `stale_waiting_on_author` | no | If `true`, apply `Stale` after one quiet week following the general nudge and close after another quiet week. Subsequent human activity restarts the current escalation stage. Nudges apply to every repository. Defaults to `false`. |
+| `author_follow_up` | no | If `true`, enable both author follow-up nudges. Defaults to `false`. |
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
@@ -169,13 +170,14 @@ for the tradeoffs behind this behavior.
 
 Targeted updates received before the first full dashboard run are ignored.
 
-## Author follow-up lifecycle
+## Author follow-up nudges
 
-Hourly runs process two reminder schedules. Manually triggered runs without a
-PR number do the same. Each run evaluates follow-up actions only for
-PRs refreshed during that run. Since a repository refresh is capped at 50 PRs,
-a due action in a larger repository may wait for a later round-robin run, but it
-is delivered as soon as the PR is next refreshed.
+Repositories with `author_follow_up` enabled use hourly runs to process two
+reminder schedules. Manually triggered runs without a PR number do the same.
+Each run evaluates follow-up actions only for PRs refreshed during that run.
+Since a repository refresh is capped at 50 PRs, a due action in a larger
+repository may wait for a later round-robin run, but it is delivered as soon as
+the PR is next refreshed.
 
 - **Handoff nudge:** If the author acts, nobody else responds, and the PR remains
   in *Waiting on authors*, the dashboard posts a nudge one day after the first
@@ -188,25 +190,11 @@ is delivered as soon as the PR is next refreshed.
   handoff nudge is posted, the general nudge is instead posted one week after
   the handoff nudge.
 
-Both nudges link to the dashboard-managed status comment and apply to every
-configured repository.
-
-Repositories with `stale_waiting_on_author` enabled apply `Stale` after one
-quiet week following the general nudge and close after another quiet week.
-Human pushes, comments, and reviews restart the current escalation stage.
-Activity after stale labeling removes a dashboard-managed
-`Stale` label before starting a fresh one-week stale wait. Manually removing a
-dashboard-managed `Stale` label has the same effect when the dashboard next
-observes the label as absent. Bot activity, reactions, label or assignment
-changes, checks, and edits to existing comments do not count as human activity.
-
-All follow-up actions apply only while the PR remains in *Waiting on authors*.
-Leaving that route clears the cycle and removes a dashboard-managed `Stale`
-label; a label that already existed before dashboard escalation is not removed.
+Both nudges link to the dashboard-managed status comment and apply only while
+the PR remains in *Waiting on authors*. Leaving that route clears the cycle.
 
 At most one handoff nudge and one general nudge are posted during an
-uninterrupted *Waiting on authors* period. Repositories that do not enable stale
-handling receive only these reminders.
+uninterrupted *Waiting on authors* period.
 
 ## Configuration
 
