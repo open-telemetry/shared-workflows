@@ -10,7 +10,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from author_follow_up import latest_human_activity, plan_follow_up, qualifying_author_activity
+from author_follow_up import latest_human_activity, plan_follow_up
 from github_cli import (
     detect_repo,
     fetch_pr_review_data,
@@ -46,7 +46,6 @@ from utils import (
 )
 
 
-HANDOFF_NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-handoff-nudge:"
 GENERAL_NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-general-nudge:"
 
 
@@ -84,36 +83,13 @@ def render_nudge(
     result: dict[str, Any],
     status_url: str,
     cycle_id: str,
-    kind: str,
 ) -> str:
     facts = result.get("facts") or {}
     author = (facts.get("author") or "").strip()
     mention = f"@{author}, " if author else ""
-    has_pending_feedback = bool(
-        facts.get("author_action_review_thread_urls")
-        or facts.get("author_action_top_level_feedback_urls")
-    )
-    reason = (
-        "Some review feedback still needs an explicit reply or resolution."
-        if has_pending_feedback
-        else "Required checks are still failing and need your attention."
-    )
-    if kind == "handoff-nudge":
-        message = (
-            f"{mention}this pull request is still waiting on your follow-up and has not been "
-            f"routed back to reviewers. {reason}"
-        )
-        marker_prefix = HANDOFF_NUDGE_MARKER_PREFIX
-    elif kind == "general-nudge":
-        message = (
-            f"{mention}this pull request has been waiting on your follow-up for one week. "
-            f"{reason}"
-        )
-        marker_prefix = GENERAL_NUDGE_MARKER_PREFIX
-    else:
-        raise ValueError(f"unsupported author nudge kind: {kind}")
+    message = f"{mention}this pull request has been waiting on your follow-up for one week."
     return "\n".join([
-        lifecycle_marker(marker_prefix, cycle_id),
+        lifecycle_marker(GENERAL_NUDGE_MARKER_PREFIX, cycle_id),
         message,
         "",
         f"See the [dashboard status comment]({status_url}) for the remaining items.",
@@ -301,63 +277,42 @@ def execute_action(
     updated: dict[str, Any],
     now: datetime,
 ) -> dict[str, Any] | None:
-    cycle_id = updated.get("cycle_id") or updated.get("waiting_on_author_since") or format_ts(now)
-    if action in ("handoff-nudge", "general-nudge"):
-        marker_prefix = (
-            HANDOFF_NUDGE_MARKER_PREFIX
-            if action == "handoff-nudge"
-            else GENERAL_NUDGE_MARKER_PREFIX
-        )
-        timestamp_field = (
-            "handoff_nudged_at"
-            if action == "handoff-nudge"
-            else "general_nudged_at"
-        )
-        marker = lifecycle_marker(marker_prefix, cycle_id)
-        existing = matching_comment(lifecycle_comments(repo, pr_number), marker)
-        if existing:
-            updated[timestamp_field] = existing.get("created_at") or format_ts(now)
-            return updated
-        if result is None:
-            raise RuntimeError(f"cannot nudge PR #{pr_number} without dashboard result")
-        issue = issue_details(repo, pr_number)
-        if issue.get("state") != "open" or not issue.get("pull_request"):
-            print(
-                f"cancelled {action} on closed PR #{pr_number} after live recheck",
-                file=sys.stderr,
-            )
-            return None
-        if not current_author_route(repo, pr_number, result):
-            print(
-                f"cancelled {action} on PR #{pr_number} after route recheck",
-                file=sys.stderr,
-            )
-            return None
-        current_activity, current_activity_is_author = (
-            current_human_activity_with_author(repo, pr_number, result, now)
-        )
-        if has_activity_since_snapshot(result, current_activity):
-            print(
-                f"deferred {action} on PR #{pr_number} after activity recheck",
-                file=sys.stderr,
-            )
-            deferred = dict(previous) if previous is not None else dict(updated)
-            deferred[timestamp_field] = ""
-            if action == "handoff-nudge":
-                if current_activity_is_author:
-                    if previous is None:
-                        deferred["pending_handoff_since"] = format_ts(
-                            qualifying_author_activity(result.get("facts") or {})
-                        )
-                else:
-                    deferred["pending_handoff_since"] = ""
-            return deferred
-        status_url = ensure_status_comment(repo, pr_number, result)
-        post_comment(repo, pr_number, render_nudge(result, status_url, cycle_id, action))
-        print(f"sent {action} on PR #{pr_number}", file=sys.stderr)
+    if action != "general-nudge":
+        raise ValueError(f"unsupported author follow-up action: {action}")
+    cycle_id = updated.get("waiting_on_author_since") or format_ts(now)
+    marker = lifecycle_marker(GENERAL_NUDGE_MARKER_PREFIX, cycle_id)
+    existing = matching_comment(lifecycle_comments(repo, pr_number), marker)
+    if existing:
+        updated["general_nudged_at"] = existing.get("created_at") or format_ts(now)
         return updated
-
-    raise ValueError(f"unsupported author follow-up action: {action}")
+    if result is None:
+        raise RuntimeError(f"cannot nudge PR #{pr_number} without dashboard result")
+    issue = issue_details(repo, pr_number)
+    if issue.get("state") != "open" or not issue.get("pull_request"):
+        print(
+            f"cancelled {action} on closed PR #{pr_number} after live recheck",
+            file=sys.stderr,
+        )
+        return None
+    if not current_author_route(repo, pr_number, result):
+        print(
+            f"cancelled {action} on PR #{pr_number} after route recheck",
+            file=sys.stderr,
+        )
+        return None
+    current_activity = current_human_activity(repo, pr_number, result, now)
+    if has_activity_since_snapshot(result, current_activity):
+        print(
+            f"deferred {action} on PR #{pr_number} after activity recheck",
+            file=sys.stderr,
+        )
+        deferred = dict(previous) if previous is not None else dict(updated)
+        deferred["general_nudged_at"] = ""
+        return deferred
+    status_url = ensure_status_comment(repo, pr_number, result)
+    post_comment(repo, pr_number, render_nudge(result, status_url, cycle_id))
+    print(f"sent {action} on PR #{pr_number}", file=sys.stderr)
+    return updated
 
 
 def next_author_follow_ups(
@@ -387,11 +342,6 @@ def next_author_follow_ups(
         action, updated = plan_follow_up(result, previous, now)
         if action and updated is not None:
             updated = execute_action(action, repo, number, result, previous, updated, now)
-        if (
-            not result.get("failed")
-            and result.get("route") not in ("author", "transient-failure", "unknown")
-        ):
-            updated = None
         if updated is not None:
             updated_follow_ups[key] = updated
 

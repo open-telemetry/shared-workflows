@@ -74,56 +74,50 @@ the implementation understandable and operationally cheap.
 
 ## Author Follow-Up
 
-- The handoff nudge is due one day after the first substantive author action
-  without a later human response during the current author-routing period.
-  Later author activity without a successful transition out of the author route
-  does not postpone it. This prevents repeated activity from indefinitely
-  delaying a nudge when the dashboard still expects the author to act. When a
-  handoff and general nudge would otherwise both be due, the handoff is
-  delivered first.
-- The general nudge is due one week after a backfill follow-up job first
-  observes the PR in the author route, or one week after a delivered handoff
-  nudge when that occurs. This guarantees a full week between the two comments.
-- Both nudges require the repository-level `author_follow_up` option. Leaving
-  the author route clears the lifecycle.
-- Substantive human activity consists of observed human head changes, human
-  issue or review comments, and submitted human reviews. Bot and dashboard
-  activity, reactions, label or assignment changes, checks, and edits to
-  existing comments do not count as substantive activity. Commit author and committer
-  dates are user-controlled metadata rather than push times, so lifecycle
-  activity clocks and live mutation guards exclude them. A human-attributed
-  head-SHA change instead uses the time the dashboard first observes that
-  change. This includes a reviewer helping by pushing to the author's branch,
-  while bot-only changes remain excluded. Generic commit identities such as
-  `web-flow` and bare `copilot` are neutral and require another human-linked
-  author or committer. A commit with an unlinked author or committer identity is
-  treated conservatively as human activity without attributing it to the author;
-  only commits whose identities are positively identified as automation are
-  ignored. Every commit between the previously accepted and current heads is
-  inspected, so a later bot commit cannot hide an intervening human push. If
-  that delta cannot be established, the change receives the same conservative
-  treatment. An author-attributed head change also records a separate
-  observation timestamp for the handoff nudge; a later reviewer head change
-  counts as the human response that ends that handoff candidate.
-- A non-PR run evaluates nudges only for PR results refreshed and accepted
+- A single nudge is due one week after a backfill follow-up job first observes
+  the PR in the author route. It reminds the author that the PR is still waiting
+  on them and points them at the dashboard status comment for the remaining
+  items. It is primarily aimed at contributors who are not yet familiar with the
+  status comment.
+- The nudge is posted at most once per PR. Once a PR has been nudged, it is
+  never nudged again, even if it leaves the author route and later returns.
+  Leaving the author route drops the waiting clock but preserves the one-time
+  nudge marker; the marker is discarded only when the PR closes and its state is
+  pruned.
+- The nudge requires the repository-level `author_follow_up` option.
+- The one-week clock starts when a follow-up job first observes the PR in the
+  author route, not at any earlier author or reviewer activity. A departure from
+  the author route before the week elapses resets the clock, so only a PR that
+  has been continuously waiting on its author for a week is nudged.
+- A non-PR run evaluates the nudge only for PR results refreshed and accepted
   during that run. Older cached results remain available for dashboard
-  rendering but cannot trigger nudges. Immediately before a due nudge, the
+  rendering but cannot trigger a nudge. Immediately before a due nudge, the
   executor also confirms that the PR remains open and routed to the author and
   that no newer human activity has appeared since the accepted refresh.
-  Deferring a nudge preserves the current route-period state, including a newly
-  created cycle; later author activity retains the original handoff candidate,
-  while other or unknown human activity clears it.
+  Deferring a nudge preserves the current waiting clock so the reminder is
+  retried on a later run.
+- Human activity that defers a due nudge consists of human head changes, human
+  issue or review comments, and submitted human reviews. Bot and dashboard
+  activity, reactions, label or assignment changes, checks, and edits to
+  existing comments do not count. Commit author and committer dates are
+  user-controlled metadata rather than push times, so the live activity guard
+  excludes them and instead uses the time the dashboard first observes a
+  human-attributed head-SHA change. Generic commit identities such as `web-flow`
+  and bare `copilot` are neutral and require another human-linked author or
+  committer; a commit with an unlinked identity is treated conservatively as
+  human activity, while only positively identified automation is ignored.
 - Dashboard-owned lifecycle clocks use GitHub's whole-second timestamp
   precision. Each accepted result records when its fetch began; live activity
   in that same second is treated as potentially newer and defers a nudge.
 - A targeted PR refresh runs lifecycle processing in reset-only mode. A
-  confirmed departure from the author route clears that PR's cycle, while an
-  author-routed or transient result preserves prior state without advancing
-  clocks or executing due actions. Other PRs are untouched. Non-targeted runs
-  remain responsible for nudges.
+  confirmed departure from the author route drops that PR's waiting clock (while
+  preserving any one-time nudge marker), and an author-routed or transient
+  result preserves prior state without advancing the clock or executing a due
+  nudge. Other PRs are untouched. Non-targeted runs remain responsible for the
+  nudge.
 - Author follow-up state is stored separately from dashboard routing and Slack
-  notification state. Hidden per-cycle comment markers make retries idempotent
-  if a comment succeeds before a state-branch push is rejected.
+  notification state. A hidden per-PR comment marker makes retries idempotent if
+  a comment succeeds before a state-branch push is rejected.
 
 ## Backfill
 

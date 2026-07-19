@@ -241,7 +241,6 @@ class StateTest(unittest.TestCase):
             follow_ups = {
                 "123": {
                     "waiting_on_author_since": "2026-07-14T03:00:00Z",
-                    "handoff_nudged_at": "",
                     "general_nudged_at": "",
                 }
             }

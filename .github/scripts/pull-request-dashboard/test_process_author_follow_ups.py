@@ -17,10 +17,7 @@ CYCLE_ID = "2026-07-01T00:00:00+00:00"
 
 def follow_up_entry(**overrides: object) -> dict[str, object]:
     entry: dict[str, object] = {
-        "cycle_id": CYCLE_ID,
         "waiting_on_author_since": CYCLE_ID,
-        "pending_handoff_since": "",
-        "handoff_nudged_at": "2026-07-02T00:00:00+00:00",
         "general_nudged_at": "2026-07-08T00:00:00+00:00",
     }
     entry.update(overrides)
@@ -598,17 +595,17 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         post_comment,
     ) -> None:
         marker = process_author_follow_ups.lifecycle_marker(
-            process_author_follow_ups.HANDOFF_NUDGE_MARKER_PREFIX,
+            process_author_follow_ups.GENERAL_NUDGE_MARKER_PREFIX,
             CYCLE_ID,
         )
         lifecycle_comments.return_value = [{
             "body": marker,
             "created_at": "2026-07-08T01:00:00Z",
         }]
-        updated = follow_up_entry(handoff_nudged_at="2026-07-17T00:00:00+00:00")
+        updated = follow_up_entry(general_nudged_at="2026-07-17T00:00:00+00:00")
 
         result = process_author_follow_ups.execute_action(
-            "handoff-nudge",
+            "general-nudge",
             "open-telemetry/example",
             1,
             author_result(),
@@ -617,7 +614,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             NOW,
         )
 
-        self.assertEqual(result["handoff_nudged_at"], "2026-07-08T01:00:00Z")
+        self.assertEqual(result["general_nudged_at"], "2026-07-08T01:00:00Z")
         ensure_status_comment.assert_not_called()
         post_comment.assert_not_called()
 
@@ -649,19 +646,19 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         post_comment,
     ) -> None:
         process_author_follow_ups.execute_action(
-            "handoff-nudge",
+            "general-nudge",
             "open-telemetry/example",
             1,
             author_result(),
             None,
-            follow_up_entry(),
+            follow_up_entry(general_nudged_at=""),
             NOW,
         )
 
         body = post_comment.call_args.args[2]
-        self.assertIn("@alice, this pull request is still waiting on your follow-up", body)
+        self.assertIn("@alice, this pull request has been waiting on your follow-up", body)
         self.assertIn("[dashboard status comment]", body)
-        self.assertIn(process_author_follow_ups.HANDOFF_NUDGE_MARKER_PREFIX, body)
+        self.assertIn(process_author_follow_ups.GENERAL_NUDGE_MARKER_PREFIX, body)
 
     @patch.object(process_author_follow_ups, "post_comment")
     @patch.object(process_author_follow_ups, "ensure_status_comment")
@@ -683,7 +680,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         post_comment,
     ) -> None:
         result = process_author_follow_ups.execute_action(
-            "handoff-nudge",
+            "general-nudge",
             "open-telemetry/example",
             1,
             author_result(),
@@ -775,85 +772,16 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         ensure_status_comment.assert_not_called()
         post_comment.assert_not_called()
 
-    @patch.object(process_author_follow_ups, "post_comment")
-    @patch.object(process_author_follow_ups, "ensure_status_comment")
-    @patch.object(
-        process_author_follow_ups,
-        "current_human_activity_with_author",
-        return_value=(datetime(2026, 7, 17, tzinfo=timezone.utc), True),
-    )
-    @patch.object(process_author_follow_ups, "current_author_route", return_value=True)
-    @patch.object(
-        process_author_follow_ups,
-        "issue_details",
-        return_value={"state": "open", "pull_request": {"url": "pulls/1"}},
-    )
-    @patch.object(process_author_follow_ups, "lifecycle_comments", return_value=[])
-    def test_first_handoff_deferral_preserves_cycle_and_candidate(
-        self,
-        _lifecycle_comments,
-        _issue_details,
-        _current_author_route,
-        _current_human_activity_with_author,
-        ensure_status_comment,
-        post_comment,
-    ) -> None:
-        result = author_result()
-        result["facts"]["last_author_activity_at"] = "2026-07-16T00:00:00Z"
-        updated = follow_up_entry(
-            cycle_id="2026-07-17T00:00:00+00:00",
-            waiting_on_author_since="2026-07-17T00:00:00+00:00",
-            pending_handoff_since="",
-            handoff_nudged_at="2026-07-17T00:00:00+00:00",
-            general_nudged_at="",
-        )
-
-        deferred = process_author_follow_ups.execute_action(
-            "handoff-nudge",
-            "open-telemetry/example",
-            1,
-            result,
-            None,
-            updated,
-            NOW,
-        )
-
-        assert deferred is not None
-        self.assertEqual(deferred["waiting_on_author_since"], "2026-07-17T00:00:00+00:00")
-        self.assertEqual(deferred["pending_handoff_since"], "2026-07-16T00:00:00+00:00")
-        self.assertEqual(deferred["handoff_nudged_at"], "")
-        ensure_status_comment.assert_not_called()
-        post_comment.assert_not_called()
-
-    def test_general_nudge_has_independent_marker_and_message(self) -> None:
+    def test_general_nudge_links_status_comment_and_marker(self) -> None:
         body = process_author_follow_ups.render_nudge(
             author_result(),
             "https://github.com/open-telemetry/example/pull/1#issuecomment-1",
             CYCLE_ID,
-            "general-nudge",
         )
 
         self.assertIn("waiting on your follow-up for one week", body)
+        self.assertIn("[dashboard status comment]", body)
         self.assertIn(process_author_follow_ups.GENERAL_NUDGE_MARKER_PREFIX, body)
-        self.assertNotIn(process_author_follow_ups.HANDOFF_NUDGE_MARKER_PREFIX, body)
-
-    def test_ci_only_nudges_explain_required_checks(self) -> None:
-        result = author_result()
-        facts = result["facts"]
-        assert isinstance(facts, dict)
-        facts["author_action_review_thread_urls"] = []
-
-        for kind in ("handoff-nudge", "general-nudge"):
-            with self.subTest(kind=kind):
-                body = process_author_follow_ups.render_nudge(
-                    result,
-                    "https://github.com/open-telemetry/example/pull/1#issuecomment-1",
-                    CYCLE_ID,
-                    kind,
-                )
-
-                self.assertIn("Required checks are still failing", body)
-                self.assertNotIn("Some review feedback", body)
 
     def test_transient_dashboard_failure_preserves_cycle(self) -> None:
         previous = follow_up_entry()
@@ -901,7 +829,7 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
         self.assertEqual(updated, {"1": previous})
         execute_action.assert_not_called()
 
-    def test_targeted_route_departure_clears_cycle(self) -> None:
+    def test_targeted_route_departure_preserves_nudge_marker(self) -> None:
         updated = process_author_follow_ups.next_author_follow_ups(
             "open-telemetry/example",
             {1: {"route": "approver", "facts": {}}},
@@ -911,7 +839,10 @@ class ProcessAuthorFollowUpsTest(unittest.TestCase):
             reset_only=True,
         )
 
-        self.assertEqual(updated, {})
+        self.assertEqual(
+            updated,
+            {"1": {"general_nudged_at": "2026-07-08T00:00:00+00:00"}},
+        )
 
     def test_targeted_run_preserves_unselected_missing_cycle(self) -> None:
         selected = follow_up_entry()

@@ -67,7 +67,7 @@ Fields:
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
-| `author_follow_up` | no | If `true`, enable both author follow-up nudges. Defaults to `false`. |
+| `author_follow_up` | no | If `true`, enable the once-per-PR author follow-up nudge. Defaults to `false`. |
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
@@ -170,31 +170,23 @@ for the tradeoffs behind this behavior.
 
 Targeted updates received before the first full dashboard run are ignored.
 
-## Author follow-up nudges
+## Author follow-up nudge
 
-Repositories with `author_follow_up` enabled use hourly runs to process two
-reminder schedules. Manually triggered runs without a PR number do the same.
-Each run evaluates follow-up actions only for PRs refreshed during that run.
-Since a repository refresh is capped at 50 PRs, a due action in a larger
-repository may wait for a later round-robin run, but it is delivered as soon as
-the PR is next refreshed.
+Repositories with `author_follow_up` enabled use hourly runs to post a single
+reminder. Manually triggered runs without a PR number do the same. Each run
+evaluates the nudge only for PRs refreshed during that run. Since a repository
+refresh is capped at 50 PRs, a due nudge in a larger repository may wait for a
+later round-robin run, but it is delivered as soon as the PR is next refreshed.
 
-- **Handoff nudge:** If the author acts, nobody else responds, and the PR remains
-  in *Waiting on authors*, the dashboard posts a nudge one day after the first
-  action. This catches cases where the author may be waiting for review while
-  the dashboard still expects them to act. Later author activity does not reset
-  the timer to ensure repeated author activity without a successful transition
-  out of *Waiting on authors* cannot postpone the nudge.
-- **General nudge:** Every PR still routed to the author receives a nudge one
-  week after an eligible follow-up run first observes it in that route. If a
-  handoff nudge is posted, the general nudge is instead posted one week after
-  the handoff nudge.
+Every PR routed to the author receives one nudge, one week after an eligible
+follow-up run first observes it in *Waiting on authors*. The nudge links to the
+dashboard-managed status comment and is mainly intended to point contributors
+who are not yet familiar with that comment to the remaining items.
 
-Both nudges link to the dashboard-managed status comment and apply only while
-the PR remains in *Waiting on authors*. Leaving that route clears the cycle.
-
-At most one handoff nudge and one general nudge are posted during an
-uninterrupted *Waiting on authors* period.
+The nudge applies only while the PR is in *Waiting on authors*: if the PR leaves
+that route before the week elapses, the clock resets. It is posted at most once
+per PR, and a PR that has already been nudged is never nudged again even if it
+leaves and later returns to *Waiting on authors*.
 
 ## Configuration
 

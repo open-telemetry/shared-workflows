@@ -4,40 +4,19 @@ from datetime import datetime, timezone
 from typing import Any
 import unittest
 
-from author_follow_up import plan_follow_up, qualifying_author_activity
+from author_follow_up import plan_follow_up
 
 
 NOW = datetime(2026, 7, 17, tzinfo=timezone.utc)
 
 
-def result(
-    *,
-    route: str = "author",
-    author_activity: str = "2026-07-10T00:00:00Z",
-    approver_activity: str = "",
-    human_head_activity: str = "",
-    author_head_activity: str = "",
-    waiting_since: str = "2026-07-10T00:00:00Z",
-) -> dict[str, Any]:
-    return {
-        "route": route,
-        "facts": {
-            "last_author_activity_at": author_activity,
-            "last_approver_activity_at": approver_activity,
-            "last_external_activity_at": "",
-            "human_head_observed_at": human_head_activity,
-            "author_head_observed_at": author_head_activity,
-            "waiting_since": waiting_since,
-        },
-    }
+def result(*, route: str = "author") -> dict[str, Any]:
+    return {"route": route, "facts": {}}
 
 
 def entry(**overrides: str) -> dict[str, str]:
     value = {
-        "cycle_id": "2026-07-01T00:00:00+00:00",
         "waiting_on_author_since": "2026-07-01T00:00:00+00:00",
-        "pending_handoff_since": "",
-        "handoff_nudged_at": "",
         "general_nudged_at": "",
     }
     value.update(overrides)
@@ -46,139 +25,17 @@ def entry(**overrides: str) -> dict[str, str]:
 
 class AuthorFollowUpPolicyTest(unittest.TestCase):
     def test_new_cycle_starts_when_author_route_is_first_observed(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="",
-                waiting_since="2026-06-01T00:00:00Z",
-            ),
-            None,
-            NOW,
-        )
+        action, updated = plan_follow_up(result(), None, NOW)
 
         self.assertIsNone(action)
         assert updated is not None
         self.assertEqual(updated["waiting_on_author_since"], "2026-07-17T00:00:00+00:00")
+        self.assertEqual(updated["general_nudged_at"], "")
 
-    def test_new_cycle_uses_qualified_author_activity_for_handoff(self) -> None:
+    def test_nudge_is_due_one_week_after_first_observation(self) -> None:
         action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-16T00:00:00Z",
-                waiting_since="2026-06-01T00:00:00Z",
-            ),
-            None,
-            NOW,
-        )
-
-        self.assertEqual(action, "handoff-nudge")
-        assert updated is not None
-        self.assertEqual(updated["waiting_on_author_since"], "2026-07-17T00:00:00+00:00")
-        self.assertEqual(updated["handoff_nudged_at"], "2026-07-17T00:00:00+00:00")
-
-    def test_author_must_be_latest_substantive_actor(self) -> None:
-        self.assertIsNotNone(qualifying_author_activity(result()["facts"]))
-        self.assertIsNone(
-            qualifying_author_activity(
-                result(approver_activity="2026-07-10T00:00:00Z")["facts"]
-            )
-        )
-
-    def test_author_last_accelerates_nudge_to_one_day(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-16T00:00:00Z",
-                waiting_since="2026-07-12T00:00:00Z",
-            ),
-            entry(
-                waiting_on_author_since="2026-07-12T00:00:00Z",
-                pending_handoff_since="2026-07-16T00:00:00Z",
-            ),
-            NOW,
-        )
-
-        self.assertEqual(action, "handoff-nudge")
-        assert updated is not None
-        self.assertEqual(updated["handoff_nudged_at"], "2026-07-17T00:00:00+00:00")
-
-    def test_author_last_does_not_nudge_before_one_day(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-16T00:00:01Z",
-                waiting_since="2026-07-12T00:00:00Z",
-            ),
-            entry(waiting_on_author_since="2026-07-12T00:00:00Z"),
-            NOW,
-        )
-
-        self.assertIsNone(action)
-        assert updated is not None
-        self.assertEqual(updated["handoff_nudged_at"], "")
-
-    def test_reviewer_push_does_not_trigger_handoff_nudge(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="",
-                human_head_activity="2026-07-16T00:00:00Z",
-                waiting_since="2026-07-12T00:00:00Z",
-            ),
-            entry(waiting_on_author_since="2026-07-12T00:00:00Z"),
-            NOW,
-        )
-
-        self.assertIsNone(action)
-        assert updated is not None
-        self.assertEqual(updated["pending_handoff_since"], "")
-
-    def test_old_dated_author_push_uses_observation_time_for_handoff(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="",
-                human_head_activity="2026-07-16T00:00:00Z",
-                author_head_activity="2026-07-16T00:00:00Z",
-                waiting_since="2026-07-12T00:00:00Z",
-            ),
-            entry(waiting_on_author_since="2026-07-12T00:00:00Z"),
-            NOW,
-        )
-
-        self.assertEqual(action, "handoff-nudge")
-        assert updated is not None
-        self.assertEqual(updated["handoff_nudged_at"], "2026-07-17T00:00:00+00:00")
-
-    def test_handoff_nudge_clock_does_not_use_author_route_start(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-16T12:00:00Z",
-                waiting_since="2026-07-10T12:00:00Z",
-            ),
-            entry(waiting_on_author_since="2026-07-10T12:00:00Z"),
-            NOW,
-        )
-
-        self.assertIsNone(action)
-        assert updated is not None
-        self.assertEqual(updated["handoff_nudged_at"], "")
-
-    def test_author_action_before_current_route_period_does_not_trigger_handoff_nudge(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-14T00:00:00Z",
-                waiting_since="2026-07-16T00:00:00Z",
-            ),
-            entry(waiting_on_author_since="2026-07-16T00:00:00Z"),
-            NOW,
-        )
-
-        self.assertIsNone(action)
-        assert updated is not None
-        self.assertEqual(updated["handoff_nudged_at"], "")
-
-    def test_general_nudge_after_one_week_when_reviewer_acted_last(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                approver_activity="2026-07-11T00:00:00Z",
-                waiting_since="2026-07-10T00:00:00Z",
-            ),
-            entry(waiting_on_author_since="2026-07-10T00:00:00Z"),
+            result(),
+            entry(waiting_on_author_since="2026-07-10T00:00:00+00:00"),
             NOW,
         )
 
@@ -186,13 +43,10 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
         assert updated is not None
         self.assertEqual(updated["general_nudged_at"], "2026-07-17T00:00:00+00:00")
 
-    def test_reviewer_last_does_not_nudge_before_one_week(self) -> None:
+    def test_nudge_is_not_due_before_one_week(self) -> None:
         action, updated = plan_follow_up(
-            result(
-                approver_activity="2026-07-16T00:00:00Z",
-                waiting_since="2026-07-10T00:00:01Z",
-            ),
-            entry(waiting_on_author_since="2026-07-10T00:00:01Z"),
+            result(),
+            entry(waiting_on_author_since="2026-07-10T00:00:01+00:00"),
             NOW,
         )
 
@@ -200,107 +54,54 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
         assert updated is not None
         self.assertEqual(updated["general_nudged_at"], "")
 
-    def test_general_nudge_waits_one_week_after_handoff_nudge(self) -> None:
+    def test_pr_is_never_nudged_twice(self) -> None:
         action, updated = plan_follow_up(
-            result(waiting_since="2026-07-10T00:00:00Z"),
-            entry(
-                waiting_on_author_since="2026-07-10T00:00:00Z",
-                handoff_nudged_at="2026-07-16T00:00:00Z",
-            ),
+            result(),
+            entry(general_nudged_at="2026-07-08T00:00:00+00:00"),
             NOW,
         )
 
         self.assertIsNone(action)
-        assert updated is not None
-        self.assertEqual(updated["general_nudged_at"], "")
+        self.assertEqual(updated, {"general_nudged_at": "2026-07-08T00:00:00+00:00"})
 
-    def test_general_nudge_is_due_one_week_after_handoff_nudge(self) -> None:
+    def test_departure_before_nudge_clears_entry(self) -> None:
         action, updated = plan_follow_up(
-            result(waiting_since="2026-07-01T00:00:00Z"),
-            entry(
-                waiting_on_author_since="2026-07-01T00:00:00Z",
-                handoff_nudged_at="2026-07-10T00:00:00Z",
-            ),
-            NOW,
-        )
-
-        self.assertEqual(action, "general-nudge")
-        assert updated is not None
-        self.assertEqual(updated["general_nudged_at"], "2026-07-17T00:00:00+00:00")
-
-    def test_handoff_nudge_can_follow_general_nudge(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-16T00:00:00Z",
-                waiting_since="2026-07-08T00:00:00Z",
-            ),
-            entry(
-                waiting_on_author_since="2026-07-08T00:00:00Z",
-                general_nudged_at="2026-07-15T00:00:00Z",
-            ),
-            NOW,
-        )
-
-        self.assertEqual(action, "handoff-nudge")
-        assert updated is not None
-        self.assertEqual(updated["handoff_nudged_at"], "2026-07-17T00:00:00+00:00")
-
-    def test_later_author_activity_does_not_postpone_pending_handoff(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-16T23:00:00Z",
-                waiting_since="2026-07-12T00:00:00Z",
-            ),
-            entry(
-                waiting_on_author_since="2026-07-12T00:00:00Z",
-                pending_handoff_since="2026-07-16T00:00:00Z",
-            ),
-            NOW,
-        )
-
-        self.assertEqual(action, "handoff-nudge")
-        assert updated is not None
-        self.assertEqual(updated["handoff_nudged_at"], "2026-07-17T00:00:00+00:00")
-
-    def test_due_handoff_precedes_general_nudge_and_resets_its_clock(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-15T00:00:00Z",
-                waiting_since="2026-07-10T00:00:00Z",
-            ),
-            entry(
-                waiting_on_author_since="2026-07-10T00:00:00Z",
-                pending_handoff_since="2026-07-15T00:00:00Z",
-            ),
-            NOW,
-        )
-
-        self.assertEqual(action, "handoff-nudge")
-        assert updated is not None
-        self.assertEqual(updated["pending_handoff_since"], "")
-        self.assertEqual(updated["handoff_nudged_at"], "2026-07-17T00:00:00+00:00")
-        self.assertEqual(updated["general_nudged_at"], "")
-
-    def test_pending_handoff_delays_due_general_nudge(self) -> None:
-        action, updated = plan_follow_up(
-            result(
-                author_activity="2026-07-16T12:00:00Z",
-                waiting_since="2026-07-10T00:00:00Z",
-            ),
-            entry(
-                waiting_on_author_since="2026-07-10T00:00:00Z",
-                pending_handoff_since="2026-07-16T12:00:00Z",
-            ),
+            result(route="approver"),
+            entry(waiting_on_author_since="2026-07-10T00:00:00+00:00"),
             NOW,
         )
 
         self.assertIsNone(action)
-        assert updated is not None
-        self.assertEqual(updated["pending_handoff_since"], "2026-07-16T12:00:00Z")
-        self.assertEqual(updated["general_nudged_at"], "")
+        self.assertIsNone(updated)
 
-    def test_transient_failure_preserves_existing_cycle(self) -> None:
-        previous = entry(general_nudged_at="2026-07-10T00:00:00Z")
+    def test_departure_after_nudge_preserves_marker(self) -> None:
+        action, updated = plan_follow_up(
+            result(route="approver"),
+            entry(general_nudged_at="2026-07-08T00:00:00+00:00"),
+            NOW,
+        )
+
+        self.assertIsNone(action)
+        self.assertEqual(updated, {"general_nudged_at": "2026-07-08T00:00:00+00:00"})
+
+    def test_return_to_author_route_after_nudge_does_not_renudge(self) -> None:
+        action, updated = plan_follow_up(
+            result(),
+            {"general_nudged_at": "2026-07-01T00:00:00+00:00"},
+            NOW,
+        )
+
+        self.assertIsNone(action)
+        self.assertEqual(updated, {"general_nudged_at": "2026-07-01T00:00:00+00:00"})
+
+    def test_missing_result_clears_unnudged_entry(self) -> None:
+        action, updated = plan_follow_up(None, entry(), NOW)
+
+        self.assertIsNone(action)
+        self.assertIsNone(updated)
+
+    def test_transient_failure_preserves_existing_entry(self) -> None:
+        previous = entry(general_nudged_at="2026-07-10T00:00:00+00:00")
 
         action, updated = plan_follow_up(
             {"failed": True, "route": "transient-failure"},
@@ -310,22 +111,6 @@ class AuthorFollowUpPolicyTest(unittest.TestCase):
 
         self.assertIsNone(action)
         self.assertEqual(updated, previous)
-
-    def test_later_author_activity_does_not_reset_clock_or_create_second_nudge(self) -> None:
-        action, updated = plan_follow_up(
-            result(author_activity="2026-07-08T00:00:00Z"),
-            entry(
-                handoff_nudged_at="2026-07-02T00:00:00Z",
-                general_nudged_at="2026-07-08T00:00:00Z",
-            ),
-            NOW,
-        )
-
-        self.assertIsNone(action)
-        assert updated is not None
-        self.assertEqual(updated["handoff_nudged_at"], "2026-07-02T00:00:00Z")
-        self.assertEqual(updated["general_nudged_at"], "2026-07-08T00:00:00Z")
-        self.assertEqual(updated["waiting_on_author_since"], "2026-07-01T00:00:00+00:00")
 
 
 if __name__ == "__main__":
