@@ -799,40 +799,23 @@ def is_completed_author_reply(
 def completed_author_reply_after(
     feedback_id: str,
     root_timestamp: str,
-    events: list[dict[str, Any]],
-    outcomes: list[AuthorCommentOutcome] | None,
+    outcomes: list[AuthorCommentOutcome],
 ) -> tuple[str, int | None] | None:
-    if outcomes is not None:
-        for outcome in outcomes:
-            if (
-                outcome["timestamp"] > root_timestamp
-                and outcome["action"] == "none"
-                and feedback_id == outcome["feedback_id"]
-            ):
-                return outcome["timestamp"], outcome["source_id"]
-        return None
-    candidates = [
-        (
-            event.get("created_timestamp") or event.get("timestamp") or "",
-            event.get("source_id") if isinstance(event.get("source_id"), int) else None,
-        )
-        for event in events
-        if event.get("actor_role") == "author"
-        and event.get("kind") == "issue-comment"
-        and (event.get("created_timestamp") or event.get("timestamp") or "")
-        > root_timestamp
-        and is_substantive_activity(event)
-    ]
-    return min(candidates) if candidates else None
+    for outcome in outcomes:
+        if (
+            outcome["timestamp"] > root_timestamp
+            and outcome["action"] == "none"
+            and feedback_id == outcome["feedback_id"]
+        ):
+            return outcome["timestamp"], outcome["source_id"]
+    return None
 
 
 def latest_top_level_author_comment_handoff(
     feedback_id: str,
     root_timestamp: str,
-    outcomes: list[AuthorCommentOutcome] | None,
+    outcomes: list[AuthorCommentOutcome],
 ) -> dict[str, str] | None:
-    if outcomes is None:
-        return None
     handoffs = [
         outcome
         for outcome in outcomes
@@ -857,7 +840,7 @@ def collect_author_evidence(
     pr_metadata: dict[str, Any],
     author: str,
     previous_entry: dict[str, Any],
-    author_comment_outcomes: list[AuthorCommentOutcome] | None = None,
+    author_comment_outcomes: list[AuthorCommentOutcome],
 ) -> tuple[dict[str, str], int | None]:
     root_timestamp = discussion.get("root_timestamp") or ""
     evidence = {
@@ -871,10 +854,7 @@ def collect_author_evidence(
     reply_source_id: int | None = None
     previous_reply = (previous_entry.get("evidence") or {}).get("reply") or ""
     previous_reply_source_id = previous_entry.get("reply_source_id")
-    if author_comment_outcomes is None:
-        if isinstance(previous_reply, str) and previous_reply > root_timestamp:
-            evidence["reply"] = previous_reply
-    elif (
+    if (
         isinstance(previous_reply_source_id, int)
         and is_completed_author_reply(
             author_comment_outcomes,
@@ -902,7 +882,6 @@ def collect_author_evidence(
     completed_reply = completed_author_reply_after(
         discussion["discussion_id"],
         root_timestamp,
-        events,
         author_comment_outcomes,
     )
     if completed_reply:
@@ -944,9 +923,8 @@ def evidence_satisfied_at(
 def requires_title_edit_lookup(
     top_level_items: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
-    previous_history: dict[str, dict[str, Any]] | None = None,
-    events: list[dict[str, Any]] | None = None,
-    author_comment_outcomes: list[AuthorCommentOutcome] | None = None,
+    previous_history: dict[str, dict[str, Any]] | None,
+    author_comment_outcomes: list[AuthorCommentOutcome],
 ) -> bool:
     by_id = discussions_by_id(top_level_items)
     for classification in classifications:
@@ -966,23 +944,17 @@ def requires_title_edit_lookup(
         previous_reply_source_id = previous_entry.get("reply_source_id")
         if (
             previous_reply > root_timestamp
-            and (
-                author_comment_outcomes is None
-                or (
-                    isinstance(previous_reply_source_id, int)
-                    and is_completed_author_reply(
-                        author_comment_outcomes,
-                        previous_reply_source_id,
-                        discussion["discussion_id"],
-                    )
-                )
+            and isinstance(previous_reply_source_id, int)
+            and is_completed_author_reply(
+                author_comment_outcomes,
+                previous_reply_source_id,
+                discussion["discussion_id"],
             )
         ):
             continue
         if completed_author_reply_after(
             discussion["discussion_id"],
             root_timestamp,
-            events or [],
             author_comment_outcomes,
         ):
             continue
@@ -1017,8 +989,8 @@ def advance_top_level_actions(
     events: list[dict[str, Any]],
     pr_metadata: dict[str, Any],
     author: str,
-    previous_history: dict[str, dict[str, Any]] | None = None,
-    author_comment_outcomes: list[AuthorCommentOutcome] | None = None,
+    previous_history: dict[str, dict[str, Any]] | None,
+    author_comment_outcomes: list[AuthorCommentOutcome],
 ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     by_id = discussions_by_id(top_level_items)
     pending_actions: dict[str, dict[str, Any]] = {}
@@ -1329,7 +1301,6 @@ def build_pr_result(
             top_level_items,
             top_level_classifications,
             previous_top_level_history,
-            events,
             author_comment_outcomes,
         ):
             raw["pr_metadata"]["titleEdits"] = fetch_pr_title_edits(

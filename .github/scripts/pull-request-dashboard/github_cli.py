@@ -194,6 +194,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                     url
                     body
                     author {
+                        __typename
                         login
                     }
                     createdAt
@@ -228,6 +229,10 @@ def fetch_pr_issue_comments(
                 continue
             created_at = comment.get("createdAt") or ""
             content_updated_at = comment.get("lastEditedAt") or created_at
+            author = comment.get("author") or {}
+            author_login = author.get("login") or ""
+            if author.get("__typename") == "Bot" and not author_login.endswith("[bot]"):
+                author_login = f"{author_login}[bot]"
             comments.append({
                 "id": database_id,
                 "html_url": comment.get("url") or "",
@@ -235,7 +240,7 @@ def fetch_pr_issue_comments(
                 "updated_at": content_updated_at,
                 "content_updated_at": content_updated_at,
                 "minimized": bool(comment.get("isMinimized")),
-                "user": comment.get("author") or {},
+                "user": {"login": author_login} if author_login else {},
                 "body": comment.get("body") or "",
             })
         page_info = connection.get("pageInfo") or {}

@@ -36,6 +36,9 @@ class GithubCliTest(unittest.TestCase):
                                     },
                                     {
                                         "fullDatabaseId": None,
+                                        "url": "https://example.test/comment/missing-id",
+                                        "body": "Missing ID",
+                                        "author": None,
                                         "createdAt": "2026-07-14T01:30:00Z",
                                         "lastEditedAt": None,
                                         "isMinimized": False,
@@ -60,7 +63,10 @@ class GithubCliTest(unittest.TestCase):
                                         "fullDatabaseId": "5000000102",
                                         "url": "https://example.test/comment/5000000102",
                                         "body": "I updated the docs.",
-                                        "author": {"login": "author"},
+                                        "author": {
+                                            "__typename": "Bot",
+                                            "login": "linux-foundation-easycla",
+                                        },
                                         "createdAt": "2026-07-14T02:00:00Z",
                                         "lastEditedAt": "2026-07-14T03:00:00Z",
                                         "isMinimized": True,
@@ -96,12 +102,13 @@ class GithubCliTest(unittest.TestCase):
                     "updated_at": "2026-07-14T03:00:00Z",
                     "content_updated_at": "2026-07-14T03:00:00Z",
                     "minimized": True,
-                    "user": {"login": "author"},
+                    "user": {"login": "linux-foundation-easycla[bot]"},
                     "body": "I updated the docs.",
                 },
             ],
         )
         self.assertIn("fullDatabaseId", graphql.call_args_list[0].args[0])
+        self.assertIn("__typename", graphql.call_args_list[0].args[0])
         self.assertIn("author", graphql.call_args_list[0].args[0])
         self.assertIn("body", graphql.call_args_list[0].args[0])
         self.assertIn("isMinimized", graphql.call_args_list[0].args[0])

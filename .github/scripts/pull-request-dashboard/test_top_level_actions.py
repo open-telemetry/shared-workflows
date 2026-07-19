@@ -8,15 +8,15 @@ from unittest.mock import patch
 from dashboard import (
     add_wait_age_facts,
     add_reviewers,
-    advance_top_level_actions,
-    top_level_author_comment_outcomes,
-    build_review_thread_pending_actions,
+    advance_top_level_actions as _advance_top_level_actions,
     build_dashboard_update_for_pr,
+    build_review_thread_pending_actions,
     derive_top_level_author_comment_items,
     derive_top_level_items,
     normalize_events,
-    requires_title_edit_lookup,
+    requires_title_edit_lookup as _requires_title_edit_lookup,
     route_pr,
+    top_level_author_comment_outcomes,
 )
 from classification import (
     classify_discussion_domains,
@@ -122,6 +122,104 @@ def event(kind: str, timestamp: str, actor: str, actor_role: str, **values: obje
         "is_merge_from_base_by_non_author": False,
         **values,
     }
+
+
+def completed_reply_outcomes(
+    top_level_items: list[dict],
+    events: list[dict],
+    previous_history: dict[str, dict] | None = None,
+) -> list[dict]:
+    outcomes: list[dict] = []
+    for index, current_event in enumerate(events):
+        if (
+            current_event.get("kind") != "issue-comment"
+            or current_event.get("actor_role") != "author"
+        ):
+            continue
+        source_id = current_event.get("source_id")
+        if not isinstance(source_id, int):
+            source_id = -(index + 1)
+            current_event["source_id"] = source_id
+        timestamp = (
+            current_event.get("created_timestamp")
+            or current_event.get("timestamp")
+            or ""
+        )
+        outcomes.extend(
+            {
+                "source_id": source_id,
+                "action": "none",
+                "timestamp": timestamp,
+                "feedback_id": discussion["discussion_id"],
+            }
+            for discussion in top_level_items
+        )
+    for index, (feedback_id, entry) in enumerate(
+        (previous_history or {}).items(), start=len(events) + 1
+    ):
+        timestamp = (entry.get("evidence") or {}).get("reply") or ""
+        if not timestamp:
+            continue
+        source_id = entry.get("reply_source_id")
+        if not isinstance(source_id, int):
+            source_id = -index
+            entry["reply_source_id"] = source_id
+        outcomes.append({
+            "source_id": source_id,
+            "action": "none",
+            "timestamp": timestamp,
+            "feedback_id": feedback_id,
+        })
+    outcomes.sort(key=lambda outcome: (
+        outcome["timestamp"],
+        outcome["source_id"],
+        outcome["feedback_id"],
+    ))
+    return outcomes
+
+
+def advance_top_level_actions(
+    top_level_items: list[dict],
+    classifications: list[dict],
+    events: list[dict],
+    pr_metadata: dict,
+    author: str,
+    previous_history: dict[str, dict] | None = None,
+    author_comment_outcomes: list[dict] | None = None,
+) -> tuple[dict[str, dict], dict[str, dict]]:
+    if author_comment_outcomes is None:
+        author_comment_outcomes = completed_reply_outcomes(
+            top_level_items, events, previous_history
+        )
+    return _advance_top_level_actions(
+        top_level_items,
+        classifications,
+        events,
+        pr_metadata,
+        author,
+        previous_history,
+        author_comment_outcomes,
+    )
+
+
+def requires_title_edit_lookup(
+    top_level_items: list[dict],
+    classifications: list[dict],
+    previous_history: dict[str, dict] | None = None,
+    events: list[dict] | None = None,
+    author_comment_outcomes: list[dict] | None = None,
+) -> bool:
+    events = events or []
+    if author_comment_outcomes is None:
+        author_comment_outcomes = completed_reply_outcomes(
+            top_level_items, events, previous_history
+        )
+    return _requires_title_edit_lookup(
+        top_level_items,
+        classifications,
+        previous_history,
+        author_comment_outcomes,
+    )
 
 
 def top_level_history_record(kind: str, timestamp: str) -> dict:
