@@ -26,12 +26,13 @@ from state import (
     status_comment_rollout_state_path,
 )
 import state_branch
+from utils import utc_now
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 2
+STATUS_COMMENT_REVISION = 3
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 AUTHOR_GUIDANCE = (
@@ -51,6 +52,7 @@ def render_status_comment(
     pr: dict[str, Any],
     result: dict[str, Any] | None,
 ) -> str:
+    last_updated = utc_now().strftime("%Y-%m-%d %H:%M:%S UTC")
     state = (pr.get("state") or "").lower()
     facts = (result or {}).get("facts") or {}
     review_thread_urls = facts.get("author_action_review_thread_urls") or []
@@ -129,6 +131,8 @@ def render_status_comment(
         STATUS_MARKER,
         f"<!-- pull-request-dashboard-status-revision:{STATUS_COMMENT_REVISION} -->",
         "## Pull request dashboard status",
+        "",
+        f"_Status last refreshed: {last_updated}._",
         "",
         *summary,
     ]

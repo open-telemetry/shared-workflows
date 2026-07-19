@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pr_status_comment
@@ -47,6 +48,22 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("  - **Inline threads:** [1]", body)
         self.assertIn("  - **Top-level feedback:** [2]", body)
         self.assertIn(f"  - _{pr_status_comment.AUTHOR_GUIDANCE}_", body)
+
+    @patch.object(
+        pr_status_comment,
+        "utc_now",
+        side_effect=[
+            datetime(2026, 7, 18, 12, 34, 56, tzinfo=timezone.utc),
+            datetime(2026, 7, 18, 12, 35, 1, tzinfo=timezone.utc),
+        ],
+    )
+    def test_status_last_refreshed_changes_for_identical_status(self, _utc_now: Mock) -> None:
+        first_body = pr_status_comment.render_status_comment(self.pr(), {"route": "approver"})
+        second_body = pr_status_comment.render_status_comment(self.pr(), {"route": "approver"})
+
+        self.assertIn("_Status last refreshed: 2026-07-18 12:34:56 UTC.", first_body)
+        self.assertIn("_Status last refreshed: 2026-07-18 12:35:01 UTC.", second_body)
+        self.assertNotEqual(first_body, second_body)
 
     def test_waiting_on_author_names_required_ci_failure(self) -> None:
         body = pr_status_comment.render_status_comment(
