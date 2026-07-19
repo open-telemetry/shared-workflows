@@ -764,14 +764,14 @@ def top_level_author_comment_outcomes(
     return outcomes
 
 
-def first_external_top_level_author_comment_outcome(
+def latest_top_level_author_comment_handoff(
     root_timestamp: str,
     events: list[dict[str, Any]],
     outcomes: dict[int, dict[str, str]] | None,
 ) -> dict[str, str] | None:
     if outcomes is None:
         return None
-    external_outcomes: list[dict[str, str]] = []
+    handoffs: list[dict[str, str]] = []
     for event in events:
         timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
         source_id = event.get("source_id")
@@ -781,12 +781,12 @@ def first_external_top_level_author_comment_outcome(
             and event.get("actor_role") == "author"
             and timestamp > root_timestamp
             and outcome is not None
-            and outcome.get("action") == "external"
+            and outcome.get("action") in ("author", "external")
         ):
-            external_outcomes.append(outcome)
-    if not external_outcomes:
+            handoffs.append(outcome)
+    if not handoffs:
         return None
-    return min(external_outcomes, key=lambda outcome: outcome["timestamp"])
+    return max(handoffs, key=lambda outcome: outcome["timestamp"])
 
 
 def collect_author_evidence(
@@ -1004,12 +1004,12 @@ def advance_top_level_actions(
         evidence_at = evidence_satisfied_at(required_kinds, evidence)
         if action == "author" and evidence_at:
             continue
-        reply_outcome = first_external_top_level_author_comment_outcome(
+        reply_outcome = latest_top_level_author_comment_handoff(
             root_timestamp, events, reply_outcomes
         )
-        if reply_outcome is not None and reply_outcome.get("action") == "external":
+        if reply_outcome is not None:
             pending_actions[discussion["discussion_id"]] = {
-                "action": "external",
+                "action": reply_outcome["action"],
                 "since": reply_outcome["timestamp"],
             }
             continue

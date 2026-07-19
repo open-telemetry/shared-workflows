@@ -1155,6 +1155,67 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertNotIn("dependency", history)
 
+    def test_later_author_self_deferral_supersedes_external_reply(self) -> None:
+        discussion = top_level_item("dependency")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T02:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T02:00:00Z",
+                body="This is blocked on an upstream specification decision.",
+            ),
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=103,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="I'll update this in the current PR.",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+        reply_outcomes = top_level_author_comment_outcomes(
+            author_comment_items,
+            [
+                {
+                    "discussion_id": author_comment_items[0]["discussion_id"],
+                    "decision": {"discussion_action": "external"},
+                },
+                {
+                    "discussion_id": author_comment_items[1]["discussion_id"],
+                    "decision": {"discussion_action": "author"},
+                },
+            ],
+        )
+
+        for original_action in ("external", "unclear"):
+            with self.subTest(original_action=original_action):
+                original_classification = classification("dependency", "reply")
+                original_classification["decision"]["discussion_action"] = original_action
+
+                pending_actions, history = advance_top_level_actions(
+                    [discussion],
+                    [original_classification],
+                    events,
+                    {},
+                    "author",
+                    reply_outcomes=reply_outcomes,
+                )
+
+                self.assertEqual(
+                    pending_actions["dependency"],
+                    {"action": "author", "since": "2026-07-14T03:00:00Z"},
+                )
+                self.assertNotIn("dependency", history)
+
     def test_external_reply_uses_creation_order_after_older_comment_edit(self) -> None:
         discussion = top_level_item("dependency")
         events = [
