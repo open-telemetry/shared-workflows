@@ -6,15 +6,16 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from dashboard import (
+    AuthorCommentOutcome,
     add_wait_age_facts,
     add_reviewers,
-    advance_top_level_actions as _advance_top_level_actions,
+    advance_top_level_actions,
     build_dashboard_update_for_pr,
     build_review_thread_pending_actions,
     derive_top_level_author_comment_items,
     derive_top_level_items,
     normalize_events,
-    requires_title_edit_lookup as _requires_title_edit_lookup,
+    requires_title_edit_lookup,
     route_pr,
     top_level_author_comment_outcomes,
 )
@@ -124,102 +125,17 @@ def event(kind: str, timestamp: str, actor: str, actor_role: str, **values: obje
     }
 
 
-def completed_reply_outcomes(
-    top_level_items: list[dict],
-    events: list[dict],
-    previous_history: dict[str, dict] | None = None,
-) -> list[dict]:
-    outcomes: list[dict] = []
-    for index, current_event in enumerate(events):
-        if (
-            current_event.get("kind") != "issue-comment"
-            or current_event.get("actor_role") != "author"
-        ):
-            continue
-        source_id = current_event.get("source_id")
-        if not isinstance(source_id, int):
-            source_id = -(index + 1)
-            current_event["source_id"] = source_id
-        timestamp = (
-            current_event.get("created_timestamp")
-            or current_event.get("timestamp")
-            or ""
-        )
-        outcomes.extend(
-            {
-                "source_id": source_id,
-                "action": "none",
-                "timestamp": timestamp,
-                "feedback_id": discussion["discussion_id"],
-            }
-            for discussion in top_level_items
-        )
-    for index, (feedback_id, entry) in enumerate(
-        (previous_history or {}).items(), start=len(events) + 1
-    ):
-        timestamp = (entry.get("evidence") or {}).get("reply") or ""
-        if not timestamp:
-            continue
-        source_id = entry.get("reply_source_id")
-        if not isinstance(source_id, int):
-            source_id = -index
-            entry["reply_source_id"] = source_id
-        outcomes.append({
-            "source_id": source_id,
-            "action": "none",
-            "timestamp": timestamp,
-            "feedback_id": feedback_id,
-        })
-    outcomes.sort(key=lambda outcome: (
-        outcome["timestamp"],
-        outcome["source_id"],
-        outcome["feedback_id"],
-    ))
-    return outcomes
-
-
-def advance_top_level_actions(
-    top_level_items: list[dict],
-    classifications: list[dict],
-    events: list[dict],
-    pr_metadata: dict,
-    author: str,
-    previous_history: dict[str, dict] | None = None,
-    author_comment_outcomes: list[dict] | None = None,
-) -> tuple[dict[str, dict], dict[str, dict]]:
-    if author_comment_outcomes is None:
-        author_comment_outcomes = completed_reply_outcomes(
-            top_level_items, events, previous_history
-        )
-    return _advance_top_level_actions(
-        top_level_items,
-        classifications,
-        events,
-        pr_metadata,
-        author,
-        previous_history,
-        author_comment_outcomes,
-    )
-
-
-def requires_title_edit_lookup(
-    top_level_items: list[dict],
-    classifications: list[dict],
-    previous_history: dict[str, dict] | None = None,
-    events: list[dict] | None = None,
-    author_comment_outcomes: list[dict] | None = None,
-) -> bool:
-    events = events or []
-    if author_comment_outcomes is None:
-        author_comment_outcomes = completed_reply_outcomes(
-            top_level_items, events, previous_history
-        )
-    return _requires_title_edit_lookup(
-        top_level_items,
-        classifications,
-        previous_history,
-        author_comment_outcomes,
-    )
+def author_comment_outcome(
+    feedback_id: str,
+    timestamp: str,
+    source_id: int = 102,
+) -> AuthorCommentOutcome:
+    return {
+        "source_id": source_id,
+        "action": "none",
+        "timestamp": timestamp,
+        "feedback_id": feedback_id,
+    }
 
 
 def top_level_history_record(kind: str, timestamp: str) -> dict:
@@ -1133,7 +1049,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         events = [event("commit", "2026-07-14T03:00:00Z", "author", "author")]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertNotIn("code", pending_actions)
@@ -1169,6 +1085,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions, {})
@@ -1193,7 +1111,18 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions,
+            classifications,
+            events,
+            {},
+            "author",
+            None,
+            [
+                author_comment_outcome(
+                    discussion["discussion_id"], "2026-07-14T03:00:00Z"
+                )
+                for discussion in discussions
+            ],
         )
 
         self.assertEqual(pending_actions, {})
@@ -1308,6 +1237,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            previous_history=None,
             author_comment_outcomes=top_level_author_comment_outcomes(
                 author_reply_items,
                 [
@@ -1372,6 +1302,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            previous_history=None,
             author_comment_outcomes=top_level_author_comment_outcomes(
                 author_reply_items,
                 classifications,
@@ -1434,6 +1365,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            previous_history=None,
             author_comment_outcomes=author_comment_outcomes,
         )
 
@@ -1481,6 +1413,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            previous_history=None,
             author_comment_outcomes=top_level_author_comment_outcomes(
                 author_reply_items,
                 [
@@ -1534,6 +1467,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            previous_history=None,
             author_comment_outcomes=top_level_author_comment_outcomes(
                 author_comment_items,
                 [
@@ -1613,6 +1547,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     events,
                     {},
                     "author",
+                    previous_history=None,
                     author_comment_outcomes=author_comment_outcomes,
                 )
 
@@ -1679,6 +1614,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            previous_history=None,
             author_comment_outcomes=author_comment_outcomes,
         )
 
@@ -1714,6 +1650,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            previous_history=None,
             author_comment_outcomes=top_level_author_comment_outcomes(
                 author_comment_items,
                 [
@@ -1757,6 +1694,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            previous_history=None,
             author_comment_outcomes=top_level_author_comment_outcomes(
                 author_comment_items,
                 [
@@ -1811,6 +1749,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            None,
+            [
+                author_comment_outcome(
+                    "request", "2026-05-27T12:07:12Z", source_id=102
+                )
+            ],
         )
 
         self.assertEqual(pending_actions, {})
@@ -1879,6 +1823,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
@@ -1896,6 +1842,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [event("commit", "2026-07-14T02:00:00Z", "author", "author")],
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions["compound"]["action"], "author")
@@ -1914,6 +1862,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             first_history,
+            [],
         )
 
         self.assertEqual(pending_actions, {})
@@ -1943,6 +1892,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 ],
             },
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions, {})
@@ -1959,12 +1910,16 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             requires_title_edit_lookup(
                 [discussion],
                 [title_classification],
+                None,
+                [],
             )
         )
         self.assertFalse(
             requires_title_edit_lookup(
                 [discussion],
                 [classification("title", "commit")],
+                None,
+                [],
             )
         )
         self.assertFalse(
@@ -1976,6 +1931,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                         "title", "2026-07-14T03:00:00Z"
                     ),
                 },
+                [],
             )
         )
         self.assertFalse(
@@ -1983,10 +1939,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [discussion],
                 [title_classification],
                 {
-                    "title": top_level_history_record(
-                        "reply", "2026-07-14T03:00:00Z"
-                    ),
+                    "title": {
+                        "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                        "reply_source_id": 102,
+                    },
                 },
+                [author_comment_outcome("title", "2026-07-14T03:00:00Z")],
             )
         )
         self.assertTrue(
@@ -1994,38 +1952,28 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [discussion],
                 [title_classification],
                 {
-                    "title": top_level_history_record(
-                        "reply", "2026-07-14T00:00:00Z"
-                    ),
+                    "title": {
+                        "evidence": {"reply": "2026-07-14T00:00:00Z"},
+                        "reply_source_id": 102,
+                    },
                 },
+                [author_comment_outcome("title", "2026-07-14T00:00:00Z")],
             )
         )
         self.assertFalse(
             requires_title_edit_lookup(
                 [discussion],
                 [title_classification],
-                events=[
-                    event(
-                        "issue-comment",
-                        "2026-07-14T03:00:00Z",
-                        "author",
-                        "author",
-                    )
-                ],
+                None,
+                [author_comment_outcome("title", "2026-07-14T03:00:00Z")],
             )
         )
         self.assertTrue(
             requires_title_edit_lookup(
                 [discussion],
                 [title_classification],
-                events=[
-                    event(
-                        "issue-comment",
-                        "2026-07-14T00:00:00Z",
-                        "author",
-                        "author",
-                    )
-                ],
+                None,
+                [author_comment_outcome("title", "2026-07-14T00:00:00Z")],
             )
         )
 
@@ -2066,6 +2014,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions["code"]["action"], "author")
@@ -2141,7 +2091,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         }
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, [], metadata, "author"
+            discussions, classifications, [], metadata, "author", None, []
         )
 
         self.assertNotIn("description", pending_actions)
@@ -2163,6 +2113,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "author"},
             },
             "author",
+            None,
+            [],
         )
         classifications = [classification("description", "description")]
 
@@ -2176,6 +2128,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             first_history,
+            [],
         )
 
         self.assertNotIn("description", pending_actions)
@@ -2198,6 +2151,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "author"},
             },
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions["description"]["action"], "reviewer")
@@ -2216,6 +2171,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             first_history,
+            [],
         )
 
         self.assertNotIn("description", refreshed_pending_actions)
@@ -2234,6 +2190,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {},
             "author",
             previous_state,
+            [],
         )
 
         self.assertNotIn("description", pending_actions)
@@ -2253,6 +2210,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             top_level_history,
+            [],
         )
 
         self.assertNotIn("description", refreshed_pending_actions)
@@ -2281,6 +2239,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "author"},
             },
             "author",
+            None,
+            [],
         )
 
         self.assertNotIn("description", pending_actions)
@@ -2300,6 +2260,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             top_level_history,
+            [],
         )
 
         self.assertNotIn("description", refreshed_pending_actions)
@@ -2321,6 +2282,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {
                 "description": top_level_history_record("description", "2026-07-14T00:00:00Z"),
             },
+            [],
         )
 
         self.assertEqual(pending_actions["description"]["action"], "author")
@@ -2338,6 +2300,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {
                 "code": top_level_history_record("description", "2026-07-14T03:00:00Z"),
             },
+            [],
         )
 
         self.assertEqual(pending_actions["code"]["action"], "author")
@@ -2367,6 +2330,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     [evidence_event],
                     {},
                     "author",
+                    None,
+                    (
+                        [author_comment_outcome("code", "2026-07-14T03:00:00Z")]
+                        if evidence_kind == "reply"
+                        else []
+                    ),
                 )
 
                 self.assertEqual(pending_actions, {})
@@ -2403,6 +2372,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(events[0]["timestamp"], "2026-07-14T00:00:00Z")
@@ -2423,7 +2394,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions["code"]["action"], "author")
@@ -2445,6 +2416,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [confirmation],
             {},
             "author",
+            None,
+            [],
         )
 
         refreshed_pending_actions, refreshed_history = advance_top_level_actions(
@@ -2454,6 +2427,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {},
             "author",
             first_history,
+            [],
         )
 
         self.assertNotIn("code", refreshed_pending_actions)
@@ -2482,7 +2456,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions["first"]["action"], "author")
@@ -2507,7 +2481,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertNotIn("request", pending_actions)
@@ -2538,7 +2512,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions["request"]["action"], "author")
@@ -2560,7 +2534,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions["code"]["action"], "author")
@@ -2591,7 +2565,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         facts = {"approval_count": 1, "is_maintenance_bot": False}
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions, {})
@@ -2614,7 +2588,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 classifications[0]["decision"]["discussion_action"] = action
 
                 pending_actions, top_level_history = advance_top_level_actions(
-                    discussions, classifications, events, {}, "author"
+                    discussions, classifications, events, {}, "author", None, []
                 )
 
                 expected_action = "external" if action == "external" else "reviewer"
@@ -2639,7 +2613,13 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 classifications[0]["decision"]["discussion_action"] = action
 
                 pending_actions, top_level_history = advance_top_level_actions(
-                    discussions, classifications, events, {}, "author"
+                    discussions,
+                    classifications,
+                    events,
+                    {},
+                    "author",
+                    None,
+                    [author_comment_outcome(action, "2026-07-14T03:00:00Z")],
                 )
 
                 self.assertNotIn(action, pending_actions)
