@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from github_cli import (
     TransientGhError,
@@ -20,21 +20,29 @@ from github_cli import (
 
 
 class GithubCliTest(unittest.TestCase):
-    @patch("github_cli.run_gh")
-    def test_request_copilot_review_uses_review_requests_api(self, run_gh) -> None:
+    @patch("github_cli.gh_graphql")
+    @patch("github_cli.gh_api")
+    def test_request_copilot_review_uses_request_reviews_mutation(
+        self,
+        gh_api,
+        graphql,
+    ) -> None:
+        gh_api.return_value = {"node_id": "PR_node_id"}
+
         request_copilot_review("example", 7)
 
-        run_gh.assert_called_once_with([
-            "gh",
-            "api",
-            "--method",
-            "POST",
-            "-H",
-            "Accept: application/vnd.github+json",
-            "/repos/open-telemetry/example/pulls/7/requested_reviewers",
-            "-f",
-            "reviewers[]=copilot-pull-request-reviewer[bot]",
-        ])
+        gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/7")
+        graphql.assert_called_once_with(
+            ANY,
+            {
+                "pullRequestId": "PR_node_id",
+                "botId": "BOT_kgDOCnlnWA",
+            },
+        )
+        mutation = graphql.call_args.args[0]
+        self.assertIn("requestReviews", mutation)
+        self.assertIn("botIds: [$botId]", mutation)
+        self.assertIn("union: true", mutation)
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:
