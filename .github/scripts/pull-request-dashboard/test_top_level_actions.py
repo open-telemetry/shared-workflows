@@ -679,6 +679,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 }
             ] * 3,
         )
+        self.assertEqual(
+            [record.get("deferred") for record in classifications],
+            [None] * 20 + [True] * 3,
+        )
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
@@ -1410,6 +1414,38 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
         )
 
+    def test_cached_author_reply_survives_deferred_classification(self) -> None:
+        discussion = top_level_item("question")
+        source_state = top_level_author_comment_source_state(
+            [{"discussion_id": "reply", "source_id": 102}],
+            [{"discussion_id": "reply", "failed": False, "deferred": True}],
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+            author_comment_source_state=source_state,
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
     def test_legacy_cached_author_reply_survives_missing_classification(self) -> None:
         discussion = top_level_item("question")
 
@@ -1943,6 +1979,42 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"action": "external", "since": "2026-07-14T02:00:00Z"},
         )
         self.assertNotIn("dependency", history)
+
+    def test_completed_reply_restarts_later_external_handoff_age(self) -> None:
+        discussion = top_level_item("dependency")
+        author_comment_outcomes = [
+            {
+                "source_id": 102,
+                "action": "external",
+                "timestamp": "2026-07-14T02:00:00Z",
+                "feedback_id": "dependency",
+            },
+            author_comment_outcome(
+                "dependency", "2026-07-14T03:00:00Z", source_id=103
+            ),
+            {
+                "source_id": 104,
+                "action": "external",
+                "timestamp": "2026-07-14T04:00:00Z",
+                "feedback_id": "dependency",
+            },
+        ]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            [],
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=author_comment_outcomes,
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T04:00:00Z"},
+        )
+        self.assertEqual(history, {})
 
     def test_satisfied_evidence_is_not_reopened_by_external_reply(self) -> None:
         discussion = top_level_item("code")

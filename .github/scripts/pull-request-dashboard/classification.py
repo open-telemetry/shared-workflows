@@ -432,6 +432,7 @@ def classification_record(
     decision: dict[str, Any],
     *,
     failed: bool,
+    deferred: bool = False,
     cli_call: bool = False,
     error: str | None = None,
     response_text: str | None = None,
@@ -443,6 +444,8 @@ def classification_record(
         "failed": failed,
         "decision": decision,
     }
+    if deferred:
+        record["deferred"] = True
     if cli_call:
         record["_copilot_cli_call"] = True
     if failed:
@@ -949,6 +952,7 @@ def classify_top_level_items(
                 author_comment=author_comment,
             ),
             failed=False,
+            deferred=True,
         )
 
     for offset in range(0, len(uncached), TOP_LEVEL_CLASSIFICATION_BATCH_SIZE):

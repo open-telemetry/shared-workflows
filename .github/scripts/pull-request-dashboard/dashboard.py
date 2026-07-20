@@ -763,6 +763,7 @@ def top_level_author_comment_source_state(
         source_id
         for classification in classifications
         if not classification.get("failed")
+        and not classification.get("deferred")
         and (
             source_id := (by_id.get(classification.get("discussion_id") or "") or {}).get(
                 "source_id"
@@ -883,21 +884,23 @@ def latest_top_level_author_comment_handoff(
     root_timestamp: str,
     outcomes: list[AuthorCommentOutcome],
 ) -> dict[str, str] | None:
-    handoffs = [
+    relevant_outcomes = [
         outcome
         for outcome in outcomes
         if outcome["timestamp"] > root_timestamp
-        and outcome["action"] in ("author", "external")
         and feedback_id == outcome["feedback_id"]
     ]
-    if not handoffs:
+    if (
+        not relevant_outcomes
+        or relevant_outcomes[-1]["action"] not in ("author", "external")
+    ):
         return None
-    latest_action = handoffs[-1]["action"]
-    since = handoffs[-1]["timestamp"]
-    for handoff in reversed(handoffs[:-1]):
-        if handoff["action"] != latest_action:
+    latest_action = relevant_outcomes[-1]["action"]
+    since = relevant_outcomes[-1]["timestamp"]
+    for outcome in reversed(relevant_outcomes[:-1]):
+        if outcome["action"] != latest_action:
             break
-        since = handoff["timestamp"]
+        since = outcome["timestamp"]
     return {"action": latest_action, "timestamp": since}
 
 
