@@ -149,13 +149,15 @@ the dashboard avoids leaving an active author indefinitely marked as blocked.
 
 After the first full dashboard run has populated repository state, each targeted
 PR update creates or updates one dashboard-managed status comment on that PR.
-The comment presents a compact **Waiting on** and **Next step** summary. When the
-author has the next action, pending review feedback is summarized as a count and
-its inline-thread and top-level-feedback links are nested under that next step,
+The comment presents the time its status was last refreshed in UTC and a compact
+**Waiting on** and **Next step** summary. The timestamp is refreshed on every
+targeted PR update, even when the dashboard status is unchanged. When the author
+has the next action, pending review feedback is summarized as a count and its
+inline-thread and top-level-feedback links are nested under that next step,
 followed by guidance for giving each item a clear outcome. When failing required
-checks and feedback both need author action, the two are listed under
-**Next steps**. At most 20 feedback links are shown across both groups; when more
-exist, a note reports how many of the total are shown.
+checks and feedback both need author action, the two are listed under **Next
+steps**. At most 20 feedback links are shown across both groups; when more exist,
+a note reports how many of the total are shown.
 Draft PRs show that they are waiting for the author to move the PR out of draft
 to request review.
 
