@@ -4305,7 +4305,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "yes",
         "created_at": "2026-06-18T07:05:47+00:00",
         "is_draft": false,
@@ -4340,37 +4340,27 @@
             "top_level_feedback": false
           }
         ],
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-13T04:32:22+00:00"
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-13T03:07:50+00:00"
       },
       "failed": false,
       "pr_number": 49146,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49146",
-      "route": "external",
+      "route": "maintainer",
       "top_level_history": {
-        "pr-issue-comment-4780653481": {
-          "evidence": {
-            "commit": "2026-07-13T01:47:47Z",
-            "reply": "2026-06-25T07:24:33Z"
-          }
-        },
         "pr-issue-comment-4845753277": {
           "evidence": {
             "commit": "2026-07-13T01:47:47Z",
             "reply": "2026-07-02T03:43:03Z"
-          }
-        },
-        "pr-issue-comment-4850068171": {
-          "evidence": {
-            "commit": "2026-07-13T01:47:47Z",
-            "reply": "2026-07-02T03:43:03Z"
-          }
+          },
+          "reply_source_id": 4861981752
         },
         "pr-review-4529321741": {
           "evidence": {
             "commit": "2026-07-13T01:47:47Z",
-            "reply": "2026-06-19T03:17:52Z"
-          }
+            "reply": "2026-07-02T03:43:03Z"
+          },
+          "reply_source_id": 4861981752
         }
       }
     },
