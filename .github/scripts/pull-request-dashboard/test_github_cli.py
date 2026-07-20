@@ -11,6 +11,7 @@ from github_cli import (
     gh_pr_checks,
     gh_required_check_contexts,
     include_missing_required_checks,
+    is_retryable_gh_error,
     list_all_open_pr_numbers,
     list_open_prs,
 )
@@ -142,6 +143,13 @@ class GithubCliTest(unittest.TestCase):
         ):
             fetch_pr_issue_comments("open-telemetry", "shared-workflows", 78)
         self.assertEqual(graphql.call_count, 1)
+
+    def test_graphql_internal_error_is_retryable(self) -> None:
+        self.assertTrue(
+            is_retryable_gh_error(
+                "GraphQL: Something went wrong while executing your query"
+            )
+        )
 
     @patch("github_cli.gh_api")
     def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:

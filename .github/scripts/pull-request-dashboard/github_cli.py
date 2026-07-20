@@ -28,6 +28,7 @@ class TransientGhError(RuntimeError):
 _RETRYABLE_GH_ERROR_FRAGMENTS = (
     "http 5",
     "gateway timeout",
+    "graphql: something went wrong while executing your query",
     "timeout",
     "temporarily unavailable",
     "connection reset",
