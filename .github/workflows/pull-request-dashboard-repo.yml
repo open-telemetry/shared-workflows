@@ -63,6 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
+      refreshed_pr_numbers: ${{ steps.dashboard-update.outputs.refreshed_pr_numbers }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -251,6 +252,53 @@ jobs:
           fi
 
           python3 .github/scripts/pull-request-dashboard/notify_slack.py "${notify_args[@]}"
+
+  author-nudge:
+    needs: update-dashboard
+    if: >-
+      always() &&
+      (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
+      needs.update-dashboard.outputs.initial_backfill_complete == 'true' &&
+      needs.update-dashboard.outputs.refreshed_pr_numbers != ''
+    concurrency:
+      group: ${{ github.workflow }}-author-nudge-${{ inputs.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    environment: protected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ inputs.repository }}
+          permission-pull-requests: write
+
+      - name: Process author nudges
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ inputs.repository }}
+          REFRESHED_PR_NUMBERS: ${{ needs.update-dashboard.outputs.refreshed_pr_numbers }}
+        run: |
+          set -euo pipefail
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          nudge_args=(
+            --state-branch "$state_branch"
+            --repo "$REPO_NAME"
+            --pr-numbers "$REFRESHED_PR_NUMBERS"
+          )
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            nudge_args+=(--post-due)
+          fi
+          python3 .github/scripts/pull-request-dashboard/author_nudge.py "${nudge_args[@]}"
 
   publish-dashboard:
     needs: update-dashboard
