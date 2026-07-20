@@ -247,6 +247,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         saved_state = save_state.call_args.args[1]
         self.assertEqual({"56": {}}, saved_state["prs"])
 
+    @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
     @patch("dashboard.merge_dashboard_update_with_latest_state")
@@ -255,6 +256,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         merge_update: Mock,
         enqueue_update: Mock,
         _save_state: Mock,
+        _clear_backfill_failure: Mock,
     ) -> None:
         calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
         merge_update.return_value = (calculation, False)
@@ -264,6 +266,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         self.assertEqual(0, status)
         enqueue_update.assert_called_once_with(12)
 
+    @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
     @patch("dashboard.merge_dashboard_update_with_latest_state")
@@ -272,6 +275,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         merge_update: Mock,
         enqueue_update: Mock,
         _save_state: Mock,
+        _clear_backfill_failure: Mock,
     ) -> None:
         calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
         merge_update.return_value = (calculation, True)
