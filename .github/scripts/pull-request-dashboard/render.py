@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from fnmatch import fnmatchcase
 from typing import Any
 
 from route_presentation import ROUTE_ORDER, route_label
@@ -34,9 +35,36 @@ def _truncation_note(count: int) -> str:
     return f"_More {count} {plural} not shown_"
 
 
+def _pr_cell_text(
+    pr: dict[str, Any],
+    labels_to_display: list[str] | None = None,
+) -> str:
+    number = pr["number"]
+    title = _md_escape(pr.get("title", ""))
+    pr_cell = f"#{number} {title}"
+    if not labels_to_display:
+        return pr_cell
+
+    matched_labels: list[str] = []
+    seen: set[str] = set()
+    for label in pr.get("labels") or []:
+        if not isinstance(label, str) or not label or label in seen:
+            continue
+        if any(fnmatchcase(label, pattern) for pattern in labels_to_display):
+            matched_labels.append(label)
+            seen.add(label)
+    if not matched_labels:
+        return pr_cell
+    rendered_labels = " · ".join(
+        f"<code>{_md_escape(label)}</code>" for label in matched_labels
+    )
+    return f"{pr_cell} · {rendered_labels}"
+
+
 def render_draft_pr_section(
     prs: list[dict[str, Any]],
     max_rows_per_section: int | None = None,
+    labels_to_display: list[str] | None = None,
 ) -> list[str]:
     drafts = [p for p in prs if p.get("isDraft")]
     if not drafts:
@@ -47,13 +75,11 @@ def render_draft_pr_section(
     lines.append("| PR | Author | Updated |")
     lines.append("|---|---|:---:|")
     for pr in drafts:
-        number = pr["number"]
-        title = _md_escape(pr.get("title", ""))
         author = actor_login(pr.get("author") or {})
         updated = activity_age(parse_ts(pr.get("updatedAt") or ""))
         # GitHub autolinks same-repo PR numbers; avoid full URLs so large
         # dashboards can show more PRs before hitting the issue body limit.
-        lines.append(f"| #{number} {title} | {author} | {updated} |")
+        lines.append(f"| {_pr_cell_text(pr, labels_to_display)} | {author} | {updated} |")
     lines.append("")
     if truncated:
         lines.append(_truncation_note(truncated))
@@ -236,6 +262,7 @@ def render_pr_tables(
     results: dict[int, dict[str, Any]],
     max_rows_per_section: int | None = None,
     skip_drafts: bool = False,
+    labels_to_display: list[str] | None = None,
 ) -> str:
     source_url = "https://github.com/open-telemetry/shared-workflows/blob/main/.github/scripts/pull-request-dashboard/dashboard.py"
     refresh_url = "https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml"
@@ -288,7 +315,6 @@ def render_pr_tables(
         out.append("|---|---|---|:---:|:---:|:---:|")
         for pr in rows:
             number = pr["number"]
-            title = _md_escape(pr.get("title", ""))
             res = results.get(number) or {}
             facts = res.get("facts") or {}
             author = facts.get("author") or actor_login(pr.get("author") or {})
@@ -296,7 +322,7 @@ def render_pr_tables(
             activity_cell = age_cell(facts)
             # GitHub autolinks same-repo PR numbers; avoid full URLs so large
             # dashboards can show more PRs before hitting the issue body limit.
-            pr_cell = f"#{number} {title}"
+            pr_cell = _pr_cell_text(pr, labels_to_display)
             out.append(
                 f"| {pr_cell} | {author} | {reviewers_cell} | {ci_cell(facts)} | "
                 f"{conflicts_cell(facts)} | {activity_cell} |"
@@ -307,7 +333,11 @@ def render_pr_tables(
             out.append("")
 
     if not skip_drafts:
-        out.extend(render_draft_pr_section(prs, max_rows_per_section))
+        out.extend(render_draft_pr_section(
+            prs,
+            max_rows_per_section,
+            labels_to_display,
+        ))
     out.extend(render_diagnostics_section(results, max_rows_per_section))
     out.append(f"_Approvers may [force a refresh]({refresh_url})._")
     out.append("")

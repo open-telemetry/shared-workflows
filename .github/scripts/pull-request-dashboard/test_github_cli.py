@@ -161,6 +161,13 @@ class GithubCliTest(unittest.TestCase):
                 "draft": number == 501,
                 "updated_at": "2026-07-17T00:00:00Z",
                 "html_url": f"https://example.test/pull/{number}",
+                "labels": [
+                    {"name": "size/L"},
+                    {"name": ""},
+                    {"name": "   "},
+                    {"color": "ffffff"},
+                    None,
+                ] if number == 501 else None,
             }
             for number in range(1, 502)
         ]
@@ -176,9 +183,11 @@ class GithubCliTest(unittest.TestCase):
                 "isDraft": True,
                 "updatedAt": "2026-07-17T00:00:00Z",
                 "url": "https://example.test/pull/501",
+                "labels": ["size/L"],
             },
             prs[-1],
         )
+        self.assertEqual([], prs[0]["labels"])
         gh_api.assert_called_once_with(
             "/repos/open-telemetry/example/pulls?state=open&per_page=100",
             paginate=True,

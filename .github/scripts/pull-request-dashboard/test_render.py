@@ -122,6 +122,86 @@ class RenderTest(unittest.TestCase):
             markdown,
         )
 
+    def test_renders_matching_labels_inline_without_filtering_prs(self) -> None:
+        prs = [
+            {
+                "number": 123,
+                "title": "Feature",
+                "author": {"login": "author"},
+                "isDraft": False,
+                "labels": [
+                    "size/L",
+                    "breaking change",
+                    "documentation",
+                    "size/L",
+                    "Size/XL",
+                    "danger | [x] <tag> & @owner",
+                ],
+            },
+            {
+                "number": 124,
+                "title": "Documentation",
+                "author": {"login": "author"},
+                "isDraft": False,
+                "labels": ["documentation"],
+            },
+        ]
+        results = {
+            123: {"route": "unknown", "facts": {}},
+            124: {"route": "unknown", "facts": {}},
+        }
+
+        markdown = render_pr_tables(
+            prs,
+            results,
+            labels_to_display=["size/*", "size/L", "breaking change", "danger*"],
+        )
+
+        self.assertIn(
+            "#123 Feature · <code>size/L</code> · <code>breaking change</code> · "
+            "<code>danger \\| \\[x\\] &lt;tag&gt; &amp; &#64;owner</code>",
+            markdown,
+        )
+        self.assertEqual(1, markdown.count("<code>size/L</code>"))
+        self.assertNotIn("<code>Size/XL</code>", markdown)
+        self.assertNotIn("<code>documentation</code>", markdown)
+        self.assertIn("#124 Documentation", markdown)
+
+    def test_renders_matching_labels_on_draft_prs(self) -> None:
+        markdown = render_pr_tables(
+            [
+                {
+                    "number": 125,
+                    "title": "Work in progress",
+                    "author": {"login": "author"},
+                    "isDraft": True,
+                    "labels": ["size/S"],
+                },
+            ],
+            {},
+            labels_to_display=["size/*"],
+        )
+
+        self.assertIn("| #125 Work in progress · <code>size/S</code> | author |", markdown)
+
+    def test_omits_labels_when_none_are_configured(self) -> None:
+        prs = [
+            {
+                "number": 126,
+                "title": "Feature",
+                "author": {"login": "author"},
+                "isDraft": False,
+                "labels": ["size/L"],
+            },
+        ]
+        results = {126: {"route": "unknown", "facts": {}}}
+
+        self.assertEqual(
+            render_pr_tables(prs, results),
+            render_pr_tables(prs, results, labels_to_display=[]),
+        )
+        self.assertNotIn("<code>", render_pr_tables(prs, results))
+
 
 if __name__ == "__main__":
     unittest.main()

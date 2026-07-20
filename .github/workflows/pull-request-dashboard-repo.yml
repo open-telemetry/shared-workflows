@@ -30,6 +30,10 @@ on:
         required: false
         default: false
         type: boolean
+      labels_to_display_json:
+        required: false
+        default: "[]"
+        type: string
     secrets:
       PR_DASHBOARD_PRIVATE_KEY:
         required: true
@@ -272,12 +276,14 @@ jobs:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ inputs.repository }}
           LARGE_REPO: ${{ inputs.large_repo }}
+          LABELS_TO_DISPLAY_JSON: ${{ inputs.labels_to_display_json }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
           publish_args=(
             --state-branch "$state_branch"
             --repo "$REPO_NAME"
+            --labels-to-display-json "$LABELS_TO_DISPLAY_JSON"
           )
           if [[ "${LARGE_REPO:-false}" == "true" ]]; then
             publish_args+=(--large-repo)

@@ -541,6 +541,15 @@ def list_open_prs(repo: str) -> list[dict[str, Any]]:
             "isDraft": pull.get("draft", False),
             "updatedAt": pull.get("updated_at"),
             "url": pull.get("html_url"),
+            "labels": [
+                label["name"]
+                for label in pull.get("labels") or []
+                if (
+                    isinstance(label, dict)
+                    and isinstance(label.get("name"), str)
+                    and label["name"].strip()
+                )
+            ],
         }
         for pull in _list_open_pulls(repo)
     ]
