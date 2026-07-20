@@ -4,17 +4,153 @@ import unittest
 from unittest.mock import patch
 
 from github_cli import (
+    TransientGhError,
+    fetch_pr_issue_comments,
     fetch_pr_review_data,
     fetch_pr_title_edits,
     gh_pr_checks,
     gh_required_check_contexts,
     include_missing_required_checks,
+    is_retryable_gh_error,
     list_all_open_pr_numbers,
     list_open_prs,
 )
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.gh_graphql")
+    def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:
+        graphql.side_effect = [
+            {
+                "data": {
+                    "repository": {
+                        "pullRequest": {
+                            "comments": {
+                                "nodes": [
+                                    {
+                                        "fullDatabaseId": "5000000101",
+                                        "url": "https://example.test/comment/5000000101",
+                                        "body": "Please update the docs.",
+                                        "author": {"login": "reviewer"},
+                                        "createdAt": "2026-07-14T01:00:00Z",
+                                        "lastEditedAt": None,
+                                        "isMinimized": False,
+                                    },
+                                    {
+                                        "fullDatabaseId": None,
+                                        "url": "https://example.test/comment/missing-id",
+                                        "body": "Missing ID",
+                                        "author": None,
+                                        "createdAt": "2026-07-14T01:30:00Z",
+                                        "lastEditedAt": None,
+                                        "isMinimized": False,
+                                    },
+                                ],
+                                "pageInfo": {
+                                    "hasNextPage": True,
+                                    "endCursor": "cursor-1",
+                                },
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "data": {
+                    "repository": {
+                        "pullRequest": {
+                            "comments": {
+                                "nodes": [
+                                    {
+                                        "fullDatabaseId": "5000000102",
+                                        "url": "https://example.test/comment/5000000102",
+                                        "body": "I updated the docs.",
+                                        "author": {
+                                            "__typename": "Bot",
+                                            "login": "linux-foundation-easycla",
+                                        },
+                                        "createdAt": "2026-07-14T02:00:00Z",
+                                        "lastEditedAt": "2026-07-14T03:00:00Z",
+                                        "isMinimized": True,
+                                    }
+                                ],
+                                "pageInfo": {"hasNextPage": False},
+                            }
+                        }
+                    }
+                }
+            },
+        ]
+
+        self.assertEqual(
+            fetch_pr_issue_comments(
+                "open-telemetry", "shared-workflows", 78
+            ),
+            [
+                {
+                    "id": 5000000101,
+                    "html_url": "https://example.test/comment/5000000101",
+                    "created_at": "2026-07-14T01:00:00Z",
+                    "updated_at": "2026-07-14T01:00:00Z",
+                    "content_updated_at": "2026-07-14T01:00:00Z",
+                    "minimized": False,
+                    "user": {"login": "reviewer"},
+                    "body": "Please update the docs.",
+                },
+                {
+                    "id": 5000000102,
+                    "html_url": "https://example.test/comment/5000000102",
+                    "created_at": "2026-07-14T02:00:00Z",
+                    "updated_at": "2026-07-14T03:00:00Z",
+                    "content_updated_at": "2026-07-14T03:00:00Z",
+                    "minimized": True,
+                    "user": {"login": "linux-foundation-easycla[bot]"},
+                    "body": "I updated the docs.",
+                },
+            ],
+        )
+        self.assertIn("fullDatabaseId", graphql.call_args_list[0].args[0])
+        self.assertIn("__typename", graphql.call_args_list[0].args[0])
+        self.assertIn("author", graphql.call_args_list[0].args[0])
+        self.assertIn("body", graphql.call_args_list[0].args[0])
+        self.assertIn("isMinimized", graphql.call_args_list[0].args[0])
+        self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
+        self.assertEqual(graphql.call_count, 2)
+
+    @patch("github_cli.gh_graphql")
+    def test_fetch_pr_issue_comments_rejects_missing_page_cursor(
+        self, graphql
+    ) -> None:
+        graphql.return_value = {
+            "data": {
+                "repository": {
+                    "pullRequest": {
+                        "comments": {
+                            "nodes": [],
+                            "pageInfo": {
+                                "hasNextPage": True,
+                                "endCursor": None,
+                            },
+                        }
+                    }
+                }
+            }
+        }
+
+        with self.assertRaisesRegex(
+            TransientGhError,
+            "hasNextPage without endCursor",
+        ):
+            fetch_pr_issue_comments("open-telemetry", "shared-workflows", 78)
+        self.assertEqual(graphql.call_count, 1)
+
+    def test_graphql_internal_error_is_retryable(self) -> None:
+        self.assertTrue(
+            is_retryable_gh_error(
+                "GraphQL: Something went wrong while executing your query"
+            )
+        )
+
     @patch("github_cli.gh_api")
     def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:
         gh_api.return_value = [
@@ -247,6 +383,23 @@ class GithubCliTest(unittest.TestCase):
                     {"context": "build", "integration_id": 1},
                     {"context": "build", "integration_id": 2},
                 ],
+            ),
+        )
+
+    def test_app_bound_legacy_status_is_not_duplicated_as_missing(self) -> None:
+        status = {
+            "name": "EasyCLA",
+            "state": "SUCCESS",
+            "bucket": "pass",
+            "integration_id": None,
+            "status_context": True,
+        }
+
+        self.assertEqual(
+            [status],
+            include_missing_required_checks(
+                [status],
+                [{"context": "EasyCLA", "integration_id": 17893}],
             ),
         )
 
