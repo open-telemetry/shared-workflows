@@ -258,7 +258,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_requested"])
         self.assertTrue(facts["copilot_review_needed"])
 
-    def test_findings_review_does_not_replace_clean_baseline(self) -> None:
+    def test_latest_findings_review_replaces_clean_review_on_same_head(self) -> None:
         facts = compute_facts(
             {
                 "pr": {
@@ -273,7 +273,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                 "reviews": [
                     {
                         "id": 10,
-                        "commit_id": "clean-head",
+                        "commit_id": "current-head",
                         "user": {"login": "copilot"},
                         "submitted_at": "2026-07-20T01:30:00Z",
                     },
@@ -284,7 +284,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                         "submitted_at": "2026-07-20T02:30:00Z",
                     },
                 ],
-                "commits": [{"sha": "clean-head"}, {"sha": "current-head"}],
+                "commits": [{"sha": "current-head"}],
                 "review_comments": [{"pull_request_review_id": 20}],
                 "checks": [],
             },
