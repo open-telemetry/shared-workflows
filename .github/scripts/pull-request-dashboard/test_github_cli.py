@@ -356,6 +356,68 @@ class GithubCliTest(unittest.TestCase):
             [check["name"] for check in rollup["non_blocking_failures"]],
         )
 
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_keeps_required_and_non_blocking_attempts_separate(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = {
+            "data": {
+                "node": {
+                    "commits": {
+                        "nodes": [{
+                            "commit": {
+                                "statusCheckRollup": {
+                                    "contexts": {
+                                        "nodes": [
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "SUCCESS",
+                                                "url": "https://github.com/open-telemetry/example/runs/1",
+                                                "isRequired": True,
+                                                "checkSuite": {"app": {"databaseId": 1}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "FAILURE",
+                                                "url": "https://github.com/open-telemetry/example/runs/2",
+                                                "isRequired": False,
+                                                "checkSuite": {"app": {"databaseId": 1}},
+                                            },
+                                        ],
+                                        "pageInfo": {"hasNextPage": False},
+                                    },
+                                },
+                            },
+                        }],
+                    },
+                },
+            },
+        }
+
+        rollup = gh_pr_check_rollup(
+            "open-telemetry/example",
+            "PR_id",
+            ["build"],
+        )
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [("build", "pass")],
+            [(check["name"], check["bucket"]) for check in rollup["required"]],
+        )
+        self.assertEqual(
+            [("build", "fail")],
+            [
+                (check["name"], check["bucket"])
+                for check in rollup["non_blocking_failures"]
+            ],
+        )
+
     @patch("github_cli.gh_api")
     def test_required_check_contexts_include_all_effective_branch_rules(self, api) -> None:
         api.return_value = [

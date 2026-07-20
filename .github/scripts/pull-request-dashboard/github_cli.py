@@ -433,7 +433,7 @@ def gh_pr_check_rollup(
 ) -> dict[str, list[dict[str, Any]]] | None:
     del repo
     checks_by_identity: dict[
-        tuple[str, int | None], tuple[dict[str, Any], bool]
+        tuple[str, int | None, bool], tuple[dict[str, Any], bool]
     ] = {}
     after: str | None = None
     try:
@@ -454,7 +454,7 @@ def gh_pr_check_rollup(
                 ):
                     continue
                 check = normalize_check(node)
-                identity = (check["name"], check["integration_id"])
+                identity = (check["name"], check["integration_id"], is_required)
                 previous = checks_by_identity.get(identity)
                 if previous is None or check_attempt_order(check) >= check_attempt_order(previous[0]):
                     checks_by_identity[identity] = (check, is_required)
