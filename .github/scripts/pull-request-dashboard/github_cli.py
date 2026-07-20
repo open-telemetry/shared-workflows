@@ -12,6 +12,22 @@ from urllib.parse import quote, urlparse
 GH_RETRY_ATTEMPTS = 4
 GH_RETRY_DELAY_SECONDS = 1.5
 DEFAULT_OWNER = "open-telemetry"
+COPILOT_REVIEWER_BOT_ID = "BOT_kgDOCnlnWA"
+
+
+REQUEST_COPILOT_REVIEW_MUTATION = """
+mutation($pullRequestId: ID!, $botId: ID!) {
+    requestReviews(input: {
+        pullRequestId: $pullRequestId
+        botIds: [$botId]
+        union: true
+    }) {
+        pullRequest {
+            id
+        }
+    }
+}
+"""
 
 
 def normalize_repo(repo: str) -> str:
@@ -99,17 +115,17 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
 
 
 def request_copilot_review(repo: str, number: int) -> None:
-    run_gh([
-        "gh",
-        "api",
-        "--method",
-        "POST",
-        "-H",
-        "Accept: application/vnd.github+json",
-        f"/repos/{normalize_repo(repo)}/pulls/{number}/requested_reviewers",
-        "-f",
-        "reviewers[]=copilot-pull-request-reviewer[bot]",
-    ])
+    pull = gh_api(f"/repos/{normalize_repo(repo)}/pulls/{number}")
+    pull_request_id = pull.get("node_id") if isinstance(pull, dict) else None
+    if not pull_request_id:
+        raise RuntimeError(f"GitHub did not return a node ID for PR #{number} in {repo}")
+    gh_graphql(
+        REQUEST_COPILOT_REVIEW_MUTATION,
+        {
+            "pullRequestId": pull_request_id,
+            "botId": COPILOT_REVIEWER_BOT_ID,
+        },
+    )
 
 
 def gh_graphql(query: str, fields: dict[str, Any], token: str | None = None) -> dict[str, Any]:
