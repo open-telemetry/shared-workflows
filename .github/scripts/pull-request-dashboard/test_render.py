@@ -58,6 +58,11 @@ class RenderTest(unittest.TestCase):
             markdown,
         )
 
+    def test_dashboard_does_not_claim_approvers_can_force_refresh(self) -> None:
+        markdown = render_pr_tables([], {})
+
+        self.assertNotIn("force a refresh", markdown)
+
 
 if __name__ == "__main__":
     unittest.main()
