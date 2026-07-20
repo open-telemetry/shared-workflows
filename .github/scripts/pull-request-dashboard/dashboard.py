@@ -174,7 +174,7 @@ from github_cli import (
     fetch_pr_title_edits,
     fetch_review_threads,
     gh_api,
-    gh_pr_checks,
+    gh_pr_check_rollup,
     gh_pr_view,
     gh_required_check_contexts,
     include_missing_required_checks,
@@ -270,6 +270,7 @@ def fetch_pr_raw(
     owner: str,
     repo_name: str,
     pr_summary: dict[str, Any],
+    non_blocking_check_patterns: list[str],
 ) -> dict[str, Any]:
     number = pr_summary["number"]
     with ThreadPoolExecutor() as pool:
@@ -293,11 +294,17 @@ def fetch_pr_raw(
         f_threads = pool.submit(fetch_review_threads, owner, repo_name, number)
         f_review_data = pool.submit(fetch_pr_review_data, owner, repo_name, number)
         pr = f_pr.result()
-        f_checks = pool.submit(gh_pr_checks, repo, pr["id"])
+        f_checks = pool.submit(
+            gh_pr_check_rollup,
+            repo,
+            pr["id"],
+            non_blocking_check_patterns,
+        )
         f_required_contexts = pool.submit(
             gh_required_check_contexts, repo, pr["baseRefName"]
         )
         review_data = f_review_data.result() or {}
+        check_rollup = f_checks.result()
         return {
             "summary": pr_summary,
             "pr": pr,
@@ -306,7 +313,11 @@ def fetch_pr_raw(
             "reviews": review_data.get("reviews") or [],
             "commits": f_commits.result() or [],
             "checks": include_missing_required_checks(
-                f_checks.result(), f_required_contexts.result()
+                None if check_rollup is None else check_rollup["required"],
+                f_required_contexts.result(),
+            ),
+            "non_blocking_check_failures": (
+                [] if check_rollup is None else check_rollup["non_blocking_failures"]
             ),
             "review_threads": f_threads.result() or [],
             "pr_metadata": review_data.get("pr_metadata") or {},
@@ -543,6 +554,13 @@ def compute_facts(
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
         facts["ci_pending_count"] = len(pending)
+    non_blocking_check_failures = sorted({
+        check.get("name") or ""
+        for check in raw.get("non_blocking_check_failures") or []
+        if check.get("name")
+    }, key=lambda name: (name.casefold(), name))
+    if non_blocking_check_failures:
+        facts["non_blocking_check_failures"] = non_blocking_check_failures
     return facts
 
 
@@ -1352,11 +1370,18 @@ def build_pr_result(
     reviewers: set[str],
     model: str,
     required_approvals: int,
+    non_blocking_check_patterns: list[str],
     previous_top_level_history: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
     try:
-        raw = fetch_pr_raw(repo, owner, repo_name, pr_summary)
+        raw = fetch_pr_raw(
+            repo,
+            owner,
+            repo_name,
+            pr_summary,
+            non_blocking_check_patterns,
+        )
         if raw["pr"].get("state") != "OPEN" or raw["pr"].get("isDraft"):
             return None
         author = effective_author(raw)
@@ -1516,6 +1541,7 @@ def build_dashboard_update_for_pr(
     pr_number: int,
     model: str,
     required_approvals: int,
+    non_blocking_check_patterns: list[str],
     dashboard_state: dict[str, Any],
 ) -> DashboardUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
@@ -1529,6 +1555,7 @@ def build_dashboard_update_for_pr(
         reviewers,
         model,
         required_approvals,
+        non_blocking_check_patterns,
         previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
     )
     if trigger_pr_result is None:
@@ -1866,6 +1893,7 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate
         args.pr_number,
         args.model,
         args.required_approvals,
+        args.non_blocking_check_pattern,
         loaded_dashboard_state,
     )
 
@@ -1983,6 +2011,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 pr_number,
                 args.model,
                 args.required_approvals,
+                args.non_blocking_check_pattern,
                 dashboard_state,
             )
             calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
@@ -2070,6 +2099,12 @@ def main() -> int:
         type=int,
         default=1,
         help="minimum non-bot approvals needed before a PR can route to maintainers",
+    )
+    parser.add_argument(
+        "--non-blocking-check-pattern",
+        action="append",
+        default=[],
+        help="glob matching a non-required check to mention when it fails; repeat as needed",
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
     parser.add_argument(

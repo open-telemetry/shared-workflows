@@ -18,6 +18,10 @@ on:
         required: false
         default: "[]"
         type: string
+      non_blocking_check_patterns_json:
+        required: false
+        default: "[]"
+        type: string
       slack_channel:
         required: false
         default: ""
@@ -118,6 +122,7 @@ jobs:
           REPO_NAME: ${{ inputs.repository }}
           REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
           APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
+          NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
@@ -125,6 +130,10 @@ jobs:
           dashboard_args+=(--required-approvals "$REQUIRED_APPROVALS")
           for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
             dashboard_args+=(--approver-team "$team")
+          done
+          mapfile -t non_blocking_check_patterns < <(jq -r '.[]' <<< "$NON_BLOCKING_CHECK_PATTERNS_JSON")
+          for pattern in "${non_blocking_check_patterns[@]}"; do
+            dashboard_args+=(--non-blocking-check-pattern "$pattern")
           done
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")

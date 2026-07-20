@@ -160,6 +160,9 @@ the implementation understandable and operationally cheap.
 - A failing required status check routes a human-authored PR to the author
   before discussion and approval routing. The live PR status comment names the
   CI failure, including when review feedback also needs author action.
+  Repository-configured `non_blocking_check_patterns` identify failed optional
+  checks in a note alongside this action, without changing required-check facts
+  or routing.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
   but do not change who owns the next action.

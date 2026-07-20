@@ -8,6 +8,7 @@ from github_cli import (
     fetch_pr_issue_comments,
     fetch_pr_review_data,
     fetch_pr_title_edits,
+    gh_pr_check_rollup,
     gh_pr_checks,
     gh_required_check_contexts,
     include_missing_required_checks,
@@ -280,6 +281,142 @@ class GithubCliTest(unittest.TestCase):
     @patch("github_cli.gh_graphql", side_effect=RuntimeError("unavailable"))
     def test_gh_pr_checks_failure_returns_unknown(self, _graphql) -> None:
         self.assertIsNone(gh_pr_checks("open-telemetry/example", "PR_id"))
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_separates_configured_non_blocking_failures(self, graphql) -> None:
+        graphql.return_value = {
+            "data": {
+                "node": {
+                    "commits": {
+                        "nodes": [{
+                            "commit": {
+                                "statusCheckRollup": {
+                                    "contexts": {
+                                        "nodes": [
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "required-build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "FAILURE",
+                                                "url": "https://github.com/open-telemetry/example/runs/1",
+                                                "isRequired": True,
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "CodeQL / Analyze",
+                                                "status": "COMPLETED",
+                                                "conclusion": "FAILURE",
+                                                "url": "https://github.com/open-telemetry/example/runs/2",
+                                                "isRequired": False,
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "CodeQL / Analyze",
+                                                "status": "COMPLETED",
+                                                "conclusion": "SUCCESS",
+                                                "url": "https://github.com/open-telemetry/example/runs/3",
+                                                "isRequired": False,
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "optional-unconfigured",
+                                                "status": "COMPLETED",
+                                                "conclusion": "FAILURE",
+                                                "url": "https://github.com/open-telemetry/example/runs/4",
+                                                "isRequired": False,
+                                            },
+                                            {
+                                                "__typename": "StatusContext",
+                                                "context": "workflow-notification",
+                                                "state": "ERROR",
+                                                "targetUrl": "https://example.test/status/5",
+                                                "isRequired": False,
+                                            },
+                                        ],
+                                        "pageInfo": {"hasNextPage": False},
+                                    },
+                                },
+                            },
+                        }],
+                    },
+                },
+            },
+        }
+
+        rollup = gh_pr_check_rollup(
+            "open-telemetry/example",
+            "PR_id",
+            ["CodeQL / *", "workflow-*"],
+        )
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(["required-build"], [check["name"] for check in rollup["required"]])
+        self.assertEqual(
+            ["workflow-notification"],
+            [check["name"] for check in rollup["non_blocking_failures"]],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_keeps_required_and_non_blocking_attempts_separate(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = {
+            "data": {
+                "node": {
+                    "commits": {
+                        "nodes": [{
+                            "commit": {
+                                "statusCheckRollup": {
+                                    "contexts": {
+                                        "nodes": [
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "SUCCESS",
+                                                "url": "https://github.com/open-telemetry/example/runs/1",
+                                                "isRequired": True,
+                                                "checkSuite": {"app": {"databaseId": 1}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "build",
+                                                "status": "COMPLETED",
+                                                "conclusion": "FAILURE",
+                                                "url": "https://github.com/open-telemetry/example/runs/2",
+                                                "isRequired": False,
+                                                "checkSuite": {"app": {"databaseId": 1}},
+                                            },
+                                        ],
+                                        "pageInfo": {"hasNextPage": False},
+                                    },
+                                },
+                            },
+                        }],
+                    },
+                },
+            },
+        }
+
+        rollup = gh_pr_check_rollup(
+            "open-telemetry/example",
+            "PR_id",
+            ["build"],
+        )
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [("build", "pass")],
+            [(check["name"], check["bucket"]) for check in rollup["required"]],
+        )
+        self.assertEqual(
+            [("build", "fail")],
+            [
+                (check["name"], check["bucket"])
+                for check in rollup["non_blocking_failures"]
+            ],
+        )
 
     @patch("github_cli.gh_api")
     def test_required_check_contexts_include_all_effective_branch_rules(self, api) -> None:

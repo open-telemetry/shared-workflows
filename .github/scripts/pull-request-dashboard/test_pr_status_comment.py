@@ -116,33 +116,137 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("  - Address or respond to 1 review feedback item:", body)
         self.assertIn("    - **Inline threads:** [1]", body)
 
+    def test_required_ci_action_notes_configured_non_blocking_failures(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "ci_failing_count": 2,
+                    "non_blocking_check_failures": [
+                        "CodeQL",
+                        "workflow-notification",
+                    ],
+                },
+            },
+        )
+
+        self.assertIn(
+            "- **Next step:** Investigate required status check failures. "
+            "Note: CodeQL and workflow-notification are failing but are not required checks.",
+            body,
+        )
+
+    def test_required_ci_action_escapes_non_blocking_failure_names(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "non_blocking_check_failures": [
+                        "[CodeQL] <script>\n@maintainers",
+                        r"pipe|slash\check & more",
+                    ],
+                },
+            },
+        )
+
+        self.assertIn(
+            "Note: \\[CodeQL\\] &lt;script&gt; &#64;maintainers and "
+            "pipe\\|slash\\\\check &amp; more are failing but are not required checks.",
+            body,
+        )
+
+    def test_required_ci_action_limits_non_blocking_failure_names(self) -> None:
+        long_name = "x" * (pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT + 1)
+        failures = [
+            long_name,
+            *(
+                f"check-{index:02d}"
+                for index in range(pr_status_comment.NON_BLOCKING_CHECK_FAILURE_LIMIT + 1)
+            ),
+        ]
+
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "non_blocking_check_failures": failures,
+                },
+            },
+        )
+
+        truncated_name = (
+            "x" * pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT
+            + " ...\\[truncated\\]"
+        )
+        self.assertIn(truncated_name, body)
+        self.assertIn("2 additional non-blocking check failures are not shown.", body)
+        self.assertNotIn("check-19", body)
+        self.assertNotIn("check-20", body)
+
+    def test_non_author_route_names_non_blocking_failure(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "approver",
+                "facts": {
+                    "non_blocking_check_failures": ["codecov/patch"],
+                },
+            },
+        )
+
+        self.assertIn("- **Waiting on:** Reviewers", body)
+        self.assertIn(
+            "- **Non-blocking check failure:** codecov/patch is failing but is not a required check.",
+            body,
+        )
+
     def test_non_author_routes_also_name_required_ci_failures(self) -> None:
         cases = (
             (
                 "maintainer",
                 1,
                 "Maintainers",
+                ["CodeQL"],
                 "1 required status check is failing.",
+                "- **Non-blocking check failure:** CodeQL is failing but is not a required check.",
             ),
             (
                 "approver",
                 2,
                 "Reviewers",
+                ["CodeQL", "workflow-notification"],
                 "2 required status checks are failing.",
+                "- **Non-blocking check failures:** CodeQL and workflow-notification are failing but are not required checks.",
             ),
         )
-        for route, failing_count, waiting_on, blocked_by in cases:
+        for (
+            route,
+            failing_count,
+            waiting_on,
+            non_blocking_failures,
+            blocked_by,
+            non_blocking_line,
+        ) in cases:
             with self.subTest(route=route):
                 body = pr_status_comment.render_status_comment(
                     self.pr(),
                     {
                         "route": route,
-                        "facts": {"ci_failing_count": failing_count},
+                        "facts": {
+                            "ci_failing_count": failing_count,
+                            "non_blocking_check_failures": non_blocking_failures,
+                        },
                     },
                 )
 
                 self.assertIn(f"- **Waiting on:** {waiting_on}", body)
                 self.assertIn(f"- **Also blocked by:** {blocked_by}", body)
+                self.assertIn(non_blocking_line, body)
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [

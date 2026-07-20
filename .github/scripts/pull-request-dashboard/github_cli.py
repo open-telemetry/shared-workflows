@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import time
+from fnmatch import fnmatchcase
 from typing import Any
 from urllib.parse import quote, urlparse
 
@@ -389,7 +390,7 @@ def check_bucket(state: str) -> str:
     return "pending"
 
 
-def normalize_required_check(node: dict[str, Any]) -> dict[str, Any]:
+def normalize_check(node: dict[str, Any]) -> dict[str, Any]:
     is_status = node.get("__typename") == "StatusContext"
     suite = node.get("checkSuite") or {}
     app = suite.get("app") or {}
@@ -425,9 +426,15 @@ def check_attempt_order(check: dict[str, Any]) -> tuple[int, int | str]:
     return 1, check["check_run_id"] or 0
 
 
-def gh_pr_checks(repo: str, pr_id: str) -> list[dict[str, Any]] | None:
+def gh_pr_check_rollup(
+    repo: str,
+    pr_id: str,
+    non_blocking_check_patterns: list[str],
+) -> dict[str, list[dict[str, Any]]] | None:
     del repo
-    checks_by_identity: dict[tuple[str, int | None], dict[str, Any]] = {}
+    checks_by_identity: dict[
+        tuple[str, int | None, bool], tuple[dict[str, Any], bool]
+    ] = {}
     after: str | None = None
     try:
         while True:
@@ -439,21 +446,40 @@ def gh_pr_checks(repo: str, pr_id: str) -> list[dict[str, Any]] | None:
             rollup = commit.get("statusCheckRollup") or {}
             contexts = rollup.get("contexts") or {}
             for node in contexts.get("nodes") or []:
-                if not node.get("isRequired"):
+                is_required = bool(node.get("isRequired"))
+                name = (node.get("context") or node.get("name") or "")
+                if not is_required and not any(
+                    fnmatchcase(name, pattern)
+                    for pattern in non_blocking_check_patterns
+                ):
                     continue
-                check = normalize_required_check(node)
-                identity = (check["name"], check["integration_id"])
+                check = normalize_check(node)
+                identity = (check["name"], check["integration_id"], is_required)
                 previous = checks_by_identity.get(identity)
-                if previous is None or check_attempt_order(check) >= check_attempt_order(previous):
-                    checks_by_identity[identity] = check
+                if previous is None or check_attempt_order(check) >= check_attempt_order(previous[0]):
+                    checks_by_identity[identity] = (check, is_required)
             page_info = contexts.get("pageInfo") or {}
             if not page_info.get("hasNextPage"):
-                return list(checks_by_identity.values())
+                break
             after = page_info.get("endCursor") or None
             if after is None:
-                return list(checks_by_identity.values())
+                break
     except RuntimeError:
         return None
+    checks = list(checks_by_identity.values())
+    return {
+        "required": [check for check, is_required in checks if is_required],
+        "non_blocking_failures": [
+            check
+            for check, is_required in checks
+            if not is_required and check.get("bucket") in ("fail", "cancel")
+        ],
+    }
+
+
+def gh_pr_checks(repo: str, pr_id: str) -> list[dict[str, Any]] | None:
+    rollup = gh_pr_check_rollup(repo, pr_id, [])
+    return None if rollup is None else rollup["required"]
 
 
 def gh_required_check_contexts(repo: str, base_branch: str) -> list[dict[str, Any]] | None:

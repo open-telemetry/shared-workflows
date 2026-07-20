@@ -48,6 +48,10 @@ Open a pull request that adds your repository to [`.github/scripts/pull-request-
     "name": "example-repo",
     "approver_teams": ["example-approvers"],
     "required_approvals": 1,
+    "non_blocking_check_patterns": [
+      "markdown-link-check / link-check",
+      "codecov/*"
+    ],
     "labels_to_display": ["size/*", "breaking change"],
     "slack_channel": "#example-maintainers",
     "slack_user_mapping": {
@@ -65,6 +69,7 @@ Fields:
 | `approver_teams` | yes | GitHub team slugs whose members count as approvers. |
 | `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
+| `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
@@ -157,9 +162,12 @@ to request review.
 A failing required status check routes a human-authored PR to the author ahead
 of review and approval state. The live comment calls out required CI failures
 explicitly and combines that reason with review feedback when both need author
-action. Optional check failures do not affect routing. Maintenance-bot PRs keep
-their maintainer-oriented routing because the bot cannot act on a dashboard
-request.
+action. When a repository configures `non_blocking_check_patterns`, matching
+failed checks are named in a note alongside the required-check action when the
+PR is waiting on the author because at least one required check is failing. On
+other routes, matching failures are shown separately. Optional check failures
+do not affect routing. Maintenance-bot PRs keep their
+maintainer-oriented routing because the bot cannot act on a dashboard request.
 
 A hidden marker lets the workflow update the comment in place and upgrade
 existing one-time guidance comments rather than creating duplicates. Status

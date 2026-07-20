@@ -5,23 +5,7 @@ from fnmatch import fnmatchcase
 from typing import Any
 
 from route_presentation import ROUTE_ORDER, route_label
-from utils import actor_login, activity_age, parse_ts, seconds_since
-
-
-def _md_escape(s: str) -> str:
-    return (
-        (s or "")
-        .replace("\\", "\\\\")
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("|", "\\|")
-        .replace("[", "\\[")
-        .replace("]", "\\]")
-        .replace("@", "&#64;")
-        .replace("\n", " ")
-        .strip()
-    )
+from utils import actor_login, activity_age, markdown_escape, parse_ts, seconds_since
 
 
 def _limit_rows(rows: list[Any], max_rows: int | None) -> tuple[list[Any], int]:
@@ -40,7 +24,7 @@ def _pr_cell_text(
     labels_to_display: list[str] | None = None,
 ) -> str:
     number = pr["number"]
-    title = _md_escape(pr.get("title", ""))
+    title = markdown_escape(pr.get("title", ""))
     pr_cell = f"#{number} {title}"
     if not labels_to_display:
         return pr_cell
@@ -56,7 +40,7 @@ def _pr_cell_text(
     if not matched_labels:
         return pr_cell
     rendered_labels = " · ".join(
-        f"<code>{_md_escape(label)}</code>" for label in matched_labels
+        f"<code>{markdown_escape(label)}</code>" for label in matched_labels
     )
     return f"{pr_cell} · {rendered_labels}"
 
@@ -154,7 +138,7 @@ def reviewers_cell_text(facts: dict[str, Any]) -> str:
     reviewers = facts.get("reviewers") or []
     parts = []
     for reviewer in reviewers:
-        login = _md_escape(reviewer_display_name(reviewer.get("login") or ""))
+        login = markdown_escape(reviewer_display_name(reviewer.get("login") or ""))
         if not login:
             continue
         icon = reviewer_icon(reviewer)
