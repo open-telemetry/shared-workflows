@@ -1173,9 +1173,11 @@
         "assignees": [],
         "author": "thebenignhacker",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/291#issuecomment-4806537218"
+        ],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "created_at": "2026-06-15T18:28:37+00:00",
         "is_draft": false,
@@ -1188,25 +1190,34 @@
           {
             "approved": false,
             "approved_non_team": false,
+            "changes_requested": false,
+            "login": "AgentGymLeader",
+            "open_thread": false,
+            "top_level_feedback": true
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
             "changes_requested": true,
             "login": "lmolkova",
             "open_thread": false,
             "top_level_feedback": false
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-13T23:55:35+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-06-26T05:08:07+00:00"
       },
       "failed": false,
       "pr_number": 291,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/291",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4712557271": {
           "evidence": {
             "commit": "2026-07-13T23:36:34Z",
             "reply": "2026-06-24T19:31:53Z"
-          }
+          },
+          "reply_source_id": 4792931397
         },
         "pr-issue-comment-4719844265": {
           "evidence": {
@@ -1224,37 +1235,41 @@
           "evidence": {
             "commit": "2026-07-13T23:36:34Z",
             "reply": "2026-06-26T13:08:42Z"
-          }
+          },
+          "reply_source_id": 4809873827
         },
-        "pr-issue-comment-4805424504": {
+        "pr-issue-comment-4806537218": {
           "evidence": {
-            "commit": "2026-07-13T23:36:34Z",
-            "reply": "2026-06-26T13:08:42Z"
+            "commit": "2026-07-13T23:36:34Z"
           }
         },
         "pr-issue-comment-4810518804": {
           "evidence": {
             "commit": "2026-07-13T23:36:34Z",
             "reply": "2026-06-26T15:14:31Z"
-          }
+          },
+          "reply_source_id": 4810861224
         },
         "pr-issue-comment-4857318655": {
           "evidence": {
             "commit": "2026-07-13T23:36:34Z",
-            "reply": "2026-07-02T16:31:21Z"
-          }
+            "reply": "2026-07-02T16:43:07Z"
+          },
+          "reply_source_id": 4868124832
         },
         "pr-issue-comment-4868125820": {
           "evidence": {
             "commit": "2026-07-13T23:36:34Z",
             "reply": "2026-07-02T17:00:52Z"
-          }
+          },
+          "reply_source_id": 4868354788
         },
         "pr-review-4559593502": {
           "evidence": {
             "commit": "2026-07-13T23:36:34Z",
             "reply": "2026-06-24T19:31:53Z"
-          }
+          },
+          "reply_source_id": 4792931397
         }
       }
     },
