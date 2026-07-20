@@ -265,7 +265,6 @@ def render_pr_tables(
     labels_to_display: list[str] | None = None,
 ) -> str:
     source_url = "https://github.com/open-telemetry/shared-workflows/blob/main/.github/scripts/pull-request-dashboard/dashboard.py"
-    refresh_url = "https://github.com/open-telemetry/shared-workflows/actions/workflows/pull-request-dashboard.yml"
     draft_note = (
         "Draft PRs are omitted to keep this dashboard concise."
         if skip_drafts
@@ -339,6 +338,4 @@ def render_pr_tables(
             labels_to_display,
         ))
     out.extend(render_diagnostics_section(results, max_rows_per_section))
-    out.append(f"_Approvers may [force a refresh]({refresh_url})._")
-    out.append("")
     return "\n".join(out) + "\n"

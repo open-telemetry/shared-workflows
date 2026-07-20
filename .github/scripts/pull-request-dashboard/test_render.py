@@ -122,6 +122,11 @@ class RenderTest(unittest.TestCase):
             markdown,
         )
 
+    def test_dashboard_does_not_claim_approvers_can_force_refresh(self) -> None:
+        markdown = render_pr_tables([], {})
+
+        self.assertNotIn("force a refresh", markdown)
+
     def test_renders_matching_labels_inline_without_filtering_prs(self) -> None:
         prs = [
             {
