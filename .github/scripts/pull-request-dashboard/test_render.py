@@ -74,6 +74,11 @@ class RenderTest(unittest.TestCase):
                                     "discussion_action": "external",
                                     "reason": "The dependency is blocked upstream.",
                                 },
+                                {
+                                    "feedback_id": "ambiguous",
+                                    "discussion_action": "unclear",
+                                    "reason": "The response is ambiguous.",
+                                },
                             ],
                         },
                     },
@@ -102,6 +107,10 @@ class RenderTest(unittest.TestCase):
         )
         self.assertIn(
             "pr-author-reply-102 -> dependency:external, pending:external ",
+            markdown,
+        )
+        self.assertIn(
+            "pr-author-reply-102 -> ambiguous:unclear, no-action ",
             markdown,
         )
 

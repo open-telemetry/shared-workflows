@@ -189,7 +189,7 @@ def render_diagnostics_section(
                     pending_action = pending_actions.get(feedback_id)
                     if pending_action:
                         lifecycle_suffix = f", pending:{pending_action.get('action')}"
-                    elif action == "none":
+                    elif action in ("none", "unclear"):
                         lifecycle_suffix = ", no-action"
                     else:
                         lifecycle_suffix = ", addressed"
