@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 from github_cli import (
     detect_repo,
@@ -32,11 +33,13 @@ import state_branch
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 7
+STATUS_COMMENT_REVISION = 8
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT = 200
+STATUS_REPORT_ISSUE_URL = "https://github.com/open-telemetry/shared-workflows/issues/new"
+STATUS_REPORT_ISSUE_TEMPLATE = "incorrect-pr-dashboard-result.md"
 AUTHOR_GUIDANCE = (
     "For each item, link to the commit that addresses it, explain why no change is needed, "
     "or ask a follow-up question."
@@ -48,6 +51,19 @@ LEGACY_MARKERS = (
     "<!-- review-guidance -->",
     "<!-- copilot-review-guidance -->",
 )
+
+
+def accuracy_note(pr: dict[str, Any]) -> str:
+    query = urlencode({
+        "template": STATUS_REPORT_ISSUE_TEMPLATE,
+        "title": "PR dashboard result looks incorrect",
+        "body": f"PR: {pr.get('html_url') or ''}\n\nWhat looks incorrect:\n",
+    })
+    report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
+    return (
+        "_This automated status or its linked feedback items may be incorrect. "
+        f"If something looks wrong, [report it]({report_url}) with the result you expected._"
+    )
 
 
 def render_status_comment(
@@ -109,12 +125,8 @@ def render_status_comment(
             waiting_on, fallback_next_step = route_status_summary(route)
             check_action = None
             if failing_count:
-                check_action = (
-                    "Investigate the failing required status check"
-                    if failing_count == 1
-                    else "Investigate the failing required status checks"
-                )
-                check_action += "."
+                # One required aggregate check can represent multiple failing jobs.
+                check_action = "Investigate required status check failures."
                 if non_blocking_failure_note:
                     check_action += f" Note: {non_blocking_failure_note}"
             noun = "item" if feedback_count == 1 else "items"
@@ -180,6 +192,8 @@ def render_status_comment(
                 feedback_indent,
             )
         )
+    lines.append("")
+    lines.append(accuracy_note(pr))
     lines.append("")
     return "\n".join(lines)
 

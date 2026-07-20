@@ -12,6 +12,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             "state": "open",
             "draft": False,
             "merged": False,
+            "html_url": "https://github.com/open-telemetry/example/pull/1",
             "user": {"login": "alice"},
         }
         pr.update(overrides)
@@ -48,6 +49,36 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("  - **Top-level feedback:** [2]", body)
         self.assertIn(f"  - _{pr_status_comment.AUTHOR_GUIDANCE}_", body)
 
+    def test_accuracy_note_prefills_central_issue_for_every_status(self) -> None:
+        cases = (
+            (self.pr(), {"route": "approver", "facts": {}}),
+            (self.pr(draft=True), None),
+            (self.pr(merged=True), None),
+            (self.pr(state="closed"), None),
+            (self.pr(), None),
+        )
+
+        for pr, result in cases:
+            with self.subTest(pr=pr, result=result):
+                body = pr_status_comment.render_status_comment(pr, result)
+
+                self.assertIn(
+                    "This automated status or its linked feedback items may be incorrect",
+                    body,
+                )
+                self.assertIn("with the result you expected", body)
+                self.assertIn(
+                    "https://github.com/open-telemetry/shared-workflows/issues/new?",
+                    body,
+                )
+                self.assertIn(
+                    "template=incorrect-pr-dashboard-result.md",
+                    body,
+                )
+                self.assertIn("PR%3A+https%3A%2F%2Fgithub.com%2F", body)
+                self.assertIn("What+looks+incorrect", body)
+                self.assertNotIn("One+or+more+linked+feedback+items", body)
+
     def test_waiting_on_author_names_required_ci_failure(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
@@ -61,7 +92,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             "- **Waiting on:** Author",
             body,
         )
-        self.assertIn("- **Next step:** Investigate the failing required status check.", body)
+        self.assertIn("- **Next step:** Investigate required status check failures.", body)
         self.assertNotIn("### Review feedback", body)
         self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
 
@@ -81,7 +112,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn("- **Next steps:**", body)
-        self.assertIn("  - Investigate the failing required status checks.", body)
+        self.assertIn("  - Investigate required status check failures.", body)
         self.assertIn("  - Address or respond to 1 review feedback item:", body)
         self.assertIn("    - **Inline threads:** [1]", body)
 
@@ -101,7 +132,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn(
-            "- **Next step:** Investigate the failing required status checks. "
+            "- **Next step:** Investigate required status check failures. "
             "Note: CodeQL and workflow-notification are failing but are not required checks.",
             body,
         )

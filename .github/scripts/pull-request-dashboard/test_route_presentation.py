@@ -20,6 +20,11 @@ class RoutePresentationTest(unittest.TestCase):
                 self.assertTrue(waiting_on)
                 self.assertTrue(next_step)
 
+    def test_external_section_follows_reviewers(self) -> None:
+        reviewer_index = ROUTE_ORDER.index("approver")
+
+        self.assertEqual(ROUTE_ORDER[reviewer_index + 1], "external")
+
     def test_author_status_does_not_mention_login(self) -> None:
         self.assertEqual(
             ("Author", "Address or respond to review feedback."),
