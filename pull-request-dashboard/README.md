@@ -62,7 +62,7 @@ Fields:
 | ----- | -------- | ----------- |
 | `name` | yes | Name of the repository under `open-telemetry`. |
 | `approver_teams` | yes | GitHub team slugs whose members count as approvers. |
-| `required_approvals` | yes | Number of approvals required for an open PR to be marked ready to merge. |
+| `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
@@ -111,9 +111,11 @@ observable evidence for a request containing several code changes; the
 dashboard does not try to prove that every requested edit appears in that
 commit.
 
-An explicit author reply always addresses the item, even when another evidence
-kind was expected. This lets authors explain why a suggestion was not applied,
-ask a clarifying question, or otherwise close the dashboard action.
+An explicit completed author reply addresses the item, even when another
+evidence kind was expected. This lets authors explain why a suggestion was not
+applied, ask a clarifying question, or otherwise close the dashboard action.
+If the author instead commits to future work in the current PR, such as testing
+or making another change later, the item remains waiting on the author.
 The dashboard intentionally treats evidence as a handoff signal, not proof that
 the reviewer agrees with the outcome.
 

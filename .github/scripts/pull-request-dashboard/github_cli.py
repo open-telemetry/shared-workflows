@@ -28,6 +28,7 @@ class TransientGhError(RuntimeError):
 _RETRYABLE_GH_ERROR_FRAGMENTS = (
     "http 5",
     "gateway timeout",
+    "graphql: something went wrong while executing your query",
     "timeout",
     "temporarily unavailable",
     "connection reset",
@@ -179,6 +180,78 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
     }
 }
 """
+
+PR_ISSUE_COMMENTS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
+    repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+            comments(first: 100, after: $after) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                nodes {
+                    fullDatabaseId
+                    url
+                    body
+                    author {
+                        __typename
+                        login
+                    }
+                    createdAt
+                    lastEditedAt
+                    isMinimized
+                }
+            }
+        }
+    }
+}
+"""
+
+
+def fetch_pr_issue_comments(
+    owner: str,
+    repo_name: str,
+    number: int,
+) -> list[dict[str, Any]]:
+    comments: list[dict[str, Any]] = []
+    after: str | None = None
+    while True:
+        data = gh_graphql(
+            PR_ISSUE_COMMENTS_QUERY,
+            {"owner": owner, "name": repo_name, "number": number, "after": after},
+        )
+        pull_request = (((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {})
+        connection = pull_request.get("comments") or {}
+        for comment in connection.get("nodes") or []:
+            try:
+                database_id = int(comment.get("fullDatabaseId"))
+            except (TypeError, ValueError):
+                continue
+            created_at = comment.get("createdAt") or ""
+            content_updated_at = comment.get("lastEditedAt") or created_at
+            author = comment.get("author") or {}
+            author_login = author.get("login") or ""
+            if author.get("__typename") == "Bot" and not author_login.endswith("[bot]"):
+                author_login = f"{author_login}[bot]"
+            comments.append({
+                "id": database_id,
+                "html_url": comment.get("url") or "",
+                "created_at": created_at,
+                "updated_at": content_updated_at,
+                "content_updated_at": content_updated_at,
+                "minimized": bool(comment.get("isMinimized")),
+                "user": {"login": author_login} if author_login else {},
+                "body": comment.get("body") or "",
+            })
+        page_info = connection.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            return comments
+        after = page_info.get("endCursor") or None
+        if after is None:
+            raise TransientGhError(
+                "issue-comment pagination hasNextPage without endCursor"
+            )
 
 
 def fetch_pr_title_edits(owner: str, repo_name: str, number: int) -> list[dict[str, Any]]:
@@ -418,14 +491,23 @@ def include_missing_required_checks(
     for requirement in required_contexts:
         context = requirement["context"]
         integration_id = requirement.get("integration_id")
+        matching_checks = [check for check in checks if check.get("name") == context]
         reported = any(
-            check.get("name") == context
-            and (
+            (
                 integration_id is None
                 or check.get("integration_id") == integration_id
             )
-            for check in checks
+            for check in matching_checks
         )
+        # Legacy statuses have no integration ID, so use them only when the
+        # requirement name is unambiguous.
+        if not reported and any(
+            check.get("status_context") for check in matching_checks
+        ):
+            reported = sum(
+                candidate.get("context") == context
+                for candidate in required_contexts
+            ) == 1
         if reported:
             continue
         complete.append({
