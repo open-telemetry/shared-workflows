@@ -180,6 +180,7 @@ from github_cli import (
     include_missing_required_checks,
     list_open_prs,
     load_reviewer_set,
+    request_copilot_review,
     normalize_repo,
     repo_state_key,
 )
@@ -246,6 +247,39 @@ def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
     if login.lower() in _COPILOT_REVIEWER_LOGINS:
         return "copilot-pull-request-reviewer[bot]"
     return login
+
+
+def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
+    return reviewer_actor_login(obj) == "copilot-pull-request-reviewer[bot]"
+
+
+def copilot_review_needed(raw: dict[str, Any]) -> bool:
+    copilot_reviews = [
+        review
+        for review in (raw.get("reviews") or [])
+        if is_copilot_reviewer(review.get("user"))
+    ]
+    if not copilot_reviews:
+        return False
+    current_head = ((raw.get("commits") or [{}])[-1].get("sha") or "")
+    if not current_head:
+        return False
+    review_ids_with_findings = {
+        comment.get("pull_request_review_id")
+        for comment in (raw.get("review_comments") or [])
+    }
+    clean_reviews = [
+        review
+        for review in copilot_reviews
+        if review.get("id") not in review_ids_with_findings
+    ]
+    if not clean_reviews:
+        return True
+    latest_clean_review = max(
+        clean_reviews,
+        key=lambda review: review.get("submitted_at") or "",
+    )
+    return current_head != (latest_clean_review.get("commit_id") or "")
 
 
 def human_author_for_copilot_pr(raw: dict[str, Any]) -> str:
@@ -540,6 +574,11 @@ def compute_facts(
     facts = {
         "author": author,
         "assignees": assignees,
+        "copilot_review_requested": any(
+            is_copilot_reviewer(request)
+            for request in (pr.get("reviewRequests") or [])
+        ),
+        "copilot_review_needed": copilot_review_needed(raw),
         "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
         "is_draft": bool(pr.get("isDraft")),
         "approval_count": current_approval_count(events),
@@ -1209,6 +1248,26 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     return "approver"
 
 
+def apply_copilot_review_gate(
+    repo: str,
+    number: int,
+    facts: dict[str, Any],
+    route: str,
+    *,
+    enabled: bool,
+) -> str:
+    if (
+        not enabled
+        or route not in ("approver", "maintainer")
+        or not facts.get("copilot_review_needed")
+    ):
+        return route
+    if not facts.get("copilot_review_requested"):
+        request_copilot_review(repo, number)
+        facts["copilot_review_requested"] = True
+    return "approver"
+
+
 def discussions_by_id(discussions: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {t["discussion_id"]: t for t in discussions}
 
@@ -1373,6 +1432,7 @@ def build_pr_result(
     required_approvals: int,
     non_blocking_check_patterns: list[str],
     previous_top_level_history: dict[str, dict[str, Any]] | None = None,
+    require_clean_copilot_review: bool = False,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
     try:
@@ -1463,7 +1523,13 @@ def build_pr_result(
                 "route": "unknown",
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
-        route = route_pr(facts, pending_actions, required_approvals)
+        route = apply_copilot_review_gate(
+            repo,
+            number,
+            facts,
+            route_pr(facts, pending_actions, required_approvals),
+            enabled=require_clean_copilot_review,
+        )
         add_wait_age_facts(facts, route, pending_actions)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
@@ -1544,6 +1610,7 @@ def build_dashboard_update_for_pr(
     required_approvals: int,
     non_blocking_check_patterns: list[str],
     dashboard_state: dict[str, Any],
+    require_clean_copilot_review: bool = False,
 ) -> DashboardUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
     results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
@@ -1558,6 +1625,7 @@ def build_dashboard_update_for_pr(
         required_approvals,
         non_blocking_check_patterns,
         previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
+        require_clean_copilot_review=require_clean_copilot_review,
     )
     if trigger_pr_result is None:
         results.pop(pr_number, None)
@@ -1899,6 +1967,7 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate
         args.required_approvals,
         args.non_blocking_check_pattern,
         loaded_dashboard_state,
+        getattr(args, "require_clean_copilot_review", False),
     )
 
 
@@ -2039,6 +2108,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 args.required_approvals,
                 args.non_blocking_check_pattern,
                 dashboard_state,
+                getattr(args, "require_clean_copilot_review", False),
             )
             calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
                 calculation,
@@ -2156,6 +2226,11 @@ def main() -> int:
         action="append",
         default=[],
         help="glob matching a non-required check to mention when it fails; repeat as needed",
+    )
+    parser.add_argument(
+        "--require-clean-copilot-review",
+        action="store_true",
+        help="re-request Copilot after pushes since its last clean review before reviewer or maintainer handoff",
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
     parser.add_argument(

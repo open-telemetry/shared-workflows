@@ -22,6 +22,10 @@ on:
         required: false
         default: "[]"
         type: string
+      require_clean_copilot_review:
+        required: false
+        default: false
+        type: boolean
       slack_channel:
         required: false
         default: ""
@@ -124,6 +128,7 @@ jobs:
           REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
           APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
           NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
+          REQUIRE_CLEAN_COPILOT_REVIEW: ${{ inputs.require_clean_copilot_review }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
@@ -136,6 +141,9 @@ jobs:
           for pattern in "${non_blocking_check_patterns[@]}"; do
             dashboard_args+=(--non-blocking-check-pattern "$pattern")
           done
+          if [[ "${REQUIRE_CLEAN_COPILOT_REVIEW:-false}" == "true" ]]; then
+            dashboard_args+=(--require-clean-copilot-review)
+          fi
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi

@@ -52,6 +52,7 @@ Open a pull request that adds your repository to [`.github/scripts/pull-request-
       "markdown-link-check / link-check",
       "codecov/*"
     ],
+    "require_clean_copilot_review": true,
     "labels_to_display": ["size/*", "breaking change"],
     "slack_channel": "#example-maintainers",
     "slack_user_mapping": {
@@ -70,11 +71,18 @@ Fields:
 | `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
+| `require_clean_copilot_review` | no | If `true`, require a Copilot review with no inline findings on the current head before routing a PR to reviewers or maintainers. The dashboard re-requests Copilot review when needed and does not duplicate a pending request. Requires automatic Copilot code review to be enabled for the repository. Defaults to `false`. |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
 
 `labels_to_display` only controls which labels are shown. It does not filter pull requests or affect dashboard routing, notifications, or status comments. All matching labels are displayed in the order returned by GitHub; a label matching more than one configured pattern is shown once.
+
+`require_clean_copilot_review` relies on automatic Copilot code review for the initial
+review. The dashboard requests later reviews using its GitHub App installation
+token with pull-request write permission. Leave **Review new
+pushes** disabled if the dashboard should request re-reviews only when a PR is
+ready to return to reviewers or maintainers.
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 

@@ -98,6 +98,20 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
     return data
 
 
+def request_copilot_review(repo: str, number: int) -> None:
+    run_gh([
+        "gh",
+        "api",
+        "--method",
+        "POST",
+        "-H",
+        "Accept: application/vnd.github+json",
+        f"/repos/{normalize_repo(repo)}/pulls/{number}/requested_reviewers",
+        "-f",
+        "reviewers[]=copilot-pull-request-reviewer[bot]",
+    ])
+
+
 def gh_graphql(query: str, fields: dict[str, Any], token: str | None = None) -> dict[str, Any]:
     cmd = ["gh", "api", "graphql", "-f", f"query={query}"]
     for name, value in fields.items():
@@ -111,7 +125,7 @@ def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
         "id", "number", "title", "url", "author", "state", "isDraft",
         "mergeable", "mergeStateStatus", "createdAt", "updatedAt",
-        "reviewDecision", "assignees", "baseRefName",
+        "reviewDecision", "reviewRequests", "assignees", "baseRefName",
     ])
     cmd = ["gh", "pr", "view", str(number), "--repo", repo, "--json", fields]
     last: dict[str, Any] = {}
@@ -139,6 +153,9 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                 }
                 nodes {
                     fullDatabaseId
+                    commit {
+                        oid
+                    }
                     url
                     body
                     state
@@ -307,6 +324,7 @@ def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, A
                 continue
             reviews.append({
                 "id": database_id,
+                "commit_id": ((review.get("commit") or {}).get("oid") or ""),
                 "url": review.get("url") or "",
                 "user": review.get("author") or {},
                 "state": review.get("state") or "",
