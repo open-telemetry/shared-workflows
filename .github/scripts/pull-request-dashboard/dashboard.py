@@ -1923,7 +1923,7 @@ def apply_targeted_dashboard_update(
     if args.pr_number is not None:
         record_author_nudge_observation(
             args.pr_number,
-            merged_calculation.trigger_pr_result,
+            (merged_calculation.dashboard_state.get("prs") or {}).get(str(args.pr_number)),
             observed_at or utc_now(),
         )
 
@@ -2060,7 +2060,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             refreshed = True
             record_author_nudge_observation(
                 pr_number,
-                calculation.trigger_pr_result,
+                (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
                 observed_at,
             )
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
