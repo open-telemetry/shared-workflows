@@ -252,6 +252,13 @@ def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
     return reviewer_actor_login(obj) == "copilot-pull-request-reviewer[bot]"
 
 
+def has_copilot_review(raw: dict[str, Any]) -> bool:
+    return any(
+        is_copilot_reviewer(review.get("user"))
+        for review in (raw.get("reviews") or [])
+    )
+
+
 def copilot_review_needed(raw: dict[str, Any]) -> bool:
     copilot_reviews = [
         review
@@ -577,6 +584,7 @@ def compute_facts(
             is_copilot_reviewer(request)
             for request in (pr.get("reviewRequests") or [])
         ),
+        "copilot_review_exists": has_copilot_review(raw),
         "copilot_review_needed": copilot_review_needed(raw),
         "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
         "is_draft": bool(pr.get("isDraft")),
@@ -1255,16 +1263,16 @@ def apply_copilot_review_gate(
     *,
     enabled: bool,
 ) -> str:
-    if (
-        not enabled
-        or route not in ("approver", "maintainer")
-        or not facts.get("copilot_review_needed")
-    ):
+    if not enabled or route not in ("approver", "maintainer"):
+        return route
+    if not facts.get("copilot_review_exists"):
+        return "copilot"
+    if not facts.get("copilot_review_needed"):
         return route
     if not facts.get("copilot_review_requested"):
         request_copilot_review(repo, number)
         facts["copilot_review_requested"] = True
-    return "approver"
+    return "copilot"
 
 
 def discussions_by_id(discussions: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -1285,7 +1293,7 @@ def oldest_pending_action_ts(
 
 
 def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
-    if route in ("approver", "maintainer"):
+    if route in ("approver", "maintainer", "copilot"):
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
         if facts.get("ci_failing_count", 0) > 0:

@@ -1,12 +1,46 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import unittest
 from unittest.mock import patch
 
+from notifications import next_notifications
 from notify_slack import notify_slack_from_state
 
 
 class NotifySlackTest(unittest.TestCase):
+    @patch("notifications.send_slack_notification")
+    def test_copilot_route_does_not_notify_reviewers(self, send_notification) -> None:
+        results = {
+            7: {
+                "pr_number": 7,
+                "route": "copilot",
+                "facts": {
+                    "reviewers": [{"login": "reviewer"}],
+                    "waiting_since": "2026-07-20T01:00:00Z",
+                },
+            },
+        }
+
+        with patch.dict(
+            "os.environ",
+            {
+                "SLACK_CHANNEL": "dashboard",
+                "SLACK_USER_MAP_JSON": '{"reviewer": "U123"}',
+            },
+            clear=True,
+        ):
+            updated, errors = next_notifications(
+                "open-telemetry/example",
+                results,
+                {},
+                datetime(2026, 7, 20, 2, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(updated, {})
+        self.assertEqual(errors, [])
+        send_notification.assert_not_called()
+
     @patch("notify_slack.save_notifications")
     @patch("notify_slack.load_notifications")
     @patch("notify_slack.list_open_prs")

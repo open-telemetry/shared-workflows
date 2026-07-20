@@ -223,6 +223,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         )
 
         self.assertTrue(facts["copilot_review_requested"])
+        self.assertTrue(facts["copilot_review_exists"])
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_push_since_latest_clean_copilot_review_needs_rereview(self) -> None:
@@ -343,12 +344,33 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
+        self.assertFalse(facts["copilot_review_exists"])
         self.assertFalse(facts["copilot_review_needed"])
+
+    @patch("dashboard.request_copilot_review")
+    def test_initial_automatic_review_blocks_human_handoff(self, request_review) -> None:
+        facts = {
+            "copilot_review_requested": True,
+            "copilot_review_exists": False,
+            "copilot_review_needed": False,
+        }
+
+        route = apply_copilot_review_gate(
+            "open-telemetry/example",
+            7,
+            facts,
+            "approver",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "copilot")
+        request_review.assert_not_called()
 
     @patch("dashboard.request_copilot_review")
     def test_requests_re_review_after_push_since_clean_review(self, request_review) -> None:
         facts = {
             "copilot_review_requested": False,
+            "copilot_review_exists": True,
             "copilot_review_needed": True,
         }
 
@@ -360,7 +382,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             enabled=True,
         )
 
-        self.assertEqual(route, "approver")
+        self.assertEqual(route, "copilot")
         self.assertTrue(facts["copilot_review_requested"])
         request_review.assert_called_once_with("open-telemetry/example", 7)
 
@@ -368,6 +390,7 @@ class CopilotReviewGateTest(unittest.TestCase):
     def test_requests_re_review_before_reviewer_handoff(self, request_review) -> None:
         facts = {
             "copilot_review_requested": False,
+            "copilot_review_exists": True,
             "copilot_review_needed": True,
         }
 
@@ -379,7 +402,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             enabled=True,
         )
 
-        self.assertEqual(route, "approver")
+        self.assertEqual(route, "copilot")
         self.assertTrue(facts["copilot_review_requested"])
         request_review.assert_called_once_with("open-telemetry/example", 7)
 
@@ -387,6 +410,7 @@ class CopilotReviewGateTest(unittest.TestCase):
     def test_pending_re_review_waits_without_duplicate_request(self, request_review) -> None:
         facts = {
             "copilot_review_requested": True,
+            "copilot_review_exists": True,
             "copilot_review_needed": True,
         }
 
@@ -398,13 +422,14 @@ class CopilotReviewGateTest(unittest.TestCase):
             enabled=True,
         )
 
-        self.assertEqual(route, "approver")
+        self.assertEqual(route, "copilot")
         request_review.assert_not_called()
 
     @patch("dashboard.request_copilot_review")
     def test_current_head_clean_review_moves_to_maintainers(self, request_review) -> None:
         facts = {
             "copilot_review_requested": False,
+            "copilot_review_exists": True,
             "copilot_review_needed": False,
         }
 
@@ -423,6 +448,7 @@ class CopilotReviewGateTest(unittest.TestCase):
     def test_disabled_gate_preserves_maintainer_route(self, request_review) -> None:
         facts = {
             "copilot_review_requested": False,
+            "copilot_review_exists": True,
             "copilot_review_needed": True,
         }
 
