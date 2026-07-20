@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from fnmatch import fnmatchcase
 from typing import Any
 
 from route_presentation import ROUTE_ORDER, route_label
@@ -34,9 +35,36 @@ def _truncation_note(count: int) -> str:
     return f"_More {count} {plural} not shown_"
 
 
+def _pr_cell_text(
+    pr: dict[str, Any],
+    labels_to_display: list[str] | None = None,
+) -> str:
+    number = pr["number"]
+    title = _md_escape(pr.get("title", ""))
+    pr_cell = f"#{number} {title}"
+    if not labels_to_display:
+        return pr_cell
+
+    matched_labels: list[str] = []
+    seen: set[str] = set()
+    for label in pr.get("labels") or []:
+        if not isinstance(label, str) or not label or label in seen:
+            continue
+        if any(fnmatchcase(label, pattern) for pattern in labels_to_display):
+            matched_labels.append(label)
+            seen.add(label)
+    if not matched_labels:
+        return pr_cell
+    rendered_labels = " · ".join(
+        f"<code>{_md_escape(label)}</code>" for label in matched_labels
+    )
+    return f"{pr_cell} · {rendered_labels}"
+
+
 def render_draft_pr_section(
     prs: list[dict[str, Any]],
     max_rows_per_section: int | None = None,
+    labels_to_display: list[str] | None = None,
 ) -> list[str]:
     drafts = [p for p in prs if p.get("isDraft")]
     if not drafts:
@@ -47,13 +75,11 @@ def render_draft_pr_section(
     lines.append("| PR | Author | Updated |")
     lines.append("|---|---|:---:|")
     for pr in drafts:
-        number = pr["number"]
-        title = _md_escape(pr.get("title", ""))
         author = actor_login(pr.get("author") or {})
         updated = activity_age(parse_ts(pr.get("updatedAt") or ""))
         # GitHub autolinks same-repo PR numbers; avoid full URLs so large
         # dashboards can show more PRs before hitting the issue body limit.
-        lines.append(f"| #{number} {title} | {author} | {updated} |")
+        lines.append(f"| {_pr_cell_text(pr, labels_to_display)} | {author} | {updated} |")
     lines.append("")
     if truncated:
         lines.append(_truncation_note(truncated))
@@ -150,6 +176,7 @@ def render_diagnostics_section(
         if (
             results[number].get("review_thread_classifications")
             or results[number].get("top_level_classifications")
+            or results[number].get("top_level_author_comment_classifications")
             or results[number].get("error")
         )
     ]
@@ -164,9 +191,38 @@ def render_diagnostics_section(
         classifications = (
             (result.get("review_thread_classifications") or [])
             + (result.get("top_level_classifications") or [])
+            + (result.get("top_level_author_comment_classifications") or [])
         )
         for c in classifications:
             decision = c.get("decision") or {}
+            if c.get("discussion_kind") == "top-level-author-reply":
+                feedback_outcomes = [
+                    outcome
+                    for outcome in (decision.get("feedback_outcomes") or [])
+                    if isinstance(outcome, dict)
+                    and isinstance(outcome.get("feedback_id"), str)
+                ]
+                if not feedback_outcomes:
+                    reason = (decision.get("reason") or "").replace("\n", " ")
+                    data_lines.append(
+                        f"llm: {c.get('discussion_id')} -> no-associated-feedback, no-action ({reason})"
+                    )
+                    continue
+                for outcome in feedback_outcomes:
+                    feedback_id = outcome["feedback_id"]
+                    action = outcome.get("discussion_action")
+                    reason = (outcome.get("reason") or "").replace("\n", " ")
+                    pending_action = pending_actions.get(feedback_id)
+                    if pending_action:
+                        lifecycle_suffix = f", pending:{pending_action.get('action')}"
+                    elif action in ("none", "unclear"):
+                        lifecycle_suffix = ", no-action"
+                    else:
+                        lifecycle_suffix = ", addressed"
+                    data_lines.append(
+                        f"llm: {c.get('discussion_id')} -> {feedback_id}:{action}{lifecycle_suffix} ({reason})"
+                    )
+                continue
             reason = (decision.get("reason") or "").replace("\n", " ")
             pending_action = pending_actions.get(c.get("discussion_id"))
             if pending_action:
@@ -206,6 +262,7 @@ def render_pr_tables(
     results: dict[int, dict[str, Any]],
     max_rows_per_section: int | None = None,
     skip_drafts: bool = False,
+    labels_to_display: list[str] | None = None,
 ) -> str:
     source_url = "https://github.com/open-telemetry/shared-workflows/blob/main/.github/scripts/pull-request-dashboard/dashboard.py"
     draft_note = (
@@ -257,7 +314,6 @@ def render_pr_tables(
         out.append("|---|---|---|:---:|:---:|:---:|")
         for pr in rows:
             number = pr["number"]
-            title = _md_escape(pr.get("title", ""))
             res = results.get(number) or {}
             facts = res.get("facts") or {}
             author = facts.get("author") or actor_login(pr.get("author") or {})
@@ -265,7 +321,7 @@ def render_pr_tables(
             activity_cell = age_cell(facts)
             # GitHub autolinks same-repo PR numbers; avoid full URLs so large
             # dashboards can show more PRs before hitting the issue body limit.
-            pr_cell = f"#{number} {title}"
+            pr_cell = _pr_cell_text(pr, labels_to_display)
             out.append(
                 f"| {pr_cell} | {author} | {reviewers_cell} | {ci_cell(facts)} | "
                 f"{conflicts_cell(facts)} | {activity_cell} |"
@@ -276,6 +332,10 @@ def render_pr_tables(
             out.append("")
 
     if not skip_drafts:
-        out.extend(render_draft_pr_section(prs, max_rows_per_section))
+        out.extend(render_draft_pr_section(
+            prs,
+            max_rows_per_section,
+            labels_to_display,
+        ))
     out.extend(render_diagnostics_section(results, max_rows_per_section))
     return "\n".join(out) + "\n"

@@ -6,21 +6,28 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from dashboard import (
+    AuthorCommentOutcome,
     add_wait_age_facts,
     add_reviewers,
     advance_top_level_actions,
-    build_review_thread_pending_actions,
     build_dashboard_update_for_pr,
+    build_review_thread_pending_actions,
+    derive_top_level_author_comment_items,
     derive_top_level_items,
     normalize_events,
     requires_title_edit_lookup,
     route_pr,
+    top_level_author_comment_outcomes,
+    top_level_author_comment_source_state,
 )
 from classification import (
     classify_discussion_domains,
+    discussion_prompt,
     parse_discussion_decision,
-    run_llm_for_top_level_batch,
-    top_level_prompt_input,
+    run_llm_for_top_level_author_comment_batch,
+    run_llm_for_top_level_reviewer_feedback_batch,
+    top_level_reviewer_feedback_batch_prompt,
+    top_level_reviewer_feedback_prompt_input,
 )
 from notifications import reviewer_logins_for_notification
 from render import reviewer_icon
@@ -38,6 +45,7 @@ def top_level_item(
     discussion = {
         "discussion_id": discussion_id,
         "discussion_kind": "top-level-feedback",
+        "pr_author": "author",
         "requester": requester,
         "root_timestamp": ROOT_TIMESTAMP,
         "comments": [],
@@ -66,6 +74,19 @@ def classification(discussion_id: str, *evidence_kinds: str) -> dict:
             "required_evidence_kinds": list(evidence_kinds),
             "reason": "action requested",
         },
+    }
+
+
+def author_comment_decision(*feedback_actions: tuple[str, str]) -> dict:
+    return {
+        "feedback_outcomes": [
+            {
+                "feedback_id": feedback_id,
+                "discussion_action": action,
+                "reason": "Test author-comment outcome.",
+            }
+            for feedback_id, action in feedback_actions
+        ]
     }
 
 
@@ -105,6 +126,19 @@ def event(kind: str, timestamp: str, actor: str, actor_role: str, **values: obje
     }
 
 
+def author_comment_outcome(
+    feedback_id: str,
+    timestamp: str,
+    source_id: int = 102,
+) -> AuthorCommentOutcome:
+    return {
+        "source_id": source_id,
+        "action": "none",
+        "timestamp": timestamp,
+        "feedback_id": feedback_id,
+    }
+
+
 def top_level_history_record(kind: str, timestamp: str) -> dict:
     return {
         "evidence": {kind: timestamp},
@@ -125,10 +159,54 @@ def top_level_items_from_raw(
         "author",
         {"reviewer"},
     )
-    return derive_top_level_items(events, {"conflicts": conflicts})
+    return derive_top_level_items(
+        events,
+        {"author": "author", "conflicts": conflicts},
+    )
+
+
+def classify_feedback_domains(
+    number: int,
+    review_threads: list[dict],
+    top_level_items: list[dict],
+    model: str,
+) -> tuple[list[dict], list[dict]]:
+    review_classifications, top_level_classifications, _ = (
+        classify_discussion_domains(
+            number,
+            review_threads,
+            top_level_items,
+            [],
+            model,
+        )
+    )
+    return review_classifications, top_level_classifications
 
 
 class TopLevelActionLedgerTest(unittest.TestCase):
+    def test_inline_prompt_treats_author_inability_as_completed_reply(self) -> None:
+        discussion = review_thread_discussion("inline")
+        discussion["comments"] = [
+            {
+                "timestamp": "2026-07-17T18:57:50Z",
+                "actor": "reviewer",
+                "actor_role": "approver",
+                "body": "any chance to make it deterministic without relying on sleep?",
+            },
+            {
+                "timestamp": "2026-07-17T20:56:50Z",
+                "actor": "author",
+                "actor_role": "author",
+                "body": "I couldn't find a good way",
+            },
+        ]
+
+        prompt = discussion_prompt(discussion)
+
+        self.assertIn("Require an explicit statement", prompt)
+        self.assertIn("I couldn't find a good way", prompt)
+        self.assertIn("is a completed reply and maps to reviewer", prompt)
+
     def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
         review_threads = [
             {
@@ -202,7 +280,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             top_level_item("invalid"),
         ]
 
-        records = run_llm_for_top_level_batch(discussions, "model")
+        records = run_llm_for_top_level_reviewer_feedback_batch(discussions, "model")
 
         self.assertEqual(
             [record["discussion_id"] for record in records],
@@ -238,15 +316,215 @@ class TopLevelActionLedgerTest(unittest.TestCase):
     ) -> None:
         run_copilot.return_value = copilot_batch_response()
 
-        records = run_llm_for_top_level_batch([top_level_item("missing")], "model")
+        records = run_llm_for_top_level_reviewer_feedback_batch(
+            [top_level_item("missing")], "model"
+        )
 
         self.assertEqual(run_copilot.call_count, 1)
         self.assertTrue(records[0]["failed"])
         self.assertIn("this discussion_id", records[0]["error"])
 
+    @patch("classification.MAX_PROMPT_CHARS", 5000)
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_reviewer_feedback_prompts_are_hard_bounded(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        def respond(args, **_kwargs):
+            prompt = args[2]
+            prompt_items = json.loads(
+                prompt.split("---BEGIN TOP-LEVEL FEEDBACK---\n", 1)[1].split(
+                    "\n---END TOP-LEVEL FEEDBACK---", 1
+                )[0]
+            )
+            return copilot_batch_response(*[
+                top_level_batch_result(item["discussion_id"])
+                for item in prompt_items
+            ])
+
+        run_copilot.side_effect = respond
+        discussions = [
+            {
+                **top_level_item(f"feedback-{index}"),
+                "comments": [{"body": "x" * 6000}],
+            }
+            for index in range(4)
+        ]
+
+        records = run_llm_for_top_level_reviewer_feedback_batch(
+            discussions, "model"
+        )
+
+        self.assertGreater(run_copilot.call_count, 1)
+        prompts = [call.args[0][2] for call in run_copilot.call_args_list]
+        self.assertTrue(all(len(prompt) <= 5000 for prompt in prompts))
+        self.assertEqual(
+            [record["discussion_id"] for record in records],
+            [f"feedback-{index}" for index in range(4)],
+        )
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_author_comment_batch_supports_mixed_feedback_outcomes(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.return_value = copilot_batch_response(
+            {
+                "discussion_id": "completed-reply",
+                "feedback_outcomes": [
+                    {
+                        "feedback_id": "question",
+                        "discussion_action": "none",
+                        "reason": "The author answered the question.",
+                    },
+                    {
+                        "feedback_id": "test-request",
+                        "discussion_action": "author",
+                        "reason": "The author will add the test later.",
+                    },
+                ],
+            }
+        )
+        discussion = review_thread_discussion("completed-reply")
+        discussion["discussion_kind"] = "top-level-author-reply"
+        discussion["candidate_feedback"] = [
+            {
+                "discussion_id": "question",
+                "body": "Why is this branch necessary?",
+            },
+            {
+                "discussion_id": "test-request",
+                "body": "Please test this before merging.",
+            }
+        ]
+
+        records = run_llm_for_top_level_author_comment_batch(
+            [discussion], "model"
+        )
+
+        self.assertFalse(records[0]["failed"])
+        self.assertEqual(
+            records[0]["decision"]["feedback_outcomes"],
+            [
+                {
+                    "feedback_id": "question",
+                    "discussion_action": "none",
+                    "reason": "The author answered the question.",
+                },
+                {
+                    "feedback_id": "test-request",
+                    "discussion_action": "author",
+                    "reason": "The author will add the test later.",
+                },
+            ],
+        )
+        self.assertNotIn("required_evidence_kinds", records[0]["decision"])
+        prompt = run_copilot.call_args.args[0][2]
+        self.assertIn("Please test this before merging.", prompt)
+
+    @patch("classification.MAX_PROMPT_CHARS", 5000)
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_author_comment_prompts_are_hard_bounded(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        def respond(args, **_kwargs):
+            prompt = args[2]
+            prompt_items = json.loads(
+                prompt.split("---BEGIN AUTHOR FOLLOW-UPS---\n", 1)[1].split(
+                    "\n---END AUTHOR FOLLOW-UPS---", 1
+                )[0]
+            )
+            return copilot_batch_response(*[
+                {
+                    "discussion_id": item["discussion_id"],
+                    "feedback_outcomes": [
+                        {
+                            "feedback_id": feedback["discussion_id"],
+                            "discussion_action": "none",
+                            "reason": "Completed response.",
+                        }
+                        for feedback in item["candidate_feedback"]
+                    ],
+                }
+                for item in prompt_items
+            ])
+
+        run_copilot.side_effect = respond
+        discussion = review_thread_discussion("author-reply")
+        discussion["discussion_kind"] = "top-level-author-reply"
+        discussion["candidate_feedback"] = [
+            {
+                "discussion_id": f"feedback-{index}",
+                "body": f"Request {index}: " + "x" * 1000,
+            }
+            for index in range(30)
+        ]
+
+        records = run_llm_for_top_level_author_comment_batch(
+            [discussion], "model"
+        )
+
+        self.assertFalse(records[0]["failed"])
+        self.assertGreater(run_copilot.call_count, 1)
+        prompts = [call.args[0][2] for call in run_copilot.call_args_list]
+        self.assertTrue(all(len(prompt) <= 5000 for prompt in prompts))
+        combined_prompts = "\n".join(prompts)
+        for index in range(30):
+            self.assertIn(f'"discussion_id": "feedback-{index}"', combined_prompts)
+        self.assertEqual(
+            [
+                outcome["feedback_id"]
+                for outcome in records[0]["decision"]["feedback_outcomes"]
+            ],
+            [f"feedback-{index}" for index in range(30)],
+        )
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_author_comment_batch_rejects_unknown_feedback_id(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.return_value = copilot_batch_response(
+            {
+                "discussion_id": "author-reply",
+                "feedback_outcomes": [
+                    {
+                        "feedback_id": "not-a-candidate",
+                        "discussion_action": "external",
+                        "reason": "Blocked upstream.",
+                    }
+                ],
+            }
+        )
+        discussion = review_thread_discussion("author-reply")
+        discussion["discussion_kind"] = "top-level-author-reply"
+        discussion["candidate_feedback"] = [
+            {
+                "discussion_id": "actual-candidate",
+                "body": "Please update the implementation.",
+            }
+        ]
+
+        records = run_llm_for_top_level_author_comment_batch(
+            [discussion], "model"
+        )
+
+        self.assertTrue(records[0]["failed"])
+        self.assertEqual(records[0]["decision"]["feedback_outcomes"], [])
+        self.assertIn("valid classification", records[0]["error"])
+
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_batch")
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
     @patch("classification.run_llm_for_discussion")
     def test_discussion_domains_use_separate_classification_pipelines(
         self,
@@ -278,7 +556,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         top_level_items = [top_level_item("top-level")]
 
         review_thread_classifications, top_level_classifications = (
-            classify_discussion_domains(123, review_threads, top_level_items, "model")
+            classify_feedback_domains(123, review_threads, top_level_items, "model")
         )
 
         self.assertEqual(run_inline.call_args.args[0]["discussion_id"], "inline")
@@ -298,7 +576,171 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_batch")
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch", return_value=[])
+    @patch("classification.run_llm_for_top_level_author_comment_batch")
+    def test_author_replies_use_discussion_classification_cache(
+        self,
+        run_author_batch,
+        _run_batch,
+        _load_cache,
+        save_cache,
+    ) -> None:
+        run_author_batch.side_effect = lambda discussions, _model: [
+            {
+                "discussion_id": discussion["discussion_id"],
+                "discussion_kind": discussion["discussion_kind"],
+                "failed": False,
+                "decision": author_comment_decision(("feedback", "author")),
+            }
+            for discussion in discussions
+        ]
+        author_reply = review_thread_discussion("author-reply")
+        author_reply["discussion_kind"] = "top-level-author-reply"
+        author_reply["candidate_feedback"] = [
+            {"discussion_id": "feedback", "body": "Please add a test."}
+        ]
+
+        review_classifications, top_level_classifications, reply_classifications = (
+            classify_discussion_domains(
+                123,
+                [],
+                [],
+                [author_reply],
+                "model",
+            )
+        )
+
+        self.assertEqual(review_classifications, [])
+        self.assertEqual(top_level_classifications, [])
+        self.assertEqual(reply_classifications[0]["discussion_id"], "author-reply")
+        self.assertEqual(
+            reply_classifications[0]["decision"]["feedback_outcomes"][0][
+                "discussion_action"
+            ],
+            "author",
+        )
+        self.assertEqual(len(save_cache.call_args.args[1]), 1)
+
+    @patch("classification.MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR", 20)
+    @patch("classification.TOP_LEVEL_CLASSIFICATION_BATCH_SIZE", 10)
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch", return_value=[])
+    @patch("classification.run_llm_for_top_level_author_comment_batch")
+    def test_author_reply_classification_is_batched_and_bounded(
+        self,
+        run_author_batch,
+        _run_top_level_batch,
+        _load_cache,
+        _save_cache,
+    ) -> None:
+        run_author_batch.side_effect = lambda discussions, _model: [
+            {
+                "discussion_id": discussion["discussion_id"],
+                "discussion_kind": discussion["discussion_kind"],
+                "failed": False,
+                "decision": {"feedback_outcomes": []},
+            }
+            for discussion in discussions
+        ]
+        author_replies = [
+            {
+                **review_thread_discussion(f"author-reply-{index}"),
+                "discussion_kind": "top-level-author-reply",
+            }
+            for index in range(23)
+        ]
+
+        _review, _top_level, classifications = (
+            classify_discussion_domains(
+                123,
+                [],
+                [],
+                author_replies,
+                "model",
+            )
+        )
+
+        self.assertEqual(run_author_batch.call_count, 2)
+        self.assertEqual(
+            [len(call.args[0]) for call in run_author_batch.call_args_list],
+            [10, 10],
+        )
+        self.assertEqual(
+            [record["decision"] for record in classifications[:20]],
+            [{"feedback_outcomes": []}] * 20,
+        )
+        self.assertEqual(
+            [record["decision"] for record in classifications[20:]],
+            [
+                {
+                    "feedback_outcomes": [],
+                    "reason": "Deferred by per-PR classification limit",
+                }
+            ] * 3,
+        )
+        self.assertEqual(
+            [record.get("deferred") for record in classifications],
+            [None] * 20 + [True] * 3,
+        )
+
+    @patch("classification.MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR", 2)
+    @patch("classification.author_comment_prompt_batches")
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch", return_value=[])
+    @patch("classification.run_llm_for_top_level_author_comment_batch")
+    def test_author_reply_expanded_prompt_calls_are_bounded(
+        self,
+        run_author_batch,
+        _run_top_level_batch,
+        _load_cache,
+        _save_cache,
+        prompt_batches,
+    ) -> None:
+        prompt_batches.side_effect = lambda discussions: [
+            ([discussion], "prompt") for discussion in discussions
+        ]
+        run_author_batch.side_effect = lambda discussions, _model: [
+            {
+                "discussion_id": discussion["discussion_id"],
+                "discussion_kind": discussion["discussion_kind"],
+                "failed": False,
+                "decision": {"feedback_outcomes": []},
+            }
+            for discussion in discussions
+        ]
+        author_replies = [
+            {
+                **review_thread_discussion(f"author-reply-{index}"),
+                "discussion_kind": "top-level-author-reply",
+            }
+            for index in range(3)
+        ]
+
+        _review, _top_level, classifications = classify_discussion_domains(
+            123,
+            [],
+            [],
+            author_replies,
+            "model",
+        )
+
+        self.assertEqual(
+            [discussion["discussion_id"] for discussion in run_author_batch.call_args.args[0]],
+            ["author-reply-0", "author-reply-1"],
+        )
+        self.assertFalse(classifications[0].get("deferred"))
+        self.assertFalse(classifications[1].get("deferred"))
+        self.assertTrue(classifications[2]["deferred"])
+        self.assertEqual(
+            classifications[2]["decision"]["reason"],
+            "Deferred by per-PR classification limit",
+        )
+
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
     def test_later_run_classifies_only_failed_top_level_item(
         self,
         run_batch,
@@ -321,7 +763,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
         ]
 
-        classify_discussion_domains(123, [], [valid, missing], "model")
+        classify_feedback_domains(123, [], [valid, missing], "model")
 
         cached = save_cache.call_args.args[1]
         self.assertEqual(len(cached), 1)
@@ -329,7 +771,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         run_batch.reset_mock()
         run_batch.return_value = [classification("missing", "commit")]
 
-        classify_discussion_domains(123, [], [valid, missing], "model")
+        classify_feedback_domains(123, [], [valid, missing], "model")
 
         self.assertEqual(
             [discussion["discussion_id"] for discussion in run_batch.call_args.args[0]],
@@ -338,7 +780,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_batch")
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
     def test_top_level_cache_ignores_mutable_facts_but_includes_body(
         self,
         run_batch,
@@ -353,17 +795,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         discussion["comments"] = [{"body": "Could you clarify this?"}]
         discussion["discussion_facts"] = {"current_conflicts": "no"}
 
-        classify_discussion_domains(123, [], [discussion], "model")
+        classify_feedback_domains(123, [], [discussion], "model")
         load_cache.return_value = save_cache.call_args.args[1]
         run_batch.reset_mock()
 
         discussion["discussion_facts"]["current_conflicts"] = "yes"
-        classify_discussion_domains(123, [], [discussion], "model")
+        classify_feedback_domains(123, [], [discussion], "model")
 
         run_batch.assert_not_called()
 
         discussion["comments"][0]["body"] = "Please update the implementation."
-        classify_discussion_domains(123, [], [discussion], "model")
+        classify_feedback_domains(123, [], [discussion], "model")
 
         run_batch.assert_called_once()
 
@@ -371,7 +813,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
     @patch("classification.TOP_LEVEL_CLASSIFICATION_BATCH_SIZE", 10)
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_batch")
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
     def test_uncached_top_level_classification_is_batched_and_bounded(
         self,
         run_batch,
@@ -393,7 +835,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
         discussions = [top_level_item(f"item-{index}") for index in range(23)]
 
-        _review_thread_classifications, classifications = classify_discussion_domains(
+        _review_thread_classifications, classifications = classify_feedback_domains(
             123, [], discussions, "model"
         )
 
@@ -410,7 +852,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         _load_cache.return_value = save_cache.call_args.args[1]
         run_batch.reset_mock()
 
-        _review_thread_classifications, classifications = classify_discussion_domains(
+        _review_thread_classifications, classifications = classify_feedback_domains(
             123, [], discussions, "model"
         )
 
@@ -425,7 +867,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
     @patch("classification.MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR", 0)
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_batch")
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
     def test_deferred_changes_requested_uses_normal_fallback(
         self,
         run_batch,
@@ -436,7 +878,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         discussion["review_state"] = "CHANGES_REQUESTED"
         discussion["comments"] = [{"body": "Please update the implementation."}]
 
-        _review_thread_classifications, classifications = classify_discussion_domains(
+        _review_thread_classifications, classifications = classify_feedback_domains(
             123, [], [discussion], "model"
         )
 
@@ -456,12 +898,25 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         discussion["comments"] = [{"body": "Please update the implementation."}]
 
         self.assertEqual(
-            top_level_prompt_input(discussion),
+            top_level_reviewer_feedback_prompt_input(discussion),
             {
                 "discussion_id": "change-request",
+                "pr_author": "author",
                 "body": "Please update the implementation.",
             },
         )
+
+    def test_top_level_prompt_distinguishes_other_participants_from_author(self) -> None:
+        discussion = top_level_item("review-request")
+        discussion["comments"] = [
+            {"body": "@reviewer should we put the effort into merging this?"}
+        ]
+
+        prompt = top_level_reviewer_feedback_batch_prompt([discussion])
+
+        self.assertIn('"pr_author": "author"', prompt)
+        self.assertIn("directed to other reviewers", prompt)
+        self.assertIn("which implementation or code option", prompt)
 
     def test_unclear_item_sets_reviewer_wait_age(self) -> None:
         pending_actions = {
@@ -569,7 +1024,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             "author",
             {"reviewer"},
         )
-        items = derive_top_level_items(events, {"conflicts": "no"})
+        items = derive_top_level_items(
+            events,
+            {"author": "author", "conflicts": "no"},
+        )
 
         self.assertEqual(
             [item["discussion_id"] for item in items],
@@ -579,6 +1037,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [item["discussion_url"] for item in items],
             ["https://example.test/issue-comment/101", "https://example.test/review/202"],
         )
+        self.assertEqual([item["pr_author"] for item in items], ["author", "author"])
         self.assertEqual(items[1]["root_timestamp"], "2026-07-14T03:00:00Z")
         review_event = next(event for event in events if event["kind"] == "review-state")
         self.assertEqual(review_event["timestamp"], "2026-07-14T02:00:00Z")
@@ -608,6 +1067,24 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             top_level_items_from_raw(raw),
             [],
         )
+
+    def test_minimized_issue_comment_is_not_top_level_feedback(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 101,
+                    "html_url": "https://example.test/issue-comment/101",
+                    "created_at": ROOT_TIMESTAMP,
+                    "updated_at": ROOT_TIMESTAMP,
+                    "user": {"login": "reviewer"},
+                    "body": "Please update the documentation.",
+                    "minimized": {"reason": "off-topic"},
+                }
+            ],
+            "reviews": [],
+        }
+
+        self.assertEqual(top_level_items_from_raw(raw), [])
 
     def test_resolved_conflict_review_body_is_not_an_action_item(self) -> None:
         raw = {
@@ -672,7 +1149,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         events = [event("commit", "2026-07-14T03:00:00Z", "author", "author")]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertNotIn("code", pending_actions)
@@ -687,6 +1164,36 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"commit": "2026-07-14T03:00:00Z"},
         )
         self.assertEqual(classifications[1]["decision"]["discussion_action"], "author")
+
+    def test_commit_after_final_feedback_edit_addresses_code_choice(self) -> None:
+        discussion = top_level_item("code-choice")
+        discussion["root_timestamp"] = "2023-12-18T09:20:36Z"
+        events = [
+            event(
+                "issue-comment",
+                "2023-12-18T09:20:07Z",
+                "author",
+                "author",
+                created_timestamp="2023-12-18T09:20:07Z",
+            ),
+            event("commit", "2023-12-18T13:14:32Z", "author", "author"),
+        ]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("code-choice", "commit")],
+            events,
+            {},
+            "author",
+            None,
+            [],
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["code-choice"]["evidence"],
+            {"commit": "2023-12-18T13:14:32Z"},
+        )
 
     def test_author_reply_advances_all_author_actions(self) -> None:
         discussions = [
@@ -704,7 +1211,18 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions,
+            classifications,
+            events,
+            {},
+            "author",
+            None,
+            [
+                author_comment_outcome(
+                    discussion["discussion_id"], "2026-07-14T03:00:00Z"
+                )
+                for discussion in discussions
+            ],
         )
 
         self.assertEqual(pending_actions, {})
@@ -715,6 +1233,1048 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertEqual(top_level_history["reply"]["evidence"], {"reply": "2026-07-14T03:00:00Z"})
 
+    def test_author_self_deferral_does_not_close_top_level_feedback(self) -> None:
+        discussion = top_level_item("test-request")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="Thanks, I'll have time this week to test and validate.",
+            ),
+        ]
+        author_reply_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("test-request", "reply")],
+            events,
+            {},
+            "author",
+            {
+                "test-request": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                }
+            },
+            author_comment_outcomes=top_level_author_comment_outcomes(
+                author_reply_items,
+                [
+                    {
+                        "discussion_id": author_reply_items[0]["discussion_id"],
+                        "decision": author_comment_decision(
+                            ("test-request", "author")
+                        ),
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(pending_actions["test-request"]["action"], "author")
+        self.assertNotIn("test-request", history)
+
+    def test_author_comment_candidates_include_only_earlier_feedback(self) -> None:
+        earlier = top_level_item("earlier")
+        earlier["comments"] = [{"body": "Please update the implementation."}]
+        later = top_level_item("later")
+        later["root_timestamp"] = "2026-07-14T04:00:00Z"
+        later["comments"] = [{"body": "Please add another test."}]
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+            ),
+        ]
+
+        items = derive_top_level_author_comment_items(
+            events,
+            [earlier, later],
+            {"conflicts": "no"},
+        )
+
+        self.assertEqual(
+            items[0]["candidate_feedback"],
+            [
+                {
+                    "discussion_id": "earlier",
+                    "body": "Please update the implementation.",
+                }
+            ],
+        )
+
+    def test_completed_author_reply_closes_top_level_feedback(self) -> None:
+        discussion = top_level_item("question")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="I tested this and confirmed it works.",
+            ),
+        ]
+        author_reply_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            events,
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=top_level_author_comment_outcomes(
+                author_reply_items,
+                [
+                    {
+                        "discussion_id": author_reply_items[0]["discussion_id"],
+                        "decision": author_comment_decision(("question", "none")),
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
+    def test_cached_author_reply_survives_missing_classification(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
+    def test_cached_author_reply_is_removed_with_its_source(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+            author_comment_source_state={"current": set(), "classified": set()},
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {"question": {"action": "author", "since": ROOT_TIMESTAMP}},
+        )
+        self.assertEqual(history, {})
+
+    def test_cached_author_reply_is_recomputed_after_classification(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+            author_comment_source_state={"current": {102}, "classified": {102}},
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {"question": {"action": "author", "since": ROOT_TIMESTAMP}},
+        )
+        self.assertEqual(history, {})
+
+    def test_cached_author_reply_survives_failed_classification(self) -> None:
+        discussion = top_level_item("question")
+        author_comment_items = [{"discussion_id": "reply", "source_id": 102}]
+        source_state = top_level_author_comment_source_state(
+            author_comment_items,
+            [{"discussion_id": "reply", "failed": True}],
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+            author_comment_source_state=source_state,
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
+    def test_cached_author_reply_survives_deferred_classification(self) -> None:
+        discussion = top_level_item("question")
+        source_state = top_level_author_comment_source_state(
+            [{"discussion_id": "reply", "source_id": 102}],
+            [{"discussion_id": "reply", "failed": False, "deferred": True}],
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+            author_comment_source_state=source_state,
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
+    def test_legacy_cached_author_reply_survives_missing_classification(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                },
+            },
+            author_comment_outcomes=[],
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {"evidence": {"reply": "2026-07-14T03:00:00Z"}},
+        )
+
+    def test_legacy_cached_author_reply_recovers_source_id(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                },
+            },
+            author_comment_outcomes=[
+                author_comment_outcome(
+                    "question", "2026-07-14T03:00:00Z", source_id=102
+                ),
+            ],
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
+    def test_newer_handoff_supersedes_legacy_cached_reply(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T02:00:00Z"},
+                },
+            },
+            author_comment_outcomes=[
+                {
+                    "source_id": 103,
+                    "action": "external",
+                    "timestamp": "2026-07-14T03:00:00Z",
+                    "feedback_id": "question",
+                },
+            ],
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "question": {
+                    "action": "external",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
+
+    def test_newer_author_handoff_supersedes_cached_reply(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T02:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[
+                {
+                    "source_id": 103,
+                    "action": "external",
+                    "timestamp": "2026-07-14T03:00:00Z",
+                    "feedback_id": "question",
+                },
+            ],
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "question": {
+                    "action": "external",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
+
+    def test_reclassified_author_reply_supersedes_cached_reply(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[
+                {
+                    "source_id": 102,
+                    "action": "author",
+                    "timestamp": "2026-07-14T03:00:00Z",
+                    "feedback_id": "question",
+                },
+            ],
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "question": {
+                    "action": "author",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
+
+    def test_author_reply_uses_source_id_to_break_timestamp_tie(self) -> None:
+        discussion = top_level_item("question")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="I tested this and confirmed it works.",
+            ),
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=103,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="I'll make another change later.",
+            ),
+        ]
+        author_reply_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+        classifications = [
+            {
+                "discussion_id": author_reply_items[0]["discussion_id"],
+                "decision": author_comment_decision(("question", "none")),
+            },
+            {
+                "discussion_id": author_reply_items[1]["discussion_id"],
+                "decision": author_comment_decision(("question", "author")),
+            },
+        ]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            events,
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=top_level_author_comment_outcomes(
+                author_reply_items,
+                classifications,
+            ),
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "question": {
+                    "action": "author",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
+
+    def test_author_comment_applies_each_feedback_outcome_independently(self) -> None:
+        discussions = [
+            top_level_item("first-request"),
+            top_level_item("second-request"),
+        ]
+        classifications = [
+            classification("first-request", "commit"),
+            classification("second-request", "reply"),
+        ]
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            discussions,
+            {"conflicts": "no"},
+        )
+        author_comment_outcomes = top_level_author_comment_outcomes(
+            author_comment_items,
+            [
+                {
+                    "discussion_id": author_comment_items[0]["discussion_id"],
+                    "decision": {
+                        "feedback_outcomes": [
+                            {
+                                "feedback_id": "first-request",
+                                "discussion_action": "none",
+                                "reason": "The author answered the first request.",
+                            },
+                            {
+                                "feedback_id": "second-request",
+                                "discussion_action": "author",
+                                "reason": "The author will address the second request.",
+                            },
+                        ],
+                    },
+                }
+            ],
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            discussions,
+            classifications,
+            events,
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=author_comment_outcomes,
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "second-request": {
+                    "action": "author",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(
+            history,
+            {
+                "first-request": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+        )
+
+    def test_external_author_reply_routes_feedback_external(self) -> None:
+        discussion = top_level_item("dependency")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="This is blocked on an upstream specification decision.",
+            ),
+        ]
+        author_reply_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            events,
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=top_level_author_comment_outcomes(
+                author_reply_items,
+                [
+                    {
+                        "discussion_id": author_reply_items[0]["discussion_id"],
+                        "decision": author_comment_decision(
+                            ("dependency", "external")
+                        ),
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T03:00:00Z"},
+        )
+        self.assertNotIn("dependency", history)
+
+    def test_later_external_reply_supersedes_author_self_deferral(self) -> None:
+        discussion = top_level_item("dependency")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T02:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T02:00:00Z",
+                body="I'll investigate this.",
+            ),
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=103,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="This is blocked on an upstream specification decision.",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            events,
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=top_level_author_comment_outcomes(
+                author_comment_items,
+                [
+                    {
+                        "discussion_id": author_comment_items[0]["discussion_id"],
+                        "decision": author_comment_decision(
+                            ("dependency", "author")
+                        ),
+                    },
+                    {
+                        "discussion_id": author_comment_items[1]["discussion_id"],
+                        "decision": author_comment_decision(
+                            ("dependency", "external")
+                        ),
+                    },
+                ],
+            ),
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T03:00:00Z"},
+        )
+        self.assertNotIn("dependency", history)
+
+    def test_later_author_self_deferral_supersedes_external_reply(self) -> None:
+        discussion = top_level_item("dependency")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T02:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T02:00:00Z",
+                body="This is blocked on an upstream specification decision.",
+            ),
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=103,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="I'll update this in the current PR.",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+        author_comment_outcomes = top_level_author_comment_outcomes(
+            author_comment_items,
+            [
+                {
+                    "discussion_id": author_comment_items[0]["discussion_id"],
+                    "decision": author_comment_decision(
+                        ("dependency", "external")
+                    ),
+                },
+                {
+                    "discussion_id": author_comment_items[1]["discussion_id"],
+                    "decision": author_comment_decision(("dependency", "author")),
+                },
+            ],
+        )
+
+        for original_action in ("external", "unclear"):
+            with self.subTest(original_action=original_action):
+                original_classification = classification("dependency", "reply")
+                original_classification["decision"]["discussion_action"] = original_action
+
+                pending_actions, history = advance_top_level_actions(
+                    [discussion],
+                    [original_classification],
+                    events,
+                    {},
+                    "author",
+                    previous_history=None,
+                    author_comment_outcomes=author_comment_outcomes,
+                )
+
+                self.assertEqual(
+                    pending_actions["dependency"],
+                    {"action": "author", "since": "2026-07-14T03:00:00Z"},
+                )
+                self.assertNotIn("dependency", history)
+
+    def test_external_reply_uses_creation_order_after_older_comment_edit(self) -> None:
+        discussion = top_level_item("dependency")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T05:00:00Z",
+                "author",
+                "author",
+                source_id=103,
+                created_timestamp="2026-07-14T04:00:00Z",
+                body="This is blocked on a second upstream decision.",
+            ),
+            event(
+                "issue-comment",
+                "2026-07-14T06:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T02:00:00Z",
+                body="This is blocked on the first upstream decision.",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+        author_comment_outcomes = top_level_author_comment_outcomes(
+            author_comment_items,
+            [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "decision": author_comment_decision(
+                        ("dependency", "external")
+                    ),
+                }
+                for item in author_comment_items
+            ],
+        )
+
+        self.assertEqual(
+            [
+                (outcome["source_id"], outcome["timestamp"])
+                for outcome in author_comment_outcomes
+            ],
+            [
+                (102, "2026-07-14T02:00:00Z"),
+                (103, "2026-07-14T04:00:00Z"),
+            ],
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            events,
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=author_comment_outcomes,
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T02:00:00Z"},
+        )
+        self.assertNotIn("dependency", history)
+
+    def test_completed_reply_restarts_later_external_handoff_age(self) -> None:
+        discussion = top_level_item("dependency")
+        author_comment_outcomes = [
+            {
+                "source_id": 102,
+                "action": "external",
+                "timestamp": "2026-07-14T02:00:00Z",
+                "feedback_id": "dependency",
+            },
+            author_comment_outcome(
+                "dependency", "2026-07-14T03:00:00Z", source_id=103
+            ),
+            {
+                "source_id": 104,
+                "action": "external",
+                "timestamp": "2026-07-14T04:00:00Z",
+                "feedback_id": "dependency",
+            },
+        ]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            [],
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=author_comment_outcomes,
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T04:00:00Z"},
+        )
+        self.assertEqual(history, {})
+
+    def test_unclear_reply_preserves_explicit_external_handoff(self) -> None:
+        discussion = top_level_item("dependency")
+        author_comment_outcomes = [
+            {
+                "source_id": 102,
+                "action": "external",
+                "timestamp": "2026-07-14T02:00:00Z",
+                "feedback_id": "dependency",
+            },
+            {
+                "source_id": 103,
+                "action": "unclear",
+                "timestamp": "2026-07-14T03:00:00Z",
+                "feedback_id": "dependency",
+            },
+        ]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            [],
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=author_comment_outcomes,
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T02:00:00Z"},
+        )
+        self.assertEqual(history, {})
+
+    def test_satisfied_evidence_is_not_reopened_by_external_reply(self) -> None:
+        discussion = top_level_item("code")
+        events = [
+            event("commit", "2026-07-14T02:00:00Z", "author", "author"),
+            event(
+                "issue-comment",
+                "2026-07-14T03:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T03:00:00Z",
+                body="This is blocked on an upstream decision.",
+            ),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("code", "commit")],
+            events,
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=top_level_author_comment_outcomes(
+                author_comment_items,
+                [
+                    {
+                        "discussion_id": author_comment_items[0]["discussion_id"],
+                        "decision": author_comment_decision(("code", "external")),
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["code"]["evidence"],
+            {"commit": "2026-07-14T02:00:00Z"},
+        )
+
+    def test_later_satisfying_evidence_clears_external_reply(self) -> None:
+        discussion = top_level_item("code")
+        events = [
+            event(
+                "issue-comment",
+                "2026-07-14T02:00:00Z",
+                "author",
+                "author",
+                source_id=102,
+                created_timestamp="2026-07-14T02:00:00Z",
+                body="This is blocked on an upstream decision.",
+            ),
+            event("commit", "2026-07-14T03:00:00Z", "author", "author"),
+        ]
+        author_comment_items = derive_top_level_author_comment_items(
+            events,
+            [discussion],
+            {"conflicts": "no"},
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("code", "commit")],
+            events,
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=top_level_author_comment_outcomes(
+                author_comment_items,
+                [
+                    {
+                        "discussion_id": author_comment_items[0]["discussion_id"],
+                        "decision": author_comment_decision(("code", "external")),
+                    }
+                ],
+            ),
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["code"]["evidence"],
+            {"commit": "2026-07-14T03:00:00Z"},
+        )
+
+    def test_non_content_updates_do_not_reopen_replied_to_feedback(self) -> None:
+        events = normalize_events(
+            {
+                "commits": [],
+                "issue_comments": [
+                    {
+                        "id": 101,
+                        "created_at": "2026-05-27T01:29:41Z",
+                        "updated_at": "2026-05-30T22:09:49Z",
+                        "content_updated_at": "2026-05-27T01:29:41Z",
+                        "user": {"login": "reviewer"},
+                        "body": "Can you mark this as resolving the issue?",
+                    },
+                    {
+                        "id": 102,
+                        "created_at": "2026-05-27T12:07:12Z",
+                        "updated_at": "2026-05-30T22:09:46Z",
+                        "content_updated_at": "2026-05-27T12:07:12Z",
+                        "user": {"login": "author"},
+                        "body": "This PR resolves it only partly.",
+                    },
+                ],
+                "review_comments": [],
+                "reviews": [],
+            },
+            "author",
+            {"reviewer"},
+        )
+        discussion = top_level_item("request")
+        discussion["root_timestamp"] = events[0]["timestamp"]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("request", "description")],
+            events,
+            {},
+            "author",
+            None,
+            [
+                author_comment_outcome(
+                    "request", "2026-05-27T12:07:12Z", source_id=102
+                )
+            ],
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["request"]["evidence"],
+            {"reply": "2026-05-27T12:07:12Z"},
+        )
+
+    def test_normalized_events_use_creation_order_not_edit_order(self) -> None:
+        events = normalize_events(
+            {
+                "commits": [],
+                "issue_comments": [
+                    {
+                        "id": 101,
+                        "created_at": "2026-07-14T01:00:00Z",
+                        "updated_at": "2026-07-14T05:00:00Z",
+                        "content_updated_at": "2026-07-14T05:00:00Z",
+                        "user": {"login": "author"},
+                        "body": "Older comment edited later.",
+                    },
+                    {
+                        "id": 102,
+                        "created_at": "2026-07-14T02:00:00Z",
+                        "updated_at": "2026-07-14T02:00:00Z",
+                        "content_updated_at": "2026-07-14T02:00:00Z",
+                        "user": {"login": "author"},
+                        "body": "Newer comment.",
+                    },
+                ],
+                "review_comments": [],
+                "reviews": [],
+            },
+            "author",
+            {"reviewer"},
+        )
+
+        self.assertEqual([event["source_id"] for event in events], [101, 102])
+        self.assertEqual(events[0]["timestamp"], "2026-07-14T05:00:00Z")
+        self.assertEqual(events[0]["created_timestamp"], "2026-07-14T01:00:00Z")
+
     def test_edited_old_author_comment_does_not_count_as_reply(self) -> None:
         events = normalize_events(
             {
@@ -724,6 +2284,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                         "id": 101,
                         "created_at": "2026-07-14T00:00:00Z",
                         "updated_at": "2026-07-14T03:00:00Z",
+                        "content_updated_at": "2026-07-14T03:00:00Z",
                         "user": {"login": "author"},
                         "body": "An earlier comment edited later.",
                     }
@@ -741,6 +2302,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
@@ -758,6 +2321,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [event("commit", "2026-07-14T02:00:00Z", "author", "author")],
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions["compound"]["action"], "author")
@@ -776,6 +2341,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             first_history,
+            [],
         )
 
         self.assertEqual(pending_actions, {})
@@ -805,6 +2371,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 ],
             },
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions, {})
@@ -821,12 +2389,28 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             requires_title_edit_lookup(
                 [discussion],
                 [title_classification],
+                None,
+                [],
             )
         )
         self.assertFalse(
             requires_title_edit_lookup(
                 [discussion],
                 [classification("title", "commit")],
+                None,
+                [],
+            )
+        )
+        self.assertFalse(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                {
+                    "title": {
+                        "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    },
+                },
+                [],
             )
         )
         self.assertFalse(
@@ -838,6 +2422,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                         "title", "2026-07-14T03:00:00Z"
                     ),
                 },
+                [],
             )
         )
         self.assertFalse(
@@ -845,10 +2430,36 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [discussion],
                 [title_classification],
                 {
-                    "title": top_level_history_record(
-                        "reply", "2026-07-14T03:00:00Z"
-                    ),
+                    "title": {
+                        "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                        "reply_source_id": 102,
+                    },
                 },
+                [author_comment_outcome("title", "2026-07-14T03:00:00Z")],
+            )
+        )
+        cached_reply = {
+            "title": {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        }
+        self.assertTrue(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                cached_reply,
+                [],
+                {"current": set(), "classified": set()},
+            )
+        )
+        self.assertFalse(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                cached_reply,
+                [],
+                {"current": {102}, "classified": set()},
             )
         )
         self.assertTrue(
@@ -856,38 +2467,28 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [discussion],
                 [title_classification],
                 {
-                    "title": top_level_history_record(
-                        "reply", "2026-07-14T00:00:00Z"
-                    ),
+                    "title": {
+                        "evidence": {"reply": "2026-07-14T00:00:00Z"},
+                        "reply_source_id": 102,
+                    },
                 },
+                [author_comment_outcome("title", "2026-07-14T00:00:00Z")],
             )
         )
         self.assertFalse(
             requires_title_edit_lookup(
                 [discussion],
                 [title_classification],
-                events=[
-                    event(
-                        "issue-comment",
-                        "2026-07-14T03:00:00Z",
-                        "author",
-                        "author",
-                    )
-                ],
+                None,
+                [author_comment_outcome("title", "2026-07-14T03:00:00Z")],
             )
         )
         self.assertTrue(
             requires_title_edit_lookup(
                 [discussion],
                 [title_classification],
-                events=[
-                    event(
-                        "issue-comment",
-                        "2026-07-14T00:00:00Z",
-                        "author",
-                        "author",
-                    )
-                ],
+                None,
+                [author_comment_outcome("title", "2026-07-14T00:00:00Z")],
             )
         )
 
@@ -928,6 +2529,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions["code"]["action"], "author")
@@ -1003,7 +2606,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         }
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, [], metadata, "author"
+            discussions, classifications, [], metadata, "author", None, []
         )
 
         self.assertNotIn("description", pending_actions)
@@ -1025,6 +2628,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "author"},
             },
             "author",
+            None,
+            [],
         )
         classifications = [classification("description", "description")]
 
@@ -1038,6 +2643,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             first_history,
+            [],
         )
 
         self.assertNotIn("description", pending_actions)
@@ -1060,6 +2666,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "author"},
             },
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(pending_actions["description"]["action"], "reviewer")
@@ -1078,6 +2686,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             first_history,
+            [],
         )
 
         self.assertNotIn("description", refreshed_pending_actions)
@@ -1096,6 +2705,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {},
             "author",
             previous_state,
+            [],
         )
 
         self.assertNotIn("description", pending_actions)
@@ -1115,6 +2725,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             top_level_history,
+            [],
         )
 
         self.assertNotIn("description", refreshed_pending_actions)
@@ -1143,6 +2754,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "editor": {"login": "author"},
             },
             "author",
+            None,
+            [],
         )
 
         self.assertNotIn("description", pending_actions)
@@ -1162,6 +2775,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
             "author",
             top_level_history,
+            [],
         )
 
         self.assertNotIn("description", refreshed_pending_actions)
@@ -1183,6 +2797,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {
                 "description": top_level_history_record("description", "2026-07-14T00:00:00Z"),
             },
+            [],
         )
 
         self.assertEqual(pending_actions["description"]["action"], "author")
@@ -1200,6 +2815,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {
                 "code": top_level_history_record("description", "2026-07-14T03:00:00Z"),
             },
+            [],
         )
 
         self.assertEqual(pending_actions["code"]["action"], "author")
@@ -1229,6 +2845,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     [evidence_event],
                     {},
                     "author",
+                    None,
+                    (
+                        [author_comment_outcome("code", "2026-07-14T03:00:00Z")]
+                        if evidence_kind == "reply"
+                        else []
+                    ),
                 )
 
                 self.assertEqual(pending_actions, {})
@@ -1265,6 +2887,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             events,
             {},
             "author",
+            None,
+            [],
         )
 
         self.assertEqual(events[0]["timestamp"], "2026-07-14T00:00:00Z")
@@ -1285,7 +2909,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions["code"]["action"], "author")
@@ -1307,6 +2931,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [confirmation],
             {},
             "author",
+            None,
+            [],
         )
 
         refreshed_pending_actions, refreshed_history = advance_top_level_actions(
@@ -1316,6 +2942,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {},
             "author",
             first_history,
+            [],
         )
 
         self.assertNotIn("code", refreshed_pending_actions)
@@ -1344,7 +2971,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions["first"]["action"], "author")
@@ -1369,7 +2996,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertNotIn("request", pending_actions)
@@ -1400,7 +3027,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions["request"]["action"], "author")
@@ -1422,7 +3049,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions["code"]["action"], "author")
@@ -1453,7 +3080,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         facts = {"approval_count": 1, "is_maintenance_bot": False}
 
         pending_actions, top_level_history = advance_top_level_actions(
-            discussions, classifications, events, {}, "author"
+            discussions, classifications, events, {}, "author", None, []
         )
 
         self.assertEqual(pending_actions, {})
@@ -1476,7 +3103,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 classifications[0]["decision"]["discussion_action"] = action
 
                 pending_actions, top_level_history = advance_top_level_actions(
-                    discussions, classifications, events, {}, "author"
+                    discussions, classifications, events, {}, "author", None, []
                 )
 
                 expected_action = "external" if action == "external" else "reviewer"
@@ -1501,7 +3128,13 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 classifications[0]["decision"]["discussion_action"] = action
 
                 pending_actions, top_level_history = advance_top_level_actions(
-                    discussions, classifications, events, {}, "author"
+                    discussions,
+                    classifications,
+                    events,
+                    {},
+                    "author",
+                    None,
+                    [author_comment_outcome(action, "2026-07-14T03:00:00Z")],
                 )
 
                 self.assertNotIn(action, pending_actions)
