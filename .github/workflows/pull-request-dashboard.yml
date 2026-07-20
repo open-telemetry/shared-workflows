@@ -148,6 +148,7 @@ jobs:
       required_approvals: ${{ matrix.required_approvals || 1 }}
       approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
       non_blocking_check_patterns_json: ${{ toJSON(matrix.non_blocking_check_patterns || fromJSON('[]')) }}
+      require_clean_copilot_review: ${{ matrix.require_clean_copilot_review || false }}
       slack_channel: ${{ matrix.slack_channel }}
       slack_user_mapping_json: ${{ toJSON(matrix.slack_user_mapping || fromJSON('{}')) }}
       large_repo: ${{ matrix.large_repo || false }}

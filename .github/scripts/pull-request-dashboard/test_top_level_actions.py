@@ -957,12 +957,14 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     }
                 }
             },
+            True,
         )
 
         self.assertEqual(
             build_result.call_args.kwargs["previous_top_level_history"],
             previous_state,
         )
+        self.assertTrue(build_result.call_args.kwargs["require_clean_copilot_review"])
 
     def test_top_level_decision_requires_matching_action_and_evidence(self) -> None:
         for action in ("reviewer", "approver"):

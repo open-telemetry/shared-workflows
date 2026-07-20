@@ -15,10 +15,27 @@ from github_cli import (
     is_retryable_gh_error,
     list_all_open_pr_numbers,
     list_open_prs,
+    request_copilot_review,
 )
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.run_gh")
+    def test_request_copilot_review_uses_review_requests_api(self, run_gh) -> None:
+        request_copilot_review("example", 7)
+
+        run_gh.assert_called_once_with([
+            "gh",
+            "api",
+            "--method",
+            "POST",
+            "-H",
+            "Accept: application/vnd.github+json",
+            "/repos/open-telemetry/example/pulls/7/requested_reviewers",
+            "-f",
+            "reviewers[]=copilot-pull-request-reviewer[bot]",
+        ])
+
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:
         graphql.side_effect = [
@@ -559,6 +576,7 @@ class GithubCliTest(unittest.TestCase):
                                 "nodes": [
                                     {
                                         "fullDatabaseId": "4700712792",
+                                        "commit": {"oid": "reviewed-head-1"},
                                         "url": "https://example.test/review/4700712792",
                                         "author": {"login": "reviewer-1"},
                                         "state": "COMMENTED",
@@ -586,6 +604,7 @@ class GithubCliTest(unittest.TestCase):
                                 "nodes": [
                                     {
                                         "fullDatabaseId": "5000000000",
+                                        "commit": {"oid": "reviewed-head-2"},
                                         "url": "https://example.test/review/5000000000",
                                         "author": {"login": "reviewer-2"},
                                         "state": "APPROVED",
@@ -608,6 +627,7 @@ class GithubCliTest(unittest.TestCase):
                 "reviews": [
                     {
                         "id": 4700712792,
+                        "commit_id": "reviewed-head-1",
                         "url": "https://example.test/review/4700712792",
                         "user": {"login": "reviewer-1"},
                         "state": "COMMENTED",
@@ -617,6 +637,7 @@ class GithubCliTest(unittest.TestCase):
                     },
                     {
                         "id": 5000000000,
+                        "commit_id": "reviewed-head-2",
                         "url": "https://example.test/review/5000000000",
                         "user": {"login": "reviewer-2"},
                         "state": "APPROVED",
