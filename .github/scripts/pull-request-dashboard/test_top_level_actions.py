@@ -1326,6 +1326,94 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
         )
 
+    def test_legacy_cached_author_reply_survives_missing_classification(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                },
+            },
+            author_comment_outcomes=[],
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {"evidence": {"reply": "2026-07-14T03:00:00Z"}},
+        )
+
+    def test_legacy_cached_author_reply_recovers_source_id(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                },
+            },
+            author_comment_outcomes=[
+                author_comment_outcome(
+                    "question", "2026-07-14T03:00:00Z", source_id=102
+                ),
+            ],
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
+    def test_newer_handoff_supersedes_legacy_cached_reply(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T02:00:00Z"},
+                },
+            },
+            author_comment_outcomes=[
+                {
+                    "source_id": 103,
+                    "action": "external",
+                    "timestamp": "2026-07-14T03:00:00Z",
+                    "feedback_id": "question",
+                },
+            ],
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "question": {
+                    "action": "external",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
+
     def test_newer_author_handoff_supersedes_cached_reply(self) -> None:
         discussion = top_level_item("question")
 
@@ -2067,6 +2155,18 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 [discussion],
                 [classification("title", "commit")],
                 None,
+                [],
+            )
+        )
+        self.assertFalse(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                {
+                    "title": {
+                        "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    },
+                },
                 [],
             )
         )
