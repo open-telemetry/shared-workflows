@@ -194,6 +194,11 @@ def deliver_author_nudges(
             required_approvals,
             non_blocking_check_patterns,
         )
+        _due, fresh_entry = plan_nudge(fresh_result, updated.get(key), now)
+        if fresh_entry is None:
+            updated.pop(key, None)
+        else:
+            updated[key] = fresh_entry
         if (
             fresh_result is None
             or fresh_result.get("failed")

@@ -282,14 +282,19 @@ class StatusCommentQueueTest(unittest.TestCase):
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
     ) -> None:
-        calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
+        accepted_result = {"route": "author"}
+        calculation = DashboardUpdate(
+            results={},
+            dashboard_state={"prs": {"12": accepted_result}},
+            trigger_pr_result={"route": "approver"},
+        )
         merge_update.return_value = (calculation, False)
 
         status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
 
         self.assertEqual(0, status)
         enqueue_update.assert_called_once_with(12)
-        record_nudge.assert_called_once_with(12, calculation.trigger_pr_result, ANY)
+        record_nudge.assert_called_once_with(12, accepted_result, ANY)
 
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
@@ -304,14 +309,19 @@ class StatusCommentQueueTest(unittest.TestCase):
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
     ) -> None:
-        calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
+        accepted_result = {"route": "approver"}
+        calculation = DashboardUpdate(
+            results={},
+            dashboard_state={"prs": {"12": accepted_result}},
+            trigger_pr_result={"route": "author"},
+        )
         merge_update.return_value = (calculation, True)
 
         status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
 
         self.assertEqual(0, status)
         enqueue_update.assert_not_called()
-        record_nudge.assert_called_once_with(12, calculation.trigger_pr_result, ANY)
+        record_nudge.assert_called_once_with(12, accepted_result, ANY)
 
 
 class RequiredCiRoutingTest(unittest.TestCase):

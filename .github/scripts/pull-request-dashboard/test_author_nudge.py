@@ -202,7 +202,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         "load_dashboard_state_cache",
         return_value={"prs": {"1": author_result()}},
     )
-    def test_delivery_does_not_rewrite_route_clock(
+    def test_delivery_resets_clock_for_fresh_route_departure(
         self,
         _load_dashboard_state,
         _load_nudges,
@@ -215,6 +215,38 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         )
 
         refresh_result.assert_called_once()
+        ensure_nudge.assert_not_called()
+        self.assertEqual(save_nudges.call_args.args[0], {})
+
+    @patch.object(author_nudge, "ensure_nudge")
+    @patch.object(
+        author_nudge,
+        "refresh_author_nudge_result",
+        return_value=({"failed": True, "route": "unknown"}, {"prs": {}}),
+    )
+    @patch.object(author_nudge, "save_author_nudges")
+    @patch.object(
+        author_nudge,
+        "load_author_nudges",
+        return_value={"1": {"waiting_since": "2026-07-01T00:00:00+00:00", "nudged_at": ""}},
+    )
+    @patch.object(
+        author_nudge,
+        "load_dashboard_state_cache",
+        return_value={"prs": {"1": author_result()}},
+    )
+    def test_delivery_preserves_clock_when_fresh_refresh_fails(
+        self,
+        _load_dashboard_state,
+        _load_nudges,
+        save_nudges,
+        _refresh_result,
+        ensure_nudge,
+    ) -> None:
+        author_nudge.deliver_author_nudges(
+            "open-telemetry/example", {1}, NOW, ["approvers"], 1, []
+        )
+
         ensure_nudge.assert_not_called()
         self.assertEqual(
             save_nudges.call_args.args[0],
