@@ -19,8 +19,7 @@ class GithubCliTest(unittest.TestCase):
     def test_graphql_internal_error_is_retryable(self) -> None:
         self.assertTrue(
             is_retryable_gh_error(
-                "GraphQL: Something went wrong while executing your query on "
-                "2026-07-20T09:21:10Z. Please include a request ID when reporting this issue."
+                "GraphQL: Something went wrong while executing your query"
             )
         )
 
