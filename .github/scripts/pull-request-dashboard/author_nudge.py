@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import sys
 from typing import Any
 
-from github_cli import detect_repo, gh_api, normalize_repo, repo_state_key, run_gh
+from github_cli import detect_repo, gh_api, load_reviewer_set, normalize_repo, repo_state_key, run_gh
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
     managed_status_comments,
@@ -20,6 +20,7 @@ from state import (
     load_dashboard_state_cache,
     save_author_nudges,
     set_state_dir,
+    update_dashboard_state_for_pr,
 )
 import state_branch
 from utils import format_ts, parse_ts, utc_now
@@ -115,11 +116,56 @@ def ensure_nudge(
     return format_ts(now)
 
 
-def update_author_nudges(
+def record_author_nudge_observation(
+    pr_number: int,
+    result: dict[str, Any] | None,
+    now: datetime,
+) -> None:
+    updated = dict(load_author_nudges())
+    key = str(pr_number)
+    _due, entry = plan_nudge(result, updated.get(key), now)
+    if entry is None:
+        updated.pop(key, None)
+    else:
+        updated[key] = entry
+    save_author_nudges(updated)
+
+
+def refresh_author_nudge_result(
+    repo: str,
+    pr_number: int,
+    dashboard_state: dict[str, Any],
+    approver_teams: list[str],
+    required_approvals: int,
+    non_blocking_check_patterns: list[str],
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    from dashboard import DEFAULT_MODEL, build_dashboard_update_for_pr
+
+    owner, repo_name = repo.split("/", 1)
+    reviewers = load_reviewer_set(owner, approver_teams)
+    calculation = build_dashboard_update_for_pr(
+        repo,
+        owner,
+        repo_name,
+        {pr_number},
+        reviewers,
+        pr_number,
+        DEFAULT_MODEL,
+        required_approvals,
+        non_blocking_check_patterns,
+        dashboard_state,
+    )
+    result = calculation.trigger_pr_result
+    return result, update_dashboard_state_for_pr(dashboard_state, pr_number, result)
+
+
+def deliver_author_nudges(
     repo: str,
     refreshed_pr_numbers: set[int],
-    post_due: bool,
     now: datetime,
+    approver_teams: list[str],
+    required_approvals: int,
+    non_blocking_check_patterns: list[str],
 ) -> int:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -130,14 +176,39 @@ def update_author_nudges(
     for pr_number in sorted(refreshed_pr_numbers):
         key = str(pr_number)
         result = dashboard_prs.get(key)
-        due, entry = plan_nudge(result, updated.get(key), now)
-        if due and post_due and result is not None:
-            nudged_at = ensure_nudge(repo, pr_number, result, dashboard_state, now)
-            entry = {"nudged_at": nudged_at} if nudged_at else None
-        if entry is None:
-            updated.pop(key, None)
-        else:
-            updated[key] = entry
+        entry = updated.get(key) or {}
+        waiting_since = parse_ts(entry.get("waiting_since") or "")
+        if (
+            result is None
+            or result.get("route") != "author"
+            or entry.get("nudged_at")
+            or waiting_since is None
+            or now - waiting_since < NUDGE_AFTER
+        ):
+            continue
+        fresh_result, fresh_dashboard_state = refresh_author_nudge_result(
+            repo,
+            pr_number,
+            dashboard_state,
+            approver_teams,
+            required_approvals,
+            non_blocking_check_patterns,
+        )
+        if (
+            fresh_result is None
+            or fresh_result.get("failed")
+            or fresh_result.get("route") != "author"
+        ):
+            continue
+        nudged_at = ensure_nudge(
+            repo,
+            pr_number,
+            fresh_result,
+            fresh_dashboard_state,
+            now,
+        )
+        if nudged_at:
+            updated[key] = {"nudged_at": nudged_at}
     save_author_nudges(updated)
     return 0
 
@@ -156,13 +227,32 @@ def main() -> int:
     parser.add_argument("--repo", help="target repository name")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
     parser.add_argument("--pr-numbers", required=True, help="comma-separated refreshed PR numbers")
-    parser.add_argument("--post-due", action="store_true", help="post due nudges")
+    parser.add_argument(
+        "--approver-team",
+        action="append",
+        required=True,
+        help="approver team slug for the target repository; repeat for multiple teams",
+    )
+    parser.add_argument(
+        "--required-approvals",
+        type=int,
+        default=1,
+        help="minimum non-bot approvals needed before a PR can route to maintainers",
+    )
+    parser.add_argument(
+        "--non-blocking-check-pattern",
+        action="append",
+        default=[],
+        help="glob matching a non-required check to mention when it fails; repeat as needed",
+    )
     args = parser.parse_args()
 
     try:
         pr_numbers = parse_pr_numbers(args.pr_numbers)
     except ValueError as e:
         parser.error(str(e))
+    if args.required_approvals < 1:
+        parser.error("--required-approvals must be at least 1")
     if not pr_numbers:
         return 0
 
@@ -174,7 +264,14 @@ def main() -> int:
         return state_branch.push_state_changes(
             state_dir,
             "Update author nudge state",
-            lambda: update_author_nudges(repo, pr_numbers, args.post_due, now),
+            lambda: deliver_author_nudges(
+                repo,
+                pr_numbers,
+                now,
+                args.approver_team,
+                args.required_approvals,
+                args.non_blocking_check_pattern,
+            ),
             state_branch=args.state_branch,
             add_paths=[f"{repo_key}/{author_nudge_state_path().name}"],
         )

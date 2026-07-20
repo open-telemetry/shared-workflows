@@ -80,7 +80,7 @@ jobs:
           permission-contents: read
           permission-issues: read
           permission-members: read
-          permission-pull-requests: read
+          permission-pull-requests: write
 
       - name: Restore per-PR classification cache
         if: inputs.pr_number != ''
@@ -140,6 +140,38 @@ jobs:
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
+
+      - name: Deliver due author nudges
+        if: >-
+          always() &&
+          github.event_name == 'schedule' &&
+          steps.dashboard-update.outputs.initial_backfill_complete == 'true' &&
+          steps.dashboard-update.outputs.refreshed_pr_numbers != ''
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ inputs.repository }}
+          REFRESHED_PR_NUMBERS: ${{ steps.dashboard-update.outputs.refreshed_pr_numbers }}
+          REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
+          APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
+          NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
+        run: |
+          set -euo pipefail
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          nudge_args=(
+            --state-branch "$state_branch"
+            --repo "$REPO_NAME"
+            --pr-numbers "$REFRESHED_PR_NUMBERS"
+            --required-approvals "$REQUIRED_APPROVALS"
+          )
+          for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
+            nudge_args+=(--approver-team "$team")
+          done
+          mapfile -t non_blocking_check_patterns < <(jq -r '.[]' <<< "$NON_BLOCKING_CHECK_PATTERNS_JSON")
+          for pattern in "${non_blocking_check_patterns[@]}"; do
+            nudge_args+=(--non-blocking-check-pattern "$pattern")
+          done
+          python3 .github/scripts/pull-request-dashboard/author_nudge.py "${nudge_args[@]}"
 
       - name: Save per-PR classification cache
         # Preserve valid classifications even when another item fails the update.
@@ -252,53 +284,6 @@ jobs:
           fi
 
           python3 .github/scripts/pull-request-dashboard/notify_slack.py "${notify_args[@]}"
-
-  author-nudge:
-    needs: update-dashboard
-    if: >-
-      always() &&
-      (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
-      needs.update-dashboard.outputs.initial_backfill_complete == 'true' &&
-      needs.update-dashboard.outputs.refreshed_pr_numbers != ''
-    concurrency:
-      group: ${{ github.workflow }}-author-nudge-${{ inputs.repository }}
-      cancel-in-progress: false
-    permissions:
-      contents: write
-    environment: protected
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: dashboard-token
-        with:
-          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
-          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-          owner: open-telemetry
-          repositories: ${{ inputs.repository }}
-          permission-pull-requests: write
-
-      - name: Process author nudges
-        env:
-          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_NAME: ${{ inputs.repository }}
-          REFRESHED_PR_NUMBERS: ${{ needs.update-dashboard.outputs.refreshed_pr_numbers }}
-        run: |
-          set -euo pipefail
-          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          nudge_args=(
-            --state-branch "$state_branch"
-            --repo "$REPO_NAME"
-            --pr-numbers "$REFRESHED_PR_NUMBERS"
-          )
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            nudge_args+=(--post-due)
-          fi
-          python3 .github/scripts/pull-request-dashboard/author_nudge.py "${nudge_args[@]}"
 
   publish-dashboard:
     needs: update-dashboard
