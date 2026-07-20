@@ -359,9 +359,11 @@
         ],
         "author": "thompson-tomo",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3231#pullrequestreview-3487419552"
+        ],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "created_at": "2025-11-20T10:48:17+00:00",
         "is_draft": false,
@@ -377,23 +379,17 @@
             "changes_requested": true,
             "login": "pichlermarc",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "waiting_age_basis": "last_author_activity",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2025-11-20T13:32:42+00:00"
       },
       "failed": false,
       "pr_number": 3231,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3231",
-      "route": "approver",
-      "top_level_history": {
-        "pr-review-3487419552": {
-          "evidence": {
-            "reply": "2025-11-20T12:40:55Z"
-          }
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "3276": {
       "facts": {
