@@ -684,6 +684,60 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [None] * 20 + [True] * 3,
         )
 
+    @patch("classification.MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR", 2)
+    @patch("classification.author_comment_prompt_batches")
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch", return_value=[])
+    @patch("classification.run_llm_for_top_level_author_comment_batch")
+    def test_author_reply_expanded_prompt_calls_are_bounded(
+        self,
+        run_author_batch,
+        _run_top_level_batch,
+        _load_cache,
+        _save_cache,
+        prompt_batches,
+    ) -> None:
+        prompt_batches.side_effect = lambda discussions: [
+            ([discussion], "prompt") for discussion in discussions
+        ]
+        run_author_batch.side_effect = lambda discussions, _model: [
+            {
+                "discussion_id": discussion["discussion_id"],
+                "discussion_kind": discussion["discussion_kind"],
+                "failed": False,
+                "decision": {"feedback_outcomes": []},
+            }
+            for discussion in discussions
+        ]
+        author_replies = [
+            {
+                **review_thread_discussion(f"author-reply-{index}"),
+                "discussion_kind": "top-level-author-reply",
+            }
+            for index in range(3)
+        ]
+
+        _review, _top_level, classifications = classify_discussion_domains(
+            123,
+            [],
+            [],
+            author_replies,
+            "model",
+        )
+
+        self.assertEqual(
+            [discussion["discussion_id"] for discussion in run_author_batch.call_args.args[0]],
+            ["author-reply-0", "author-reply-1"],
+        )
+        self.assertFalse(classifications[0].get("deferred"))
+        self.assertFalse(classifications[1].get("deferred"))
+        self.assertTrue(classifications[2]["deferred"])
+        self.assertEqual(
+            classifications[2]["decision"]["reason"],
+            "Deferred by per-PR classification limit",
+        )
+
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
     @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")

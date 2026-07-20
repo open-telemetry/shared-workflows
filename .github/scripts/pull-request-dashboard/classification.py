@@ -22,6 +22,7 @@ DISCUSSION_COMMENT_BODY_MAX_CHARS = 500
 MAX_PROMPT_CHARS = 18_000
 TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10
 MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR = 200
+MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR = 20
 
 DISCUSSION_PROMPT_TEMPLATE = """You are triaging one pull request discussion.
 
@@ -925,6 +926,7 @@ def classify_top_level_items(
     ],
     require_evidence_kinds: bool,
     author_comment: bool = False,
+    fits_model_call_budget: Callable[[list[dict[str, Any]]], bool] | None = None,
     warning_label: str,
 ) -> dict[str, dict[str, Any]]:
     classifications_by_id: dict[str, dict[str, Any]] = {}
@@ -941,7 +943,19 @@ def classify_top_level_items(
         if record is not None:
             classifications_by_id[discussion["discussion_id"]] = record
             continue
-        if len(uncached) < MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR:
+        trial_discussions = [item for item, _key in uncached] + [discussion]
+        try:
+            fits_budget = (
+                fits_model_call_budget is None
+                or fits_model_call_budget(trial_discussions)
+            )
+        except ValueError:
+            # Preserve existing failed-classification handling for invalid prompts.
+            fits_budget = True
+        if (
+            len(uncached) < MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR
+            and fits_budget
+        ):
             uncached.append((discussion, key))
             continue
         classifications_by_id[discussion["discussion_id"]] = classification_record(
@@ -1043,6 +1057,10 @@ def classify_top_level_author_comments(
         run_batch=run_llm_for_top_level_author_comment_batch,
         require_evidence_kinds=False,
         author_comment=True,
+        fits_model_call_budget=lambda selected: (
+            len(author_comment_prompt_batches(selected))
+            <= MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR
+        ),
         warning_label="top_level_author_comment",
     )
 
