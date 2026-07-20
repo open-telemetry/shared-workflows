@@ -76,8 +76,12 @@ built up across stages, so not every field is present at every point.
 - ``facts`` (``dict``): Deterministic facts described below.
 - ``review_threads`` (``list[dict]``): Unresolved inline review threads. Internal.
 - ``top_level_items`` (``list[dict]``): Top-level feedback items. Internal.
+- ``top_level_author_comment_items`` (``list[dict]``): Author comments that could address
+    top-level feedback. Internal.
 - ``review_thread_classifications`` (``list[dict]``): Current inline actions. Internal.
 - ``top_level_classifications`` (``list[dict]``): Immutable ledger decisions. Internal.
+- ``top_level_author_comment_classifications`` (``list[dict]``): Per-feedback outcomes
+    for candidate author replies. Internal.
 - ``pending_actions`` (``dict[str, dict]``): Ephemeral current actions by discussion id;
     each entry contains ``action`` and ``since``.
 - ``top_level_history`` (``dict[str, dict]``): Durable evidence timestamps by
@@ -160,11 +164,12 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from github_cli import (
     TransientGhError,
     detect_repo,
+    fetch_pr_issue_comments,
     fetch_pr_review_data,
     fetch_pr_title_edits,
     fetch_review_threads,
@@ -269,10 +274,11 @@ def fetch_pr_raw(
     number = pr_summary["number"]
     with ThreadPoolExecutor() as pool:
         f_pr = pool.submit(gh_pr_view, repo, number)
-        f_issue = pool.submit(
-            gh_api,
-            f"/repos/{owner}/{repo_name}/issues/{number}/comments?per_page=100",
-            True,
+        f_issue_comments = pool.submit(
+            fetch_pr_issue_comments,
+            owner,
+            repo_name,
+            number,
         )
         f_revcom = pool.submit(
             gh_api,
@@ -295,7 +301,7 @@ def fetch_pr_raw(
         return {
             "summary": pr_summary,
             "pr": pr,
-            "issue_comments": f_issue.result() or [],
+            "issue_comments": f_issue_comments.result() or [],
             "review_comments": f_revcom.result() or [],
             "reviews": review_data.get("reviews") or [],
             "commits": f_commits.result() or [],
@@ -357,8 +363,15 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "is_merge_from_base_by_non_author": is_merge_commit(c) and login.lower() != author.lower(),
         })
     for c in raw["issue_comments"]:
+        if c.get("minimized"):
+            continue
         login = reviewer_actor_login(c.get("user") or {})
-        timestamp = c.get("updated_at") or c.get("created_at") or ""
+        timestamp = (
+            c.get("content_updated_at")
+            or c.get("created_at")
+            or c.get("updated_at")
+            or ""
+        )
         events.append({
             "source_id": c.get("id"),
             "discussion_url": c.get("html_url") or "",
@@ -376,10 +389,12 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
         })
     for c in raw["review_comments"]:
         login = reviewer_actor_login(c.get("user") or {})
+        timestamp = c.get("updated_at") or c.get("created_at") or ""
         events.append({
             "source_id": c.get("id"),
             "kind": "review-comment",
-            "timestamp": c.get("updated_at") or c.get("created_at") or "",
+            "timestamp": timestamp,
+            "created_timestamp": c.get("created_at") or timestamp,
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
             "body": c.get("body") or "",
@@ -406,7 +421,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "is_merge_from_base_by_non_author": False,
         })
     events = [e for e in events if e["timestamp"]]
-    events.sort(key=lambda e: e["timestamp"])
+    events.sort(key=lambda e: e.get("created_timestamp") or e["timestamp"])
     return events
 
 
@@ -661,6 +676,7 @@ def derive_top_level_items(
                 "source_id": event["source_id"],
                 "discussion_url": event.get("discussion_url") or "",
                 "requester": comment["actor"],
+                "pr_author": facts.get("author") or "",
                 "review_state": state or None,
                 "root_timestamp": root_timestamp,
                 "path": None,
@@ -672,35 +688,286 @@ def derive_top_level_items(
     return items
 
 
+def derive_top_level_author_comment_items(
+    events: list[dict[str, Any]],
+    top_level_items: list[dict[str, Any]],
+    facts: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if not top_level_items:
+        return []
+    earliest_root_timestamp = min(
+        item.get("root_timestamp") or "" for item in top_level_items
+    )
+    items: list[dict[str, Any]] = []
+    for event in events:
+        timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
+        if (
+            event.get("kind") != "issue-comment"
+            or event.get("actor_role") != "author"
+            or event.get("source_id") is None
+            or timestamp <= earliest_root_timestamp
+            or not is_substantive_activity(event)
+        ):
+            continue
+        comment = {
+            "timestamp": timestamp,
+            "actor": event.get("actor") or "",
+            "actor_role": "author",
+            "body": truncate(event.get("body") or ""),
+            "positive_reactors": [],
+        }
+        candidate_feedback = [
+            {
+                "discussion_id": item["discussion_id"],
+                "body": "\n\n".join(
+                    item_comment.get("body") or ""
+                    for item_comment in (item.get("comments") or [])
+                ),
+            }
+            for item in top_level_items
+            if (item.get("root_timestamp") or "") < timestamp
+        ]
+        items.append(add_discussion_facts({
+            "discussion_id": f"pr-author-reply-{event['source_id']}",
+            "discussion_kind": "top-level-author-reply",
+            "source_id": event["source_id"],
+            "candidate_feedback": candidate_feedback,
+            "comments": [comment],
+        }, [comment], facts))
+    return items
+
+
+class AuthorCommentOutcome(TypedDict):
+    source_id: int
+    action: str
+    timestamp: str
+    feedback_id: str
+
+
+class AuthorCommentSourceState(TypedDict):
+    current: set[int]
+    classified: set[int]
+
+
+def top_level_author_comment_source_state(
+    top_level_author_comment_items: list[dict[str, Any]],
+    classifications: list[dict[str, Any]],
+) -> AuthorCommentSourceState:
+    by_id = discussions_by_id(top_level_author_comment_items)
+    current = {
+        source_id
+        for item in top_level_author_comment_items
+        if isinstance(source_id := item.get("source_id"), int)
+    }
+    classified = {
+        source_id
+        for classification in classifications
+        if not classification.get("failed")
+        and not classification.get("deferred")
+        and (
+            source_id := (by_id.get(classification.get("discussion_id") or "") or {}).get(
+                "source_id"
+            )
+        )
+        in current
+    }
+    return {"current": current, "classified": classified}
+
+
+def top_level_author_comment_outcomes(
+    top_level_author_comment_items: list[dict[str, Any]],
+    classifications: list[dict[str, Any]],
+) -> list[AuthorCommentOutcome]:
+    by_id = discussions_by_id(top_level_author_comment_items)
+    outcomes: list[AuthorCommentOutcome] = []
+    for classification in classifications:
+        if classification.get("failed"):
+            continue
+        decision = classification.get("decision") or {}
+        discussion = by_id.get(classification.get("discussion_id") or "")
+        comments = (discussion or {}).get("comments") or []
+        timestamp = comments[-1].get("timestamp") if comments else ""
+        source_id = (discussion or {}).get("source_id")
+        if not isinstance(source_id, int) or not timestamp:
+            continue
+        for feedback_outcome in decision.get("feedback_outcomes") or []:
+            action = normalize_discussion_action(
+                feedback_outcome.get("discussion_action") or ""
+            )
+            feedback_id = feedback_outcome.get("feedback_id")
+            if action not in ("author", "external", "none", "unclear") or not isinstance(
+                feedback_id, str
+            ):
+                continue
+            outcomes.append({
+                "source_id": source_id,
+                "action": action,
+                "timestamp": timestamp,
+                "feedback_id": feedback_id,
+            })
+    outcomes.sort(key=lambda outcome: (
+        outcome["timestamp"],
+        outcome["source_id"],
+        outcome["feedback_id"],
+    ))
+    return outcomes
+
+
+def author_reply_is_superseded(
+    outcomes: list[AuthorCommentOutcome],
+    # None supports history written before reply_source_id was persisted.
+    source_id: int | None,
+    timestamp: str,
+    feedback_id: str,
+) -> bool:
+    return any(
+        outcome["feedback_id"] == feedback_id
+        and outcome["action"] in ("author", "external")
+        and (
+            outcome["timestamp"] > timestamp
+            or (
+                outcome["timestamp"] == timestamp
+                and (
+                    source_id is None
+                    or outcome["source_id"] >= source_id
+                )
+            )
+        )
+        for outcome in outcomes
+    )
+
+
+def should_restore_author_reply(
+    outcomes: list[AuthorCommentOutcome],
+    source_state: AuthorCommentSourceState | None,
+    source_id: int | None,
+    timestamp: str,
+    feedback_id: str,
+) -> bool:
+    if source_state is not None and source_id is not None:
+        if (
+            source_id not in source_state["current"]
+            or source_id in source_state["classified"]
+        ):
+            return False
+    return not author_reply_is_superseded(
+        outcomes,
+        source_id,
+        timestamp,
+        feedback_id,
+    )
+
+
+def completed_author_reply_after(
+    feedback_id: str,
+    root_timestamp: str,
+    outcomes: list[AuthorCommentOutcome],
+) -> tuple[str, int | None] | None:
+    for outcome in outcomes:
+        if (
+            outcome["timestamp"] > root_timestamp
+            and outcome["action"] == "none"
+            and outcome["feedback_id"] == feedback_id
+            and not author_reply_is_superseded(
+                outcomes,
+                outcome["source_id"],
+                outcome["timestamp"],
+                feedback_id,
+            )
+        ):
+            return outcome["timestamp"], outcome["source_id"]
+    return None
+
+
+def latest_top_level_author_comment_handoff(
+    feedback_id: str,
+    root_timestamp: str,
+    outcomes: list[AuthorCommentOutcome],
+) -> dict[str, str] | None:
+    relevant_outcomes = [
+        outcome
+        for outcome in outcomes
+        if outcome["timestamp"] > root_timestamp
+        and outcome["action"] in ("author", "external", "none")
+        and feedback_id == outcome["feedback_id"]
+    ]
+    if (
+        not relevant_outcomes
+        or relevant_outcomes[-1]["action"] not in ("author", "external")
+    ):
+        return None
+    latest_action = relevant_outcomes[-1]["action"]
+    since = relevant_outcomes[-1]["timestamp"]
+    for outcome in reversed(relevant_outcomes[:-1]):
+        if outcome["action"] != latest_action:
+            break
+        since = outcome["timestamp"]
+    return {"action": latest_action, "timestamp": since}
+
+
 def collect_author_evidence(
     discussion: dict[str, Any],
     events: list[dict[str, Any]],
     pr_metadata: dict[str, Any],
     author: str,
     previous_entry: dict[str, Any],
-) -> dict[str, str]:
+    author_comment_outcomes: list[AuthorCommentOutcome],
+    author_comment_source_state: AuthorCommentSourceState | None,
+) -> tuple[dict[str, str], int | None]:
     root_timestamp = discussion.get("root_timestamp") or ""
     evidence = {
         kind: timestamp
         for kind, timestamp in (previous_entry.get("evidence") or {}).items()
         if kind in TOP_LEVEL_EVIDENCE_KINDS
+        and kind != "reply"
         and isinstance(timestamp, str)
         and timestamp > root_timestamp
     }
-    for kind, event_kind, timestamp_key in (
-        ("commit", "commit", "timestamp"),
-        ("reply", "issue-comment", "created_timestamp"),
+    reply_source_id: int | None = None
+    previous_reply = (previous_entry.get("evidence") or {}).get("reply") or ""
+    previous_reply_source_id = previous_entry.get("reply_source_id")
+    if (
+        previous_reply > root_timestamp
+        and should_restore_author_reply(
+            author_comment_outcomes,
+            author_comment_source_state,
+            previous_reply_source_id
+            if isinstance(previous_reply_source_id, int)
+            else None,
+            previous_reply,
+            discussion["discussion_id"],
+        )
     ):
-        candidates = [
-            e.get(timestamp_key) or e["timestamp"]
-            for e in events
-            if e.get("actor_role") == "author"
-            and e.get("kind") == event_kind
-            and (e.get(timestamp_key) or e["timestamp"]) > root_timestamp
-            and is_substantive_activity(e)
-        ]
-        if candidates:
-            evidence[kind] = min(candidates + ([evidence[kind]] if kind in evidence else []))
+        evidence["reply"] = previous_reply
+        reply_source_id = previous_reply_source_id
+
+    commit_candidates = [
+        e.get("timestamp") or ""
+        for e in events
+        if e.get("actor_role") == "author"
+        and e.get("kind") == "commit"
+        and (e.get("timestamp") or "") > root_timestamp
+        and is_substantive_activity(e)
+    ]
+    if commit_candidates:
+        evidence["commit"] = min(
+            commit_candidates + ([evidence["commit"]] if "commit" in evidence else [])
+        )
+
+    completed_reply = completed_author_reply_after(
+        discussion["discussion_id"],
+        root_timestamp,
+        author_comment_outcomes,
+    )
+    if completed_reply:
+        timestamp, source_id = completed_reply
+        if (
+            not evidence.get("reply")
+            or timestamp < evidence["reply"]
+            or (timestamp == evidence["reply"] and reply_source_id is None)
+        ):
+            evidence["reply"] = timestamp
+            reply_source_id = source_id
     edited_at = pr_metadata.get("lastEditedAt") or ""
     editor = actor_login(pr_metadata.get("editor") or {})
     if edited_at > root_timestamp and editor.lower() == author.lower():
@@ -718,7 +985,7 @@ def collect_author_evidence(
         evidence["title"] = min(
             title_edit_timestamps + ([evidence["title"]] if "title" in evidence else [])
         )
-    return evidence
+    return evidence, reply_source_id
 
 
 def evidence_satisfied_at(
@@ -735,8 +1002,9 @@ def evidence_satisfied_at(
 def requires_title_edit_lookup(
     top_level_items: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
-    previous_history: dict[str, dict[str, Any]] | None = None,
-    events: list[dict[str, Any]] | None = None,
+    previous_history: dict[str, dict[str, Any]] | None,
+    author_comment_outcomes: list[AuthorCommentOutcome],
+    author_comment_source_state: AuthorCommentSourceState | None = None,
 ) -> bool:
     by_id = discussions_by_id(top_level_items)
     for classification in classifications:
@@ -752,14 +1020,25 @@ def requires_title_edit_lookup(
         previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
         previous_evidence = previous_entry.get("evidence") or {}
         root_timestamp = discussion.get("root_timestamp") or ""
-        if (previous_evidence.get("reply") or "") > root_timestamp:
+        previous_reply = previous_evidence.get("reply") or ""
+        previous_reply_source_id = previous_entry.get("reply_source_id")
+        if (
+            previous_reply > root_timestamp
+            and should_restore_author_reply(
+                author_comment_outcomes,
+                author_comment_source_state,
+                previous_reply_source_id
+                if isinstance(previous_reply_source_id, int)
+                else None,
+                previous_reply,
+                discussion["discussion_id"],
+            )
+        ):
             continue
-        if any(
-            event.get("actor_role") == "author"
-            and event.get("kind") == "issue-comment"
-            and (event.get("created_timestamp") or event["timestamp"]) > root_timestamp
-            and is_substantive_activity(event)
-            for event in events or []
+        if completed_author_reply_after(
+            discussion["discussion_id"],
+            root_timestamp,
+            author_comment_outcomes,
         ):
             continue
         if (previous_evidence.get("title") or "") <= root_timestamp:
@@ -793,7 +1072,9 @@ def advance_top_level_actions(
     events: list[dict[str, Any]],
     pr_metadata: dict[str, Any],
     author: str,
-    previous_history: dict[str, dict[str, Any]] | None = None,
+    previous_history: dict[str, dict[str, Any]] | None,
+    author_comment_outcomes: list[AuthorCommentOutcome],
+    author_comment_source_state: AuthorCommentSourceState | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     by_id = discussions_by_id(top_level_items)
     pending_actions: dict[str, dict[str, Any]] = {}
@@ -808,16 +1089,37 @@ def advance_top_level_actions(
         if action not in ("author", "external", "unclear"):
             continue
         previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
-        evidence = collect_author_evidence(
+        evidence, reply_source_id = collect_author_evidence(
             discussion,
             events,
             pr_metadata,
             author,
             previous_entry,
+            author_comment_outcomes,
+            author_comment_source_state,
         )
         if evidence:
             top_level_history[discussion["discussion_id"]] = {"evidence": evidence}
+            if reply_source_id is not None:
+                top_level_history[discussion["discussion_id"]]["reply_source_id"] = (
+                    reply_source_id
+                )
         if evidence.get("reply"):
+            continue
+        required_kinds = decision.get("required_evidence_kinds") or []
+        evidence_at = evidence_satisfied_at(required_kinds, evidence)
+        if action == "author" and evidence_at:
+            continue
+        handoff = latest_top_level_author_comment_handoff(
+            discussion["discussion_id"],
+            root_timestamp,
+            author_comment_outcomes,
+        )
+        if handoff is not None:
+            pending_actions[discussion["discussion_id"]] = {
+                "action": handoff["action"],
+                "since": handoff["timestamp"],
+            }
             continue
         if action == "external":
             pending_actions[discussion["discussion_id"]] = {
@@ -831,13 +1133,10 @@ def advance_top_level_actions(
                 "since": root_timestamp,
             }
             continue
-        required_kinds = decision.get("required_evidence_kinds") or []
-        evidence_at = evidence_satisfied_at(required_kinds, evidence)
-        if not evidence_at:
-            pending_actions[discussion["discussion_id"]] = {
-                "action": "author",
-                "since": root_timestamp,
-            }
+        pending_actions[discussion["discussion_id"]] = {
+            "action": "author",
+            "since": root_timestamp,
+        }
     return pending_actions, top_level_history
 
 
@@ -1065,16 +1364,34 @@ def build_pr_result(
         facts = compute_facts(raw, author, events)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
-        review_thread_classifications, top_level_classifications = (
-            classify_discussion_domains(
-                number, review_threads, top_level_items, model
-            )
+        top_level_author_comment_items = derive_top_level_author_comment_items(
+            events, top_level_items, facts
+        )
+        (
+            review_thread_classifications,
+            top_level_classifications,
+            top_level_author_comment_classifications,
+        ) = classify_discussion_domains(
+            number,
+            review_threads,
+            top_level_items,
+            top_level_author_comment_items,
+            model,
+        )
+        author_comment_outcomes = top_level_author_comment_outcomes(
+            top_level_author_comment_items,
+            top_level_author_comment_classifications,
+        )
+        author_comment_source_state = top_level_author_comment_source_state(
+            top_level_author_comment_items,
+            top_level_author_comment_classifications,
         )
         if requires_title_edit_lookup(
             top_level_items,
             top_level_classifications,
             previous_top_level_history,
-            events,
+            author_comment_outcomes,
+            author_comment_source_state,
         ):
             raw["pr_metadata"]["titleEdits"] = fetch_pr_title_edits(
                 owner, repo_name, number
@@ -1089,12 +1406,16 @@ def build_pr_result(
             raw["pr_metadata"],
             author,
             previous_top_level_history,
+            author_comment_outcomes,
+            author_comment_source_state,
         )
         pending_actions = review_thread_pending_actions | top_level_pending_actions
         failed_classifications = [
             classification
             for classification in (
-                review_thread_classifications + top_level_classifications
+                review_thread_classifications
+                + top_level_classifications
+                + top_level_author_comment_classifications
             )
             if classification.get("failed")
         ]
@@ -1107,8 +1428,12 @@ def build_pr_result(
                 "facts": facts,
                 "review_threads": review_threads,
                 "top_level_items": top_level_items,
+                "top_level_author_comment_items": top_level_author_comment_items,
                 "review_thread_classifications": review_thread_classifications,
                 "top_level_classifications": top_level_classifications,
+                "top_level_author_comment_classifications": (
+                    top_level_author_comment_classifications
+                ),
                 "route": "unknown",
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
@@ -1131,8 +1456,12 @@ def build_pr_result(
             "facts": facts,
             "review_threads": review_threads,
             "top_level_items": top_level_items,
+            "top_level_author_comment_items": top_level_author_comment_items,
             "review_thread_classifications": review_thread_classifications,
             "top_level_classifications": top_level_classifications,
+            "top_level_author_comment_classifications": (
+                top_level_author_comment_classifications
+            ),
             "pending_actions": pending_actions,
             "top_level_history": top_level_history,
             "route": route,
@@ -1432,6 +1761,7 @@ def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
         for discussion in (
             (result.get("review_threads") or [])
             + (result.get("top_level_items") or [])
+            + (result.get("top_level_author_comment_items") or [])
         )
         if isinstance(discussion, dict) and discussion.get("discussion_id")
     }
@@ -1440,6 +1770,7 @@ def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
         for classification in (
             (result.get("review_thread_classifications") or [])
             + (result.get("top_level_classifications") or [])
+            + (result.get("top_level_author_comment_classifications") or [])
         )
         if classification.get("failed")
     ]

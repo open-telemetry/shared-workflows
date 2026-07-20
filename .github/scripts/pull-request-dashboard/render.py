@@ -150,6 +150,7 @@ def render_diagnostics_section(
         if (
             results[number].get("review_thread_classifications")
             or results[number].get("top_level_classifications")
+            or results[number].get("top_level_author_comment_classifications")
             or results[number].get("error")
         )
     ]
@@ -164,9 +165,38 @@ def render_diagnostics_section(
         classifications = (
             (result.get("review_thread_classifications") or [])
             + (result.get("top_level_classifications") or [])
+            + (result.get("top_level_author_comment_classifications") or [])
         )
         for c in classifications:
             decision = c.get("decision") or {}
+            if c.get("discussion_kind") == "top-level-author-reply":
+                feedback_outcomes = [
+                    outcome
+                    for outcome in (decision.get("feedback_outcomes") or [])
+                    if isinstance(outcome, dict)
+                    and isinstance(outcome.get("feedback_id"), str)
+                ]
+                if not feedback_outcomes:
+                    reason = (decision.get("reason") or "").replace("\n", " ")
+                    data_lines.append(
+                        f"llm: {c.get('discussion_id')} -> no-associated-feedback, no-action ({reason})"
+                    )
+                    continue
+                for outcome in feedback_outcomes:
+                    feedback_id = outcome["feedback_id"]
+                    action = outcome.get("discussion_action")
+                    reason = (outcome.get("reason") or "").replace("\n", " ")
+                    pending_action = pending_actions.get(feedback_id)
+                    if pending_action:
+                        lifecycle_suffix = f", pending:{pending_action.get('action')}"
+                    elif action in ("none", "unclear"):
+                        lifecycle_suffix = ", no-action"
+                    else:
+                        lifecycle_suffix = ", addressed"
+                    data_lines.append(
+                        f"llm: {c.get('discussion_id')} -> {feedback_id}:{action}{lifecycle_suffix} ({reason})"
+                    )
+                continue
             reason = (decision.get("reason") or "").replace("\n", " ")
             pending_action = pending_actions.get(c.get("discussion_id"))
             if pending_action:

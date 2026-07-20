@@ -111,9 +111,11 @@ observable evidence for a request containing several code changes; the
 dashboard does not try to prove that every requested edit appears in that
 commit.
 
-An explicit author reply always addresses the item, even when another evidence
-kind was expected. This lets authors explain why a suggestion was not applied,
-ask a clarifying question, or otherwise close the dashboard action.
+An explicit completed author reply addresses the item, even when another
+evidence kind was expected. This lets authors explain why a suggestion was not
+applied, ask a clarifying question, or otherwise close the dashboard action.
+If the author instead commits to future work in the current PR, such as testing
+or making another change later, the item remains waiting on the author.
 The dashboard intentionally treats evidence as a handoff signal, not proof that
 the reviewer agrees with the outcome.
 
