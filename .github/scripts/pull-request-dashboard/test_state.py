@@ -9,6 +9,10 @@ import unittest
 from unittest.mock import patch
 
 from state import (
+    AUTHOR_NUDGE_STATE_VERSION,
+        author_nudge_state_path,
+        load_author_nudges,
+        save_author_nudges,
     BACKFILL_STATE_VERSION,
     DASHBOARD_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
@@ -153,6 +157,27 @@ class StateTest(unittest.TestCase):
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
         self.assertEqual(DASHBOARD_STATE_VERSION, 5)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
+        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 1)
+
+    def test_author_nudge_state_round_trip(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            save_author_nudges({
+                "123": {
+                    "waiting_since": "2026-07-10T00:00:00Z",
+                    "nudged_at": "",
+                }
+            })
+
+            self.assertEqual(
+                load_author_nudges(),
+                {
+                    "123": {
+                        "waiting_since": "2026-07-10T00:00:00Z",
+                        "nudged_at": "",
+                    }
+                },
+            )
+            self.assertTrue(author_nudge_state_path().exists())
 
     def test_status_comment_rollout_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

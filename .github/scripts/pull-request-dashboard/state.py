@@ -12,12 +12,14 @@ import state_branch
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
+AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
 DASHBOARD_STATE_VERSION = 5
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
+AUTHOR_NUDGE_STATE_VERSION = 1
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
@@ -40,6 +42,10 @@ def dashboard_state_path() -> Path:
 
 def notification_state_path() -> Path:
     return state_dir() / "notification-state.json"
+
+
+def author_nudge_state_path() -> Path:
+    return state_dir() / AUTHOR_NUDGE_STATE_FILE
 
 
 def backfill_state_path() -> Path:
@@ -233,6 +239,21 @@ def load_notifications() -> dict[str, Any] | None:
 
 def save_notifications(notifications: dict[str, Any]) -> None:
     _save_notification_state_file({"prs": notifications})
+
+
+def load_author_nudges() -> dict[str, Any]:
+    state = load_state_file(author_nudge_state_path(), AUTHOR_NUDGE_STATE_VERSION)
+    if state is None or not isinstance(state.get("prs"), dict):
+        return {}
+    return state["prs"]
+
+
+def save_author_nudges(nudges: dict[str, Any]) -> None:
+    save_state_file(
+        author_nudge_state_path(),
+        {"prs": nudges},
+        AUTHOR_NUDGE_STATE_VERSION,
+    )
 
 
 def union_merge_notifications(

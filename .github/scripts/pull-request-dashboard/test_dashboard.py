@@ -25,6 +25,7 @@ from dashboard import (
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
+    write_refreshed_pr_numbers_output,
 )
 
 
@@ -225,6 +226,17 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                         f"initial_backfill_complete={expected}\n",
                         output_path.read_text(encoding="utf-8"),
                     )
+
+    def test_writes_sorted_refreshed_pr_numbers_to_github_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "output"
+
+            write_refreshed_pr_numbers_output(output_path, {34, 12})
+
+            self.assertEqual(
+                "refreshed_pr_numbers=12,34\n",
+                output_path.read_text(encoding="utf-8"),
+            )
 
 class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.save_dashboard_update_state", return_value=0)
@@ -504,6 +516,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             status = update_dashboard_for_backfill(args, Path("state"))
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
+        self.assertEqual(args.refreshed_pr_numbers, {2})
         self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
         self.assertEqual(dashboard_state["prs"], {"2": {"pr_number": 2, "failed": False, "route": "reviewer"}})
         self.assertTrue(dashboard_state["initial_backfill_complete"])

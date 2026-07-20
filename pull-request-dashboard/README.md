@@ -184,6 +184,18 @@ for the tradeoffs behind this behavior.
 
 Targeted updates received before the first full dashboard run are ignored.
 
+## Author reminder
+
+The dashboard posts one reminder when a pull request remains in *Waiting on
+authors* for one week. The reminder @-mentions the author and links to the
+dashboard-managed status comment containing the remaining items.
+
+Leaving *Waiting on authors* before the reminder is due resets the one-week
+clock. Each pull request is reminded at most once, even if it later leaves and
+returns to *Waiting on authors*. Reminders are delivered by hourly runs when
+the pull request is next refreshed, so a due reminder in a large repository
+may wait for a later round-robin run.
+
 ## Configuration
 
 The dashboard uses repository-scoped GitHub App access to read and update each
