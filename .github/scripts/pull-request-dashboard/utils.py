@@ -7,6 +7,22 @@ from typing import Any
 DEFAULT_TRUNCATE_CHARS = 1200
 
 
+def markdown_escape(s: str) -> str:
+    return (
+        (s or "")
+        .replace("\\", "\\\\")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("|", "\\|")
+        .replace("[", "\\[")
+        .replace("]", "\\]")
+        .replace("@", "&#64;")
+        .replace("\n", " ")
+        .strip()
+    )
+
+
 def parse_ts(s: str | None) -> datetime | None:
     if not s:
         return None

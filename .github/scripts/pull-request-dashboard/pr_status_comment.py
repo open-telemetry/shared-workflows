@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 from github_cli import (
     detect_repo,
@@ -25,6 +26,7 @@ from state import (
     set_state_dir,
     status_comment_rollout_state_path,
 )
+from utils import markdown_escape, truncate
 import state_branch
 from utils import utc_now
 
@@ -32,9 +34,13 @@ from utils import utc_now
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 3
+STATUS_COMMENT_REVISION = 9
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
+NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
+NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT = 200
+STATUS_REPORT_ISSUE_URL = "https://github.com/open-telemetry/shared-workflows/issues/new"
+STATUS_REPORT_ISSUE_TEMPLATE = "incorrect-pr-dashboard-result.md"
 AUTHOR_GUIDANCE = (
     "For each item, link to the commit that addresses it, explain why no change is needed, "
     "or ask a follow-up question."
@@ -48,6 +54,19 @@ LEGACY_MARKERS = (
 )
 
 
+def accuracy_note(pr: dict[str, Any]) -> str:
+    query = urlencode({
+        "template": STATUS_REPORT_ISSUE_TEMPLATE,
+        "title": "PR dashboard result looks incorrect",
+        "body": f"PR: {pr.get('html_url') or ''}\n\nWhat looks incorrect:\n",
+    })
+    report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
+    return (
+        "_This automated status or its linked feedback items may be incorrect. "
+        f"If something looks wrong, [report it]({report_url}) with the result you expected._"
+    )
+
+
 def render_status_comment(
     pr: dict[str, Any],
     result: dict[str, Any] | None,
@@ -59,6 +78,32 @@ def render_status_comment(
     top_level_feedback_urls = facts.get("author_action_top_level_feedback_urls") or []
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
     failing_count = facts.get("ci_failing_count", 0)
+    non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
+    non_blocking_failure_note = ""
+    if non_blocking_check_failures:
+        displayed_failures = non_blocking_check_failures[
+            :NON_BLOCKING_CHECK_FAILURE_LIMIT
+        ]
+        names = format_list([
+            markdown_escape(truncate(name, NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT))
+            for name in displayed_failures
+        ])
+        if len(non_blocking_check_failures) == 1:
+            non_blocking_failure_note = (
+                f"{names} is failing but is not a required check."
+            )
+        else:
+            non_blocking_failure_note = (
+                f"{names} are failing but are not required checks."
+            )
+        omitted_count = len(non_blocking_check_failures) - len(displayed_failures)
+        if omitted_count:
+            noun = "failure" if omitted_count == 1 else "failures"
+            omitted_verb = "is" if omitted_count == 1 else "are"
+            non_blocking_failure_note += (
+                f" {omitted_count} additional non-blocking check {noun} "
+                f"{omitted_verb} not shown."
+            )
 
     feedback_indent: str | None = None
 
@@ -82,18 +127,17 @@ def render_status_comment(
             waiting_on, fallback_next_step = route_status_summary(route)
             check_action = None
             if failing_count:
-                check_action = (
-                    "Investigate the failing required status check"
-                    if failing_count == 1
-                    else "Investigate the failing required status checks"
-                )
+                # One required aggregate check can represent multiple failing jobs.
+                check_action = "Investigate required status check failures."
+                if non_blocking_failure_note:
+                    check_action += f" Note: {non_blocking_failure_note}"
             noun = "item" if feedback_count == 1 else "items"
             feedback_action = f"Address or respond to {feedback_count} review feedback {noun}:"
             if check_action and feedback_count:
                 summary = [
                     f"- **Waiting on:** {waiting_on}",
                     "- **Next steps:**",
-                    f"  - {check_action}.",
+                    f"  - {check_action}",
                     f"  - {feedback_action}",
                 ]
                 feedback_indent = "    "
@@ -106,7 +150,7 @@ def render_status_comment(
             elif check_action:
                 summary = [
                     f"- **Waiting on:** {waiting_on}",
-                    f"- **Next step:** {check_action}.",
+                    f"- **Next step:** {check_action}",
                 ]
             else:
                 summary = [
@@ -126,6 +170,13 @@ def render_status_comment(
                     else f"{failing_count} required status checks are failing."
                 )
                 summary.append(f"- **Also blocked by:** {check_summary}")
+            if non_blocking_failure_note:
+                label = (
+                    "Non-blocking check failure"
+                    if len(non_blocking_check_failures) == 1
+                    else "Non-blocking check failures"
+                )
+                summary.append(f"- **{label}:** {non_blocking_failure_note}")
 
     lines = [
         STATUS_MARKER,
@@ -146,7 +197,17 @@ def render_status_comment(
             )
         )
     lines.append("")
+    lines.append(accuracy_note(pr))
+    lines.append("")
     return "\n".join(lines)
+
+
+def format_list(values: list[str]) -> str:
+    if len(values) == 1:
+        return values[0]
+    if len(values) == 2:
+        return f"{values[0]} and {values[1]}"
+    return f"{', '.join(values[:-1])}, and {values[-1]}"
 
 
 def feedback_breakdown_lines(
