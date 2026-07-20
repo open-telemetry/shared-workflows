@@ -783,15 +783,22 @@ def top_level_author_comment_outcomes(
     return outcomes
 
 
-def is_completed_author_reply(
+def author_reply_is_superseded(
     outcomes: list[AuthorCommentOutcome],
     source_id: int,
+    timestamp: str,
     feedback_id: str,
 ) -> bool:
     return any(
-        outcome["source_id"] == source_id
-        and outcome["action"] == "none"
-        and feedback_id == outcome["feedback_id"]
+        outcome["feedback_id"] == feedback_id
+        and outcome["action"] in ("author", "external")
+        and (
+            outcome["timestamp"] > timestamp
+            or (
+                outcome["timestamp"] == timestamp
+                and outcome["source_id"] == source_id
+            )
+        )
         for outcome in outcomes
     )
 
@@ -805,7 +812,13 @@ def completed_author_reply_after(
         if (
             outcome["timestamp"] > root_timestamp
             and outcome["action"] == "none"
-            and feedback_id == outcome["feedback_id"]
+            and outcome["feedback_id"] == feedback_id
+            and not author_reply_is_superseded(
+                outcomes,
+                outcome["source_id"],
+                outcome["timestamp"],
+                feedback_id,
+            )
         ):
             return outcome["timestamp"], outcome["source_id"]
     return None
@@ -856,12 +869,13 @@ def collect_author_evidence(
     previous_reply_source_id = previous_entry.get("reply_source_id")
     if (
         isinstance(previous_reply_source_id, int)
-        and is_completed_author_reply(
+        and previous_reply > root_timestamp
+        and not author_reply_is_superseded(
             author_comment_outcomes,
             previous_reply_source_id,
+            previous_reply,
             discussion["discussion_id"],
         )
-        and previous_reply > root_timestamp
     ):
         evidence["reply"] = previous_reply
         reply_source_id = previous_reply_source_id
@@ -945,9 +959,10 @@ def requires_title_edit_lookup(
         if (
             previous_reply > root_timestamp
             and isinstance(previous_reply_source_id, int)
-            and is_completed_author_reply(
+            and not author_reply_is_superseded(
                 author_comment_outcomes,
                 previous_reply_source_id,
+                previous_reply,
                 discussion["discussion_id"],
             )
         ):

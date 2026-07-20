@@ -1299,6 +1299,105 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
         )
 
+    def test_cached_author_reply_survives_missing_classification(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
+    def test_newer_author_handoff_supersedes_cached_reply(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T02:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[
+                {
+                    "source_id": 103,
+                    "action": "external",
+                    "timestamp": "2026-07-14T03:00:00Z",
+                    "feedback_id": "question",
+                },
+            ],
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "question": {
+                    "action": "external",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
+
+    def test_reclassified_author_reply_supersedes_cached_reply(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[
+                {
+                    "source_id": 102,
+                    "action": "author",
+                    "timestamp": "2026-07-14T03:00:00Z",
+                    "feedback_id": "question",
+                },
+            ],
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {
+                "question": {
+                    "action": "author",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
+
     def test_author_reply_identity_does_not_collide_at_same_timestamp(self) -> None:
         discussion = top_level_item("question")
         events = [
