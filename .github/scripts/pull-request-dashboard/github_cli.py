@@ -248,7 +248,9 @@ def fetch_pr_issue_comments(
             return comments
         after = page_info.get("endCursor") or None
         if after is None:
-            return comments
+            raise TransientGhError(
+                "issue-comment pagination hasNextPage without endCursor"
+            )
 
 
 def fetch_pr_title_edits(owner: str, repo_name: str, number: int) -> list[dict[str, Any]]:

@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from github_cli import (
+    TransientGhError,
     fetch_pr_issue_comments,
     fetch_pr_review_data,
     fetch_pr_title_edits,
@@ -114,6 +115,33 @@ class GithubCliTest(unittest.TestCase):
         self.assertIn("isMinimized", graphql.call_args_list[0].args[0])
         self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
         self.assertEqual(graphql.call_count, 2)
+
+    @patch("github_cli.gh_graphql")
+    def test_fetch_pr_issue_comments_rejects_missing_page_cursor(
+        self, graphql
+    ) -> None:
+        graphql.return_value = {
+            "data": {
+                "repository": {
+                    "pullRequest": {
+                        "comments": {
+                            "nodes": [],
+                            "pageInfo": {
+                                "hasNextPage": True,
+                                "endCursor": None,
+                            },
+                        }
+                    }
+                }
+            }
+        }
+
+        with self.assertRaisesRegex(
+            TransientGhError,
+            "hasNextPage without endCursor",
+        ):
+            fetch_pr_issue_comments("open-telemetry", "shared-workflows", 78)
+        self.assertEqual(graphql.call_count, 1)
 
     @patch("github_cli.gh_api")
     def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:
