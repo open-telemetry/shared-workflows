@@ -18,6 +18,7 @@ from dashboard import (
     requires_title_edit_lookup,
     route_pr,
     top_level_author_comment_outcomes,
+    top_level_author_comment_source_state,
 )
 from classification import (
     classify_discussion_domains,
@@ -1326,6 +1327,89 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
         )
 
+    def test_cached_author_reply_is_removed_with_its_source(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+            author_comment_source_state={"current": set(), "classified": set()},
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {"question": {"action": "author", "since": ROOT_TIMESTAMP}},
+        )
+        self.assertEqual(history, {})
+
+    def test_cached_author_reply_is_recomputed_after_classification(self) -> None:
+        discussion = top_level_item("question")
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+            author_comment_source_state={"current": {102}, "classified": {102}},
+        )
+
+        self.assertEqual(
+            pending_actions,
+            {"question": {"action": "author", "since": ROOT_TIMESTAMP}},
+        )
+        self.assertEqual(history, {})
+
+    def test_cached_author_reply_survives_failed_classification(self) -> None:
+        discussion = top_level_item("question")
+        author_comment_items = [{"discussion_id": "reply", "source_id": 102}]
+        source_state = top_level_author_comment_source_state(
+            author_comment_items,
+            [{"discussion_id": "reply", "failed": True}],
+        )
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("question", "reply")],
+            [],
+            {},
+            "author",
+            previous_history={
+                "question": {
+                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                    "reply_source_id": 102,
+                },
+            },
+            author_comment_outcomes=[],
+            author_comment_source_state=source_state,
+        )
+
+        self.assertEqual(pending_actions, {})
+        self.assertEqual(
+            history["question"],
+            {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        )
+
     def test_legacy_cached_author_reply_survives_missing_classification(self) -> None:
         discussion = top_level_item("question")
 
@@ -2193,6 +2277,30 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     },
                 },
                 [author_comment_outcome("title", "2026-07-14T03:00:00Z")],
+            )
+        )
+        cached_reply = {
+            "title": {
+                "evidence": {"reply": "2026-07-14T03:00:00Z"},
+                "reply_source_id": 102,
+            },
+        }
+        self.assertTrue(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                cached_reply,
+                [],
+                {"current": set(), "classified": set()},
+            )
+        )
+        self.assertFalse(
+            requires_title_edit_lookup(
+                [discussion],
+                [title_classification],
+                cached_reply,
+                [],
+                {"current": {102}, "classified": set()},
             )
         )
         self.assertTrue(

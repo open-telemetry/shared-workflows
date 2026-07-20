@@ -744,6 +744,35 @@ class AuthorCommentOutcome(TypedDict):
     feedback_id: str
 
 
+class AuthorCommentSourceState(TypedDict):
+    current: set[int]
+    classified: set[int]
+
+
+def top_level_author_comment_source_state(
+    top_level_author_comment_items: list[dict[str, Any]],
+    classifications: list[dict[str, Any]],
+) -> AuthorCommentSourceState:
+    by_id = discussions_by_id(top_level_author_comment_items)
+    current = {
+        source_id
+        for item in top_level_author_comment_items
+        if isinstance(source_id := item.get("source_id"), int)
+    }
+    classified = {
+        source_id
+        for classification in classifications
+        if not classification.get("failed")
+        and (
+            source_id := (by_id.get(classification.get("discussion_id") or "") or {}).get(
+                "source_id"
+            )
+        )
+        in current
+    }
+    return {"current": current, "classified": classified}
+
+
 def top_level_author_comment_outcomes(
     top_level_author_comment_items: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
@@ -807,6 +836,27 @@ def author_reply_is_superseded(
     )
 
 
+def should_restore_author_reply(
+    outcomes: list[AuthorCommentOutcome],
+    source_state: AuthorCommentSourceState | None,
+    source_id: int | None,
+    timestamp: str,
+    feedback_id: str,
+) -> bool:
+    if source_state is not None and source_id is not None:
+        if (
+            source_id not in source_state["current"]
+            or source_id in source_state["classified"]
+        ):
+            return False
+    return not author_reply_is_superseded(
+        outcomes,
+        source_id,
+        timestamp,
+        feedback_id,
+    )
+
+
 def completed_author_reply_after(
     feedback_id: str,
     root_timestamp: str,
@@ -858,6 +908,7 @@ def collect_author_evidence(
     author: str,
     previous_entry: dict[str, Any],
     author_comment_outcomes: list[AuthorCommentOutcome],
+    author_comment_source_state: AuthorCommentSourceState | None,
 ) -> tuple[dict[str, str], int | None]:
     root_timestamp = discussion.get("root_timestamp") or ""
     evidence = {
@@ -873,8 +924,9 @@ def collect_author_evidence(
     previous_reply_source_id = previous_entry.get("reply_source_id")
     if (
         previous_reply > root_timestamp
-        and not author_reply_is_superseded(
+        and should_restore_author_reply(
             author_comment_outcomes,
+            author_comment_source_state,
             previous_reply_source_id
             if isinstance(previous_reply_source_id, int)
             else None,
@@ -948,6 +1000,7 @@ def requires_title_edit_lookup(
     classifications: list[dict[str, Any]],
     previous_history: dict[str, dict[str, Any]] | None,
     author_comment_outcomes: list[AuthorCommentOutcome],
+    author_comment_source_state: AuthorCommentSourceState | None = None,
 ) -> bool:
     by_id = discussions_by_id(top_level_items)
     for classification in classifications:
@@ -967,8 +1020,9 @@ def requires_title_edit_lookup(
         previous_reply_source_id = previous_entry.get("reply_source_id")
         if (
             previous_reply > root_timestamp
-            and not author_reply_is_superseded(
+            and should_restore_author_reply(
                 author_comment_outcomes,
+                author_comment_source_state,
                 previous_reply_source_id
                 if isinstance(previous_reply_source_id, int)
                 else None,
@@ -1016,6 +1070,7 @@ def advance_top_level_actions(
     author: str,
     previous_history: dict[str, dict[str, Any]] | None,
     author_comment_outcomes: list[AuthorCommentOutcome],
+    author_comment_source_state: AuthorCommentSourceState | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     by_id = discussions_by_id(top_level_items)
     pending_actions: dict[str, dict[str, Any]] = {}
@@ -1037,6 +1092,7 @@ def advance_top_level_actions(
             author,
             previous_entry,
             author_comment_outcomes,
+            author_comment_source_state,
         )
         if evidence:
             top_level_history[discussion["discussion_id"]] = {"evidence": evidence}
@@ -1322,11 +1378,16 @@ def build_pr_result(
             top_level_author_comment_items,
             top_level_author_comment_classifications,
         )
+        author_comment_source_state = top_level_author_comment_source_state(
+            top_level_author_comment_items,
+            top_level_author_comment_classifications,
+        )
         if requires_title_edit_lookup(
             top_level_items,
             top_level_classifications,
             previous_top_level_history,
             author_comment_outcomes,
+            author_comment_source_state,
         ):
             raw["pr_metadata"]["titleEdits"] = fetch_pr_title_edits(
                 owner, repo_name, number
@@ -1342,6 +1403,7 @@ def build_pr_result(
             author,
             previous_top_level_history,
             author_comment_outcomes,
+            author_comment_source_state,
         )
         pending_actions = review_thread_pending_actions | top_level_pending_actions
         failed_classifications = [
