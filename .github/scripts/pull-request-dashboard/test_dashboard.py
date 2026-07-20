@@ -5,7 +5,7 @@ from copy import deepcopy
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock, call, patch
+from unittest.mock import ANY, Mock, call, patch
 
 from classification import discussion_prompt_input
 from dashboard import (
@@ -239,6 +239,7 @@ class InitialBackfillCompletionTest(unittest.TestCase):
             )
 
 class StatusCommentQueueTest(unittest.TestCase):
+    @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
     @patch(
@@ -250,6 +251,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         _load_state: Mock,
         enqueue_update: Mock,
         save_state: Mock,
+        record_nudge: Mock,
     ) -> None:
         args = Namespace(pr_number=None)
 
@@ -262,7 +264,12 @@ class StatusCommentQueueTest(unittest.TestCase):
         )
         saved_state = save_state.call_args.args[1]
         self.assertEqual({"56": {}}, saved_state["prs"])
+        self.assertEqual(
+            [call(12, None, ANY), call(34, None, ANY)],
+            sorted(record_nudge.call_args_list, key=lambda value: value.args[0]),
+        )
 
+    @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
@@ -273,6 +280,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         enqueue_update: Mock,
         _save_state: Mock,
         _clear_backfill_failure: Mock,
+        record_nudge: Mock,
     ) -> None:
         calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
         merge_update.return_value = (calculation, False)
@@ -281,7 +289,9 @@ class StatusCommentQueueTest(unittest.TestCase):
 
         self.assertEqual(0, status)
         enqueue_update.assert_called_once_with(12)
+        record_nudge.assert_called_once_with(12, calculation.trigger_pr_result, ANY)
 
+    @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
@@ -292,6 +302,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         enqueue_update: Mock,
         _save_state: Mock,
         _clear_backfill_failure: Mock,
+        record_nudge: Mock,
     ) -> None:
         calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
         merge_update.return_value = (calculation, True)
@@ -300,6 +311,7 @@ class StatusCommentQueueTest(unittest.TestCase):
 
         self.assertEqual(0, status)
         enqueue_update.assert_not_called()
+        record_nudge.assert_called_once_with(12, calculation.trigger_pr_result, ANY)
 
 
 class RequiredCiRoutingTest(unittest.TestCase):
@@ -508,6 +520,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
                 side_effect=lambda result: result["failed"],
             ),
             patch("dashboard.save_dashboard_update_state", side_effect=save_dashboard_state),
+            patch("dashboard.record_author_nudge_observation") as record_nudge,
             patch("dashboard.state_branch.configure_git"),
             patch("dashboard.state_branch.checkout_state"),
             patch("dashboard.state_branch.remove_existing_state_dir"),
@@ -517,6 +530,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
         self.assertEqual(args.refreshed_pr_numbers, {2})
+        record_nudge.assert_called_once_with(2, ANY, ANY)
         self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
         self.assertEqual(dashboard_state["prs"], {"2": {"pr_number": 2, "failed": False, "route": "reviewer"}})
         self.assertTrue(dashboard_state["initial_backfill_complete"])

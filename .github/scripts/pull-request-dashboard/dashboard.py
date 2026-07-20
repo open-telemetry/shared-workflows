@@ -191,6 +191,7 @@ from classification import (
     normalize_discussion_action,
     prune_classification_cache,
 )
+from author_nudge import record_author_nudge_observation
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -206,7 +207,7 @@ from state import (
     update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import actor_login, format_ts, parse_ts, truncate
+from utils import actor_login, format_ts, parse_ts, truncate, utc_now
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
@@ -1859,14 +1860,17 @@ def clear_backfill_pr_failure(pr_number: int) -> None:
 def remove_cached_dashboard_prs(
     args: argparse.Namespace,
     pr_numbers_to_remove: set[int],
+    observed_at: datetime | None = None,
 ) -> int:
     if not pr_numbers_to_remove:
         return 0
     dashboard_state = load_dashboard_state_cache() or empty_state()
     state_prs = dict(dashboard_state.get("prs") or {})
+    observed_at = observed_at or utc_now()
     for number in pr_numbers_to_remove:
         state_prs.pop(str(number), None)
         enqueue_status_comment_update(number)
+        record_author_nudge_observation(number, None, observed_at)
     dashboard_state["prs"] = state_prs
     return save_dashboard_update_state(args, dashboard_state, False)
 
@@ -1898,7 +1902,11 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate
     )
 
 
-def apply_targeted_dashboard_update(args: argparse.Namespace, calculation: DashboardUpdate) -> int:
+def apply_targeted_dashboard_update(
+    args: argparse.Namespace,
+    calculation: DashboardUpdate,
+    observed_at: datetime | None = None,
+) -> int:
     merged_calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
         calculation,
         args.pr_number,
@@ -1912,6 +1920,12 @@ def apply_targeted_dashboard_update(args: argparse.Namespace, calculation: Dashb
         clear_backfill_pr_failure(args.pr_number)
     if not dashboard_state_unchanged and args.pr_number is not None:
         enqueue_status_comment_update(args.pr_number)
+    if args.pr_number is not None:
+        record_author_nudge_observation(
+            args.pr_number,
+            merged_calculation.trigger_pr_result,
+            observed_at or utc_now(),
+        )
 
     return save_dashboard_update_state(
         args,
@@ -1934,10 +1948,11 @@ def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) ->
     if update is None:
         return 0
 
+    observed_at = utc_now()
     status = state_branch.push_state_changes(
         state_dir,
         "Update dashboard state",
-        lambda: apply_targeted_dashboard_update(args, update),
+        lambda: apply_targeted_dashboard_update(args, update, observed_at),
         state_branch=args.state_branch,
     )
     if status == 0:
@@ -1968,12 +1983,14 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     )
 
     if selection.cached_pr_numbers_to_remove:
+        observed_at = utc_now()
         status = state_branch.push_state_changes(
             state_dir,
             "Update dashboard state",
             lambda: remove_cached_dashboard_prs(
                 args,
                 selection.cached_pr_numbers_to_remove,
+                observed_at,
             ),
             state_branch=args.state_branch,
         )
@@ -2004,6 +2021,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
 
     for pr_summary in selection.selected_prs:
         refreshed = False
+        observed_at = utc_now()
 
         def update_selected_pr(pr_summary: dict[str, Any] = pr_summary) -> int:
             nonlocal refreshed
@@ -2040,6 +2058,11 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                     not initial_backfill_completed,
                 )
             refreshed = True
+            record_author_nudge_observation(
+                pr_number,
+                calculation.trigger_pr_result,
+                observed_at,
+            )
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
             if not dashboard_state_unchanged:
                 enqueue_status_comment_update(pr_number)
