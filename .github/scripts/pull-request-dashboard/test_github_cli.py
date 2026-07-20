@@ -9,12 +9,20 @@ from github_cli import (
     gh_pr_checks,
     gh_required_check_contexts,
     include_missing_required_checks,
+    is_retryable_gh_error,
     list_all_open_pr_numbers,
     list_open_prs,
 )
 
 
 class GithubCliTest(unittest.TestCase):
+    def test_graphql_internal_error_is_retryable(self) -> None:
+        self.assertTrue(
+            is_retryable_gh_error(
+                "GraphQL: Something went wrong while executing your query"
+            )
+        )
+
     @patch("github_cli.gh_api")
     def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:
         gh_api.return_value = [
