@@ -92,7 +92,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             "- **Waiting on:** Author",
             body,
         )
-        self.assertIn("- **Next step:** Investigate the failing required status check.", body)
+        self.assertIn("- **Next step:** Investigate required status check failures.", body)
         self.assertNotIn("### Review feedback", body)
         self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
 
@@ -112,7 +112,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn("- **Next steps:**", body)
-        self.assertIn("  - Investigate the failing required status checks.", body)
+        self.assertIn("  - Investigate required status check failures.", body)
         self.assertIn("  - Address or respond to 1 review feedback item:", body)
         self.assertIn("    - **Inline threads:** [1]", body)
 
