@@ -710,29 +710,19 @@
         "author": "krapie",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/10448#issuecomment-5011663131",
-          "https://github.com/open-telemetry/opentelemetry.io/pull/10448#pullrequestreview-4730940142"
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10448#issuecomment-5011663131"
         ],
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-07-18T14:38:39+00:00",
-        "ci_pending_count": 1,
+        "ci_failing_count": 0,
+        "ci_pending_count": 15,
         "conflicts": "no",
         "created_at": "2026-06-16T13:43:06+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-20T05:18:30+00:00",
+        "last_activity_at": "2026-07-20T05:19:12+00:00",
         "last_approver_activity_at": "2026-07-18T14:41:49+00:00",
-        "last_author_activity_at": "2026-07-20T05:18:30+00:00",
+        "last_author_activity_at": "2026-07-20T05:19:06+00:00",
         "last_external_activity_at": "2026-07-20T04:47:33+00:00",
         "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "seokho-son",
-            "open_thread": false,
-            "top_level_feedback": true
-          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -742,8 +732,8 @@
             "top_level_feedback": true
           }
         ],
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-18T14:38:39+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-18T14:41:49+00:00"
       },
       "failed": false,
       "pr_number": 10448,
@@ -760,6 +750,16 @@
           "evidence": {
             "commit": "2026-07-05T08:16:13Z",
             "reply": "2026-07-05T08:35:38Z"
+          }
+        },
+        "pr-issue-comment-5011663131": {
+          "evidence": {
+            "commit": "2026-07-20T05:19:06Z"
+          }
+        },
+        "pr-review-4730940142": {
+          "evidence": {
+            "commit": "2026-07-20T05:19:06Z"
           }
         }
       }
