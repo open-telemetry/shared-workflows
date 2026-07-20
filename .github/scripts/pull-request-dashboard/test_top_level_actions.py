@@ -1398,7 +1398,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertEqual(history, {})
 
-    def test_author_reply_identity_does_not_collide_at_same_timestamp(self) -> None:
+    def test_author_reply_uses_source_id_to_break_timestamp_tie(self) -> None:
         discussion = top_level_item("question")
         events = [
             event(
@@ -1449,8 +1449,16 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ),
         )
 
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(history["question"]["reply_source_id"], 102)
+        self.assertEqual(
+            pending_actions,
+            {
+                "question": {
+                    "action": "author",
+                    "since": "2026-07-14T03:00:00Z",
+                },
+            },
+        )
+        self.assertEqual(history, {})
 
     def test_author_comment_applies_each_feedback_outcome_independently(self) -> None:
         discussions = [

@@ -796,7 +796,7 @@ def author_reply_is_superseded(
             outcome["timestamp"] > timestamp
             or (
                 outcome["timestamp"] == timestamp
-                and outcome["source_id"] == source_id
+                and outcome["source_id"] >= source_id
             )
         )
         for outcome in outcomes
