@@ -485,9 +485,12 @@
         "assignees": [],
         "author": "shashank-reddy-nr",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#issuecomment-4891309029",
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#issuecomment-4892333913"
+        ],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "created_at": "2026-06-12T15:48:18+00:00",
         "is_draft": false,
@@ -501,31 +504,45 @@
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
+            "login": "Kielek",
+            "open_thread": false,
+            "top_level_feedback": true
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
             "login": "laurit",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-16T10:35:23+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-06T11:37:19+00:00"
       },
       "failed": false,
       "pr_number": 18978,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4890295548": {
           "evidence": {
             "commit": "2026-07-13T19:44:28Z",
             "description": "2026-07-15T16:39:35Z",
-            "reply": "2026-07-06T09:01:07Z"
-          }
+            "reply": "2026-07-16T10:35:23Z"
+          },
+          "reply_source_id": 4990861949
         },
         "pr-issue-comment-4891309029": {
           "evidence": {
             "commit": "2026-07-13T19:44:28Z",
-            "description": "2026-07-15T16:39:35Z",
-            "reply": "2026-07-06T14:05:15Z"
+            "description": "2026-07-15T16:39:35Z"
+          }
+        },
+        "pr-issue-comment-4892333913": {
+          "evidence": {
+            "commit": "2026-07-13T19:44:28Z",
+            "description": "2026-07-15T16:39:35Z"
           }
         }
       }
