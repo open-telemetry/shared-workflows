@@ -323,6 +323,47 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertTrue(records[0]["failed"])
         self.assertIn("this discussion_id", records[0]["error"])
 
+    @patch("classification.MAX_PROMPT_CHARS", 5000)
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_reviewer_feedback_prompts_are_hard_bounded(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        def respond(args, **_kwargs):
+            prompt = args[2]
+            prompt_items = json.loads(
+                prompt.split("---BEGIN TOP-LEVEL FEEDBACK---\n", 1)[1].split(
+                    "\n---END TOP-LEVEL FEEDBACK---", 1
+                )[0]
+            )
+            return copilot_batch_response(*[
+                top_level_batch_result(item["discussion_id"])
+                for item in prompt_items
+            ])
+
+        run_copilot.side_effect = respond
+        discussions = [
+            {
+                **top_level_item(f"feedback-{index}"),
+                "comments": [{"body": "x" * 6000}],
+            }
+            for index in range(4)
+        ]
+
+        records = run_llm_for_top_level_reviewer_feedback_batch(
+            discussions, "model"
+        )
+
+        self.assertGreater(run_copilot.call_count, 1)
+        prompts = [call.args[0][2] for call in run_copilot.call_args_list]
+        self.assertTrue(all(len(prompt) <= 5000 for prompt in prompts))
+        self.assertEqual(
+            [record["discussion_id"] for record in records],
+            [f"feedback-{index}" for index in range(4)],
+        )
+
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
     def test_author_comment_batch_supports_mixed_feedback_outcomes(

@@ -522,6 +522,29 @@ def top_level_reviewer_feedback_batch_prompt(
     )
 
 
+def reviewer_feedback_prompt_batches(
+    discussions: list[dict[str, Any]],
+) -> list[tuple[list[dict[str, Any]], str]]:
+    batches: list[tuple[list[dict[str, Any]], str]] = []
+    current: list[dict[str, Any]] = []
+    for discussion in discussions:
+        trial = [*current, discussion]
+        prompt = top_level_reviewer_feedback_batch_prompt(trial)
+        if current and (
+            len(current) >= TOP_LEVEL_CLASSIFICATION_BATCH_SIZE
+            or len(prompt) > MAX_PROMPT_CHARS
+        ):
+            batches.append((current, top_level_reviewer_feedback_batch_prompt(current)))
+            current = [discussion]
+        else:
+            current = trial
+        if len(top_level_reviewer_feedback_batch_prompt(current)) > MAX_PROMPT_CHARS:
+            raise ValueError("reviewer-feedback prompt exceeds MAX_PROMPT_CHARS")
+    if current:
+        batches.append((current, top_level_reviewer_feedback_batch_prompt(current)))
+    return batches
+
+
 def top_level_author_comment_batch_prompt(
     discussions: list[dict[str, Any]],
 ) -> str:
@@ -689,12 +712,16 @@ def run_llm_for_top_level_reviewer_feedback_batch(
     discussions: list[dict[str, Any]],
     model: str,
 ) -> list[dict[str, Any]]:
-    return run_llm_for_top_level_batch(
-        discussions,
-        model,
-        top_level_reviewer_feedback_batch_prompt(discussions),
-        require_evidence_kinds=True,
-    )
+    return [
+        record
+        for batch, prompt in reviewer_feedback_prompt_batches(discussions)
+        for record in run_llm_for_top_level_batch(
+            batch,
+            model,
+            prompt,
+            require_evidence_kinds=True,
+        )
+    ]
 
 
 def run_llm_for_top_level_author_comment_batch(
