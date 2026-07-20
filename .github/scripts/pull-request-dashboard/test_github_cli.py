@@ -377,6 +377,23 @@ class GithubCliTest(unittest.TestCase):
             ),
         )
 
+    def test_app_bound_legacy_status_is_not_duplicated_as_missing(self) -> None:
+        status = {
+            "name": "EasyCLA",
+            "state": "SUCCESS",
+            "bucket": "pass",
+            "integration_id": None,
+            "status_context": True,
+        }
+
+        self.assertEqual(
+            [status],
+            include_missing_required_checks(
+                [status],
+                [{"context": "EasyCLA", "integration_id": 17893}],
+            ),
+        )
+
     def test_check_fetch_failure_remains_unknown(self) -> None:
         self.assertIsNone(include_missing_required_checks(
             None, [{"context": "build", "integration_id": 1}]

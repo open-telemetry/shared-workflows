@@ -491,14 +491,23 @@ def include_missing_required_checks(
     for requirement in required_contexts:
         context = requirement["context"]
         integration_id = requirement.get("integration_id")
+        matching_checks = [check for check in checks if check.get("name") == context]
         reported = any(
-            check.get("name") == context
-            and (
+            (
                 integration_id is None
                 or check.get("integration_id") == integration_id
             )
-            for check in checks
+            for check in matching_checks
         )
+        # Legacy statuses have no integration ID, so use them only when the
+        # requirement name is unambiguous.
+        if not reported and any(
+            check.get("status_context") for check in matching_checks
+        ):
+            reported = sum(
+                candidate.get("context") == context
+                for candidate in required_contexts
+            ) == 1
         if reported:
             continue
         complete.append({
