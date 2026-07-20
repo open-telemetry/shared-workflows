@@ -888,6 +888,7 @@ def latest_top_level_author_comment_handoff(
         outcome
         for outcome in outcomes
         if outcome["timestamp"] > root_timestamp
+        and outcome["action"] in ("author", "external", "none")
         and feedback_id == outcome["feedback_id"]
     ]
     if (

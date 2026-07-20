@@ -2016,6 +2016,39 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertEqual(history, {})
 
+    def test_unclear_reply_preserves_explicit_external_handoff(self) -> None:
+        discussion = top_level_item("dependency")
+        author_comment_outcomes = [
+            {
+                "source_id": 102,
+                "action": "external",
+                "timestamp": "2026-07-14T02:00:00Z",
+                "feedback_id": "dependency",
+            },
+            {
+                "source_id": 103,
+                "action": "unclear",
+                "timestamp": "2026-07-14T03:00:00Z",
+                "feedback_id": "dependency",
+            },
+        ]
+
+        pending_actions, history = advance_top_level_actions(
+            [discussion],
+            [classification("dependency", "reply")],
+            [],
+            {},
+            "author",
+            previous_history=None,
+            author_comment_outcomes=author_comment_outcomes,
+        )
+
+        self.assertEqual(
+            pending_actions["dependency"],
+            {"action": "external", "since": "2026-07-14T02:00:00Z"},
+        )
+        self.assertEqual(history, {})
+
     def test_satisfied_evidence_is_not_reopened_by_external_reply(self) -> None:
         discussion = top_level_item("code")
         events = [
