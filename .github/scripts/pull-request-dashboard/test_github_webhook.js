@@ -14,6 +14,11 @@ test("refreshes when the dashboard override label changes", () => {
   assert.equal(isAllowedAction("pull_request", "unlabeled"), true);
 });
 
+test("refreshes when a review request is added or removed", () => {
+  assert.equal(isAllowedAction("pull_request", "review_requested"), true);
+  assert.equal(isAllowedAction("pull_request", "review_request_removed"), true);
+});
+
 test("recognizes comments performed by the dashboard app", () => {
   assert.equal(isDashboardSelfTriggeredCommentEvent("issue_comment", {
     comment: {

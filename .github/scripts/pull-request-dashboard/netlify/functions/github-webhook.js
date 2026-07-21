@@ -19,6 +19,8 @@ const ALLOWED_ACTIONS = {
     "opened",
     "ready_for_review",
     "reopened",
+    "review_request_removed",
+    "review_requested",
     "synchronize",
     "unassigned",
     "unlabeled",
