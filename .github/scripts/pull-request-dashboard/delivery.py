@@ -28,10 +28,6 @@ def runner_temp_path(name: str) -> Path:
     return Path(os.environ.get("RUNNER_TEMP", ".")) / name
 
 
-def delivery_errors_path() -> Path:
-    return runner_temp_path("dashboard-delivery-errors.txt")
-
-
 def run_delivery_action(
     label: str,
     action: Callable[[], list[str]],
@@ -48,8 +44,7 @@ def deliver_from_state(
     author_retry_snapshot_path: Path,
     copilot_retry_snapshot_path: Path,
     notification_retry_snapshot_path: Path,
-    errors_file: Path,
-) -> int:
+) -> list[str]:
     now = utc_now()
     errors: list[str] = []
     run_delivery_action(
@@ -86,11 +81,7 @@ def deliver_from_state(
         ),
         errors,
     )
-    if errors:
-        errors_file.write_text("\n".join(errors) + "\n", encoding="utf-8")
-    else:
-        errors_file.unlink(missing_ok=True)
-    return 0
+    return errors
 
 
 def deliver_with_state(
@@ -99,21 +90,24 @@ def deliver_with_state(
     state_dir: Path,
 ) -> int:
     repo_key = repo_state_key(repo)
-    errors_file = delivery_errors_path()
-    errors_file.unlink(missing_ok=True)
     author_retry = runner_temp_path("prior-author-nudge-state.json")
     copilot_retry = runner_temp_path("prior-copilot-review-request-state.json")
     notification_retry = runner_temp_path("prior-notification-state.json")
-    status = state_branch.push_state_changes(
-        state_dir,
-        "Deliver pull request dashboard updates",
-        lambda: deliver_from_state(
+    errors: list[str] = []
+
+    def deliver() -> int:
+        errors[:] = deliver_from_state(
             repo,
             author_retry,
             copilot_retry,
             notification_retry,
-            errors_file,
-        ),
+        )
+        return 0
+
+    status = state_branch.push_state_changes(
+        state_dir,
+        "Deliver pull request dashboard updates",
+        deliver,
         state_branch=state_branch_name,
         add_paths=[repo_key],
         retry_snapshots=[
@@ -124,10 +118,10 @@ def deliver_with_state(
     )
     if status != 0:
         return status
-    if not errors_file.exists():
+    if not errors:
         return 0
     print("Dashboard delivery failed:", file=sys.stderr)
-    print(errors_file.read_text(encoding="utf-8").rstrip(), file=sys.stderr)
+    print("\n".join(errors), file=sys.stderr)
     return 1
 
 

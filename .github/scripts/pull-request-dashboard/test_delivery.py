@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import tempfile
 import unittest
 from unittest.mock import ANY, Mock, call, patch
 
@@ -23,21 +22,23 @@ class DeliveryTest(unittest.TestCase):
         slack,
     ) -> None:
         order = Mock()
-        status_comments.side_effect = lambda *_args: order("status") or []
-        author_nudges.side_effect = lambda *_args: order("author") or []
-        copilot_reviews.side_effect = lambda *_args: order("copilot") or []
-        slack.side_effect = lambda *_args: order("slack") or []
-        with tempfile.TemporaryDirectory() as temp_dir:
-            errors_file = Path(temp_dir) / "errors"
-            status = delivery.deliver_from_state(
-                "open-telemetry/example",
-                Path(temp_dir) / "author",
-                Path(temp_dir) / "copilot",
-                Path(temp_dir) / "slack",
-                errors_file,
-            )
 
-        self.assertEqual(0, status)
+        def record(label: str) -> list[str]:
+            order(label)
+            return []
+
+        status_comments.side_effect = lambda *_args: record("status")
+        author_nudges.side_effect = lambda *_args: record("author")
+        copilot_reviews.side_effect = lambda *_args: record("copilot")
+        slack.side_effect = lambda *_args: record("slack")
+        errors = delivery.deliver_from_state(
+            "open-telemetry/example",
+            Path("author"),
+            Path("copilot"),
+            Path("slack"),
+        )
+
+        self.assertEqual([], errors)
         self.assertEqual(
             [call("author"), call("status"), call("copilot"), call("slack")],
             order.call_args_list,
@@ -68,21 +69,43 @@ class DeliveryTest(unittest.TestCase):
         copilot_reviews,
         slack,
     ) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            errors_file = Path(temp_dir) / "errors"
-            delivery.deliver_from_state(
-                "open-telemetry/example",
-                Path(temp_dir) / "author",
-                Path(temp_dir) / "copilot",
-                Path(temp_dir) / "slack",
-                errors_file,
-            )
-            errors = errors_file.read_text(encoding="utf-8")
+        errors = delivery.deliver_from_state(
+            "open-telemetry/example",
+            Path("author"),
+            Path("copilot"),
+            Path("slack"),
+        )
 
         self.assertIn("status comments: boom", errors)
         author_nudges.assert_called_once()
         copilot_reviews.assert_called_once()
         slack.assert_called_once()
+
+    @patch.object(delivery.sys, "stderr")
+    @patch.object(delivery, "deliver_from_state", return_value=["status comments: boom"])
+    @patch.object(delivery.state_branch, "push_state_changes")
+    def test_reports_delivery_errors_after_state_push(
+        self,
+        push_state_changes,
+        _deliver_from_state,
+        _stderr,
+    ) -> None:
+        push_state_changes.side_effect = (
+            lambda _state_dir, _message, update_state, **_kwargs: update_state()
+        )
+
+        with (
+            patch.object(delivery, "author_nudge_state_path", return_value=Path("author")),
+            patch.object(delivery, "copilot_review_request_state_path", return_value=Path("copilot")),
+            patch.object(delivery, "notification_state_path", return_value=Path("slack")),
+        ):
+            status = delivery.deliver_with_state(
+                "open-telemetry/example",
+                "dashboard-state",
+                Path("state"),
+            )
+
+        self.assertEqual(1, status)
 
 
 if __name__ == "__main__":

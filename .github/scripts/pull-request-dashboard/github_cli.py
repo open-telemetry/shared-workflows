@@ -114,11 +114,7 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
     return data
 
 
-def request_copilot_review(repo: str, number: int) -> None:
-    pull = gh_api(f"/repos/{normalize_repo(repo)}/pulls/{number}")
-    pull_request_id = pull.get("node_id") if isinstance(pull, dict) else None
-    if not pull_request_id:
-        raise RuntimeError(f"GitHub did not return a node ID for PR #{number} in {repo}")
+def request_copilot_review(pull_request_id: str) -> None:
     gh_graphql(
         REQUEST_COPILOT_REVIEW_MUTATION,
         {
@@ -171,6 +167,9 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                     fullDatabaseId
                     commit {
                         oid
+                    }
+                    comments {
+                        totalCount
                     }
                     url
                     body
@@ -341,6 +340,9 @@ def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, A
             reviews.append({
                 "id": database_id,
                 "commit_id": ((review.get("commit") or {}).get("oid") or ""),
+                "finding_count": int(
+                    (review.get("comments") or {}).get("totalCount") or 0
+                ),
                 "url": review.get("url") or "",
                 "user": review.get("author") or {},
                 "state": review.get("state") or "",

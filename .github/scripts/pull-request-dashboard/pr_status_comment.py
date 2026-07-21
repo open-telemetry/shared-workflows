@@ -3,19 +3,12 @@
 
 from __future__ import annotations
 
-import argparse
-import os
 import sys
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
 from github_cli import (
-    detect_repo,
     gh_api,
-    list_all_open_pr_numbers,
-    normalize_repo,
-    repo_state_key,
     run_gh,
 )
 from route_presentation import route_status_summary
@@ -23,11 +16,8 @@ from state import (
     load_dashboard_state_cache,
     load_status_comment_rollout_state,
     save_status_comment_rollout_state,
-    set_state_dir,
-    status_comment_rollout_state_path,
 )
 from utils import markdown_escape, truncate
-import state_branch
 from utils import utc_now
 
 
@@ -358,75 +348,3 @@ def update_status_comments_from_state(
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
     save_status_comment_rollout_state(rollout_state)
     return errors
-
-
-def rollout_errors_path() -> Path:
-    return Path(os.environ.get("RUNNER_TEMP", ".")) / "status-comment-rollout-errors.txt"
-
-
-def update_status_comments(
-    repo: str,
-    pr_number: int | None,
-    open_pr_numbers: set[int] | None,
-    errors_file: Path,
-) -> int:
-    errors = update_status_comments_from_state(repo, pr_number, open_pr_numbers)
-    if errors:
-        errors_file.write_text("\n".join(errors) + "\n", encoding="utf-8")
-    else:
-        errors_file.unlink(missing_ok=True)
-    return 0
-
-
-def update_status_comments_with_state(
-    repo: str,
-    state_branch_name: str,
-    state_dir: Path,
-    pr_number: int | None,
-) -> int:
-    open_pr_numbers = list_all_open_pr_numbers(repo)
-    repo_key = repo_state_key(repo)
-    errors_file = rollout_errors_path()
-    errors_file.unlink(missing_ok=True)
-    status = state_branch.push_state_changes(
-        state_dir,
-        "Update status comment rollout state",
-        lambda: update_status_comments(
-            repo,
-            pr_number,
-            open_pr_numbers,
-            errors_file,
-        ),
-        state_branch=state_branch_name,
-        add_paths=[f"{repo_key}/{status_comment_rollout_state_path().name}"],
-    )
-    if status != 0:
-        return status
-    if not errors_file.exists():
-        return 0
-    print("Status comment rollout failed:", file=sys.stderr)
-    print(errors_file.read_text(encoding="utf-8").rstrip(), file=sys.stderr)
-    return 1
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
-    parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument("--pr-number", type=int, help="targeted pull request to update")
-    args = parser.parse_args()
-
-    repo = normalize_repo(args.repo) if args.repo else detect_repo()
-
-    with state_branch.temporary_state_dir() as state_dir:
-        set_state_dir(state_dir / repo_state_key(repo))
-        return update_status_comments_with_state(
-            repo,
-            args.state_branch,
-            state_dir,
-            args.pr_number,
-        )
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -193,7 +193,12 @@ from classification import (
     prune_classification_cache,
 )
 from author_nudge import record_author_nudge_observation
-from copilot_review import record_copilot_review_observation
+from copilot_review import (
+    apply_copilot_review_gate,
+    copilot_review_status,
+    is_copilot_reviewer,
+    record_copilot_review_observation,
+)
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -239,55 +244,14 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:
 # human author behind a Copilot-authored PR.
 _COPILOT_COMMITTER_LOGINS = {"copilot"}
 _COPILOT_PR_AUTHORS = {"app/copilot-swe-agent", "copilot"}
-_COPILOT_REVIEWER_LOGINS = {"copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
 _MAINTENANCE_BOT_PR_AUTHORS = {"app/otelbot", "app/renovate"}
 
 
 def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
     login = actor_login(obj)
-    if login.lower() in _COPILOT_REVIEWER_LOGINS:
+    if is_copilot_reviewer(obj):
         return "copilot-pull-request-reviewer[bot]"
     return login
-
-
-def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
-    return reviewer_actor_login(obj) == "copilot-pull-request-reviewer[bot]"
-
-
-def has_copilot_review(raw: dict[str, Any]) -> bool:
-    return any(
-        is_copilot_reviewer(review.get("user"))
-        for review in (raw.get("reviews") or [])
-    )
-
-
-def copilot_review_needed(raw: dict[str, Any]) -> bool:
-    copilot_reviews = [
-        review
-        for review in (raw.get("reviews") or [])
-        if is_copilot_reviewer(review.get("user"))
-    ]
-    if not copilot_reviews:
-        return False
-    current_head = ((raw.get("commits") or [{}])[-1].get("sha") or "")
-    if not current_head:
-        return False
-    current_head_reviews = [
-        review
-        for review in copilot_reviews
-        if (review.get("commit_id") or "") == current_head
-    ]
-    if not current_head_reviews:
-        return True
-    review_ids_with_findings = {
-        comment.get("pull_request_review_id")
-        for comment in (raw.get("review_comments") or [])
-    }
-    latest_review = max(
-        current_head_reviews,
-        key=lambda review: review.get("submitted_at") or "",
-    )
-    return latest_review.get("id") in review_ids_with_findings
 
 
 def human_author_for_copilot_pr(raw: dict[str, Any]) -> str:
@@ -579,16 +543,21 @@ def compute_facts(
     api_author = actor_login(pr.get("author") or {})
     assignees = [reviewer_actor_login(a) for a in (pr.get("assignees") or [])]
     assignees = [a for a in assignees if a]
+    head_sha = ((raw.get("commits") or [{}])[-1].get("sha") or "")
+    copilot_review_exists, copilot_review_needed = copilot_review_status(
+        raw.get("reviews") or [],
+        head_sha,
+    )
     facts = {
         "author": author,
         "assignees": assignees,
-        "head_sha": ((raw.get("commits") or [{}])[-1].get("sha") or ""),
+        "head_sha": head_sha,
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (pr.get("reviewRequests") or [])
         ),
-        "copilot_review_exists": has_copilot_review(raw),
-        "copilot_review_needed": copilot_review_needed(raw),
+        "copilot_review_exists": copilot_review_exists,
+        "copilot_review_needed": copilot_review_needed,
         "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
         "is_draft": bool(pr.get("isDraft")),
         "approval_count": current_approval_count(events),
@@ -1258,26 +1227,6 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     return "approver"
 
 
-def apply_copilot_review_gate(
-    repo: str,
-    number: int,
-    facts: dict[str, Any],
-    route: str,
-    *,
-    enabled: bool,
-) -> str:
-    facts["copilot_review_request_needed"] = False
-    if not enabled or route not in ("approver", "maintainer"):
-        return route
-    if not facts.get("copilot_review_exists"):
-        return "copilot"
-    if not facts.get("copilot_review_needed"):
-        return route
-    if not facts.get("copilot_review_requested"):
-        facts["copilot_review_request_needed"] = True
-    return "copilot"
-
-
 def discussions_by_id(discussions: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {t["discussion_id"]: t for t in discussions}
 
@@ -1534,8 +1483,6 @@ def build_pr_result(
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
         route = apply_copilot_review_gate(
-            repo,
-            number,
             facts,
             route_pr(facts, pending_actions, required_approvals),
             enabled=require_clean_copilot_review,

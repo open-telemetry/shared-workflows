@@ -8,11 +8,11 @@ import unittest
 from unittest.mock import ANY, Mock, call, patch
 
 from classification import discussion_prompt_input
+from copilot_review import apply_copilot_review_gate
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     DashboardUpdate,
     add_wait_age_facts,
-    apply_copilot_review_gate,
     apply_targeted_dashboard_update,
     author_action_discussion_urls,
     backfill_failed_pr_numbers,
@@ -202,12 +202,14 @@ class CopilotReviewGateTest(unittest.TestCase):
                     {
                         "id": 10,
                         "commit_id": "old-head",
+                        "finding_count": 1,
                         "user": {"login": "copilot-pull-request-reviewer[bot]"},
                         "submitted_at": "2026-07-20T01:30:00Z",
                     },
                     {
                         "id": 20,
                         "commit_id": "current-head",
+                        "finding_count": 0,
                         "user": {"login": "copilot-pull-request-reviewer"},
                         "submitted_at": "2026-07-20T02:30:00Z",
                     },
@@ -242,12 +244,14 @@ class CopilotReviewGateTest(unittest.TestCase):
                     {
                         "id": 10,
                         "commit_id": "current-head",
+                        "finding_count": 0,
                         "user": {"login": "copilot"},
                         "submitted_at": "2026-07-20T02:30:00Z",
                     },
                     {
                         "id": 20,
                         "commit_id": "old-head",
+                        "finding_count": 1,
                         "user": {"login": "copilot"},
                         "submitted_at": "2026-07-20T03:00:00Z",
                     },
@@ -278,6 +282,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                     {
                         "id": 20,
                         "commit_id": "reviewed-head",
+                        "finding_count": 0,
                         "user": {"login": "copilot"},
                         "submitted_at": "2026-07-20T02:30:00Z",
                     },
@@ -309,12 +314,14 @@ class CopilotReviewGateTest(unittest.TestCase):
                     {
                         "id": 10,
                         "commit_id": "current-head",
+                        "finding_count": 0,
                         "user": {"login": "copilot"},
                         "submitted_at": "2026-07-20T01:30:00Z",
                     },
                     {
                         "id": 20,
                         "commit_id": "current-head",
+                        "finding_count": 1,
                         "user": {"login": "copilot"},
                         "submitted_at": "2026-07-20T02:30:00Z",
                     },
@@ -345,6 +352,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                     {
                         "id": 20,
                         "commit_id": "reviewed-head",
+                        "finding_count": 1,
                         "user": {"login": "copilot"},
                         "submitted_at": "2026-07-20T02:30:00Z",
                     },
@@ -391,8 +399,6 @@ class CopilotReviewGateTest(unittest.TestCase):
         }
 
         route = apply_copilot_review_gate(
-            "open-telemetry/example",
-            7,
             facts,
             "approver",
             enabled=True,
@@ -409,8 +415,6 @@ class CopilotReviewGateTest(unittest.TestCase):
         }
 
         route = apply_copilot_review_gate(
-            "open-telemetry/example",
-            7,
             facts,
             "maintainer",
             enabled=True,
@@ -427,8 +431,6 @@ class CopilotReviewGateTest(unittest.TestCase):
         }
 
         route = apply_copilot_review_gate(
-            "open-telemetry/example",
-            7,
             facts,
             "approver",
             enabled=True,
@@ -445,8 +447,6 @@ class CopilotReviewGateTest(unittest.TestCase):
         }
 
         route = apply_copilot_review_gate(
-            "open-telemetry/example",
-            7,
             facts,
             "maintainer",
             enabled=True,
@@ -463,8 +463,6 @@ class CopilotReviewGateTest(unittest.TestCase):
         }
 
         route = apply_copilot_review_gate(
-            "open-telemetry/example",
-            7,
             facts,
             "maintainer",
             enabled=True,
@@ -481,8 +479,6 @@ class CopilotReviewGateTest(unittest.TestCase):
         }
 
         route = apply_copilot_review_gate(
-            "open-telemetry/example",
-            7,
             facts,
             "maintainer",
             enabled=False,

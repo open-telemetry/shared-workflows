@@ -21,17 +21,12 @@ from github_cli import (
 
 class GithubCliTest(unittest.TestCase):
     @patch("github_cli.gh_graphql")
-    @patch("github_cli.gh_api")
     def test_request_copilot_review_uses_request_reviews_mutation(
         self,
-        gh_api,
         graphql,
     ) -> None:
-        gh_api.return_value = {"node_id": "PR_node_id"}
+        request_copilot_review("PR_node_id")
 
-        request_copilot_review("example", 7)
-
-        gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/7")
         graphql.assert_called_once_with(
             ANY,
             {
@@ -585,6 +580,7 @@ class GithubCliTest(unittest.TestCase):
                                     {
                                         "fullDatabaseId": "4700712792",
                                         "commit": {"oid": "reviewed-head-1"},
+                                        "comments": {"totalCount": 1},
                                         "url": "https://example.test/review/4700712792",
                                         "author": {"login": "reviewer-1"},
                                         "state": "COMMENTED",
@@ -613,6 +609,7 @@ class GithubCliTest(unittest.TestCase):
                                     {
                                         "fullDatabaseId": "5000000000",
                                         "commit": {"oid": "reviewed-head-2"},
+                                        "comments": {"totalCount": 0},
                                         "url": "https://example.test/review/5000000000",
                                         "author": {"login": "reviewer-2"},
                                         "state": "APPROVED",
@@ -636,6 +633,7 @@ class GithubCliTest(unittest.TestCase):
                     {
                         "id": 4700712792,
                         "commit_id": "reviewed-head-1",
+                        "finding_count": 1,
                         "url": "https://example.test/review/4700712792",
                         "user": {"login": "reviewer-1"},
                         "state": "COMMENTED",
@@ -646,6 +644,7 @@ class GithubCliTest(unittest.TestCase):
                     {
                         "id": 5000000000,
                         "commit_id": "reviewed-head-2",
+                        "finding_count": 0,
                         "url": "https://example.test/review/5000000000",
                         "user": {"login": "reviewer-2"},
                         "state": "APPROVED",
@@ -660,6 +659,9 @@ class GithubCliTest(unittest.TestCase):
                 },
             },
         )
+        review_query = graphql.call_args_list[0].args[0]
+        self.assertIn("comments {", review_query)
+        self.assertIn("totalCount", review_query)
         self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
         self.assertEqual(graphql.call_count, 2)
 
