@@ -57,16 +57,15 @@
         "author": "Nik-Reddy",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-07-20T21:06:06+00:00",
-        "ci_pending_count": 0,
-        "conflicts": "no",
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
+        "conflicts": "yes",
         "created_at": "2026-05-31T09:25:36+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-21T01:59:05+00:00",
+        "last_activity_at": "2026-07-21T05:01:16+00:00",
         "last_approver_activity_at": "2026-06-30T14:19:53+00:00",
-        "last_author_activity_at": "2026-07-20T21:04:29+00:00",
+        "last_author_activity_at": "2026-07-20T22:22:33+00:00",
         "last_external_activity_at": "",
         "reviewers": [
           {
@@ -94,14 +93,20 @@
             "top_level_feedback": false
           }
         ],
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-20T21:06:06+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-06-08T22:49:41+00:00"
       },
       "failed": false,
       "pr_number": 102,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/102",
-      "route": "author",
-      "top_level_history": {}
+      "route": "external",
+      "top_level_history": {
+        "pr-issue-comment-4649670931": {
+          "evidence": {
+            "commit": "2026-07-20T22:22:33Z"
+          }
+        }
+      }
     },
     "124": {
       "facts": {
