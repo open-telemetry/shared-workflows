@@ -82,9 +82,13 @@ def existing_nudge_comment(
 def render_nudge(author: str, status_url: str, waiting_since: str) -> str:
     return "\n".join([
         nudge_marker(waiting_since),
-        f"@{author}, this pull request has been waiting on your follow-up for one week.",
+        f"Hi @{author} — just a friendly reminder that this pull request has "
+        "been waiting on you for a week.",
         "",
-        f"See the [dashboard status comment]({status_url}) for the remaining items.",
+        f"There are still items that need your attention. See the "
+        f"[dashboard status comment]({status_url}) for the full list. Once "
+        "you've addressed them (or replied with an update), the dashboard will "
+        "route it back to reviewers.",
         "",
     ])
 
