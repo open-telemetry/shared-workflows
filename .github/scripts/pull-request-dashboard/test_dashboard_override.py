@@ -326,6 +326,71 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertTrue(facts["dashboard_override_requested"])
         self.assertEqual(5, facts["dashboard_override_command_id"])
 
+    def test_preserves_unacknowledged_already_routed_reply_across_refreshes(self) -> None:
+        previous = {
+            "dashboard_override_command_id": 5,
+            "dashboard_command_replies": [
+                {"comment_id": 5, "kind": "already_routed", "user": "author", "route": "approver"},
+            ],
+        }
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw,
+            "author",
+            {"dashboard:route-overridden"},
+            previous,
+        )
+
+        self.assertEqual(
+            [{"comment_id": 5, "kind": "already_routed", "user": "author", "route": "approver"}],
+            facts["dashboard_command_replies"],
+        )
+
+    def test_drops_already_routed_reply_once_app_has_posted_it(self) -> None:
+        previous = {
+            "dashboard_override_command_id": 5,
+            "dashboard_command_replies": [
+                {"comment_id": 5, "kind": "already_routed", "user": "author", "route": "approver"},
+            ],
+        }
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+                {
+                    "id": 9,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": dashboard_override.command_reply_marker(5) + "\n@author ...",
+                },
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw,
+            "author",
+            {"dashboard:route-overridden"},
+            previous,
+        )
+
+        self.assertEqual([], facts["dashboard_command_replies"])
+
+    def test_fresh_command_with_label_present_is_a_noop(self) -> None:
+        facts = {
+            "dashboard_override_label_applied": True,
+            "dashboard_override_requested": False,
+            "dashboard_override_command_new": True,
+        }
+
+        route = dashboard_override.apply_dashboard_override(facts, "approver")
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["dashboard_override_noop"])
+        self.assertTrue(facts["dashboard_override_release_requested"])
+
     def test_command_overrides_pre_review_routes(self) -> None:
         for route, expected_route, expected_pending in (
             ("author", "approver", True),

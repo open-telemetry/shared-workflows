@@ -126,14 +126,33 @@ def dashboard_override_facts(
             or bool(previous_facts.get("dashboard_override_requested"))
         )
     )
+    # A newly observed authorized command, tracked separately from the intent to
+    # apply the label so it can still earn an `already_routed` reply when the
+    # label is already present and the route is at or past reviewers.
+    command_new = command_id > previous_command_id
+    replies = pending_command_replies(raw, author, reviewers)
+    # Carry forward an unacknowledged `already_routed` reply so it survives
+    # refreshes until the publisher posts it, mirroring how the pending label
+    # request is preserved. Drop it once the dashboard app has posted the marker.
+    posted_ids = _replied_command_ids(raw.get("issue_comments"))
+    reply_ids = {int(reply.get("comment_id") or 0) for reply in replies}
+    for reply in previous_facts.get("dashboard_command_replies") or []:
+        if reply.get("kind") != "already_routed":
+            continue
+        reply_id = int(reply.get("comment_id") or 0)
+        if reply_id in posted_ids or reply_id in reply_ids:
+            continue
+        replies.append(reply)
+        reply_ids.add(reply_id)
     return {
         "dashboard_override": label_applied,
         "dashboard_override_label_applied": label_applied,
         "dashboard_override_command_id": command_id,
         "dashboard_override_command_user": command_user,
+        "dashboard_override_command_new": command_new,
         "dashboard_override_requested": label_requested,
         "dashboard_override_release_requested": False,
-        "dashboard_command_replies": pending_command_replies(raw, author, reviewers),
+        "dashboard_command_replies": replies,
     }
 
 
@@ -303,16 +322,18 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
 def apply_dashboard_override(facts: dict[str, Any], route: str) -> str:
     label_applied = bool(facts.get("dashboard_override_label_applied"))
     requested = bool(facts.get("dashboard_override_requested"))
-    command_applies = requested and route in OVERRIDABLE_ROUTES
+    command_new = bool(facts.get("dashboard_override_command_new"))
     # The override only takes effect from a pre-review route (waiting on the
     # author or an external dependency). On a route that is already at or past
     # reviewers the natural routing stands, so a label left behind cannot pin
     # the pull request at reviewers or drag it back from maintainers.
     override_applies = route in OVERRIDABLE_ROUTES and (label_applied or requested)
-    # A pending command that cannot apply because the pull request is not on an
-    # overridable route is a no-op; the author is told where it is routed.
-    facts["dashboard_override_noop"] = requested and not command_applies
-    if requested and not command_applies:
+    # A command that does not move the pull request to reviewers is a no-op; the
+    # author is told where it is routed. This covers both a pending label request
+    # on a non-overridable route and a fresh authorized command observed while the
+    # label is already applied and the route is already at or past reviewers.
+    facts["dashboard_override_noop"] = (requested or command_new) and not override_applies
+    if requested and not override_applies:
         facts["dashboard_override_requested"] = False
     facts["dashboard_override"] = override_applies
     # Release the label once automatic routing reaches or passes reviewers, so a
