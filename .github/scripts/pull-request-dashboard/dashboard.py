@@ -293,18 +293,22 @@ def copilot_review_needed(raw: dict[str, Any]) -> bool:
     current_head = ((raw.get("commits") or [{}])[-1].get("sha") or "")
     if not current_head:
         return False
+    current_head_reviews = [
+        review
+        for review in copilot_reviews
+        if (review.get("commit_id") or "") == current_head
+    ]
+    if not current_head_reviews:
+        return True
     review_ids_with_findings = {
         comment.get("pull_request_review_id")
         for comment in (raw.get("review_comments") or [])
     }
     latest_review = max(
-        copilot_reviews,
+        current_head_reviews,
         key=lambda review: review.get("submitted_at") or "",
     )
-    return (
-        latest_review.get("id") in review_ids_with_findings
-        or current_head != (latest_review.get("commit_id") or "")
-    )
+    return latest_review.get("id") in review_ids_with_findings
 
 
 def human_author_for_copilot_pr(raw: dict[str, Any]) -> str:

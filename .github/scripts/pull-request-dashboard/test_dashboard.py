@@ -226,6 +226,42 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_exists"])
         self.assertFalse(facts["copilot_review_needed"])
 
+    def test_late_stale_review_does_not_replace_clean_current_head_review(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                },
+                "reviews": [
+                    {
+                        "id": 10,
+                        "commit_id": "current-head",
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                    {
+                        "id": 20,
+                        "commit_id": "old-head",
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T03:00:00Z",
+                    },
+                ],
+                "commits": [{"sha": "old-head"}, {"sha": "current-head"}],
+                "review_comments": [{"pull_request_review_id": 20}],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertFalse(facts["copilot_review_needed"])
+
     def test_push_since_latest_clean_copilot_review_needs_rereview(self) -> None:
         facts = compute_facts(
             {
