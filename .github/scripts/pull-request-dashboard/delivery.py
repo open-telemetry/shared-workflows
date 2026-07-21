@@ -45,8 +45,6 @@ def run_delivery_action(
 
 def deliver_from_state(
     repo: str,
-    pr_number: int | None,
-    notification_kind: str,
     non_blocking_check_patterns: list[str],
     author_retry_snapshot_path: Path,
     copilot_retry_snapshot_path: Path,
@@ -69,7 +67,7 @@ def deliver_from_state(
         "status comments",
         lambda: update_status_comments_from_state(
             repo,
-            pr_number,
+            None,
             list_all_open_pr_numbers(repo),
         ),
         errors,
@@ -79,18 +77,17 @@ def deliver_from_state(
         lambda: deliver_copilot_review_requests(repo, now, copilot_retry_snapshot_path),
         errors,
     )
-    if notification_kind:
-        run_delivery_action(
-            "Slack notifications",
-            lambda: notify_slack_from_state(
-                repo,
-                notification_retry_snapshot_path,
-                {pr_number} if pr_number is not None else None,
-                {notification_kind},
-                now,
-            ),
-            errors,
-        )
+    run_delivery_action(
+        "Slack notifications",
+        lambda: notify_slack_from_state(
+            repo,
+            notification_retry_snapshot_path,
+            None,
+            None,
+            now,
+        ),
+        errors,
+    )
     if errors:
         errors_file.write_text("\n".join(errors) + "\n", encoding="utf-8")
     else:
@@ -102,8 +99,6 @@ def deliver_with_state(
     repo: str,
     state_branch_name: str,
     state_dir: Path,
-    pr_number: int | None,
-    notification_kind: str,
     non_blocking_check_patterns: list[str],
 ) -> int:
     repo_key = repo_state_key(repo)
@@ -117,8 +112,6 @@ def deliver_with_state(
         "Deliver pull request dashboard updates",
         lambda: deliver_from_state(
             repo,
-            pr_number,
-            notification_kind,
             non_blocking_check_patterns,
             author_retry,
             copilot_retry,
@@ -146,13 +139,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument("--pr-number", type=int, help="targeted pull request")
-    parser.add_argument(
-        "--notification-kind",
-        choices=("", "initial", "follow-up"),
-        default="",
-        help="Slack notification kind allowed for this run",
-    )
     parser.add_argument(
         "--non-blocking-check-pattern",
         action="append",
@@ -167,8 +153,6 @@ def main() -> int:
             repo,
             args.state_branch,
             state_dir,
-            args.pr_number,
-            args.notification_kind,
             args.non_blocking_check_pattern,
         )
 

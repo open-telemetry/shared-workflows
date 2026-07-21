@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock, call, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import delivery
 
@@ -31,8 +31,6 @@ class DeliveryTest(unittest.TestCase):
             errors_file = Path(temp_dir) / "errors"
             status = delivery.deliver_from_state(
                 "open-telemetry/example",
-                7,
-                "initial",
                 ["optional-*"],
                 Path(temp_dir) / "author",
                 Path(temp_dir) / "copilot",
@@ -44,6 +42,18 @@ class DeliveryTest(unittest.TestCase):
         self.assertEqual(
             [call("author"), call("status"), call("copilot"), call("slack")],
             order.call_args_list,
+        )
+        status_comments.assert_called_once_with(
+            "open-telemetry/example",
+            None,
+            {7, 8},
+        )
+        slack.assert_called_once_with(
+            "open-telemetry/example",
+            ANY,
+            None,
+            None,
+            ANY,
         )
 
     @patch.object(delivery, "notify_slack_from_state", return_value=[])
@@ -63,8 +73,6 @@ class DeliveryTest(unittest.TestCase):
             errors_file = Path(temp_dir) / "errors"
             delivery.deliver_from_state(
                 "open-telemetry/example",
-                None,
-                "follow-up",
                 [],
                 Path(temp_dir) / "author",
                 Path(temp_dir) / "copilot",

@@ -177,4 +177,7 @@ jobs:
       issues: write # needed to open/close the hourly failure tracking issue
     uses: ./.github/workflows/workflow-failure-issue.yml
     with:
-      success: ${{ needs.resolve-targets.result == 'success' && needs.run-repo-dashboard.result == 'success' }}
+      # GitHub replaces an older pending per-repo publisher even with
+      # cancel-in-progress disabled. Its replacement drains all durable work,
+      # while genuine matrix failures take precedence over cancellation.
+      success: ${{ needs.resolve-targets.result == 'success' && (needs.run-repo-dashboard.result == 'success' || needs.run-repo-dashboard.result == 'cancelled') }}
