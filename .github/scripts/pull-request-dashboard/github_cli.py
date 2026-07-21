@@ -137,7 +137,7 @@ def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
         "id", "number", "title", "url", "author", "state", "isDraft",
         "mergeable", "mergeStateStatus", "createdAt", "updatedAt",
-        "reviewDecision", "reviewRequests", "assignees", "baseRefName",
+        "reviewDecision", "reviewRequests", "assignees", "baseRefName", "labels",
     ])
     cmd = ["gh", "pr", "view", str(number), "--repo", repo, "--json", fields]
     last: dict[str, Any] = {}

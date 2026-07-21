@@ -1,10 +1,18 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { isDashboardSelfTriggeredCommentEvent } = require("./netlify/functions/github-webhook");
+const {
+  isAllowedAction,
+  isDashboardSelfTriggeredCommentEvent,
+} = require("./netlify/functions/github-webhook");
 
 const dashboardApp = { slug: "opentelemetry-pr-dashboard" };
 const dashboardActor = { id: 1 };
+
+test("refreshes when the dashboard override label changes", () => {
+  assert.equal(isAllowedAction("pull_request", "labeled"), true);
+  assert.equal(isAllowedAction("pull_request", "unlabeled"), true);
+});
 
 test("recognizes comments performed by the dashboard app", () => {
   assert.equal(isDashboardSelfTriggeredCommentEvent("issue_comment", {

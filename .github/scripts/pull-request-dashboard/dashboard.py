@@ -199,6 +199,12 @@ from copilot_review import (
     is_copilot_reviewer,
     record_copilot_review_observation,
 )
+from dashboard_override import (
+    apply_dashboard_override,
+    append_route_noop_reply,
+    dashboard_override_facts,
+    parse_dashboard_command,
+)
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -383,6 +389,8 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
     for c in raw["issue_comments"]:
         if c.get("minimized"):
             continue
+        if parse_dashboard_command(c) is not None:
+            continue
         login = reviewer_actor_login(c.get("user") or {})
         timestamp = (
             c.get("content_updated_at")
@@ -528,6 +536,8 @@ def compute_facts(
     raw: dict[str, Any],
     author: str,
     events: list[dict[str, Any]],
+    reviewers: set[str] | None = None,
+    previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pr = raw["pr"]
     checks = raw["checks"]
@@ -548,10 +558,16 @@ def compute_facts(
         raw.get("reviews") or [],
         head_sha,
     )
+    labels = {
+        label.get("name") or ""
+        for label in pr.get("labels") or []
+        if isinstance(label, dict)
+    }
     facts = {
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
+        **dashboard_override_facts(raw, author, labels, previous_facts, reviewers or set()),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (pr.get("reviewRequests") or [])
@@ -1391,6 +1407,7 @@ def build_pr_result(
     required_approvals: int,
     non_blocking_check_patterns: list[str],
     previous_top_level_history: dict[str, dict[str, Any]] | None = None,
+    previous_facts: dict[str, Any] | None = None,
     require_clean_copilot_review: bool = False,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
@@ -1406,7 +1423,7 @@ def build_pr_result(
             return None
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
-        facts = compute_facts(raw, author, events)
+        facts = compute_facts(raw, author, events, reviewers, previous_facts)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         top_level_author_comment_items = derive_top_level_author_comment_items(
@@ -1482,11 +1499,15 @@ def build_pr_result(
                 "route": "unknown",
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
-        route = apply_copilot_review_gate(
+        route = apply_dashboard_override(
             facts,
-            route_pr(facts, pending_actions, required_approvals),
-            enabled=require_clean_copilot_review,
+            apply_copilot_review_gate(
+                facts,
+                route_pr(facts, pending_actions, required_approvals),
+                enabled=require_clean_copilot_review,
+            ),
         )
+        append_route_noop_reply(raw, facts, route)
         add_wait_age_facts(facts, route, pending_actions)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
@@ -1582,6 +1603,7 @@ def build_dashboard_update_for_pr(
         required_approvals,
         non_blocking_check_patterns,
         previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
+        previous_facts=(starting_pr_result or {}).get("facts") or {},
         require_clean_copilot_review=require_clean_copilot_review,
     )
     if trigger_pr_result is None:

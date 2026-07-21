@@ -9,6 +9,7 @@ import sys
 from typing import Any
 
 from github_cli import gh_api, run_gh
+from dashboard_override import author_override_guidance
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
     managed_status_comments,
@@ -86,9 +87,13 @@ def render_nudge(author: str, status_url: str, waiting_since: str) -> str:
         "been waiting on you for a week.",
         "",
         f"There are still items that need your attention. See the "
-        f"[dashboard status comment]({status_url}) for the full list. Once "
-        "you've addressed them (or replied with an update), the dashboard will "
-        "automatically route it back to reviewers.",
+        f"[dashboard status comment]({status_url}) for the full list. You don't "
+        "need to push a code change to hand it back — replying to move each "
+        "discussion forward is enough, whether that's answering a question, "
+        "explaining why no change is needed, or asking a follow-up. The "
+        "dashboard then automatically routes it back to reviewers.",
+        "",
+        author_override_guidance(),
         "",
     ])
 

@@ -192,6 +192,27 @@ for the tradeoffs behind this behavior.
 
 Targeted updates received before the first full dashboard run are ignored.
 
+## Reviewer routing override
+
+When the dashboard says a pull request is waiting on its author but the author
+believes it is ready for another review, the author can comment
+`/dashboard route:reviewers`. The dashboard routes the pull request to *Waiting
+on reviewers* and applies the `dashboard:route-overridden` label to mark the
+override. Members of the repository's `approver_teams` can use the same command.
+A `/dashboard route:reviewers` command from anyone else, or a command on a pull
+request that is not waiting on its author, has no routing effect. The dashboard
+replies to a `/dashboard route:reviewers` from an unauthorized user explaining
+that only the author or an approver can use it, replies to an author or approver
+command on a pull request that is not waiting on the author noting where it is
+currently routed, and replies to any unrecognized `/dashboard` command.
+
+Removing the `dashboard:route-overridden` label restores automatic routing. The
+dashboard also removes the label automatically once routing would place the pull
+request with reviewers on its own, so a forgotten override does not linger. A
+command that has already been applied is not replayed after label removal; the
+author can post a new `/dashboard route:reviewers` command if another override
+is needed later.
+
 ## Author reminder
 
 The dashboard posts one reminder when a pull request remains in *Waiting on
@@ -199,6 +220,9 @@ authors* for one week. The reminder @-mentions the author, links to the
 dashboard-managed status comment containing the remaining items, and notes that
 addressing them (or replying with an update) automatically routes the pull
 request back to reviewers.
+Both the reminder and the live status comment advertise `/dashboard route:reviewers`
+as an explicit handoff when the author believes the pull request is ready for
+review.
 
 Leaving *Waiting on authors* resets the one-week clock. If the pull request
 later returns to *Waiting on authors* and remains there for another week, the

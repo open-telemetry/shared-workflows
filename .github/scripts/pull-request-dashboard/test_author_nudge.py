@@ -21,6 +21,19 @@ def author_result(route: str = "author") -> dict:
 
 
 class AuthorNudgePolicyTest(unittest.TestCase):
+    def test_nudge_advertises_dashboard_override_command(self) -> None:
+        body = author_nudge.render_nudge(
+            "alice",
+            "https://example.test/status",
+            "2026-07-10T00:00:00+00:00",
+        )
+
+        self.assertIn(
+            "comment `/dashboard route:reviewers` to route it from waiting on the "
+            "author to waiting on reviewers",
+            body,
+        )
+
     def test_first_author_route_observation_starts_clock(self) -> None:
         due, entry = author_nudge.plan_nudge(author_result(), None, NOW)
 

@@ -11,6 +11,7 @@ from github_cli import (
     gh_api,
     run_gh,
 )
+from dashboard_override import author_override_guidance
 from route_presentation import route_status_summary
 from state import (
     load_dashboard_state_cache,
@@ -24,7 +25,7 @@ from utils import utc_now
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 9
+STATUS_COMMENT_REVISION = 10
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
@@ -32,8 +33,8 @@ NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT = 200
 STATUS_REPORT_ISSUE_URL = "https://github.com/open-telemetry/shared-workflows/issues/new"
 STATUS_REPORT_ISSUE_TEMPLATE = "incorrect-pr-dashboard-result.md"
 AUTHOR_GUIDANCE = (
-    "For each item, link to the commit that addresses it, explain why no change is needed, "
-    "or ask a follow-up question."
+    "For each item, reply to move the discussion forward, e.g. link to the commit "
+    "that addresses it, explain why no change is needed, or ask a follow-up question."
 )
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 # Remove after migrating open PRs as described by the post-rollout
@@ -44,17 +45,20 @@ LEGACY_MARKERS = (
 )
 
 
-def accuracy_note(pr: dict[str, Any]) -> str:
+def accuracy_note(pr: dict[str, Any], author_routed: bool = False) -> str:
     query = urlencode({
         "template": STATUS_REPORT_ISSUE_TEMPLATE,
         "title": "PR dashboard result looks incorrect",
         "body": f"PR: {pr.get('html_url') or ''}\n\nWhat looks incorrect:\n",
     })
     report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
-    return (
-        "_This automated status or its linked feedback items may be incorrect. "
-        f"If something looks wrong, [report it]({report_url}) with the result you expected._"
+    note = (
+        "This automated status or its linked feedback items may be incorrect. "
+        f"If something looks wrong, [report it]({report_url}) with the result you expected."
     )
+    if author_routed:
+        note += " " + author_override_guidance("see the last refreshed time above")
+    return f"_{note}_"
 
 
 def render_status_comment(
@@ -96,6 +100,7 @@ def render_status_comment(
             )
 
     feedback_indent: str | None = None
+    author_routed = False
 
     if pr.get("merged"):
         summary = ["- **Status:** Merged."]
@@ -114,6 +119,7 @@ def render_status_comment(
     else:
         route = result.get("route") or "unknown"
         if route == "author":
+            author_routed = True
             waiting_on, fallback_next_step = route_status_summary(route)
             check_action = None
             if failing_count:
@@ -187,7 +193,7 @@ def render_status_comment(
             )
         )
     lines.append("")
-    lines.append(accuracy_note(pr))
+    lines.append(accuracy_note(pr, author_routed))
     lines.append("")
     return "\n".join(lines)
 

@@ -11,6 +11,10 @@ from typing import Callable
 
 from author_nudge import deliver_prepared_author_nudges
 from copilot_review import deliver_copilot_review_requests
+from dashboard_override import (
+    deliver_dashboard_command_replies,
+    deliver_dashboard_override_requests,
+)
 from github_cli import detect_repo, list_all_open_pr_numbers, normalize_repo, repo_state_key
 from notify_slack import notify_slack_from_state
 from pr_status_comment import update_status_comments_from_state
@@ -47,6 +51,16 @@ def deliver_from_state(
 ) -> list[str]:
     now = utc_now()
     errors: list[str] = []
+    run_delivery_action(
+        "dashboard overrides",
+        lambda: deliver_dashboard_override_requests(repo),
+        errors,
+    )
+    run_delivery_action(
+        "dashboard command replies",
+        lambda: deliver_dashboard_command_replies(repo),
+        errors,
+    )
     run_delivery_action(
         "author nudges",
         lambda: deliver_prepared_author_nudges(

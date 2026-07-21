@@ -49,6 +49,13 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("  - **Inline threads:** [1]", body)
         self.assertIn("  - **Top-level feedback:** [2]", body)
         self.assertIn(f"  - _{pr_status_comment.AUTHOR_GUIDANCE}_", body)
+        self.assertIn(
+            "If you believe this pull request is incorrectly routed as waiting "
+            "on the author (see the last refreshed time above), comment "
+            "`/dashboard route:reviewers` to route it from waiting on the author to "
+            "waiting on reviewers.",
+            body,
+        )
 
     @patch.object(
         pr_status_comment,
