@@ -1427,7 +1427,7 @@ def build_pr_result(
     non_blocking_check_patterns: list[str],
     previous_top_level_history: dict[str, dict[str, Any]] | None = None,
     previous_facts: dict[str, Any] | None = None,
-    require_clean_copilot_review: bool = False,
+    require_clean_copilot_review_branches: list[str] | None = None,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
     try:
@@ -1518,6 +1518,9 @@ def build_pr_result(
                 "route": "unknown",
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
+        require_clean_copilot_review = (raw["pr"].get("baseRefName") or "") in (
+            require_clean_copilot_review_branches or []
+        )
         route = resolve_pr_route(
             facts,
             pending_actions,
@@ -1605,7 +1608,7 @@ def build_dashboard_update_for_pr(
     required_approvals: int,
     non_blocking_check_patterns: list[str],
     dashboard_state: dict[str, Any],
-    require_clean_copilot_review: bool = False,
+    require_clean_copilot_review_branches: list[str] | None = None,
 ) -> DashboardUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
     results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
@@ -1621,7 +1624,7 @@ def build_dashboard_update_for_pr(
         non_blocking_check_patterns,
         previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
         previous_facts=(starting_pr_result or {}).get("facts") or {},
-        require_clean_copilot_review=require_clean_copilot_review,
+        require_clean_copilot_review_branches=require_clean_copilot_review_branches,
     )
     if trigger_pr_result is None:
         results.pop(pr_number, None)
@@ -1964,7 +1967,7 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate
         args.required_approvals,
         args.non_blocking_check_pattern,
         loaded_dashboard_state,
-        getattr(args, "require_clean_copilot_review", False),
+        getattr(args, "require_clean_copilot_review_branches", []),
     )
 
 
@@ -2102,7 +2105,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 args.required_approvals,
                 args.non_blocking_check_pattern,
                 dashboard_state,
-                getattr(args, "require_clean_copilot_review", False),
+                getattr(args, "require_clean_copilot_review_branches", []),
             )
             calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
                 calculation,
@@ -2207,9 +2210,12 @@ def main() -> int:
         help="glob matching a non-required check to mention when it fails; repeat as needed",
     )
     parser.add_argument(
-        "--require-clean-copilot-review",
-        action="store_true",
-        help="re-request Copilot after pushes since its last clean review before reviewer or maintainer handoff",
+        "--require-clean-copilot-review-branch",
+        action="append",
+        default=[],
+        dest="require_clean_copilot_review_branches",
+        metavar="BRANCH",
+        help="require a clean Copilot review before reviewer or maintainer handoff for PRs targeting this base branch; repeat as needed",
     )
     parser.add_argument(
         "--prepare-author-nudges",

@@ -22,10 +22,10 @@ on:
         required: false
         default: "[]"
         type: string
-      require_clean_copilot_review:
+      require_clean_copilot_review_branches_json:
         required: false
-        default: false
-        type: boolean
+        default: "[]"
+        type: string
       slack_channel:
         required: false
         default: ""
@@ -127,7 +127,7 @@ jobs:
           REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
           APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
           NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
-          REQUIRE_CLEAN_COPILOT_REVIEW: ${{ inputs.require_clean_copilot_review }}
+          REQUIRE_CLEAN_COPILOT_REVIEW_BRANCHES_JSON: ${{ inputs.require_clean_copilot_review_branches_json }}
           PREPARE_AUTHOR_NUDGES: ${{ github.event_name == 'schedule' }}
         run: |
           set -euo pipefail
@@ -141,9 +141,10 @@ jobs:
           for pattern in "${non_blocking_check_patterns[@]}"; do
             dashboard_args+=(--non-blocking-check-pattern "$pattern")
           done
-          if [[ "${REQUIRE_CLEAN_COPILOT_REVIEW:-false}" == "true" ]]; then
-            dashboard_args+=(--require-clean-copilot-review)
-          fi
+          mapfile -t require_clean_copilot_review_branches < <(jq -r '.[]' <<< "$REQUIRE_CLEAN_COPILOT_REVIEW_BRANCHES_JSON")
+          for branch in "${require_clean_copilot_review_branches[@]}"; do
+            dashboard_args+=(--require-clean-copilot-review-branch "$branch")
+          done
           if [[ "${PREPARE_AUTHOR_NUDGES:-false}" == "true" ]]; then
             dashboard_args+=(--prepare-author-nudges)
           fi

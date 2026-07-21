@@ -175,6 +175,40 @@ the implementation understandable and operationally cheap.
   respond to a dashboard action. Pending required checks affect the CI column
   but do not change who owns the next action.
 
+## Copilot Review Gate
+
+- `require_clean_copilot_review_branches` is a final safety net applied only when a PR
+  would otherwise route to reviewers or maintainers — that is, after the author
+  has addressed the actionable discussions. It is not a routing input while the
+  author still owns actions.
+- The setting lists the base branches to gate rather than a single on/off
+  switch, because automatic Copilot review is itself configured per branch
+  (often only the default branch). Gating a branch with no automatic review
+  would park every ready PR on the copilot route waiting for a review that never
+  runs, so only branches with automatic review are listed and PRs targeting
+  other branches route normally.
+- Copilot findings normally return a PR to the author through ordinary
+  discussion routing: an inline finding is an unresolved review thread, and an
+  actionable one routes the PR to "waiting on author." In that common path the
+  gate never fires and no re-review is requested.
+- The gate's re-request path is deliberately narrow: it triggers when the
+  current head has no Copilot review yet (a push made the prior review stale) or
+  the author resolved Copilot's threads without a code change. Re-requesting the
+  same head is intentional — it asks Copilot to re-review after the author
+  responded, mirroring a human review cycle. Copilot's answer either clears the
+  gate or produces fresh actionable threads that route the PR back to the
+  author, so re-requesting an unchanged commit is self-correcting rather than a
+  re-request loop.
+- "Clean" means no inline comments on the current head, counted from the
+  review, not from the classifier's actionability judgment. Accepted
+  limitation: if Copilot leaves comments the classifier treats as
+  non-actionable while they stay unresolved, routing sits at reviewers but the
+  gate holds the PR on the copilot route and re-requests until Copilot returns a
+  comment-free review or the author pushes. The strict count is intentional —
+  the gate is a conservative "Copilot had nothing to say about this exact code"
+  check, and folding in classifier judgment could let a real-but-non-actionable
+  comment slip a PR to humans.
+
 ## Live PR Status Comments
 
 - Feedback totals in the live comment count the canonical author-action links
