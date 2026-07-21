@@ -132,15 +132,12 @@ def record_author_nudge_observation(
     key = str(pr_number)
     due, entry = plan_nudge(result, updated.get(key), now)
     if due and prepare_due and entry is not None:
-        facts = (result or {}).get("facts") or {}
-        head_sha = facts.get("head_sha") or ""
-        source_fingerprint = facts.get("source_fingerprint") or ""
-        if head_sha and source_fingerprint:
+        head_sha = ((result or {}).get("facts") or {}).get("head_sha") or ""
+        if head_sha:
             entry = {
                 **entry,
                 "pending_at": format_ts(now),
                 "head_sha": head_sha,
-                "source_fingerprint": source_fingerprint,
             }
     if entry is None:
         updated.pop(key, None)
@@ -149,28 +146,9 @@ def record_author_nudge_observation(
     save_author_nudges(updated)
 
 
-def current_source_fingerprint(
-    repo: str,
-    pr_number: int,
-    non_blocking_check_patterns: list[str],
-) -> tuple[dict[str, Any], str]:
-    from dashboard import dashboard_source_fingerprint, fetch_pr_raw
-
-    owner, repo_name = repo.split("/", 1)
-    raw = fetch_pr_raw(
-        repo,
-        owner,
-        repo_name,
-        {"number": pr_number},
-        non_blocking_check_patterns,
-    )
-    return raw, dashboard_source_fingerprint(raw)
-
-
 def deliver_prepared_author_nudges(
     repo: str,
     now: datetime,
-    non_blocking_check_patterns: list[str],
     retry_snapshot_path: Path | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
@@ -193,24 +171,18 @@ def deliver_prepared_author_nudges(
                 updated[key] = reset_entry
             continue
         try:
-            raw, source_fingerprint = current_source_fingerprint(
-                repo,
-                pr_number,
-                non_blocking_check_patterns,
-            )
-            pr = raw.get("pr") or {}
+            pr = gh_api(f"/repos/{repo}/pulls/{pr_number}") or {}
             expected_head = entry.get("head_sha") or ""
-            current_head = ((raw.get("commits") or [{}])[-1].get("sha") or "")
+            current_head = ((pr.get("head") or {}).get("sha") or "")
             if (
-                pr.get("state") != "OPEN"
-                or pr.get("isDraft")
+                pr.get("state") != "open"
+                or pr.get("draft")
                 or (expected_head and current_head != expected_head)
-                or source_fingerprint != entry.get("source_fingerprint")
             ):
                 updated[key] = {
                     name: value
                     for name, value in entry.items()
-                    if name not in ("pending_at", "head_sha", "source_fingerprint")
+                    if name not in ("pending_at", "head_sha")
                 }
                 continue
             nudged_at = ensure_nudge(

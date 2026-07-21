@@ -215,15 +215,10 @@ jobs:
           SLACK_CHANNEL: ${{ inputs.slack_channel }}
           SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
           REPO_NAME: ${{ inputs.repository }}
-          NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
           delivery_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
-          mapfile -t non_blocking_check_patterns < <(jq -r '.[]' <<< "$NON_BLOCKING_CHECK_PATTERNS_JSON")
-          for pattern in "${non_blocking_check_patterns[@]}"; do
-            delivery_args+=(--non-blocking-check-pattern "$pattern")
-          done
           python3 .github/scripts/pull-request-dashboard/delivery.py "${delivery_args[@]}"
 
       - name: Publish dashboard issue

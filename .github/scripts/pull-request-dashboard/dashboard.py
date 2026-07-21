@@ -159,8 +159,6 @@ runs when no underlying PR data has changed.
 from __future__ import annotations
 
 import argparse
-import hashlib
-import json
 import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor
@@ -218,25 +216,6 @@ DEFAULT_MODEL = "gpt-5.4-mini"
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
 DEFAULT_BACKFILL_MAX_PRS = 50
 BACKFILL_RECORDED_FAILURE_STATUS = 2
-
-
-def dashboard_source_fingerprint(raw: dict[str, Any]) -> str:
-    source = {
-        key: raw.get(key)
-        for key in (
-            "pr",
-            "issue_comments",
-            "review_comments",
-            "reviews",
-            "commits",
-            "checks",
-            "non_blocking_check_failures",
-            "review_threads",
-            "pr_metadata",
-        )
-    }
-    encoded = json.dumps(source, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded).hexdigest()
 
 # ---------------------------------------------------------------- model helpers
 
@@ -604,7 +583,6 @@ def compute_facts(
         "author": author,
         "assignees": assignees,
         "head_sha": ((raw.get("commits") or [{}])[-1].get("sha") or ""),
-        "source_fingerprint": dashboard_source_fingerprint(raw),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (pr.get("reviewRequests") or [])

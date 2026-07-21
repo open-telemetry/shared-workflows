@@ -537,6 +537,7 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                     )
 
 class StatusCommentQueueTest(unittest.TestCase):
+    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
@@ -550,6 +551,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         enqueue_update: Mock,
         save_state: Mock,
         record_nudge: Mock,
+        _record_copilot: Mock,
     ) -> None:
         args = Namespace(pr_number=None)
 
@@ -567,6 +569,7 @@ class StatusCommentQueueTest(unittest.TestCase):
             sorted(record_nudge.call_args_list, key=lambda value: value.args[0]),
         )
 
+    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
@@ -579,6 +582,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
+        _record_copilot: Mock,
     ) -> None:
         accepted_result = {"route": "author"}
         calculation = DashboardUpdate(
@@ -602,6 +606,7 @@ class StatusCommentQueueTest(unittest.TestCase):
             prepare_due=True,
         )
 
+    @patch("dashboard.record_copilot_review_observation")
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
@@ -614,6 +619,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
+        _record_copilot: Mock,
     ) -> None:
         accepted_result = {"route": "approver"}
         calculation = DashboardUpdate(

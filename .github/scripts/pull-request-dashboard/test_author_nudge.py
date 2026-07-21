@@ -16,7 +16,6 @@ def author_result(route: str = "author") -> dict:
         "facts": {
             "author": "alice",
             "head_sha": "current-head",
-            "source_fingerprint": "current-source",
         },
     }
 
@@ -150,7 +149,6 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                     "nudged_at": "",
                     "pending_at": "2026-07-17T00:00:00+00:00",
                     "head_sha": "current-head",
-                    "source_fingerprint": "current-source",
                 }
             },
         )
@@ -170,7 +168,6 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "nudged_at": "",
                 "pending_at": "2026-07-17T00:00:00+00:00",
                 "head_sha": "current-head",
-                "source_fingerprint": "current-source",
             }
         },
     )
@@ -181,18 +178,16 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     )
     @patch.object(
         author_nudge,
-        "current_source_fingerprint",
-        return_value=(
-            {
-                "pr": {"state": "OPEN", "isDraft": False},
-                "commits": [{"sha": "current-head"}],
-            },
-            "current-source",
-        ),
+        "gh_api",
+        return_value={
+            "state": "open",
+            "draft": False,
+            "head": {"sha": "current-head"},
+        },
     )
     def test_delivery_records_posted_nudge(
         self,
-        current_source,
+        gh_api,
         _load_dashboard_state,
         _load_nudges,
         save_nudges,
@@ -201,11 +196,10 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         errors = author_nudge.deliver_prepared_author_nudges(
             "open-telemetry/example",
             NOW,
-            ["optional-*"],
         )
 
         self.assertEqual([], errors)
-        current_source.assert_called_once_with("open-telemetry/example", 1, ["optional-*"])
+        gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/1")
         ensure_nudge.assert_called_once()
         save_nudges.assert_called_once_with({
             "1": {
@@ -225,7 +219,6 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "nudged_at": "",
                 "pending_at": "2026-07-17T00:00:00+00:00",
                 "head_sha": "current-head",
-                "source_fingerprint": "accepted-source",
             }
         },
     )
@@ -236,18 +229,16 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     )
     @patch.object(
         author_nudge,
-        "current_source_fingerprint",
-        return_value=(
-            {
-                "pr": {"state": "OPEN", "isDraft": False},
-                "commits": [{"sha": "current-head"}],
-            },
-            "changed-source",
-        ),
+        "gh_api",
+        return_value={
+            "state": "open",
+            "draft": False,
+            "head": {"sha": "new-head"},
+        },
     )
-    def test_delivery_defers_when_routing_inputs_changed(
+    def test_delivery_defers_when_head_advanced(
         self,
-        _current_source,
+        _gh_api,
         _load_dashboard_state,
         _load_nudges,
         save_nudges,
@@ -256,7 +247,6 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         errors = author_nudge.deliver_prepared_author_nudges(
             "open-telemetry/example",
             NOW,
-            [],
         )
 
         self.assertEqual([], errors)

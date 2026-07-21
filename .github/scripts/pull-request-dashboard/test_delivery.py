@@ -31,7 +31,6 @@ class DeliveryTest(unittest.TestCase):
             errors_file = Path(temp_dir) / "errors"
             status = delivery.deliver_from_state(
                 "open-telemetry/example",
-                ["optional-*"],
                 Path(temp_dir) / "author",
                 Path(temp_dir) / "copilot",
                 Path(temp_dir) / "slack",
@@ -73,7 +72,6 @@ class DeliveryTest(unittest.TestCase):
             errors_file = Path(temp_dir) / "errors"
             delivery.deliver_from_state(
                 "open-telemetry/example",
-                [],
                 Path(temp_dir) / "author",
                 Path(temp_dir) / "copilot",
                 Path(temp_dir) / "slack",

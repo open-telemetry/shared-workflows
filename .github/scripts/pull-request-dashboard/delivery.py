@@ -45,7 +45,6 @@ def run_delivery_action(
 
 def deliver_from_state(
     repo: str,
-    non_blocking_check_patterns: list[str],
     author_retry_snapshot_path: Path,
     copilot_retry_snapshot_path: Path,
     notification_retry_snapshot_path: Path,
@@ -58,7 +57,6 @@ def deliver_from_state(
         lambda: deliver_prepared_author_nudges(
             repo,
             now,
-            non_blocking_check_patterns,
             author_retry_snapshot_path,
         ),
         errors,
@@ -99,7 +97,6 @@ def deliver_with_state(
     repo: str,
     state_branch_name: str,
     state_dir: Path,
-    non_blocking_check_patterns: list[str],
 ) -> int:
     repo_key = repo_state_key(repo)
     errors_file = delivery_errors_path()
@@ -112,7 +109,6 @@ def deliver_with_state(
         "Deliver pull request dashboard updates",
         lambda: deliver_from_state(
             repo,
-            non_blocking_check_patterns,
             author_retry,
             copilot_retry,
             notification_retry,
@@ -139,12 +135,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument(
-        "--non-blocking-check-pattern",
-        action="append",
-        default=[],
-        help="glob matching a non-required check; repeat as needed",
-    )
     args = parser.parse_args()
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     with state_branch.temporary_state_dir() as state_dir:
@@ -153,7 +143,6 @@ def main() -> int:
             repo,
             args.state_branch,
             state_dir,
-            args.non_blocking_check_pattern,
         )
 
 
