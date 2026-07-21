@@ -242,7 +242,7 @@
     },
     "829": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -253,18 +253,27 @@
         "created_at": "2026-07-21T00:37:10+00:00",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-21T03:25:32+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-21T05:48:41+00:00",
+        "last_approver_activity_at": "2026-07-21T05:48:41+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-21T00:37:07+00:00",
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-21T00:37:10+00:00"
       },
       "failed": false,
       "pr_number": 829,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/829",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
