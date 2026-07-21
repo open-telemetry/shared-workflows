@@ -88,7 +88,7 @@ def render_nudge(author: str, status_url: str, waiting_since: str) -> str:
         f"There are still items that need your attention. See the "
         f"[dashboard status comment]({status_url}) for the full list. Once "
         "you've addressed them (or replied with an update), the dashboard will "
-        "route it back to reviewers.",
+        "automatically route it back to reviewers.",
         "",
     ])
 

@@ -197,8 +197,8 @@ Targeted updates received before the first full dashboard run are ignored.
 The dashboard posts one reminder when a pull request remains in *Waiting on
 authors* for one week. The reminder @-mentions the author, links to the
 dashboard-managed status comment containing the remaining items, and notes that
-addressing them (or replying with an update) routes the pull request back to
-reviewers.
+addressing them (or replying with an update) automatically routes the pull
+request back to reviewers.
 
 Leaving *Waiting on authors* resets the one-week clock. If the pull request
 later returns to *Waiting on authors* and remains there for another week, the
