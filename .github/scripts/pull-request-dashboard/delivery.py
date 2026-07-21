@@ -56,21 +56,21 @@ def deliver_from_state(
     now = utc_now()
     errors: list[str] = []
     run_delivery_action(
-        "status comments",
-        lambda: update_status_comments_from_state(
-            repo,
-            pr_number,
-            list_all_open_pr_numbers(repo),
-        ),
-        errors,
-    )
-    run_delivery_action(
         "author nudges",
         lambda: deliver_prepared_author_nudges(
             repo,
             now,
             non_blocking_check_patterns,
             author_retry_snapshot_path,
+        ),
+        errors,
+    )
+    run_delivery_action(
+        "status comments",
+        lambda: update_status_comments_from_state(
+            repo,
+            pr_number,
+            list_all_open_pr_numbers(repo),
         ),
         errors,
     )

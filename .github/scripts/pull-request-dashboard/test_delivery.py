@@ -42,7 +42,7 @@ class DeliveryTest(unittest.TestCase):
 
         self.assertEqual(0, status)
         self.assertEqual(
-            [call("status"), call("author"), call("copilot"), call("slack")],
+            [call("author"), call("status"), call("copilot"), call("slack")],
             order.call_args_list,
         )
 
