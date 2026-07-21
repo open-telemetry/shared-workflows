@@ -16,7 +16,6 @@ from pr_status_comment import (
     publish_pr_status,
 )
 from state import (
-    author_nudge_state_path,
     load_author_nudges,
     load_dashboard_state_cache,
     save_author_nudges,
