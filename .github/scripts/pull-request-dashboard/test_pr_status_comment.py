@@ -500,6 +500,43 @@ class RolloutStateTest(unittest.TestCase):
         pr_status_comment,
         "load_status_comment_rollout_state",
         return_value={
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "completed_revision": 0,
+            "pending_pr_numbers": [12, 34],
+        },
+    )
+    def test_rollout_drains_queued_closed_pr(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        status = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            None,
+            {34},
+        )
+
+        self.assertEqual([], status)
+        self.assertEqual(
+            [12, 34],
+            [call.args[1] for call in publish_pr_status.call_args_list],
+        )
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([], saved_state["pending_pr_numbers"])
+        self.assertEqual(
+            pr_status_comment.STATUS_COMMENT_REVISION,
+            saved_state["completed_revision"],
+        )
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
             "target_revision": 0,
             "completed_revision": 0,
             "pending_pr_numbers": [],

@@ -319,6 +319,7 @@ def update_status_comments_from_state(
     saved_rollout_state = load_status_comment_rollout_state()
     if open_pr_numbers is None:
         raise RuntimeError("open PR numbers are required for a status comment update")
+    queued_pr_numbers = set(saved_rollout_state.get("pending_pr_numbers") or [])
     rollout_state = prepare_rollout_state(saved_rollout_state, open_pr_numbers)
     if pr_number is not None:
         publish_pr_status(repo, pr_number, dashboard_state)
@@ -331,7 +332,8 @@ def update_status_comments_from_state(
             save_status_comment_rollout_state(rollout_state)
         return []
 
-    rollout_pr_numbers = rollout_state["pending_pr_numbers"][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    pending_pr_numbers = set(rollout_state["pending_pr_numbers"]) | queued_pr_numbers
+    rollout_pr_numbers = sorted(pending_pr_numbers)[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
     errors: list[str] = []
     for number in rollout_pr_numbers:
@@ -342,7 +344,7 @@ def update_status_comments_from_state(
         else:
             successful_pr_numbers.add(number)
 
-    pending = set(rollout_state["pending_pr_numbers"]) - successful_pr_numbers
+    pending = pending_pr_numbers - successful_pr_numbers
     rollout_state["pending_pr_numbers"] = sorted(pending)
     if not pending:
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
