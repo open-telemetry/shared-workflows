@@ -202,8 +202,8 @@ from copilot_review import (
 from dashboard_override import (
     apply_dashboard_override,
     append_route_noop_reply,
+    dashboard_command_body_remainder,
     dashboard_override_facts,
-    parse_dashboard_command,
 )
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
@@ -389,8 +389,13 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
     for c in raw["issue_comments"]:
         if c.get("minimized"):
             continue
-        if parse_dashboard_command(c) is not None:
+        command_remainder = dashboard_command_body_remainder(c)
+        # A `/dashboard` command line is control metadata, not discussion. Skip
+        # the comment only when it is command-only; otherwise keep the author's
+        # explanation that follows the command as an event.
+        if command_remainder is not None and not command_remainder:
             continue
+        body = command_remainder if command_remainder is not None else (c.get("body") or "")
         login = reviewer_actor_login(c.get("user") or {})
         timestamp = (
             c.get("content_updated_at")
@@ -407,7 +412,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "updated_timestamp": timestamp,
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
-            "body": c.get("body") or "",
+            "body": body,
             "state": None,
             "path": None,
             "sha": None,

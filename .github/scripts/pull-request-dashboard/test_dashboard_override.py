@@ -7,6 +7,25 @@ import dashboard_override
 
 
 class DashboardOverrideTest(unittest.TestCase):
+    def test_dashboard_command_body_remainder(self) -> None:
+        self.assertIsNone(
+            dashboard_override.dashboard_command_body_remainder(
+                {"body": "just a normal comment"}
+            )
+        )
+        self.assertEqual(
+            "",
+            dashboard_override.dashboard_command_body_remainder(
+                {"body": "/dashboard route:reviewers"}
+            ),
+        )
+        self.assertEqual(
+            "I addressed everything by doing X.",
+            dashboard_override.dashboard_command_body_remainder(
+                {"body": "/dashboard route:reviewers\n\nI addressed everything by doing X."}
+            ),
+        )
+
     def test_latest_authorized_command_accepts_author_and_approvers(self) -> None:
         raw = {
             "issue_comments": [

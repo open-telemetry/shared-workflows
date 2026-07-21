@@ -60,6 +60,20 @@ def parse_dashboard_command(comment: dict[str, Any]) -> str | None:
     return tokens[1] if len(tokens) > 1 else ""
 
 
+def dashboard_command_body_remainder(comment: dict[str, Any]) -> str | None:
+    """Return the comment body after a leading `/dashboard` command line.
+
+    Returns None when the comment is not a `/dashboard` command, and the
+    (possibly empty) text after the command line otherwise. This lets callers
+    keep an author's explanation that follows the command while treating the
+    command line itself as control metadata.
+    """
+    if parse_dashboard_command(comment) is None:
+        return None
+    lines = (comment.get("body") or "").strip().splitlines()
+    return "\n".join(lines[1:]).strip()
+
+
 def is_authorized_commander(login: str, author: str, reviewers: set[str] | None) -> bool:
     low = (login or "").lower()
     return bool(low) and (low == author.lower() or low in (reviewers or set()))
