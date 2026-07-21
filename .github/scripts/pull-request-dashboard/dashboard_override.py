@@ -24,6 +24,12 @@ COMMAND_REPLY_MARKER_PREFIX = "<!-- pull-request-dashboard-command-reply:"
 _COMMAND_REPLY_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-command-reply:(\d+) -->"
 )
+# Automatic routes from which "route to reviewers" is a meaningful override: the
+# pull request is not yet in review. `approver` is already at reviewers and
+# `maintainer` is past them, so the override must not force those; `copilot`
+# routing reflects a required review gate that the override should not bypass.
+OVERRIDABLE_ROUTES = ("author", "external")
+REVIEWERS_OR_LATER_ROUTES = ("approver", "maintainer")
 
 
 def author_override_guidance(staleness_note: str = "") -> str:
@@ -259,18 +265,24 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
 def apply_dashboard_override(facts: dict[str, Any], route: str) -> str:
     label_applied = bool(facts.get("dashboard_override_label_applied"))
     requested = bool(facts.get("dashboard_override_requested"))
-    command_applies = requested and route == "author"
-    # A pending author command that cannot apply because the pull request is not
-    # waiting on its author is a no-op; the author is told where it is routed.
+    command_applies = requested and route in OVERRIDABLE_ROUTES
+    # The override only takes effect from a pre-review route (waiting on the
+    # author or an external dependency). On a route that is already at or past
+    # reviewers the natural routing stands, so a label left behind cannot pin
+    # the pull request at reviewers or drag it back from maintainers.
+    override_applies = route in OVERRIDABLE_ROUTES and (label_applied or requested)
+    # A pending command that cannot apply because the pull request is not on an
+    # overridable route is a no-op; the author is told where it is routed.
     facts["dashboard_override_noop"] = requested and not command_applies
     if requested and not command_applies:
         facts["dashboard_override_requested"] = False
-    facts["dashboard_override"] = label_applied or command_applies
-    # Once automatic routing would place the pull request with reviewers on its
-    # own, a lingering override label is redundant. Release it so a forgotten
-    # override does not hold the pull request at reviewers forever.
-    facts["dashboard_override_release_requested"] = label_applied and route == "approver"
-    return "approver" if facts["dashboard_override"] else route
+    facts["dashboard_override"] = override_applies
+    # Release the label once automatic routing reaches or passes reviewers, so a
+    # forgotten override cannot hold the pull request at reviewers forever.
+    facts["dashboard_override_release_requested"] = (
+        label_applied and route in REVIEWERS_OR_LATER_ROUTES
+    )
+    return "approver" if override_applies else route
 
 
 def append_route_noop_reply(
