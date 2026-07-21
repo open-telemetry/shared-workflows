@@ -33,12 +33,7 @@ def record_copilot_review_observation(
     ):
         requests.pop(key, None)
     else:
-        previous = requests.get(key) or {}
-        requests[key] = (
-            previous
-            if previous.get("head_sha") == head_sha
-            else {"head_sha": head_sha, "requested_at": ""}
-        )
+        requests[key] = {"head_sha": head_sha, "requested_at": ""}
     save_copilot_review_requests(requests)
 
 

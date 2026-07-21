@@ -51,6 +51,36 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
         "copilot_review.load_copilot_review_requests",
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "requested_at": "2026-07-20T01:00:00Z",
+            }
+        },
+    )
+    def test_same_head_request_needed_resets_acknowledgement(
+        self,
+        _load_requests,
+        save_requests,
+    ) -> None:
+        record_copilot_review_observation(
+            7,
+            {
+                "route": "copilot",
+                "facts": {
+                    "head_sha": "current-head",
+                    "copilot_review_request_needed": True,
+                },
+            },
+        )
+
+        save_requests.assert_called_once_with({
+            "7": {"head_sha": "current-head", "requested_at": ""},
+        })
+
+    @patch("copilot_review.save_copilot_review_requests")
+    @patch(
+        "copilot_review.load_copilot_review_requests",
         return_value={"7": {"head_sha": "current-head", "requested_at": ""}},
     )
     def test_clears_request_when_no_longer_needed(self, _load_requests, save_requests) -> None:
