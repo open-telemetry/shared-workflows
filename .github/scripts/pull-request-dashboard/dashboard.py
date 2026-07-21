@@ -558,7 +558,10 @@ def compute_facts(
     api_author = actor_login(pr.get("author") or {})
     assignees = [reviewer_actor_login(a) for a in (pr.get("assignees") or [])]
     assignees = [a for a in assignees if a]
-    head_sha = ((raw.get("commits") or [{}])[-1].get("sha") or "")
+    # Read the head OID straight from the PR object. Deriving it from
+    # raw["commits"] is wrong for PRs with more than 250 commits, where the
+    # commits REST endpoint truncates and the last entry is not the real head.
+    head_sha = pr.get("headRefOid") or ""
     copilot_review_exists, copilot_review_needed = copilot_review_status(
         raw.get("reviews") or [],
         head_sha,

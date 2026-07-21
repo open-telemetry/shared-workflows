@@ -238,6 +238,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                     ],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
                 },
                 "reviews": [
                     {
@@ -280,6 +281,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
                 },
                 "reviews": [
                     {
@@ -318,6 +320,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
                 },
                 "reviews": [
                     {
@@ -350,6 +353,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
                 },
                 "reviews": [
                     {
@@ -388,6 +392,7 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
                 },
                 "reviews": [
                     {
@@ -537,6 +542,44 @@ class CopilotReviewGateTest(unittest.TestCase):
         })
 
         self.assertNotIn("discussion_url", prompt_input)
+
+
+class HeadShaSourceTest(unittest.TestCase):
+    def test_head_sha_prefers_pr_head_ref_oid_over_truncated_commits(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "real-head",
+                },
+                "reviews": [
+                    {
+                        "id": 10,
+                        "commit_id": "real-head",
+                        "finding_count": 0,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                ],
+                # The commits REST endpoint is bounded at 250 entries, so its
+                # last element is not the real head for a large PR.
+                "commits": [{"sha": "commit-1"}, {"sha": "commit-250"}],
+                "review_comments": [],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertEqual(facts["head_sha"], "real-head")
+        self.assertTrue(facts["copilot_review_exists"])
+        self.assertFalse(facts["copilot_review_needed"])
 
 
 class InitialBackfillCompletionTest(unittest.TestCase):
