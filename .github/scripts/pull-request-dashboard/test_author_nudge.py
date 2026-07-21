@@ -13,7 +13,7 @@ NOW = datetime(2026, 7, 17, tzinfo=timezone.utc)
 
 
 def author_result(route: str = "author") -> dict:
-    return {"route": route, "facts": {"author": "alice"}}
+    return {"route": route, "facts": {"author": "alice", "head_sha": "current-head"}}
 
 
 class AuthorNudgePolicyTest(unittest.TestCase):
@@ -128,6 +128,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             ["approvers"],
             2,
             ["optional-*"],
+            True,
         )
 
         self.assertEqual(result, fresh_result)
@@ -143,13 +144,9 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             2,
             ["optional-*"],
             dashboard_state,
+            True,
         )
 
-    @patch.object(
-        author_nudge,
-        "ensure_nudge",
-        return_value="2026-07-17T00:00:00+00:00",
-    )
     @patch.object(
         author_nudge,
         "refresh_author_nudge_result",
@@ -166,26 +163,30 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         "load_dashboard_state_cache",
         return_value={"prs": {"1": author_result()}},
     )
-    def test_delivery_records_posted_nudge(
+    def test_preparation_records_pending_nudge(
         self,
         _load_dashboard_state,
         _load_nudges,
         save_nudges,
         refresh_result,
-        ensure_nudge,
     ) -> None:
-        author_nudge.deliver_author_nudges(
-            "open-telemetry/example", {1}, NOW, ["approvers"], 1, []
+        author_nudge.prepare_author_nudges(
+            "open-telemetry/example", {1}, NOW, ["approvers"], 1, [], False
         )
 
         refresh_result.assert_called_once()
-        ensure_nudge.assert_called_once()
         self.assertEqual(
             save_nudges.call_args.args[0],
-            {"1": {"nudged_at": "2026-07-17T00:00:00+00:00"}},
+            {
+                "1": {
+                    "waiting_since": "2026-07-01T00:00:00+00:00",
+                    "nudged_at": "",
+                    "pending_at": "2026-07-17T00:00:00+00:00",
+                    "head_sha": "current-head",
+                }
+            },
         )
 
-    @patch.object(author_nudge, "ensure_nudge")
     @patch.object(
         author_nudge,
         "refresh_author_nudge_result",
@@ -202,23 +203,20 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         "load_dashboard_state_cache",
         return_value={"prs": {"1": author_result()}},
     )
-    def test_delivery_resets_clock_for_fresh_route_departure(
+    def test_preparation_resets_clock_for_fresh_route_departure(
         self,
         _load_dashboard_state,
         _load_nudges,
         save_nudges,
         refresh_result,
-        ensure_nudge,
     ) -> None:
-        author_nudge.deliver_author_nudges(
-            "open-telemetry/example", {1}, NOW, ["approvers"], 1, []
+        author_nudge.prepare_author_nudges(
+            "open-telemetry/example", {1}, NOW, ["approvers"], 1, [], False
         )
 
         refresh_result.assert_called_once()
-        ensure_nudge.assert_not_called()
         self.assertEqual(save_nudges.call_args.args[0], {})
 
-    @patch.object(author_nudge, "ensure_nudge")
     @patch.object(
         author_nudge,
         "refresh_author_nudge_result",
@@ -235,23 +233,65 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         "load_dashboard_state_cache",
         return_value={"prs": {"1": author_result()}},
     )
-    def test_delivery_preserves_clock_when_fresh_refresh_fails(
+    def test_preparation_preserves_clock_when_fresh_refresh_fails(
         self,
         _load_dashboard_state,
         _load_nudges,
         save_nudges,
         _refresh_result,
-        ensure_nudge,
     ) -> None:
-        author_nudge.deliver_author_nudges(
-            "open-telemetry/example", {1}, NOW, ["approvers"], 1, []
+        author_nudge.prepare_author_nudges(
+            "open-telemetry/example", {1}, NOW, ["approvers"], 1, [], False
         )
 
-        ensure_nudge.assert_not_called()
         self.assertEqual(
             save_nudges.call_args.args[0],
             {"1": {"waiting_since": "2026-07-01T00:00:00+00:00", "nudged_at": ""}},
         )
+
+    @patch.object(
+        author_nudge,
+        "ensure_nudge",
+        return_value="2026-07-17T00:00:00+00:00",
+    )
+    @patch.object(author_nudge, "save_author_nudges")
+    @patch.object(
+        author_nudge,
+        "load_author_nudges",
+        return_value={
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "nudged_at": "",
+                "pending_at": "2026-07-17T00:00:00+00:00",
+                "head_sha": "current-head",
+            }
+        },
+    )
+    @patch.object(
+        author_nudge,
+        "load_dashboard_state_cache",
+        return_value={"prs": {"1": author_result()}},
+    )
+    @patch.object(
+        author_nudge,
+        "gh_api",
+        return_value={"state": "open", "draft": False, "head": {"sha": "current-head"}},
+    )
+    def test_delivery_records_posted_nudge(
+        self,
+        _gh_api,
+        _load_dashboard_state,
+        _load_nudges,
+        save_nudges,
+        ensure_nudge,
+    ) -> None:
+        errors = author_nudge.deliver_prepared_author_nudges("open-telemetry/example", NOW)
+
+        self.assertEqual([], errors)
+        ensure_nudge.assert_called_once()
+        save_nudges.assert_called_once_with({
+            "1": {"nudged_at": "2026-07-17T00:00:00+00:00"},
+        })
 
     def test_rendered_nudge_mentions_author_and_links_status(self) -> None:
         body = author_nudge.render_nudge("alice", "https://example.test/status")

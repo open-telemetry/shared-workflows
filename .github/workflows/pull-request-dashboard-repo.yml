@@ -67,7 +67,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
-      refreshed_pr_numbers: ${{ steps.dashboard-update.outputs.refreshed_pr_numbers }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -84,7 +83,7 @@ jobs:
           permission-contents: read
           permission-issues: read
           permission-members: read
-          permission-pull-requests: write
+          permission-pull-requests: read
 
       - name: Restore per-PR classification cache
         if: inputs.pr_number != ''
@@ -149,7 +148,7 @@ jobs:
           fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
 
-      - name: Deliver due author nudges
+      - name: Prepare due author nudges
         if: >-
           always() &&
           github.event_name == 'schedule' &&
@@ -163,6 +162,7 @@ jobs:
           REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
           APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
           NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
+          REQUIRE_CLEAN_COPILOT_REVIEW: ${{ inputs.require_clean_copilot_review }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
@@ -179,6 +179,9 @@ jobs:
           for pattern in "${non_blocking_check_patterns[@]}"; do
             nudge_args+=(--non-blocking-check-pattern "$pattern")
           done
+          if [[ "${REQUIRE_CLEAN_COPILOT_REVIEW:-false}" == "true" ]]; then
+            nudge_args+=(--require-clean-copilot-review)
+          fi
           python3 .github/scripts/pull-request-dashboard/author_nudge.py "${nudge_args[@]}"
 
       - name: Save per-PR classification cache
@@ -204,95 +207,6 @@ jobs:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
         run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
 
-  update-pr-status-comment:
-    needs: update-dashboard
-    if: >-
-      always() &&
-      (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
-      needs.update-dashboard.outputs.initial_backfill_complete == 'true'
-    concurrency:
-      group: ${{ github.workflow }}-status-${{ inputs.repository }}
-      cancel-in-progress: false
-    permissions:
-      contents: write
-    environment: protected
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: dashboard-token
-        with:
-          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
-          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-          owner: open-telemetry
-          repositories: ${{ inputs.repository }}
-          permission-pull-requests: write
-
-      - name: Update PR status comment
-        env:
-          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          REPO_NAME: ${{ inputs.repository }}
-        run: |
-          set -euo pipefail
-          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          status_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
-          if [[ -n "${PR_NUMBER:-}" ]]; then
-            status_args+=(--pr-number "$PR_NUMBER")
-          fi
-          python3 .github/scripts/pull-request-dashboard/pr_status_comment.py "${status_args[@]}"
-
-  notify-slack:
-    needs: update-dashboard
-    if: >-
-      always() &&
-      (needs.update-dashboard.result == 'success' || inputs.pr_number == '') &&
-      needs.update-dashboard.outputs.initial_backfill_complete == 'true' &&
-      (github.event_name == 'schedule' || inputs.pr_number != '')
-    concurrency:
-      group: ${{ github.workflow }}-notify-${{ inputs.repository }}-${{ inputs.pr_number || 'backfill' }}
-      cancel-in-progress: false
-    permissions:
-      contents: write
-    environment: protected
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: dashboard-token
-        with:
-          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
-          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-          owner: open-telemetry
-          repositories: ${{ inputs.repository }}
-          permission-pull-requests: read
-
-      - name: Send Slack notifications
-        env:
-          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_CHANNEL: ${{ inputs.slack_channel }}
-          SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
-          REPO_NAME: ${{ inputs.repository }}
-          TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
-        run: |
-          set -euo pipefail
-          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          notify_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
-          if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
-            notify_args+=(--pr-number "$TRIGGER_PR_NUMBER")
-          fi
-
-          python3 .github/scripts/pull-request-dashboard/notify_slack.py "${notify_args[@]}"
-
   publish-dashboard:
     needs: update-dashboard
     if: >-
@@ -301,9 +215,9 @@ jobs:
       needs.update-dashboard.outputs.initial_backfill_complete == 'true'
     concurrency:
       group: ${{ github.workflow }}-publish-${{ inputs.repository }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
-      contents: read
+      contents: write
     environment: protected
     runs-on: ubuntu-latest
     steps:
@@ -319,9 +233,32 @@ jobs:
           owner: open-telemetry
           repositories: ${{ inputs.repository }}
           permission-issues: write
-          permission-pull-requests: read
+          permission-pull-requests: write
+
+      - name: Deliver dashboard updates
+        id: delivery
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_CHANNEL: ${{ inputs.slack_channel }}
+          SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
+          REPO_NAME: ${{ inputs.repository }}
+          TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          delivery_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
+          if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
+            delivery_args+=(--pr-number "$TRIGGER_PR_NUMBER" --notification-kind initial)
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            delivery_args+=(--notification-kind follow-up)
+          fi
+          python3 .github/scripts/pull-request-dashboard/delivery.py "${delivery_args[@]}"
 
       - name: Publish dashboard issue
+        if: always() && steps.dashboard-token.outcome == 'success'
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ inputs.repository }}
@@ -339,3 +276,14 @@ jobs:
             publish_args+=(--large-repo)
           fi
           python3 .github/scripts/pull-request-dashboard/publish_dashboard.py "${publish_args[@]}"
+
+      - name: Report GitHub App rate limits
+        if: always() && steps.dashboard-token.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
+
+      - name: Check dashboard delivery
+        if: always() && steps.delivery.outcome == 'failure'
+        run: exit 1

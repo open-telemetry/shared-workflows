@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timedelta
+from pathlib import Path
 import sys
 from typing import Any
 
@@ -138,6 +139,7 @@ def refresh_author_nudge_result(
     approver_teams: list[str],
     required_approvals: int,
     non_blocking_check_patterns: list[str],
+    require_clean_copilot_review: bool,
 ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     from dashboard import DEFAULT_MODEL, build_dashboard_update_for_pr
 
@@ -154,18 +156,20 @@ def refresh_author_nudge_result(
         required_approvals,
         non_blocking_check_patterns,
         dashboard_state,
+        require_clean_copilot_review,
     )
     result = calculation.trigger_pr_result
     return result, update_dashboard_state_for_pr(dashboard_state, pr_number, result)
 
 
-def deliver_author_nudges(
+def prepare_author_nudges(
     repo: str,
     refreshed_pr_numbers: set[int],
     now: datetime,
     approver_teams: list[str],
     required_approvals: int,
     non_blocking_check_patterns: list[str],
+    require_clean_copilot_review: bool,
 ) -> int:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -186,13 +190,14 @@ def deliver_author_nudges(
             or now - waiting_since < NUDGE_AFTER
         ):
             continue
-        fresh_result, fresh_dashboard_state = refresh_author_nudge_result(
+        fresh_result, _fresh_dashboard_state = refresh_author_nudge_result(
             repo,
             pr_number,
             dashboard_state,
             approver_teams,
             required_approvals,
             non_blocking_check_patterns,
+            require_clean_copilot_review,
         )
         _due, fresh_entry = plan_nudge(fresh_result, updated.get(key), now)
         if fresh_entry is None:
@@ -205,17 +210,63 @@ def deliver_author_nudges(
             or fresh_result.get("route") != "author"
         ):
             continue
-        nudged_at = ensure_nudge(
-            repo,
-            pr_number,
-            fresh_result,
-            fresh_dashboard_state,
-            now,
-        )
+        fresh_facts = fresh_result.get("facts") or {}
+        updated[key] = {
+            **(fresh_entry or {}),
+            "pending_at": format_ts(now),
+            "head_sha": fresh_facts.get("head_sha") or "",
+        }
+    save_author_nudges(updated)
+    return 0
+
+
+def deliver_prepared_author_nudges(
+    repo: str,
+    now: datetime,
+    retry_snapshot_path: Path | None = None,
+) -> list[str]:
+    dashboard_state = load_dashboard_state_cache()
+    if dashboard_state is None:
+        print("dashboard state not found; skipping author nudges", file=sys.stderr)
+        return []
+    updated = dict(load_author_nudges(retry_snapshot_path))
+    dashboard_prs = dashboard_state.get("prs") or {}
+    errors: list[str] = []
+    for key, entry in sorted(updated.items(), key=lambda item: int(item[0])):
+        if not (entry or {}).get("pending_at"):
+            continue
+        pr_number = int(key)
+        result = dashboard_prs.get(key)
+        if not result or result.get("route") != "author":
+            _due, reset_entry = plan_nudge(result, entry, now)
+            if reset_entry is None:
+                updated.pop(key, None)
+            else:
+                updated[key] = reset_entry
+            continue
+        try:
+            pr = gh_api(f"/repos/{repo}/pulls/{pr_number}") or {}
+            expected_head = entry.get("head_sha") or ""
+            current_head = ((pr.get("head") or {}).get("sha") or "")
+            if (
+                pr.get("state") != "open"
+                or pr.get("draft")
+                or (expected_head and current_head != expected_head)
+            ):
+                updated[key] = {
+                    name: value
+                    for name, value in entry.items()
+                    if name not in ("pending_at", "head_sha")
+                }
+                continue
+            nudged_at = ensure_nudge(repo, pr_number, result, dashboard_state, now)
+        except Exception as e:
+            errors.append(f"PR #{pr_number}: {e}")
+            continue
         if nudged_at:
             updated[key] = {"nudged_at": nudged_at}
     save_author_nudges(updated)
-    return 0
+    return errors
 
 
 def parse_pr_numbers(value: str) -> set[int]:
@@ -250,6 +301,11 @@ def main() -> int:
         default=[],
         help="glob matching a non-required check to mention when it fails; repeat as needed",
     )
+    parser.add_argument(
+        "--require-clean-copilot-review",
+        action="store_true",
+        help="apply the clean Copilot review gate during the fresh route check",
+    )
     args = parser.parse_args()
 
     try:
@@ -269,13 +325,14 @@ def main() -> int:
         return state_branch.push_state_changes(
             state_dir,
             "Update author nudge state",
-            lambda: deliver_author_nudges(
+            lambda: prepare_author_nudges(
                 repo,
                 pr_numbers,
                 now,
                 args.approver_team,
                 args.required_approvals,
                 args.non_blocking_check_pattern,
+                args.require_clean_copilot_review,
             ),
             state_branch=args.state_branch,
             add_paths=[f"{repo_key}/{author_nudge_state_path().name}"],

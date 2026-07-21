@@ -44,10 +44,11 @@ A run flows like this:
        v
   save_dashboard_state_cache
 
-Slack notifications are sent by notify_slack.py in a separate serialized
-workflow job. That job loads the latest accepted dashboard state and
-notification state, sends any due notifications, and pushes the updated
-notification state with the same git CAS pattern.
+Status comments, author nudges, Copilot re-review requests, and Slack
+notifications are delivered by delivery.py in one serialized publishing job.
+That job loads the latest accepted dashboard state and delivery ledgers, sends
+due updates, and pushes successful acknowledgements with the same git CAS
+pattern.
 
 State files are committed and pushed first. Only after that state branch push
 succeeds does a follow-up publishing job fetch the accepted dashboard state,
@@ -180,7 +181,6 @@ from github_cli import (
     include_missing_required_checks,
     list_open_prs,
     load_reviewer_set,
-    request_copilot_review,
     normalize_repo,
     repo_state_key,
 )
@@ -193,6 +193,7 @@ from classification import (
     prune_classification_cache,
 )
 from author_nudge import record_author_nudge_observation
+from copilot_review import record_copilot_review_observation
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -577,6 +578,7 @@ def compute_facts(
     facts = {
         "author": author,
         "assignees": assignees,
+        "head_sha": ((raw.get("commits") or [{}])[-1].get("sha") or ""),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (pr.get("reviewRequests") or [])
@@ -1260,6 +1262,7 @@ def apply_copilot_review_gate(
     *,
     enabled: bool,
 ) -> str:
+    facts["copilot_review_request_needed"] = False
     if not enabled or route not in ("approver", "maintainer"):
         return route
     if not facts.get("copilot_review_exists"):
@@ -1267,8 +1270,7 @@ def apply_copilot_review_gate(
     if not facts.get("copilot_review_needed"):
         return route
     if not facts.get("copilot_review_requested"):
-        request_copilot_review(repo, number)
-        facts["copilot_review_requested"] = True
+        facts["copilot_review_request_needed"] = True
     return "copilot"
 
 
@@ -1943,6 +1945,7 @@ def remove_cached_dashboard_prs(
         state_prs.pop(str(number), None)
         enqueue_status_comment_update(number)
         record_author_nudge_observation(number, None, observed_at)
+        record_copilot_review_observation(number, None)
     dashboard_state["prs"] = state_prs
     return save_dashboard_update_state(args, dashboard_state, False)
 
@@ -1994,11 +1997,11 @@ def apply_targeted_dashboard_update(
     if not dashboard_state_unchanged and args.pr_number is not None:
         enqueue_status_comment_update(args.pr_number)
     if args.pr_number is not None:
-        record_author_nudge_observation(
-            args.pr_number,
-            (merged_calculation.dashboard_state.get("prs") or {}).get(str(args.pr_number)),
-            observed_at or utc_now(),
+        accepted_result = (merged_calculation.dashboard_state.get("prs") or {}).get(
+            str(args.pr_number)
         )
+        record_author_nudge_observation(args.pr_number, accepted_result, observed_at or utc_now())
+        record_copilot_review_observation(args.pr_number, accepted_result)
 
     return save_dashboard_update_state(
         args,
@@ -2136,6 +2139,10 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 pr_number,
                 (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
                 observed_at,
+            )
+            record_copilot_review_observation(
+                pr_number,
+                (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
             )
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
             if not dashboard_state_unchanged:

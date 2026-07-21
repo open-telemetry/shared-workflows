@@ -177,8 +177,4 @@ jobs:
       issues: write # needed to open/close the hourly failure tracking issue
     uses: ./.github/workflows/workflow-failure-issue.yml
     with:
-      # A superseded per-repo publish is cancelled (publish-dashboard uses
-      # cancel-in-progress: true), so count cancelled as success here to avoid
-      # opening noisy failure issues. Genuine failures still surface because
-      # matrix aggregation reports 'failure' in preference to 'cancelled'.
-      success: ${{ needs.resolve-targets.result == 'success' && (needs.run-repo-dashboard.result == 'success' || needs.run-repo-dashboard.result == 'cancelled') }}
+      success: ${{ needs.resolve-targets.result == 'success' && needs.run-repo-dashboard.result == 'success' }}

@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any
+from datetime import datetime
 
 from github_cli import detect_repo, list_open_prs, normalize_repo, repo_state_key
 from notifications import next_notifications
@@ -47,6 +48,7 @@ def notify_slack_from_state(
     retry_snapshot_path: Path | None,
     notification_numbers: set[int] | None,
     notification_kinds: set[str] | None,
+    now: datetime | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -66,7 +68,7 @@ def notify_slack_from_state(
         repo,
         results,
         last_notifications(saved_notifications, retry_snapshot_path),
-        utc_now(),
+        now or utc_now(),
         notification_numbers=notification_numbers,
         notification_kinds=notification_kinds,
     )

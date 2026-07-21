@@ -206,8 +206,13 @@ may wait for a later round-robin run.
 
 ## Configuration
 
-The dashboard uses repository-scoped GitHub App access to read and update each
-configured repository and to read approver team membership.
+The dashboard separates calculation from delivery. The update job uses
+repository-scoped, read-only GitHub App access to calculate routing and persist
+pending work. A serialized publishing job holds pull request and issue write
+access and durably delivers status comments, author reminders, Copilot
+re-review requests, Slack notifications, and the dashboard issue. Successful
+deliveries are recorded on the state branch before another publishing run can
+start.
 
 Each repository can route Slack notifications to its own `slack_channel` and
 map GitHub logins to Slack user IDs via `slack_user_mapping`. Repositories

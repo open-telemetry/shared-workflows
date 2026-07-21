@@ -10,19 +10,21 @@ from unittest.mock import patch
 
 from state import (
     AUTHOR_NUDGE_STATE_VERSION,
-        author_nudge_state_path,
-        load_author_nudges,
-        save_author_nudges,
     BACKFILL_STATE_VERSION,
+    COPILOT_REVIEW_REQUEST_STATE_VERSION,
     DASHBOARD_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
     STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+    author_nudge_state_path,
     backfill_state_path,
+    copilot_review_request_state_path,
     dashboard_state_path,
     empty_state,
     enqueue_status_comment_update,
     load_accepted_dashboard_state,
+    load_author_nudges,
     load_backfill_state,
+    load_copilot_review_requests,
     load_dashboard_state_cache,
     load_state_file,
     load_status_comment_rollout_state,
@@ -30,10 +32,14 @@ from state import (
     main,
     notification_state_path,
     save_state_file,
+    save_author_nudges,
+    save_copilot_review_requests,
     save_dashboard_state_cache,
     save_notifications,
     save_status_comment_rollout_state,
     stored_result,
+    union_merge_author_nudges,
+    union_merge_copilot_review_requests,
     update_dashboard_state_for_pr,
 )
 
@@ -157,7 +163,8 @@ class StateTest(unittest.TestCase):
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
         self.assertEqual(DASHBOARD_STATE_VERSION, 5)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
-        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 1)
+        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 2)
+        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 1)
 
     def test_author_nudge_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
@@ -178,6 +185,68 @@ class StateTest(unittest.TestCase):
                 },
             )
             self.assertTrue(author_nudge_state_path().exists())
+
+    def test_copilot_review_request_state_round_trip(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            save_copilot_review_requests({
+                "123": {
+                    "head_sha": "current-head",
+                    "requested_at": "",
+                }
+            })
+
+            self.assertEqual(
+                load_copilot_review_requests(),
+                {
+                    "123": {
+                        "head_sha": "current-head",
+                        "requested_at": "",
+                    }
+                },
+            )
+            self.assertTrue(copilot_review_request_state_path().exists())
+
+    def test_retry_snapshot_preserves_posted_author_nudge(self) -> None:
+        self.assertEqual(
+            {"7": {"nudged_at": "2026-07-20T02:00:00Z"}},
+            union_merge_author_nudges(
+                {"7": {"waiting_since": "2026-07-10T02:00:00Z", "nudged_at": ""}},
+                {"7": {"nudged_at": "2026-07-20T02:00:00Z"}},
+            ),
+        )
+
+    def test_retry_snapshot_preserves_same_head_copilot_request(self) -> None:
+        self.assertEqual(
+            {
+                "7": {
+                    "head_sha": "current-head",
+                    "requested_at": "2026-07-20T02:00:00Z",
+                }
+            },
+            union_merge_copilot_review_requests(
+                {"7": {"head_sha": "current-head", "requested_at": ""}},
+                {
+                    "7": {
+                        "head_sha": "current-head",
+                        "requested_at": "2026-07-20T02:00:00Z",
+                    }
+                },
+            ),
+        )
+
+    def test_retry_snapshot_does_not_overwrite_new_copilot_head(self) -> None:
+        self.assertEqual(
+            {"7": {"head_sha": "new-head", "requested_at": ""}},
+            union_merge_copilot_review_requests(
+                {"7": {"head_sha": "new-head", "requested_at": ""}},
+                {
+                    "7": {
+                        "head_sha": "old-head",
+                        "requested_at": "2026-07-20T02:00:00Z",
+                    }
+                },
+            ),
+        )
 
     def test_status_comment_rollout_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
