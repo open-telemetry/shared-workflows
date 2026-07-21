@@ -377,12 +377,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "discussion_id": "completed-reply",
                 "feedback_outcomes": [
                     {
-                        "feedback_id": "question",
+                        "feedback_key": "f0001",
                         "discussion_action": "none",
                         "reason": "The author answered the question.",
                     },
                     {
-                        "feedback_id": "test-request",
+                        "feedback_key": "f0002",
                         "discussion_action": "author",
                         "reason": "The author will add the test later.",
                     },
@@ -393,11 +393,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         discussion["discussion_kind"] = "top-level-author-reply"
         discussion["candidate_feedback"] = [
             {
-                "discussion_id": "question",
+                "discussion_id": "pr-review-3512552586",
                 "body": "Why is this branch necessary?",
             },
             {
-                "discussion_id": "test-request",
+                "discussion_id": "pr-issue-comment-3578803688",
                 "body": "Please test this before merging.",
             }
         ]
@@ -411,12 +411,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             records[0]["decision"]["feedback_outcomes"],
             [
                 {
-                    "feedback_id": "question",
+                    "feedback_id": "pr-review-3512552586",
                     "discussion_action": "none",
                     "reason": "The author answered the question.",
                 },
                 {
-                    "feedback_id": "test-request",
+                    "feedback_id": "pr-issue-comment-3578803688",
                     "discussion_action": "author",
                     "reason": "The author will add the test later.",
                 },
@@ -425,6 +425,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertNotIn("required_evidence_kinds", records[0]["decision"])
         prompt = run_copilot.call_args.args[0][2]
         self.assertIn("Please test this before merging.", prompt)
+        self.assertIn('"feedback_key": "f0001"', prompt)
+        self.assertIn('"feedback_key": "f0002"', prompt)
+        self.assertNotIn("pr-review-3512552586", prompt)
+        self.assertNotIn("pr-issue-comment-3578803688", prompt)
 
     @patch("classification.MAX_PROMPT_CHARS", 5000)
     @patch("classification.print_copilot_otel_file")
@@ -446,7 +450,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     "discussion_id": item["discussion_id"],
                     "feedback_outcomes": [
                         {
-                            "feedback_id": feedback["discussion_id"],
+                            "feedback_key": feedback["feedback_key"],
                             "discussion_action": "none",
                             "reason": "Completed response.",
                         }
@@ -477,7 +481,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertTrue(all(len(prompt) <= 5000 for prompt in prompts))
         combined_prompts = "\n".join(prompts)
         for index in range(30):
-            self.assertIn(f'"discussion_id": "feedback-{index}"', combined_prompts)
+            self.assertNotIn(f'"discussion_id": "feedback-{index}"', combined_prompts)
         self.assertEqual(
             [
                 outcome["feedback_id"]
@@ -488,7 +492,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
-    def test_author_comment_batch_rejects_unknown_feedback_id(
+    def test_author_comment_batch_rejects_unknown_feedback_key(
         self,
         run_copilot,
         _print_otel,
@@ -498,7 +502,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "discussion_id": "author-reply",
                 "feedback_outcomes": [
                     {
-                        "feedback_id": "not-a-candidate",
+                        "feedback_key": "pr-issue-comment-3841040831",
                         "discussion_action": "external",
                         "reason": "Blocked upstream.",
                     }
@@ -509,7 +513,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         discussion["discussion_kind"] = "top-level-author-reply"
         discussion["candidate_feedback"] = [
             {
-                "discussion_id": "actual-candidate",
+                "discussion_id": "pr-review-3841040831",
                 "body": "Please update the implementation.",
             }
         ]
@@ -520,7 +524,71 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertTrue(records[0]["failed"])
         self.assertEqual(records[0]["decision"]["feedback_outcomes"], [])
-        self.assertIn("valid classification", records[0]["error"])
+        self.assertIn(
+            "unknown feedback_key 'pr-issue-comment-3841040831'",
+            records[0]["error"],
+        )
+        self.assertIn("expected keys ['f0001']", records[0]["error"])
+        self.assertIn(
+            "canonical candidate IDs ['pr-review-3841040831']",
+            records[0]["error"],
+        )
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_author_comment_batch_rejects_cross_discussion_feedback_key(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.return_value = copilot_batch_response(
+            {
+                "discussion_id": "first-reply",
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": "f0002",
+                        "discussion_action": "none",
+                        "reason": "Copied from the other discussion.",
+                    }
+                ],
+            },
+            {
+                "discussion_id": "second-reply",
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": "f0002",
+                        "discussion_action": "none",
+                        "reason": "The author answered this feedback.",
+                    }
+                ],
+            },
+        )
+        discussions = [
+            {
+                **review_thread_discussion("first-reply"),
+                "discussion_kind": "top-level-author-reply",
+                "candidate_feedback": [
+                    {"discussion_id": "first-feedback", "body": "First request."}
+                ],
+            },
+            {
+                **review_thread_discussion("second-reply"),
+                "discussion_kind": "top-level-author-reply",
+                "candidate_feedback": [
+                    {"discussion_id": "second-feedback", "body": "Second request."}
+                ],
+            },
+        ]
+
+        records = run_llm_for_top_level_author_comment_batch(discussions, "model")
+
+        self.assertTrue(records[0]["failed"])
+        self.assertIn("expected keys ['f0001']", records[0]["error"])
+        self.assertFalse(records[1]["failed"])
+        self.assertEqual(
+            records[1]["decision"]["feedback_outcomes"][0]["feedback_id"],
+            "second-feedback",
+        )
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
