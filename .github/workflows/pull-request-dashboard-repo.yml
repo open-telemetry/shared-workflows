@@ -60,7 +60,7 @@ jobs:
     permissions:
       contents: write
     environment: protected
-    runs-on: ubuntu-latest
+    runs-on: cncf-ubuntu-2-8-x86
     outputs:
       initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
     steps:
@@ -175,7 +175,7 @@ jobs:
     permissions:
       contents: write
     environment: protected
-    runs-on: ubuntu-latest
+    runs-on: cncf-ubuntu-2-8-x86
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -218,7 +218,7 @@ jobs:
     permissions:
       contents: write
     environment: protected
-    runs-on: ubuntu-latest
+    runs-on: cncf-ubuntu-2-8-x86
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -264,7 +264,7 @@ jobs:
     permissions:
       contents: read
     environment: protected
-    runs-on: ubuntu-latest
+    runs-on: cncf-ubuntu-2-8-x86
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
