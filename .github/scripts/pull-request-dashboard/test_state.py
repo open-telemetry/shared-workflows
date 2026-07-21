@@ -208,10 +208,34 @@ class StateTest(unittest.TestCase):
 
     def test_retry_snapshot_preserves_posted_author_nudge(self) -> None:
         self.assertEqual(
-            {"7": {"nudged_at": "2026-07-20T02:00:00Z"}},
+            {
+                "7": {
+                    "waiting_since": "2026-07-10T02:00:00Z",
+                    "nudged_at": "2026-07-20T02:00:00Z",
+                }
+            },
             union_merge_author_nudges(
                 {"7": {"waiting_since": "2026-07-10T02:00:00Z", "nudged_at": ""}},
-                {"7": {"nudged_at": "2026-07-20T02:00:00Z"}},
+                {
+                    "7": {
+                        "waiting_since": "2026-07-10T02:00:00Z",
+                        "nudged_at": "2026-07-20T02:00:00Z",
+                    }
+                },
+            ),
+        )
+
+    def test_retry_snapshot_does_not_suppress_new_author_episode(self) -> None:
+        self.assertEqual(
+            {"7": {"waiting_since": "2026-07-20T02:00:00Z", "nudged_at": ""}},
+            union_merge_author_nudges(
+                {"7": {"waiting_since": "2026-07-20T02:00:00Z", "nudged_at": ""}},
+                {
+                    "7": {
+                        "waiting_since": "2026-07-10T02:00:00Z",
+                        "nudged_at": "2026-07-17T02:00:00Z",
+                    }
+                },
             ),
         )
 

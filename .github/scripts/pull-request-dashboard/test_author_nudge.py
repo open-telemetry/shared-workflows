@@ -59,13 +59,22 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         self.assertFalse(due)
         self.assertIsNone(entry)
 
-    def test_lifetime_nudge_marker_survives_route_changes(self) -> None:
-        previous = {"nudged_at": "2026-07-10T00:00:00+00:00"}
+    def test_returning_to_author_route_starts_new_episode(self) -> None:
+        previous = {
+            "waiting_since": "2026-07-01T00:00:00+00:00",
+            "nudged_at": "2026-07-10T00:00:00+00:00",
+        }
 
-        for result in (author_result("approver"), None, author_result()):
-            due, entry = author_nudge.plan_nudge(result, previous, NOW)
-            self.assertFalse(due)
-            self.assertEqual(entry, previous)
+        due, entry = author_nudge.plan_nudge(author_result("approver"), previous, NOW)
+        self.assertFalse(due)
+        self.assertIsNone(entry)
+
+        due, entry = author_nudge.plan_nudge(author_result(), entry, NOW)
+        self.assertFalse(due)
+        self.assertEqual(
+            entry,
+            {"waiting_since": "2026-07-17T00:00:00+00:00", "nudged_at": ""},
+        )
 
     def test_failed_refresh_preserves_clock(self) -> None:
         previous = {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""}
@@ -199,7 +208,10 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         current_source.assert_called_once_with("open-telemetry/example", 1, ["optional-*"])
         ensure_nudge.assert_called_once()
         save_nudges.assert_called_once_with({
-            "1": {"nudged_at": "2026-07-17T00:00:00+00:00"},
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "nudged_at": "2026-07-17T00:00:00+00:00",
+            },
         })
 
     @patch.object(author_nudge, "ensure_nudge")
@@ -257,11 +269,42 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         })
 
     def test_rendered_nudge_mentions_author_and_links_status(self) -> None:
-        body = author_nudge.render_nudge("alice", "https://example.test/status")
+        body = author_nudge.render_nudge(
+            "alice",
+            "https://example.test/status",
+            "2026-07-10T00:00:00+00:00",
+        )
 
         self.assertIn("@alice", body)
         self.assertIn("[dashboard status comment](https://example.test/status)", body)
-        self.assertIn(author_nudge.NUDGE_MARKER, body)
+        self.assertIn(
+            author_nudge.nudge_marker("2026-07-10T00:00:00+00:00"),
+            body,
+        )
+
+    @patch.object(
+        author_nudge,
+        "gh_api",
+        return_value=[
+            {
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": author_nudge.nudge_marker("2026-07-01T00:00:00+00:00"),
+            },
+            {
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": author_nudge.nudge_marker("2026-07-10T00:00:00+00:00"),
+                "created_at": "2026-07-17T00:00:00Z",
+            },
+        ],
+    )
+    def test_existing_nudge_matches_current_episode(self, _gh_api) -> None:
+        comment = author_nudge.existing_nudge_comment(
+            "open-telemetry/example",
+            1,
+            "2026-07-10T00:00:00+00:00",
+        )
+
+        self.assertEqual(comment["created_at"], "2026-07-17T00:00:00Z")
 
     @patch.object(author_nudge, "run_gh")
     @patch.object(author_nudge, "publish_pr_status")
@@ -291,6 +334,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             1,
             author_result(),
             dashboard_state,
+            "2026-07-10T00:00:00+00:00",
             NOW,
         )
 
@@ -309,7 +353,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     )
     def test_existing_marker_prevents_duplicate_after_state_loss(
         self,
-        _existing_comment,
+        existing_comment,
         publish_status,
         run_gh,
     ) -> None:
@@ -318,10 +362,16 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             1,
             author_result(),
             {"prs": {"1": author_result()}},
+            "2026-07-10T00:00:00+00:00",
             NOW,
         )
 
         self.assertEqual(nudged_at, "2026-07-11T00:00:00Z")
+        existing_comment.assert_called_once_with(
+            "open-telemetry/example",
+            1,
+            "2026-07-10T00:00:00+00:00",
+        )
         publish_status.assert_not_called()
         run_gh.assert_not_called()
 

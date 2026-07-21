@@ -261,8 +261,13 @@ def union_merge_author_nudges(
     merged = dict(baseline_nudges)
     for key, retry_entry in retry_snapshot_nudges.items():
         nudged_at = (retry_entry or {}).get("nudged_at") or ""
-        if nudged_at:
-            merged[key] = {"nudged_at": nudged_at}
+        waiting_since = (retry_entry or {}).get("waiting_since") or ""
+        baseline_waiting_since = (baseline_nudges.get(key) or {}).get("waiting_since") or ""
+        if nudged_at and waiting_since and waiting_since == baseline_waiting_since:
+            merged[key] = {
+                "waiting_since": waiting_since,
+                "nudged_at": nudged_at,
+            }
     return merged
 
 

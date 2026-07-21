@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Track and post one-time reminders for pull requests waiting on authors."""
+"""Track and post reminders for pull requests waiting on authors."""
 
 from __future__ import annotations
 
@@ -24,7 +24,11 @@ from utils import format_ts, parse_ts
 
 
 NUDGE_AFTER = timedelta(weeks=1)
-NUDGE_MARKER = "<!-- pull-request-dashboard-author-nudge -->"
+NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-nudge:"
+
+
+def nudge_marker(waiting_since: str) -> str:
+    return f"{NUDGE_MARKER_PREFIX}{waiting_since} -->"
 
 
 def plan_nudge(
@@ -40,11 +44,9 @@ def plan_nudge(
     ):
         return False, entry or None
     if not result or result.get("route") != "author":
-        # Reset an unnudged route clock, but retain a posted nudge for the
-        # lifetime of the PR so leaving and returning cannot trigger another.
-        return False, {"nudged_at": nudged_at} if nudged_at else None
+        return False, None
     if nudged_at:
-        return False, {"nudged_at": nudged_at}
+        return False, entry
 
     waiting_since = parse_ts(entry.get("waiting_since") or "")
     if waiting_since is None:
@@ -55,7 +57,12 @@ def plan_nudge(
     return now - waiting_since >= NUDGE_AFTER, entry
 
 
-def existing_nudge_comment(repo: str, pr_number: int) -> dict[str, Any] | None:
+def existing_nudge_comment(
+    repo: str,
+    pr_number: int,
+    waiting_since: str,
+) -> dict[str, Any] | None:
+    marker = nudge_marker(waiting_since)
     comments = gh_api(
         f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
         paginate=True,
@@ -66,15 +73,15 @@ def existing_nudge_comment(repo: str, pr_number: int) -> dict[str, Any] | None:
             for comment in comments or []
             if (comment.get("performed_via_github_app") or {}).get("slug")
             == DASHBOARD_APP_SLUG
-            and NUDGE_MARKER in (comment.get("body") or "")
+            and marker in (comment.get("body") or "")
         ),
         None,
     )
 
 
-def render_nudge(author: str, status_url: str) -> str:
+def render_nudge(author: str, status_url: str, waiting_since: str) -> str:
     return "\n".join([
-        NUDGE_MARKER,
+        nudge_marker(waiting_since),
         f"@{author}, this pull request has been waiting on your follow-up for one week.",
         "",
         f"See the [dashboard status comment]({status_url}) for the remaining items.",
@@ -87,9 +94,10 @@ def ensure_nudge(
     pr_number: int,
     result: dict[str, Any],
     dashboard_state: dict[str, Any],
+    waiting_since: str,
     now: datetime,
 ) -> str | None:
-    existing = existing_nudge_comment(repo, pr_number)
+    existing = existing_nudge_comment(repo, pr_number, waiting_since)
     if existing:
         return existing.get("created_at") or format_ts(now)
 
@@ -108,7 +116,7 @@ def ensure_nudge(
     run_gh([
         "gh", "api", "--method", "POST",
         f"repos/{repo}/issues/{pr_number}/comments",
-        "-f", f"body={render_nudge(author, status_comments[0]['html_url'])}",
+        "-f", f"body={render_nudge(author, status_comments[0]['html_url'], waiting_since)}",
     ])
     return format_ts(now)
 
@@ -205,11 +213,21 @@ def deliver_prepared_author_nudges(
                     if name not in ("pending_at", "head_sha", "source_fingerprint")
                 }
                 continue
-            nudged_at = ensure_nudge(repo, pr_number, result, dashboard_state, now)
+            nudged_at = ensure_nudge(
+                repo,
+                pr_number,
+                result,
+                dashboard_state,
+                entry.get("waiting_since") or "",
+                now,
+            )
         except Exception as e:
             errors.append(f"PR #{pr_number}: {e}")
             continue
         if nudged_at:
-            updated[key] = {"nudged_at": nudged_at}
+            updated[key] = {
+                "waiting_since": entry.get("waiting_since") or "",
+                "nudged_at": nudged_at,
+            }
     save_author_nudges(updated)
     return errors
