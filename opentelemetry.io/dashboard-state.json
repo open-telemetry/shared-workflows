@@ -2455,20 +2455,17 @@
         "approval_count": 0,
         "assignees": [],
         "author": "snowmen233",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/10917#discussion_r3620103970"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-07-21T06:13:04+00:00",
-        "ci_pending_count": 14,
+        "ci_failing_count": 0,
+        "ci_pending_count": 11,
         "conflicts": "no",
         "created_at": "2026-07-21T06:08:49+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-21T07:10:23+00:00",
+        "last_activity_at": "2026-07-21T09:43:54+00:00",
         "last_approver_activity_at": "2026-07-21T07:07:34+00:00",
-        "last_author_activity_at": "2026-07-21T06:12:52+00:00",
+        "last_author_activity_at": "2026-07-21T09:43:49+00:00",
         "last_external_activity_at": "",
         "reviewers": [
           {
@@ -2476,18 +2473,24 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "svrnm",
-            "open_thread": true,
+            "open_thread": false,
             "top_level_feedback": false
           }
         ],
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-21T06:13:04+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-21T07:07:34+00:00"
       },
       "failed": false,
       "pr_number": 10917,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10917",
-      "route": "author",
-      "top_level_history": {}
+      "route": "external",
+      "top_level_history": {
+        "pr-issue-comment-5031117406": {
+          "evidence": {
+            "commit": "2026-07-21T09:43:49Z"
+          }
+        }
+      }
     },
     "10923": {
       "facts": {
