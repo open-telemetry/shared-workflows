@@ -3,13 +3,12 @@
 
 from __future__ import annotations
 
-import argparse
 from datetime import datetime, timedelta
 from pathlib import Path
 import sys
 from typing import Any
 
-from github_cli import detect_repo, gh_api, load_reviewer_set, normalize_repo, repo_state_key, run_gh
+from github_cli import gh_api, run_gh
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
     managed_status_comments,
@@ -20,11 +19,8 @@ from state import (
     load_author_nudges,
     load_dashboard_state_cache,
     save_author_nudges,
-    set_state_dir,
-    update_dashboard_state_for_pr,
 )
-import state_branch
-from utils import format_ts, parse_ts, utc_now
+from utils import format_ts, parse_ts
 
 
 NUDGE_AFTER = timedelta(weeks=1)
@@ -121,10 +117,23 @@ def record_author_nudge_observation(
     pr_number: int,
     result: dict[str, Any] | None,
     now: datetime,
+    *,
+    prepare_due: bool = False,
 ) -> None:
     updated = dict(load_author_nudges())
     key = str(pr_number)
-    _due, entry = plan_nudge(result, updated.get(key), now)
+    due, entry = plan_nudge(result, updated.get(key), now)
+    if due and prepare_due and entry is not None:
+        facts = (result or {}).get("facts") or {}
+        head_sha = facts.get("head_sha") or ""
+        source_fingerprint = facts.get("source_fingerprint") or ""
+        if head_sha and source_fingerprint:
+            entry = {
+                **entry,
+                "pending_at": format_ts(now),
+                "head_sha": head_sha,
+                "source_fingerprint": source_fingerprint,
+            }
     if entry is None:
         updated.pop(key, None)
     else:
@@ -132,97 +141,28 @@ def record_author_nudge_observation(
     save_author_nudges(updated)
 
 
-def refresh_author_nudge_result(
+def current_source_fingerprint(
     repo: str,
     pr_number: int,
-    dashboard_state: dict[str, Any],
-    approver_teams: list[str],
-    required_approvals: int,
     non_blocking_check_patterns: list[str],
-    require_clean_copilot_review: bool,
-) -> tuple[dict[str, Any] | None, dict[str, Any]]:
-    from dashboard import DEFAULT_MODEL, build_dashboard_update_for_pr
+) -> tuple[dict[str, Any], str]:
+    from dashboard import dashboard_source_fingerprint, fetch_pr_raw
 
     owner, repo_name = repo.split("/", 1)
-    reviewers = load_reviewer_set(owner, approver_teams)
-    calculation = build_dashboard_update_for_pr(
+    raw = fetch_pr_raw(
         repo,
         owner,
         repo_name,
-        {pr_number},
-        reviewers,
-        pr_number,
-        DEFAULT_MODEL,
-        required_approvals,
+        {"number": pr_number},
         non_blocking_check_patterns,
-        dashboard_state,
-        require_clean_copilot_review,
     )
-    result = calculation.trigger_pr_result
-    return result, update_dashboard_state_for_pr(dashboard_state, pr_number, result)
-
-
-def prepare_author_nudges(
-    repo: str,
-    refreshed_pr_numbers: set[int],
-    now: datetime,
-    approver_teams: list[str],
-    required_approvals: int,
-    non_blocking_check_patterns: list[str],
-    require_clean_copilot_review: bool,
-) -> int:
-    dashboard_state = load_dashboard_state_cache()
-    if dashboard_state is None:
-        print("dashboard state not found; skipping author nudges", file=sys.stderr)
-        return 0
-    updated = dict(load_author_nudges())
-    dashboard_prs = dashboard_state.get("prs") or {}
-    for pr_number in sorted(refreshed_pr_numbers):
-        key = str(pr_number)
-        result = dashboard_prs.get(key)
-        entry = updated.get(key) or {}
-        waiting_since = parse_ts(entry.get("waiting_since") or "")
-        if (
-            result is None
-            or result.get("route") != "author"
-            or entry.get("nudged_at")
-            or waiting_since is None
-            or now - waiting_since < NUDGE_AFTER
-        ):
-            continue
-        fresh_result, _fresh_dashboard_state = refresh_author_nudge_result(
-            repo,
-            pr_number,
-            dashboard_state,
-            approver_teams,
-            required_approvals,
-            non_blocking_check_patterns,
-            require_clean_copilot_review,
-        )
-        _due, fresh_entry = plan_nudge(fresh_result, updated.get(key), now)
-        if fresh_entry is None:
-            updated.pop(key, None)
-        else:
-            updated[key] = fresh_entry
-        if (
-            fresh_result is None
-            or fresh_result.get("failed")
-            or fresh_result.get("route") != "author"
-        ):
-            continue
-        fresh_facts = fresh_result.get("facts") or {}
-        updated[key] = {
-            **(fresh_entry or {}),
-            "pending_at": format_ts(now),
-            "head_sha": fresh_facts.get("head_sha") or "",
-        }
-    save_author_nudges(updated)
-    return 0
+    return raw, dashboard_source_fingerprint(raw)
 
 
 def deliver_prepared_author_nudges(
     repo: str,
     now: datetime,
+    non_blocking_check_patterns: list[str],
     retry_snapshot_path: Path | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
@@ -245,18 +185,24 @@ def deliver_prepared_author_nudges(
                 updated[key] = reset_entry
             continue
         try:
-            pr = gh_api(f"/repos/{repo}/pulls/{pr_number}") or {}
+            raw, source_fingerprint = current_source_fingerprint(
+                repo,
+                pr_number,
+                non_blocking_check_patterns,
+            )
+            pr = raw.get("pr") or {}
             expected_head = entry.get("head_sha") or ""
-            current_head = ((pr.get("head") or {}).get("sha") or "")
+            current_head = ((raw.get("commits") or [{}])[-1].get("sha") or "")
             if (
-                pr.get("state") != "open"
-                or pr.get("draft")
+                pr.get("state") != "OPEN"
+                or pr.get("isDraft")
                 or (expected_head and current_head != expected_head)
+                or source_fingerprint != entry.get("source_fingerprint")
             ):
                 updated[key] = {
                     name: value
                     for name, value in entry.items()
-                    if name not in ("pending_at", "head_sha")
+                    if name not in ("pending_at", "head_sha", "source_fingerprint")
                 }
                 continue
             nudged_at = ensure_nudge(repo, pr_number, result, dashboard_state, now)
@@ -267,77 +213,3 @@ def deliver_prepared_author_nudges(
             updated[key] = {"nudged_at": nudged_at}
     save_author_nudges(updated)
     return errors
-
-
-def parse_pr_numbers(value: str) -> set[int]:
-    if not value:
-        return set()
-    numbers = {int(part) for part in value.split(",")}
-    if any(number <= 0 for number in numbers):
-        raise ValueError("PR numbers must be positive")
-    return numbers
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", help="target repository name")
-    parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument("--pr-numbers", required=True, help="comma-separated refreshed PR numbers")
-    parser.add_argument(
-        "--approver-team",
-        action="append",
-        required=True,
-        help="approver team slug for the target repository; repeat for multiple teams",
-    )
-    parser.add_argument(
-        "--required-approvals",
-        type=int,
-        default=1,
-        help="minimum non-bot approvals needed before a PR can route to maintainers",
-    )
-    parser.add_argument(
-        "--non-blocking-check-pattern",
-        action="append",
-        default=[],
-        help="glob matching a non-required check to mention when it fails; repeat as needed",
-    )
-    parser.add_argument(
-        "--require-clean-copilot-review",
-        action="store_true",
-        help="apply the clean Copilot review gate during the fresh route check",
-    )
-    args = parser.parse_args()
-
-    try:
-        pr_numbers = parse_pr_numbers(args.pr_numbers)
-    except ValueError as e:
-        parser.error(str(e))
-    if args.required_approvals < 1:
-        parser.error("--required-approvals must be at least 1")
-    if not pr_numbers:
-        return 0
-
-    repo = normalize_repo(args.repo) if args.repo else detect_repo()
-    repo_key = repo_state_key(repo)
-    now = utc_now()
-    with state_branch.temporary_state_dir() as state_dir:
-        set_state_dir(state_dir / repo_key)
-        return state_branch.push_state_changes(
-            state_dir,
-            "Update author nudge state",
-            lambda: prepare_author_nudges(
-                repo,
-                pr_numbers,
-                now,
-                args.approver_team,
-                args.required_approvals,
-                args.non_blocking_check_pattern,
-                args.require_clean_copilot_review,
-            ),
-            state_branch=args.state_branch,
-            add_paths=[f"{repo_key}/{author_nudge_state_path().name}"],
-        )
-
-
-if __name__ == "__main__":
-    sys.exit(main())

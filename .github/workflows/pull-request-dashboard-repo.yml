@@ -128,6 +128,7 @@ jobs:
           APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
           NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
           REQUIRE_CLEAN_COPILOT_REVIEW: ${{ inputs.require_clean_copilot_review }}
+          PREPARE_AUTHOR_NUDGES: ${{ github.event_name == 'schedule' }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
@@ -143,46 +144,13 @@ jobs:
           if [[ "${REQUIRE_CLEAN_COPILOT_REVIEW:-false}" == "true" ]]; then
             dashboard_args+=(--require-clean-copilot-review)
           fi
+          if [[ "${PREPARE_AUTHOR_NUDGES:-false}" == "true" ]]; then
+            dashboard_args+=(--prepare-author-nudges)
+          fi
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
           python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
-
-      - name: Prepare due author nudges
-        if: >-
-          always() &&
-          github.event_name == 'schedule' &&
-          steps.dashboard-update.outputs.initial_backfill_complete == 'true' &&
-          steps.dashboard-update.outputs.refreshed_pr_numbers != ''
-        env:
-          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_NAME: ${{ inputs.repository }}
-          REFRESHED_PR_NUMBERS: ${{ steps.dashboard-update.outputs.refreshed_pr_numbers }}
-          REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
-          APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
-          NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
-          REQUIRE_CLEAN_COPILOT_REVIEW: ${{ inputs.require_clean_copilot_review }}
-        run: |
-          set -euo pipefail
-          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          nudge_args=(
-            --state-branch "$state_branch"
-            --repo "$REPO_NAME"
-            --pr-numbers "$REFRESHED_PR_NUMBERS"
-            --required-approvals "$REQUIRED_APPROVALS"
-          )
-          for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
-            nudge_args+=(--approver-team "$team")
-          done
-          mapfile -t non_blocking_check_patterns < <(jq -r '.[]' <<< "$NON_BLOCKING_CHECK_PATTERNS_JSON")
-          for pattern in "${non_blocking_check_patterns[@]}"; do
-            nudge_args+=(--non-blocking-check-pattern "$pattern")
-          done
-          if [[ "${REQUIRE_CLEAN_COPILOT_REVIEW:-false}" == "true" ]]; then
-            nudge_args+=(--require-clean-copilot-review)
-          fi
-          python3 .github/scripts/pull-request-dashboard/author_nudge.py "${nudge_args[@]}"
 
       - name: Save per-PR classification cache
         # Preserve valid classifications even when another item fails the update.
@@ -232,6 +200,8 @@ jobs:
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
           repositories: ${{ inputs.repository }}
+          permission-checks: read
+          permission-contents: read
           permission-issues: write
           permission-pull-requests: write
 
@@ -246,10 +216,15 @@ jobs:
           SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
           REPO_NAME: ${{ inputs.repository }}
           TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
+          NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
           delivery_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
+          mapfile -t non_blocking_check_patterns < <(jq -r '.[]' <<< "$NON_BLOCKING_CHECK_PATTERNS_JSON")
+          for pattern in "${non_blocking_check_patterns[@]}"; do
+            delivery_args+=(--non-blocking-check-pattern "$pattern")
+          done
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             delivery_args+=(--pr-number "$TRIGGER_PR_NUMBER" --notification-kind initial)
           elif [[ "${{ github.event_name }}" == "schedule" ]]; then

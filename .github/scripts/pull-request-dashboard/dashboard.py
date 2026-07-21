@@ -159,6 +159,8 @@ runs when no underlying PR data has changed.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor
@@ -216,6 +218,25 @@ DEFAULT_MODEL = "gpt-5.4-mini"
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
 DEFAULT_BACKFILL_MAX_PRS = 50
 BACKFILL_RECORDED_FAILURE_STATUS = 2
+
+
+def dashboard_source_fingerprint(raw: dict[str, Any]) -> str:
+    source = {
+        key: raw.get(key)
+        for key in (
+            "pr",
+            "issue_comments",
+            "review_comments",
+            "reviews",
+            "commits",
+            "checks",
+            "non_blocking_check_failures",
+            "review_threads",
+            "pr_metadata",
+        )
+    }
+    encoded = json.dumps(source, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
 
 # ---------------------------------------------------------------- model helpers
 
@@ -579,6 +600,7 @@ def compute_facts(
         "author": author,
         "assignees": assignees,
         "head_sha": ((raw.get("commits") or [{}])[-1].get("sha") or ""),
+        "source_fingerprint": dashboard_source_fingerprint(raw),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (pr.get("reviewRequests") or [])
@@ -2000,7 +2022,12 @@ def apply_targeted_dashboard_update(
         accepted_result = (merged_calculation.dashboard_state.get("prs") or {}).get(
             str(args.pr_number)
         )
-        record_author_nudge_observation(args.pr_number, accepted_result, observed_at or utc_now())
+        record_author_nudge_observation(
+            args.pr_number,
+            accepted_result,
+            observed_at or utc_now(),
+            prepare_due=getattr(args, "prepare_author_nudges", False),
+        )
         record_copilot_review_observation(args.pr_number, accepted_result)
 
     return save_dashboard_update_state(
@@ -2025,15 +2052,12 @@ def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) ->
         return 0
 
     observed_at = utc_now()
-    status = state_branch.push_state_changes(
+    return state_branch.push_state_changes(
         state_dir,
         "Update dashboard state",
         lambda: apply_targeted_dashboard_update(args, update, observed_at),
         state_branch=args.state_branch,
     )
-    if status == 0:
-        refreshed_pr_numbers(args).add(args.pr_number)
-    return status
 
 
 def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> int:
@@ -2072,8 +2096,6 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         )
         if status != 0:
             return status
-        refreshed_pr_numbers(args).update(selection.cached_pr_numbers_to_remove)
-
     print(
         f"backfill selected {len(selection.selected_prs)} PR(s) "
         f"in {repo} (max={DEFAULT_BACKFILL_MAX_PRS})",
@@ -2096,12 +2118,9 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         )
 
     for pr_summary in selection.selected_prs:
-        refreshed = False
         observed_at = utc_now()
 
         def update_selected_pr(pr_summary: dict[str, Any] = pr_summary) -> int:
-            nonlocal refreshed
-            refreshed = False
             pr_number = pr_summary["number"]
             dashboard_state = load_dashboard_state_cache() or empty_state()
             calculation = build_dashboard_update_for_pr(
@@ -2134,11 +2153,11 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                     dashboard_state,
                     not initial_backfill_completed,
                 )
-            refreshed = True
             record_author_nudge_observation(
                 pr_number,
                 (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
                 observed_at,
+                prepare_due=getattr(args, "prepare_author_nudges", False),
             )
             record_copilot_review_observation(
                 pr_number,
@@ -2166,8 +2185,6 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         )
         if status != 0:
             return status
-        if refreshed:
-            refreshed_pr_numbers(args).add(pr_summary["number"])
     unresolved_failed_pr_numbers = (
         backfill_failed_pr_numbers(load_backfill_state())
         & open_non_draft_pr_numbers
@@ -2192,23 +2209,6 @@ def write_initial_backfill_output(github_output: Path) -> None:
     complete = initial_backfill_complete(load_dashboard_state_cache())
     with github_output.open("a", encoding="utf-8") as output:
         output.write(f"initial_backfill_complete={'true' if complete else 'false'}\n")
-
-
-def write_refreshed_pr_numbers_output(
-    github_output: Path,
-    refreshed_pr_numbers: set[int],
-) -> None:
-    value = ",".join(str(number) for number in sorted(refreshed_pr_numbers))
-    with github_output.open("a", encoding="utf-8") as output:
-        output.write(f"refreshed_pr_numbers={value}\n")
-
-
-def refreshed_pr_numbers(args: argparse.Namespace) -> set[int]:
-    numbers = getattr(args, "refreshed_pr_numbers", None)
-    if numbers is None:
-        numbers = set()
-        args.refreshed_pr_numbers = numbers
-    return numbers
 
 
 def main() -> int:
@@ -2243,6 +2243,11 @@ def main() -> int:
         action="store_true",
         help="re-request Copilot after pushes since its last clean review before reviewer or maintainer handoff",
     )
+    parser.add_argument(
+        "--prepare-author-nudges",
+        action="store_true",
+        help="queue due author nudges from accepted dashboard results",
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
     parser.add_argument(
         "--github-output",
@@ -2250,7 +2255,6 @@ def main() -> int:
         help="append initial_backfill_complete to this GitHub Actions output file",
     )
     args = parser.parse_args()
-    args.refreshed_pr_numbers = set()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")
     with state_branch.temporary_state_dir() as state_dir:
@@ -2259,10 +2263,6 @@ def main() -> int:
         status = update_dashboard_via_state_branch(args, state_dir)
         if args.github_output and status in (0, BACKFILL_RECORDED_FAILURE_STATUS):
             write_initial_backfill_output(args.github_output)
-            write_refreshed_pr_numbers_output(
-                args.github_output,
-                args.refreshed_pr_numbers,
-            )
         return status
 
 

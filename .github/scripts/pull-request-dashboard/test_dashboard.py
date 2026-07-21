@@ -26,7 +26,6 @@ from dashboard import (
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
-    write_refreshed_pr_numbers_output,
 )
 
 
@@ -501,17 +500,6 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                         output_path.read_text(encoding="utf-8"),
                     )
 
-    def test_writes_sorted_refreshed_pr_numbers_to_github_output(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            output_path = Path(temp_dir) / "output"
-
-            write_refreshed_pr_numbers_output(output_path, {34, 12})
-
-            self.assertEqual(
-                "refreshed_pr_numbers=12,34\n",
-                output_path.read_text(encoding="utf-8"),
-            )
-
 class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
@@ -564,11 +552,19 @@ class StatusCommentQueueTest(unittest.TestCase):
         )
         merge_update.return_value = (calculation, False)
 
-        status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
+        status = apply_targeted_dashboard_update(
+            Namespace(pr_number=12, prepare_author_nudges=True),
+            calculation,
+        )
 
         self.assertEqual(0, status)
         enqueue_update.assert_called_once_with(12)
-        record_nudge.assert_called_once_with(12, accepted_result, ANY)
+        record_nudge.assert_called_once_with(
+            12,
+            accepted_result,
+            ANY,
+            prepare_due=True,
+        )
 
     @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
@@ -595,7 +591,12 @@ class StatusCommentQueueTest(unittest.TestCase):
 
         self.assertEqual(0, status)
         enqueue_update.assert_not_called()
-        record_nudge.assert_called_once_with(12, accepted_result, ANY)
+        record_nudge.assert_called_once_with(
+            12,
+            accepted_result,
+            ANY,
+            prepare_due=False,
+        )
 
 
 class RequiredCiRoutingTest(unittest.TestCase):
@@ -813,8 +814,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             status = update_dashboard_for_backfill(args, Path("state"))
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
-        self.assertEqual(args.refreshed_pr_numbers, {2})
-        record_nudge.assert_called_once_with(2, ANY, ANY)
+        record_nudge.assert_called_once_with(2, ANY, ANY, prepare_due=False)
         self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
         self.assertEqual(dashboard_state["prs"], {"2": {"pr_number": 2, "failed": False, "route": "reviewer"}})
         self.assertTrue(dashboard_state["initial_backfill_complete"])

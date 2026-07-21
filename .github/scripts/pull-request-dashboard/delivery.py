@@ -47,6 +47,7 @@ def deliver_from_state(
     repo: str,
     pr_number: int | None,
     notification_kind: str,
+    non_blocking_check_patterns: list[str],
     author_retry_snapshot_path: Path,
     copilot_retry_snapshot_path: Path,
     notification_retry_snapshot_path: Path,
@@ -65,7 +66,12 @@ def deliver_from_state(
     )
     run_delivery_action(
         "author nudges",
-        lambda: deliver_prepared_author_nudges(repo, now, author_retry_snapshot_path),
+        lambda: deliver_prepared_author_nudges(
+            repo,
+            now,
+            non_blocking_check_patterns,
+            author_retry_snapshot_path,
+        ),
         errors,
     )
     run_delivery_action(
@@ -98,6 +104,7 @@ def deliver_with_state(
     state_dir: Path,
     pr_number: int | None,
     notification_kind: str,
+    non_blocking_check_patterns: list[str],
 ) -> int:
     repo_key = repo_state_key(repo)
     errors_file = delivery_errors_path()
@@ -112,6 +119,7 @@ def deliver_with_state(
             repo,
             pr_number,
             notification_kind,
+            non_blocking_check_patterns,
             author_retry,
             copilot_retry,
             notification_retry,
@@ -145,6 +153,12 @@ def main() -> int:
         default="",
         help="Slack notification kind allowed for this run",
     )
+    parser.add_argument(
+        "--non-blocking-check-pattern",
+        action="append",
+        default=[],
+        help="glob matching a non-required check; repeat as needed",
+    )
     args = parser.parse_args()
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     with state_branch.temporary_state_dir() as state_dir:
@@ -155,6 +169,7 @@ def main() -> int:
             state_dir,
             args.pr_number,
             args.notification_kind,
+            args.non_blocking_check_pattern,
         )
 
 
