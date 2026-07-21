@@ -137,6 +137,33 @@ def dashboard_override_facts(
     }
 
 
+def _is_dashboard_app_comment(comment: dict[str, Any]) -> bool:
+    """Whether a comment was authored by the dashboard GitHub App.
+
+    Handles both the REST shape (``performed_via_github_app.slug``) and the
+    normalized GraphQL shape from ``fetch_pr_issue_comments`` (a bot
+    ``user.login`` of ``<slug>[bot]``).
+    """
+    if (comment.get("performed_via_github_app") or {}).get("slug") == DASHBOARD_APP_SLUG:
+        return True
+    return (comment.get("user") or {}).get("login") == f"{DASHBOARD_APP_SLUG}[bot]"
+
+
+def _replied_command_ids(comments: list[dict[str, Any]] | None) -> set[int]:
+    """Command ids already answered by a dashboard-app reply comment.
+
+    Reply markers are matched only in comments authored by the dashboard app, so
+    a user cannot forge a `command-reply` marker to suppress an owed reply.
+    """
+    replied_ids: set[int] = set()
+    for comment in comments or []:
+        if not _is_dashboard_app_comment(comment):
+            continue
+        for match in _COMMAND_REPLY_MARKER_RE.findall(comment.get("body") or ""):
+            replied_ids.add(int(match))
+    return replied_ids
+
+
 def pending_command_replies(
     raw: dict[str, Any],
     author: str,
@@ -151,10 +178,7 @@ def pending_command_replies(
     skipped so replies are posted at most once.
     """
     comments = raw.get("issue_comments") or []
-    replied_ids: set[int] = set()
-    for comment in comments:
-        for match in _COMMAND_REPLY_MARKER_RE.findall(comment.get("body") or ""):
-            replied_ids.add(int(match))
+    replied_ids = _replied_command_ids(comments)
 
     replies: list[dict[str, Any]] = []
     for comment in comments:
@@ -309,10 +333,7 @@ def append_route_noop_reply(
     command_id = int(facts.get("dashboard_override_command_id") or 0)
     if not command_id:
         return
-    replied_ids: set[int] = set()
-    for comment in raw.get("issue_comments") or []:
-        for match in _COMMAND_REPLY_MARKER_RE.findall(comment.get("body") or ""):
-            replied_ids.add(int(match))
+    replied_ids = _replied_command_ids(raw.get("issue_comments") or [])
     if command_id in replied_ids:
         return
     replies = facts.setdefault("dashboard_command_replies", [])

@@ -89,6 +89,25 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual([], dashboard_override.pending_command_replies(raw, "author"))
 
+    def test_forged_marker_from_non_app_user_does_not_suppress_reply(self) -> None:
+        raw = {
+            "issue_comments": [
+                {"id": 2, "user": {"login": "outsider"}, "body": "/dashboard route:reviewers"},
+                {
+                    "id": 9,
+                    "user": {"login": "outsider"},
+                    "body": dashboard_override.command_reply_marker(2) + "\nnothing to see here",
+                },
+            ]
+        }
+
+        replies = dashboard_override.pending_command_replies(raw, "author")
+
+        self.assertEqual(
+            [{"comment_id": 2, "kind": "unauthorized", "user": "outsider", "subcommand": "route:reviewers"}],
+            replies,
+        )
+
     def test_renders_unauthorized_and_unknown_command_replies(self) -> None:
         unauthorized = dashboard_override.render_command_reply(
             {"comment_id": 2, "kind": "unauthorized", "user": "outsider", "subcommand": "route:reviewers"}
@@ -158,13 +177,38 @@ class DashboardOverrideTest(unittest.TestCase):
         }
         raw = {
             "issue_comments": [
-                {"body": dashboard_override.command_reply_marker(12) + "\n@author ..."},
+                {
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": dashboard_override.command_reply_marker(12) + "\n@author ...",
+                },
             ]
         }
 
         dashboard_override.append_route_noop_reply(raw, facts, "approver")
 
         self.assertNotIn("dashboard_command_replies", facts)
+
+    def test_forged_marker_does_not_dedupe_already_routed_reply(self) -> None:
+        facts = {
+            "author": "author",
+            "dashboard_override_noop": True,
+            "dashboard_override_command_id": 12,
+        }
+        raw = {
+            "issue_comments": [
+                {
+                    "user": {"login": "outsider"},
+                    "body": dashboard_override.command_reply_marker(12) + "\n@author ...",
+                },
+            ]
+        }
+
+        dashboard_override.append_route_noop_reply(raw, facts, "approver")
+
+        self.assertEqual(
+            [{"comment_id": 12, "kind": "already_routed", "user": "author", "route": "approver"}],
+            facts["dashboard_command_replies"],
+        )
 
     @patch.object(dashboard_override, "run_gh")
     @patch.object(dashboard_override, "gh_api", return_value=[])
