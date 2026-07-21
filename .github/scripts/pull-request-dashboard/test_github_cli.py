@@ -13,7 +13,6 @@ from github_cli import (
     gh_required_check_contexts,
     include_missing_required_checks,
     is_retryable_gh_error,
-    list_all_open_pr_numbers,
     list_open_prs,
     request_copilot_review,
 )
@@ -209,22 +208,6 @@ class GithubCliTest(unittest.TestCase):
             prs[-1],
         )
         self.assertEqual([], prs[0]["labels"])
-        gh_api.assert_called_once_with(
-            "/repos/open-telemetry/example/pulls?state=open&per_page=100",
-            paginate=True,
-        )
-
-    @patch("github_cli.gh_api")
-    def test_list_all_open_pr_numbers_uses_paginated_rest_api(self, gh_api) -> None:
-        gh_api.return_value = [
-            {"number": number}
-            for number in range(1, 502)
-        ]
-
-        self.assertEqual(
-            set(range(1, 502)),
-            list_all_open_pr_numbers("open-telemetry/example"),
-        )
         gh_api.assert_called_once_with(
             "/repos/open-telemetry/example/pulls?state=open&per_page=100",
             paginate=True,

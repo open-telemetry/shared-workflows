@@ -16,7 +16,7 @@ from dashboard_override import (
     deliver_dashboard_command_replies,
     deliver_dashboard_override_requests,
 )
-from github_cli import detect_repo, list_all_open_pr_numbers, normalize_repo, repo_state_key
+from github_cli import detect_repo, list_open_prs, normalize_repo, repo_state_key
 from notify_slack import notify_slack_from_state
 from pr_status_comment import update_status_comments_from_state
 from state import (
@@ -56,6 +56,11 @@ def deliver_from_state(
 ) -> list[str]:
     now = utc_now()
     errors: list[str] = []
+    try:
+        open_prs = list_open_prs(repo)
+    except Exception as e:
+        errors.append(f"open pull requests: {e}")
+        open_prs = None
     run_delivery_action(
         "dashboard overrides",
         lambda: deliver_dashboard_override_requests(repo),
@@ -75,31 +80,31 @@ def deliver_from_state(
         ),
         errors,
     )
-    run_delivery_action(
-        "status comments",
-        lambda: update_status_comments_from_state(
-            repo,
-            None,
-            list_all_open_pr_numbers(repo),
-        ),
-        errors,
-    )
+    if open_prs is not None:
+        run_delivery_action(
+            "status comments",
+            lambda: update_status_comments_from_state(
+                repo,
+                {pr["number"] for pr in open_prs},
+            ),
+            errors,
+        )
     run_delivery_action(
         "Copilot reviews",
         lambda: deliver_copilot_review_requests(repo, now, copilot_retry_snapshot_path),
         errors,
     )
-    run_delivery_action(
-        "Slack notifications",
-        lambda: notify_slack_from_state(
-            repo,
-            notification_retry_snapshot_path,
-            None,
-            None,
-            now,
-        ),
-        errors,
-    )
+    if open_prs is not None:
+        run_delivery_action(
+            "Slack notifications",
+            lambda: notify_slack_from_state(
+                repo,
+                notification_retry_snapshot_path,
+                open_prs,
+                now,
+            ),
+            errors,
+        )
     return errors
 
 

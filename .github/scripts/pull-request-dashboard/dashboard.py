@@ -542,7 +542,6 @@ def compute_facts(
     author: str,
     events: list[dict[str, Any]],
     reviewers: set[str] | None = None,
-    previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pr = raw["pr"]
     checks = raw["checks"]
@@ -575,7 +574,7 @@ def compute_facts(
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
-        **dashboard_override_facts(raw, author, labels, previous_facts, reviewers or set()),
+        **dashboard_override_facts(raw, author, labels, reviewers or set()),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (pr.get("reviewRequests") or [])
@@ -1434,7 +1433,6 @@ def build_pr_result(
     required_approvals: int,
     non_blocking_check_patterns: list[str],
     previous_top_level_history: dict[str, dict[str, Any]] | None = None,
-    previous_facts: dict[str, Any] | None = None,
     require_clean_copilot_review_branches: list[str] | None = None,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
@@ -1450,7 +1448,7 @@ def build_pr_result(
             return None
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
-        facts = compute_facts(raw, author, events, reviewers, previous_facts)
+        facts = compute_facts(raw, author, events, reviewers)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         top_level_author_comment_items = derive_top_level_author_comment_items(
@@ -1631,7 +1629,6 @@ def build_dashboard_update_for_pr(
         required_approvals,
         non_blocking_check_patterns,
         previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
-        previous_facts=(starting_pr_result or {}).get("facts") or {},
         require_clean_copilot_review_branches=require_clean_copilot_review_branches,
     )
     if trigger_pr_result is None:

@@ -190,8 +190,6 @@ def next_notifications(
     results: dict[int, dict[str, Any]],
     last_notifications: dict[str, Any] | None,
     now: datetime,
-    notification_numbers: set[int] | None = None,
-    notification_kinds: set[str] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     has_last_notifications = last_notifications is not None
     previous_notifications = last_notifications or {}
@@ -207,11 +205,6 @@ def next_notifications(
     for number, result in sorted(results.items()):
         pr_key = str(number)
         last_pr_notification = migrated_pr_notification(previous_notifications.get(pr_key) or {})
-
-        if notification_numbers is not None and number not in notification_numbers:
-            if last_pr_notification:
-                updated_notifications[pr_key] = last_pr_notification
-            continue
 
         route = result.get("route") or "unknown"
         if result.get("failed") or route in ("transient-failure", "unknown"):
@@ -238,8 +231,6 @@ def next_notifications(
         kind = pending_notification_kind(
             notification_baseline, current_waiting_since, now,
         )
-        if kind and notification_kinds is not None and kind not in notification_kinds:
-            kind = None
 
         updated_pr_notification: dict[str, Any] = {
             "last_notified_at": last_pr_notification.get("last_notified_at") or "",

@@ -14,8 +14,15 @@ class DeliveryTest(unittest.TestCase):
     @patch.object(delivery, "deliver_dashboard_command_replies", return_value=[])
     @patch.object(delivery, "deliver_dashboard_override_requests", return_value=[])
     @patch.object(delivery, "update_status_comments_from_state", return_value=[])
-    @patch.object(delivery, "list_all_open_pr_numbers", return_value={7, 8})
-    def test_runs_all_targeted_deliveries_in_order(
+    @patch.object(
+        delivery,
+        "list_open_prs",
+        return_value=[
+            {"number": 7, "isDraft": False, "title": "Seven"},
+            {"number": 8, "isDraft": True, "title": "Eight"},
+        ],
+    )
+    def test_runs_all_repository_deliveries_in_order(
         self,
         _list_open,
         status_comments,
@@ -45,20 +52,22 @@ class DeliveryTest(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
+        _list_open.assert_called_once_with("open-telemetry/example")
         self.assertEqual(
             [call("override"), call("replies"), call("author"), call("status"), call("copilot"), call("slack")],
             order.call_args_list,
         )
         status_comments.assert_called_once_with(
             "open-telemetry/example",
-            None,
             {7, 8},
         )
         slack.assert_called_once_with(
             "open-telemetry/example",
             ANY,
-            None,
-            None,
+            [
+                {"number": 7, "isDraft": False, "title": "Seven"},
+                {"number": 8, "isDraft": True, "title": "Eight"},
+            ],
             ANY,
         )
 
@@ -68,7 +77,11 @@ class DeliveryTest(unittest.TestCase):
     @patch.object(delivery, "deliver_dashboard_command_replies", return_value=[])
     @patch.object(delivery, "deliver_dashboard_override_requests", return_value=[])
     @patch.object(delivery, "update_status_comments_from_state", side_effect=RuntimeError("boom"))
-    @patch.object(delivery, "list_all_open_pr_numbers", return_value={7})
+    @patch.object(
+        delivery,
+        "list_open_prs",
+        return_value=[{"number": 7, "isDraft": False, "title": "Seven"}],
+    )
     def test_failure_does_not_block_later_deliveries(
         self,
         _list_open,
@@ -92,6 +105,31 @@ class DeliveryTest(unittest.TestCase):
         author_nudges.assert_called_once()
         copilot_reviews.assert_called_once()
         slack.assert_called_once()
+
+    def test_open_pr_list_failure_skips_dependent_stages(self) -> None:
+        with (
+            patch.object(delivery, "list_open_prs", side_effect=RuntimeError("unavailable")),
+            patch.object(delivery, "deliver_dashboard_override_requests", return_value=[]) as overrides,
+            patch.object(delivery, "deliver_dashboard_command_replies", return_value=[]) as replies,
+            patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]) as nudges,
+            patch.object(delivery, "update_status_comments_from_state", return_value=[]) as status,
+            patch.object(delivery, "deliver_copilot_review_requests", return_value=[]) as copilot,
+            patch.object(delivery, "notify_slack_from_state", return_value=[]) as slack,
+        ):
+            errors = delivery.deliver_from_state(
+                "open-telemetry/example",
+                Path("author"),
+                Path("copilot"),
+                Path("slack"),
+            )
+
+        self.assertEqual(["open pull requests: unavailable"], errors)
+        overrides.assert_called_once()
+        replies.assert_called_once()
+        nudges.assert_called_once()
+        copilot.assert_called_once()
+        status.assert_not_called()
+        slack.assert_not_called()
 
     @patch.object(delivery.sys, "stderr")
     @patch.object(delivery, "deliver_from_state", return_value=["status comments: boom"])
