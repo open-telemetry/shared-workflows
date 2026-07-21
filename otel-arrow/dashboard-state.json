@@ -1040,7 +1040,9 @@
         "approval_count": 2,
         "assignees": [],
         "author": "lquerel",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3523#discussion_r3618513981"
+        ],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
@@ -1048,8 +1050,8 @@
         "created_at": "2026-07-19T02:07:15+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-21T00:13:45+00:00",
-        "last_approver_activity_at": "2026-07-20T22:29:54+00:00",
+        "last_activity_at": "2026-07-21T00:29:00+00:00",
+        "last_approver_activity_at": "2026-07-21T00:29:00+00:00",
         "last_author_activity_at": "2026-07-20T20:42:18+00:00",
         "last_external_activity_at": "",
         "reviewers": [
@@ -1068,15 +1070,23 @@
             "login": "lalitb",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "utpilla",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-20T20:42:18+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-21T00:29:00+00:00"
       },
       "failed": false,
       "pr_number": 3523,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3523",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "3524": {
