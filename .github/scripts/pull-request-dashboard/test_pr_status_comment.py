@@ -51,9 +51,10 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn(f"  - _{pr_status_comment.AUTHOR_GUIDANCE}_", body)
         self.assertIn(
             "If you believe this pull request is incorrectly routed as waiting "
-            "on the author (see the last refreshed time above), comment "
-            "`/dashboard route:reviewers` to route it from waiting on the author to "
-            "waiting on reviewers.",
+            "on the author, comment `/dashboard route:reviewers` to route it from "
+            "waiting on the author to waiting on reviewers. If the last refreshed "
+            "time above predates your latest reply or push, the dashboard hasn't "
+            "processed it yet.",
             body,
         )
 

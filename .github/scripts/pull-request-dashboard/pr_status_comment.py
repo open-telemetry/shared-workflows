@@ -54,10 +54,13 @@ def accuracy_note(pr: dict[str, Any], author_routed: bool = False) -> str:
     report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
     note = (
         "This automated status or its linked feedback items may be incorrect. "
-        f"If something looks wrong, [report it]({report_url}) with the result you expected."
+        f"If something looks wrong, please [report it]({report_url}) with the result you expected."
     )
     if author_routed:
-        note += " " + author_override_guidance("see the last refreshed time above")
+        note += " " + author_override_guidance(
+            "If the last refreshed time above predates your latest reply or "
+            "push, the dashboard hasn't processed it yet."
+        )
     return f"_{note}_"
 
 

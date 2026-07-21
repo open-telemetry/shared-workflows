@@ -26,13 +26,15 @@ _COMMAND_REPLY_MARKER_RE = re.compile(
 )
 
 
-def author_override_guidance(timestamp_hint: str = "") -> str:
-    location = f" ({timestamp_hint})" if timestamp_hint else ""
-    return (
+def author_override_guidance(staleness_note: str = "") -> str:
+    guidance = (
         "If you believe this pull request is incorrectly routed as waiting on "
-        f"the author{location}, comment `/dashboard route:reviewers` to route it "
-        "from waiting on the author to waiting on reviewers."
+        "the author, comment `/dashboard route:reviewers` to route it from "
+        "waiting on the author to waiting on reviewers."
     )
+    if staleness_note:
+        guidance = f"{guidance} {staleness_note}"
+    return guidance
 
 
 def parse_dashboard_command(comment: dict[str, Any]) -> str | None:
