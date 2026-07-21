@@ -90,7 +90,10 @@
         "approval_count": 0,
         "assignees": [],
         "author": "thompson-tomo",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10158#discussion_r3620013755",
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10158#discussion_r3620063818"
+        ],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
@@ -98,8 +101,8 @@
         "created_at": "2026-06-04T02:59:08+00:00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-21T06:01:07+00:00",
-        "last_approver_activity_at": "2026-07-13T08:19:38+00:00",
+        "last_activity_at": "2026-07-21T06:59:39+00:00",
+        "last_approver_activity_at": "2026-07-21T06:59:39+00:00",
         "last_author_activity_at": "2026-07-21T06:01:07+00:00",
         "last_external_activity_at": "",
         "reviewers": [
@@ -110,15 +113,23 @@
             "login": "svrnm",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-21T06:01:07+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-21T06:59:39+00:00"
       },
       "failed": false,
       "pr_number": 10158,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10158",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4955890850": {
           "evidence": {
