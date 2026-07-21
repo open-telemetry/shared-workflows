@@ -601,20 +601,18 @@ def detect_repo() -> str:
     return proc.stdout.strip()
 
 
-def load_reviewer_set(org: str, approver_team_slugs: list[str]) -> set[str]:
+def load_reviewer_set(repo: str) -> set[str]:
     token = os.environ.get("PR_DASHBOARD_TOKEN") or None
-    reviewers: set[str] = set()
-    for slug in approver_team_slugs:
-        members = gh_api(
-            f"/orgs/{org}/teams/{slug}/members?per_page=100",
-            paginate=True,
-            token=token,
-        )
-        reviewers.update(m["login"] for m in members)
+    collaborators = gh_api(
+        f"/repos/{repo}/collaborators?permission=push&per_page=100",
+        paginate=True,
+        token=token,
+    )
+    reviewers = {collaborator["login"] for collaborator in collaborators}
     if not reviewers:
         raise RuntimeError(
-            f"no reviewers found in teams {approver_team_slugs}; "
-            f"the dashboard app token must have org members read permission"
+            f"no collaborators with write access found for {repo}; "
+            f"the dashboard app token must have repository metadata read permission"
         )
     return {r.lower() for r in reviewers}
 
