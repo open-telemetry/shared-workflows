@@ -683,7 +683,7 @@
     },
     "4851": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -694,18 +694,27 @@
         "created_at": "2026-07-21T12:02:13+00:00",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-21T12:02:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-21T12:04:00+00:00",
+        "last_approver_activity_at": "2026-07-21T12:03:00+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-21T12:02:10+00:00",
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-21T12:02:13+00:00"
       },
       "failed": false,
       "pr_number": 4851,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4851",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4852": {
