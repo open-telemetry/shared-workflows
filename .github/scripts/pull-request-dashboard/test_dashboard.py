@@ -22,11 +22,52 @@ from dashboard import (
     group_review_threads,
     main,
     remove_cached_dashboard_prs,
+    resolve_pr_route,
     route_pr,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
 )
+
+
+class ResolvePrRouteTest(unittest.TestCase):
+    def _author_route_facts(self, **overrides: object) -> dict[str, object]:
+        # A failing required check routes a human-authored PR to the author.
+        facts: dict[str, object] = {
+            "ci_failing_count": 1,
+            "dashboard_override_label_applied": True,
+            "dashboard_override_requested": False,
+        }
+        facts.update(overrides)
+        return facts
+
+    def test_override_is_still_gated_by_required_copilot_review(self) -> None:
+        facts = self._author_route_facts(
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("copilot", route)
+
+    def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
+        facts = self._author_route_facts(
+            copilot_review_exists=True,
+            copilot_review_needed=False,
+        )
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("approver", route)
+
+    def test_override_reaches_reviewers_when_gate_disabled(self) -> None:
+        facts = self._author_route_facts()
+
+        route = resolve_pr_route(facts, {}, 1, False)
+
+        self.assertEqual("approver", route)
 
 
 class FetchPrRawTest(unittest.TestCase):

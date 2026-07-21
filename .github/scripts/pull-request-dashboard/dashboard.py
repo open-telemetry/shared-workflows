@@ -1394,6 +1394,25 @@ def add_reviewers(
     ]
 
 
+def resolve_pr_route(
+    facts: dict[str, Any],
+    pending_actions: dict[str, dict[str, Any]],
+    required_approvals: int,
+    require_clean_copilot_review: bool,
+) -> str:
+    # Apply the manual reviewer-routing override before the Copilot review gate
+    # so an overridden route (for example author -> reviewers) is still held for
+    # a required clean Copilot review instead of bypassing it.
+    return apply_copilot_review_gate(
+        facts,
+        apply_dashboard_override(
+            facts,
+            route_pr(facts, pending_actions, required_approvals),
+        ),
+        enabled=require_clean_copilot_review,
+    )
+
+
 # ---------------------------------------------------------------- main
 
 
@@ -1499,13 +1518,11 @@ def build_pr_result(
                 "route": "unknown",
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
-        route = apply_dashboard_override(
+        route = resolve_pr_route(
             facts,
-            apply_copilot_review_gate(
-                facts,
-                route_pr(facts, pending_actions, required_approvals),
-                enabled=require_clean_copilot_review,
-            ),
+            pending_actions,
+            required_approvals,
+            require_clean_copilot_review,
         )
         append_route_noop_reply(raw, facts, route)
         add_wait_age_facts(facts, route, pending_actions)
