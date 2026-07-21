@@ -15,8 +15,8 @@ The dashboard groups open non-draft pull requests by who is expected to act next
 - **PR** — Pull request number and title, followed by any configured matching labels. The number autolinks to the PR on GitHub. Configured labels are rendered inline for both active and draft PRs.
 - **Author** — GitHub login of the PR author.
 - **Reviewers** — Reviewers who have engaged with the PR, each annotated with one or more icons:
-  - ✅ approved
-  - ✔️ approved (non-code-owner — does **not** count toward merge requirements)
+  - ✅ approved with repository write access
+  - ✔️ approved without repository write access (does **not** count toward the dashboard's required approvals)
   - 💬 has an open (unresolved) review thread on the PR
   - 📌 has tracked top-level feedback that still needs author action
   - 🔴 requested changes
@@ -46,7 +46,6 @@ Open a pull request that adds your repository to [`.github/scripts/pull-request-
 [
   {
     "name": "example-repo",
-    "approver_teams": ["example-approvers"],
     "required_approvals": 1,
     "non_blocking_check_patterns": [
       "markdown-link-check / link-check",
@@ -66,7 +65,6 @@ Fields:
 | Field | Required | Description |
 | ----- | -------- | ----------- |
 | `name` | yes | Name of the repository under `open-telemetry`. |
-| `approver_teams` | yes | GitHub team slugs whose members count as approvers. |
 | `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
@@ -187,7 +185,8 @@ Targeted updates received before the first full dashboard run are ignored.
 ## Configuration
 
 The dashboard uses repository-scoped GitHub App access to read and update each
-configured repository and to read approver team membership.
+configured repository. Approvals from collaborators with write access or higher
+count toward `required_approvals`.
 
 Each repository can route Slack notifications to its own `slack_channel` and
 map GitHub logins to Slack user IDs via `slack_user_mapping`. Repositories

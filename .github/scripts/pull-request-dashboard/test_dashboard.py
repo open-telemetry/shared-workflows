@@ -430,7 +430,6 @@ class BackfillFailureIsolationTest(unittest.TestCase):
     def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
         args = Namespace(
             repo="repo",
-            approver_team=["approvers"],
             state_branch="state",
             model="model",
             required_approvals=1,
@@ -565,8 +564,6 @@ class BackfillFailureIsolationTest(unittest.TestCase):
                         "state",
                         "--repo",
                         "repo",
-                        "--approver-team",
-                        "approvers",
                         "--github-output",
                         str(Path(temp_dir) / "output"),
                     ],

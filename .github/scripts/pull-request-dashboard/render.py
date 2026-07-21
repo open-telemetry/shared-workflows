@@ -117,8 +117,8 @@ def reviewer_icon(reviewer: dict[str, Any]) -> str:
     if reviewer.get("approved"):
         discussion_icons.append("✅")
     elif reviewer.get("approved_non_team"):
-        # A black/gray check distinguishes a non-code-owner approval from a
-        # code-owner approval; only code-owner approvals count toward merge.
+        # A black/gray check distinguishes an approval without write access;
+        # only approvals from collaborators with write access count here.
         discussion_icons.append("✔️")
     return WORD_JOINER.join(discussion_icons)
 
@@ -259,7 +259,7 @@ def render_pr_tables(
         f"partly performed by an LLM ([source]({source_url})) and could contain mistakes."
     )
     reviewers_note = (
-        "Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · "
+        "Reviewers column: ✅ approved with write access · ✔️ approved without write access · "
         "💬 open review thread · 📌 top-level feedback needs author action · 🔴 changes requested."
     )
     out: list[str] = [

@@ -15,10 +15,25 @@ from github_cli import (
     is_retryable_gh_error,
     list_all_open_pr_numbers,
     list_open_prs,
+    load_reviewer_set,
 )
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.gh_api")
+    def test_load_reviewer_set_uses_write_collaborators(self, api) -> None:
+        api.return_value = [{"login": "Writer"}, {"login": "Admin"}]
+
+        self.assertEqual(
+            load_reviewer_set("open-telemetry/shared-workflows"),
+            {"writer", "admin"},
+        )
+        api.assert_called_once_with(
+            "/repos/open-telemetry/shared-workflows/collaborators?permission=push&per_page=100",
+            paginate=True,
+            token=None,
+        )
+
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:
         graphql.side_effect = [

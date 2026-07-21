@@ -13,8 +13,6 @@ renders markdown from the accepted state branch and the current open PR list.
 Usage:
     python .github/scripts/pull-request-dashboard/dashboard.py --state-branch BRANCH
                                                                --repo REPO
-                                                               --approver-team TEAM
-                                                               [--approver-team TEAM]
                                                                [--pr-number N]
                                                                [--github-output PATH]
                                                                [--model NAME]
@@ -102,7 +100,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   maintenance bot.
     is_draft                        bool
     approval_count                  int           Current unique APPROVED reviews
-                                                  from approver-team members.
+                                                  from collaborators with write access.
     ci_failing_count                int           Required checks only; absent
                                                   when checks could not be fetched.
     ci_failing_since                str (iso)     Earliest completion time among
@@ -136,10 +134,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   "changes_requested": bool,
                                                   "open_thread": bool,
                                                   "top_level_feedback": bool}; approved
-                                                  means an approver-team member
+                                                  means a collaborator with write access
                                                   is in the APPROVED state,
                                                   approved_non_team means someone
-                                                  outside the team approved,
+                                                  without write access approved,
                                                   changes_requested means an
                                                   reviewer's latest review is
                                                   CHANGES_REQUESTED,
@@ -504,7 +502,7 @@ def latest_review_states(events: list[dict[str, Any]]) -> dict[str, str]:
 
 
 def commenting_reviewers(events: list[dict[str, Any]]) -> set[str]:
-    # Approver-team members who have participated on the PR in any way: an
+    # Collaborators with write access who have participated on the PR in any way: an
     # issue comment, an inline review comment, or a submitted review. This
     # surfaces engaged reviewers even when they have neither approved nor own
     # an open discussion.
@@ -1322,8 +1320,8 @@ def add_reviewers(
     pending_actions: dict[str, dict[str, Any]],
 ) -> None:
     # Reviewers to display in the dashboard, each flagged with their review
-    # stance: approved (by an approver-team member), approved_non_team (an
-    # approval from someone outside the team), changes_requested (their latest
+    # stance: approved (by a collaborator with write access), approved_non_team
+    # (an approval from someone without write access), changes_requested (their latest
     # review blocks), open_thread (they own an
     # unresolved discussion), and top_level_feedback (their top-level feedback
     # still needs author action). The renderer turns these into icons.
@@ -1883,7 +1881,7 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate
         print("dashboard result state not found; skipping targeted refresh", file=sys.stderr)
         return None
 
-    reviewers = load_reviewer_set(owner, args.approver_team)
+    reviewers = load_reviewer_set(repo)
     return build_dashboard_update_for_pr(
         repo,
         owner,
@@ -1949,7 +1947,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     open_pr_numbers = {p["number"] for p in prs}
     open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
     prune_classification_cache(open_pr_numbers)
-    reviewers = load_reviewer_set(owner, args.approver_team)
+    reviewers = load_reviewer_set(repo)
     state_branch.configure_git()
     state_branch.checkout_state(state_dir, args.state_branch, require_existing=False)
     try:
@@ -2087,12 +2085,6 @@ def main() -> int:
         help="git branch used for workflow state",
     )
     parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
-    parser.add_argument(
-        "--approver-team",
-        action="append",
-        required=True,
-        help="approver team slug for the target repository; repeat for multiple teams",
-    )
     parser.add_argument("--pr-number", type=int, help="only refresh dashboard state for this PR")
     parser.add_argument(
         "--required-approvals",
