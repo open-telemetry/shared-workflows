@@ -7,6 +7,7 @@ import argparse
 import os
 from pathlib import Path
 import sys
+import traceback
 from typing import Callable
 
 from author_nudge import deliver_prepared_author_nudges
@@ -40,6 +41,10 @@ def run_delivery_action(
     try:
         errors.extend(f"{label}: {error}" for error in action())
     except Exception as e:
+        # Keep the traceback in the job log so a failed stage is diagnosable;
+        # the short message alone is rarely enough in production.
+        print(f"{label} raised an exception:", file=sys.stderr)
+        traceback.print_exc()
         errors.append(f"{label}: {e}")
 
 
