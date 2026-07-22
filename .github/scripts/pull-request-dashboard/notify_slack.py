@@ -56,11 +56,11 @@ def notify_slack_from_state(
 
     saved_notifications = load_notifications()
     last_notification_state = last_notifications(saved_notifications, retry_snapshot_path)
-    if target_pr_numbers is not None:
+    if target_pr_numbers is not None and last_notification_state is not None:
         target_pr_keys = {str(number) for number in target_pr_numbers}
         last_notification_state = {
             str(number): notification
-            for number, notification in (last_notification_state or {}).items()
+            for number, notification in last_notification_state.items()
             if str(number) in target_pr_keys
         }
 

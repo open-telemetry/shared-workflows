@@ -139,6 +139,51 @@ class NotifySlackTest(unittest.TestCase):
             }
         )
 
+    @patch("notifications.send_slack_notification")
+    @patch("notify_slack.save_notifications")
+    @patch("notify_slack.load_notifications")
+    @patch("notify_slack.load_dashboard_state_cache")
+    def test_targeted_update_preserves_uninitialized_notification_state(
+        self,
+        load_dashboard_state_cache,
+        load_notifications,
+        save_notifications,
+        send_notification,
+    ) -> None:
+        load_dashboard_state_cache.return_value = {
+            "prs": {
+                "2": {
+                    "pr_number": 2,
+                    "route": "approver",
+                    "facts": {
+                        "reviewers": [{"login": "reviewer"}],
+                        "waiting_since": "2026-07-20T01:00:00Z",
+                    },
+                }
+            }
+        }
+        load_notifications.return_value = None
+
+        with patch.dict(
+            "os.environ",
+            {
+                "SLACK_CHANNEL": "dashboard",
+                "SLACK_USER_MAP_JSON": '{"reviewer": "U123"}',
+            },
+            clear=True,
+        ):
+            errors = notify_slack_from_state(
+                "owner/repo",
+                None,
+                [{"number": 2, "isDraft": False, "title": "Open PR"}],
+                datetime(2026, 7, 20, 2, tzinfo=timezone.utc),
+                {2},
+            )
+
+        self.assertEqual(errors, [])
+        send_notification.assert_not_called()
+        save_notifications.assert_called_once_with({})
+
 
 if __name__ == "__main__":
     unittest.main()
