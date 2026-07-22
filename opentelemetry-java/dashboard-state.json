@@ -1267,8 +1267,11 @@
         "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8655#discussion_r3633829844"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "490bb6f523094059b11a42a9a23f3d4b",
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
@@ -1288,11 +1291,19 @@
         "head_sha": "e3c392faab45bd79030822dcd59e75d25017c629",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-22T21:09:24+00:00",
-        "last_approver_activity_at": "2026-07-22T21:09:24+00:00",
+        "last_activity_at": "2026-07-22T21:10:43+00:00",
+        "last_approver_activity_at": "2026-07-22T21:10:43+00:00",
         "last_author_activity_at": "2026-07-22T21:04:09+00:00",
         "last_external_activity_at": "",
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -1302,14 +1313,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "ccde22ea0c335f28e8760c1ed1026d846df29d17116701688fad376b0691563d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-22T21:04:09+00:00"
+        "routing_input_fingerprint": "366f0853f5d2d1362447e7ea1cd3c4cb0659f8bf6a58de60ba69e50b1c1af151",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-22T21:10:43+00:00"
       },
       "failed": false,
       "pr_number": 8655,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8655",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     }
   },
