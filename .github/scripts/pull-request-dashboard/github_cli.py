@@ -12,6 +12,22 @@ from urllib.parse import quote, urlparse
 GH_RETRY_ATTEMPTS = 4
 GH_RETRY_DELAY_SECONDS = 1.5
 DEFAULT_OWNER = "open-telemetry"
+COPILOT_REVIEWER_BOT_ID = "BOT_kgDOCnlnWA"
+
+
+REQUEST_COPILOT_REVIEW_MUTATION = """
+mutation($pullRequestId: ID!, $botId: ID!) {
+    requestReviews(input: {
+        pullRequestId: $pullRequestId
+        botIds: [$botId]
+        union: true
+    }) {
+        pullRequest {
+            id
+        }
+    }
+}
+"""
 
 
 def normalize_repo(repo: str) -> str:
@@ -98,6 +114,16 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
     return data
 
 
+def request_copilot_review(pull_request_id: str) -> None:
+    gh_graphql(
+        REQUEST_COPILOT_REVIEW_MUTATION,
+        {
+            "pullRequestId": pull_request_id,
+            "botId": COPILOT_REVIEWER_BOT_ID,
+        },
+    )
+
+
 def gh_graphql(query: str, fields: dict[str, Any], token: str | None = None) -> dict[str, Any]:
     cmd = ["gh", "api", "graphql", "-f", f"query={query}"]
     for name, value in fields.items():
@@ -109,9 +135,9 @@ def gh_graphql(query: str, fields: dict[str, Any], token: str | None = None) -> 
 
 def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
-        "id", "number", "title", "url", "author", "state", "isDraft",
-        "mergeable", "mergeStateStatus", "createdAt", "updatedAt",
-        "reviewDecision", "assignees", "baseRefName",
+        "id", "number", "title", "body", "url", "author", "state", "isDraft",
+        "mergeable", "mergeStateStatus", "createdAt", "updatedAt", "headRefOid",
+        "reviewDecision", "reviewRequests", "assignees", "baseRefName", "labels",
     ])
     cmd = ["gh", "pr", "view", str(number), "--repo", repo, "--json", fields]
     last: dict[str, Any] = {}
@@ -139,6 +165,12 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                 }
                 nodes {
                     fullDatabaseId
+                    commit {
+                        oid
+                    }
+                    comments {
+                        totalCount
+                    }
                     url
                     body
                     state
@@ -307,6 +339,10 @@ def fetch_pr_review_data(owner: str, repo_name: str, number: int) -> dict[str, A
                 continue
             reviews.append({
                 "id": database_id,
+                "commit_id": ((review.get("commit") or {}).get("oid") or ""),
+                "finding_count": int(
+                    (review.get("comments") or {}).get("totalCount") or 0
+                ),
                 "url": review.get("url") or "",
                 "user": review.get("author") or {},
                 "state": review.get("state") or "",
@@ -579,14 +615,6 @@ def list_open_prs(repo: str) -> list[dict[str, Any]]:
         }
         for pull in _list_open_pulls(repo)
     ]
-
-
-def list_all_open_pr_numbers(repo: str) -> set[int]:
-    return {
-        pull["number"]
-        for pull in _list_open_pulls(repo)
-        if isinstance(pull, dict) and isinstance(pull.get("number"), int)
-    }
 
 
 def detect_repo() -> str:

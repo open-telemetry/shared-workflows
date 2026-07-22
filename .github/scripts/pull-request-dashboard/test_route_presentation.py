@@ -31,6 +31,12 @@ class RoutePresentationTest(unittest.TestCase):
             route_status_summary("author"),
         )
 
+    def test_copilot_status_identifies_pending_review(self) -> None:
+        self.assertEqual(
+            ("Copilot", "Wait for the pending review to complete."),
+            route_status_summary("copilot"),
+        )
+
     def test_unrecognized_route_uses_unknown_presentation(self) -> None:
         self.assertEqual(route_label("unknown"), route_label("other"))
         self.assertEqual(route_status_summary("unknown"), route_status_summary("other"))

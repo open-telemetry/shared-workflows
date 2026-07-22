@@ -52,6 +52,7 @@ Open a pull request that adds your repository to [`.github/scripts/pull-request-
       "markdown-link-check / link-check",
       "codecov/*"
     ],
+    "require_clean_copilot_review_branches": ["main"],
     "labels_to_display": ["size/*", "breaking change"],
     "slack_channel": "#example-maintainers",
     "slack_user_mapping": {
@@ -70,11 +71,19 @@ Fields:
 | `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
+| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review with no inline findings on the current head is required before routing a PR to reviewers or maintainers. The dashboard re-requests Copilot review when needed and does not duplicate a pending request. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
 
 `labels_to_display` only controls which labels are shown. It does not filter pull requests or affect dashboard routing, notifications, or status comments. All matching labels are displayed in the order returned by GitHub; a label matching more than one configured pattern is shown once.
+
+For each listed branch, `require_clean_copilot_review_branches` relies on automatic Copilot
+code review for the initial review, so list only branches where automatic Copilot
+code review is enabled. The dashboard requests later reviews using its GitHub App
+installation token with pull-request write permission. Leave **Review new
+pushes** disabled if the dashboard should request re-reviews only when a PR is
+ready to return to reviewers or maintainers.
 
 Ask a maintainer or admin to add the repository under [Repository access](https://github.com/organizations/open-telemetry/settings/installations/133550497).
 
@@ -184,10 +193,53 @@ for the tradeoffs behind this behavior.
 
 Targeted updates received before the first full dashboard run are ignored.
 
+## Reviewer routing override
+
+When the dashboard says a pull request is waiting on its author or an external
+dependency but the author believes it is ready for another review, the author
+can comment `/dashboard route:reviewers`. The dashboard routes the pull request
+to *Waiting on reviewers* and applies the `dashboard:route-overridden` label to
+mark the override. Members of the repository's `approver_teams` can use the same
+command. A `/dashboard route:reviewers` command from anyone else, or a command
+on a pull request already at or past reviewers, has no routing effect. The
+dashboard replies to a `/dashboard route:reviewers` from an unauthorized user
+explaining that only the author or an approver can use it, replies to an author
+or approver command on a pull request already at or past reviewers noting where
+it is currently routed, and replies to any unrecognized `/dashboard` command.
+
+Removing the `dashboard:route-overridden` label restores automatic routing. The
+dashboard also removes the label automatically once routing would place the pull
+request with reviewers on its own, so a forgotten override does not linger. A
+command that has already been applied is not replayed after label removal; the
+author can post a new `/dashboard route:reviewers` command if another override
+is needed later.
+
+## Author reminder
+
+The dashboard posts one reminder when a pull request remains in *Waiting on
+authors* for one week. The reminder @-mentions the author, links to the
+dashboard-managed status comment containing the remaining items, and notes that
+addressing them (or replying with an update) automatically routes the pull
+request back to reviewers.
+Both the reminder and the live status comment advertise `/dashboard route:reviewers`
+as an explicit handoff when the author believes the pull request is ready for
+review.
+
+Leaving *Waiting on authors* resets the one-week clock. If the pull request
+later returns to *Waiting on authors* and remains there for another week, the
+dashboard posts another reminder. Reminders are delivered by hourly runs when
+the pull request is next refreshed, so a due reminder in a large repository
+may wait for a later round-robin run.
+
 ## Configuration
 
-The dashboard uses repository-scoped GitHub App access to read and update each
-configured repository and to read approver team membership.
+The dashboard separates calculation from delivery. The update job uses
+repository-scoped, read-only GitHub App access to calculate routing and persist
+pending work. A serialized publishing job holds pull request and issue write
+access and durably delivers status comments, author reminders, Copilot
+re-review requests, Slack notifications, and the dashboard issue. Successful
+deliveries are recorded on the state branch before another publishing run can
+start.
 
 Each repository can route Slack notifications to its own `slack_channel` and
 map GitHub logins to Slack user IDs via `slack_user_mapping`. Repositories

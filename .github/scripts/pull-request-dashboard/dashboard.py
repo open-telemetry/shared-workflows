@@ -44,10 +44,11 @@ A run flows like this:
        v
   save_dashboard_state_cache
 
-Slack notifications are sent by notify_slack.py in a separate serialized
-workflow job. That job loads the latest accepted dashboard state and
-notification state, sends any due notifications, and pushes the updated
-notification state with the same git CAS pattern.
+Status comments, author nudges, Copilot re-review requests, and Slack
+notifications are delivered by delivery.py in one serialized publishing job.
+That job loads the latest accepted dashboard state and delivery ledgers, sends
+due updates, and pushes successful acknowledgements with the same git CAS
+pattern.
 
 State files are committed and pushed first. Only after that state branch push
 succeeds does a follow-up publishing job fetch the accepted dashboard state,
@@ -160,6 +161,7 @@ from __future__ import annotations
 import argparse
 import sys
 import traceback
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -191,6 +193,20 @@ from classification import (
     normalize_discussion_action,
     prune_classification_cache,
 )
+from author_nudge import record_author_nudge_observation, routing_input_fingerprint
+from copilot_review import (
+    apply_copilot_review_gate,
+    copilot_review_status,
+    is_copilot_reviewer,
+    record_copilot_review_observation,
+)
+from dashboard_override import (
+    apply_dashboard_override,
+    append_route_noop_reply,
+    dashboard_command_body_remainder,
+    dashboard_override_facts,
+)
+from pr_status_comment import status_author_nudge_episode_id
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -206,7 +222,7 @@ from state import (
     update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import actor_login, format_ts, parse_ts, truncate
+from utils import actor_login, format_ts, parse_ts, truncate, utc_now
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
@@ -236,13 +252,12 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:
 # human author behind a Copilot-authored PR.
 _COPILOT_COMMITTER_LOGINS = {"copilot"}
 _COPILOT_PR_AUTHORS = {"app/copilot-swe-agent", "copilot"}
-_COPILOT_REVIEWER_LOGINS = {"copilot", "copilot-pull-request-reviewer", "copilot-pull-request-reviewer[bot]"}
 _MAINTENANCE_BOT_PR_AUTHORS = {"app/otelbot", "app/renovate"}
 
 
 def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
     login = actor_login(obj)
-    if login.lower() in _COPILOT_REVIEWER_LOGINS:
+    if is_copilot_reviewer(obj):
         return "copilot-pull-request-reviewer[bot]"
     return login
 
@@ -376,6 +391,13 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
     for c in raw["issue_comments"]:
         if c.get("minimized"):
             continue
+        command_remainder = dashboard_command_body_remainder(c)
+        # A `/dashboard` command line is control metadata, not discussion. Skip
+        # the comment only when it is command-only; otherwise keep the author's
+        # explanation that follows the command as an event.
+        if command_remainder is not None and not command_remainder:
+            continue
+        body = command_remainder if command_remainder is not None else (c.get("body") or "")
         login = reviewer_actor_login(c.get("user") or {})
         timestamp = (
             c.get("content_updated_at")
@@ -392,7 +414,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "updated_timestamp": timestamp,
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
-            "body": c.get("body") or "",
+            "body": body,
             "state": None,
             "path": None,
             "sha": None,
@@ -521,6 +543,7 @@ def compute_facts(
     raw: dict[str, Any],
     author: str,
     events: list[dict[str, Any]],
+    reviewers: set[str] | None = None,
 ) -> dict[str, Any]:
     pr = raw["pr"]
     checks = raw["checks"]
@@ -536,9 +559,31 @@ def compute_facts(
     api_author = actor_login(pr.get("author") or {})
     assignees = [reviewer_actor_login(a) for a in (pr.get("assignees") or [])]
     assignees = [a for a in assignees if a]
+    # Read the head OID straight from the PR object. Deriving it from
+    # raw["commits"] is wrong for PRs with more than 250 commits, where the
+    # commits REST endpoint truncates and the last entry is not the real head.
+    head_sha = pr.get("headRefOid") or ""
+    copilot_review_exists, copilot_review_needed = copilot_review_status(
+        raw.get("reviews") or [],
+        head_sha,
+    )
+    labels = {
+        label.get("name") or ""
+        for label in pr.get("labels") or []
+        if isinstance(label, dict)
+    }
     facts = {
         "author": author,
         "assignees": assignees,
+        "head_sha": head_sha,
+        "routing_input_fingerprint": routing_input_fingerprint(raw),
+        **dashboard_override_facts(raw, author, labels, reviewers or set()),
+        "copilot_review_requested": any(
+            is_copilot_reviewer(request)
+            for request in (pr.get("reviewRequests") or [])
+        ),
+        "copilot_review_exists": copilot_review_exists,
+        "copilot_review_needed": copilot_review_needed,
         "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
         "is_draft": bool(pr.get("isDraft")),
         "approval_count": current_approval_count(events),
@@ -1226,7 +1271,7 @@ def oldest_pending_action_ts(
 
 
 def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
-    if route in ("approver", "maintainer"):
+    if route in ("approver", "maintainer", "copilot"):
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
         if facts.get("ci_failing_count", 0) > 0:
@@ -1359,6 +1404,50 @@ def add_reviewers(
     ]
 
 
+def resolve_pr_route(
+    facts: dict[str, Any],
+    pending_actions: dict[str, dict[str, Any]],
+    required_approvals: int,
+    require_clean_copilot_review: bool,
+) -> str:
+    # Apply the manual reviewer-routing override before the Copilot review gate
+    # so an overridden route (for example author -> reviewers) is still held for
+    # a required clean Copilot review instead of bypassing it.
+    return apply_copilot_review_gate(
+        facts,
+        apply_dashboard_override(
+            facts,
+            route_pr(facts, pending_actions, required_approvals),
+        ),
+        enabled=require_clean_copilot_review,
+    )
+
+
+def assign_author_nudge_episode(
+    facts: dict[str, Any],
+    route: str,
+    previous_result: dict[str, Any] | None,
+    issue_comments: list[dict[str, Any]],
+) -> None:
+    if route != "author":
+        facts.pop("author_nudge_episode_id", None)
+        return
+    previous_facts = (previous_result or {}).get("facts") or {}
+    previous_episode_id = (
+        previous_facts.get("author_nudge_episode_id")
+        if (previous_result or {}).get("route") == "author"
+        else ""
+    )
+    recovered_episode_id = (
+        status_author_nudge_episode_id(issue_comments)
+        if previous_result is None
+        else ""
+    )
+    facts["author_nudge_episode_id"] = str(
+        previous_episode_id or recovered_episode_id or uuid.uuid4().hex
+    )
+
+
 # ---------------------------------------------------------------- main
 
 
@@ -1372,6 +1461,8 @@ def build_pr_result(
     required_approvals: int,
     non_blocking_check_patterns: list[str],
     previous_top_level_history: dict[str, dict[str, Any]] | None = None,
+    require_clean_copilot_review_branches: list[str] | None = None,
+    previous_result: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
     try:
@@ -1386,7 +1477,7 @@ def build_pr_result(
             return None
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
-        facts = compute_facts(raw, author, events)
+        facts = compute_facts(raw, author, events, reviewers)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         top_level_author_comment_items = derive_top_level_author_comment_items(
@@ -1462,7 +1553,22 @@ def build_pr_result(
                 "route": "unknown",
                 "error": f"{len(failed_classifications)} discussion classification(s) failed",
             }
-        route = route_pr(facts, pending_actions, required_approvals)
+        require_clean_copilot_review = (raw["pr"].get("baseRefName") or "") in (
+            require_clean_copilot_review_branches or []
+        )
+        route = resolve_pr_route(
+            facts,
+            pending_actions,
+            required_approvals,
+            require_clean_copilot_review,
+        )
+        assign_author_nudge_episode(
+            facts,
+            route,
+            previous_result,
+            raw.get("issue_comments") or [],
+        )
+        append_route_noop_reply(raw, facts, route)
         add_wait_age_facts(facts, route, pending_actions)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
@@ -1543,6 +1649,7 @@ def build_dashboard_update_for_pr(
     required_approvals: int,
     non_blocking_check_patterns: list[str],
     dashboard_state: dict[str, Any],
+    require_clean_copilot_review_branches: list[str] | None = None,
 ) -> DashboardUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
     results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
@@ -1557,6 +1664,8 @@ def build_dashboard_update_for_pr(
         required_approvals,
         non_blocking_check_patterns,
         previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
+        require_clean_copilot_review_branches=require_clean_copilot_review_branches,
+        previous_result=starting_pr_result,
     )
     if trigger_pr_result is None:
         results.pop(pr_number, None)
@@ -1859,14 +1968,18 @@ def clear_backfill_pr_failure(pr_number: int) -> None:
 def remove_cached_dashboard_prs(
     args: argparse.Namespace,
     pr_numbers_to_remove: set[int],
+    observed_at: datetime | None = None,
 ) -> int:
     if not pr_numbers_to_remove:
         return 0
     dashboard_state = load_dashboard_state_cache() or empty_state()
     state_prs = dict(dashboard_state.get("prs") or {})
+    observed_at = observed_at or utc_now()
     for number in pr_numbers_to_remove:
         state_prs.pop(str(number), None)
         enqueue_status_comment_update(number)
+        record_author_nudge_observation(number, None, observed_at)
+        record_copilot_review_observation(number, None, observed_at)
     dashboard_state["prs"] = state_prs
     return save_dashboard_update_state(args, dashboard_state, False)
 
@@ -1895,10 +2008,15 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate
         args.required_approvals,
         args.non_blocking_check_pattern,
         loaded_dashboard_state,
+        getattr(args, "require_clean_copilot_review_branches", []),
     )
 
 
-def apply_targeted_dashboard_update(args: argparse.Namespace, calculation: DashboardUpdate) -> int:
+def apply_targeted_dashboard_update(
+    args: argparse.Namespace,
+    calculation: DashboardUpdate,
+    observed_at: datetime | None = None,
+) -> int:
     merged_calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
         calculation,
         args.pr_number,
@@ -1912,6 +2030,18 @@ def apply_targeted_dashboard_update(args: argparse.Namespace, calculation: Dashb
         clear_backfill_pr_failure(args.pr_number)
     if not dashboard_state_unchanged and args.pr_number is not None:
         enqueue_status_comment_update(args.pr_number)
+    if args.pr_number is not None:
+        observed_at = observed_at or utc_now()
+        accepted_result = (merged_calculation.dashboard_state.get("prs") or {}).get(
+            str(args.pr_number)
+        )
+        record_author_nudge_observation(
+            args.pr_number,
+            accepted_result,
+            observed_at,
+            prepare_due=getattr(args, "prepare_author_nudges", False),
+        )
+        record_copilot_review_observation(args.pr_number, accepted_result, observed_at)
 
     return save_dashboard_update_state(
         args,
@@ -1934,10 +2064,11 @@ def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) ->
     if update is None:
         return 0
 
+    observed_at = utc_now()
     return state_branch.push_state_changes(
         state_dir,
         "Update dashboard state",
-        lambda: apply_targeted_dashboard_update(args, update),
+        lambda: apply_targeted_dashboard_update(args, update, observed_at),
         state_branch=args.state_branch,
     )
 
@@ -1965,18 +2096,19 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     )
 
     if selection.cached_pr_numbers_to_remove:
+        observed_at = utc_now()
         status = state_branch.push_state_changes(
             state_dir,
             "Update dashboard state",
             lambda: remove_cached_dashboard_prs(
                 args,
                 selection.cached_pr_numbers_to_remove,
+                observed_at,
             ),
             state_branch=args.state_branch,
         )
         if status != 0:
             return status
-
     print(
         f"backfill selected {len(selection.selected_prs)} PR(s) "
         f"in {repo} (max={DEFAULT_BACKFILL_MAX_PRS})",
@@ -1999,6 +2131,8 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         )
 
     for pr_summary in selection.selected_prs:
+        observed_at = utc_now()
+
         def update_selected_pr(pr_summary: dict[str, Any] = pr_summary) -> int:
             pr_number = pr_summary["number"]
             dashboard_state = load_dashboard_state_cache() or empty_state()
@@ -2013,6 +2147,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 args.required_approvals,
                 args.non_blocking_check_pattern,
                 dashboard_state,
+                getattr(args, "require_clean_copilot_review_branches", []),
             )
             calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
                 calculation,
@@ -2031,6 +2166,17 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                     dashboard_state,
                     not initial_backfill_completed,
                 )
+            record_author_nudge_observation(
+                pr_number,
+                (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
+                observed_at,
+                prepare_due=getattr(args, "prepare_author_nudges", False),
+            )
+            record_copilot_review_observation(
+                pr_number,
+                (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
+                observed_at,
+            )
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
             if not dashboard_state_unchanged:
                 enqueue_status_comment_update(pr_number)
@@ -2105,6 +2251,19 @@ def main() -> int:
         action="append",
         default=[],
         help="glob matching a non-required check to mention when it fails; repeat as needed",
+    )
+    parser.add_argument(
+        "--require-clean-copilot-review-branch",
+        action="append",
+        default=[],
+        dest="require_clean_copilot_review_branches",
+        metavar="BRANCH",
+        help="require a clean Copilot review before reviewer or maintainer handoff for PRs targeting this base branch; repeat as needed",
+    )
+    parser.add_argument(
+        "--prepare-author-nudges",
+        action="store_true",
+        help="queue due author nudges from accepted dashboard results",
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"copilot model (default: {DEFAULT_MODEL})")
     parser.add_argument(

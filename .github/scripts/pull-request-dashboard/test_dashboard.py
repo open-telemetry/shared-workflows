@@ -5,14 +5,16 @@ from copy import deepcopy
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock, call, patch
+from unittest.mock import ANY, Mock, call, patch
 
 from classification import discussion_prompt_input
+from copilot_review import apply_copilot_review_gate
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     DashboardUpdate,
     add_wait_age_facts,
     apply_targeted_dashboard_update,
+    assign_author_nudge_episode,
     author_action_discussion_urls,
     backfill_failed_pr_numbers,
     complete_initial_backfill_if_ready,
@@ -21,12 +23,107 @@ from dashboard import (
     group_review_threads,
     main,
     remove_cached_dashboard_prs,
+    resolve_pr_route,
     route_pr,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
 )
 
+
+class ResolvePrRouteTest(unittest.TestCase):
+    def _author_route_facts(self, **overrides: object) -> dict[str, object]:
+        # A failing required check routes a human-authored PR to the author.
+        facts: dict[str, object] = {
+            "ci_failing_count": 1,
+            "dashboard_override_label_applied": True,
+            "dashboard_override_requested": False,
+        }
+        facts.update(overrides)
+        return facts
+
+    def test_override_is_still_gated_by_required_copilot_review(self) -> None:
+        facts = self._author_route_facts(
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("copilot", route)
+
+    def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
+        facts = self._author_route_facts(
+            copilot_review_exists=True,
+            copilot_review_needed=False,
+        )
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("approver", route)
+
+    def test_override_reaches_reviewers_when_gate_disabled(self) -> None:
+        facts = self._author_route_facts()
+
+        route = resolve_pr_route(facts, {}, 1, False)
+
+        self.assertEqual("approver", route)
+
+
+class AuthorNudgeEpisodeTest(unittest.TestCase):
+    def test_preserves_episode_while_route_remains_author(self) -> None:
+        facts: dict[str, object] = {}
+
+        assign_author_nudge_episode(
+            facts,
+            "author",
+            {
+                "route": "author",
+                "facts": {"author_nudge_episode_id": "abc123"},
+            },
+            [],
+        )
+
+        self.assertEqual("abc123", facts["author_nudge_episode_id"])
+
+    @patch("dashboard.uuid.uuid4")
+    def test_starts_new_episode_after_known_route_departure(self, uuid4: Mock) -> None:
+        uuid4.return_value.hex = "def456"
+        facts: dict[str, object] = {}
+
+        assign_author_nudge_episode(
+            facts,
+            "author",
+            {"route": "approver", "facts": {}},
+            [{
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": (
+                    "<!-- pull-request-dashboard-status -->\n"
+                    "<!-- pull-request-dashboard-author-nudge-episode:abc123 -->"
+                ),
+            }],
+        )
+
+        self.assertEqual("def456", facts["author_nudge_episode_id"])
+
+    def test_recovers_episode_from_status_comment_after_cache_loss(self) -> None:
+        facts: dict[str, object] = {}
+
+        assign_author_nudge_episode(
+            facts,
+            "author",
+            None,
+            [{
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": (
+                    "<!-- pull-request-dashboard-status -->\n"
+                    "<!-- pull-request-dashboard-author-nudge-episode:abc123 -->"
+                ),
+            }],
+        )
+
+        self.assertEqual("abc123", facts["author_nudge_episode_id"])
 
 class FetchPrRawTest(unittest.TestCase):
     def test_uses_graphql_issue_comments_without_rest_join(self) -> None:
@@ -181,6 +278,316 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
             author_action_discussion_urls(discussions, pending_actions),
         )
 
+
+class CopilotReviewGateTest(unittest.TestCase):
+    def test_current_head_matches_latest_clean_copilot_review(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [
+                        {"login": "copilot-pull-request-reviewer"},
+                    ],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
+                },
+                "reviews": [
+                    {
+                        "id": 10,
+                        "commit_id": "old-head",
+                        "finding_count": 1,
+                        "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                        "submitted_at": "2026-07-20T01:30:00Z",
+                    },
+                    {
+                        "id": 20,
+                        "commit_id": "current-head",
+                        "finding_count": 0,
+                        "user": {"login": "copilot-pull-request-reviewer"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                ],
+                "commits": [{"sha": "old-head"}, {"sha": "current-head"}],
+                "review_comments": [
+                    {"pull_request_review_id": 10},
+                ],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertTrue(facts["copilot_review_requested"])
+        self.assertTrue(facts["copilot_review_exists"])
+        self.assertFalse(facts["copilot_review_needed"])
+
+    def test_late_stale_review_does_not_replace_clean_current_head_review(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
+                },
+                "reviews": [
+                    {
+                        "id": 10,
+                        "commit_id": "current-head",
+                        "finding_count": 0,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                    {
+                        "id": 20,
+                        "commit_id": "old-head",
+                        "finding_count": 1,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T03:00:00Z",
+                    },
+                ],
+                "commits": [{"sha": "old-head"}, {"sha": "current-head"}],
+                "review_comments": [{"pull_request_review_id": 20}],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertFalse(facts["copilot_review_needed"])
+
+    def test_push_since_latest_clean_copilot_review_needs_rereview(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
+                },
+                "reviews": [
+                    {
+                        "id": 20,
+                        "commit_id": "reviewed-head",
+                        "finding_count": 0,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                ],
+                "commits": [{"sha": "reviewed-head"}, {"sha": "current-head"}],
+                "review_comments": [],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertFalse(facts["copilot_review_requested"])
+        self.assertTrue(facts["copilot_review_needed"])
+
+    def test_latest_findings_review_replaces_clean_review_on_same_head(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
+                },
+                "reviews": [
+                    {
+                        "id": 10,
+                        "commit_id": "current-head",
+                        "finding_count": 0,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T01:30:00Z",
+                    },
+                    {
+                        "id": 20,
+                        "commit_id": "current-head",
+                        "finding_count": 1,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                ],
+                "commits": [{"sha": "current-head"}],
+                "review_comments": [{"pull_request_review_id": 20}],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertTrue(facts["copilot_review_needed"])
+
+    def test_findings_only_history_needs_rereview(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
+                },
+                "reviews": [
+                    {
+                        "id": 20,
+                        "commit_id": "reviewed-head",
+                        "finding_count": 1,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                ],
+                "commits": [{"sha": "reviewed-head"}, {"sha": "current-head"}],
+                "review_comments": [{"pull_request_review_id": 20}],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertTrue(facts["copilot_review_needed"])
+
+    def test_waits_for_automatic_initial_copilot_review(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                },
+                "reviews": [],
+                "commits": [{"sha": "current-head"}],
+                "review_comments": [],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertFalse(facts["copilot_review_exists"])
+        self.assertFalse(facts["copilot_review_needed"])
+
+    def test_initial_automatic_review_blocks_human_handoff(self) -> None:
+        facts = {
+            "copilot_review_requested": True,
+            "copilot_review_exists": False,
+            "copilot_review_needed": False,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "approver",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "copilot")
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_marks_re_review_needed_after_push_since_clean_review(self) -> None:
+        facts = {
+            "copilot_review_requested": False,
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "maintainer",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "copilot")
+        self.assertTrue(facts["copilot_review_request_needed"])
+
+    def test_marks_re_review_needed_before_reviewer_handoff(self) -> None:
+        facts = {
+            "copilot_review_requested": False,
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "approver",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "copilot")
+        self.assertTrue(facts["copilot_review_request_needed"])
+
+    def test_pending_re_review_waits_without_duplicate_request(self) -> None:
+        facts = {
+            "copilot_review_requested": True,
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "maintainer",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "copilot")
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_current_head_clean_review_moves_to_maintainers(self) -> None:
+        facts = {
+            "copilot_review_requested": False,
+            "copilot_review_exists": True,
+            "copilot_review_needed": False,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "maintainer",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "maintainer")
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_disabled_gate_preserves_maintainer_route(self) -> None:
+        facts = {
+            "copilot_review_requested": False,
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "maintainer",
+            enabled=False,
+        )
+
+        self.assertEqual(route, "maintainer")
+        self.assertFalse(facts["copilot_review_request_needed"])
+
     def test_discussion_url_is_excluded_from_classifier_input(self) -> None:
         prompt_input = discussion_prompt_input({
             "discussion_id": "thread-1",
@@ -190,6 +597,44 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
         })
 
         self.assertNotIn("discussion_url", prompt_input)
+
+
+class HeadShaSourceTest(unittest.TestCase):
+    def test_head_sha_prefers_pr_head_ref_oid_over_truncated_commits(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "reviewRequests": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "real-head",
+                },
+                "reviews": [
+                    {
+                        "id": 10,
+                        "commit_id": "real-head",
+                        "finding_count": 0,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                ],
+                # The commits REST endpoint is bounded at 250 entries, so its
+                # last element is not the real head for a large PR.
+                "commits": [{"sha": "commit-1"}, {"sha": "commit-250"}],
+                "review_comments": [],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertEqual(facts["head_sha"], "real-head")
+        self.assertTrue(facts["copilot_review_exists"])
+        self.assertFalse(facts["copilot_review_needed"])
 
 
 class InitialBackfillCompletionTest(unittest.TestCase):
@@ -227,6 +672,8 @@ class InitialBackfillCompletionTest(unittest.TestCase):
                     )
 
 class StatusCommentQueueTest(unittest.TestCase):
+    @patch("dashboard.record_copilot_review_observation")
+    @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
     @patch(
@@ -238,6 +685,8 @@ class StatusCommentQueueTest(unittest.TestCase):
         _load_state: Mock,
         enqueue_update: Mock,
         save_state: Mock,
+        record_nudge: Mock,
+        _record_copilot: Mock,
     ) -> None:
         args = Namespace(pr_number=None)
 
@@ -250,7 +699,13 @@ class StatusCommentQueueTest(unittest.TestCase):
         )
         saved_state = save_state.call_args.args[1]
         self.assertEqual({"56": {}}, saved_state["prs"])
+        self.assertEqual(
+            [call(12, None, ANY), call(34, None, ANY)],
+            sorted(record_nudge.call_args_list, key=lambda value: value.args[0]),
+        )
 
+    @patch("dashboard.record_copilot_review_observation")
+    @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
@@ -261,15 +716,38 @@ class StatusCommentQueueTest(unittest.TestCase):
         enqueue_update: Mock,
         _save_state: Mock,
         _clear_backfill_failure: Mock,
+        record_nudge: Mock,
+        record_copilot: Mock,
     ) -> None:
-        calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
+        accepted_result = {"route": "author"}
+        calculation = DashboardUpdate(
+            results={},
+            dashboard_state={"prs": {"12": accepted_result}},
+            trigger_pr_result={"route": "approver"},
+        )
         merge_update.return_value = (calculation, False)
 
-        status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
+        status = apply_targeted_dashboard_update(
+            Namespace(pr_number=12, prepare_author_nudges=True),
+            calculation,
+        )
 
         self.assertEqual(0, status)
         enqueue_update.assert_called_once_with(12)
+        record_nudge.assert_called_once_with(
+            12,
+            accepted_result,
+            ANY,
+            prepare_due=True,
+        )
+        record_copilot.assert_called_once_with(
+            12,
+            accepted_result,
+            record_nudge.call_args.args[2],
+        )
 
+    @patch("dashboard.record_copilot_review_observation")
+    @patch("dashboard.record_author_nudge_observation")
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
@@ -280,14 +758,27 @@ class StatusCommentQueueTest(unittest.TestCase):
         enqueue_update: Mock,
         _save_state: Mock,
         _clear_backfill_failure: Mock,
+        record_nudge: Mock,
+        _record_copilot: Mock,
     ) -> None:
-        calculation = DashboardUpdate(results={}, dashboard_state={}, trigger_pr_result={})
+        accepted_result = {"route": "approver"}
+        calculation = DashboardUpdate(
+            results={},
+            dashboard_state={"prs": {"12": accepted_result}},
+            trigger_pr_result={"route": "author"},
+        )
         merge_update.return_value = (calculation, True)
 
         status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
 
         self.assertEqual(0, status)
         enqueue_update.assert_not_called()
+        record_nudge.assert_called_once_with(
+            12,
+            accepted_result,
+            ANY,
+            prepare_due=False,
+        )
 
 
 class RequiredCiRoutingTest(unittest.TestCase):
@@ -496,6 +987,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
                 side_effect=lambda result: result["failed"],
             ),
             patch("dashboard.save_dashboard_update_state", side_effect=save_dashboard_state),
+            patch("dashboard.record_author_nudge_observation") as record_nudge,
             patch("dashboard.state_branch.configure_git"),
             patch("dashboard.state_branch.checkout_state"),
             patch("dashboard.state_branch.remove_existing_state_dir"),
@@ -504,6 +996,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             status = update_dashboard_for_backfill(args, Path("state"))
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
+        record_nudge.assert_called_once_with(2, ANY, ANY, prepare_due=False)
         self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
         self.assertEqual(dashboard_state["prs"], {"2": {"pr_number": 2, "failed": False, "route": "reviewer"}})
         self.assertTrue(dashboard_state["initial_backfill_complete"])

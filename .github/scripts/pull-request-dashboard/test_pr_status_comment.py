@@ -27,6 +27,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "route": "author",
                 "facts": {
                     "author": "alice",
+                    "author_nudge_episode_id": "abc123",
                     "author_action_review_thread_urls": [
                         "https://github.com/open-telemetry/example/pull/1#discussion_r1",
                     ],
@@ -46,10 +47,74 @@ class RenderStatusCommentTest(unittest.TestCase):
             f"<!-- pull-request-dashboard-status-revision:{pr_status_comment.STATUS_COMMENT_REVISION} -->",
             body,
         )
+        self.assertIn(
+            pr_status_comment.author_nudge_episode_marker("abc123"),
+            body,
+        )
         self.assertNotIn("### Review feedback", body)
         self.assertIn("  - **Inline threads:** [1]", body)
         self.assertIn("  - **Top-level feedback:** [2]", body)
         self.assertIn(f"  - _{pr_status_comment.AUTHOR_GUIDANCE}_", body)
+        self.assertIn(
+            "If you believe this pull request is incorrectly routed as waiting "
+            "on the author, comment `/dashboard route:reviewers` to route it from "
+            "waiting on the author to waiting on reviewers. If the last refreshed "
+            "time above predates your latest reply or push, the dashboard hasn't "
+            "processed it yet.",
+            body,
+        )
+
+    def test_recovers_episode_only_from_app_authored_status_comment(self) -> None:
+        marker = pr_status_comment.author_nudge_episode_marker("abc123")
+        comments = [
+            {
+                "performed_via_github_app": None,
+                "body": f"{pr_status_comment.STATUS_MARKER}\n{marker}",
+            },
+            {
+                "performed_via_github_app": {
+                    "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+                },
+                "body": marker,
+            },
+            {
+                "performed_via_github_app": {
+                    "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+                },
+                "body": f"{pr_status_comment.STATUS_MARKER}\n{marker}",
+            },
+        ]
+
+        self.assertEqual(
+            "abc123",
+            pr_status_comment.status_author_nudge_episode_id(comments),
+        )
+
+    def test_recovers_episode_from_normalized_dashboard_bot_comment(self) -> None:
+        marker = pr_status_comment.author_nudge_episode_marker("abc123")
+
+        self.assertEqual(
+            "abc123",
+            pr_status_comment.status_author_nudge_episode_id([{
+                "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                "body": f"{pr_status_comment.STATUS_MARKER}\n{marker}",
+            }]),
+        )
+
+    def test_does_not_recover_episode_from_other_normalized_authors(self) -> None:
+        marker = pr_status_comment.author_nudge_episode_marker("abc123")
+        comments = [
+            {
+                "user": {"login": login},
+                "body": f"{pr_status_comment.STATUS_MARKER}\n{marker}",
+            }
+            for login in ("alice", "another-app[bot]")
+        ]
+
+        self.assertEqual(
+            "",
+            pr_status_comment.status_author_nudge_episode_id(comments),
+        )
 
     @patch.object(
         pr_status_comment,
@@ -435,10 +500,24 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("- **Waiting on:** Author", body)
         self.assertNotIn("@alice", body)
 
+    def test_external_route_advertises_reviewer_override(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {"route": "external", "facts": {}},
+        )
+
+        self.assertIn(
+            "waiting on an external dependency or decision, comment "
+            "`/dashboard route:reviewers` to route it from waiting on an "
+            "external dependency or decision to waiting on reviewers",
+            body,
+        )
+
     def test_routes_render_one_status_sentence(self) -> None:
         expected_summaries = {
             "approver": ("Reviewers", "Review the latest changes."),
             "maintainer": ("Maintainers", "Merge when ready."),
+            "copilot": ("Copilot", "Wait for the pending review to complete."),
             "external": ("An external dependency or decision", "Resolve it before work can continue."),
             "transient-failure": ("Pull request dashboard maintainers", "Determine the next action."),
             "unknown": ("Pull request dashboard maintainers", "Determine the next action."),
@@ -563,61 +642,28 @@ class RolloutStateTest(unittest.TestCase):
         pr_status_comment,
         "load_status_comment_rollout_state",
         return_value={
-            "target_revision": 0,
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
             "completed_revision": 0,
-            "pending_pr_numbers": [],
+            "pending_pr_numbers": [12, 34],
         },
     )
-    def test_rollout_drains_capped_batch(
+    def test_rollout_drains_queued_closed_pr(
         self,
         _load_rollout: object,
         _load_dashboard: object,
         publish_pr_status: Mock,
         save_rollout: Mock,
     ) -> None:
-        open_pr_numbers = set(range(1, 56))
-
         status = pr_status_comment.update_status_comments_from_state(
             "open-telemetry/example",
-            None,
-            open_pr_numbers,
+            {34},
         )
 
         self.assertEqual([], status)
         self.assertEqual(
-            list(range(1, 51)),
+            [12, 34],
             [call.args[1] for call in publish_pr_status.call_args_list],
         )
-        saved_state = save_rollout.call_args.args[0]
-        self.assertEqual([51, 52, 53, 54, 55], saved_state["pending_pr_numbers"])
-        self.assertEqual(0, saved_state["completed_revision"])
-
-    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
-    @patch.object(pr_status_comment, "publish_pr_status")
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
-    @patch.object(
-        pr_status_comment,
-        "load_status_comment_rollout_state",
-        return_value={
-            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
-            "completed_revision": 0,
-            "pending_pr_numbers": [12],
-        },
-    )
-    def test_targeted_refresh_completes_last_pending_comment(
-        self,
-        _load_rollout: object,
-        _load_dashboard: object,
-        _publish_pr_status: object,
-        save_rollout: Mock,
-    ) -> None:
-        status = pr_status_comment.update_status_comments_from_state(
-            "open-telemetry/example",
-            12,
-            {12},
-        )
-
-        self.assertEqual([], status)
         saved_state = save_rollout.call_args.args[0]
         self.assertEqual([], saved_state["pending_pr_numbers"])
         self.assertEqual(
@@ -637,54 +683,28 @@ class RolloutStateTest(unittest.TestCase):
             "pending_pr_numbers": [],
         },
     )
-    def test_targeted_refresh_initializes_revision_without_requeueing_itself(
+    def test_rollout_drains_capped_batch(
         self,
         _load_rollout: object,
         _load_dashboard: object,
-        _publish_pr_status: object,
+        publish_pr_status: Mock,
         save_rollout: Mock,
     ) -> None:
+        open_pr_numbers = set(range(1, 56))
+
         status = pr_status_comment.update_status_comments_from_state(
             "open-telemetry/example",
-            12,
-            {12, 34},
+            open_pr_numbers,
         )
 
         self.assertEqual([], status)
+        self.assertEqual(
+            list(range(1, 51)),
+            [call.args[1] for call in publish_pr_status.call_args_list],
+        )
         saved_state = save_rollout.call_args.args[0]
-        self.assertEqual(pr_status_comment.STATUS_COMMENT_REVISION, saved_state["target_revision"])
-        self.assertEqual([34], saved_state["pending_pr_numbers"])
+        self.assertEqual([51, 52, 53, 54, 55], saved_state["pending_pr_numbers"])
         self.assertEqual(0, saved_state["completed_revision"])
-
-    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
-    @patch.object(pr_status_comment, "publish_pr_status")
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
-    @patch.object(
-        pr_status_comment,
-        "load_status_comment_rollout_state",
-        return_value={
-            "target_revision": 0,
-            "completed_revision": 0,
-            "pending_pr_numbers": [],
-        },
-    )
-    def test_closed_targeted_pr_still_initializes_revision(
-        self,
-        _load_rollout: object,
-        _load_dashboard: object,
-        _publish_pr_status: object,
-        save_rollout: Mock,
-    ) -> None:
-        status = pr_status_comment.update_status_comments_from_state(
-            "open-telemetry/example",
-            12,
-            {34},
-        )
-
-        self.assertEqual([], status)
-        saved_state = save_rollout.call_args.args[0]
-        self.assertEqual(pr_status_comment.STATUS_COMMENT_REVISION, saved_state["target_revision"])
-        self.assertEqual([34], saved_state["pending_pr_numbers"])
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(
@@ -711,7 +731,6 @@ class RolloutStateTest(unittest.TestCase):
     ) -> None:
         errors = pr_status_comment.update_status_comments_from_state(
             "open-telemetry/example",
-            None,
             {12, 34},
         )
 
