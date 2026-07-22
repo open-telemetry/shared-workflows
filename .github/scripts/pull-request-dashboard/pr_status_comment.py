@@ -129,6 +129,8 @@ def status_footer(
         "<details>",
         "<summary>Doesn't look right?</summary>",
         "",
+        "<br>",
+        "",
     ]
     if not terminal:
         lines.append(
