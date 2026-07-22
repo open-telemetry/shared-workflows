@@ -9038,7 +9038,7 @@
     },
     "49737": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "quentinmit",
         "author_action_review_thread_urls": [],
@@ -9062,19 +9062,28 @@
         "head_sha": "c278b9128293b0a460a4cac26fd4f9fdfa46a0c0",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-22T03:08:32+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-22T20:11:12+00:00",
+        "last_approver_activity_at": "2026-07-22T20:11:12+00:00",
         "last_author_activity_at": "2026-07-17T21:36:12+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "d9ca9ab63164991a5332e50cd40917556843d82ffd9ec75fff0d1c922c0afac0",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "braydonk",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "cfa02c2bb3b8f347aa7bdf3820a78557dbd36ed4030f8eae6ca08a0d6c545db1",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-17T21:36:12+00:00"
       },
       "failed": false,
       "pr_number": 49737,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49737",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49739": {
