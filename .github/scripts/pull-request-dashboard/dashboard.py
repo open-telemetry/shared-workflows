@@ -161,6 +161,7 @@ from __future__ import annotations
 import argparse
 import sys
 import traceback
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -205,6 +206,7 @@ from dashboard_override import (
     dashboard_command_body_remainder,
     dashboard_override_facts,
 )
+from pr_status_comment import status_author_nudge_episode_id
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -1421,6 +1423,31 @@ def resolve_pr_route(
     )
 
 
+def assign_author_nudge_episode(
+    facts: dict[str, Any],
+    route: str,
+    previous_result: dict[str, Any] | None,
+    issue_comments: list[dict[str, Any]],
+) -> None:
+    if route != "author":
+        facts.pop("author_nudge_episode_id", None)
+        return
+    previous_facts = (previous_result or {}).get("facts") or {}
+    previous_episode_id = (
+        previous_facts.get("author_nudge_episode_id")
+        if (previous_result or {}).get("route") == "author"
+        else ""
+    )
+    recovered_episode_id = (
+        status_author_nudge_episode_id(issue_comments)
+        if previous_result is None
+        else ""
+    )
+    facts["author_nudge_episode_id"] = str(
+        previous_episode_id or recovered_episode_id or uuid.uuid4().hex
+    )
+
+
 # ---------------------------------------------------------------- main
 
 
@@ -1435,6 +1462,7 @@ def build_pr_result(
     non_blocking_check_patterns: list[str],
     previous_top_level_history: dict[str, dict[str, Any]] | None = None,
     require_clean_copilot_review_branches: list[str] | None = None,
+    previous_result: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     number = pr_summary["number"]
     try:
@@ -1534,6 +1562,12 @@ def build_pr_result(
             required_approvals,
             require_clean_copilot_review,
         )
+        assign_author_nudge_episode(
+            facts,
+            route,
+            previous_result,
+            raw.get("issue_comments") or [],
+        )
         append_route_noop_reply(raw, facts, route)
         add_wait_age_facts(facts, route, pending_actions)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
@@ -1631,6 +1665,7 @@ def build_dashboard_update_for_pr(
         non_blocking_check_patterns,
         previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
         require_clean_copilot_review_branches=require_clean_copilot_review_branches,
+        previous_result=starting_pr_result,
     )
     if trigger_pr_result is None:
         results.pop(pr_number, None)

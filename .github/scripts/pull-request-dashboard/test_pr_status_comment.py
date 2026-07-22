@@ -26,6 +26,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "route": "author",
                 "facts": {
                     "author": "alice",
+                    "author_nudge_episode_id": "abc123",
                     "author_action_review_thread_urls": [
                         "https://github.com/open-telemetry/example/pull/1#discussion_r1",
                     ],
@@ -45,6 +46,10 @@ class RenderStatusCommentTest(unittest.TestCase):
             f"<!-- pull-request-dashboard-status-revision:{pr_status_comment.STATUS_COMMENT_REVISION} -->",
             body,
         )
+        self.assertIn(
+            pr_status_comment.author_nudge_episode_marker("abc123"),
+            body,
+        )
         self.assertNotIn("### Review feedback", body)
         self.assertIn("  - **Inline threads:** [1]", body)
         self.assertIn("  - **Top-level feedback:** [2]", body)
@@ -56,6 +61,32 @@ class RenderStatusCommentTest(unittest.TestCase):
             "time above predates your latest reply or push, the dashboard hasn't "
             "processed it yet.",
             body,
+        )
+
+    def test_recovers_episode_only_from_app_authored_status_comment(self) -> None:
+        marker = pr_status_comment.author_nudge_episode_marker("abc123")
+        comments = [
+            {
+                "performed_via_github_app": None,
+                "body": f"{pr_status_comment.STATUS_MARKER}\n{marker}",
+            },
+            {
+                "performed_via_github_app": {
+                    "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+                },
+                "body": marker,
+            },
+            {
+                "performed_via_github_app": {
+                    "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+                },
+                "body": f"{pr_status_comment.STATUS_MARKER}\n{marker}",
+            },
+        ]
+
+        self.assertEqual(
+            "abc123",
+            pr_status_comment.status_author_nudge_episode_id(comments),
         )
 
     @patch.object(

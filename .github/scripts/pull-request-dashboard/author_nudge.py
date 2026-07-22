@@ -39,8 +39,8 @@ NUDGE_AFTER = timedelta(weeks=1)
 NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-nudge:"
 
 
-def nudge_marker(waiting_since: str) -> str:
-    return f"{NUDGE_MARKER_PREFIX}{waiting_since} -->"
+def nudge_marker(episode_id: str) -> str:
+    return f"{NUDGE_MARKER_PREFIX}{episode_id} -->"
 
 
 def routing_input_fingerprint(raw: dict[str, Any]) -> str:
@@ -151,9 +151,9 @@ def plan_nudge(
 def existing_nudge_comment(
     repo: str,
     pr_number: int,
-    waiting_since: str,
+    episode_id: str,
 ) -> dict[str, Any] | None:
-    marker = nudge_marker(waiting_since)
+    marker = nudge_marker(episode_id)
     comments = gh_api(
         f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
         paginate=True,
@@ -170,9 +170,9 @@ def existing_nudge_comment(
     )
 
 
-def render_nudge(author: str, status_url: str, waiting_since: str) -> str:
+def render_nudge(author: str, status_url: str, episode_id: str) -> str:
     return "\n".join([
-        nudge_marker(waiting_since),
+        nudge_marker(episode_id),
         f"Hi @{author} — just a friendly reminder that this pull request has "
         "been waiting on you for a week.",
         "",
@@ -196,7 +196,12 @@ def ensure_nudge(
     waiting_since: str,
     now: datetime,
 ) -> str | None:
-    existing = existing_nudge_comment(repo, pr_number, waiting_since)
+    episode_id = str(
+        ((result.get("facts") or {}).get("author_nudge_episode_id") or "")
+    )
+    if not episode_id:
+        raise RuntimeError(f"author nudge episode not found for PR #{pr_number}")
+    existing = existing_nudge_comment(repo, pr_number, episode_id)
     if existing:
         return existing.get("created_at") or format_ts(now)
 
@@ -215,7 +220,7 @@ def ensure_nudge(
     run_gh([
         "gh", "api", "--method", "POST",
         f"repos/{repo}/issues/{pr_number}/comments",
-        "-f", f"body={render_nudge(author, status_comments[0]['html_url'], waiting_since)}",
+        "-f", f"body={render_nudge(author, status_comments[0]['html_url'], episode_id)}",
     ])
     return format_ts(now)
 

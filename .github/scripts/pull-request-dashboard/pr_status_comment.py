@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from typing import Any
 from urllib.parse import urlencode
@@ -23,9 +24,15 @@ from utils import utc_now
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
+AUTHOR_NUDGE_EPISODE_MARKER_PREFIX = (
+    "<!-- pull-request-dashboard-author-nudge-episode:"
+)
+_AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
+    r"<!-- pull-request-dashboard-author-nudge-episode:([a-f0-9]+) -->"
+)
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 10
+STATUS_COMMENT_REVISION = 11
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
@@ -43,6 +50,26 @@ LEGACY_MARKERS = (
     "<!-- review-guidance -->",
     "<!-- copilot-review-guidance -->",
 )
+
+
+def author_nudge_episode_marker(episode_id: str) -> str:
+    return f"{AUTHOR_NUDGE_EPISODE_MARKER_PREFIX}{episode_id} -->"
+
+
+def status_author_nudge_episode_id(
+    comments: list[dict[str, Any]] | None,
+) -> str:
+    for comment in comments or []:
+        body = comment.get("body") or ""
+        match = _AUTHOR_NUDGE_EPISODE_MARKER_RE.search(body)
+        if (
+            match
+            and STATUS_MARKER in body
+            and (comment.get("performed_via_github_app") or {}).get("slug")
+            == DASHBOARD_APP_SLUG
+        ):
+            return match.group(1)
+    return ""
 
 
 def accuracy_note(pr: dict[str, Any], author_routed: bool = False) -> str:
@@ -186,6 +213,9 @@ def render_status_comment(
         "",
         *summary,
     ]
+    episode_id = str(facts.get("author_nudge_episode_id") or "")
+    if (result or {}).get("route") == "author" and episode_id:
+        lines.insert(2, author_nudge_episode_marker(episode_id))
 
     if feedback_indent is not None and feedback_count:
         lines.extend(

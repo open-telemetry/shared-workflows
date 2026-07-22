@@ -14,6 +14,7 @@ from dashboard import (
     DashboardUpdate,
     add_wait_age_facts,
     apply_targeted_dashboard_update,
+    assign_author_nudge_episode,
     author_action_discussion_urls,
     backfill_failed_pr_numbers,
     complete_initial_backfill_if_ready,
@@ -69,6 +70,60 @@ class ResolvePrRouteTest(unittest.TestCase):
 
         self.assertEqual("approver", route)
 
+
+class AuthorNudgeEpisodeTest(unittest.TestCase):
+    def test_preserves_episode_while_route_remains_author(self) -> None:
+        facts: dict[str, object] = {}
+
+        assign_author_nudge_episode(
+            facts,
+            "author",
+            {
+                "route": "author",
+                "facts": {"author_nudge_episode_id": "abc123"},
+            },
+            [],
+        )
+
+        self.assertEqual("abc123", facts["author_nudge_episode_id"])
+
+    @patch("dashboard.uuid.uuid4")
+    def test_starts_new_episode_after_known_route_departure(self, uuid4: Mock) -> None:
+        uuid4.return_value.hex = "def456"
+        facts: dict[str, object] = {}
+
+        assign_author_nudge_episode(
+            facts,
+            "author",
+            {"route": "approver", "facts": {}},
+            [{
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": (
+                    "<!-- pull-request-dashboard-status -->\n"
+                    "<!-- pull-request-dashboard-author-nudge-episode:abc123 -->"
+                ),
+            }],
+        )
+
+        self.assertEqual("def456", facts["author_nudge_episode_id"])
+
+    def test_recovers_episode_from_status_comment_after_cache_loss(self) -> None:
+        facts: dict[str, object] = {}
+
+        assign_author_nudge_episode(
+            facts,
+            "author",
+            None,
+            [{
+                "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
+                "body": (
+                    "<!-- pull-request-dashboard-status -->\n"
+                    "<!-- pull-request-dashboard-author-nudge-episode:abc123 -->"
+                ),
+            }],
+        )
+
+        self.assertEqual("abc123", facts["author_nudge_episode_id"])
 
 class FetchPrRawTest(unittest.TestCase):
     def test_uses_graphql_issue_comments_without_rest_join(self) -> None:
