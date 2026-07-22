@@ -122,6 +122,44 @@ class RenderStatusCommentTest(unittest.TestCase):
             issue_body,
         )
 
+    def test_accuracy_note_bounds_report_url_for_large_status(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "non_blocking_check_failures": [
+                        "&" * pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT
+                        for _ in range(
+                            pr_status_comment.NON_BLOCKING_CHECK_FAILURE_LIMIT
+                        )
+                    ],
+                    "author_action_review_thread_urls": [
+                        "https://github.com/open-telemetry/example/pull/1"
+                        "#discussion_r1234567890"
+                        for _ in range(
+                            pr_status_comment.AUTHOR_ACTION_FEEDBACK_LINK_LIMIT
+                        )
+                    ],
+                },
+            },
+        )
+
+        report_url = body.split("[report it](", maxsplit=1)[1].split(
+            ")", maxsplit=1
+        )[0]
+        issue_body = parse_qs(urlparse(report_url).query)["body"][0]
+
+        self.assertLessEqual(
+            len(report_url),
+            pr_status_comment.STATUS_REPORT_URL_MAX_CHARS,
+        )
+        self.assertIn(
+            f"> {pr_status_comment.STATUS_REPORT_TRUNCATION_NOTICE}",
+            issue_body,
+        )
+
     def test_waiting_on_author_names_required_ci_failure(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

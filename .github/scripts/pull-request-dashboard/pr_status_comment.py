@@ -41,6 +41,10 @@ NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT = 200
 STATUS_REPORT_ISSUE_URL = "https://github.com/open-telemetry/shared-workflows/issues/new"
 STATUS_REPORT_ISSUE_TEMPLATE = "incorrect-pr-dashboard-result.md"
+STATUS_REPORT_URL_MAX_CHARS = 4096
+STATUS_REPORT_TRUNCATION_NOTICE = (
+    "[Status comment truncated to keep this report link usable.]"
+)
 AUTHOR_GUIDANCE = (
     "For each item, link to the commit that addresses it, explain why no change is needed, "
     "or ask a follow-up question."
@@ -54,7 +58,7 @@ LEGACY_MARKERS = (
 )
 
 
-def accuracy_note(pr: dict[str, Any], status_comment: str) -> str:
+def status_report_url(pr: dict[str, Any], status_comment: str) -> str:
     quoted_status_comment = "\n".join(
         f"> {line}" for line in status_comment.splitlines()
     )
@@ -67,7 +71,25 @@ def accuracy_note(pr: dict[str, Any], status_comment: str) -> str:
             "What looks incorrect:\n"
         ),
     })
-    report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
+    return f"{STATUS_REPORT_ISSUE_URL}?{query}"
+
+
+def accuracy_note(pr: dict[str, Any], status_comment: str) -> str:
+    report_url = status_report_url(pr, status_comment)
+    if len(report_url) > STATUS_REPORT_URL_MAX_CHARS:
+        lower_bound = 0
+        upper_bound = len(status_comment)
+        while lower_bound <= upper_bound:
+            midpoint = (lower_bound + upper_bound) // 2
+            truncated_status_comment = (
+                f"{status_comment[:midpoint]}\n{STATUS_REPORT_TRUNCATION_NOTICE}"
+            )
+            candidate_url = status_report_url(pr, truncated_status_comment)
+            if len(candidate_url) <= STATUS_REPORT_URL_MAX_CHARS:
+                report_url = candidate_url
+                lower_bound = midpoint + 1
+            else:
+                upper_bound = midpoint - 1
     return (
         "_This automated status or its linked feedback items may be incorrect. "
         f"If something looks wrong, [report it]({report_url}) with the result you expected._"
