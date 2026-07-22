@@ -22,6 +22,7 @@ from github_cli import (
     run_gh,
 )
 from dashboard_override import author_override_guidance
+from dashboard_override import DASHBOARD_OVERRIDE_LABEL
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
     managed_status_comments,
@@ -45,6 +46,9 @@ def nudge_marker(episode_id: str) -> str:
 
 def routing_input_fingerprint(raw: dict[str, Any]) -> str:
     dashboard_login = f"{DASHBOARD_APP_SLUG}[bot]"
+    labels = raw.get("labels")
+    if labels is None:
+        labels = (raw.get("pr") or {}).get("labels") or []
     issue_comments = [
         comment
         for comment in raw.get("issue_comments") or []
@@ -53,6 +57,12 @@ def routing_input_fingerprint(raw: dict[str, Any]) -> str:
     routing_inputs = {
         "checks": raw.get("checks"),
         "issue_comments": issue_comments,
+        "labels": sorted(
+            label.get("name") or ""
+            for label in labels
+            if isinstance(label, dict)
+            and label.get("name") == DASHBOARD_OVERRIDE_LABEL
+        ),
         "review_comments": raw.get("review_comments") or [],
         "reviews": raw.get("reviews") or [],
         "review_threads": raw.get("review_threads") or [],
@@ -115,6 +125,7 @@ def fetch_current_pr_routing_state(
                 required_contexts_future.result(),
             ),
             "issue_comments": issue_comments_future.result() or [],
+            "labels": pr.get("labels") or [],
             "review_comments": review_comments_future.result() or [],
             "reviews": review_data.get("reviews") or [],
             "review_threads": review_threads_future.result() or [],

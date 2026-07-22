@@ -27,6 +27,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         raw = {
             "checks": [],
             "issue_comments": [],
+            "labels": [],
             "review_comments": [],
             "reviews": [],
             "review_threads": [],
@@ -46,6 +47,27 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             "body": "I addressed the feedback.",
         })
         self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
+    def test_routing_fingerprint_tracks_normalized_labels(self) -> None:
+        raw = {
+            "checks": [],
+            "issue_comments": [],
+            "pr": {"labels": [{"name": "needs-triage"}]},
+            "review_comments": [],
+            "reviews": [],
+            "review_threads": [],
+        }
+        baseline = author_nudge.routing_input_fingerprint(raw)
+        raw["pr"]["labels"].append({"name": "documentation"})
+
+        self.assertEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
+        raw["pr"]["labels"].append({"name": "dashboard:route-overridden"})
+        overridden = author_nudge.routing_input_fingerprint(raw)
+
+        self.assertNotEqual(baseline, overridden)
+        raw["pr"]["labels"].reverse()
+        self.assertEqual(overridden, author_nudge.routing_input_fingerprint(raw))
 
     def test_routing_fingerprint_tracks_required_check_state(self) -> None:
         raw = {
@@ -87,6 +109,10 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             "node_id": "PR_node",
             "base": {"ref": "main"},
             "head": {"sha": "current-head"},
+            "labels": [
+                {"name": "needs-triage"},
+                {"name": "dashboard:route-overridden"},
+            ],
         }
         gh_api.side_effect = lambda path, paginate=False: (
             pr if path.endswith("/pulls/1") else []
@@ -102,6 +128,10 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             author_nudge.routing_input_fingerprint({
                 "checks": [{"name": "build", "bucket": "fail"}],
                 "issue_comments": [],
+                "labels": [
+                    {"name": "needs-triage"},
+                    {"name": "dashboard:route-overridden"},
+                ],
                 "review_comments": [],
                 "reviews": [],
                 "review_threads": [],
