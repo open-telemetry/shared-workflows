@@ -536,6 +536,78 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
+    def test_author_comment_batch_rejects_duplicate_feedback_key(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.return_value = copilot_batch_response(
+            {
+                "discussion_id": "author-reply",
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": "f0001",
+                        "discussion_action": "none",
+                        "reason": "The author answered this feedback.",
+                    },
+                    {
+                        "feedback_key": "f0001",
+                        "discussion_action": "author",
+                        "reason": "Duplicate outcome for the same feedback.",
+                    },
+                ],
+            }
+        )
+        discussion = review_thread_discussion("author-reply")
+        discussion["discussion_kind"] = "top-level-author-reply"
+        discussion["candidate_feedback"] = [
+            {"discussion_id": "feedback", "body": "Please update the implementation."}
+        ]
+
+        records = run_llm_for_top_level_author_comment_batch(
+            [discussion], "model"
+        )
+
+        self.assertTrue(records[0]["failed"])
+        self.assertIn("duplicate feedback_key 'f0001'", records[0]["error"])
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
+    def test_author_comment_batch_rejects_invalid_discussion_action(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.return_value = copilot_batch_response(
+            {
+                "discussion_id": "author-reply",
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": "f0001",
+                        "discussion_action": "reviewer",
+                        "reason": "The reviewer has the next action.",
+                    }
+                ],
+            }
+        )
+        discussion = review_thread_discussion("author-reply")
+        discussion["discussion_kind"] = "top-level-author-reply"
+        discussion["candidate_feedback"] = [
+            {"discussion_id": "feedback", "body": "Please update the implementation."}
+        ]
+
+        records = run_llm_for_top_level_author_comment_batch(
+            [discussion], "model"
+        )
+
+        self.assertTrue(records[0]["failed"])
+        self.assertIn(
+            "invalid discussion_action 'reviewer' for feedback_key 'f0001'",
+            records[0]["error"],
+        )
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
     def test_author_comment_batch_rejects_cross_discussion_feedback_key(
         self,
         run_copilot,
