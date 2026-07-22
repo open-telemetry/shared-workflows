@@ -385,11 +385,21 @@ class StateTest(unittest.TestCase):
             self.assertEqual(newer, load_delivery_versions())
 
     def test_delivery_versions_fail_closed(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
-            delivery_state = Path(temp_dir) / "delivery-versions.json"
-            delivery_state.write_text("not json", encoding="utf-8")
+        malformed_versions = [
+            "not json",
+            json.dumps([]),
+            json.dumps({"DASHBOARD_STATE_VERSION": None}),
+            json.dumps({"DASHBOARD_STATE_VERSION": False}),
+            json.dumps({"DASHBOARD_STATE_VERSION": -1}),
+            json.dumps({"DASHBOARD_STATE_VERSION": 1.5}),
+        ]
+        for contents in malformed_versions:
+            with self.subTest(contents=contents), tempfile.TemporaryDirectory() as temp_dir:
+                with patch("state._state_dir", Path(temp_dir)):
+                    delivery_state = Path(temp_dir) / "delivery-versions.json"
+                    delivery_state.write_text(contents, encoding="utf-8")
 
-            self.assertFalse(claim_delivery_versions())
+                    self.assertFalse(claim_delivery_versions())
 
     def test_backfill_state_preserves_version_three_cursor(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
