@@ -24,6 +24,7 @@ def author_result(route: str = "author") -> dict:
 class AuthorNudgePolicyTest(unittest.TestCase):
     def test_routing_fingerprint_ignores_dashboard_comments_and_tracks_author_activity(self) -> None:
         raw = {
+            "checks": [],
             "issue_comments": [],
             "review_comments": [],
             "reviews": [],
@@ -44,6 +45,77 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             "body": "I addressed the feedback.",
         })
         self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
+    def test_routing_fingerprint_tracks_required_check_state(self) -> None:
+        raw = {
+            "checks": [{"name": "build", "bucket": "fail"}],
+            "issue_comments": [],
+            "review_comments": [],
+            "reviews": [],
+            "review_threads": [],
+        }
+        failing = author_nudge.routing_input_fingerprint(raw)
+
+        raw["checks"][0]["bucket"] = "pass"
+
+        self.assertNotEqual(failing, author_nudge.routing_input_fingerprint(raw))
+
+    @patch.object(author_nudge, "gh_required_check_contexts", return_value=[])
+    @patch.object(
+        author_nudge,
+        "gh_pr_check_rollup",
+        return_value={
+            "required": [{"name": "build", "bucket": "fail"}],
+            "non_blocking_failures": [],
+        },
+    )
+    @patch.object(author_nudge, "fetch_review_threads", return_value=[])
+    @patch.object(author_nudge, "fetch_pr_review_data", return_value={})
+    @patch.object(author_nudge, "fetch_pr_issue_comments", return_value=[])
+    @patch.object(author_nudge, "gh_api")
+    def test_fetch_current_routing_state_includes_required_checks(
+        self,
+        gh_api,
+        _fetch_issue_comments,
+        _fetch_review_data,
+        _fetch_review_threads,
+        gh_pr_check_rollup,
+        gh_required_check_contexts,
+    ) -> None:
+        pr = {
+            "node_id": "PR_node",
+            "base": {"ref": "main"},
+            "head": {"sha": "current-head"},
+        }
+        gh_api.side_effect = lambda path, paginate=False: (
+            pr if path.endswith("/pulls/1") else []
+        )
+
+        current_pr, fingerprint = author_nudge.fetch_current_pr_routing_state(
+            "open-telemetry/example",
+            1,
+        )
+
+        self.assertEqual(pr, current_pr)
+        self.assertEqual(
+            author_nudge.routing_input_fingerprint({
+                "checks": [{"name": "build", "bucket": "fail"}],
+                "issue_comments": [],
+                "review_comments": [],
+                "reviews": [],
+                "review_threads": [],
+            }),
+            fingerprint,
+        )
+        gh_pr_check_rollup.assert_called_once_with(
+            "open-telemetry/example",
+            "PR_node",
+            [],
+        )
+        gh_required_check_contexts.assert_called_once_with(
+            "open-telemetry/example",
+            "main",
+        )
 
     def test_nudge_advertises_dashboard_override_command(self) -> None:
         body = author_nudge.render_nudge(

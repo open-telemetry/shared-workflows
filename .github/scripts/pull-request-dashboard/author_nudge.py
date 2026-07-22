@@ -16,6 +16,9 @@ from github_cli import (
     fetch_pr_review_data,
     fetch_review_threads,
     gh_api,
+    gh_pr_check_rollup,
+    gh_required_check_contexts,
+    include_missing_required_checks,
     run_gh,
 )
 from dashboard_override import author_override_guidance
@@ -48,6 +51,7 @@ def routing_input_fingerprint(raw: dict[str, Any]) -> str:
         if (comment.get("user") or {}).get("login") != dashboard_login
     ]
     routing_inputs = {
+        "checks": raw.get("checks"),
         "issue_comments": issue_comments,
         "review_comments": raw.get("review_comments") or [],
         "reviews": raw.get("reviews") or [],
@@ -91,14 +95,31 @@ def fetch_current_pr_routing_state(
             repo_name,
             pr_number,
         )
+        pr = pr_future.result() or {}
+        check_rollup_future = pool.submit(
+            gh_pr_check_rollup,
+            repo,
+            pr.get("node_id") or "",
+            [],
+        )
+        required_contexts_future = pool.submit(
+            gh_required_check_contexts,
+            repo,
+            ((pr.get("base") or {}).get("ref") or ""),
+        )
         review_data = review_data_future.result() or {}
+        check_rollup = check_rollup_future.result()
         fingerprint = routing_input_fingerprint({
+            "checks": include_missing_required_checks(
+                None if check_rollup is None else check_rollup["required"],
+                required_contexts_future.result(),
+            ),
             "issue_comments": issue_comments_future.result() or [],
             "review_comments": review_comments_future.result() or [],
             "reviews": review_data.get("reviews") or [],
             "review_threads": review_threads_future.result() or [],
         })
-        return pr_future.result() or {}, fingerprint
+        return pr, fingerprint
 
 
 def plan_nudge(
