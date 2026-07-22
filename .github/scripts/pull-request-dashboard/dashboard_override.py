@@ -242,7 +242,13 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             "use `/dashboard route:reviewers`."
         )
     elif kind == "routed":
-        message = "routed this pull request to reviewers."
+        if reply.get("route") == "copilot":
+            message = (
+                "accepted the reviewer-routing override; the reviewer handoff "
+                "is waiting on Copilot."
+            )
+        else:
+            message = "routed this pull request to reviewers."
     elif kind == "already_routed":
         where = ROUTE_ALREADY_ROUTED_PHRASE.get(
             reply.get("route") or "", "not currently waiting on you"
@@ -427,6 +433,7 @@ def deliver_dashboard_override_requests(repo: str) -> list[str]:
                     {
                         "comment_id": facts["dashboard_override_command_id"],
                         "kind": "routed",
+                        "route": (result or {}).get("route") or "",
                         "user": facts.get("dashboard_override_command_user") or "",
                     },
                 )
