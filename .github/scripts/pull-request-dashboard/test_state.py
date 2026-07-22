@@ -164,7 +164,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(DASHBOARD_STATE_VERSION, 5)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 2)
-        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 2)
+        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 3)
 
     def test_author_nudge_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
@@ -193,6 +193,7 @@ class StateTest(unittest.TestCase):
                     "head_sha": "current-head",
                     "observed_at": "2026-07-20T01:00:00Z",
                     "requested_at": "",
+                    "routing_input_fingerprint": "accepted-fingerprint",
                 }
             })
 
@@ -203,6 +204,7 @@ class StateTest(unittest.TestCase):
                         "head_sha": "current-head",
                         "observed_at": "2026-07-20T01:00:00Z",
                         "requested_at": "",
+                        "routing_input_fingerprint": "accepted-fingerprint",
                     }
                 },
             )
@@ -248,6 +250,7 @@ class StateTest(unittest.TestCase):
                     "head_sha": "current-head",
                     "observed_at": "2026-07-20T01:00:00Z",
                     "requested_at": "2026-07-20T02:00:00Z",
+                    "routing_input_fingerprint": "accepted-fingerprint",
                 }
             },
             union_merge_copilot_review_requests(
@@ -256,6 +259,7 @@ class StateTest(unittest.TestCase):
                         "head_sha": "current-head",
                         "observed_at": "2026-07-20T01:00:00Z",
                         "requested_at": "",
+                        "routing_input_fingerprint": "accepted-fingerprint",
                     }
                 },
                 {
@@ -263,6 +267,7 @@ class StateTest(unittest.TestCase):
                         "head_sha": "current-head",
                         "observed_at": "2026-07-20T01:00:00Z",
                         "requested_at": "2026-07-20T02:00:00Z",
+                        "routing_input_fingerprint": "accepted-fingerprint",
                     }
                 },
             ),
@@ -275,6 +280,7 @@ class StateTest(unittest.TestCase):
                     "head_sha": "new-head",
                     "observed_at": "2026-07-20T03:00:00Z",
                     "requested_at": "",
+                    "routing_input_fingerprint": "new-fingerprint",
                 }
             },
             union_merge_copilot_review_requests(
@@ -283,6 +289,7 @@ class StateTest(unittest.TestCase):
                         "head_sha": "new-head",
                         "observed_at": "2026-07-20T03:00:00Z",
                         "requested_at": "",
+                        "routing_input_fingerprint": "new-fingerprint",
                     }
                 },
                 {
@@ -290,6 +297,7 @@ class StateTest(unittest.TestCase):
                         "head_sha": "old-head",
                         "observed_at": "2026-07-20T01:00:00Z",
                         "requested_at": "2026-07-20T02:00:00Z",
+                        "routing_input_fingerprint": "old-fingerprint",
                     }
                 },
             ),
@@ -301,6 +309,7 @@ class StateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T03:00:00Z",
                 "requested_at": "",
+                "routing_input_fingerprint": "new-fingerprint",
             }
         }
 
@@ -313,6 +322,7 @@ class StateTest(unittest.TestCase):
                         "head_sha": "current-head",
                         "observed_at": "2026-07-20T01:00:00Z",
                         "requested_at": "2026-07-20T02:00:00Z",
+                        "routing_input_fingerprint": "old-fingerprint",
                     }
                 },
             ),

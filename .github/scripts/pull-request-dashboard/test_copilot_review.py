@@ -22,6 +22,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
+                    "routing_input_fingerprint": "accepted-fingerprint",
                 },
             },
             NOW,
@@ -32,6 +33,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
             },
         })
 
@@ -48,6 +50,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
+                    "routing_input_fingerprint": "accepted-fingerprint",
                 },
             },
             NOW,
@@ -58,6 +61,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
             },
         })
 
@@ -83,6 +87,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
+                    "routing_input_fingerprint": "accepted-fingerprint",
                 },
             },
             NOW,
@@ -93,6 +98,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
             },
         })
 
@@ -140,7 +146,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 
     @patch("copilot_review.request_copilot_review")
     @patch("copilot_review.fetch_pr_review_data")
-    @patch("copilot_review.gh_api")
+    @patch("copilot_review.fetch_current_pr_routing_state")
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
         "copilot_review.load_copilot_review_requests",
@@ -149,6 +155,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -156,17 +163,18 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        gh_api,
+        fetch_current_state,
         fetch_review_data,
         request_review,
     ) -> None:
-        gh_api.return_value = {
+        pr = {
             "state": "open",
             "draft": False,
             "head": {"sha": "current-head"},
             "node_id": "PR_node_id",
             "requested_reviewers": [],
         }
+        fetch_current_state.return_value = (pr, "accepted-fingerprint")
         fetch_review_data.return_value = {
             "reviews": [{
                 "id": 20,
@@ -183,7 +191,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
-        gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/7")
+        fetch_current_state.assert_called_once_with("open-telemetry/example", 7)
         fetch_review_data.assert_called_once_with("open-telemetry", "example", 7)
         request_review.assert_called_once_with("PR_node_id")
         save_requests.assert_called_once_with({
@@ -191,12 +199,13 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
+                "routing_input_fingerprint": "accepted-fingerprint",
             },
         })
 
     @patch("copilot_review.request_copilot_review")
     @patch("copilot_review.fetch_pr_review_data")
-    @patch("copilot_review.gh_api")
+    @patch("copilot_review.fetch_current_pr_routing_state")
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
         "copilot_review.load_copilot_review_requests",
@@ -205,6 +214,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -212,11 +222,11 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        gh_api,
+        fetch_current_state,
         fetch_review_data,
         request_review,
     ) -> None:
-        gh_api.return_value = {
+        pr = {
             "state": "open",
             "draft": False,
             "head": {"sha": "current-head"},
@@ -224,6 +234,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 {"login": "copilot-pull-request-reviewer[bot]"},
             ],
         }
+        fetch_current_state.return_value = (pr, "accepted-fingerprint")
 
         errors = deliver_copilot_review_requests(
             "open-telemetry/example",
@@ -231,7 +242,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
-        gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/7")
+        fetch_current_state.assert_called_once_with("open-telemetry/example", 7)
         fetch_review_data.assert_not_called()
         request_review.assert_not_called()
         save_requests.assert_called_once_with({
@@ -239,8 +250,53 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
+                "routing_input_fingerprint": "accepted-fingerprint",
             },
         })
+
+    @patch("copilot_review.request_copilot_review")
+    @patch("copilot_review.fetch_pr_review_data")
+    @patch(
+        "copilot_review.fetch_current_pr_routing_state",
+        return_value=(
+            {
+                "state": "open",
+                "draft": False,
+                "head": {"sha": "current-head"},
+                "requested_reviewers": [],
+            },
+            "new-fingerprint",
+        ),
+    )
+    @patch("copilot_review.save_copilot_review_requests")
+    @patch(
+        "copilot_review.load_copilot_review_requests",
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
+            }
+        },
+    )
+    def test_drops_request_when_live_routing_inputs_changed(
+        self,
+        _load_requests,
+        save_requests,
+        _fetch_current_state,
+        fetch_review_data,
+        request_review,
+    ) -> None:
+        errors = deliver_copilot_review_requests(
+            "open-telemetry/example",
+            NOW,
+        )
+
+        self.assertEqual([], errors)
+        fetch_review_data.assert_not_called()
+        request_review.assert_not_called()
+        save_requests.assert_called_once_with({})
 
 
 if __name__ == "__main__":

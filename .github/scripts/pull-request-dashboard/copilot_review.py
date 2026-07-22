@@ -6,9 +6,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from author_nudge import fetch_current_pr_routing_state
 from github_cli import (
     fetch_pr_review_data,
-    gh_api,
     request_copilot_review,
 )
 from state import load_copilot_review_requests, save_copilot_review_requests
@@ -80,12 +80,14 @@ def record_copilot_review_observation(
     key = str(pr_number)
     facts = (result or {}).get("facts") or {}
     head_sha = str(facts.get("head_sha") or "")
+    routing_fingerprint = str(facts.get("routing_input_fingerprint") or "")
     if (
         not result
         or result.get("failed")
         or result.get("route") != "copilot"
         or not facts.get("copilot_review_request_needed")
         or not head_sha
+        or not routing_fingerprint
     ):
         requests.pop(key, None)
     else:
@@ -93,6 +95,7 @@ def record_copilot_review_observation(
             "head_sha": head_sha,
             "observed_at": format_ts(observed_at),
             "requested_at": "",
+            "routing_input_fingerprint": routing_fingerprint,
         }
     save_copilot_review_requests(requests)
 
@@ -110,12 +113,18 @@ def deliver_copilot_review_requests(
             continue
         pr_number = int(key)
         try:
-            pr = gh_api(f"/repos/{repo}/pulls/{pr_number}") or {}
+            pr, current_routing_fingerprint = fetch_current_pr_routing_state(
+                repo,
+                pr_number,
+            )
             current_head = ((pr.get("head") or {}).get("sha") or "")
             if (
                 pr.get("state") != "open"
                 or pr.get("draft")
                 or current_head != entry.get("head_sha")
+                or not entry.get("routing_input_fingerprint")
+                or current_routing_fingerprint
+                != entry.get("routing_input_fingerprint")
             ):
                 requests.pop(key, None)
                 continue

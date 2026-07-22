@@ -56,6 +56,11 @@ def routing_input_fingerprint(raw: dict[str, Any]) -> str:
         if (comment.get("user") or {}).get("login") != dashboard_login
     ]
     routing_inputs = {
+        "base_branch": str(
+            pr.get("baseRefName")
+            or (pr.get("base") or {}).get("ref")
+            or ""
+        ),
         "checks": raw.get("checks"),
         "issue_comments": issue_comments,
         "labels": sorted(

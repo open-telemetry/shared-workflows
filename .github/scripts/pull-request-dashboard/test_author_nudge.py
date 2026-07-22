@@ -102,6 +102,24 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         self.assertNotEqual(baseline, title_updated)
         self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
 
+    def test_routing_fingerprint_normalizes_and_tracks_base_branch(self) -> None:
+        accepted = {
+            "pr": {"baseRefName": "main"},
+        }
+        live = {
+            "pr": {"base": {"ref": "main"}},
+        }
+
+        self.assertEqual(
+            author_nudge.routing_input_fingerprint(accepted),
+            author_nudge.routing_input_fingerprint(live),
+        )
+        live["pr"]["base"]["ref"] = "release"
+        self.assertNotEqual(
+            author_nudge.routing_input_fingerprint(accepted),
+            author_nudge.routing_input_fingerprint(live),
+        )
+
     @patch.object(author_nudge, "gh_required_check_contexts", return_value=[])
     @patch.object(
         author_nudge,
