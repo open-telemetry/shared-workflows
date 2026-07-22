@@ -13,11 +13,13 @@ from state import (
     BACKFILL_STATE_VERSION,
     COPILOT_REVIEW_REQUEST_STATE_VERSION,
     DASHBOARD_STATE_VERSION,
+    DELIVERY_WORKER_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
     STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     author_nudge_state_path,
     backfill_state_path,
     copilot_review_request_state_path,
+    claim_delivery_worker,
     dashboard_state_path,
     empty_state,
     enqueue_status_comment_update,
@@ -26,6 +28,7 @@ from state import (
     load_backfill_state,
     load_copilot_review_requests,
     load_dashboard_state_cache,
+    load_delivery_worker_state,
     load_state_file,
     load_status_comment_rollout_state,
     load_notifications,
@@ -356,6 +359,26 @@ class StateTest(unittest.TestCase):
                 [12, 34],
                 load_status_comment_rollout_state()["pending_pr_numbers"],
             )
+
+    def test_delivery_worker_identity_only_advances(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            self.assertTrue(claim_delivery_worker(200, "newer-sha"))
+            self.assertTrue(claim_delivery_worker(200, "newer-sha"))
+            self.assertTrue(claim_delivery_worker(199, "newer-sha"))
+            self.assertFalse(claim_delivery_worker(200, "conflicting-sha"))
+            self.assertFalse(claim_delivery_worker(199, "older-sha"))
+
+            self.assertEqual(
+                {
+                    "version": DELIVERY_WORKER_STATE_VERSION,
+                    "active_run_id": 200,
+                    "active_sha": "newer-sha",
+                },
+                load_delivery_worker_state(),
+            )
+
+            self.assertTrue(claim_delivery_worker(201, "newest-sha"))
+            self.assertEqual("newest-sha", load_delivery_worker_state()["active_sha"])
 
     def test_backfill_state_preserves_version_three_cursor(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

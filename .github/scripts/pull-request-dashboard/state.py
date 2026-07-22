@@ -15,6 +15,7 @@ BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
+DELIVERY_WORKER_STATE_FILE = "delivery-worker-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
 DASHBOARD_STATE_VERSION = 5
@@ -23,6 +24,7 @@ NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 2
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 3
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
+DELIVERY_WORKER_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -62,6 +64,10 @@ def status_comment_rollout_state_path() -> Path:
     return state_dir() / STATUS_COMMENT_ROLLOUT_STATE_FILE
 
 
+def delivery_worker_state_path() -> Path:
+    return state_dir() / DELIVERY_WORKER_STATE_FILE
+
+
 def dashboard_markdown_path() -> Path:
     return state_dir() / DASHBOARD_MARKDOWN_FILE
 
@@ -88,6 +94,14 @@ def empty_status_comment_rollout_state() -> dict[str, Any]:
         "target_revision": 0,
         "completed_revision": 0,
         "pending_pr_numbers": [],
+    }
+
+
+def empty_delivery_worker_state() -> dict[str, Any]:
+    return {
+        "version": DELIVERY_WORKER_STATE_VERSION,
+        "active_run_id": 0,
+        "active_sha": "",
     }
 
 
@@ -181,6 +195,50 @@ def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
         },
         STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     )
+
+
+def load_delivery_worker_state() -> dict[str, Any]:
+    state = load_state_file(delivery_worker_state_path(), DELIVERY_WORKER_STATE_VERSION)
+    if state is None:
+        return empty_delivery_worker_state()
+    try:
+        active_run_id = max(int(state.get("active_run_id") or 0), 0)
+    except (TypeError, ValueError):
+        return empty_delivery_worker_state()
+    active_sha = state.get("active_sha")
+    return {
+        "version": DELIVERY_WORKER_STATE_VERSION,
+        "active_run_id": active_run_id,
+        "active_sha": active_sha if isinstance(active_sha, str) else "",
+    }
+
+
+def save_delivery_worker_state(state: dict[str, Any]) -> None:
+    save_state_file(
+        delivery_worker_state_path(),
+        {
+            "active_run_id": int(state.get("active_run_id") or 0),
+            "active_sha": str(state.get("active_sha") or ""),
+        },
+        DELIVERY_WORKER_STATE_VERSION,
+    )
+
+
+def claim_delivery_worker(worker_run_id: int, worker_sha: str) -> bool:
+    if worker_run_id <= 0:
+        raise ValueError("worker run ID must be positive")
+    if not worker_sha.strip():
+        raise ValueError("worker SHA must not be empty")
+
+    state = load_delivery_worker_state()
+    active_run_id = state["active_run_id"]
+    if state["active_sha"] == worker_sha:
+        return True
+    if active_run_id >= worker_run_id:
+        return False
+
+    save_delivery_worker_state({"active_run_id": worker_run_id, "active_sha": worker_sha})
+    return True
 
 
 def enqueue_status_comment_update(pr_number: int) -> None:

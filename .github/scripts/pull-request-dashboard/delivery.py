@@ -21,6 +21,7 @@ from notify_slack import notify_slack_from_state
 from pr_status_comment import update_status_comments_from_state
 from state import (
     author_nudge_state_path,
+    claim_delivery_worker,
     copilot_review_request_state_path,
     notification_state_path,
     set_state_dir,
@@ -112,14 +113,26 @@ def deliver_with_state(
     repo: str,
     state_branch_name: str,
     state_dir: Path,
+    worker_run_id: int,
+    worker_sha: str,
+    github_output: Path | None = None,
 ) -> int:
     repo_key = repo_state_key(repo)
     author_retry = runner_temp_path("prior-author-nudge-state.json")
     copilot_retry = runner_temp_path("prior-copilot-review-request-state.json")
     notification_retry = runner_temp_path("prior-notification-state.json")
     errors: list[str] = []
+    active_worker = False
 
     def deliver() -> int:
+        nonlocal active_worker
+        active_worker = claim_delivery_worker(worker_run_id, worker_sha)
+        if not active_worker:
+            print(
+                f"delivery worker run {worker_run_id} does not match the active release; skipping",
+                file=sys.stderr,
+            )
+            return 0
         errors[:] = deliver_from_state(
             repo,
             author_retry,
@@ -142,6 +155,9 @@ def deliver_with_state(
     )
     if status != 0:
         return status
+    if github_output is not None:
+        with github_output.open("a", encoding="utf-8") as output:
+            output.write(f"active={'true' if active_worker else 'false'}\n")
     if not errors:
         return 0
     print("Dashboard delivery failed:", file=sys.stderr)
@@ -153,6 +169,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
+    parser.add_argument("--worker-run-id", required=True, type=int, help="GitHub Actions run ID")
+    parser.add_argument("--worker-sha", required=True, help="immutable shared-workflows commit SHA")
+    parser.add_argument("--github-output", type=Path, help="append the active worker result")
     args = parser.parse_args()
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     with state_branch.temporary_state_dir() as state_dir:
@@ -161,6 +180,9 @@ def main() -> int:
             repo,
             args.state_branch,
             state_dir,
+            args.worker_run_id,
+            args.worker_sha,
+            args.github_output,
         )
 
 
