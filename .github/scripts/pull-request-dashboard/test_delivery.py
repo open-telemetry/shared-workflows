@@ -134,12 +134,12 @@ class DeliveryTest(unittest.TestCase):
 
     @patch.object(delivery.sys, "stderr")
     @patch.object(delivery, "deliver_from_state", return_value=["status comments: boom"])
-    @patch.object(delivery, "claim_delivery_revision", return_value=True)
+    @patch.object(delivery, "claim_delivery_versions", return_value=True)
     @patch.object(delivery.state_branch, "push_state_changes")
     def test_reports_delivery_errors_after_state_push(
         self,
         push_state_changes,
-        _claim_delivery_revision,
+        _claim_delivery_versions,
         _deliver_from_state,
         _stderr,
     ) -> None:
@@ -166,12 +166,12 @@ class DeliveryTest(unittest.TestCase):
         self.assertEqual("active=true\n", github_output_text)
 
     @patch.object(delivery, "deliver_from_state")
-    @patch.object(delivery, "claim_delivery_revision", return_value=False)
+    @patch.object(delivery, "claim_delivery_versions", return_value=False)
     @patch.object(delivery.state_branch, "push_state_changes")
-    def test_stale_revision_skips_delivery_and_reports_inactive(
+    def test_stale_versions_skip_delivery_and_report_inactive(
         self,
         push_state_changes,
-        claim_delivery_revision,
+        claim_delivery_versions,
         deliver_from_state,
     ) -> None:
         push_state_changes.side_effect = (
@@ -194,7 +194,7 @@ class DeliveryTest(unittest.TestCase):
             github_output_text = github_output.read_text(encoding="utf-8")
 
         self.assertEqual(0, status)
-        claim_delivery_revision.assert_called_once_with()
+        claim_delivery_versions.assert_called_once_with()
         deliver_from_state.assert_not_called()
         self.assertEqual("active=false\n", github_output_text)
 

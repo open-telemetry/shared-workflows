@@ -15,11 +15,13 @@ BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
-DELIVERY_REVISION_STATE_FILE = "delivery-revision-state.json"
+DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 
-# Each state version describes one JSON file's schema, not rollout order. Bump
-# only the version whose stored shape or meaning changed. Schema mismatches for
-# the ordinary state files below regenerate that disposable workflow cache.
+# These monotonic versions jointly order delivery compatibility. Increment the
+# relevant version whenever its stored shape, meaning, or delivered behavior
+# changes. A worker lower in any component skips delivery; after claiming the
+# current vector, ordinary state loaders may regenerate mismatched disposable
+# caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
 DASHBOARD_STATE_VERSION = 5
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
@@ -32,14 +34,9 @@ AUTHOR_NUDGE_STATE_VERSION = 2
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 3
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
-# delivery-revision-state.json: active delivery revision. This safety state is
-# not regenerated on a mismatch. If its schema changes, add an explicit
-# migration from older versions; incompatible workers fail closed.
-DELIVERY_REVISION_STATE_VERSION = 1
-# Bump alongside any state version or delivery behavior change that makes older
-# queued workers unsafe. Higher revisions activate, equal revisions resume, and
-# lower revisions skip all delivery side effects.
-DELIVERY_REVISION = 1
+# Rendered status-comment behavior. Increment when existing comments need to
+# adopt a change; hourly runs durably roll it out to all open PRs.
+STATUS_COMMENT_REVISION = 13
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -79,8 +76,8 @@ def status_comment_rollout_state_path() -> Path:
     return state_dir() / STATUS_COMMENT_ROLLOUT_STATE_FILE
 
 
-def delivery_revision_state_path() -> Path:
-    return state_dir() / DELIVERY_REVISION_STATE_FILE
+def delivery_versions_path() -> Path:
+    return state_dir() / DELIVERY_VERSIONS_FILE
 
 
 def dashboard_markdown_path() -> Path:
@@ -112,10 +109,11 @@ def empty_status_comment_rollout_state() -> dict[str, Any]:
     }
 
 
-def empty_delivery_revision_state() -> dict[str, Any]:
+def current_delivery_versions() -> dict[str, int]:
     return {
-        "version": DELIVERY_REVISION_STATE_VERSION,
-        "active_revision": 0,
+        name: value
+        for name, value in globals().items()
+        if name.endswith(("_STATE_VERSION", "_REVISION"))
     }
 
 
@@ -211,41 +209,49 @@ def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
     )
 
 
-def load_delivery_revision_state() -> dict[str, Any] | None:
-    path = delivery_revision_state_path()
+def load_delivery_versions() -> dict[str, int] | None:
+    path = delivery_versions_path()
     if not path.exists():
-        return empty_delivery_revision_state()
-    state = load_state_file(path, DELIVERY_REVISION_STATE_VERSION)
-    if state is None:
-        return None
+        return {}
     try:
-        active_revision = max(int(state.get("active_revision") or 0), 0)
-    except (TypeError, ValueError):
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"warning: unreadable delivery versions {path}: {e!r}", file=sys.stderr)
         return None
-    return {
-        "version": DELIVERY_REVISION_STATE_VERSION,
-        "active_revision": active_revision,
-    }
+    if not isinstance(data, dict):
+        return None
+    if any(
+        not isinstance(value, int) or isinstance(value, bool) or value < 0
+        for value in data.values()
+    ):
+        return None
+    return data
 
 
-def save_delivery_revision_state(state: dict[str, Any]) -> None:
-    save_state_file(
-        delivery_revision_state_path(),
-        {"active_revision": int(state.get("active_revision") or 0)},
-        DELIVERY_REVISION_STATE_VERSION,
+def save_delivery_versions(versions: dict[str, int]) -> None:
+    path = delivery_versions_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(versions, sort_keys=True, indent=2),
+        encoding="utf-8",
     )
 
 
-def claim_delivery_revision() -> bool:
-    state = load_delivery_revision_state()
-    if state is None:
-        print("delivery revision state is unreadable; skipping delivery", file=sys.stderr)
+def claim_delivery_versions() -> bool:
+    active_versions = load_delivery_versions()
+    if active_versions is None:
+        print("delivery versions are unreadable; skipping delivery", file=sys.stderr)
         return False
-    active_revision = state["active_revision"]
-    if active_revision > DELIVERY_REVISION:
+    current_versions = current_delivery_versions()
+    if active_versions.keys() - current_versions.keys():
         return False
-    if active_revision < DELIVERY_REVISION:
-        save_delivery_revision_state({"active_revision": DELIVERY_REVISION})
+    if any(
+        active_versions.get(name, 0) > version
+        for name, version in current_versions.items()
+    ):
+        return False
+    if active_versions != current_versions:
+        save_delivery_versions(current_versions)
     return True
 
 

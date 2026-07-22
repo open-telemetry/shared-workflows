@@ -13,13 +13,13 @@ from state import (
     BACKFILL_STATE_VERSION,
     COPILOT_REVIEW_REQUEST_STATE_VERSION,
     DASHBOARD_STATE_VERSION,
-    DELIVERY_REVISION_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
     STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     author_nudge_state_path,
     backfill_state_path,
     copilot_review_request_state_path,
-    claim_delivery_revision,
+    claim_delivery_versions,
+    current_delivery_versions,
     dashboard_state_path,
     empty_state,
     enqueue_status_comment_update,
@@ -28,7 +28,7 @@ from state import (
     load_backfill_state,
     load_copilot_review_requests,
     load_dashboard_state_cache,
-    load_delivery_revision_state,
+    load_delivery_versions,
     load_state_file,
     load_status_comment_rollout_state,
     load_notifications,
@@ -360,30 +360,36 @@ class StateTest(unittest.TestCase):
                 load_status_comment_rollout_state()["pending_pr_numbers"],
             )
 
-    def test_delivery_revision_only_advances(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
-            with patch("state.DELIVERY_REVISION", 1):
-                self.assertTrue(claim_delivery_revision())
-                self.assertTrue(claim_delivery_revision())
-            with patch("state.DELIVERY_REVISION", 2):
-                self.assertTrue(claim_delivery_revision())
-            with patch("state.DELIVERY_REVISION", 1):
-                self.assertFalse(claim_delivery_revision())
+    def test_each_delivery_version_rejects_older_workers(self) -> None:
+        baseline = current_delivery_versions()
+        for name in baseline:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp_dir:
+                with patch("state._state_dir", Path(temp_dir)):
+                    self.assertTrue(claim_delivery_versions())
+                    newer = dict(baseline)
+                    newer[name] += 1
+                    with patch("state.current_delivery_versions", return_value=newer):
+                        self.assertTrue(claim_delivery_versions())
+                    self.assertFalse(claim_delivery_versions())
+                    self.assertEqual(newer, load_delivery_versions())
 
-            self.assertEqual(
-                {
-                    "version": DELIVERY_REVISION_STATE_VERSION,
-                    "active_revision": 2,
-                },
-                load_delivery_revision_state(),
-            )
-
-    def test_delivery_revision_state_fails_closed(self) -> None:
+    def test_new_delivery_version_rejects_older_workers(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
-            delivery_state = Path(temp_dir) / "delivery-revision-state.json"
+            self.assertTrue(claim_delivery_versions())
+            with patch("state.FUTURE_STATE_VERSION", 1, create=True):
+                newer = current_delivery_versions()
+                self.assertEqual(1, newer["FUTURE_STATE_VERSION"])
+                self.assertTrue(claim_delivery_versions())
+
+            self.assertFalse(claim_delivery_versions())
+            self.assertEqual(newer, load_delivery_versions())
+
+    def test_delivery_versions_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            delivery_state = Path(temp_dir) / "delivery-versions.json"
             delivery_state.write_text("not json", encoding="utf-8")
 
-            self.assertFalse(claim_delivery_revision())
+            self.assertFalse(claim_delivery_versions())
 
     def test_backfill_state_preserves_version_three_cursor(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

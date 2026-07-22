@@ -21,7 +21,7 @@ from notify_slack import notify_slack_from_state
 from pr_status_comment import update_status_comments_from_state
 from state import (
     author_nudge_state_path,
-    claim_delivery_revision,
+    claim_delivery_versions,
     copilot_review_request_state_path,
     notification_state_path,
     set_state_dir,
@@ -120,14 +120,14 @@ def deliver_with_state(
     copilot_retry = runner_temp_path("prior-copilot-review-request-state.json")
     notification_retry = runner_temp_path("prior-notification-state.json")
     errors: list[str] = []
-    active_revision = False
+    active_versions = False
 
     def deliver() -> int:
-        nonlocal active_revision
-        active_revision = claim_delivery_revision()
-        if not active_revision:
+        nonlocal active_versions
+        active_versions = claim_delivery_versions()
+        if not active_versions:
             errors.clear()
-            print("a newer dashboard delivery revision is active; skipping", file=sys.stderr)
+            print("newer dashboard delivery versions are active; skipping", file=sys.stderr)
             return 0
         errors[:] = deliver_from_state(
             repo,
@@ -153,7 +153,7 @@ def deliver_with_state(
         return status
     if github_output is not None:
         with github_output.open("a", encoding="utf-8") as output:
-            output.write(f"active={'true' if active_revision else 'false'}\n")
+            output.write(f"active={'true' if active_versions else 'false'}\n")
     if not errors:
         return 0
     print("Dashboard delivery failed:", file=sys.stderr)
@@ -165,7 +165,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument("--github-output", type=Path, help="append the active revision result")
+    parser.add_argument("--github-output", type=Path, help="append the active versions result")
     args = parser.parse_args()
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     with state_branch.temporary_state_dir() as state_dir:
