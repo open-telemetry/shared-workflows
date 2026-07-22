@@ -536,6 +536,47 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
+    def test_author_comment_batch_bounds_unknown_feedback_key_diagnostics(
+        self,
+        run_copilot,
+        _print_otel,
+    ) -> None:
+        run_copilot.return_value = copilot_batch_response(
+            {
+                "discussion_id": "author-reply",
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": "f9999",
+                        "discussion_action": "none",
+                        "reason": "Unknown feedback.",
+                    }
+                ],
+            }
+        )
+        discussion = review_thread_discussion("author-reply")
+        discussion["discussion_kind"] = "top-level-author-reply"
+        discussion["candidate_feedback"] = [
+            {
+                "discussion_id": f"feedback-{index}",
+                "body": f"Request {index}.",
+            }
+            for index in range(12)
+        ]
+
+        records = run_llm_for_top_level_author_comment_batch(
+            [discussion], "model"
+        )
+
+        self.assertTrue(records[0]["failed"])
+        error = records[0]["error"]
+        self.assertEqual(error.count("(showing 10 of 12)"), 2)
+        self.assertIn("'f0010'", error)
+        self.assertNotIn("'f0011'", error)
+        self.assertIn("'feedback-9'", error)
+        self.assertNotIn("'feedback-10'", error)
+
+    @patch("classification.print_copilot_otel_file")
+    @patch("classification.subprocess.run")
     def test_author_comment_batch_rejects_duplicate_feedback_key(
         self,
         run_copilot,

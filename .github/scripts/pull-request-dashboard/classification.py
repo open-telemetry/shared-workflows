@@ -24,6 +24,7 @@ MAX_PROMPT_CHARS = 18_000
 TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10
 MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR = 200
 MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR = 20
+AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 
 DISCUSSION_PROMPT_TEMPLATE = """You are triaging one pull request discussion.
 
@@ -308,6 +309,16 @@ def parse_discussion_decision(
     )
 
 
+def format_author_comment_diagnostic_items(items: list[str]) -> str:
+    preview = items[:AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT]
+    if len(items) <= AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT:
+        return repr(preview)
+    return (
+        f"{preview!r} (showing {AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT} "
+        f"of {len(items)})"
+    )
+
+
 def parse_author_comment_decision(
     response_text: str,
     feedback_id_by_key: dict[str, str],
@@ -339,8 +350,10 @@ def parse_author_comment_decision(
                 else f"feedback_id={raw_outcome.get('feedback_id')!r}"
             )
             errors.append(
-                f"unknown feedback_key {received}; expected keys {expected_keys!r}; "
-                f"canonical candidate IDs {expected_ids!r}"
+                f"unknown feedback_key {received}; expected keys "
+                f"{format_author_comment_diagnostic_items(expected_keys)}; "
+                f"canonical candidate IDs "
+                f"{format_author_comment_diagnostic_items(expected_ids)}"
             )
             continue
         if feedback_key in seen_feedback_keys:
