@@ -3453,10 +3453,23 @@
         "ci_failing_count": 0,
         "ci_pending_count": 10,
         "conflicts": "yes",
+        "copilot_review_exists": false,
+        "copilot_review_needed": false,
+        "copilot_review_request_needed": false,
+        "copilot_review_requested": false,
         "created_at": "2026-06-04T05:24:54+00:00",
+        "dashboard_command_replies": [],
+        "dashboard_override": false,
+        "dashboard_override_command_id": 0,
+        "dashboard_override_command_user": "",
+        "dashboard_override_label_applied": false,
+        "dashboard_override_noop": false,
+        "dashboard_override_release_requested": false,
+        "dashboard_override_requested": false,
+        "head_sha": "9b7cfee0e790a6846266fc70693bb1329f1bc084",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-22T11:14:14+00:00",
+        "last_activity_at": "2026-07-22T17:02:18+00:00",
         "last_approver_activity_at": "2026-06-05T05:38:18+00:00",
         "last_author_activity_at": "2026-06-26T03:46:43+00:00",
         "last_external_activity_at": "",
@@ -3478,8 +3491,9 @@
             "top_level_feedback": false
           }
         ],
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-06-26T03:46:43+00:00"
+        "routing_input_fingerprint": "84723550bd6af89ba42ae04b92a1f4b85be1eb9972fe53ee9ceb5d0dd6034cbb",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-06-05T05:38:18+00:00"
       },
       "failed": false,
       "pr_number": 48866,
@@ -3495,10 +3509,8 @@
         },
         "pr-review-4433700708": {
           "evidence": {
-            "commit": "2026-06-26T03:46:42Z",
-            "reply": "2026-06-06T05:08:50Z"
-          },
-          "reply_source_id": 4637478150
+            "commit": "2026-06-26T03:46:42Z"
+          }
         }
       }
     },
