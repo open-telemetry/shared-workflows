@@ -900,11 +900,14 @@
     },
     "302": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/302#pullrequestreview-4759154439"
+        ],
+        "author_nudge_episode_id": "247ab7e2ce904e7b942136be71b56d95",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -924,19 +927,28 @@
         "head_sha": "a97ee7a13442290ea880ca7ae696ecb0fb914446",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-22T21:51:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-22T22:04:58+00:00",
+        "last_approver_activity_at": "2026-07-22T22:04:58+00:00",
         "last_author_activity_at": "2026-07-22T21:42:50+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "76dffc39fb1cf587224b5bff6ffec0ed3cf492d2fba9b7af5f015f6031696ee7",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-22T21:42:50+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "a79976b5d64f68a84e3cf2db9a29b7b329c5026f35432dab487c7d4abf063e5b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-22T22:04:58+00:00"
       },
       "failed": false,
       "pr_number": 302,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/302",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
