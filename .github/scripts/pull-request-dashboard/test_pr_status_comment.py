@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
+from urllib.parse import parse_qs, urlparse
 
 import pr_status_comment
 
@@ -160,6 +161,69 @@ class RenderStatusCommentTest(unittest.TestCase):
                 self.assertIn("PR%3A+https%3A%2F%2Fgithub.com%2F", body)
                 self.assertIn("What+looks+incorrect", body)
                 self.assertNotIn("One+or+more+linked+feedback+items", body)
+
+    def test_accuracy_note_prefills_quoted_live_status_comment(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {"route": "approver", "facts": {}},
+        )
+
+        status_comment, accuracy_note = body.split(
+            "\n\n_This automated status or its linked feedback items may be incorrect.",
+            maxsplit=1,
+        )
+        report_url = accuracy_note.split("[report it](", maxsplit=1)[1].split(
+            ")", maxsplit=1
+        )[0]
+        issue_body = parse_qs(urlparse(report_url).query)["body"][0]
+        quoted_status_comment = "\n".join(
+            f"> {line}" for line in status_comment.splitlines()
+        )
+
+        self.assertEqual(
+            "PR: https://github.com/open-telemetry/example/pull/1\n\n"
+            f"Current live status comment:\n{quoted_status_comment}\n\n"
+            "What looks incorrect:\n",
+            issue_body,
+        )
+
+    def test_accuracy_note_bounds_report_url_for_large_status(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "non_blocking_check_failures": [
+                        "&" * pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT
+                        for _ in range(
+                            pr_status_comment.NON_BLOCKING_CHECK_FAILURE_LIMIT
+                        )
+                    ],
+                    "author_action_review_thread_urls": [
+                        "https://github.com/open-telemetry/example/pull/1"
+                        "#discussion_r1234567890"
+                        for _ in range(
+                            pr_status_comment.AUTHOR_ACTION_FEEDBACK_LINK_LIMIT
+                        )
+                    ],
+                },
+            },
+        )
+
+        report_url = body.split("[report it](", maxsplit=1)[1].split(
+            ")", maxsplit=1
+        )[0]
+        issue_body = parse_qs(urlparse(report_url).query)["body"][0]
+
+        self.assertLessEqual(
+            len(report_url),
+            pr_status_comment.STATUS_REPORT_URL_MAX_CHARS,
+        )
+        self.assertIn(
+            f"> {pr_status_comment.STATUS_REPORT_TRUNCATION_NOTICE}",
+            issue_body,
+        )
 
     def test_waiting_on_author_names_required_ci_failure(self) -> None:
         body = pr_status_comment.render_status_comment(

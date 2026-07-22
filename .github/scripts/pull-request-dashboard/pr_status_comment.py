@@ -32,13 +32,17 @@ _AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
 )
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 12
+STATUS_COMMENT_REVISION = 13
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT = 200
 STATUS_REPORT_ISSUE_URL = "https://github.com/open-telemetry/shared-workflows/issues/new"
 STATUS_REPORT_ISSUE_TEMPLATE = "incorrect-pr-dashboard-result.md"
+STATUS_REPORT_URL_MAX_CHARS = 4096
+STATUS_REPORT_TRUNCATION_NOTICE = (
+    "[Status comment truncated to keep this report link usable.]"
+)
 AUTHOR_GUIDANCE = (
     "For each item, reply to move the discussion forward, e.g. link to the commit "
     "that addresses it, explain why no change is needed, or ask a follow-up question."
@@ -77,13 +81,42 @@ def status_author_nudge_episode_id(
     return ""
 
 
-def accuracy_note(pr: dict[str, Any], override_route: str = "") -> str:
+def status_report_url(pr: dict[str, Any], status_comment: str) -> str:
+    quoted_status_comment = "\n".join(
+        f"> {line}" for line in status_comment.splitlines()
+    )
     query = urlencode({
         "template": STATUS_REPORT_ISSUE_TEMPLATE,
         "title": "PR dashboard result looks incorrect",
-        "body": f"PR: {pr.get('html_url') or ''}\n\nWhat looks incorrect:\n",
+        "body": (
+            f"PR: {pr.get('html_url') or ''}\n\n"
+            f"Current live status comment:\n{quoted_status_comment}\n\n"
+            "What looks incorrect:\n"
+        ),
     })
-    report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
+    return f"{STATUS_REPORT_ISSUE_URL}?{query}"
+
+
+def accuracy_note(
+    pr: dict[str, Any],
+    status_comment: str,
+    override_route: str = "",
+) -> str:
+    report_url = status_report_url(pr, status_comment)
+    if len(report_url) > STATUS_REPORT_URL_MAX_CHARS:
+        lower_bound = 0
+        upper_bound = len(status_comment)
+        while lower_bound <= upper_bound:
+            midpoint = (lower_bound + upper_bound) // 2
+            truncated_status_comment = (
+                f"{status_comment[:midpoint]}\n{STATUS_REPORT_TRUNCATION_NOTICE}"
+            )
+            candidate_url = status_report_url(pr, truncated_status_comment)
+            if len(candidate_url) <= STATUS_REPORT_URL_MAX_CHARS:
+                report_url = candidate_url
+                lower_bound = midpoint + 1
+            else:
+                upper_bound = midpoint - 1
     note = (
         "This automated status or its linked feedback items may be incorrect. "
         f"If something looks wrong, please [report it]({report_url}) with the result you expected."
@@ -232,8 +265,9 @@ def render_status_comment(
                 feedback_indent,
             )
         )
+    status_comment = "\n".join(lines)
     lines.append("")
-    lines.append(accuracy_note(pr, override_route))
+    lines.append(accuracy_note(pr, status_comment, override_route))
     lines.append("")
     return "\n".join(lines)
 
