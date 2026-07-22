@@ -195,17 +195,17 @@ Targeted updates received before the first full dashboard run are ignored.
 
 ## Reviewer routing override
 
-When the dashboard says a pull request is waiting on its author but the author
-believes it is ready for another review, the author can comment
-`/dashboard route:reviewers`. The dashboard routes the pull request to *Waiting
-on reviewers* and applies the `dashboard:route-overridden` label to mark the
-override. Members of the repository's `approver_teams` can use the same command.
-A `/dashboard route:reviewers` command from anyone else, or a command on a pull
-request that is not waiting on its author, has no routing effect. The dashboard
-replies to a `/dashboard route:reviewers` from an unauthorized user explaining
-that only the author or an approver can use it, replies to an author or approver
-command on a pull request that is not waiting on the author noting where it is
-currently routed, and replies to any unrecognized `/dashboard` command.
+When the dashboard says a pull request is waiting on its author or an external
+dependency but the author believes it is ready for another review, the author
+can comment `/dashboard route:reviewers`. The dashboard routes the pull request
+to *Waiting on reviewers* and applies the `dashboard:route-overridden` label to
+mark the override. Members of the repository's `approver_teams` can use the same
+command. A `/dashboard route:reviewers` command from anyone else, or a command
+on a pull request already at or past reviewers, has no routing effect. The
+dashboard replies to a `/dashboard route:reviewers` from an unauthorized user
+explaining that only the author or an approver can use it, replies to an author
+or approver command on a pull request already at or past reviewers noting where
+it is currently routed, and replies to any unrecognized `/dashboard` command.
 
 Removing the `dashboard:route-overridden` label restores automatic routing. The
 dashboard also removes the label automatically once routing would place the pull

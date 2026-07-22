@@ -451,10 +451,10 @@ class DashboardOverrideTest(unittest.TestCase):
             facts["dashboard_command_replies"],
         )
 
-    def test_command_only_overrides_author_route(self) -> None:
+    def test_command_only_overrides_pre_review_routes(self) -> None:
         for route, expected_route, expected_pending, expected_noop in (
             ("author", "approver", True, False),
-            ("external", "external", False, True),
+            ("external", "approver", True, False),
             ("approver", "approver", False, True),
             ("maintainer", "maintainer", False, True),
             ("copilot", "copilot", False, True),
@@ -484,7 +484,7 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertFalse(facts["dashboard_override"])
         self.assertTrue(facts["dashboard_override_release_requested"])
 
-    def test_label_yields_to_external_route_and_releases(self) -> None:
+    def test_label_holds_external_route_at_reviewers(self) -> None:
         facts = {
             "dashboard_override_label_applied": True,
             "dashboard_override_requested": False,
@@ -492,9 +492,9 @@ class DashboardOverrideTest(unittest.TestCase):
 
         route = dashboard_override.apply_dashboard_override(facts, "external")
 
-        self.assertEqual("external", route)
-        self.assertFalse(facts["dashboard_override"])
-        self.assertTrue(facts["dashboard_override_release_requested"])
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["dashboard_override"])
+        self.assertFalse(facts["dashboard_override_release_requested"])
 
     def test_releases_label_once_natural_route_reaches_reviewers(self) -> None:
         facts = {

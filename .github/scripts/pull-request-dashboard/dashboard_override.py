@@ -28,6 +28,8 @@ OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
 _OVERRIDE_ACK_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-override-ack:(\d+) -->"
 )
+PRE_REVIEW_ROUTES = ("author", "external")
+REVIEWERS_OR_LATER_ROUTES = ("approver", "maintainer")
 
 
 def author_override_guidance(staleness_note: str = "") -> str:
@@ -329,9 +331,10 @@ def apply_dashboard_override(facts: dict[str, Any], route: str) -> str:
     label_applied = bool(facts.get("dashboard_override_label_applied"))
     requested = bool(facts.get("dashboard_override_requested"))
     command_pending = bool(facts.get("dashboard_override_command_id"))
-    # The override only takes effect while automatic routing waits on the author.
-    # On every other route the natural routing stands.
-    override_applies = route == "author" and (label_applied or requested)
+    # The override only takes effect before review, while automatic routing waits
+    # on the author or an external dependency. On every later route the natural
+    # routing stands.
+    override_applies = route in PRE_REVIEW_ROUTES and (label_applied or requested)
     # A command that does not newly move the pull request to reviewers is a no-op;
     # the author is told where it is routed. This covers both a non-overridable
     # route and an existing label that already provides the reviewer handoff.
@@ -341,11 +344,11 @@ def apply_dashboard_override(facts: dict[str, Any], route: str) -> str:
     if requested and not override_applies:
         facts["dashboard_override_requested"] = False
     facts["dashboard_override"] = override_applies
-    # Release the label once automatic routing no longer waits on the author, so
-    # a forgotten override cannot bypass a later external dependency or linger
-    # after routing reaches reviewers.
+    # Release the label once automatic routing reaches or passes reviewers, so a
+    # forgotten override cannot pin the pull request at reviewers or drag it back
+    # from maintainers.
     facts["dashboard_override_release_requested"] = (
-        label_applied and route != "author"
+        label_applied and route in REVIEWERS_OR_LATER_ROUTES
     )
     return "approver" if override_applies else route
 
