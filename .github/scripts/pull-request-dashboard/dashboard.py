@@ -192,7 +192,7 @@ from classification import (
     normalize_discussion_action,
     prune_classification_cache,
 )
-from author_nudge import record_author_nudge_observation
+from author_nudge import record_author_nudge_observation, routing_input_fingerprint
 from copilot_review import (
     apply_copilot_review_gate,
     copilot_review_status,
@@ -574,6 +574,7 @@ def compute_facts(
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
+        "routing_input_fingerprint": routing_input_fingerprint(raw),
         **dashboard_override_facts(raw, author, labels, reviewers or set()),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)

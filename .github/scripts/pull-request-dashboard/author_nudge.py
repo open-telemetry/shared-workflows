@@ -3,12 +3,21 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+import hashlib
+import json
 from pathlib import Path
 import sys
 from typing import Any
 
-from github_cli import gh_api, run_gh
+from github_cli import (
+    fetch_pr_issue_comments,
+    fetch_pr_review_data,
+    fetch_review_threads,
+    gh_api,
+    run_gh,
+)
 from dashboard_override import author_override_guidance
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
@@ -29,6 +38,67 @@ NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-nudge:"
 
 def nudge_marker(waiting_since: str) -> str:
     return f"{NUDGE_MARKER_PREFIX}{waiting_since} -->"
+
+
+def routing_input_fingerprint(raw: dict[str, Any]) -> str:
+    dashboard_login = f"{DASHBOARD_APP_SLUG}[bot]"
+    issue_comments = [
+        comment
+        for comment in raw.get("issue_comments") or []
+        if (comment.get("user") or {}).get("login") != dashboard_login
+    ]
+    routing_inputs = {
+        "issue_comments": issue_comments,
+        "review_comments": raw.get("review_comments") or [],
+        "reviews": raw.get("reviews") or [],
+        "review_threads": raw.get("review_threads") or [],
+    }
+    encoded = json.dumps(
+        routing_inputs,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def fetch_current_pr_routing_state(
+    repo: str,
+    pr_number: int,
+) -> tuple[dict[str, Any], str]:
+    owner, repo_name = repo.split("/", 1)
+    with ThreadPoolExecutor() as pool:
+        pr_future = pool.submit(gh_api, f"/repos/{repo}/pulls/{pr_number}")
+        issue_comments_future = pool.submit(
+            fetch_pr_issue_comments,
+            owner,
+            repo_name,
+            pr_number,
+        )
+        review_comments_future = pool.submit(
+            gh_api,
+            f"/repos/{repo}/pulls/{pr_number}/comments?per_page=100",
+            True,
+        )
+        review_data_future = pool.submit(
+            fetch_pr_review_data,
+            owner,
+            repo_name,
+            pr_number,
+        )
+        review_threads_future = pool.submit(
+            fetch_review_threads,
+            owner,
+            repo_name,
+            pr_number,
+        )
+        review_data = review_data_future.result() or {}
+        fingerprint = routing_input_fingerprint({
+            "issue_comments": issue_comments_future.result() or [],
+            "review_comments": review_comments_future.result() or [],
+            "reviews": review_data.get("reviews") or [],
+            "review_threads": review_threads_future.result() or [],
+        })
+        return pr_future.result() or {}, fingerprint
 
 
 def plan_nudge(
@@ -140,12 +210,15 @@ def record_author_nudge_observation(
     key = str(pr_number)
     due, entry = plan_nudge(result, updated.get(key), now)
     if due and prepare_due and entry is not None:
-        head_sha = ((result or {}).get("facts") or {}).get("head_sha") or ""
-        if head_sha:
+        facts = (result or {}).get("facts") or {}
+        head_sha = facts.get("head_sha") or ""
+        routing_fingerprint = facts.get("routing_input_fingerprint") or ""
+        if head_sha and routing_fingerprint:
             entry = {
                 **entry,
                 "pending_at": format_ts(now),
                 "head_sha": head_sha,
+                "routing_input_fingerprint": routing_fingerprint,
             }
     if entry is None:
         updated.pop(key, None)
@@ -179,18 +252,30 @@ def deliver_prepared_author_nudges(
                 updated[key] = reset_entry
             continue
         try:
-            pr = gh_api(f"/repos/{repo}/pulls/{pr_number}") or {}
+            pr, current_routing_fingerprint = fetch_current_pr_routing_state(
+                repo,
+                pr_number,
+            )
             expected_head = entry.get("head_sha") or ""
+            expected_routing_fingerprint = entry.get("routing_input_fingerprint") or ""
             current_head = ((pr.get("head") or {}).get("sha") or "")
+            if pr.get("state") != "open" or pr.get("draft"):
+                updated.pop(key, None)
+                continue
             if (
-                pr.get("state") != "open"
-                or pr.get("draft")
-                or (expected_head and current_head != expected_head)
+                not expected_head
+                or current_head != expected_head
+                or not expected_routing_fingerprint
+                or current_routing_fingerprint != expected_routing_fingerprint
             ):
                 updated[key] = {
                     name: value
                     for name, value in entry.items()
-                    if name not in ("pending_at", "head_sha")
+                    if name not in (
+                        "pending_at",
+                        "head_sha",
+                        "routing_input_fingerprint",
+                    )
                 }
                 continue
             nudged_at = ensure_nudge(

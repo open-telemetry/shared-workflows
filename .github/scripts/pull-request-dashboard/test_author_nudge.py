@@ -16,11 +16,35 @@ def author_result(route: str = "author") -> dict:
         "facts": {
             "author": "alice",
             "head_sha": "current-head",
+            "routing_input_fingerprint": "current-fingerprint",
         },
     }
 
 
 class AuthorNudgePolicyTest(unittest.TestCase):
+    def test_routing_fingerprint_ignores_dashboard_comments_and_tracks_author_activity(self) -> None:
+        raw = {
+            "issue_comments": [],
+            "review_comments": [],
+            "reviews": [],
+            "review_threads": [],
+        }
+        baseline = author_nudge.routing_input_fingerprint(raw)
+
+        raw["issue_comments"].append({
+            "id": 1,
+            "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+            "body": "dashboard status",
+        })
+        self.assertEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
+        raw["issue_comments"].append({
+            "id": 2,
+            "user": {"login": "alice"},
+            "body": "I addressed the feedback.",
+        })
+        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
     def test_nudge_advertises_dashboard_override_command(self) -> None:
         body = author_nudge.render_nudge(
             "alice",
@@ -162,6 +186,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                     "nudged_at": "",
                     "pending_at": "2026-07-17T00:00:00+00:00",
                     "head_sha": "current-head",
+                    "routing_input_fingerprint": "current-fingerprint",
                 }
             },
         )
@@ -181,6 +206,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "nudged_at": "",
                 "pending_at": "2026-07-17T00:00:00+00:00",
                 "head_sha": "current-head",
+                "routing_input_fingerprint": "current-fingerprint",
             }
         },
     )
@@ -191,16 +217,16 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     )
     @patch.object(
         author_nudge,
-        "gh_api",
-        return_value={
+        "fetch_current_pr_routing_state",
+        return_value=({
             "state": "open",
             "draft": False,
             "head": {"sha": "current-head"},
-        },
+        }, "current-fingerprint"),
     )
     def test_delivery_records_posted_nudge(
         self,
-        gh_api,
+        fetch_current_state,
         _load_dashboard_state,
         _load_nudges,
         save_nudges,
@@ -212,7 +238,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
-        gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/1")
+        fetch_current_state.assert_called_once_with("open-telemetry/example", 1)
         ensure_nudge.assert_called_once()
         save_nudges.assert_called_once_with({
             "1": {
@@ -232,6 +258,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "nudged_at": "",
                 "pending_at": "2026-07-17T00:00:00+00:00",
                 "head_sha": "current-head",
+                "routing_input_fingerprint": "current-fingerprint",
             }
         },
     )
@@ -242,12 +269,12 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     )
     @patch.object(
         author_nudge,
-        "gh_api",
-        return_value={
+        "fetch_current_pr_routing_state",
+        return_value=({
             "state": "open",
             "draft": False,
             "head": {"sha": "new-head"},
-        },
+        }, "current-fingerprint"),
     )
     def test_delivery_defers_when_head_advanced(
         self,
@@ -270,6 +297,97 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "nudged_at": "",
             },
         })
+
+    @patch.object(author_nudge, "ensure_nudge")
+    @patch.object(author_nudge, "save_author_nudges")
+    @patch.object(
+        author_nudge,
+        "load_author_nudges",
+        return_value={
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "nudged_at": "",
+                "pending_at": "2026-07-17T00:00:00+00:00",
+                "head_sha": "current-head",
+                "routing_input_fingerprint": "accepted-fingerprint",
+            }
+        },
+    )
+    @patch.object(
+        author_nudge,
+        "load_dashboard_state_cache",
+        return_value={"prs": {"1": author_result()}},
+    )
+    @patch.object(
+        author_nudge,
+        "fetch_current_pr_routing_state",
+        return_value=({
+            "state": "open",
+            "draft": False,
+            "head": {"sha": "current-head"},
+        }, "new-fingerprint"),
+    )
+    def test_delivery_defers_when_routing_inputs_changed(
+        self,
+        _fetch_current_state,
+        _load_dashboard_state,
+        _load_nudges,
+        save_nudges,
+        ensure_nudge,
+    ) -> None:
+        errors = author_nudge.deliver_prepared_author_nudges(
+            "open-telemetry/example",
+            NOW,
+        )
+
+        self.assertEqual([], errors)
+        ensure_nudge.assert_not_called()
+        save_nudges.assert_called_once_with({
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "nudged_at": "",
+            },
+        })
+
+    def test_delivery_clears_episode_for_closed_or_draft_pr(self) -> None:
+        pending = {
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "nudged_at": "",
+                "pending_at": "2026-07-17T00:00:00+00:00",
+                "head_sha": "current-head",
+                "routing_input_fingerprint": "current-fingerprint",
+            }
+        }
+        for state, draft in (("closed", False), ("open", True)):
+            with (
+                self.subTest(state=state, draft=draft),
+                patch.object(author_nudge, "load_author_nudges", return_value=pending),
+                patch.object(author_nudge, "save_author_nudges") as save_nudges,
+                patch.object(
+                    author_nudge,
+                    "load_dashboard_state_cache",
+                    return_value={"prs": {"1": author_result()}},
+                ),
+                patch.object(
+                    author_nudge,
+                    "fetch_current_pr_routing_state",
+                    return_value=({
+                        "state": state,
+                        "draft": draft,
+                        "head": {"sha": "current-head"},
+                    }, "current-fingerprint"),
+                ),
+                patch.object(author_nudge, "ensure_nudge") as ensure_nudge,
+            ):
+                errors = author_nudge.deliver_prepared_author_nudges(
+                    "open-telemetry/example",
+                    NOW,
+                )
+
+                self.assertEqual([], errors)
+                ensure_nudge.assert_not_called()
+                save_nudges.assert_called_once_with({})
 
     def test_rendered_nudge_mentions_author_and_links_status(self) -> None:
         body = author_nudge.render_nudge(
