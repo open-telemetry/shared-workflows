@@ -12,12 +12,16 @@ import state_branch
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
 BACKFILL_STATE_FILE = "backfill-state.json"
+AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
+COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
 DASHBOARD_STATE_VERSION = 5
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
+AUTHOR_NUDGE_STATE_VERSION = 2
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 3
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
@@ -40,6 +44,14 @@ def dashboard_state_path() -> Path:
 
 def notification_state_path() -> Path:
     return state_dir() / "notification-state.json"
+
+
+def author_nudge_state_path() -> Path:
+    return state_dir() / AUTHOR_NUDGE_STATE_FILE
+
+
+def copilot_review_request_state_path() -> Path:
+    return state_dir() / COPILOT_REVIEW_REQUEST_STATE_FILE
 
 
 def backfill_state_path() -> Path:
@@ -233,6 +245,93 @@ def load_notifications() -> dict[str, Any] | None:
 
 def save_notifications(notifications: dict[str, Any]) -> None:
     _save_notification_state_file({"prs": notifications})
+
+
+def load_author_nudge_state_file(path: Path) -> dict[str, Any]:
+    state = load_state_file(path, AUTHOR_NUDGE_STATE_VERSION)
+    if state is None or not isinstance(state.get("prs"), dict):
+        return {}
+    return state["prs"]
+
+
+def union_merge_author_nudges(
+    baseline_nudges: dict[str, Any],
+    retry_snapshot_nudges: dict[str, Any],
+) -> dict[str, Any]:
+    merged = dict(baseline_nudges)
+    for key, retry_entry in retry_snapshot_nudges.items():
+        nudged_at = (retry_entry or {}).get("nudged_at") or ""
+        waiting_since = (retry_entry or {}).get("waiting_since") or ""
+        baseline_waiting_since = (baseline_nudges.get(key) or {}).get("waiting_since") or ""
+        if nudged_at and waiting_since and waiting_since == baseline_waiting_since:
+            merged[key] = {
+                "waiting_since": waiting_since,
+                "nudged_at": nudged_at,
+            }
+    return merged
+
+
+def load_author_nudges(retry_snapshot_path: Path | None = None) -> dict[str, Any]:
+    nudges = load_author_nudge_state_file(author_nudge_state_path())
+    if retry_snapshot_path and retry_snapshot_path.exists():
+        nudges = union_merge_author_nudges(
+            nudges,
+            load_author_nudge_state_file(retry_snapshot_path),
+        )
+    return nudges
+
+
+def save_author_nudges(nudges: dict[str, Any]) -> None:
+    save_state_file(
+        author_nudge_state_path(),
+        {"prs": nudges},
+        AUTHOR_NUDGE_STATE_VERSION,
+    )
+
+
+def load_copilot_review_request_state_file(path: Path) -> dict[str, Any]:
+    state = load_state_file(
+        path,
+        COPILOT_REVIEW_REQUEST_STATE_VERSION,
+    )
+    if state is None or not isinstance(state.get("prs"), dict):
+        return {}
+    return state["prs"]
+
+
+def union_merge_copilot_review_requests(
+    baseline_requests: dict[str, Any],
+    retry_snapshot_requests: dict[str, Any],
+) -> dict[str, Any]:
+    merged = dict(baseline_requests)
+    for key, retry_entry in retry_snapshot_requests.items():
+        baseline_entry = merged.get(key) or {}
+        if (
+            (retry_entry or {}).get("requested_at")
+            and retry_entry.get("head_sha") == baseline_entry.get("head_sha")
+            and retry_entry.get("observed_at")
+            and retry_entry.get("observed_at") == baseline_entry.get("observed_at")
+        ):
+            merged[key] = retry_entry
+    return merged
+
+
+def load_copilot_review_requests(retry_snapshot_path: Path | None = None) -> dict[str, Any]:
+    requests = load_copilot_review_request_state_file(copilot_review_request_state_path())
+    if retry_snapshot_path and retry_snapshot_path.exists():
+        requests = union_merge_copilot_review_requests(
+            requests,
+            load_copilot_review_request_state_file(retry_snapshot_path),
+        )
+    return requests
+
+
+def save_copilot_review_requests(requests: dict[str, Any]) -> None:
+    save_state_file(
+        copilot_review_request_state_path(),
+        {"prs": requests},
+        COPILOT_REVIEW_REQUEST_STATE_VERSION,
+    )
 
 
 def union_merge_notifications(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from github_cli import (
     TransientGhError,
@@ -10,15 +10,45 @@ from github_cli import (
     fetch_pr_title_edits,
     gh_pr_check_rollup,
     gh_pr_checks,
+    gh_pr_view,
     gh_required_check_contexts,
     include_missing_required_checks,
     is_retryable_gh_error,
-    list_all_open_pr_numbers,
     list_open_prs,
+    request_copilot_review,
 )
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.run_gh_json")
+    def test_pr_view_fetches_body_for_routing_freshness(self, run_json) -> None:
+        run_json.return_value = {"mergeable": "MERGEABLE"}
+
+        gh_pr_view("open-telemetry/example", 7)
+
+        fields = run_json.call_args.args[0][-1]
+        self.assertIn("title", fields.split(","))
+        self.assertIn("body", fields.split(","))
+
+    @patch("github_cli.gh_graphql")
+    def test_request_copilot_review_uses_request_reviews_mutation(
+        self,
+        graphql,
+    ) -> None:
+        request_copilot_review("PR_node_id")
+
+        graphql.assert_called_once_with(
+            ANY,
+            {
+                "pullRequestId": "PR_node_id",
+                "botId": "BOT_kgDOCnlnWA",
+            },
+        )
+        mutation = graphql.call_args.args[0]
+        self.assertIn("requestReviews", mutation)
+        self.assertIn("botIds: [$botId]", mutation)
+        self.assertIn("union: true", mutation)
+
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_paginates(self, graphql) -> None:
         graphql.side_effect = [
@@ -189,22 +219,6 @@ class GithubCliTest(unittest.TestCase):
             prs[-1],
         )
         self.assertEqual([], prs[0]["labels"])
-        gh_api.assert_called_once_with(
-            "/repos/open-telemetry/example/pulls?state=open&per_page=100",
-            paginate=True,
-        )
-
-    @patch("github_cli.gh_api")
-    def test_list_all_open_pr_numbers_uses_paginated_rest_api(self, gh_api) -> None:
-        gh_api.return_value = [
-            {"number": number}
-            for number in range(1, 502)
-        ]
-
-        self.assertEqual(
-            set(range(1, 502)),
-            list_all_open_pr_numbers("open-telemetry/example"),
-        )
         gh_api.assert_called_once_with(
             "/repos/open-telemetry/example/pulls?state=open&per_page=100",
             paginate=True,
@@ -559,6 +573,8 @@ class GithubCliTest(unittest.TestCase):
                                 "nodes": [
                                     {
                                         "fullDatabaseId": "4700712792",
+                                        "commit": {"oid": "reviewed-head-1"},
+                                        "comments": {"totalCount": 1},
                                         "url": "https://example.test/review/4700712792",
                                         "author": {"login": "reviewer-1"},
                                         "state": "COMMENTED",
@@ -586,6 +602,8 @@ class GithubCliTest(unittest.TestCase):
                                 "nodes": [
                                     {
                                         "fullDatabaseId": "5000000000",
+                                        "commit": {"oid": "reviewed-head-2"},
+                                        "comments": {"totalCount": 0},
                                         "url": "https://example.test/review/5000000000",
                                         "author": {"login": "reviewer-2"},
                                         "state": "APPROVED",
@@ -608,6 +626,8 @@ class GithubCliTest(unittest.TestCase):
                 "reviews": [
                     {
                         "id": 4700712792,
+                        "commit_id": "reviewed-head-1",
+                        "finding_count": 1,
                         "url": "https://example.test/review/4700712792",
                         "user": {"login": "reviewer-1"},
                         "state": "COMMENTED",
@@ -617,6 +637,8 @@ class GithubCliTest(unittest.TestCase):
                     },
                     {
                         "id": 5000000000,
+                        "commit_id": "reviewed-head-2",
+                        "finding_count": 0,
                         "url": "https://example.test/review/5000000000",
                         "user": {"login": "reviewer-2"},
                         "state": "APPROVED",
@@ -631,6 +653,9 @@ class GithubCliTest(unittest.TestCase):
                 },
             },
         )
+        review_query = graphql.call_args_list[0].args[0]
+        self.assertIn("comments {", review_query)
+        self.assertIn("totalCount", review_query)
         self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
         self.assertEqual(graphql.call_count, 2)
 

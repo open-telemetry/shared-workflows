@@ -3,38 +3,36 @@
 
 from __future__ import annotations
 
-import argparse
-import os
+import re
 import sys
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
 from github_cli import (
-    detect_repo,
     gh_api,
-    list_all_open_pr_numbers,
-    normalize_repo,
-    repo_state_key,
     run_gh,
 )
+from dashboard_override import PRE_REVIEW_ROUTES, author_override_guidance
 from route_presentation import route_status_summary
 from state import (
     load_dashboard_state_cache,
     load_status_comment_rollout_state,
     save_status_comment_rollout_state,
-    set_state_dir,
-    status_comment_rollout_state_path,
 )
 from utils import markdown_escape, truncate
-import state_branch
 from utils import utc_now
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
+AUTHOR_NUDGE_EPISODE_MARKER_PREFIX = (
+    "<!-- pull-request-dashboard-author-nudge-episode:"
+)
+_AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
+    r"<!-- pull-request-dashboard-author-nudge-episode:([a-f0-9]+) -->"
+)
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 9
+STATUS_COMMENT_REVISION = 12
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
@@ -42,8 +40,8 @@ NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT = 200
 STATUS_REPORT_ISSUE_URL = "https://github.com/open-telemetry/shared-workflows/issues/new"
 STATUS_REPORT_ISSUE_TEMPLATE = "incorrect-pr-dashboard-result.md"
 AUTHOR_GUIDANCE = (
-    "For each item, link to the commit that addresses it, explain why no change is needed, "
-    "or ask a follow-up question."
+    "For each item, reply to move the discussion forward, e.g. link to the commit "
+    "that addresses it, explain why no change is needed, or ask a follow-up question."
 )
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 # Remove after migrating open PRs as described by the post-rollout
@@ -54,17 +52,49 @@ LEGACY_MARKERS = (
 )
 
 
-def accuracy_note(pr: dict[str, Any]) -> str:
+def author_nudge_episode_marker(episode_id: str) -> str:
+    return f"{AUTHOR_NUDGE_EPISODE_MARKER_PREFIX}{episode_id} -->"
+
+
+def is_dashboard_app_comment(comment: dict[str, Any]) -> bool:
+    app_slug = (comment.get("performed_via_github_app") or {}).get("slug") or ""
+    author_login = (comment.get("user") or {}).get("login") or ""
+    return app_slug == DASHBOARD_APP_SLUG or author_login == f"{DASHBOARD_APP_SLUG}[bot]"
+
+
+def status_author_nudge_episode_id(
+    comments: list[dict[str, Any]] | None,
+) -> str:
+    for comment in comments or []:
+        body = comment.get("body") or ""
+        match = _AUTHOR_NUDGE_EPISODE_MARKER_RE.search(body)
+        if (
+            match
+            and STATUS_MARKER in body
+            and is_dashboard_app_comment(comment)
+        ):
+            return match.group(1)
+    return ""
+
+
+def accuracy_note(pr: dict[str, Any], override_route: str = "") -> str:
     query = urlencode({
         "template": STATUS_REPORT_ISSUE_TEMPLATE,
         "title": "PR dashboard result looks incorrect",
         "body": f"PR: {pr.get('html_url') or ''}\n\nWhat looks incorrect:\n",
     })
     report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
-    return (
-        "_This automated status or its linked feedback items may be incorrect. "
-        f"If something looks wrong, [report it]({report_url}) with the result you expected._"
+    note = (
+        "This automated status or its linked feedback items may be incorrect. "
+        f"If something looks wrong, please [report it]({report_url}) with the result you expected."
     )
+    if override_route:
+        note += " " + author_override_guidance(
+            "If the last refreshed time above predates your latest reply or "
+            "push, the dashboard hasn't processed it yet.",
+            route=override_route,
+        )
+    return f"_{note}_"
 
 
 def render_status_comment(
@@ -106,6 +136,7 @@ def render_status_comment(
             )
 
     feedback_indent: str | None = None
+    override_route = ""
 
     if pr.get("merged"):
         summary = ["- **Status:** Merged."]
@@ -123,6 +154,8 @@ def render_status_comment(
         ]
     else:
         route = result.get("route") or "unknown"
+        if route in PRE_REVIEW_ROUTES:
+            override_route = route
         if route == "author":
             waiting_on, fallback_next_step = route_status_summary(route)
             check_action = None
@@ -187,6 +220,9 @@ def render_status_comment(
         "",
         *summary,
     ]
+    episode_id = str(facts.get("author_nudge_episode_id") or "")
+    if (result or {}).get("route") == "author" and episode_id:
+        lines.insert(2, author_nudge_episode_marker(episode_id))
 
     if feedback_indent is not None and feedback_count:
         lines.extend(
@@ -197,7 +233,7 @@ def render_status_comment(
             )
         )
     lines.append("")
-    lines.append(accuracy_note(pr))
+    lines.append(accuracy_note(pr, override_route))
     lines.append("")
     return "\n".join(lines)
 
@@ -318,8 +354,7 @@ def prepare_rollout_state(
 
 def update_status_comments_from_state(
     repo: str,
-    pr_number: int | None,
-    open_pr_numbers: set[int] | None,
+    open_pr_numbers: set[int],
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -327,21 +362,10 @@ def update_status_comments_from_state(
         return []
 
     saved_rollout_state = load_status_comment_rollout_state()
-    if open_pr_numbers is None:
-        raise RuntimeError("open PR numbers are required for a status comment update")
+    queued_pr_numbers = set(saved_rollout_state.get("pending_pr_numbers") or [])
     rollout_state = prepare_rollout_state(saved_rollout_state, open_pr_numbers)
-    if pr_number is not None:
-        publish_pr_status(repo, pr_number, dashboard_state)
-        pending = set(rollout_state["pending_pr_numbers"])
-        pending.discard(pr_number)
-        rollout_state["pending_pr_numbers"] = sorted(pending)
-        if not pending and rollout_state["target_revision"] == STATUS_COMMENT_REVISION:
-            rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
-        if rollout_state != saved_rollout_state:
-            save_status_comment_rollout_state(rollout_state)
-        return []
-
-    rollout_pr_numbers = rollout_state["pending_pr_numbers"][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    pending_pr_numbers = set(rollout_state["pending_pr_numbers"]) | queued_pr_numbers
+    rollout_pr_numbers = sorted(pending_pr_numbers)[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
     errors: list[str] = []
     for number in rollout_pr_numbers:
@@ -352,81 +376,9 @@ def update_status_comments_from_state(
         else:
             successful_pr_numbers.add(number)
 
-    pending = set(rollout_state["pending_pr_numbers"]) - successful_pr_numbers
+    pending = pending_pr_numbers - successful_pr_numbers
     rollout_state["pending_pr_numbers"] = sorted(pending)
     if not pending:
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
     save_status_comment_rollout_state(rollout_state)
     return errors
-
-
-def rollout_errors_path() -> Path:
-    return Path(os.environ.get("RUNNER_TEMP", ".")) / "status-comment-rollout-errors.txt"
-
-
-def update_status_comments(
-    repo: str,
-    pr_number: int | None,
-    open_pr_numbers: set[int] | None,
-    errors_file: Path,
-) -> int:
-    errors = update_status_comments_from_state(repo, pr_number, open_pr_numbers)
-    if errors:
-        errors_file.write_text("\n".join(errors) + "\n", encoding="utf-8")
-    else:
-        errors_file.unlink(missing_ok=True)
-    return 0
-
-
-def update_status_comments_with_state(
-    repo: str,
-    state_branch_name: str,
-    state_dir: Path,
-    pr_number: int | None,
-) -> int:
-    open_pr_numbers = list_all_open_pr_numbers(repo)
-    repo_key = repo_state_key(repo)
-    errors_file = rollout_errors_path()
-    errors_file.unlink(missing_ok=True)
-    status = state_branch.push_state_changes(
-        state_dir,
-        "Update status comment rollout state",
-        lambda: update_status_comments(
-            repo,
-            pr_number,
-            open_pr_numbers,
-            errors_file,
-        ),
-        state_branch=state_branch_name,
-        add_paths=[f"{repo_key}/{status_comment_rollout_state_path().name}"],
-    )
-    if status != 0:
-        return status
-    if not errors_file.exists():
-        return 0
-    print("Status comment rollout failed:", file=sys.stderr)
-    print(errors_file.read_text(encoding="utf-8").rstrip(), file=sys.stderr)
-    return 1
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", help="target repository name, e.g. opentelemetry-java-instrumentation")
-    parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
-    parser.add_argument("--pr-number", type=int, help="targeted pull request to update")
-    args = parser.parse_args()
-
-    repo = normalize_repo(args.repo) if args.repo else detect_repo()
-
-    with state_branch.temporary_state_dir() as state_dir:
-        set_state_dir(state_dir / repo_state_key(repo))
-        return update_status_comments_with_state(
-            repo,
-            args.state_branch,
-            state_dir,
-            args.pr_number,
-        )
-
-
-if __name__ == "__main__":
-    sys.exit(main())

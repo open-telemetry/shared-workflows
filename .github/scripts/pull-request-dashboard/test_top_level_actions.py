@@ -183,6 +183,39 @@ def classify_feedback_domains(
     return review_classifications, top_level_classifications
 
 
+class NormalizeEventsCommandTest(unittest.TestCase):
+    def _issue_comment_events(self, body: str) -> list[dict]:
+        events = normalize_events(
+            {
+                "commits": [],
+                "issue_comments": [
+                    {
+                        "id": 1,
+                        "user": {"login": "author"},
+                        "created_at": "2026-07-14T00:00:00Z",
+                        "body": body,
+                    }
+                ],
+                "review_comments": [],
+                "reviews": [],
+            },
+            "author",
+            set(),
+        )
+        return [e for e in events if e["kind"] == "issue-comment"]
+
+    def test_command_only_comment_is_dropped(self) -> None:
+        self.assertEqual([], self._issue_comment_events("/dashboard route:reviewers"))
+
+    def test_command_with_explanation_keeps_the_explanation(self) -> None:
+        events = self._issue_comment_events(
+            "/dashboard route:reviewers\n\nI addressed the feedback by doing X."
+        )
+
+        self.assertEqual(1, len(events))
+        self.assertEqual("I addressed the feedback by doing X.", events[0]["body"])
+
+
 class TopLevelActionLedgerTest(unittest.TestCase):
     def test_inline_prompt_treats_author_inability_as_completed_reply(self) -> None:
         discussion = review_thread_discussion("inline")
@@ -957,11 +990,16 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     }
                 }
             },
+            ["main"],
         )
 
         self.assertEqual(
             build_result.call_args.kwargs["previous_top_level_history"],
             previous_state,
+        )
+        self.assertEqual(
+            build_result.call_args.kwargs["require_clean_copilot_review_branches"],
+            ["main"],
         )
 
     def test_top_level_decision_requires_matching_action_and_evidence(self) -> None:

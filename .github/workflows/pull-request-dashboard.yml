@@ -148,6 +148,7 @@ jobs:
       required_approvals: ${{ matrix.required_approvals || 1 }}
       approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
       non_blocking_check_patterns_json: ${{ toJSON(matrix.non_blocking_check_patterns || fromJSON('[]')) }}
+      require_clean_copilot_review_branches_json: ${{ toJSON(matrix.require_clean_copilot_review_branches || fromJSON('[]')) }}
       slack_channel: ${{ matrix.slack_channel }}
       slack_user_mapping_json: ${{ toJSON(matrix.slack_user_mapping || fromJSON('{}')) }}
       large_repo: ${{ matrix.large_repo || false }}
@@ -176,8 +177,7 @@ jobs:
       issues: write # needed to open/close the hourly failure tracking issue
     uses: ./.github/workflows/workflow-failure-issue.yml
     with:
-      # A superseded per-repo publish is cancelled (publish-dashboard uses
-      # cancel-in-progress: true), so count cancelled as success here to avoid
-      # opening noisy failure issues. Genuine failures still surface because
-      # matrix aggregation reports 'failure' in preference to 'cancelled'.
+      # GitHub replaces an older pending per-repo publisher even with
+      # cancel-in-progress disabled. Its replacement drains all durable work,
+      # while genuine matrix failures take precedence over cancellation.
       success: ${{ needs.resolve-targets.result == 'success' && (needs.run-repo-dashboard.result == 'success' || needs.run-repo-dashboard.result == 'cancelled') }}

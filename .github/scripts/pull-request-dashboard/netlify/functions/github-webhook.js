@@ -15,11 +15,15 @@ const ALLOWED_ACTIONS = {
     "closed",
     "converted_to_draft",
     "edited",
+    "labeled",
     "opened",
     "ready_for_review",
     "reopened",
+    "review_request_removed",
+    "review_requested",
     "synchronize",
     "unassigned",
+    "unlabeled",
   ]),
   issue_comment: new Set(["created", "edited", "deleted"]),
   pull_request_review: new Set(["submitted", "edited", "dismissed"]),
@@ -37,6 +41,7 @@ exports.handler = async (event) => {
 };
 
 exports.isDashboardSelfTriggeredCommentEvent = isDashboardSelfTriggeredCommentEvent;
+exports.isAllowedAction = isAllowedAction;
 
 async function handle(event) {
   if (event.httpMethod !== "POST") {
@@ -64,7 +69,7 @@ async function handle(event) {
 
   const payload = parseJson(rawBody);
   const action = payload.action;
-  if (!ALLOWED_ACTIONS[eventName].has(action)) {
+  if (!isAllowedAction(eventName, action)) {
     return response(202, { status: "ignored", reason: `unsupported action: ${eventName}.${action || "missing"}` });
   }
   if (isDashboardSelfTriggeredCommentEvent(eventName, payload)) {
@@ -99,6 +104,10 @@ async function handle(event) {
     pr_number: prNumber,
     trigger_event: eventName,
   });
+}
+
+function isAllowedAction(eventName, action) {
+  return Boolean(ALLOWED_ACTIONS[eventName] && ALLOWED_ACTIONS[eventName].has(action));
 }
 
 function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
