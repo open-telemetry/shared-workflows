@@ -25,6 +25,15 @@ class DashboardOverrideTest(unittest.TestCase):
                 {"body": "/dashboard route:reviewers\n\nI addressed everything by doing X."}
             ),
         )
+        self.assertEqual(
+            "I addressed the feedback.\nAdditional context follows.",
+            dashboard_override.dashboard_command_body_remainder({
+                "body": (
+                    "/dashboard route:reviewers I addressed the feedback.\n"
+                    "Additional context follows."
+                )
+            }),
+        )
 
     def test_latest_authorized_command_accepts_author_and_approvers(self) -> None:
         raw = {
