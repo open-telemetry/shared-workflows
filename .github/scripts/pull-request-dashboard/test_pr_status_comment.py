@@ -38,11 +38,8 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn(
-            "- **Waiting on:** Author",
-            body,
-        )
-        self.assertIn("- **Next step:** Address or respond to 2 review feedback items:", body)
+        self.assertIn("**Waiting on the author** · refreshed ", body)
+        self.assertIn("Address or respond to 2 review items:", body)
         self.assertIn(
             f"<!-- pull-request-dashboard-status-revision:{pr_status_comment.STATUS_COMMENT_REVISION} -->",
             body,
@@ -52,15 +49,12 @@ class RenderStatusCommentTest(unittest.TestCase):
             body,
         )
         self.assertNotIn("### Review feedback", body)
-        self.assertIn("  - **Inline threads:** [1]", body)
-        self.assertIn("  - **Top-level feedback:** [2]", body)
-        self.assertIn(f"  - _{pr_status_comment.AUTHOR_GUIDANCE}_", body)
+        self.assertIn("- **Inline threads:** [1]", body)
+        self.assertIn("- **Top-level threads:** [2]", body)
+        self.assertIn(f"_{pr_status_comment.AUTHOR_GUIDANCE}_", body)
         self.assertIn(
-            "If you believe this pull request is incorrectly routed as waiting "
-            "on the author, comment `/dashboard route:reviewers` to route it from "
-            "waiting on the author to waiting on reviewers. If the last refreshed "
-            "time above predates your latest reply or push, the dashboard hasn't "
-            "processed it yet.",
+            "- **Should this be with reviewers?** Comment "
+            "`/dashboard route:reviewers` to route it to them.",
             body,
         )
 
@@ -128,8 +122,8 @@ class RenderStatusCommentTest(unittest.TestCase):
         first_body = pr_status_comment.render_status_comment(self.pr(), {"route": "approver"})
         second_body = pr_status_comment.render_status_comment(self.pr(), {"route": "approver"})
 
-        self.assertIn("_Status last refreshed: 2026-07-18 12:34:56 UTC.", first_body)
-        self.assertIn("_Status last refreshed: 2026-07-18 12:35:01 UTC.", second_body)
+        self.assertIn("**Waiting on reviewers** · refreshed 2026-07-18 12:34 UTC", first_body)
+        self.assertIn("**Waiting on reviewers** · refreshed 2026-07-18 12:35 UTC", second_body)
         self.assertNotEqual(first_body, second_body)
 
     def test_accuracy_note_prefills_central_issue_for_every_status(self) -> None:
@@ -145,11 +139,8 @@ class RenderStatusCommentTest(unittest.TestCase):
             with self.subTest(pr=pr, result=result):
                 body = pr_status_comment.render_status_comment(pr, result)
 
-                self.assertIn(
-                    "This automated status or its linked feedback items may be incorrect",
-                    body,
-                )
-                self.assertIn("with the result you expected", body)
+                self.assertIn("[Report it](", body)
+                self.assertIn("with what you expected", body)
                 self.assertIn(
                     "https://github.com/open-telemetry/shared-workflows/issues/new?",
                     body,
@@ -168,11 +159,8 @@ class RenderStatusCommentTest(unittest.TestCase):
             {"route": "approver", "facts": {}},
         )
 
-        status_comment, accuracy_note = body.split(
-            "\n\n_This automated status or its linked feedback items may be incorrect.",
-            maxsplit=1,
-        )
-        report_url = accuracy_note.split("[report it](", maxsplit=1)[1].split(
+        status_comment, footer = body.split("\n\n<details>", maxsplit=1)
+        report_url = footer.split("[Report it](", maxsplit=1)[1].split(
             ")", maxsplit=1
         )[0]
         issue_body = parse_qs(urlparse(report_url).query)["body"][0]
@@ -211,7 +199,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        report_url = body.split("[report it](", maxsplit=1)[1].split(
+        report_url = body.split("[Report it](", maxsplit=1)[1].split(
             ")", maxsplit=1
         )[0]
         issue_body = parse_qs(urlparse(report_url).query)["body"][0]
@@ -234,11 +222,8 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn(
-            "- **Waiting on:** Author",
-            body,
-        )
-        self.assertIn("- **Next step:** Investigate required status check failures.", body)
+        self.assertIn("**Waiting on the author** · refreshed ", body)
+        self.assertIn("Investigate required status check failures.", body)
         self.assertNotIn("### Review feedback", body)
         self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
 
@@ -257,10 +242,10 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("- **Next steps:**", body)
-        self.assertIn("  - Investigate required status check failures.", body)
-        self.assertIn("  - Address or respond to 1 review feedback item:", body)
-        self.assertIn("    - **Inline threads:** [1]", body)
+        self.assertIn("Two things need attention:", body)
+        self.assertIn("- **Required checks are failing** — investigate the failures.", body)
+        self.assertIn("- **1 review item** — address or respond:", body)
+        self.assertIn("  - **Inline threads:** [1]", body)
 
     def test_required_ci_action_notes_configured_non_blocking_failures(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -278,7 +263,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn(
-            "- **Next step:** Investigate required status check failures. "
+            "Investigate required status check failures. "
             "Note: CodeQL and workflow-notification are failing but are not required checks.",
             body,
         )
@@ -345,9 +330,9 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("- **Waiting on:** Reviewers", body)
+        self.assertIn("**Waiting on reviewers** · refreshed ", body)
         self.assertIn(
-            "- **Non-blocking check failure:** codecov/patch is failing but is not a required check.",
+            "**Non-blocking check failure:** codecov/patch is failing but is not a required check.",
             body,
         )
 
@@ -356,18 +341,18 @@ class RenderStatusCommentTest(unittest.TestCase):
             (
                 "maintainer",
                 1,
-                "Maintainers",
+                "Waiting on maintainers",
                 ["CodeQL"],
                 "1 required status check is failing.",
-                "- **Non-blocking check failure:** CodeQL is failing but is not a required check.",
+                "**Non-blocking check failure:** CodeQL is failing but is not a required check.",
             ),
             (
                 "approver",
                 2,
-                "Reviewers",
+                "Waiting on reviewers",
                 ["CodeQL", "workflow-notification"],
                 "2 required status checks are failing.",
-                "- **Non-blocking check failures:** CodeQL and workflow-notification are failing but are not required checks.",
+                "**Non-blocking check failures:** CodeQL and workflow-notification are failing but are not required checks.",
             ),
         )
         for (
@@ -390,8 +375,8 @@ class RenderStatusCommentTest(unittest.TestCase):
                     },
                 )
 
-                self.assertIn(f"- **Waiting on:** {waiting_on}", body)
-                self.assertIn(f"- **Also blocked by:** {blocked_by}", body)
+                self.assertIn(f"**{waiting_on}** · refreshed ", body)
+                self.assertIn(f"**Also blocked by:** {blocked_by}", body)
                 self.assertIn(non_blocking_line, body)
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
@@ -416,10 +401,10 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("  - **Inline threads:**", body)
-        self.assertIn("  - **Top-level feedback:** [20]", body)
+        self.assertIn("- **Inline threads:**", body)
+        self.assertIn("- **Top-level threads:** [20]", body)
         self.assertIn(
-            "  - _Showing 20 of 22 feedback links; "
+            "- _Showing 20 of 22 feedback links; "
             "resolve the remaining items from the pull request's conversation._",
             body,
         )
@@ -444,9 +429,9 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertNotIn("Top-level feedback", body)
+        self.assertNotIn("Top-level threads", body)
         self.assertIn(
-            "  - _Showing 20 of 21 feedback links; "
+            "- _Showing 20 of 21 feedback links; "
             "resolve the remaining items from the pull request's conversation._",
             body,
         )
@@ -454,11 +439,8 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_draft_waits_on_author(self) -> None:
         body = pr_status_comment.render_status_comment(self.pr(draft=True), None)
 
-        self.assertIn("- **Waiting on:** Author", body)
-        self.assertIn(
-            "- **Next step:** Move out of draft to request review.",
-            body,
-        )
+        self.assertIn("**Waiting on the author** · refreshed ", body)
+        self.assertIn("Move out of draft to request review.", body)
 
     def test_merged_pr_has_no_author_guidance(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -466,7 +448,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             None,
         )
 
-        self.assertIn("**Status:** Merged.", body)
+        self.assertIn("**Merged** · refreshed ", body)
         self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
 
     def test_terminal_pr_has_no_author_feedback_links(self) -> None:
@@ -489,7 +471,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
                 self.assertNotIn("### Review feedback", body)
                 self.assertNotIn("- **Inline threads", body)
-                self.assertNotIn("- **Top-level feedback", body)
+                self.assertNotIn("- **Top-level threads", body)
 
     def test_author_login_is_not_mentioned(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -497,7 +479,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {"route": "author", "facts": {"author": "alice"}},
         )
 
-        self.assertIn("- **Waiting on:** Author", body)
+        self.assertIn("**Waiting on the author** · refreshed ", body)
         self.assertNotIn("@alice", body)
 
     def test_external_route_advertises_reviewer_override(self) -> None:
@@ -506,32 +488,32 @@ class RenderStatusCommentTest(unittest.TestCase):
             {"route": "external", "facts": {}},
         )
 
+        self.assertIn("**Waiting on an external dependency or decision** · refreshed ", body)
         self.assertIn(
-            "waiting on an external dependency or decision, comment "
-            "`/dashboard route:reviewers` to route it from waiting on an "
-            "external dependency or decision to waiting on reviewers",
+            "- **Should this be with reviewers?** Comment "
+            "`/dashboard route:reviewers` to route it to them.",
             body,
         )
 
     def test_routes_render_one_status_sentence(self) -> None:
         expected_summaries = {
-            "approver": ("Reviewers", "Review the latest changes."),
-            "maintainer": ("Maintainers", "Merge when ready."),
-            "copilot": ("Copilot", "Wait for the pending review to complete."),
-            "external": ("An external dependency or decision", "Resolve it before work can continue."),
-            "transient-failure": ("Pull request dashboard maintainers", "Determine the next action."),
-            "unknown": ("Pull request dashboard maintainers", "Determine the next action."),
+            "approver": ("Waiting on reviewers", "Review the latest changes."),
+            "maintainer": ("Waiting on maintainers", "Merge when ready."),
+            "copilot": ("Waiting on Copilot", "Wait for the pending review to complete."),
+            "external": ("Waiting on an external dependency or decision", "Resolve it before work can continue."),
+            "transient-failure": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
+            "unknown": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
         }
 
-        for route, (waiting_on, next_step) in expected_summaries.items():
+        for route, (headline, next_step) in expected_summaries.items():
             with self.subTest(route=route):
                 body = pr_status_comment.render_status_comment(
                     self.pr(),
                     {"route": route, "facts": {}},
                 )
 
-                self.assertIn(f"- **Waiting on:** {waiting_on}", body)
-                self.assertIn(f"- **Next step:** {next_step}", body)
+                self.assertIn(f"**{headline}** · refreshed ", body)
+                self.assertIn(next_step, body)
                 self.assertNotIn("**Status:**", body)
                 self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
 

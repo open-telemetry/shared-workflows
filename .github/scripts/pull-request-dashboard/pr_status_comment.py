@@ -12,8 +12,8 @@ from github_cli import (
     gh_api,
     run_gh,
 )
-from dashboard_override import PRE_REVIEW_ROUTES, author_override_guidance
-from route_presentation import route_status_summary
+from dashboard_override import PRE_REVIEW_ROUTES
+from route_presentation import route_status_summary, status_headline
 from state import (
     load_dashboard_state_cache,
     load_status_comment_rollout_state,
@@ -32,7 +32,7 @@ _AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
 )
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 13
+STATUS_COMMENT_REVISION = 14
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
@@ -44,8 +44,8 @@ STATUS_REPORT_TRUNCATION_NOTICE = (
     "[Status comment truncated to keep this report link usable.]"
 )
 AUTHOR_GUIDANCE = (
-    "For each item, reply to move the discussion forward, e.g. link to the commit "
-    "that addresses it, explain why no change is needed, or ask a follow-up question."
+    "Reply to move it forward \u2014 for example, link the fixing commit, explain "
+    "why no change is needed, or ask a follow-up."
 )
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 # Remove after migrating open PRs as described by the post-rollout
@@ -97,44 +97,131 @@ def status_report_url(pr: dict[str, Any], status_comment: str) -> str:
     return f"{STATUS_REPORT_ISSUE_URL}?{query}"
 
 
-def accuracy_note(
+def _bounded_report_url(pr: dict[str, Any], status_comment: str) -> str:
+    report_url = status_report_url(pr, status_comment)
+    if len(report_url) <= STATUS_REPORT_URL_MAX_CHARS:
+        return report_url
+    lower_bound = 0
+    upper_bound = len(status_comment)
+    while lower_bound <= upper_bound:
+        midpoint = (lower_bound + upper_bound) // 2
+        truncated_status_comment = (
+            f"{status_comment[:midpoint]}\n{STATUS_REPORT_TRUNCATION_NOTICE}"
+        )
+        candidate_url = status_report_url(pr, truncated_status_comment)
+        if len(candidate_url) <= STATUS_REPORT_URL_MAX_CHARS:
+            report_url = candidate_url
+            lower_bound = midpoint + 1
+        else:
+            upper_bound = midpoint - 1
+    return report_url
+
+
+def status_footer(
     pr: dict[str, Any],
     status_comment: str,
+    *,
     override_route: str = "",
-) -> str:
-    report_url = status_report_url(pr, status_comment)
-    if len(report_url) > STATUS_REPORT_URL_MAX_CHARS:
-        lower_bound = 0
-        upper_bound = len(status_comment)
-        while lower_bound <= upper_bound:
-            midpoint = (lower_bound + upper_bound) // 2
-            truncated_status_comment = (
-                f"{status_comment[:midpoint]}\n{STATUS_REPORT_TRUNCATION_NOTICE}"
-            )
-            candidate_url = status_report_url(pr, truncated_status_comment)
-            if len(candidate_url) <= STATUS_REPORT_URL_MAX_CHARS:
-                report_url = candidate_url
-                lower_bound = midpoint + 1
-            else:
-                upper_bound = midpoint - 1
-    note = (
-        "This automated status or its linked feedback items may be incorrect. "
-        f"If something looks wrong, please [report it]({report_url}) with the result you expected."
-    )
-    if override_route:
-        note += " " + author_override_guidance(
-            "If the last refreshed time above predates your latest reply or "
-            "push, the dashboard hasn't processed it yet.",
-            route=override_route,
+    terminal: bool = False,
+) -> list[str]:
+    report_url = _bounded_report_url(pr, status_comment)
+    lines = [
+        "<details>",
+        "<summary>Doesn't look right?</summary>",
+        "",
+    ]
+    if not terminal:
+        lines.append(
+            "- **Just replied or pushed?** Anything after the refresh time above "
+            "hasn't been picked up yet \u2014 give it a few minutes."
         )
-    return f"_{note}_"
+    if override_route:
+        lines.append(
+            "- **Should this be with reviewers?** Comment "
+            "`/dashboard route:reviewers` to route it to them."
+        )
+    report_lead = (
+        "Anything wrong \u2014 including the routing?"
+        if override_route
+        else "Anything look wrong?"
+    )
+    lines.append(
+        f"- **{report_lead}** [Report it]({report_url}) with what you expected; "
+        "it helps us improve the dashboard."
+    )
+    lines.extend(["", "</details>"])
+    return lines
+
+
+def non_blocking_failure_summary(non_blocking_check_failures: list[str]) -> str:
+    if not non_blocking_check_failures:
+        return ""
+    displayed_failures = non_blocking_check_failures[:NON_BLOCKING_CHECK_FAILURE_LIMIT]
+    names = format_list([
+        markdown_escape(truncate(name, NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT))
+        for name in displayed_failures
+    ])
+    if len(non_blocking_check_failures) == 1:
+        note = f"{names} is failing but is not a required check."
+    else:
+        note = f"{names} are failing but are not required checks."
+    omitted_count = len(non_blocking_check_failures) - len(displayed_failures)
+    if omitted_count:
+        noun = "failure" if omitted_count == 1 else "failures"
+        omitted_verb = "is" if omitted_count == 1 else "are"
+        note += (
+            f" {omitted_count} additional non-blocking check {noun} "
+            f"{omitted_verb} not shown."
+        )
+    return note
+
+
+def author_body(
+    *,
+    feedback_count: int,
+    failing_count: int,
+    non_blocking_failure_note: str,
+    review_thread_urls: list[str],
+    top_level_feedback_urls: list[str],
+) -> list[str]:
+    noun = "item" if feedback_count == 1 else "items"
+    if failing_count and feedback_count:
+        checks_bullet = "- **Required checks are failing** \u2014 investigate the failures."
+        if non_blocking_failure_note:
+            checks_bullet += f" Note: {non_blocking_failure_note}"
+        body = [
+            "Two things need attention:",
+            checks_bullet,
+            f"- **{feedback_count} review {noun}** \u2014 address or respond:",
+        ]
+        body.extend(
+            feedback_breakdown_lines(
+                review_thread_urls, top_level_feedback_urls, indent="  "
+            )
+        )
+        body.extend(["", f"_{AUTHOR_GUIDANCE}_"])
+        return body
+    if feedback_count:
+        body = [f"Address or respond to {feedback_count} review {noun}:"]
+        body.extend(
+            feedback_breakdown_lines(review_thread_urls, top_level_feedback_urls)
+        )
+        body.extend(["", f"_{AUTHOR_GUIDANCE}_"])
+        return body
+    if failing_count:
+        sentence = "Investigate required status check failures."
+        if non_blocking_failure_note:
+            sentence += f" Note: {non_blocking_failure_note}"
+        return [sentence]
+    _, fallback_next_step = route_status_summary("author")
+    return [fallback_next_step]
 
 
 def render_status_comment(
     pr: dict[str, Any],
     result: dict[str, Any] | None,
 ) -> str:
-    last_updated = utc_now().strftime("%Y-%m-%d %H:%M:%S UTC")
+    last_updated = utc_now().strftime("%Y-%m-%d %H:%M UTC")
     state = (pr.get("state") or "").lower()
     facts = (result or {}).get("facts") or {}
     review_thread_urls = facts.get("author_action_review_thread_urls") or []
@@ -142,132 +229,80 @@ def render_status_comment(
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
     failing_count = facts.get("ci_failing_count", 0)
     non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
-    non_blocking_failure_note = ""
-    if non_blocking_check_failures:
-        displayed_failures = non_blocking_check_failures[
-            :NON_BLOCKING_CHECK_FAILURE_LIMIT
-        ]
-        names = format_list([
-            markdown_escape(truncate(name, NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT))
-            for name in displayed_failures
-        ])
-        if len(non_blocking_check_failures) == 1:
-            non_blocking_failure_note = (
-                f"{names} is failing but is not a required check."
-            )
-        else:
-            non_blocking_failure_note = (
-                f"{names} are failing but are not required checks."
-            )
-        omitted_count = len(non_blocking_check_failures) - len(displayed_failures)
-        if omitted_count:
-            noun = "failure" if omitted_count == 1 else "failures"
-            omitted_verb = "is" if omitted_count == 1 else "are"
-            non_blocking_failure_note += (
-                f" {omitted_count} additional non-blocking check {noun} "
-                f"{omitted_verb} not shown."
-            )
+    non_blocking_failure_note = non_blocking_failure_summary(non_blocking_check_failures)
 
-    feedback_indent: str | None = None
     override_route = ""
+    terminal = False
+    body: list[str] = []
 
     if pr.get("merged"):
-        summary = ["- **Status:** Merged."]
+        headline = "Merged"
+        terminal = True
     elif state == "closed":
-        summary = ["- **Status:** Closed."]
+        headline = "Closed"
+        terminal = True
     elif pr.get("draft"):
-        summary = [
-            "- **Waiting on:** Author",
-            "- **Next step:** Move out of draft to request review.",
-        ]
+        headline = status_headline("author")
+        body = ["Move out of draft to request review."]
     elif result is None:
-        summary = [
-            "- **Waiting on:** Pull request dashboard",
-            "- **Next step:** Finish refreshing this pull request.",
-        ]
+        headline = "Waiting on the pull request dashboard"
+        body = ["Finish refreshing this pull request."]
     else:
         route = result.get("route") or "unknown"
         if route in PRE_REVIEW_ROUTES:
             override_route = route
+        headline = status_headline(route)
         if route == "author":
-            waiting_on, fallback_next_step = route_status_summary(route)
-            check_action = None
-            if failing_count:
-                # One required aggregate check can represent multiple failing jobs.
-                check_action = "Investigate required status check failures."
-                if non_blocking_failure_note:
-                    check_action += f" Note: {non_blocking_failure_note}"
-            noun = "item" if feedback_count == 1 else "items"
-            feedback_action = f"Address or respond to {feedback_count} review feedback {noun}:"
-            if check_action and feedback_count:
-                summary = [
-                    f"- **Waiting on:** {waiting_on}",
-                    "- **Next steps:**",
-                    f"  - {check_action}",
-                    f"  - {feedback_action}",
-                ]
-                feedback_indent = "    "
-            elif feedback_count:
-                summary = [
-                    f"- **Waiting on:** {waiting_on}",
-                    f"- **Next step:** {feedback_action}",
-                ]
-                feedback_indent = "  "
-            elif check_action:
-                summary = [
-                    f"- **Waiting on:** {waiting_on}",
-                    f"- **Next step:** {check_action}",
-                ]
-            else:
-                summary = [
-                    f"- **Waiting on:** {waiting_on}",
-                    f"- **Next step:** {fallback_next_step}",
-                ]
+            body = author_body(
+                feedback_count=feedback_count,
+                failing_count=failing_count,
+                non_blocking_failure_note=non_blocking_failure_note,
+                review_thread_urls=review_thread_urls,
+                top_level_feedback_urls=top_level_feedback_urls,
+            )
         else:
-            waiting_on, next_step = route_status_summary(route)
-            summary = [
-                f"- **Waiting on:** {waiting_on}",
-                f"- **Next step:** {next_step}",
-            ]
+            _, next_step = route_status_summary(route)
+            body = [next_step]
             if failing_count:
                 check_summary = (
                     "1 required status check is failing."
                     if failing_count == 1
                     else f"{failing_count} required status checks are failing."
                 )
-                summary.append(f"- **Also blocked by:** {check_summary}")
+                body.extend(["", f"**Also blocked by:** {check_summary}"])
             if non_blocking_failure_note:
                 label = (
                     "Non-blocking check failure"
                     if len(non_blocking_check_failures) == 1
                     else "Non-blocking check failures"
                 )
-                summary.append(f"- **{label}:** {non_blocking_failure_note}")
+                body.extend(["", f"**{label}:** {non_blocking_failure_note}"])
 
     lines = [
         STATUS_MARKER,
         f"<!-- pull-request-dashboard-status-revision:{STATUS_COMMENT_REVISION} -->",
         "## Pull request dashboard status",
         "",
-        f"_Status last refreshed: {last_updated}._",
-        "",
-        *summary,
+        f"**{headline}** \u00b7 refreshed {last_updated}",
     ]
     episode_id = str(facts.get("author_nudge_episode_id") or "")
     if (result or {}).get("route") == "author" and episode_id:
         lines.insert(2, author_nudge_episode_marker(episode_id))
 
-    if feedback_indent is not None and feedback_count:
-        lines.extend(
-            feedback_breakdown_lines(
-                review_thread_urls,
-                top_level_feedback_urls,
-                feedback_indent,
-            )
-        )
+    if body:
+        lines.append("")
+        lines.extend(body)
+
     status_comment = "\n".join(lines)
     lines.append("")
-    lines.append(accuracy_note(pr, status_comment, override_route))
+    lines.extend(
+        status_footer(
+            pr,
+            status_comment,
+            override_route=override_route,
+            terminal=terminal,
+        )
+    )
     lines.append("")
     return "\n".join(lines)
 
@@ -283,12 +318,12 @@ def format_list(values: list[str]) -> str:
 def feedback_breakdown_lines(
     review_thread_urls: list[str],
     top_level_feedback_urls: list[str],
-    indent: str,
+    indent: str = "",
 ) -> list[str]:
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
     sections = (
         ("Inline threads", review_thread_urls),
-        ("Top-level feedback", top_level_feedback_urls),
+        ("Top-level threads", top_level_feedback_urls),
     )
     lines: list[str] = []
     remaining_limit = AUTHOR_ACTION_FEEDBACK_LINK_LIMIT
@@ -309,7 +344,6 @@ def feedback_breakdown_lines(
             f"{indent}- _Showing {shown} of {feedback_count} feedback links; "
             "resolve the remaining items from the pull request's conversation._"
         )
-    lines.append(f"{indent}- _{AUTHOR_GUIDANCE}_")
     return lines
 
 
