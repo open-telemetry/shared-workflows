@@ -34,7 +34,7 @@ from utils import utc_now
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 9
+STATUS_COMMENT_REVISION = 10
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
@@ -54,11 +54,18 @@ LEGACY_MARKERS = (
 )
 
 
-def accuracy_note(pr: dict[str, Any]) -> str:
+def accuracy_note(pr: dict[str, Any], status_comment: str) -> str:
+    quoted_status_comment = "\n".join(
+        f"> {line}" for line in status_comment.splitlines()
+    )
     query = urlencode({
         "template": STATUS_REPORT_ISSUE_TEMPLATE,
         "title": "PR dashboard result looks incorrect",
-        "body": f"PR: {pr.get('html_url') or ''}\n\nWhat looks incorrect:\n",
+        "body": (
+            f"PR: {pr.get('html_url') or ''}\n\n"
+            f"Current live status comment:\n{quoted_status_comment}\n\n"
+            "What looks incorrect:\n"
+        ),
     })
     report_url = f"{STATUS_REPORT_ISSUE_URL}?{query}"
     return (
@@ -196,8 +203,9 @@ def render_status_comment(
                 feedback_indent,
             )
         )
+    status_comment = "\n".join(lines)
     lines.append("")
-    lines.append(accuracy_note(pr))
+    lines.append(accuracy_note(pr, status_comment))
     lines.append("")
     return "\n".join(lines)
 
