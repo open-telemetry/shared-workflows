@@ -906,11 +906,14 @@
     },
     "3489": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "manishgoel3",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3489#issuecomment-5051215354"
+        ],
+        "author_nudge_episode_id": "30aaa5f91bcd4a79a8675e0e772343a2",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -930,8 +933,8 @@
         "head_sha": "d13493d1858942d493d0f828e8c4c8d34ab98dea",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-22T19:51:10+00:00",
-        "last_approver_activity_at": "2026-07-15T21:19:16+00:00",
+        "last_activity_at": "2026-07-22T20:37:39+00:00",
+        "last_approver_activity_at": "2026-07-22T20:37:39+00:00",
         "last_author_activity_at": "2026-07-21T14:53:06+00:00",
         "last_external_activity_at": "2026-07-20T20:48:22+00:00",
         "reviewers": [
@@ -944,33 +947,41 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "lalitb",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "routing_input_fingerprint": "b37bc2a2bf52c1a92e5b72e6238fca777589bc55f042b7fde7b1967b2c7fa9b6",
+        "routing_input_fingerprint": "0f73a8df509a41459781336b01d828025811535abc652ea2e1215d1985945e2a",
         "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-21T14:53:06+00:00"
+        "waiting_since": "2026-07-22T20:36:39+00:00"
       },
       "failed": false,
       "pr_number": 3489,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3489",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4983643434": {
           "evidence": {
-            "commit": "2026-07-15T19:57:06Z"
+            "commit": "2026-07-15T19:57:06Z",
+            "reply": "2026-07-15T19:18:52Z"
+          },
+          "reply_source_id": 4984422415
+        },
+        "pr-issue-comment-4985364946": {
+          "evidence": {
+            "commit": "2026-07-15T23:49:15Z"
           }
         },
         "pr-issue-comment-4985433934": {
           "evidence": {
             "commit": "2026-07-15T23:49:15Z",
             "reply": "2026-07-15T23:58:13Z"
-          }
+          },
+          "reply_source_id": 4986444229
         }
       }
     },
