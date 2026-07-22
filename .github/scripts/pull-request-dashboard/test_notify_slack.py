@@ -139,6 +139,40 @@ class NotifySlackTest(unittest.TestCase):
             }
         )
 
+    @patch("notify_slack.next_notifications", return_value=({}, []))
+    @patch("notify_slack.save_notifications")
+    @patch("notify_slack.load_notifications", return_value={})
+    @patch("notify_slack.load_dashboard_state_cache")
+    def test_targeted_update_filters_dashboard_results(
+        self,
+        load_dashboard_state_cache,
+        _load_notifications,
+        _save_notifications,
+        next_notifications,
+    ) -> None:
+        load_dashboard_state_cache.return_value = {
+            "prs": {
+                "2": {"pr_number": 2, "route": "author"},
+                "3": {"pr_number": 3, "route": "approver"},
+            }
+        }
+
+        with patch.dict("os.environ", {"SLACK_CHANNEL": "dashboard"}, clear=True):
+            errors = notify_slack_from_state(
+                "owner/repo",
+                None,
+                [
+                    {"number": 2, "isDraft": False, "title": "Target PR"},
+                    {"number": 3, "isDraft": False, "title": "Unrelated PR"},
+                ],
+                datetime(2026, 7, 20, 2, tzinfo=timezone.utc),
+                {2},
+            )
+
+        self.assertEqual(errors, [])
+        results = next_notifications.call_args.args[1]
+        self.assertEqual({2}, set(results))
+
     @patch("notifications.send_slack_notification")
     @patch("notify_slack.save_notifications")
     @patch("notify_slack.load_notifications")

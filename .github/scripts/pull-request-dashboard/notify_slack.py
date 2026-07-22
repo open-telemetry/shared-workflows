@@ -49,6 +49,8 @@ def notify_slack_from_state(
         return []
 
     open_pr_numbers = {p["number"] for p in open_prs if not p.get("isDraft")}
+    if target_pr_numbers is not None:
+        open_pr_numbers &= target_pr_numbers
     results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
     current_prs = {p["number"]: p for p in open_prs}
     for number, result in results.items():

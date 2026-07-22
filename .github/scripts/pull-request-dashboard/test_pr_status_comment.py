@@ -639,6 +639,36 @@ class RolloutStateTest(unittest.TestCase):
         self.assertEqual(0, saved_state["target_revision"])
         self.assertEqual([12], saved_state["pending_pr_numbers"])
 
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": 12,
+            "completed_revision": 11,
+            "pending_pr_numbers": [34],
+        },
+    )
+    def test_targeted_update_completes_drained_rollout(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        _publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        status = pr_status_comment.update_targeted_status_comment_from_state(
+            "open-telemetry/example",
+            34,
+        )
+
+        self.assertEqual([], status)
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual(12, saved_state["target_revision"])
+        self.assertEqual(12, saved_state["completed_revision"])
+        self.assertEqual([], saved_state["pending_pr_numbers"])
+
     def test_new_revision_queues_every_open_pr(self) -> None:
         state = pr_status_comment.prepare_rollout_state(
             {
