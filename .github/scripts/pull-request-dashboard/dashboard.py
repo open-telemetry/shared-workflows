@@ -1944,7 +1944,7 @@ def remove_cached_dashboard_prs(
         state_prs.pop(str(number), None)
         enqueue_status_comment_update(number)
         record_author_nudge_observation(number, None, observed_at)
-        record_copilot_review_observation(number, None)
+        record_copilot_review_observation(number, None, observed_at)
     dashboard_state["prs"] = state_prs
     return save_dashboard_update_state(args, dashboard_state, False)
 
@@ -1996,16 +1996,17 @@ def apply_targeted_dashboard_update(
     if not dashboard_state_unchanged and args.pr_number is not None:
         enqueue_status_comment_update(args.pr_number)
     if args.pr_number is not None:
+        observed_at = observed_at or utc_now()
         accepted_result = (merged_calculation.dashboard_state.get("prs") or {}).get(
             str(args.pr_number)
         )
         record_author_nudge_observation(
             args.pr_number,
             accepted_result,
-            observed_at or utc_now(),
+            observed_at,
             prepare_due=getattr(args, "prepare_author_nudges", False),
         )
-        record_copilot_review_observation(args.pr_number, accepted_result)
+        record_copilot_review_observation(args.pr_number, accepted_result, observed_at)
 
     return save_dashboard_update_state(
         args,
@@ -2139,6 +2140,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             record_copilot_review_observation(
                 pr_number,
                 (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
+                observed_at,
             )
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
             if not dashboard_state_unchanged:

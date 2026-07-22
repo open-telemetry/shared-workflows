@@ -164,7 +164,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(DASHBOARD_STATE_VERSION, 5)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 2)
-        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 1)
+        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 2)
 
     def test_author_nudge_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
@@ -191,6 +191,7 @@ class StateTest(unittest.TestCase):
             save_copilot_review_requests({
                 "123": {
                     "head_sha": "current-head",
+                    "observed_at": "2026-07-20T01:00:00Z",
                     "requested_at": "",
                 }
             })
@@ -200,6 +201,7 @@ class StateTest(unittest.TestCase):
                 {
                     "123": {
                         "head_sha": "current-head",
+                        "observed_at": "2026-07-20T01:00:00Z",
                         "requested_at": "",
                     }
                 },
@@ -244,14 +246,22 @@ class StateTest(unittest.TestCase):
             {
                 "7": {
                     "head_sha": "current-head",
+                    "observed_at": "2026-07-20T01:00:00Z",
                     "requested_at": "2026-07-20T02:00:00Z",
                 }
             },
             union_merge_copilot_review_requests(
-                {"7": {"head_sha": "current-head", "requested_at": ""}},
                 {
                     "7": {
                         "head_sha": "current-head",
+                        "observed_at": "2026-07-20T01:00:00Z",
+                        "requested_at": "",
+                    }
+                },
+                {
+                    "7": {
+                        "head_sha": "current-head",
+                        "observed_at": "2026-07-20T01:00:00Z",
                         "requested_at": "2026-07-20T02:00:00Z",
                     }
                 },
@@ -260,12 +270,48 @@ class StateTest(unittest.TestCase):
 
     def test_retry_snapshot_does_not_overwrite_new_copilot_head(self) -> None:
         self.assertEqual(
-            {"7": {"head_sha": "new-head", "requested_at": ""}},
+            {
+                "7": {
+                    "head_sha": "new-head",
+                    "observed_at": "2026-07-20T03:00:00Z",
+                    "requested_at": "",
+                }
+            },
             union_merge_copilot_review_requests(
-                {"7": {"head_sha": "new-head", "requested_at": ""}},
+                {
+                    "7": {
+                        "head_sha": "new-head",
+                        "observed_at": "2026-07-20T03:00:00Z",
+                        "requested_at": "",
+                    }
+                },
                 {
                     "7": {
                         "head_sha": "old-head",
+                        "observed_at": "2026-07-20T01:00:00Z",
+                        "requested_at": "2026-07-20T02:00:00Z",
+                    }
+                },
+            ),
+        )
+
+    def test_retry_snapshot_does_not_suppress_new_same_head_request(self) -> None:
+        pending = {
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T03:00:00Z",
+                "requested_at": "",
+            }
+        }
+
+        self.assertEqual(
+            pending,
+            union_merge_copilot_review_requests(
+                pending,
+                {
+                    "7": {
+                        "head_sha": "current-head",
+                        "observed_at": "2026-07-20T01:00:00Z",
                         "requested_at": "2026-07-20T02:00:00Z",
                     }
                 },

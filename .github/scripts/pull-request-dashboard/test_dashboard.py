@@ -662,7 +662,7 @@ class StatusCommentQueueTest(unittest.TestCase):
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
-        _record_copilot: Mock,
+        record_copilot: Mock,
     ) -> None:
         accepted_result = {"route": "author"}
         calculation = DashboardUpdate(
@@ -684,6 +684,11 @@ class StatusCommentQueueTest(unittest.TestCase):
             accepted_result,
             ANY,
             prepare_due=True,
+        )
+        record_copilot.assert_called_once_with(
+            12,
+            accepted_result,
+            record_nudge.call_args.args[2],
         )
 
     @patch("dashboard.record_copilot_review_observation")

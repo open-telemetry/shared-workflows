@@ -74,6 +74,7 @@ def apply_copilot_review_gate(
 def record_copilot_review_observation(
     pr_number: int,
     result: dict[str, Any] | None,
+    observed_at: datetime,
 ) -> None:
     requests = dict(load_copilot_review_requests())
     key = str(pr_number)
@@ -88,7 +89,11 @@ def record_copilot_review_observation(
     ):
         requests.pop(key, None)
     else:
-        requests[key] = {"head_sha": head_sha, "requested_at": ""}
+        requests[key] = {
+            "head_sha": head_sha,
+            "observed_at": format_ts(observed_at),
+            "requested_at": "",
+        }
     save_copilot_review_requests(requests)
 
 

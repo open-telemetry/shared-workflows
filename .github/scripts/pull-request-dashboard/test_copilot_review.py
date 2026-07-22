@@ -8,6 +8,9 @@ from datetime import datetime, timezone
 from copilot_review import deliver_copilot_review_requests, record_copilot_review_observation
 
 
+NOW = datetime(2026, 7, 20, 2, tzinfo=timezone.utc)
+
+
 class CopilotReviewRequestStateTest(unittest.TestCase):
     @patch("copilot_review.save_copilot_review_requests")
     @patch("copilot_review.load_copilot_review_requests", return_value={})
@@ -21,10 +24,15 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     "copilot_review_request_needed": True,
                 },
             },
+            NOW,
         )
 
         save_requests.assert_called_once_with({
-            "7": {"head_sha": "current-head", "requested_at": ""},
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T02:00:00+00:00",
+                "requested_at": "",
+            },
         })
 
     @patch("copilot_review.save_copilot_review_requests")
@@ -42,10 +50,15 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     "copilot_review_request_needed": True,
                 },
             },
+            NOW,
         )
 
         save_requests.assert_called_once_with({
-            "7": {"head_sha": "current-head", "requested_at": ""},
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T02:00:00+00:00",
+                "requested_at": "",
+            },
         })
 
     @patch("copilot_review.save_copilot_review_requests")
@@ -72,10 +85,15 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     "copilot_review_request_needed": True,
                 },
             },
+            NOW,
         )
 
         save_requests.assert_called_once_with({
-            "7": {"head_sha": "current-head", "requested_at": ""},
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T02:00:00+00:00",
+                "requested_at": "",
+            },
         })
 
     @patch("copilot_review.save_copilot_review_requests")
@@ -93,6 +111,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     "copilot_review_request_needed": False,
                 },
             },
+            NOW,
         )
 
         save_requests.assert_called_once_with({})
@@ -114,6 +133,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     "copilot_review_request_needed": False,
                 },
             },
+            NOW,
         )
 
         save_requests.assert_called_once_with({})
@@ -124,7 +144,13 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
         "copilot_review.load_copilot_review_requests",
-        return_value={"7": {"head_sha": "current-head", "requested_at": ""}},
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+            }
+        },
     )
     def test_delivers_request_for_current_stale_review(
         self,
@@ -153,7 +179,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 
         errors = deliver_copilot_review_requests(
             "open-telemetry/example",
-            datetime(2026, 7, 20, 2, tzinfo=timezone.utc),
+            NOW,
         )
 
         self.assertEqual([], errors)
@@ -163,6 +189,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         save_requests.assert_called_once_with({
             "7": {
                 "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
             },
         })
@@ -173,7 +200,13 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
         "copilot_review.load_copilot_review_requests",
-        return_value={"7": {"head_sha": "current-head", "requested_at": ""}},
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+            }
+        },
     )
     def test_pending_request_is_acknowledged_from_pull_response(
         self,
@@ -194,7 +227,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 
         errors = deliver_copilot_review_requests(
             "open-telemetry/example",
-            datetime(2026, 7, 20, 2, tzinfo=timezone.utc),
+            NOW,
         )
 
         self.assertEqual([], errors)
@@ -204,6 +237,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         save_requests.assert_called_once_with({
             "7": {
                 "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
             },
         })

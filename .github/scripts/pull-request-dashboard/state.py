@@ -21,7 +21,7 @@ DASHBOARD_STATE_VERSION = 5
 BACKFILL_STATE_VERSION = 3
 NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 2
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 1
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 2
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
@@ -309,6 +309,8 @@ def union_merge_copilot_review_requests(
         if (
             (retry_entry or {}).get("requested_at")
             and retry_entry.get("head_sha") == baseline_entry.get("head_sha")
+            and retry_entry.get("observed_at")
+            and retry_entry.get("observed_at") == baseline_entry.get("observed_at")
         ):
             merged[key] = retry_entry
     return merged
