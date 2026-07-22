@@ -9,6 +9,7 @@ import sys
 import tempfile
 import traceback
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ MAX_PROMPT_CHARS = 18_000
 TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10
 MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR = 200
 MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR = 20
+AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 
 DISCUSSION_PROMPT_TEMPLATE = """You are triaging one pull request discussion.
 
@@ -168,13 +170,13 @@ top-level reviewer feedback items. Decide what the author's comment means for
 each current pull request handoff it addresses.
 
 Each input contains `candidate_feedback`, a list of earlier feedback items with
-their `discussion_id` and text. Return one `feedback_outcomes` entry for every
-item the comment addresses. Each entry contains that candidate's ID and its own
-action, so one comment can complete one request while deferring or externally
-blocking another. Use the content of the comment and feedback to determine each
-association; never include an item merely because it was posted earlier. The
-list may be empty, and every ID must come from that comment's
-`candidate_feedback` list and appear at most once.
+an opaque `feedback_key` and text. Return one `feedback_outcomes` entry for every
+item the comment addresses. Each entry contains that candidate's exact key and
+its own action, so one comment can complete one request while deferring or
+externally blocking another. Use the content of the comment and feedback to
+determine each association; never include an item merely because it was posted
+earlier. The list may be empty, and every key must be copied exactly from that
+comment's `candidate_feedback` list and appear at most once.
 
 Return exactly {expected_count} items. The output discussion_ids must exactly
 match this list and remain in this order:
@@ -205,7 +207,7 @@ a separate future PR maps to none, not author.
 
 Respond with a single JSON object and nothing else. Include exactly one result
 for every input discussion_id and copy each discussion_id exactly:
-{{"items": [{{"discussion_id": "input id", "feedback_outcomes": [{{"feedback_id": "candidate feedback discussion id", "discussion_action": "author" | "external" | "none" | "unclear", "reason": "short explanation grounded in this comment and feedback item"}}]}}]}}
+{{"items": [{{"discussion_id": "input id", "feedback_outcomes": [{{"feedback_key": "candidate feedback key copied exactly", "discussion_action": "author" | "external" | "none" | "unclear", "reason": "short explanation grounded in this comment and feedback item"}}]}}]}}
 
 ---BEGIN AUTHOR FOLLOW-UPS---
 {discussions}
@@ -215,6 +217,14 @@ for every input discussion_id and copy each discussion_id exactly:
 DISCUSSION_ACTIONS = ("author", "reviewer", "external", "none", "unclear")
 TOP_LEVEL_DISCUSSION_ACTIONS = ("author", "external", "none", "unclear")
 TOP_LEVEL_EVIDENCE_KINDS = ("commit", "title", "description", "reply")
+
+
+@dataclass(frozen=True)
+class AuthorCommentPromptBatch:
+    discussions: list[dict[str, Any]]
+    prompt: str
+    feedback_ids_by_discussion_id: dict[str, dict[str, str]]
+
 
 def print_copilot_otel_file(path: Path) -> None:
     if not path.exists():
@@ -299,43 +309,68 @@ def parse_discussion_decision(
     )
 
 
+def format_author_comment_diagnostic_items(items: list[str]) -> str:
+    preview = items[:AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT]
+    if len(items) <= AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT:
+        return repr(preview)
+    return (
+        f"{preview!r} (showing {AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT} "
+        f"of {len(items)})"
+    )
+
+
 def parse_author_comment_decision(
     response_text: str,
-    candidate_feedback_ids: list[str],
-) -> tuple[dict[str, Any], bool]:
+    feedback_id_by_key: dict[str, str],
+) -> tuple[dict[str, Any], list[str]]:
     obj = extract_json_object(response_text) if response_text else None
     if not obj:
-        return {"feedback_outcomes": []}, False
+        return {"feedback_outcomes": []}, ["response item is not a JSON object"]
     raw_outcomes = obj.get("feedback_outcomes")
     if not isinstance(raw_outcomes, list):
-        return {"feedback_outcomes": []}, False
+        return {"feedback_outcomes": []}, ["feedback_outcomes is not a list"]
     outcomes: list[dict[str, str]] = []
-    seen_feedback_ids: set[str] = set()
-    valid = True
-    for raw_outcome in raw_outcomes:
+    seen_feedback_keys: set[str] = set()
+    errors: list[str] = []
+    expected_keys = list(feedback_id_by_key)
+    expected_ids = list(feedback_id_by_key.values())
+    for index, raw_outcome in enumerate(raw_outcomes):
         if not isinstance(raw_outcome, dict):
-            valid = False
+            errors.append(f"feedback_outcomes[{index}] is not an object")
             continue
-        feedback_id = raw_outcome.get("feedback_id")
+        feedback_key = raw_outcome.get("feedback_key")
         raw_action = str(raw_outcome.get("discussion_action") or "")
         reason = truncate(str(raw_outcome.get("reason") or ""), 300)
         if not reason:
             reason = "No reason provided"
-        if (
-            not isinstance(feedback_id, str)
-            or feedback_id not in candidate_feedback_ids
-            or feedback_id in seen_feedback_ids
-            or raw_action.lower().strip() not in TOP_LEVEL_DISCUSSION_ACTIONS
-        ):
-            valid = False
+        if not isinstance(feedback_key, str) or feedback_key not in feedback_id_by_key:
+            received = (
+                repr(feedback_key)
+                if isinstance(feedback_key, str)
+                else f"feedback_id={raw_outcome.get('feedback_id')!r}"
+            )
+            errors.append(
+                f"unknown feedback_key {received}; expected keys "
+                f"{format_author_comment_diagnostic_items(expected_keys)}; "
+                f"canonical candidate IDs "
+                f"{format_author_comment_diagnostic_items(expected_ids)}"
+            )
             continue
-        seen_feedback_ids.add(feedback_id)
+        if feedback_key in seen_feedback_keys:
+            errors.append(f"duplicate feedback_key {feedback_key!r}")
+            continue
+        if raw_action.lower().strip() not in TOP_LEVEL_DISCUSSION_ACTIONS:
+            errors.append(
+                f"invalid discussion_action {raw_action!r} for feedback_key {feedback_key!r}"
+            )
+            continue
+        seen_feedback_keys.add(feedback_key)
         outcomes.append({
-            "feedback_id": feedback_id,
+            "feedback_id": feedback_id_by_key[feedback_key],
             "discussion_action": normalize_discussion_action(raw_action),
             "reason": reason,
         })
-    return {"feedback_outcomes": outcomes}, valid
+    return {"feedback_outcomes": outcomes}, errors
 
 
 def is_conflict_resolution_comment(body: str) -> bool:
@@ -392,6 +427,32 @@ def top_level_author_comment_prompt_input(discussion: dict[str, Any]) -> dict[st
             for feedback in (discussion.get("candidate_feedback") or [])
         ],
     }
+
+
+def top_level_author_comment_prompt_inputs(
+    discussions: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, str]]]:
+    prompt_discussions: list[dict[str, Any]] = []
+    feedback_ids_by_discussion_id: dict[str, dict[str, str]] = {}
+    feedback_index = 1
+    for discussion in discussions:
+        discussion_id = discussion["discussion_id"]
+        prompt_discussion = top_level_author_comment_prompt_input(discussion)
+        prompt_candidates: list[dict[str, str]] = []
+        feedback_id_by_key: dict[str, str] = {}
+        for feedback in prompt_discussion["candidate_feedback"]:
+            feedback_key = f"f{feedback_index:04d}"
+            feedback_index += 1
+            feedback_id = feedback["discussion_id"]
+            feedback_id_by_key[feedback_key] = feedback_id
+            prompt_candidates.append({
+                "feedback_key": feedback_key,
+                "body": feedback["body"],
+            })
+        feedback_ids_by_discussion_id[discussion_id] = feedback_id_by_key
+        prompt_discussion["candidate_feedback"] = prompt_candidates
+        prompt_discussions.append(prompt_discussion)
+    return prompt_discussions, feedback_ids_by_discussion_id
 
 
 def discussion_prompt(discussion: dict[str, Any]) -> str:
@@ -488,6 +549,18 @@ def top_level_batch_prompt(
     prompt_input: Callable[[dict[str, Any]], dict[str, Any]],
 ) -> str:
     prompt_discussions = [prompt_input(discussion) for discussion in discussions]
+    return render_top_level_batch_prompt(
+        discussions,
+        prompt_template,
+        prompt_discussions,
+    )
+
+
+def render_top_level_batch_prompt(
+    discussions: list[dict[str, Any]],
+    prompt_template: str,
+    prompt_discussions: list[dict[str, Any]],
+) -> str:
     discussions_text = json.dumps(prompt_discussions, indent=2, sort_keys=True)
     prompt_args = {
         "expected_count": len(discussions),
@@ -552,10 +625,30 @@ def reviewer_feedback_prompt_batches(
 def top_level_author_comment_batch_prompt(
     discussions: list[dict[str, Any]],
 ) -> str:
-    return top_level_batch_prompt(
+    prompt_discussions, _feedback_ids_by_discussion_id = top_level_author_comment_prompt_inputs(
+        discussions
+    )
+    return render_top_level_batch_prompt(
         discussions,
         TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE,
-        top_level_author_comment_prompt_input,
+        prompt_discussions,
+    )
+
+
+def make_author_comment_prompt_batch(
+    discussions: list[dict[str, Any]],
+) -> AuthorCommentPromptBatch:
+    prompt_discussions, feedback_ids_by_discussion_id = top_level_author_comment_prompt_inputs(
+        discussions
+    )
+    return AuthorCommentPromptBatch(
+        discussions=discussions,
+        prompt=render_top_level_batch_prompt(
+            discussions,
+            TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE,
+            prompt_discussions,
+        ),
+        feedback_ids_by_discussion_id=feedback_ids_by_discussion_id,
     )
 
 
@@ -609,13 +702,13 @@ def author_comment_candidate_chunks(
 
 def author_comment_prompt_batches(
     discussions: list[dict[str, Any]],
-) -> list[tuple[list[dict[str, Any]], str]]:
+) -> list[AuthorCommentPromptBatch]:
     chunks = [
         chunk
         for discussion in discussions
         for chunk in author_comment_candidate_chunks(discussion)
     ]
-    batches: list[tuple[list[dict[str, Any]], str]] = []
+    batches: list[AuthorCommentPromptBatch] = []
     current: list[dict[str, Any]] = []
     for chunk in chunks:
         trial = [*current, chunk]
@@ -628,15 +721,14 @@ def author_comment_prompt_batches(
             or duplicate_id
             or len(prompt) > MAX_PROMPT_CHARS
         ):
-            current_prompt = top_level_author_comment_batch_prompt(current)
-            batches.append((current, current_prompt))
+            batches.append(make_author_comment_prompt_batch(current))
             current = [chunk]
         else:
             current = trial
         if len(top_level_author_comment_batch_prompt(current)) > MAX_PROMPT_CHARS:
             raise ValueError("author-comment prompt exceeds MAX_PROMPT_CHARS")
     if current:
-        batches.append((current, top_level_author_comment_batch_prompt(current)))
+        batches.append(make_author_comment_prompt_batch(current))
     return batches
 
 
@@ -647,6 +739,7 @@ def run_llm_for_top_level_batch(
     *,
     require_evidence_kinds: bool,
     author_comment: bool = False,
+    feedback_ids_by_discussion_id: dict[str, dict[str, str]] | None = None,
 ) -> list[dict[str, Any]]:
     proc = run_copilot(prompt, model)
     response = extract_json_object(proc.stdout)
@@ -667,14 +760,13 @@ def run_llm_for_top_level_batch(
     for index, discussion in enumerate(discussions):
         discussion_id = discussion["discussion_id"]
         item = response_by_id.get(discussion_id)
+        validation_errors: list[str] = []
         if author_comment:
-            decision, valid_response = parse_author_comment_decision(
+            decision, validation_errors = parse_author_comment_decision(
                 json.dumps(item) if item is not None else "",
-                [
-                    feedback.get("discussion_id") or ""
-                    for feedback in (discussion.get("candidate_feedback") or [])
-                ],
+                (feedback_ids_by_discussion_id or {}).get(discussion_id, {}),
             )
+            valid_response = not validation_errors
             valid_action = True
         else:
             decision, valid_response = parse_discussion_decision(
@@ -698,7 +790,10 @@ def run_llm_for_top_level_batch(
             if discussion_id in duplicate_ids:
                 reasons.append("Copilot CLI returned a duplicate discussion_id")
             elif not valid_response or not valid_action:
-                reasons.append("Copilot CLI did not return a valid classification for this discussion_id")
+                reason = "Copilot CLI did not return a valid classification for this discussion_id"
+                if author_comment and validation_errors:
+                    reason += f": {'; '.join(validation_errors)}"
+                reasons.append(reason)
             error = "; ".join(reasons)
         records.append(classification_record(
             discussion,
@@ -735,13 +830,14 @@ def run_llm_for_top_level_author_comment_batch(
     partial_records: dict[str, list[dict[str, Any]]] = {
         discussion["discussion_id"]: [] for discussion in discussions
     }
-    for batch, prompt in author_comment_prompt_batches(discussions):
+    for prompt_batch in author_comment_prompt_batches(discussions):
         for record in run_llm_for_top_level_batch(
-            batch,
+            prompt_batch.discussions,
             model,
-            prompt,
+            prompt_batch.prompt,
             require_evidence_kinds=False,
             author_comment=True,
+            feedback_ids_by_discussion_id=prompt_batch.feedback_ids_by_discussion_id,
         ):
             partial_records[record["discussion_id"]].append(record)
 
