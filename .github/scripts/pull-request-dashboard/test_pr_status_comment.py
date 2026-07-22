@@ -89,6 +89,32 @@ class RenderStatusCommentTest(unittest.TestCase):
             pr_status_comment.status_author_nudge_episode_id(comments),
         )
 
+    def test_recovers_episode_from_normalized_dashboard_bot_comment(self) -> None:
+        marker = pr_status_comment.author_nudge_episode_marker("abc123")
+
+        self.assertEqual(
+            "abc123",
+            pr_status_comment.status_author_nudge_episode_id([{
+                "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                "body": f"{pr_status_comment.STATUS_MARKER}\n{marker}",
+            }]),
+        )
+
+    def test_does_not_recover_episode_from_other_normalized_authors(self) -> None:
+        marker = pr_status_comment.author_nudge_episode_marker("abc123")
+        comments = [
+            {
+                "user": {"login": login},
+                "body": f"{pr_status_comment.STATUS_MARKER}\n{marker}",
+            }
+            for login in ("alice", "another-app[bot]")
+        ]
+
+        self.assertEqual(
+            "",
+            pr_status_comment.status_author_nudge_episode_id(comments),
+        )
+
     @patch.object(
         pr_status_comment,
         "utc_now",
