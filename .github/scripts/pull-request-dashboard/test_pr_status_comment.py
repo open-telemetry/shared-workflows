@@ -635,6 +635,45 @@ class RolloutStateTest(unittest.TestCase):
 
         self.assertEqual([34], state["pending_pr_numbers"])
 
+    def test_older_revision_preserves_newer_rollout_state(self) -> None:
+        newer_state = {
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION + 1,
+            "completed_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "pending_pr_numbers": [12, 34],
+        }
+
+        state = pr_status_comment.prepare_rollout_state(newer_state, {34, 56})
+
+        self.assertEqual(newer_state, state)
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION + 1,
+            "completed_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "pending_pr_numbers": [12, 34],
+        },
+    )
+    def test_older_revision_does_not_publish_or_mutate_newer_rollout(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        status = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {12, 34},
+        )
+
+        self.assertEqual([], status)
+        publish_pr_status.assert_not_called()
+        save_rollout.assert_not_called()
+
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")
     @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})

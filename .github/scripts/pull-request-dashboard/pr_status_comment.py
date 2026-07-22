@@ -368,7 +368,10 @@ def prepare_rollout_state(
     rollout_state: dict[str, Any],
     open_pr_numbers: set[int],
 ) -> dict[str, Any]:
-    if rollout_state.get("target_revision") != STATUS_COMMENT_REVISION:
+    target_revision = int(rollout_state.get("target_revision") or 0)
+    if target_revision > STATUS_COMMENT_REVISION:
+        return dict(rollout_state)
+    if target_revision < STATUS_COMMENT_REVISION:
         return {
             "target_revision": STATUS_COMMENT_REVISION,
             "completed_revision": int(rollout_state.get("completed_revision") or 0),
@@ -396,6 +399,12 @@ def update_status_comments_from_state(
         return []
 
     saved_rollout_state = load_status_comment_rollout_state()
+    if saved_rollout_state.get("target_revision", 0) > STATUS_COMMENT_REVISION:
+        print(
+            "status comment rollout targets a newer renderer revision; skipping stale worker",
+            file=sys.stderr,
+        )
+        return []
     queued_pr_numbers = set(saved_rollout_state.get("pending_pr_numbers") or [])
     rollout_state = prepare_rollout_state(saved_rollout_state, open_pr_numbers)
     pending_pr_numbers = set(rollout_state["pending_pr_numbers"]) | queued_pr_numbers
