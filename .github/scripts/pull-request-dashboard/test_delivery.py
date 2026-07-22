@@ -131,6 +131,47 @@ class DeliveryTest(unittest.TestCase):
         status.assert_not_called()
         slack.assert_not_called()
 
+    def test_targeted_delivery_only_processes_triggering_pr(self) -> None:
+        with (
+            patch.object(delivery, "list_open_prs") as list_open,
+            patch.object(
+                delivery,
+                "gh_api",
+                return_value={"state": "open", "draft": False, "title": "Seven"},
+            ) as gh_api,
+            patch.object(delivery, "deliver_dashboard_override_requests", return_value=[]),
+            patch.object(delivery, "deliver_dashboard_command_replies", return_value=[]),
+            patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]),
+            patch.object(delivery, "update_status_comments_from_state") as bulk_status,
+            patch.object(
+                delivery,
+                "update_targeted_status_comment_from_state",
+                return_value=[],
+            ) as targeted_status,
+            patch.object(delivery, "deliver_copilot_review_requests", return_value=[]),
+            patch.object(delivery, "notify_slack_from_state", return_value=[]) as slack,
+        ):
+            errors = delivery.deliver_from_state(
+                "open-telemetry/example",
+                Path("author"),
+                Path("copilot"),
+                Path("slack"),
+                7,
+            )
+
+        self.assertEqual([], errors)
+        list_open.assert_not_called()
+        gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/7")
+        bulk_status.assert_not_called()
+        targeted_status.assert_called_once_with("open-telemetry/example", 7)
+        slack.assert_called_once_with(
+            "open-telemetry/example",
+            ANY,
+            [{"number": 7, "isDraft": False, "title": "Seven"}],
+            ANY,
+            {7},
+        )
+
     @patch.object(delivery.sys, "stderr")
     @patch.object(delivery, "deliver_from_state", return_value=["status comments: boom"])
     @patch.object(delivery.state_branch, "push_state_changes")
