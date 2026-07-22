@@ -16,17 +16,29 @@ AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 DELIVERY_REVISION_STATE_FILE = "delivery-revision-state.json"
-# State files are disposable workflow caches, not durable user data. Bump only
-# the version for the state shape whose meaning changed.
+
+# Each state version describes one JSON file's schema, not rollout order. Bump
+# only the version whose stored shape or meaning changed. Schema mismatches for
+# the ordinary state files below regenerate that disposable workflow cache.
+# dashboard-state.json: accepted PR routing results and backfill readiness.
 DASHBOARD_STATE_VERSION = 5
+# backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
+# notification-state.json: pending and delivered Slack notification records.
 NOTIFICATION_STATE_VERSION = 3
+# author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 2
+# copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 3
+# status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
+# delivery-revision-state.json: active delivery revision. This safety state is
+# not regenerated on a mismatch. If its schema changes, add an explicit
+# migration from older versions; incompatible workers fail closed.
 DELIVERY_REVISION_STATE_VERSION = 1
-# Bump when older queued workers must not deliver against newer dashboard state
-# or behavior. Unlike the state-shape versions above, this coordinates rollout.
+# Bump alongside any state version or delivery behavior change that makes older
+# queued workers unsafe. Higher revisions activate, equal revisions resume, and
+# lower revisions skip all delivery side effects.
 DELIVERY_REVISION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None

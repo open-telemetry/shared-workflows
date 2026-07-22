@@ -30,8 +30,10 @@ AUTHOR_NUDGE_EPISODE_MARKER_PREFIX = (
 _AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-author-nudge-episode:([a-f0-9]+) -->"
 )
-# Increment whenever render_status_comment changes in a way existing comments
-# need to adopt. Hourly runs durably roll the revision out to all open PRs.
+# Renderer rollout revision, not a state schema version. Increment whenever
+# render_status_comment changes in a way existing comments need to adopt;
+# hourly runs durably roll it out to all open PRs. Also bump DELIVERY_REVISION
+# in state.py so queued workers cannot restore older content.
 STATUS_COMMENT_REVISION = 13
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
