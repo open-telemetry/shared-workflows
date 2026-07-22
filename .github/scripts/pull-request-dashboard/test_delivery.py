@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import ANY, Mock, call, patch
 
@@ -133,10 +134,12 @@ class DeliveryTest(unittest.TestCase):
 
     @patch.object(delivery.sys, "stderr")
     @patch.object(delivery, "deliver_from_state", return_value=["status comments: boom"])
+    @patch.object(delivery, "claim_delivery_revision", return_value=True)
     @patch.object(delivery.state_branch, "push_state_changes")
     def test_reports_delivery_errors_after_state_push(
         self,
         push_state_changes,
+        _claim_delivery_revision,
         _deliver_from_state,
         _stderr,
     ) -> None:
@@ -145,17 +148,55 @@ class DeliveryTest(unittest.TestCase):
         )
 
         with (
+            tempfile.TemporaryDirectory() as temp_dir,
             patch.object(delivery, "author_nudge_state_path", return_value=Path("author")),
             patch.object(delivery, "copilot_review_request_state_path", return_value=Path("copilot")),
             patch.object(delivery, "notification_state_path", return_value=Path("slack")),
         ):
+            github_output = Path(temp_dir) / "github-output"
             status = delivery.deliver_with_state(
                 "open-telemetry/example",
                 "dashboard-state",
                 Path("state"),
+                github_output,
             )
+            github_output_text = github_output.read_text(encoding="utf-8")
 
         self.assertEqual(1, status)
+        self.assertEqual("active=true\n", github_output_text)
+
+    @patch.object(delivery, "deliver_from_state")
+    @patch.object(delivery, "claim_delivery_revision", return_value=False)
+    @patch.object(delivery.state_branch, "push_state_changes")
+    def test_stale_revision_skips_delivery_and_reports_inactive(
+        self,
+        push_state_changes,
+        claim_delivery_revision,
+        deliver_from_state,
+    ) -> None:
+        push_state_changes.side_effect = (
+            lambda _state_dir, _message, update_state, **_kwargs: update_state()
+        )
+
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch.object(delivery, "author_nudge_state_path", return_value=Path("author")),
+            patch.object(delivery, "copilot_review_request_state_path", return_value=Path("copilot")),
+            patch.object(delivery, "notification_state_path", return_value=Path("slack")),
+        ):
+            github_output = Path(temp_dir) / "github-output"
+            status = delivery.deliver_with_state(
+                "open-telemetry/example",
+                "dashboard-state",
+                Path("state"),
+                github_output,
+            )
+            github_output_text = github_output.read_text(encoding="utf-8")
+
+        self.assertEqual(0, status)
+        claim_delivery_revision.assert_called_once_with()
+        deliver_from_state.assert_not_called()
+        self.assertEqual("active=false\n", github_output_text)
 
 
 if __name__ == "__main__":

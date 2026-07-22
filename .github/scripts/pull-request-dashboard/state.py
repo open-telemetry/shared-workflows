@@ -15,6 +15,7 @@ BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
+DELIVERY_REVISION_STATE_FILE = "delivery-revision-state.json"
 # State files are disposable workflow caches, not durable user data. Bump only
 # the version for the state shape whose meaning changed.
 DASHBOARD_STATE_VERSION = 5
@@ -23,6 +24,10 @@ NOTIFICATION_STATE_VERSION = 3
 AUTHOR_NUDGE_STATE_VERSION = 2
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 3
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
+DELIVERY_REVISION_STATE_VERSION = 1
+# Bump when older queued workers must not deliver against newer dashboard state
+# or behavior. Unlike the state-shape versions above, this coordinates rollout.
+DELIVERY_REVISION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -62,6 +67,10 @@ def status_comment_rollout_state_path() -> Path:
     return state_dir() / STATUS_COMMENT_ROLLOUT_STATE_FILE
 
 
+def delivery_revision_state_path() -> Path:
+    return state_dir() / DELIVERY_REVISION_STATE_FILE
+
+
 def dashboard_markdown_path() -> Path:
     return state_dir() / DASHBOARD_MARKDOWN_FILE
 
@@ -88,6 +97,13 @@ def empty_status_comment_rollout_state() -> dict[str, Any]:
         "target_revision": 0,
         "completed_revision": 0,
         "pending_pr_numbers": [],
+    }
+
+
+def empty_delivery_revision_state() -> dict[str, Any]:
+    return {
+        "version": DELIVERY_REVISION_STATE_VERSION,
+        "active_revision": 0,
     }
 
 
@@ -181,6 +197,44 @@ def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
         },
         STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     )
+
+
+def load_delivery_revision_state() -> dict[str, Any] | None:
+    path = delivery_revision_state_path()
+    if not path.exists():
+        return empty_delivery_revision_state()
+    state = load_state_file(path, DELIVERY_REVISION_STATE_VERSION)
+    if state is None:
+        return None
+    try:
+        active_revision = max(int(state.get("active_revision") or 0), 0)
+    except (TypeError, ValueError):
+        return None
+    return {
+        "version": DELIVERY_REVISION_STATE_VERSION,
+        "active_revision": active_revision,
+    }
+
+
+def save_delivery_revision_state(state: dict[str, Any]) -> None:
+    save_state_file(
+        delivery_revision_state_path(),
+        {"active_revision": int(state.get("active_revision") or 0)},
+        DELIVERY_REVISION_STATE_VERSION,
+    )
+
+
+def claim_delivery_revision() -> bool:
+    state = load_delivery_revision_state()
+    if state is None:
+        print("delivery revision state is unreadable; skipping delivery", file=sys.stderr)
+        return False
+    active_revision = state["active_revision"]
+    if active_revision > DELIVERY_REVISION:
+        return False
+    if active_revision < DELIVERY_REVISION:
+        save_delivery_revision_state({"active_revision": DELIVERY_REVISION})
+    return True
 
 
 def enqueue_status_comment_update(pr_number: int) -> None:

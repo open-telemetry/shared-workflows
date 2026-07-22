@@ -219,11 +219,18 @@ jobs:
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          delivery_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
+          delivery_args=(
+            --state-branch "$state_branch"
+            --repo "$REPO_NAME"
+            --github-output "$GITHUB_OUTPUT"
+          )
           python3 .github/scripts/pull-request-dashboard/delivery.py "${delivery_args[@]}"
 
       - name: Publish dashboard issue
-        if: always() && steps.dashboard-token.outcome == 'success'
+        if: >-
+          always() &&
+          steps.dashboard-token.outcome == 'success' &&
+          steps.delivery.outputs.active == 'true'
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ inputs.repository }}

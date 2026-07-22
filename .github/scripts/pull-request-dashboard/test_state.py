@@ -13,11 +13,13 @@ from state import (
     BACKFILL_STATE_VERSION,
     COPILOT_REVIEW_REQUEST_STATE_VERSION,
     DASHBOARD_STATE_VERSION,
+    DELIVERY_REVISION_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
     STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     author_nudge_state_path,
     backfill_state_path,
     copilot_review_request_state_path,
+    claim_delivery_revision,
     dashboard_state_path,
     empty_state,
     enqueue_status_comment_update,
@@ -26,6 +28,7 @@ from state import (
     load_backfill_state,
     load_copilot_review_requests,
     load_dashboard_state_cache,
+    load_delivery_revision_state,
     load_state_file,
     load_status_comment_rollout_state,
     load_notifications,
@@ -356,6 +359,31 @@ class StateTest(unittest.TestCase):
                 [12, 34],
                 load_status_comment_rollout_state()["pending_pr_numbers"],
             )
+
+    def test_delivery_revision_only_advances(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            with patch("state.DELIVERY_REVISION", 1):
+                self.assertTrue(claim_delivery_revision())
+                self.assertTrue(claim_delivery_revision())
+            with patch("state.DELIVERY_REVISION", 2):
+                self.assertTrue(claim_delivery_revision())
+            with patch("state.DELIVERY_REVISION", 1):
+                self.assertFalse(claim_delivery_revision())
+
+            self.assertEqual(
+                {
+                    "version": DELIVERY_REVISION_STATE_VERSION,
+                    "active_revision": 2,
+                },
+                load_delivery_revision_state(),
+            )
+
+    def test_delivery_revision_state_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            delivery_state = Path(temp_dir) / "delivery-revision-state.json"
+            delivery_state.write_text("not json", encoding="utf-8")
+
+            self.assertFalse(claim_delivery_revision())
 
     def test_backfill_state_preserves_version_three_cursor(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
