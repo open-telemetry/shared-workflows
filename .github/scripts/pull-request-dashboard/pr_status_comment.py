@@ -12,7 +12,7 @@ from github_cli import (
     gh_api,
     run_gh,
 )
-from dashboard_override import author_override_guidance
+from dashboard_override import PRE_REVIEW_ROUTES, author_override_guidance
 from route_presentation import route_status_summary
 from state import (
     load_dashboard_state_cache,
@@ -32,7 +32,7 @@ _AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
 )
 # Increment whenever render_status_comment changes in a way existing comments
 # need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 11
+STATUS_COMMENT_REVISION = 12
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
@@ -77,7 +77,7 @@ def status_author_nudge_episode_id(
     return ""
 
 
-def accuracy_note(pr: dict[str, Any], author_routed: bool = False) -> str:
+def accuracy_note(pr: dict[str, Any], override_route: str = "") -> str:
     query = urlencode({
         "template": STATUS_REPORT_ISSUE_TEMPLATE,
         "title": "PR dashboard result looks incorrect",
@@ -88,10 +88,11 @@ def accuracy_note(pr: dict[str, Any], author_routed: bool = False) -> str:
         "This automated status or its linked feedback items may be incorrect. "
         f"If something looks wrong, please [report it]({report_url}) with the result you expected."
     )
-    if author_routed:
+    if override_route:
         note += " " + author_override_guidance(
             "If the last refreshed time above predates your latest reply or "
-            "push, the dashboard hasn't processed it yet."
+            "push, the dashboard hasn't processed it yet.",
+            route=override_route,
         )
     return f"_{note}_"
 
@@ -135,7 +136,7 @@ def render_status_comment(
             )
 
     feedback_indent: str | None = None
-    author_routed = False
+    override_route = ""
 
     if pr.get("merged"):
         summary = ["- **Status:** Merged."]
@@ -153,8 +154,9 @@ def render_status_comment(
         ]
     else:
         route = result.get("route") or "unknown"
+        if route in PRE_REVIEW_ROUTES:
+            override_route = route
         if route == "author":
-            author_routed = True
             waiting_on, fallback_next_step = route_status_summary(route)
             check_action = None
             if failing_count:
@@ -231,7 +233,7 @@ def render_status_comment(
             )
         )
     lines.append("")
-    lines.append(accuracy_note(pr, author_routed))
+    lines.append(accuracy_note(pr, override_route))
     lines.append("")
     return "\n".join(lines)
 

@@ -7,6 +7,16 @@ import dashboard_override
 
 
 class DashboardOverrideTest(unittest.TestCase):
+    def test_override_guidance_matches_pre_review_route(self) -> None:
+        self.assertIn(
+            "waiting on the author to waiting on reviewers",
+            dashboard_override.author_override_guidance(),
+        )
+        self.assertIn(
+            "waiting on an external dependency or decision to waiting on reviewers",
+            dashboard_override.author_override_guidance(route="external"),
+        )
+
     def test_dashboard_command_body_remainder(self) -> None:
         self.assertIsNone(
             dashboard_override.dashboard_command_body_remainder(

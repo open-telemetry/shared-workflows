@@ -32,11 +32,20 @@ PRE_REVIEW_ROUTES = ("author", "external")
 REVIEWERS_OR_LATER_ROUTES = ("approver", "maintainer")
 
 
-def author_override_guidance(staleness_note: str = "") -> str:
+def author_override_guidance(
+    staleness_note: str = "",
+    *,
+    route: str = "author",
+) -> str:
+    waiting_on = (
+        "an external dependency or decision"
+        if route == "external"
+        else "the author"
+    )
     guidance = (
         "If you believe this pull request is incorrectly routed as waiting on "
-        "the author, comment `/dashboard route:reviewers` to route it from "
-        "waiting on the author to waiting on reviewers."
+        f"{waiting_on}, comment `/dashboard route:reviewers` to route it from "
+        f"waiting on {waiting_on} to waiting on reviewers."
     )
     if staleness_note:
         guidance = f"{guidance} {staleness_note}"
