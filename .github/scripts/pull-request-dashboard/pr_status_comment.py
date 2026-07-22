@@ -134,8 +134,8 @@ def status_footer(
     ]
     if not terminal:
         lines.append(
-            "- **Just replied or pushed?** Anything after the refresh time above "
-            "hasn't been picked up yet \u2014 give it a few minutes."
+            "- **Just replied or pushed?** Anything around or after the refresh "
+            "time above may not be picked up yet \u2014 give it a few minutes."
         )
     if override_route:
         lines.append(
