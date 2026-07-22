@@ -83,6 +83,25 @@ class AuthorNudgePolicyTest(unittest.TestCase):
 
         self.assertNotEqual(failing, author_nudge.routing_input_fingerprint(raw))
 
+    def test_routing_fingerprint_tracks_pr_title_and_body(self) -> None:
+        raw = {
+            "checks": [],
+            "issue_comments": [],
+            "pr": {"title": "Original title", "body": "Original body"},
+            "review_comments": [],
+            "reviews": [],
+            "review_threads": [],
+        }
+        baseline = author_nudge.routing_input_fingerprint(raw)
+
+        raw["pr"]["title"] = "Updated title"
+        title_updated = author_nudge.routing_input_fingerprint(raw)
+        raw["pr"]["title"] = "Original title"
+        raw["pr"]["body"] = "Updated body"
+
+        self.assertNotEqual(baseline, title_updated)
+        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
     @patch.object(author_nudge, "gh_required_check_contexts", return_value=[])
     @patch.object(
         author_nudge,
@@ -108,11 +127,13 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         pr = {
             "node_id": "PR_node",
             "base": {"ref": "main"},
+            "body": "Current body",
             "head": {"sha": "current-head"},
             "labels": [
                 {"name": "needs-triage"},
                 {"name": "dashboard:route-overridden"},
             ],
+            "title": "Current title",
         }
         gh_api.side_effect = lambda path, paginate=False: (
             pr if path.endswith("/pulls/1") else []
@@ -132,6 +153,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
                     {"name": "needs-triage"},
                     {"name": "dashboard:route-overridden"},
                 ],
+                "pr": pr,
                 "review_comments": [],
                 "reviews": [],
                 "review_threads": [],

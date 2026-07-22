@@ -10,6 +10,7 @@ from github_cli import (
     fetch_pr_title_edits,
     gh_pr_check_rollup,
     gh_pr_checks,
+    gh_pr_view,
     gh_required_check_contexts,
     include_missing_required_checks,
     is_retryable_gh_error,
@@ -19,6 +20,16 @@ from github_cli import (
 
 
 class GithubCliTest(unittest.TestCase):
+    @patch("github_cli.run_gh_json")
+    def test_pr_view_fetches_body_for_routing_freshness(self, run_json) -> None:
+        run_json.return_value = {"mergeable": "MERGEABLE"}
+
+        gh_pr_view("open-telemetry/example", 7)
+
+        fields = run_json.call_args.args[0][-1]
+        self.assertIn("title", fields.split(","))
+        self.assertIn("body", fields.split(","))
+
     @patch("github_cli.gh_graphql")
     def test_request_copilot_review_uses_request_reviews_mutation(
         self,

@@ -46,9 +46,10 @@ def nudge_marker(episode_id: str) -> str:
 
 def routing_input_fingerprint(raw: dict[str, Any]) -> str:
     dashboard_login = f"{DASHBOARD_APP_SLUG}[bot]"
+    pr = raw.get("pr") or raw
     labels = raw.get("labels")
     if labels is None:
-        labels = (raw.get("pr") or {}).get("labels") or []
+        labels = pr.get("labels") or []
     issue_comments = [
         comment
         for comment in raw.get("issue_comments") or []
@@ -63,6 +64,10 @@ def routing_input_fingerprint(raw: dict[str, Any]) -> str:
             if isinstance(label, dict)
             and label.get("name") == DASHBOARD_OVERRIDE_LABEL
         ),
+        "pr_text": {
+            "body": str(pr.get("body") or "").replace("\r\n", "\n"),
+            "title": str(pr.get("title") or ""),
+        },
         "review_comments": raw.get("review_comments") or [],
         "reviews": raw.get("reviews") or [],
         "review_threads": raw.get("review_threads") or [],
@@ -126,6 +131,7 @@ def fetch_current_pr_routing_state(
             ),
             "issue_comments": issue_comments_future.result() or [],
             "labels": pr.get("labels") or [],
+            "pr": pr,
             "review_comments": review_comments_future.result() or [],
             "reviews": review_data.get("reviews") or [],
             "review_threads": review_threads_future.result() or [],
