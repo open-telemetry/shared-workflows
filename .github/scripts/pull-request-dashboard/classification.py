@@ -760,6 +760,7 @@ def run_llm_for_top_level_batch(
     for index, discussion in enumerate(discussions):
         discussion_id = discussion["discussion_id"]
         item = response_by_id.get(discussion_id)
+        validation_errors: list[str] = []
         if author_comment:
             decision, validation_errors = parse_author_comment_decision(
                 json.dumps(item) if item is not None else "",
