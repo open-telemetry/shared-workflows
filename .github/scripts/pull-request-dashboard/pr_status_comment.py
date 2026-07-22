@@ -194,7 +194,7 @@ def author_body(
         body = [
             "Two things need attention:",
             checks_bullet,
-            f"- **{feedback_count} review {noun}** \u2014 address or respond:",
+            f"- **{feedback_count} review {noun}** — respond:",
         ]
         body.extend(
             feedback_breakdown_lines(
@@ -204,7 +204,7 @@ def author_body(
         body.extend(["", f"_{AUTHOR_GUIDANCE}_"])
         return body
     if feedback_count:
-        body = [f"Address or respond to {feedback_count} review {noun}:"]
+        body = [f"Respond to {feedback_count} review {noun}:"]
         body.extend(
             feedback_breakdown_lines(review_thread_urls, top_level_feedback_urls)
         )

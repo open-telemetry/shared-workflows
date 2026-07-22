@@ -39,7 +39,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn("**Waiting on the author** · refreshed ", body)
-        self.assertIn("Address or respond to 2 review items:", body)
+        self.assertIn("Respond to 2 review items:", body)
         self.assertIn(
             f"<!-- pull-request-dashboard-status-revision:{pr_status_comment.STATUS_COMMENT_REVISION} -->",
             body,
@@ -244,7 +244,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("Two things need attention:", body)
         self.assertIn("- **Required checks are failing** — investigate the failures.", body)
-        self.assertIn("- **1 review item** — address or respond:", body)
+        self.assertIn("- **1 review item** — respond:", body)
         self.assertIn("  - **Inline threads:** [1]", body)
 
     def test_required_ci_action_notes_configured_non_blocking_failures(self) -> None:
