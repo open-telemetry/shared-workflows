@@ -39,7 +39,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn("**Waiting on the author** · refreshed ", body)
-        self.assertIn("Respond to 2 review items:", body)
+        self.assertIn(f"Respond to 2 review items {pr_status_comment.RESPONSE_EXAMPLES}:", body)
         self.assertIn(
             f"<!-- pull-request-dashboard-status-revision:{pr_status_comment.STATUS_COMMENT_REVISION} -->",
             body,
@@ -51,7 +51,6 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertNotIn("### Review feedback", body)
         self.assertIn("- **Inline threads:** [1]", body)
         self.assertIn("- **Top-level threads:** [2]", body)
-        self.assertIn(f"_{pr_status_comment.AUTHOR_GUIDANCE}_", body)
         self.assertIn(
             "- **Should this be with reviewers?** Comment "
             "`/dashboard route:reviewers` to route it to them.",
@@ -225,7 +224,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("**Waiting on the author** · refreshed ", body)
         self.assertIn("Investigate required status check failures.", body)
         self.assertNotIn("### Review feedback", body)
-        self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
+        self.assertNotIn(pr_status_comment.RESPONSE_EXAMPLES, body)
 
     def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -244,7 +243,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("Two things need attention:", body)
         self.assertIn("- **Required checks are failing** — investigate the failures.", body)
-        self.assertIn("- **1 review item** — respond:", body)
+        self.assertIn("- **1 review item** — respond to each {}:".format(pr_status_comment.RESPONSE_EXAMPLES), body)
         self.assertIn("  - **Inline threads:** [1]", body)
 
     def test_required_ci_action_notes_configured_non_blocking_failures(self) -> None:
@@ -449,7 +448,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn("**Merged** · refreshed ", body)
-        self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
+        self.assertNotIn(pr_status_comment.RESPONSE_EXAMPLES, body)
 
     def test_terminal_pr_has_no_author_feedback_links(self) -> None:
         result = {
@@ -515,7 +514,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 self.assertIn(f"**{headline}** · refreshed ", body)
                 self.assertIn(next_step, body)
                 self.assertNotIn("**Status:**", body)
-                self.assertNotIn(pr_status_comment.AUTHOR_GUIDANCE, body)
+                self.assertNotIn(pr_status_comment.RESPONSE_EXAMPLES, body)
 
 
 class UpsertStatusCommentTest(unittest.TestCase):

@@ -43,10 +43,7 @@ STATUS_REPORT_URL_MAX_CHARS = 4096
 STATUS_REPORT_TRUNCATION_NOTICE = (
     "[Status comment truncated to keep this report link usable.]"
 )
-AUTHOR_GUIDANCE = (
-    "Reply to move it forward \u2014 for example, link the fixing commit, explain "
-    "why no change is needed, or ask a follow-up."
-)
+RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 # Remove after migrating open PRs as described by the post-rollout
 # compatibility cleanup in WEBHOOK_SETUP.md.
@@ -194,21 +191,19 @@ def author_body(
         body = [
             "Two things need attention:",
             checks_bullet,
-            f"- **{feedback_count} review {noun}** — respond:",
+            f"- **{feedback_count} review {noun}** — respond to each {RESPONSE_EXAMPLES}:",
         ]
         body.extend(
             feedback_breakdown_lines(
                 review_thread_urls, top_level_feedback_urls, indent="  "
             )
         )
-        body.extend(["", f"_{AUTHOR_GUIDANCE}_"])
         return body
     if feedback_count:
-        body = [f"Respond to {feedback_count} review {noun}:"]
+        body = [f"Respond to {feedback_count} review {noun} {RESPONSE_EXAMPLES}:"]
         body.extend(
             feedback_breakdown_lines(review_thread_urls, top_level_feedback_urls)
         )
-        body.extend(["", f"_{AUTHOR_GUIDANCE}_"])
         return body
     if failing_count:
         sentence = "Investigate required status check failures."
