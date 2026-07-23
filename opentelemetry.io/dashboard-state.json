@@ -4004,13 +4004,13 @@
     },
     "10975": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-docs",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 11,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -4025,22 +4025,31 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "bf26bcbebda19e8fec70db2a321441e575d3097e",
+        "head_sha": "eeb5da5a65eb37628cad3f425a20d7bec69e4168",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-23T07:36:26+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-23T10:46:42+00:00",
+        "last_approver_activity_at": "2026-07-23T10:46:37+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "2f7a37d859caeaa387c70fffa2580c23a863abebda80b67dd3ab6e06ee19ed88",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "chalin",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "a31868290dc53c12d01e0e9bee84f418b5c23438bad0e65702840e9aa06af767",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-22T22:04:36+00:00"
       },
       "failed": false,
       "pr_number": 10975,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10975",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "10976": {
