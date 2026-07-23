@@ -7176,8 +7176,12 @@
         "approval_count": 0,
         "assignees": [],
         "author": "harshitt13",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49544#discussion_r3638106362",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49544#discussion_r3638106370"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "203679f4129d4174abe2255d9a51d766",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -7197,11 +7201,19 @@
         "head_sha": "c21221f32fb62072c826a7ac81a6751b806dd9e3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-23T12:33:27+00:00",
+        "last_activity_at": "2026-07-23T12:37:16+00:00",
         "last_approver_activity_at": "2026-07-20T16:52:18+00:00",
         "last_author_activity_at": "2026-07-23T12:32:21+00:00",
-        "last_external_activity_at": "",
+        "last_external_activity_at": "2026-07-23T12:35:53+00:00",
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "chatgpt-codex-connector",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -7211,14 +7223,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "75d55df26ee2dd327a41b93879f12b9054b50e687d2e103d137fbfe53b7c929d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-23T12:32:21+00:00"
+        "routing_input_fingerprint": "eb9de906d50fed1dd96aecd8c6f93c6c50babe8d26bd2b18d8316f7d708bf029",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-23T12:35:53+00:00"
       },
       "failed": false,
       "pr_number": 49544,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49544",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4707910484": {
           "evidence": {
