@@ -2835,8 +2835,10 @@
         "author": "rycont",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 7,
+        "author_nudge_episode_id": "edc4857681334c5db92c6edb8c35bce7",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-23T02:37:47+00:00",
+        "ci_pending_count": 6,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -2854,7 +2856,7 @@
         "head_sha": "c150557242d8c30e19b1e8ce26b1a07653122078",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-23T02:37:41+00:00",
+        "last_activity_at": "2026-07-23T02:38:05+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-23T02:37:34+00:00",
         "last_external_activity_at": "",
@@ -2868,14 +2870,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "b48eec097aba1eaec087f2d55ab4a562b875f210956f2e188e4157b2a37c8774",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-23T02:37:34+00:00"
+        "routing_input_fingerprint": "77ef762cc0a17d4fcea1a4d714d28a9694a380ced042d465131c956fd356bb17",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-23T02:37:47+00:00"
       },
       "failed": false,
       "pr_number": 3635,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3635",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
