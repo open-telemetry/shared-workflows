@@ -3206,9 +3206,11 @@
         "author": "gizas",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "d0a8e77e08544310af56ea0833c7fe4d",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-23T09:49:23+00:00",
         "ci_pending_count": 10,
-        "conflicts": "yes",
+        "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_request_needed": false,
@@ -3222,12 +3224,12 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "e6a499e947d23123fda55ba0759698024aad6dec",
+        "head_sha": "6a033595c494c3ece2767e36ead8e274059831fa",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-23T01:37:33+00:00",
+        "last_activity_at": "2026-07-23T09:49:36+00:00",
         "last_approver_activity_at": "2026-07-06T20:49:59+00:00",
-        "last_author_activity_at": "2026-07-20T08:38:27+00:00",
+        "last_author_activity_at": "2026-07-23T09:48:28+00:00",
         "last_external_activity_at": "2026-07-07T02:24:54+00:00",
         "reviewers": [
           {
@@ -3263,35 +3265,21 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "14d97ce041286765002b6c96ed00d03d2df32a26eda5e0060202a5f6ce5b182b",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-05-29T17:25:49+00:00"
+        "routing_input_fingerprint": "a80d875c132430450edc41205d3b7ea883a5dfe2d00ada2f80ce9d7bab0e7eea",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-23T09:49:23+00:00"
       },
       "failed": false,
       "pr_number": 48767,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48767",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
-        "pr-issue-comment-4602300664": {
-          "evidence": {
-            "commit": "2026-06-02T13:12:48Z",
-            "reply": "2026-06-02T12:58:47Z"
-          },
-          "reply_source_id": 4602612304
-        },
         "pr-issue-comment-4602313066": {
           "evidence": {
             "commit": "2026-06-02T13:12:48Z",
             "reply": "2026-06-02T12:58:47Z"
           },
           "reply_source_id": 4602612304
-        },
-        "pr-issue-comment-4809898418": {
-          "evidence": {
-            "commit": "2026-07-03T12:50:10Z",
-            "reply": "2026-07-20T08:38:27Z"
-          },
-          "reply_source_id": 5020304575
         },
         "pr-issue-comment-4899514789": {
           "evidence": {
