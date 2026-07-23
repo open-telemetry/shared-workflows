@@ -898,7 +898,7 @@
     },
     "301": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "DylanRussell",
         "author_action_review_thread_urls": [],
@@ -919,14 +919,22 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "62313a6e4df44cce395f70c0ea52e6d794b493fd",
+        "head_sha": "fd972477869bf0f93e1132abdb759f479a0c8e48",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-23T19:34:10+00:00",
-        "last_approver_activity_at": "2026-07-22T21:55:54+00:00",
+        "last_activity_at": "2026-07-23T20:47:30+00:00",
+        "last_approver_activity_at": "2026-07-23T20:47:18+00:00",
         "last_author_activity_at": "2026-07-23T19:33:55+00:00",
         "last_external_activity_at": "",
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -936,14 +944,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "848aff5e0d73290cccaf530302abd39be8f40a66476090a48e98b4ad61ac65fb",
+        "routing_input_fingerprint": "c510c85a1b0fc00c1af2be37219d9164a90e5bddb8de8499dc03b8be4ad98552",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-23T19:33:55+00:00"
       },
       "failed": false,
       "pr_number": 301,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/301",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
