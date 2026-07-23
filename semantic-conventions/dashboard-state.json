@@ -1452,7 +1452,10 @@
         "assignees": [],
         "author": "app/dependabot",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3925#issuecomment-5061849515"
+        ],
+        "author_nudge_episode_id": "7d5fd7a3fd3c4b6281b3b59c266b12e1",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1472,8 +1475,8 @@
         "head_sha": "4edde519904663527c1288862228a60da1ed6734",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-23T17:03:00+00:00",
-        "last_approver_activity_at": "2026-07-23T17:02:10+00:00",
+        "last_activity_at": "2026-07-23T18:17:43+00:00",
+        "last_approver_activity_at": "2026-07-23T18:17:43+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-23T16:56:33+00:00",
         "reviewers": [
@@ -1484,16 +1487,24 @@
             "login": "kamphaus",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": true
           }
         ],
-        "routing_input_fingerprint": "b4059fcebf881a6854e9adc66367f8a2d05e98c8481ac7a136b1407c46968b33",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-07-23T16:56:35+00:00"
+        "routing_input_fingerprint": "00d85e0bd387171d66e2da8a2b48b0fff06337877a0a24a97874f259ce558e65",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-23T18:17:43+00:00"
       },
       "failed": false,
       "pr_number": 3925,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3925",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
