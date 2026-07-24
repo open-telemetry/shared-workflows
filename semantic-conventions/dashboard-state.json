@@ -1463,10 +1463,7 @@
         ],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/3928#pullrequestreview-4769333480"
-        ],
-        "author_nudge_episode_id": "99fce5e7c50746f9b05ec68f89ac5c55",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1486,9 +1483,9 @@
         "head_sha": "d0a93ba0e6201ba2451567d7943562f0072f13d1",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T01:45:07+00:00",
+        "last_activity_at": "2026-07-24T02:00:13+00:00",
         "last_approver_activity_at": "2026-07-23T18:38:05+00:00",
-        "last_author_activity_at": "2026-07-23T18:33:57+00:00",
+        "last_author_activity_at": "2026-07-24T02:00:13+00:00",
         "last_external_activity_at": "2026-07-24T01:07:22+00:00",
         "reviewers": [
           {
@@ -1521,18 +1518,25 @@
             "changes_requested": true,
             "login": "thompson-tomo",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "5cf34b794175eddde634b00843a8b32e6de39d561367bf783b85c181a879d8d6",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-24T01:45:07+00:00"
+        "routing_input_fingerprint": "413f04b133c6e4b33e7b61efb6fdbb311126c80ddefbd4aefbca1283c723b256",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-24T02:00:13+00:00"
       },
       "failed": false,
       "pr_number": 3928,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3928",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-review-4769333480": {
+          "evidence": {
+            "reply": "2026-07-24T02:00:13Z"
+          },
+          "reply_source_id": 5065400844
+        }
+      }
     },
     "3929": {
       "facts": {
