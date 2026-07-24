@@ -971,9 +971,11 @@
         "author": "c1ly",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 4,
-        "conflicts": "yes",
+        "author_nudge_episode_id": "c2d0cf5eca114140bdaff92eb8d1ef8a",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-24T20:12:58+00:00",
+        "ci_pending_count": 2,
+        "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_request_needed": false,
@@ -987,12 +989,12 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "23da2b5bc46d98f33c3e026f90b27e5f2da8a1dd",
+        "head_sha": "20078288047a811a8836915f8d5307516af7eeac",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T20:11:54+00:00",
+        "last_activity_at": "2026-07-24T20:12:54+00:00",
         "last_approver_activity_at": "2026-07-24T00:52:01+00:00",
-        "last_author_activity_at": "2026-07-24T20:11:54+00:00",
+        "last_author_activity_at": "2026-07-24T20:12:37+00:00",
         "last_external_activity_at": "",
         "reviewers": [
           {
@@ -1004,14 +1006,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "cb471b6eb81134fec46f05caab6015e452c4b3acb0c4de5f23f2bbb9b2921a0d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-24T20:11:54+00:00"
+        "routing_input_fingerprint": "0dc74c2b80be146e6d92d7ecb018f72f473ed88705d980e71e1a4b680b7c177b",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-24T20:12:58+00:00"
       },
       "failed": false,
       "pr_number": 3535,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3535",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4769242943": {
           "evidence": {
