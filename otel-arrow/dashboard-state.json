@@ -1700,9 +1700,12 @@
         "assignees": [],
         "author": "ngowran",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3578#issuecomment-5072884700"
+        ],
+        "author_nudge_episode_id": "983389c5e9ab4e6caceaf170a0390e3c",
         "ci_failing_count": 0,
-        "ci_pending_count": 4,
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -1720,19 +1723,28 @@
         "head_sha": "c678897b9df927923f01933c4cf1aca01e6c6cab",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T17:45:54+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-24T17:56:08+00:00",
+        "last_approver_activity_at": "2026-07-24T17:56:08+00:00",
         "last_author_activity_at": "2026-07-24T17:45:04+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "a28973fd630f25e1cf72921c2e1ada120e9b00e3dc6d4d45dfcb6ffc78e85830",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-24T17:45:04+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "utpilla",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "cc997f5f8775d3edfa67baaee0bec083cd8ffe38e352082bd2ea2730fe492e9b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-24T17:56:08+00:00"
       },
       "failed": false,
       "pr_number": 3578,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3578",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
