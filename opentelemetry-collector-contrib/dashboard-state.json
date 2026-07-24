@@ -7637,8 +7637,12 @@
         "approval_count": 0,
         "assignees": [],
         "author": "iblancasa",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49612#discussion_r3645977535",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49612#discussion_r3646061302"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "948b5bf30fc8498898b2010d0313664a",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -7658,28 +7662,28 @@
         "head_sha": "54c04adf19cc0a929a855822320c5dc3e7d793f4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T10:46:18+00:00",
+        "last_activity_at": "2026-07-24T14:32:35+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-24T09:30:28+00:00",
-        "last_external_activity_at": "2026-07-17T13:13:35+00:00",
+        "last_external_activity_at": "2026-07-24T14:32:35+00:00",
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": true,
             "login": "carsonip",
-            "open_thread": false,
+            "open_thread": true,
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "bab661cefb27b60762789de747e3af325b0af194a8c9bc5965f0cb86e52cc94e",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-24T09:30:28+00:00"
+        "routing_input_fingerprint": "75b6c22f22011d19c2c412223c7c0090bc8ecc30eb360392fbeb1e8db069b502",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-24T14:32:35+00:00"
       },
       "failed": false,
       "pr_number": 49612,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49612",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4716285886": {
           "evidence": {
@@ -7687,6 +7691,11 @@
             "reply": "2026-07-17T09:52:56Z"
           },
           "reply_source_id": 5001751911
+        },
+        "pr-review-4722942221": {
+          "evidence": {
+            "commit": "2026-07-24T09:30:10Z"
+          }
         }
       }
     },
