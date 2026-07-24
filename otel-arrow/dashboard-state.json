@@ -455,7 +455,9 @@
         "approval_count": 1,
         "assignees": [],
         "author": "gouslu",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3407#discussion_r3647851559"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "db4b58ab875f46b5be13032903678f00",
         "ci_failing_count": 1,
@@ -478,10 +480,10 @@
         "head_sha": "474c9f316925873d2826921a55f7cca3daea9ca4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T18:53:24+00:00",
+        "last_activity_at": "2026-07-24T20:10:24+00:00",
         "last_approver_activity_at": "2026-07-21T08:28:59+00:00",
         "last_author_activity_at": "2026-07-23T19:19:47+00:00",
-        "last_external_activity_at": "2026-07-15T05:12:17+00:00",
+        "last_external_activity_at": "2026-07-24T20:10:24+00:00",
         "reviewers": [
           {
             "approved": true,
@@ -506,9 +508,17 @@
             "login": "lalitb",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "ThomsonTan",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "4c12dd70dbd7bd0beff8b0f7976f6065394405e29d3cf8ccf95fc358ef65a901",
+        "routing_input_fingerprint": "40872b180b21eba3abb99804af4c2cc0449ea94ed83da158f753a0a9d48f50fb",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-07-24T17:58:52+00:00"
       },
@@ -521,6 +531,11 @@
           "evidence": {
             "commit": "2026-07-06T17:48:27Z",
             "description": "2026-07-07T20:45:10Z"
+          }
+        },
+        "pr-review-4742678308": {
+          "evidence": {
+            "commit": "2026-07-23T18:06:03Z"
           }
         }
       }
