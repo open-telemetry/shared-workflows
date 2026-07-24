@@ -4580,7 +4580,7 @@
     },
     "11002": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot",
         "author_action_review_thread_urls": [],
@@ -4604,19 +4604,28 @@
         "head_sha": "1200a8a6342d8bef07e47ab550a64d00251b42f9",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-24T08:27:28+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-24T10:32:47+00:00",
+        "last_approver_activity_at": "2026-07-24T10:32:19+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "87e0ddb920267dad0e7f99a2a1b82ba9fab408544211a091b3ee6d93838217cf",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "8a3caa731c1b8ee2d61fbea5733548e777d97c62f643410f1def86770dd8d485",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-24T05:37:42+00:00"
       },
       "failed": false,
       "pr_number": 11002,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11002",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11006": {
