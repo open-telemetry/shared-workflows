@@ -1780,11 +1780,14 @@
     },
     "3582": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lquerel",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3582#discussion_r3648576163"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "cc13a4d5fed04cf09c00c386dd5b5c40",
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
@@ -1804,19 +1807,28 @@
         "head_sha": "15b0018f43763d464e529d3182341840fcbf381f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T22:33:50+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-24T22:46:31+00:00",
+        "last_approver_activity_at": "2026-07-24T22:46:35+00:00",
         "last_author_activity_at": "2026-07-24T22:20:38+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "9c2b77112569306a3b17686e36c2ad326ff5458a4aa3c0b8ee53f153b031fafe",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-24T22:20:38+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lalitb",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "56d9e3a61cd861a8598b08187c377e0a9b0921558e8a9cd482a39becb9215cd4",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-24T22:46:31+00:00"
       },
       "failed": false,
       "pr_number": 3582,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3582",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3583": {
