@@ -986,9 +986,13 @@
         "assignees": [],
         "author": "krapie",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 11,
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10448#issuecomment-5068832554"
+        ],
+        "author_nudge_episode_id": "75dabbe96fdd4fc88c87c415ec306dbc",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-24T10:28:11+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -1006,8 +1010,8 @@
         "head_sha": "bf4821d59e545467dbfdd2869ce28f4d1c93b162",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T07:27:03+00:00",
-        "last_approver_activity_at": "2026-07-23T14:30:33+00:00",
+        "last_activity_at": "2026-07-24T10:31:52+00:00",
+        "last_approver_activity_at": "2026-07-24T10:31:33+00:00",
         "last_author_activity_at": "2026-07-24T05:59:47+00:00",
         "last_external_activity_at": "2026-07-21T18:03:59+00:00",
         "reviewers": [
@@ -1025,17 +1029,17 @@
             "changes_requested": false,
             "login": "vitorvasc",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "routing_input_fingerprint": "b1a5b2f4a21e1a232089e4a4f0049108ae9a03dee71afcc09a3d0c3d3754eb53",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-24T05:59:47+00:00"
+        "routing_input_fingerprint": "17d78a05583f8e859bc3354a08c53457e44a3442a4da9a8a9ce37a4b1bb7a904",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-24T10:28:11+00:00"
       },
       "failed": false,
       "pr_number": 10448,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10448",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4878309046": {
           "evidence": {
@@ -1053,8 +1057,10 @@
         },
         "pr-issue-comment-5059636246": {
           "evidence": {
-            "commit": "2026-07-24T05:58:55Z"
-          }
+            "commit": "2026-07-24T05:58:55Z",
+            "reply": "2026-07-24T05:59:47Z"
+          },
+          "reply_source_id": 5066640647
         },
         "pr-review-4730940142": {
           "evidence": {
