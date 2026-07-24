@@ -3216,8 +3216,10 @@
         "author": "gizas",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 10,
+        "author_nudge_episode_id": "51b0e0b059ce4584afc03f7b7796e43d",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-24T20:48:04+00:00",
+        "ci_pending_count": 0,
         "conflicts": "yes",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -3235,7 +3237,7 @@
         "head_sha": "e0b191f6fb8453d1b6203f4649e35db576653d38",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T15:35:04+00:00",
+        "last_activity_at": "2026-07-24T19:51:23+00:00",
         "last_approver_activity_at": "2026-07-06T20:49:59+00:00",
         "last_author_activity_at": "2026-07-23T10:18:45+00:00",
         "last_external_activity_at": "2026-07-07T02:24:54+00:00",
@@ -3273,14 +3275,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "4df9558629adaca63ba44ddd479923a573107f69a9151031afd123826f37971a",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-05-29T17:25:49+00:00"
+        "routing_input_fingerprint": "b15bd1aefd0ca887cea768056aa5b305a70e2a0cf3d8a40dacc45aa249c829ab",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-24T20:48:04+00:00"
       },
       "failed": false,
       "pr_number": 48767,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48767",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4602300664": {
           "evidence": {
