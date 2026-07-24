@@ -1134,8 +1134,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "mwear",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3555#discussion_r3648204840"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3555#pullrequestreview-4776801428"
+        ],
+        "author_nudge_episode_id": "4471b7a0761a47109346489391cc4c4b",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
@@ -1155,19 +1160,28 @@
         "head_sha": "0a2ba42f68ad72838319336da1f598b9b91673cb",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-24T20:34:57+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-24T21:40:21+00:00",
+        "last_approver_activity_at": "2026-07-24T21:40:21+00:00",
         "last_author_activity_at": "2026-07-23T03:35:44+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "7f90096e92c5c1365f9f9aea42474ceed94244c2fb3ff1f0f0f2cfebf7270832",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-23T03:35:44+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "drewrelmas",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "278367dda28e7a331b5b1b7dec54b026d634b5f2ffecc13f2e7d61041a9a6a1d",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-24T21:40:21+00:00"
       },
       "failed": false,
       "pr_number": 3555,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3555",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3556": {
