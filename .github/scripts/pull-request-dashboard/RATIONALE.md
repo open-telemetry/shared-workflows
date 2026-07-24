@@ -12,9 +12,9 @@ the implementation understandable and operationally cheap.
   `repositories.json`.
 - The top-level workflow resolves target repositories, then calls a reusable
   per-repository workflow for each target. The per-repository workflow separates
-  read-only calculation from a repository-wide publisher, so one repository's
-  update failure does not block delivery for repositories whose updates
-  succeeded.
+  read-only calculation from a serialized per-repository publisher, so one
+  repository's update failure does not block delivery for repositories whose
+  updates succeeded.
 - The top-level repository matrix runs one repository at a time. Backfills do
   not benefit enough from cross-repository parallelism to justify extra
   aggregate API and LLM demand.
@@ -45,9 +45,13 @@ the implementation understandable and operationally cheap.
   independently, and every accepted webhook still creates a workflow run.
 - Publishers use one concurrency group per target repository. GitHub preserves
   the running publisher but may replace an older pending publisher with a newer
-  one even when `cancel-in-progress` is false. This is safe because accepted
-  work lives on the state branch and every surviving publisher drains
-  repository-wide work rather than serving only its triggering invocation.
+  one even when `cancel-in-progress` is false. Accepted work lives on the state
+  branch: a targeted publisher limits status-comment and Slack delivery to its
+  triggering PR. Webhook runs can arrive concurrently for many PRs, so allowing
+  each publisher to fan out into repository-wide delivery would create long
+  jobs and put pressure on the GitHub Actions job queue, especially when a new
+  status-comment revision queues every open PR. The hourly untargeted publisher
+  is the bounded repository-wide rollout and recovery path.
 - The top-level hourly health check treats a replaced pending publisher as
   successful. Matrix failures take precedence over cancellation, so genuine
   update or delivery failures still open the failure issue.
@@ -90,8 +94,11 @@ the implementation understandable and operationally cheap.
   queue. Incrementing the implementation revision snapshots all open PRs, then
   hourly runs update at most 50 queued comments until the rollout completes.
   Dashboard refreshes atomically queue comments only when their persisted result
-  changes. Every publisher drains up to 50 queued comments, so a newer publisher
-  also delivers work left by an older pending publisher that GitHub replaced.
+  changes. A targeted publisher updates only its triggering PR when that PR is
+  queued and cannot initialize or drain the repository-wide rollout. Untargeted
+  publishers drain up to 50 queued comments. This confines rollout fan-out to
+  the hourly path instead of multiplying it across concurrent webhook runs, and
+  also delivers work left by a pending publisher that GitHub replaced.
 - Selected PRs are processed one at a time through the same single-PR merge path
   as targeted refreshes. Each accepted PR update pushes structured state before
   the next selected PR is processed.
@@ -308,11 +315,11 @@ the implementation understandable and operationally cheap.
 - When a mapped assignee is added after a PR was already notified during the
   same waiting period, that assignee may wait until the next follow-up cadence
   instead of receiving an immediate initial notification.
-- Every publisher evaluates all accepted repository state for eligible initial
-  and follow-up notifications. The sent-notification ledger and weekday
-  24-hour follow-up cadence bound delivery. Repository-wide evaluation ensures
-  that a newer publisher drains Slack work whose older pending publisher GitHub
-  replaced.
+- A targeted publisher evaluates only its triggering PR and preserves unrelated
+  entries in the sent-notification ledger. An untargeted publisher evaluates all
+  accepted repository state for eligible initial and follow-up notifications,
+  providing the recovery path for Slack work whose pending publisher GitHub
+  replaced. The ledger and weekday 24-hour follow-up cadence bound delivery.
 - Slack notifications are sent only for dashboard state that has already been
   accepted on the state branch. A newer dashboard update can land after the
   publisher checks out state, so a notification can be slightly late
@@ -328,11 +335,12 @@ the implementation understandable and operationally cheap.
 - Dashboard publishing is serialized per target repository. The publisher owns
   target-repository writes for status comments, author reminders, Copilot
   re-review requests, Slack notifications, and the dashboard issue.
-- Each publisher fetches accepted state while holding the publish slot and
-  drains repository-wide pending work. Status comments are bounded to 50 per
-  publisher; author reminders and Copilot requests use explicit durable
-  ledgers; Slack eligibility is reconstructed from accepted dashboard and
-  notification state.
+- Each publisher fetches accepted state while holding the publish slot. A
+  targeted publisher limits status-comment and Slack delivery to its triggering
+  PR; an untargeted publisher drains repository-wide work, with status comments
+  bounded to 50 per run. Author reminders and Copilot requests use explicit
+  durable ledgers; Slack eligibility is reconstructed from accepted dashboard
+  and notification state.
 - The dashboard issue is rendered from `dashboard-state.json` and the target
   repository's current open PR list after delivery. If another update advances
   the state branch while a publisher is already working, external views can

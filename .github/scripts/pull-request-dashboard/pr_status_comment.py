@@ -364,6 +364,29 @@ def publish_pr_status(repo: str, pr_number: int, dashboard_state: dict[str, Any]
     upsert_status_comment(repo, pr_number, render_status_comment(pr, result))
 
 
+def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list[str]:
+    dashboard_state = load_dashboard_state_cache()
+    if dashboard_state is None:
+        print("dashboard result state not found; skipping PR status comment", file=sys.stderr)
+        return []
+
+    rollout_state = load_status_comment_rollout_state()
+    pending_pr_numbers = set(rollout_state.get("pending_pr_numbers") or [])
+    if pr_number not in pending_pr_numbers:
+        return []
+    try:
+        publish_pr_status(repo, pr_number, dashboard_state)
+    except Exception as e:
+        return [f"PR #{pr_number}: {e}"]
+
+    pending_pr_numbers.remove(pr_number)
+    rollout_state["pending_pr_numbers"] = sorted(pending_pr_numbers)
+    if not pending_pr_numbers:
+        rollout_state["completed_revision"] = rollout_state["target_revision"]
+    save_status_comment_rollout_state(rollout_state)
+    return []
+
+
 def prepare_rollout_state(
     rollout_state: dict[str, Any],
     open_pr_numbers: set[int],

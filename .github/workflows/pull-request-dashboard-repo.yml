@@ -216,10 +216,14 @@ jobs:
           SLACK_CHANNEL: ${{ inputs.slack_channel }}
           SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
           REPO_NAME: ${{ inputs.repository }}
+          TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
           delivery_args=(--state-branch "$state_branch" --repo "$REPO_NAME")
+          if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
+            delivery_args+=(--pr-number "$TRIGGER_PR_NUMBER")
+          fi
           python3 .github/scripts/pull-request-dashboard/delivery.py "${delivery_args[@]}"
 
       - name: Publish dashboard issue
