@@ -369,7 +369,7 @@
     },
     "1630": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -393,19 +393,28 @@
         "head_sha": "6badc56484da520ecc2170f4b5f308212237651a",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-24T11:29:24+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-24T12:22:25+00:00",
+        "last_approver_activity_at": "2026-07-24T12:22:25+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-24T04:25:17+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "602ea2721f3941bae87c812f60c283d2e5370b75db39275ee98d5d35520edf34",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jsuereth",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "0cda342de145986978fd4e93bc009d6b4a0714f14a0bb487665d4b7a5c0778ac",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-24T00:41:25+00:00"
       },
       "failed": false,
       "pr_number": 1630,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1630",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "845": {
