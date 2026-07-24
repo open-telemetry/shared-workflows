@@ -950,8 +950,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "c1ly",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3535#discussion_r3642205374"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "57e1eb3b04f44c318c178334ac0e8796",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
@@ -971,19 +974,28 @@
         "head_sha": "cc6f7d226e76db3c3431395b9763c3cb25a81c07",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-23T23:07:12+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-24T00:32:10+00:00",
+        "last_approver_activity_at": "2026-07-24T00:32:10+00:00",
         "last_author_activity_at": "2026-07-21T20:17:44+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "9648b49edab641de6738f939192e639e8da602ebfecbfaa8f462dbd8c247a2f5",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-21T20:17:44+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lquerel",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "e6da12dad736a7b32dbb620b2bc45223f806d3aafc2cc815e1c8da99b94fb671",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-24T00:32:10+00:00"
       },
       "failed": false,
       "pr_number": 3535,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3535",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3537": {
