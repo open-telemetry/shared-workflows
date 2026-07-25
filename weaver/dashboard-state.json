@@ -354,10 +354,16 @@
         "approval_count": 0,
         "assignees": [],
         "author": "lmolkova",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/weaver/pull/1634#discussion_r3648969197",
+          "https://github.com/open-telemetry/weaver/pull/1634#discussion_r3648969207",
+          "https://github.com/open-telemetry/weaver/pull/1634#discussion_r3648969216"
+        ],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "author_nudge_episode_id": "f169c26e88fa477c9e4d27489649969d",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-25T01:04:07+00:00",
+        "ci_pending_count": 5,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -375,19 +381,28 @@
         "head_sha": "d83718e3afc50a308ee71ee8c1ad7c92f07b26af",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-25T01:03:35+00:00",
+        "last_activity_at": "2026-07-25T01:03:59+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-25T01:03:31+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "f5021e5e01a0395b9b534382c4060bfccb0dadbc313472b7cd1565cc45e727ef",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-25T01:03:31+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "github-advanced-security",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "f7180cc638a8a5fa9e65e48f1980c0974c542515c86a1892f47f480c2979884a",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-25T01:04:07+00:00"
       },
       "failed": false,
       "pr_number": 1634,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1634",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "845": {
