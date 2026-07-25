@@ -910,11 +910,14 @@
     },
     "4900": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "matt-hensley",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4900#pullrequestreview-4778886271"
+        ],
+        "author_nudge_episode_id": "57eccf02464d421f84fda8ca2ea33c86",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -934,19 +937,28 @@
         "head_sha": "4d3f20a39253b51f41481fcee771d4fa6581603b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-25T06:53:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-25T07:55:27+00:00",
+        "last_approver_activity_at": "2026-07-25T07:55:27+00:00",
         "last_author_activity_at": "2026-07-24T19:13:46+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "5776858de6f76cffaed075ad43a85e67cefa31d35343ab4248cd7829b50fc058",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-24T19:13:46+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "07aaf198fceac7fc9e3ead8e26954b0b0aa721db49aa94ce8b53f4917aee3d1b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-25T07:55:27+00:00"
       },
       "failed": false,
       "pr_number": 4900,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4900",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
