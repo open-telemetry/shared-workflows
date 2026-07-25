@@ -676,11 +676,18 @@
     },
     "281": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "rads-1996",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3650829806",
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3650832216",
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#discussion_r3650834418"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281#pullrequestreview-4779970010"
+        ],
+        "author_nudge_episode_id": "b35261bbc8034b12971b48d0836ae7db",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -700,19 +707,28 @@
         "head_sha": "b2890223c1390f03c6dc962bb3b50a64bfd0a753",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-25T17:51:15+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-25T19:05:32+00:00",
+        "last_approver_activity_at": "2026-07-25T19:05:32+00:00",
         "last_author_activity_at": "2026-07-23T21:43:21+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "83084e92fd1a8cfa135bfc3c65ed1668f022cd6cda2f8a8de816de3cbff00f0d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-23T21:43:21+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "9c5d0267cd263f39fbbfadd0f33256830259dd9d517317eb8d1f9df066ea7edd",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-25T19:05:31+00:00"
       },
       "failed": false,
       "pr_number": 281,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/281",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "282": {
