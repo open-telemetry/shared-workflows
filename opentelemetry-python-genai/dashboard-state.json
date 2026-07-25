@@ -927,11 +927,14 @@
     },
     "309": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "eternalcuriouslearner",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/309#discussion_r3650816759"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "11d3a1aa7850405881bf2997fb6f51c9",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -951,19 +954,28 @@
         "head_sha": "771b2dea48a49a29d88bee1edd4379e2208c1f20",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-25T18:52:26+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-25T18:53:55+00:00",
+        "last_approver_activity_at": "2026-07-25T18:53:55+00:00",
         "last_author_activity_at": "2026-07-24T02:35:19+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "930b7280790564c46baccbd73b21e098e0a64decc8a65821f9eca22edbae9551",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-24T02:35:19+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "5fe30d2e39a672f37ac795799609a96d42ed2410b5a512c6e0520271512c332e",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-25T18:53:55+00:00"
       },
       "failed": false,
       "pr_number": 309,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/309",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
