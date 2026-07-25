@@ -1539,12 +1539,10 @@
     },
     "3933": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 2,
         "assignees": [],
         "author": "app/renovate",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/3933#discussion_r3648998212"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
@@ -1565,28 +1563,36 @@
         "head_sha": "7fc70d35a04e25ff26e57ffffd143aba77d9cba9",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-25T16:56:35+00:00",
-        "last_approver_activity_at": "2026-07-25T01:19:14+00:00",
+        "last_activity_at": "2026-07-25T18:42:58+00:00",
+        "last_approver_activity_at": "2026-07-25T18:42:58+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-24T22:52:25+00:00",
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "lmolkova",
-            "open_thread": true,
+            "open_thread": false,
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "72e03ae1ca592b0e47b7341e257acf6e212913889642798f683debcd90c1f374",
+        "routing_input_fingerprint": "5413ae02aaf17169962b403f272e7e67301d87660dc6638532e47125c5d3cb2d",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-24T22:52:27+00:00"
       },
       "failed": false,
       "pr_number": 3933,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3933",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
