@@ -4319,9 +4319,11 @@
         "author": "Andygol",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 11,
-        "conflicts": "yes",
+        "author_nudge_episode_id": "ac9b8107d81b4e9f8e6a4f2d2980e8b4",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-26T12:05:56+00:00",
+        "ci_pending_count": 6,
+        "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_request_needed": false,
@@ -4335,12 +4337,12 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "1f2c5a830321eb203e796d60c89640887a50e89d",
+        "head_sha": "a9b77b8b3a36a22e47c01eb4c11dd6aaf4d21e44",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-26T11:54:16+00:00",
+        "last_activity_at": "2026-07-26T12:05:23+00:00",
         "last_approver_activity_at": "2026-07-23T13:52:33+00:00",
-        "last_author_activity_at": "2026-07-26T11:53:57+00:00",
+        "last_author_activity_at": "2026-07-26T12:05:07+00:00",
         "last_external_activity_at": "2026-01-16T14:16:33+00:00",
         "reviewers": [
           {
@@ -4360,14 +4362,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "5a1603b6b6008c9923ca32a173cbf1247f7fdd5d7a9995d18752188620cd32f9",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-26T11:53:57+00:00"
+        "routing_input_fingerprint": "ff2a44ed975dde1439e5150276dcd5028fc2d70dabcb4c1896bb1adc99df9914",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-26T12:05:56+00:00"
       },
       "failed": false,
       "pr_number": 5891,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/5891",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-3139601381": {
           "evidence": {
