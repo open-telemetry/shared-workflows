@@ -4633,8 +4633,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "ymotongpoo",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11026#discussion_r3651608888"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11026#pullrequestreview-4780795219"
+        ],
+        "author_nudge_episode_id": "d59fd170a5ed470ca489858915210971",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -4654,19 +4659,28 @@
         "head_sha": "c3e77c191bf67ed9d95a5dadb2d78c894d0433a5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-25T23:53:53+00:00",
+        "last_activity_at": "2026-07-26T02:56:50+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-25T09:17:56+00:00",
-        "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "b504ef01ccf36c935dda32bd39f6c99fb4bf635723b9452622ea8044a0dd7de1",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-25T09:17:56+00:00"
+        "last_external_activity_at": "2026-07-26T02:56:50+00:00",
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "kohbis",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "5341b3b43f77aa9597c11c9eaa1684d2449c9340a3a8163d22e6b51df71b988b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-26T02:56:50+00:00"
       },
       "failed": false,
       "pr_number": 11026,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11026",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11028": {
