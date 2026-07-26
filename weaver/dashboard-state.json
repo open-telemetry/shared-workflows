@@ -408,7 +408,7 @@
     },
     "1635": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jerbly",
         "author_action_review_thread_urls": [],
@@ -432,19 +432,28 @@
         "head_sha": "80e50277dee36c68eec3737beafc7b74946f9ccc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-26T13:04:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-26T14:40:29+00:00",
+        "last_approver_activity_at": "2026-07-26T14:40:29+00:00",
         "last_author_activity_at": "2026-07-26T09:43:20+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "7c3ce61a12d350bd558f455169901d5c48d35164629418a03eed7b571620bdd6",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jsuereth",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "ae3a755ad6461ac1e54ffedf4bc86d927e2a9d740decc46200a4c6518ba28b87",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-26T09:43:20+00:00"
       },
       "failed": false,
       "pr_number": 1635,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1635",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "845": {
