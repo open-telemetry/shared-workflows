@@ -2345,9 +2345,11 @@
         "author": "fractalwrench",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "ea428c59e2114ea294dbdce67b0f4a7f",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-27T09:27:36+00:00",
         "ci_pending_count": 0,
-        "conflicts": "no",
+        "conflicts": "yes",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_request_needed": false,
@@ -2364,7 +2366,7 @@
         "head_sha": "03b7fde3b87058c528228586b2aec9121d6c31f6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T09:28:02+00:00",
+        "last_activity_at": "2026-07-27T09:35:48+00:00",
         "last_approver_activity_at": "2026-07-24T19:29:09+00:00",
         "last_author_activity_at": "2026-07-27T09:27:22+00:00",
         "last_external_activity_at": "2026-07-23T05:27:14+00:00",
@@ -2386,14 +2388,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "631eb77758fd25341f8624fca088bda56b38256dd89ca550100751a77a101562",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-27T09:27:22+00:00"
+        "routing_input_fingerprint": "05f174fb5b199288dc3646cbda30604d733d90082402d9c7d96c77bdefef9bc5",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-27T09:27:36+00:00"
       },
       "failed": false,
       "pr_number": 10829,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10829",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5059649344": {
           "evidence": {
