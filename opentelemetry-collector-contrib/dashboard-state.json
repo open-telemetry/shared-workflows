@@ -8322,7 +8322,7 @@
     },
     "49702": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "dyl10s",
         "author_action_review_thread_urls": [],
@@ -8346,19 +8346,28 @@
         "head_sha": "449b2e6d5304d49d06e3119c66e22af4a9e5f94f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T03:08:09+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-27T10:08:59+00:00",
+        "last_approver_activity_at": "2026-07-27T10:08:59+00:00",
         "last_author_activity_at": "2026-07-16T19:54:02+00:00",
         "last_external_activity_at": "2026-07-20T13:03:34+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "c59d4ef2ce45106feff2ffb1b2f610ac491714351c297ad711ad5222bda0ae7c",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "iblancasa",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "9cc9ed9c7a14af4918a8216ef89c10a93f4f3b7820013f80253629560fc1e3ff",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-16T19:54:02+00:00"
       },
       "failed": false,
       "pr_number": 49702,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49702",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49704": {
