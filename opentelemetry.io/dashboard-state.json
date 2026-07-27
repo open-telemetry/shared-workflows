@@ -2431,8 +2431,10 @@
         "author": "swiatekm",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 3,
+        "author_nudge_episode_id": "57aa673e5db74adfa0da7d1fe22bb981",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-27T11:47:02+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -2450,16 +2452,24 @@
         "head_sha": "e83a36e328d29575264dc9b41b40cdc0599e0a97",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T11:45:39+00:00",
+        "last_activity_at": "2026-07-27T13:15:46+00:00",
         "last_approver_activity_at": "2026-07-23T14:31:47+00:00",
         "last_author_activity_at": "2026-07-27T10:21:19+00:00",
-        "last_external_activity_at": "2026-07-21T15:03:55+00:00",
+        "last_external_activity_at": "2026-07-27T13:15:46+00:00",
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "chalin",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "iblancasa",
             "open_thread": false,
             "top_level_feedback": false
           },
@@ -2480,14 +2490,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "b7367b2347f802fefb7c5b7d18819d0ec10ee987ba4b9adcec9071f90db15d34",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-27T10:21:19+00:00"
+        "routing_input_fingerprint": "590544e62b8c88d9a4c1299cc5152a91649c97ca475abf224eb0742c5a232949",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-27T11:47:02+00:00"
       },
       "failed": false,
       "pr_number": 10831,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10831",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5059649780": {
           "evidence": {
