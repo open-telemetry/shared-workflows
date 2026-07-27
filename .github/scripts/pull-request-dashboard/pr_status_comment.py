@@ -15,6 +15,7 @@ from github_cli import (
 from dashboard_override import PRE_REVIEW_ROUTES, author_override_guidance
 from route_presentation import route_status_summary
 from state import (
+    STATUS_COMMENT_REVISION,
     load_dashboard_state_cache,
     load_status_comment_rollout_state,
     save_status_comment_rollout_state,
@@ -30,9 +31,6 @@ AUTHOR_NUDGE_EPISODE_MARKER_PREFIX = (
 _AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-author-nudge-episode:([a-f0-9]+) -->"
 )
-# Increment whenever render_status_comment changes in a way existing comments
-# need to adopt. Hourly runs durably roll the revision out to all open PRs.
-STATUS_COMMENT_REVISION = 13
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
