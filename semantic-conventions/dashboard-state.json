@@ -1418,11 +1418,14 @@
     },
     "3931": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ChrsMark",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3931#discussion_r3656754877"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "acb441b9dc27479cac28827476dd2cc8",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1442,19 +1445,28 @@
         "head_sha": "a3ac308953fa66ae0e1533e83f69bdb8b20f239a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T09:58:46+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-27T11:45:35+00:00",
+        "last_approver_activity_at": "2026-07-27T11:45:35+00:00",
         "last_author_activity_at": "2026-07-27T07:38:56+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "6d86ca3dabf41f3249b68685114579da65dc3f2227c4e0d11f2a3fdab6e4d48a",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-27T07:38:56+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "joaopgrassi",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "ee4d1ff616a17c4248c0904a8c6183b6d6a18db938cdbb2174bc149a529b3ab1",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-27T11:45:35+00:00"
       },
       "failed": false,
       "pr_number": 3931,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3931",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3935": {
