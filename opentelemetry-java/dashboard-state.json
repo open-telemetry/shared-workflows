@@ -1131,11 +1131,14 @@
     },
     "8650": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "TimurRakhmatullin86",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8650#discussion_r3660943267"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "d6245373acab45aea15a3f2586463bb6",
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
@@ -1155,19 +1158,28 @@
         "head_sha": "386ea3b1f2681ca790d1c10fb962361467dd1e21",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T13:19:24+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-27T21:14:00+00:00",
+        "last_approver_activity_at": "2026-07-27T21:14:00+00:00",
         "last_author_activity_at": "2026-07-20T01:02:34+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "6059c206ad703a75785192744f280b4c8c6a6d558b39be7364258f40b7047ec5",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-20T01:02:34+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jack-berg",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "45539670b07cbbd2d06400fcfa854df76755ba6a3638e46e830ff275b1a99229",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-27T21:14:00+00:00"
       },
       "failed": false,
       "pr_number": 8650,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8650",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "8654": {
