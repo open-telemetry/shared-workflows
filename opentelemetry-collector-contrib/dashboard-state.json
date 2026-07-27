@@ -9490,8 +9490,11 @@
         "approval_count": 1,
         "assignees": [],
         "author": "XSAM",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49813#discussion_r3632923032"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "342ffb0e844d498a8589b7fdeacf1080",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -9511,8 +9514,8 @@
         "head_sha": "2bb7c952bc3ba6b25168a65dc1b9f3ecd61a29ee",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T18:31:46+00:00",
-        "last_approver_activity_at": "2026-07-27T16:46:17+00:00",
+        "last_activity_at": "2026-07-27T22:13:04+00:00",
+        "last_approver_activity_at": "2026-07-27T22:13:04+00:00",
         "last_author_activity_at": "2026-07-22T01:18:26+00:00",
         "last_external_activity_at": "",
         "reviewers": [
@@ -9523,16 +9526,24 @@
             "login": "atoulme",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dmitryax",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "f554936a58050ff09a5996861bbc2c27f38db65eee907df02c9cc533ccaa6684",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-22T01:18:26+00:00"
+        "routing_input_fingerprint": "584ec089599d2b6ac1a14ce5b8aade06b11e04f994103080e85555b1322954f3",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-27T22:13:04+00:00"
       },
       "failed": false,
       "pr_number": 49813,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49813",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "49814": {
