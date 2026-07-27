@@ -3,7 +3,7 @@
   "prs": {
     "51": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -27,19 +27,28 @@
         "head_sha": "a0a01ed3c0a44b3047bbae962ab6d23da78783a3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T13:38:10+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-27T18:18:16+00:00",
+        "last_approver_activity_at": "2026-07-27T18:18:16+00:00",
         "last_author_activity_at": "2026-07-26T21:35:55+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "9ad7c9f0df5e10829ae764d26d5a8b7fddbe0007a935d8946eff9e8abe7a5f3f",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jsuereth",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "5df6fb066ce9c42729ead78e95d9b6a263a68c36c3dabbdcdd4c99482c21519c",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-26T21:35:55+00:00"
       },
       "failed": false,
       "pr_number": 51,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/51",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
