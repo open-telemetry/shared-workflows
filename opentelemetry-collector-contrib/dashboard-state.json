@@ -11131,7 +11131,7 @@
     },
     "49876": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "yamoyamoto",
         "author_action_review_thread_urls": [],
@@ -11155,19 +11155,28 @@
         "head_sha": "50243e54523e4fa82597809f691ac084016ad28c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-26T20:27:07+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-27T02:35:06+00:00",
+        "last_approver_activity_at": "2026-07-27T02:35:06+00:00",
         "last_author_activity_at": "2026-07-26T11:32:05+00:00",
         "last_external_activity_at": "2026-07-26T15:54:11+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "5084dce87e4044d54467ca9c44998fd912f34e9cc528dd5463f1e1a991fc2441",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "MovieStoreGuy",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "143a6b54095b4c792db7d7d7ef5567573cd3b65535451106f5619f3cb73ce44c",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-26T11:32:05+00:00"
       },
       "failed": false,
       "pr_number": 49876,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49876",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49877": {
