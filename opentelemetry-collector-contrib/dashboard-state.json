@@ -8831,13 +8831,13 @@
     },
     "49743": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "singhvibhanshu",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -8855,19 +8855,28 @@
         "head_sha": "d742d369b9c91194a32ee9c83f13476877c96242",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T16:15:16+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-27T17:48:11+00:00",
+        "last_approver_activity_at": "2026-07-27T17:48:11+00:00",
         "last_author_activity_at": "2026-07-27T16:15:15+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "dbcc2114d1848e5f86821c72051dee8861d3c4ed0d91bf5903fd4cc9ff365ee6",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "fda089a66ee0b7dcf87855e59f127bf34b36373bef8217c5f7d63c8aee69fe6e",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-27T16:15:15+00:00"
       },
       "failed": false,
       "pr_number": 49743,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49743",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49745": {
