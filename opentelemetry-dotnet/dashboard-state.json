@@ -932,8 +932,12 @@
         "approval_count": 0,
         "assignees": [],
         "author": "martincostello",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7556#discussion_r3660521377",
+          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7556#discussion_r3660548935"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "984ec84f4cbe4e51afea51f2d12e9e16",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -953,19 +957,28 @@
         "head_sha": "4cf964d0b9a7acf3fb93959a165435857ca8a974",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T13:13:49+00:00",
+        "last_activity_at": "2026-07-27T20:11:14+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-27T10:50:17+00:00",
-        "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "63a2563d46a30026c1d465be71dc0d6819a04087e64e98f62e77e5f081326466",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-27T10:50:17+00:00"
+        "last_external_activity_at": "2026-07-27T20:11:14+00:00",
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "xiang17",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "5865a3a796afd4fb94229c5f21804393ec40703891e237cc66945c03811c10bb",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-27T20:11:14+00:00"
       },
       "failed": false,
       "pr_number": 7556,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7556",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
