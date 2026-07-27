@@ -11197,10 +11197,8 @@
         "author": "krajorama",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "140e472d3b644f32991779ec7767f890",
-        "ci_failing_count": 2,
-        "ci_failing_since": "2026-07-27T07:44:35+00:00",
-        "ci_pending_count": 7,
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -11218,19 +11216,28 @@
         "head_sha": "4ed4485c0453679c6b9bb3fdb4428840828a11c4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T07:45:29+00:00",
+        "last_activity_at": "2026-07-27T07:52:57+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-27T07:41:06+00:00",
-        "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "5366577e558baf6b7c1763cfd2cbf2c207097d190a21a930c04a31c4975108d9",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-27T07:44:35+00:00"
+        "last_external_activity_at": "2026-07-27T07:52:42+00:00",
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "e2301e0be76464baa4d0c844532069be50a5d8bf8978e04ff3adedb19422e97d",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-27T07:41:06+00:00"
       },
       "failed": false,
       "pr_number": 49880,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49880",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
