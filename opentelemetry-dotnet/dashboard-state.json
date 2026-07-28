@@ -476,7 +476,7 @@
     },
     "7558": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "xiang17",
         "author_action_review_thread_urls": [],
@@ -500,18 +500,27 @@
         "head_sha": "f0814450d66313519ed6d7add3d3abf072133918",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T23:33:05+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T23:39:51+00:00",
+        "last_approver_activity_at": "2026-07-28T23:39:50+00:00",
         "last_author_activity_at": "2026-07-28T22:55:08+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "607210fa03d7e0898fe1511944a9ddb90aea0b9f064c409441995a8f17d8e467",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "916ebc5c388403325b01ce541fc271ae2cf9d97910c6bbc6c2c7918f9a6a8524",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-28T22:55:08+00:00"
       },
       "failed": false,
       "pr_number": 7558,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7558",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
