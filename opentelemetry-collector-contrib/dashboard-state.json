@@ -10808,8 +10808,10 @@
         "author": "avadla",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 10,
+        "author_nudge_episode_id": "ecb93a0619f445c6affce15538a67e32",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-28T11:32:08+00:00",
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -10841,14 +10843,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "8d272a8d0a4f8cebf2a2e6415490f1a0ee4a437ecbdb5ec88f78b1840fd8f86c",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-28T11:25:54+00:00"
+        "routing_input_fingerprint": "8c1094455f4be642ad1ce756561a078101310cbcb43b09b5b0c09a25aaa04039",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-28T11:32:08+00:00"
       },
       "failed": false,
       "pr_number": 49898,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49898",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5102017566": {
           "evidence": {
