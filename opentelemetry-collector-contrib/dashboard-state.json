@@ -10996,11 +10996,13 @@
     },
     "49905": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 0,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49905#pullrequestreview-4797180600"
+        ],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -11020,18 +11022,18 @@
         "head_sha": "2a3c858e0785d5b3e68f056fefd849305b32b61f",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-28T12:19:50+00:00",
-        "last_approver_activity_at": "2026-07-28T10:53:03+00:00",
+        "last_activity_at": "2026-07-28T12:24:56+00:00",
+        "last_approver_activity_at": "2026-07-28T12:24:56+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-28T11:53:50+00:00",
         "reviewers": [
           {
-            "approved": true,
+            "approved": false,
             "approved_non_team": false,
-            "changes_requested": false,
+            "changes_requested": true,
             "login": "mx-psi",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": false,
@@ -11050,14 +11052,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "49539b7bdbd1d9482d00bb014d27d57e8309d7320b9c917003a6c57513024494",
+        "routing_input_fingerprint": "a05e8e8f3fb172867120b8c4d414beda975185da0d2eb14bbbda396c6dc8801e",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-28T10:24:09+00:00"
       },
       "failed": false,
       "pr_number": 49905,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49905",
-      "route": "maintainer",
+      "route": "approver",
       "top_level_history": {}
     },
     "49909": {
