@@ -120,6 +120,10 @@ jobs:
           TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Copilot CLI resolves auth in the order COPILOT_GITHUB_TOKEN, GH_TOKEN, GITHUB_TOKEN.
+          # GH_TOKEN holds the app installation token, which cannot make Copilot requests, so the
+          # CLI has to be pointed explicitly at the Actions token granted copilot-requests: write.
+          COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ inputs.repository }}
           REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
