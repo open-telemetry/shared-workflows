@@ -19,6 +19,12 @@ test("refreshes when a review request is added or removed", () => {
   assert.equal(isAllowedAction("pull_request", "review_request_removed"), true);
 });
 
+test("refreshes only once a check suite completes", () => {
+  assert.equal(isAllowedAction("check_suite", "completed"), true);
+  assert.equal(isAllowedAction("check_suite", "requested"), false);
+  assert.equal(isAllowedAction("check_suite", "rerequested"), false);
+});
+
 test("recognizes comments performed by the dashboard app", () => {
   assert.equal(isDashboardSelfTriggeredCommentEvent("issue_comment", {
     comment: {
