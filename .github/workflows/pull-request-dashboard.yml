@@ -137,6 +137,7 @@ jobs:
     if: needs.resolve-targets.outputs.dashboard_precondition_met == 'true'
     permissions:
       contents: write
+      copilot-requests: write
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -155,7 +156,6 @@ jobs:
       labels_to_display_json: ${{ toJSON(matrix.labels_to_display || fromJSON('[]')) }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   notify-hourly-failure:

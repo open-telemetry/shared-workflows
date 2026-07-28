@@ -45,8 +45,6 @@ on:
     secrets:
       PR_DASHBOARD_PRIVATE_KEY:
         required: true
-      COPILOT_GITHUB_TOKEN:
-        required: true
       SLACK_WEBHOOK_URL:
         required: true
 
@@ -63,6 +61,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
+      copilot-requests: write
     environment: protected
     runs-on: ubuntu-latest
     outputs:
@@ -122,7 +121,6 @@ jobs:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           REPO_NAME: ${{ inputs.repository }}
           REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
           APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
