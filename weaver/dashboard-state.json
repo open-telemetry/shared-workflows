@@ -801,8 +801,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "jerbly",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/weaver/pull/1651#discussion_r3662156243"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "afc84092d0254370a40af6ded31ef9fd",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -822,19 +825,28 @@
         "head_sha": "a2f1dbb9d76053662b3390c774d1b93ea69f31d4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T01:36:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T01:43:58+00:00",
+        "last_approver_activity_at": "2026-07-28T01:43:58+00:00",
         "last_author_activity_at": "2026-07-28T01:20:09+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "861acb50ff3ae5563daee0509ae3fd8d4f4d71503b39dc6139b109cbc27ba459",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-28T01:20:09+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "7b5fe5a624a1eef66262164d749455d5fc54d681124261fdd7de28690b090dab",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-28T01:43:58+00:00"
       },
       "failed": false,
       "pr_number": 1651,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1651",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "845": {
