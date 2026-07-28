@@ -7626,7 +7626,7 @@
     },
     "49704": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "PySheriff",
         "author_action_review_thread_urls": [],
@@ -7650,18 +7650,27 @@
         "head_sha": "fe183ee4eece068b0d33497dccbeb5e0b2185922",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T10:57:38+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T15:56:13+00:00",
+        "last_approver_activity_at": "2026-07-28T15:56:13+00:00",
         "last_author_activity_at": "2026-07-17T02:06:22+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "693e4fac550537cbcc841b774431f5c74f49d508f744d5853486dfe6d6e0b87f",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "e6e66ff913f00163b85f62c0fbc13e8337410843a4ed2c132cb5340ac7bdc993",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-17T02:06:22+00:00"
       },
       "failed": false,
       "pr_number": 49704,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49704",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49706": {
