@@ -1109,6 +1109,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             top_level_reviewer_feedback_prompt_input(discussion),
             {
                 "discussion_id": "change-request",
+                "requester": "reviewer",
                 "pr_author": "author",
                 "body": "Please update the implementation.",
             },
@@ -1124,6 +1125,18 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertIn('"pr_author": "author"', prompt)
         self.assertIn("directed to other reviewers", prompt)
+
+    def test_top_level_prompt_attributes_the_body_to_its_requester(self) -> None:
+        discussion = top_level_item("alternative-pr", requester="other-reviewer")
+        discussion["comments"] = [
+            {"body": "I'm proposing to fix the bigger issue in #278 instead."}
+        ]
+
+        prompt = top_level_reviewer_feedback_batch_prompt([discussion])
+
+        self.assertIn('"requester": "other-reviewer"', prompt)
+        self.assertIn("First-person statements in `body` are the reviewer speaking", prompt)
+        self.assertIn("a reviewer's own pull request or patch", prompt)
 
     def test_unclear_item_sets_reviewer_wait_age(self) -> None:
         pending_actions = {
