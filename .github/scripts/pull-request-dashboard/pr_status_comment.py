@@ -122,7 +122,7 @@ def status_footer(
     report_url = _bounded_report_url(pr, status_comment)
     lines = [
         "<details>",
-        "<summary>Doesn't look right?</summary>",
+        "<summary>Status above doesn't look right?</summary>",
         "",
         "<br>",
         "",
