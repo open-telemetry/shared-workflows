@@ -1138,6 +1138,24 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertIn("First-person statements in `body` are the reviewer speaking", prompt)
         self.assertIn("a reviewer's own pull request or patch", prompt)
 
+    def test_top_level_prompt_treats_a_superseding_pull_request_as_author_action(
+        self,
+    ) -> None:
+        discussion = top_level_item("supersede", requester="other-reviewer")
+        discussion["comments"] = [
+            {
+                "body": (
+                    "This PR covers up a bigger issue. I'm proposing to fix the "
+                    "bigger issue here - #278 instead."
+                )
+            }
+        ]
+
+        prompt = top_level_reviewer_feedback_batch_prompt([discussion])
+
+        self.assertIn("rejects the pull request's premise, approach, or necessity", prompt)
+        self.assertIn("fixing the underlying\nproblem in their own pull request", prompt)
+
     def test_unclear_item_sets_reviewer_wait_age(self) -> None:
         pending_actions = {
             "unclear": {"action": "reviewer", "since": ROOT_TIMESTAMP},

@@ -134,6 +134,12 @@ Use these discussion_action labels:
 Feedback blocked on a dependency, decision, or event outside this repository is
 still the PR author's to drive: classify it as author.
 
+Feedback that rejects the pull request's premise, approach, or necessity is an
+author action, including a reviewer stating that they are fixing the underlying
+problem in their own pull request instead. Such feedback often requests nothing
+and names no action, but only the PR author can decide whether to rework or
+close their pull request, so the item stays open until they answer.
+
 Compare named users and teams in the body with `pr_author`. A request for
 someone else to review, approve, answer, or decide maps to none even though
 that other participant still has a follow-up. Do not assume that a mentioned
