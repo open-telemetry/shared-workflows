@@ -10898,7 +10898,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 7,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -10916,9 +10916,9 @@
         "head_sha": "7f6e47329ab1815498de759d01a8893bcbb331e7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T14:56:17+00:00",
+        "last_activity_at": "2026-07-28T15:14:57+00:00",
         "last_approver_activity_at": "2026-07-28T14:52:32+00:00",
-        "last_author_activity_at": "2026-07-28T14:52:33+00:00",
+        "last_author_activity_at": "2026-07-28T15:14:57+00:00",
         "last_external_activity_at": "2026-07-28T14:52:56+00:00",
         "reviewers": [
           {
@@ -10930,24 +10930,28 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "3a20df588585dd3616db0ef81a2eab3cb82459a247c06f3c287879ba98212573",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-28T14:24:25+00:00"
+        "routing_input_fingerprint": "a438ff63ae6ad653863f6e6abad4be1471700a700336d85def631fd2a0ef5655",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-28T15:14:57+00:00"
       },
       "failed": false,
       "pr_number": 49922,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49922",
-      "route": "external",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5105584079": {
           "evidence": {
-            "commit": "2026-07-28T14:52:33Z"
-          }
+            "commit": "2026-07-28T14:52:33Z",
+            "reply": "2026-07-28T15:14:57Z"
+          },
+          "reply_source_id": 5106004052
         },
         "pr-review-4798146598": {
           "evidence": {
-            "commit": "2026-07-28T14:33:48Z"
-          }
+            "commit": "2026-07-28T14:33:48Z",
+            "reply": "2026-07-28T15:14:57Z"
+          },
+          "reply_source_id": 5106004052
         }
       }
     },
