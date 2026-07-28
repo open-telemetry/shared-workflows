@@ -8,7 +8,7 @@ from typing import Any
 
 from author_nudge import fetch_current_pr_routing_state
 from github_cli import (
-    fetch_pr_review_data,
+    fetch_pr_reviews,
     request_copilot_review,
 )
 from state import load_copilot_review_requests, save_copilot_review_requests
@@ -134,9 +134,9 @@ def deliver_copilot_review_requests(
             ):
                 requests[key] = {**entry, "requested_at": format_ts(now)}
                 continue
-            review_data = fetch_pr_review_data(owner, repo_name, pr_number) or {}
+            reviews = fetch_pr_reviews(owner, repo_name, pr_number) or []
             review_exists, review_needed = copilot_review_status(
-                review_data.get("reviews") or [],
+                reviews,
                 current_head,
             )
             if not review_exists or not review_needed:

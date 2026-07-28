@@ -28,24 +28,15 @@ OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
 _OVERRIDE_ACK_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-override-ack:(\d+) -->"
 )
-PRE_REVIEW_ROUTES = ("author", "external")
+PRE_REVIEW_ROUTES = ("author",)
 REVIEWERS_OR_LATER_ROUTES = ("approver", "maintainer")
 
 
-def author_override_guidance(
-    staleness_note: str = "",
-    *,
-    route: str = "author",
-) -> str:
-    waiting_on = (
-        "an external dependency or decision"
-        if route == "external"
-        else "the author"
-    )
+def author_override_guidance(staleness_note: str = "") -> str:
     guidance = (
         "If you believe this pull request is incorrectly routed as waiting on "
-        f"{waiting_on}, comment `/dashboard route:reviewers` to route it from "
-        f"waiting on {waiting_on} to waiting on reviewers."
+        "the author, comment `/dashboard route:reviewers` to route it from "
+        "waiting on the author to waiting on reviewers."
     )
     if staleness_note:
         guidance = f"{guidance} {staleness_note}"
@@ -227,7 +218,6 @@ def override_ack_marker(comment_id: int) -> str:
 ROUTE_ALREADY_ROUTED_PHRASE = {
     "approver": "already waiting on reviewers",
     "maintainer": "already past review and waiting on maintainers",
-    "external": "waiting on an external dependency, not on you",
     "copilot": "waiting on an automated Copilot review",
 }
 
@@ -348,8 +338,7 @@ def apply_dashboard_override(facts: dict[str, Any], route: str) -> str:
     requested = bool(facts.get("dashboard_override_requested"))
     command_pending = bool(facts.get("dashboard_override_command_id"))
     # The override only takes effect before review, while automatic routing waits
-    # on the author or an external dependency. On every later route the natural
-    # routing stands.
+    # on the author. On every later route the natural routing stands.
     override_applies = route in PRE_REVIEW_ROUTES and (label_applied or requested)
     # A command that does not newly move the pull request to reviewers is a no-op;
     # the author is told where it is routed. This covers both a non-overridable

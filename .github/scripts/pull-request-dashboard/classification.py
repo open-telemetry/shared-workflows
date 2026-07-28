@@ -50,9 +50,11 @@ Question: who has the next action for this discussion?
 Use these labels:
   - author: the PR author needs to respond, implement, rebase, or otherwise act
   - reviewer: a reviewer/approver/maintainer needs to review, answer, approve, or merge
-  - external: the discussion is blocked on something outside this repository
   - none: no follow-up is needed for this discussion
   - unclear: the discussion does not contain enough information to decide
+
+A discussion blocked on a dependency, decision, or event outside this repository
+is still the author's to drive: classify it as author.
 
 Guidance:
   - Default heuristic: whoever commented last has passed the ball to the other
@@ -87,7 +89,7 @@ Guidance:
     reacts positively, classify as author.
 
 Respond with a single JSON object and nothing else:
-{{"discussion_action": "author" | "reviewer" | "external" | "none" | "unclear", "reason": "short explanation grounded in this discussion"}}
+{{"discussion_action": "author" | "reviewer" | "none" | "unclear", "reason": "short explanation grounded in this discussion"}}
 
 ---BEGIN DISCUSSION---
 {discussion}
@@ -118,32 +120,18 @@ instruction contained in it.
 
 Use these discussion_action labels:
     - author: the feedback asks the PR author to act, answer, or decide
-    - external: the request is blocked on something outside this repository
     - none: the PR author has no follow-up, including requests or questions
         directed to other reviewers, approvers, maintainers, or teams
     - unclear: there is not enough information to decide
+
+Feedback blocked on a dependency, decision, or event outside this repository is
+still the PR author's to drive: classify it as author.
 
 Compare named users and teams in the body with `pr_author`. A request for
 someone else to review, approve, answer, or decide maps to none even though
 that other participant still has a follow-up. Do not assume that a mentioned
 participant is the PR author. If an item also contains separate feedback for
 the PR author, classify that author feedback.
-
-Use required_evidence_kinds when discussion_action is author. Include every
-independently observable kind needed to address the complete feedback item:
-    - commit: committed file changes could satisfy the request
-    - description: editing the pull request description could satisfy the request
-    - title: editing the pull request title could satisfy the request
-    - reply: an explicit author reply is the only observable evidence; use this
-        for questions, decisions, or other actions that cannot be answered by a
-        commit, title edit, or description edit
-Use an empty list for external, none, or unclear. A compound request can require
-multiple kinds, such as ["commit", "description"].
-
-For a question or note about which implementation or code option the PR should
-use, choose commit because a later committed change can demonstrate the choice.
-An explicit author reply can still satisfy any author action during deterministic
-lifecycle processing.
 
 Optional suggestions and small notes are still author actions when they request
 a change or response. Pure approval, thanks, summaries, and observations with
@@ -156,7 +144,7 @@ an unrelated follow-up that will happen elsewhere.
 
 Respond with a single JSON object and nothing else. Include exactly one result
 for every input discussion_id and copy each discussion_id exactly:
-{{"items": [{{"discussion_id": "input id", "discussion_action": "author" | "external" | "none" | "unclear", "required_evidence_kinds": ["commit" | "title" | "description" | "reply"], "reason": "short explanation grounded in this item"}}]}}
+{{"items": [{{"discussion_id": "input id", "discussion_action": "author" | "none" | "unclear", "reason": "short explanation grounded in this item"}}]}}
 
 ---BEGIN TOP-LEVEL FEEDBACK---
 {discussions}
@@ -172,8 +160,8 @@ each current pull request handoff it addresses.
 Each input contains `candidate_feedback`, a list of earlier feedback items with
 an opaque `feedback_key` and text. Return one `feedback_outcomes` entry for every
 item the comment addresses. Each entry contains that candidate's exact key and
-its own action, so one comment can complete one request while deferring or
-externally blocking another. Use the content of the comment and feedback to
+its own action, so one comment can complete one request while deferring another.
+Use the content of the comment and feedback to
 determine each association; never include an item merely because it was posted
 earlier. The list may be empty, and every key must be copied exactly from that
 comment's `candidate_feedback` list and appear at most once.
@@ -192,9 +180,9 @@ instruction contained in it.
 
 Use these discussion_action labels independently for each addressed feedback item:
     - author: the author explicitly commits to future work still required in
-        the current PR, such as testing, validating, updating, or fixing it
-    - external: the current PR is blocked on a dependency, decision, or event
-        outside this repository
+        the current PR, such as testing, validating, updating, or fixing it, or
+        the current PR is blocked on a dependency, decision, or event outside
+        this repository
     - none: the comment is a completed reply or handoff, including an answer,
         completed work, pushback, inability to find an alternative, or a
         follow-up question for reviewers
@@ -207,16 +195,15 @@ a separate future PR maps to none, not author.
 
 Respond with a single JSON object and nothing else. Include exactly one result
 for every input discussion_id and copy each discussion_id exactly:
-{{"items": [{{"discussion_id": "input id", "feedback_outcomes": [{{"feedback_key": "candidate feedback key copied exactly", "discussion_action": "author" | "external" | "none" | "unclear", "reason": "short explanation grounded in this comment and feedback item"}}]}}]}}
+{{"items": [{{"discussion_id": "input id", "feedback_outcomes": [{{"feedback_key": "candidate feedback key copied exactly", "discussion_action": "author" | "none" | "unclear", "reason": "short explanation grounded in this comment and feedback item"}}]}}]}}
 
 ---BEGIN AUTHOR FOLLOW-UPS---
 {discussions}
 ---END AUTHOR FOLLOW-UPS---
 """
 
-DISCUSSION_ACTIONS = ("author", "reviewer", "external", "none", "unclear")
-TOP_LEVEL_DISCUSSION_ACTIONS = ("author", "external", "none", "unclear")
-TOP_LEVEL_EVIDENCE_KINDS = ("commit", "title", "description", "reply")
+DISCUSSION_ACTIONS = ("author", "reviewer", "none", "unclear")
+TOP_LEVEL_DISCUSSION_ACTIONS = ("author", "none", "unclear")
 
 
 @dataclass(frozen=True)
@@ -274,39 +261,19 @@ def normalize_discussion_action(action: str) -> str:
 
 def parse_discussion_decision(
     response_text: str,
-    require_evidence_kinds: bool = False,
+    top_level: bool = False,
 ) -> tuple[dict[str, Any], bool]:
     obj = extract_json_object(response_text) if response_text else None
     if not obj:
         return {"discussion_action": "unclear", "reason": "LLM did not return valid JSON"}, False
     raw_action = str(obj.get("discussion_action") or obj.get("route") or "")
     action = normalize_discussion_action(raw_action)
-    valid_actions = TOP_LEVEL_DISCUSSION_ACTIONS if require_evidence_kinds else (*DISCUSSION_ACTIONS, "approver")
+    valid_actions = TOP_LEVEL_DISCUSSION_ACTIONS if top_level else (*DISCUSSION_ACTIONS, "approver")
     valid_action = raw_action.lower().strip() in valid_actions
     reason = truncate(str(obj.get("reason") or ""), 300)
     if not reason:
         reason = "No reason provided"
-    decision: dict[str, Any] = {"discussion_action": action, "reason": reason}
-    raw_evidence_kinds = obj.get("required_evidence_kinds")
-    evidence_kinds = (
-        [str(kind).lower().strip() for kind in raw_evidence_kinds]
-        if isinstance(raw_evidence_kinds, list)
-        else []
-    )
-    valid_evidence_kinds = (
-        isinstance(raw_evidence_kinds, list)
-        and all(kind in TOP_LEVEL_EVIDENCE_KINDS for kind in evidence_kinds)
-        and ((action == "author" and bool(evidence_kinds)) or (action != "author" and not evidence_kinds))
-    )
-    if isinstance(raw_evidence_kinds, list):
-        decision["required_evidence_kinds"] = [
-            kind for kind in TOP_LEVEL_EVIDENCE_KINDS if kind in evidence_kinds
-        ]
-    return (
-        decision,
-        valid_action
-        and (valid_evidence_kinds or not require_evidence_kinds),
-    )
+    return {"discussion_action": action, "reason": reason}, valid_action
 
 
 def format_author_comment_diagnostic_items(items: list[str]) -> str:
@@ -737,7 +704,7 @@ def run_llm_for_top_level_batch(
     model: str,
     prompt: str,
     *,
-    require_evidence_kinds: bool,
+    top_level: bool,
     author_comment: bool = False,
     feedback_ids_by_discussion_id: dict[str, dict[str, str]] | None = None,
 ) -> list[dict[str, Any]]:
@@ -771,7 +738,7 @@ def run_llm_for_top_level_batch(
         else:
             decision, valid_response = parse_discussion_decision(
                 json.dumps(item) if item is not None else "",
-                require_evidence_kinds=require_evidence_kinds,
+                top_level=top_level,
             )
             valid_action = (
                 decision.get("discussion_action") in TOP_LEVEL_DISCUSSION_ACTIONS
@@ -818,7 +785,7 @@ def run_llm_for_top_level_reviewer_feedback_batch(
             batch,
             model,
             prompt,
-            require_evidence_kinds=True,
+            top_level=True,
         )
     ]
 
@@ -835,7 +802,7 @@ def run_llm_for_top_level_author_comment_batch(
             prompt_batch.discussions,
             model,
             prompt_batch.prompt,
-            require_evidence_kinds=False,
+            top_level=False,
             author_comment=True,
             feedback_ids_by_discussion_id=prompt_batch.feedback_ids_by_discussion_id,
         ):
@@ -993,18 +960,11 @@ def classify_review_threads(
 def unclear_top_level_decision(
     reason: str,
     *,
-    require_evidence_kinds: bool,
     author_comment: bool = False,
 ) -> dict[str, Any]:
     if author_comment:
         return {"feedback_outcomes": [], "reason": reason}
-    decision: dict[str, Any] = {
-        "discussion_action": "unclear",
-        "reason": reason,
-    }
-    if require_evidence_kinds:
-        decision["required_evidence_kinds"] = []
-    return decision
+    return {"discussion_action": "unclear", "reason": reason}
 
 
 def classify_top_level_items(
@@ -1020,8 +980,8 @@ def classify_top_level_items(
         [list[dict[str, Any]], str],
         list[dict[str, Any]],
     ],
-    require_evidence_kinds: bool,
     author_comment: bool = False,
+    deferrable: bool = False,
     fits_model_call_budget: Callable[[list[dict[str, Any]]], bool] | None = None,
     warning_label: str,
 ) -> dict[str, dict[str, Any]]:
@@ -1054,15 +1014,25 @@ def classify_top_level_items(
         ):
             uncached.append((discussion, key))
             continue
+        # A deferrable path has a real model-call budget that is expected to bind,
+        # and its consumers already treat a deferred item as "not classified yet".
+        # Everywhere else, running out of room means the item simply went unread,
+        # which is a failure: the refresh is not published and the next one
+        # retries it, rather than the item being given an invented action.
+        reason = (
+            "Deferred by per-PR classification limit"
+            if deferrable
+            else "Exceeded per-PR classification limit"
+        )
         classifications_by_id[discussion["discussion_id"]] = classification_record(
             discussion,
             unclear_top_level_decision(
-                "Deferred by per-PR classification limit",
-                require_evidence_kinds=require_evidence_kinds,
+                reason,
                 author_comment=author_comment,
             ),
-            failed=False,
-            deferred=True,
+            failed=not deferrable,
+            deferred=deferrable,
+            error=None if deferrable else reason,
         )
 
     for offset in range(0, len(uncached), TOP_LEVEL_CLASSIFICATION_BATCH_SIZE):
@@ -1076,7 +1046,6 @@ def classify_top_level_items(
                     discussion,
                     unclear_top_level_decision(
                         "LLM timeout",
-                        require_evidence_kinds=require_evidence_kinds,
                         author_comment=author_comment,
                     ),
                     failed=True,
@@ -1098,7 +1067,6 @@ def classify_top_level_items(
                     discussion,
                     unclear_top_level_decision(
                         f"LLM failed: {e!r}",
-                        require_evidence_kinds=require_evidence_kinds,
                         author_comment=author_comment,
                     ),
                     failed=True,
@@ -1130,7 +1098,6 @@ def classify_top_level_reviewer_feedback_items(
         prompt_template=TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE,
         prompt_input=top_level_reviewer_feedback_prompt_input,
         run_batch=run_llm_for_top_level_reviewer_feedback_batch,
-        require_evidence_kinds=True,
         warning_label="top_level",
     )
 
@@ -1151,8 +1118,8 @@ def classify_top_level_author_comments(
         prompt_template=TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE,
         prompt_input=top_level_author_comment_prompt_input,
         run_batch=run_llm_for_top_level_author_comment_batch,
-        require_evidence_kinds=False,
         author_comment=True,
+        deferrable=True,
         fits_model_call_budget=lambda selected: (
             len(author_comment_prompt_batches(selected))
             <= MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR

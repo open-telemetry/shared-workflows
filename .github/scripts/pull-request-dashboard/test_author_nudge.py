@@ -130,7 +130,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         },
     )
     @patch.object(author_nudge, "fetch_review_threads", return_value=[])
-    @patch.object(author_nudge, "fetch_pr_review_data", return_value={})
+    @patch.object(author_nudge, "fetch_pr_reviews", return_value=[])
     @patch.object(author_nudge, "fetch_pr_issue_comments", return_value=[])
     @patch.object(author_nudge, "gh_api")
     def test_fetch_current_routing_state_includes_required_checks(

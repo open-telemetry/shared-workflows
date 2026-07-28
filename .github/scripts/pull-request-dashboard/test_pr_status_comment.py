@@ -481,25 +481,11 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("**Waiting on the author** · refreshed ", body)
         self.assertNotIn("@alice", body)
 
-    def test_external_route_advertises_reviewer_override(self) -> None:
-        body = pr_status_comment.render_status_comment(
-            self.pr(),
-            {"route": "external", "facts": {}},
-        )
-
-        self.assertIn("**Waiting on an external dependency or decision** · refreshed ", body)
-        self.assertIn(
-            "- **Should this be with reviewers?** Comment "
-            "`/dashboard route:reviewers` to route it to them.",
-            body,
-        )
-
     def test_routes_render_one_status_sentence(self) -> None:
         expected_summaries = {
             "approver": ("Waiting on reviewers", "Review the latest changes."),
             "maintainer": ("Waiting on maintainers", "Merge when ready."),
             "copilot": ("Waiting on Copilot", "Wait for the pending review to complete."),
-            "external": ("Waiting on an external dependency or decision", "Resolve it before work can continue."),
             "transient-failure": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
             "unknown": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
         }

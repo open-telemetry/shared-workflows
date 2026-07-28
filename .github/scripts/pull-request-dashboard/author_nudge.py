@@ -13,7 +13,7 @@ from typing import Any
 
 from github_cli import (
     fetch_pr_issue_comments,
-    fetch_pr_review_data,
+    fetch_pr_reviews,
     fetch_review_threads,
     gh_api,
     gh_pr_check_rollup,
@@ -103,8 +103,8 @@ def fetch_current_pr_routing_state(
             f"/repos/{repo}/pulls/{pr_number}/comments?per_page=100",
             True,
         )
-        review_data_future = pool.submit(
-            fetch_pr_review_data,
+        reviews_future = pool.submit(
+            fetch_pr_reviews,
             owner,
             repo_name,
             pr_number,
@@ -127,7 +127,7 @@ def fetch_current_pr_routing_state(
             repo,
             ((pr.get("base") or {}).get("ref") or ""),
         )
-        review_data = review_data_future.result() or {}
+        reviews = reviews_future.result() or []
         check_rollup = check_rollup_future.result()
         fingerprint = routing_input_fingerprint({
             "checks": include_missing_required_checks(
@@ -138,7 +138,7 @@ def fetch_current_pr_routing_state(
             "labels": pr.get("labels") or [],
             "pr": pr,
             "review_comments": review_comments_future.result() or [],
-            "reviews": review_data.get("reviews") or [],
+            "reviews": reviews,
             "review_threads": review_threads_future.result() or [],
         })
         return pr, fingerprint

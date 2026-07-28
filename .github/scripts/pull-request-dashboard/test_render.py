@@ -89,7 +89,11 @@ class RenderTest(unittest.TestCase):
                         "since": "2026-07-14T01:00:00Z",
                     },
                     "dependency": {
-                        "action": "external",
+                        "action": "author",
+                        "since": "2026-07-14T01:00:00Z",
+                    },
+                    "ambiguous": {
+                        "action": "author",
                         "since": "2026-07-14T01:00:00Z",
                     },
                 },
@@ -106,11 +110,11 @@ class RenderTest(unittest.TestCase):
             markdown,
         )
         self.assertIn(
-            "pr-author-reply-102 -> dependency:external, pending:external ",
+            "pr-author-reply-102 -> dependency:external, pending:author ",
             markdown,
         )
         self.assertIn(
-            "pr-author-reply-102 -> ambiguous:unclear, no-action ",
+            "pr-author-reply-102 -> ambiguous:unclear, pending:author ",
             markdown,
         )
 

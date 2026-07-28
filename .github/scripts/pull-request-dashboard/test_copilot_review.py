@@ -145,7 +145,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         save_requests.assert_called_once_with({})
 
     @patch("copilot_review.request_copilot_review")
-    @patch("copilot_review.fetch_pr_review_data")
+    @patch("copilot_review.fetch_pr_reviews")
     @patch("copilot_review.fetch_current_pr_routing_state")
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
@@ -164,7 +164,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         _load_requests,
         save_requests,
         fetch_current_state,
-        fetch_review_data,
+        fetch_reviews,
         request_review,
     ) -> None:
         pr = {
@@ -175,15 +175,13 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "requested_reviewers": [],
         }
         fetch_current_state.return_value = (pr, "accepted-fingerprint")
-        fetch_review_data.return_value = {
-            "reviews": [{
-                "id": 20,
-                "commit_id": "reviewed-head",
-                "finding_count": 0,
-                "user": {"login": "copilot"},
-                "submitted_at": "2026-07-20T01:00:00Z",
-            }],
-        }
+        fetch_reviews.return_value = [{
+            "id": 20,
+            "commit_id": "reviewed-head",
+            "finding_count": 0,
+            "user": {"login": "copilot"},
+            "submitted_at": "2026-07-20T01:00:00Z",
+        }]
 
         errors = deliver_copilot_review_requests(
             "open-telemetry/example",
@@ -192,7 +190,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 
         self.assertEqual([], errors)
         fetch_current_state.assert_called_once_with("open-telemetry/example", 7)
-        fetch_review_data.assert_called_once_with("open-telemetry", "example", 7)
+        fetch_reviews.assert_called_once_with("open-telemetry", "example", 7)
         request_review.assert_called_once_with("PR_node_id")
         save_requests.assert_called_once_with({
             "7": {
@@ -204,7 +202,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         })
 
     @patch("copilot_review.request_copilot_review")
-    @patch("copilot_review.fetch_pr_review_data")
+    @patch("copilot_review.fetch_pr_reviews")
     @patch("copilot_review.fetch_current_pr_routing_state")
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
@@ -223,7 +221,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         _load_requests,
         save_requests,
         fetch_current_state,
-        fetch_review_data,
+        fetch_reviews,
         request_review,
     ) -> None:
         pr = {
@@ -243,7 +241,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 
         self.assertEqual([], errors)
         fetch_current_state.assert_called_once_with("open-telemetry/example", 7)
-        fetch_review_data.assert_not_called()
+        fetch_reviews.assert_not_called()
         request_review.assert_not_called()
         save_requests.assert_called_once_with({
             "7": {
@@ -255,7 +253,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         })
 
     @patch("copilot_review.request_copilot_review")
-    @patch("copilot_review.fetch_pr_review_data")
+    @patch("copilot_review.fetch_pr_reviews")
     @patch(
         "copilot_review.fetch_current_pr_routing_state",
         return_value=(
@@ -285,7 +283,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         _load_requests,
         save_requests,
         _fetch_current_state,
-        fetch_review_data,
+        fetch_reviews,
         request_review,
     ) -> None:
         errors = deliver_copilot_review_requests(
@@ -294,7 +292,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
-        fetch_review_data.assert_not_called()
+        fetch_reviews.assert_not_called()
         request_review.assert_not_called()
         save_requests.assert_called_once_with({})
 
