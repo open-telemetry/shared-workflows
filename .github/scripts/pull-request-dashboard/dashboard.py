@@ -113,8 +113,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by
-                                                  any non-bot actor, falling back
-                                                  to PR creation time.
+                                                  any non-bot actor, never earlier
+                                                  than PR creation time.
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
 
@@ -554,7 +554,12 @@ def compute_facts(
     created_ts = parse_ts(pr["createdAt"])
     # Not pr["updatedAt"]: the dashboard's own status comment bumps it, which
     # would make every refresh look like new activity and retrigger itself.
-    last_activity_ts = latest_substantive_activity(events, NON_BOT_ACTOR_ROLES) or created_ts
+    activity_ts = latest_substantive_activity(events, NON_BOT_ACTOR_ROLES)
+    # Commits can carry author dates from before the PR was opened.
+    last_activity_ts = max(
+        [ts for ts in (activity_ts, created_ts) if ts is not None],
+        default=None,
+    )
     author_activity_ts = latest_substantive_activity(events, {"author"})
     approver_activity_ts = latest_substantive_activity(events, {"approver"})
     api_author = actor_login(pr.get("author") or {})

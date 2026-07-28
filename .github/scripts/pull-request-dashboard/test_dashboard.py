@@ -975,6 +975,20 @@ class LastActivityTest(unittest.TestCase):
     def test_falls_back_to_creation_time_without_activity(self) -> None:
         self.assertEqual("2026-07-20T01:00:00+00:00", self._compute_last_activity_at([]))
 
+    def test_activity_predating_the_pr_is_clamped_to_creation_time(self) -> None:
+        # Commits pushed before the PR was opened, and cherry-picks that keep an
+        # old author date, must not report activity from before the PR existed.
+        last_activity_at = self._compute_last_activity_at([
+            {
+                "actor_role": "author",
+                "kind": "commit",
+                "body": "cherry-picked from a 2024 branch",
+                "timestamp": "2024-01-05T00:00:00Z",
+            },
+        ])
+
+        self.assertEqual("2026-07-20T01:00:00+00:00", last_activity_at)
+
 
 class BackfillFailureIsolationTest(unittest.TestCase):
     def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
