@@ -9394,12 +9394,14 @@
     },
     "49832": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "bgola-signalfx",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49832#pullrequestreview-4764325137"
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49832#pullrequestreview-4764325137",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49832#issuecomment-5108371622",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49832#pullrequestreview-4800821838"
         ],
         "author_nudge_episode_id": "0b172aa021484570a170ad21365cfc6a",
         "ci_failing_count": 0,
@@ -9421,10 +9423,26 @@
         "head_sha": "b03cf8285b948eead3debc3798a46feeddf6680d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T12:02:35+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T18:50:44+00:00",
+        "last_approver_activity_at": "2026-07-28T16:56:08+00:00",
         "last_author_activity_at": "2026-07-24T10:17:26+00:00",
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "geekdave",
+            "open_thread": false,
+            "top_level_feedback": true
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -9434,7 +9452,7 @@
             "top_level_feedback": true
           }
         ],
-        "routing_input_fingerprint": "f955a40820d450fa4f11a03d34f58a161ac6eb1d98afa7c06a702895ddb90ccc",
+        "routing_input_fingerprint": "59e462b2889aafe1c6d6281242098d6bfce903c30766c84bfaed33e991855bed",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-07-23T13:10:14+00:00"
       },
