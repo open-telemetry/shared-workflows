@@ -30,9 +30,9 @@ on:
 permissions:
   contents: read
 
-# resolve-targets normally finishes in seconds, but during organization-wide
-# runner queueing, redundant webhook runs can accumulate into a large backlog
-# before job-level concurrency applies.
+# Webhook fan-out creates far more runs than the dashboard needs: every
+# accepted webhook dispatches its own run, so a single push can produce a burst
+# of redundant refreshes for one pull request.
 #
 # Dashboard state is loaded live, so only the latest pending webhook refresh is
 # needed. Manual runs remain separate because they can refresh large
