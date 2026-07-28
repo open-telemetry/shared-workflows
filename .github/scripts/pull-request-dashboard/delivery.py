@@ -16,9 +16,12 @@ from dashboard_override import (
     deliver_dashboard_command_replies,
     deliver_dashboard_override_requests,
 )
-from github_cli import detect_repo, list_open_prs, normalize_repo, repo_state_key
+from github_cli import detect_repo, gh_api, list_open_prs, normalize_repo, repo_state_key
 from notify_slack import notify_slack_from_state
-from pr_status_comment import update_status_comments_from_state
+from pr_status_comment import (
+    update_status_comments_from_state,
+    update_targeted_status_comment_from_state,
+)
 from state import (
     author_nudge_state_path,
     claim_delivery_versions,
@@ -54,11 +57,20 @@ def deliver_from_state(
     author_retry_snapshot_path: Path,
     copilot_retry_snapshot_path: Path,
     notification_retry_snapshot_path: Path,
+    pr_number: int | None = None,
 ) -> list[str]:
     now = utc_now()
     errors: list[str] = []
     try:
-        open_prs = list_open_prs(repo)
+        if pr_number is None:
+            open_prs = list_open_prs(repo)
+        else:
+            pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
+            open_prs = (
+                [{"number": pr_number, "isDraft": bool(pr.get("draft")), "title": pr.get("title") or ""}]
+                if pr.get("state") == "open"
+                else []
+            )
     except Exception as e:
         errors.append(f"open pull requests: {e}")
         open_prs = None
@@ -81,7 +93,13 @@ def deliver_from_state(
         ),
         errors,
     )
-    if open_prs is not None:
+    if pr_number is not None:
+        run_delivery_action(
+            "status comments",
+            lambda: update_targeted_status_comment_from_state(repo, pr_number),
+            errors,
+        )
+    elif open_prs is not None:
         run_delivery_action(
             "status comments",
             lambda: update_status_comments_from_state(
@@ -98,11 +116,21 @@ def deliver_from_state(
     if open_prs is not None:
         run_delivery_action(
             "Slack notifications",
-            lambda: notify_slack_from_state(
-                repo,
-                notification_retry_snapshot_path,
-                open_prs,
-                now,
+            lambda: (
+                notify_slack_from_state(
+                    repo,
+                    notification_retry_snapshot_path,
+                    open_prs,
+                    now,
+                    {pr_number},
+                )
+                if pr_number is not None
+                else notify_slack_from_state(
+                    repo,
+                    notification_retry_snapshot_path,
+                    open_prs,
+                    now,
+                )
             ),
             errors,
         )
@@ -113,6 +141,7 @@ def deliver_with_state(
     repo: str,
     state_branch_name: str,
     state_dir: Path,
+    pr_number: int | None = None,
     github_output: Path | None = None,
 ) -> int:
     repo_key = repo_state_key(repo)
@@ -134,6 +163,7 @@ def deliver_with_state(
             author_retry,
             copilot_retry,
             notification_retry,
+            pr_number,
         )
         return 0
 
@@ -164,6 +194,7 @@ def deliver_with_state(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", help="target repository name")
+    parser.add_argument("--pr-number", type=int, help="target pull request number")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
     parser.add_argument("--github-output", type=Path, help="append the active versions result")
     args = parser.parse_args()
@@ -174,7 +205,8 @@ def main() -> int:
             repo,
             args.state_branch,
             state_dir,
-            args.github_output,
+            pr_number=args.pr_number,
+            github_output=args.github_output,
         )
 
 
