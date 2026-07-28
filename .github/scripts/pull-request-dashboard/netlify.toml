@@ -3,3 +3,10 @@ publish = "public"
 
 [functions]
 directory = "netlify/functions"
+# The bundler does not reliably trace these transitive packages on its own.
+included_files = [
+  "node_modules/@netlify/blobs/**",
+  "node_modules/@netlify/dev-utils/**",
+  "node_modules/@netlify/otel/**",
+  "node_modules/@netlify/runtime-utils/**",
+]
