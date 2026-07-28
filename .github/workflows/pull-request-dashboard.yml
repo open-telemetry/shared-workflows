@@ -139,7 +139,9 @@ jobs:
       contents: write
     strategy:
       fail-fast: false
-      max-parallel: 1
+      # Repositories hold separate state branches, so they only contend for the
+      # shared GitHub App rate limit and the Copilot CLI token.
+      max-parallel: 3
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
     uses: ./.github/workflows/pull-request-dashboard-repo.yml
     with:
