@@ -85,8 +85,8 @@ built up across stages, so not every field is present at every point.
     for candidate author replies. Internal.
 - ``pending_actions`` (``dict[str, dict]``): Ephemeral current actions by discussion id;
     each entry contains ``action`` and ``since``.
-- ``top_level_history`` (``dict[str, dict]``): Durable evidence timestamps by
-    top_level action id and evidence kind.
+- ``top_level_history`` (``dict[str, dict]``): Durable author-reply timestamps by
+    top_level action id.
 - ``error`` (``str``): Failure detail, present only on failure paths.
 
 Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
@@ -115,7 +115,6 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_activity_at                str (iso)
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
-    last_external_activity_at       str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
     waiting_since                   str (iso)     Oldest pending discussion, or
@@ -172,8 +171,7 @@ from github_cli import (
     TransientGhError,
     detect_repo,
     fetch_pr_issue_comments,
-    fetch_pr_review_data,
-    fetch_pr_title_edits,
+    fetch_pr_reviews,
     fetch_review_threads,
     gh_api,
     gh_pr_check_rollup,
@@ -187,7 +185,6 @@ from github_cli import (
 )
 from classification import (
     DISCUSSION_RECENT_COMMENTS_LIMIT,
-    TOP_LEVEL_EVIDENCE_KINDS,
     classify_discussion_domains,
     is_conflict_resolution_comment,
     normalize_discussion_action,
@@ -307,7 +304,7 @@ def fetch_pr_raw(
             True,
         )
         f_threads = pool.submit(fetch_review_threads, owner, repo_name, number)
-        f_review_data = pool.submit(fetch_pr_review_data, owner, repo_name, number)
+        f_reviews = pool.submit(fetch_pr_reviews, owner, repo_name, number)
         pr = f_pr.result()
         f_checks = pool.submit(
             gh_pr_check_rollup,
@@ -318,14 +315,13 @@ def fetch_pr_raw(
         f_required_contexts = pool.submit(
             gh_required_check_contexts, repo, pr["baseRefName"]
         )
-        review_data = f_review_data.result() or {}
         check_rollup = f_checks.result()
         return {
             "summary": pr_summary,
             "pr": pr,
             "issue_comments": f_issue_comments.result() or [],
             "review_comments": f_revcom.result() or [],
-            "reviews": review_data.get("reviews") or [],
+            "reviews": f_reviews.result() or [],
             "commits": f_commits.result() or [],
             "checks": include_missing_required_checks(
                 None if check_rollup is None else check_rollup["required"],
@@ -335,7 +331,6 @@ def fetch_pr_raw(
                 [] if check_rollup is None else check_rollup["non_blocking_failures"]
             ),
             "review_threads": f_threads.result() or [],
-            "pr_metadata": review_data.get("pr_metadata") or {},
         }
 
 
@@ -555,7 +550,6 @@ def compute_facts(
     created_ts = parse_ts(pr["createdAt"])
     author_activity_ts = latest_substantive_activity(events, {"author"})
     approver_activity_ts = latest_substantive_activity(events, {"approver"})
-    external_activity_ts = latest_substantive_activity(events, {"outsider"})
     api_author = actor_login(pr.get("author") or {})
     assignees = [reviewer_actor_login(a) for a in (pr.get("assignees") or [])]
     assignees = [a for a in assignees if a]
@@ -592,7 +586,6 @@ def compute_facts(
         "last_activity_at": format_ts(last_activity_ts),
         "last_author_activity_at": format_ts(author_activity_ts),
         "last_approver_activity_at": format_ts(approver_activity_ts),
-        "last_external_activity_at": format_ts(external_activity_ts),
     }
     if checks is not None:
         facts["ci_failing_count"] = len(failing)
@@ -858,7 +851,7 @@ def top_level_author_comment_outcomes(
                 feedback_outcome.get("discussion_action") or ""
             )
             feedback_id = feedback_outcome.get("feedback_id")
-            if action not in ("author", "external", "none", "unclear") or not isinstance(
+            if action not in ("author", "none", "unclear") or not isinstance(
                 feedback_id, str
             ):
                 continue
@@ -885,7 +878,7 @@ def author_reply_is_superseded(
 ) -> bool:
     return any(
         outcome["feedback_id"] == feedback_id
-        and outcome["action"] in ("author", "external")
+        and outcome["action"] == "author"
         and (
             outcome["timestamp"] > timestamp
             or (
@@ -951,12 +944,12 @@ def latest_top_level_author_comment_handoff(
         outcome
         for outcome in outcomes
         if outcome["timestamp"] > root_timestamp
-        and outcome["action"] in ("author", "external", "none")
+        and outcome["action"] in ("author", "none")
         and feedback_id == outcome["feedback_id"]
     ]
     if (
         not relevant_outcomes
-        or relevant_outcomes[-1]["action"] not in ("author", "external")
+        or relevant_outcomes[-1]["action"] != "author"
     ):
         return None
     latest_action = relevant_outcomes[-1]["action"]
@@ -970,22 +963,19 @@ def latest_top_level_author_comment_handoff(
 
 def collect_author_evidence(
     discussion: dict[str, Any],
-    events: list[dict[str, Any]],
-    pr_metadata: dict[str, Any],
-    author: str,
     previous_entry: dict[str, Any],
     author_comment_outcomes: list[AuthorCommentOutcome],
     author_comment_source_state: AuthorCommentSourceState | None,
 ) -> tuple[dict[str, str], int | None]:
+    """Find the author reply that closes a top-level feedback item, if any.
+
+    An explicit reply is the only thing that closes an item. Commits, title
+    edits, and description edits are not tied to the item they would close, so
+    any push after the feedback arrived would close every open item at once and
+    hide feedback that nobody had answered.
+    """
     root_timestamp = discussion.get("root_timestamp") or ""
-    evidence = {
-        kind: timestamp
-        for kind, timestamp in (previous_entry.get("evidence") or {}).items()
-        if kind in TOP_LEVEL_EVIDENCE_KINDS
-        and kind != "reply"
-        and isinstance(timestamp, str)
-        and timestamp > root_timestamp
-    }
+    evidence: dict[str, str] = {}
     reply_source_id: int | None = None
     previous_reply = (previous_entry.get("evidence") or {}).get("reply") or ""
     previous_reply_source_id = previous_entry.get("reply_source_id")
@@ -1004,19 +994,6 @@ def collect_author_evidence(
         evidence["reply"] = previous_reply
         reply_source_id = previous_reply_source_id
 
-    commit_candidates = [
-        e.get("timestamp") or ""
-        for e in events
-        if e.get("actor_role") == "author"
-        and e.get("kind") == "commit"
-        and (e.get("timestamp") or "") > root_timestamp
-        and is_substantive_activity(e)
-    ]
-    if commit_candidates:
-        evidence["commit"] = min(
-            commit_candidates + ([evidence["commit"]] if "commit" in evidence else [])
-        )
-
     completed_reply = completed_author_reply_after(
         discussion["discussion_id"],
         root_timestamp,
@@ -1031,82 +1008,17 @@ def collect_author_evidence(
         ):
             evidence["reply"] = timestamp
             reply_source_id = source_id
-    edited_at = pr_metadata.get("lastEditedAt") or ""
-    editor = actor_login(pr_metadata.get("editor") or {})
-    if edited_at > root_timestamp and editor.lower() == author.lower():
-        evidence["description"] = min(
-            edited_at,
-            evidence.get("description") or edited_at,
-        )
-    title_edit_timestamps = [
-        edit.get("createdAt") or ""
-        for edit in pr_metadata.get("titleEdits") or []
-        if actor_login(edit.get("actor") or {}).lower() == author.lower()
-        and (edit.get("createdAt") or "") > root_timestamp
-    ]
-    if title_edit_timestamps:
-        evidence["title"] = min(
-            title_edit_timestamps + ([evidence["title"]] if "title" in evidence else [])
-        )
     return evidence, reply_source_id
 
 
-def evidence_satisfied_at(
-    required_kinds: list[str],
-    evidence: dict[str, str],
-) -> str:
-    if evidence.get("reply"):
-        return evidence["reply"]
-    if not required_kinds or any(kind not in evidence for kind in required_kinds):
-        return ""
-    return max(evidence[kind] for kind in required_kinds)
+def pending_action_for(action: str) -> str:
+    """Map a classified discussion action onto a pending action.
 
-
-def requires_title_edit_lookup(
-    top_level_items: list[dict[str, Any]],
-    classifications: list[dict[str, Any]],
-    previous_history: dict[str, dict[str, Any]] | None,
-    author_comment_outcomes: list[AuthorCommentOutcome],
-    author_comment_source_state: AuthorCommentSourceState | None = None,
-) -> bool:
-    by_id = discussions_by_id(top_level_items)
-    for classification in classifications:
-        decision = classification.get("decision") or {}
-        if (
-            normalize_discussion_action(decision.get("discussion_action") or "") != "author"
-            or "title" not in (decision.get("required_evidence_kinds") or [])
-        ):
-            continue
-        discussion = by_id.get(classification.get("discussion_id") or "")
-        if not discussion:
-            continue
-        previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
-        previous_evidence = previous_entry.get("evidence") or {}
-        root_timestamp = discussion.get("root_timestamp") or ""
-        previous_reply = previous_evidence.get("reply") or ""
-        previous_reply_source_id = previous_entry.get("reply_source_id")
-        if (
-            previous_reply > root_timestamp
-            and should_restore_author_reply(
-                author_comment_outcomes,
-                author_comment_source_state,
-                previous_reply_source_id
-                if isinstance(previous_reply_source_id, int)
-                else None,
-                previous_reply,
-                discussion["discussion_id"],
-            )
-        ):
-            continue
-        if completed_author_reply_after(
-            discussion["discussion_id"],
-            root_timestamp,
-            author_comment_outcomes,
-        ):
-            continue
-        if (previous_evidence.get("title") or "") <= root_timestamp:
-            return True
-    return False
+    "unclear" collapses onto the author: when the classifier cannot tell what a
+    discussion needs, the author is the one who can clarify it. Leaving it in its
+    own lane produces a discussion that nobody owns.
+    """
+    return "author" if action == "unclear" else action
 
 
 def build_review_thread_pending_actions(
@@ -1123,7 +1035,7 @@ def build_review_thread_pending_actions(
         comments = (discussion or {}).get("comments") or []
         if action != "none" and comments:
             pending_actions[classification["discussion_id"]] = {
-                "action": "reviewer" if action == "unclear" else action,
+                "action": pending_action_for(action),
                 "since": comments[-1].get("timestamp") or "",
             }
     return pending_actions
@@ -1132,9 +1044,6 @@ def build_review_thread_pending_actions(
 def advance_top_level_actions(
     top_level_items: list[dict[str, Any]],
     classifications: list[dict[str, Any]],
-    events: list[dict[str, Any]],
-    pr_metadata: dict[str, Any],
-    author: str,
     previous_history: dict[str, dict[str, Any]] | None,
     author_comment_outcomes: list[AuthorCommentOutcome],
     author_comment_source_state: AuthorCommentSourceState | None = None,
@@ -1149,14 +1058,11 @@ def advance_top_level_actions(
             continue
         action = normalize_discussion_action(decision.get("discussion_action") or "")
         root_timestamp = discussion.get("root_timestamp") or ""
-        if action not in ("author", "external", "unclear"):
+        if action not in ("author", "unclear"):
             continue
         previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
         evidence, reply_source_id = collect_author_evidence(
             discussion,
-            events,
-            pr_metadata,
-            author,
             previous_entry,
             author_comment_outcomes,
             author_comment_source_state,
@@ -1169,10 +1075,6 @@ def advance_top_level_actions(
                 )
         if evidence.get("reply"):
             continue
-        required_kinds = decision.get("required_evidence_kinds") or []
-        evidence_at = evidence_satisfied_at(required_kinds, evidence)
-        if action == "author" and evidence_at:
-            continue
         handoff = latest_top_level_author_comment_handoff(
             discussion["discussion_id"],
             root_timestamp,
@@ -1180,24 +1082,12 @@ def advance_top_level_actions(
         )
         if handoff is not None:
             pending_actions[discussion["discussion_id"]] = {
-                "action": handoff["action"],
+                "action": pending_action_for(handoff["action"]),
                 "since": handoff["timestamp"],
             }
             continue
-        if action == "external":
-            pending_actions[discussion["discussion_id"]] = {
-                "action": "external",
-                "since": root_timestamp,
-            }
-            continue
-        if action == "unclear":
-            pending_actions[discussion["discussion_id"]] = {
-                "action": "reviewer",
-                "since": root_timestamp,
-            }
-            continue
         pending_actions[discussion["discussion_id"]] = {
-            "action": "author",
+            "action": pending_action_for(action),
             "since": root_timestamp,
         }
     return pending_actions, top_level_history
@@ -1210,12 +1100,11 @@ ROUTE_DISCUSSION_ACTIONS = {
     "author": {"author"},
     "approver": {"reviewer"},
     "maintainer": {"reviewer"},
-    "external": {"external"},
 }
 
 
 def action_counts(pending_actions: dict[str, dict[str, Any]]) -> dict[str, int]:
-    counts = {"author": 0, "reviewer": 0, "external": 0, "none": 0, "unclear": 0}
+    counts = {"author": 0, "reviewer": 0, "none": 0, "unclear": 0}
     for entry in pending_actions.values():
         counts[normalize_discussion_action(entry.get("action") or "")] += 1
     return counts
@@ -1223,8 +1112,7 @@ def action_counts(pending_actions: dict[str, dict[str, Any]]) -> dict[str, int]:
 
 def has_blocking_action(pending_actions: dict[str, dict[str, Any]]) -> bool:
     for entry in pending_actions.values():
-        action = normalize_discussion_action(entry.get("action") or "")
-        if action in ("reviewer", "unclear"):
+        if normalize_discussion_action(entry.get("action") or "") == "reviewer":
             return True
     return False
 
@@ -1238,16 +1126,13 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     # Precedence:
     #   1. A required status check failure -> "author".
     #   2. A discussion waiting on the author -> "author".
-    #   3. Otherwise a discussion waiting on something external -> "external".
-    #   4. If there are enough approvals and no inline or top-level feedback is
-    #      still waiting on a reviewer or is unclear -> "maintainer".
-    #   5. Otherwise the PR is still waiting on approvers.
+    #   3. If there are enough approvals and no inline or top-level feedback is
+    #      still waiting on a reviewer -> "maintainer".
+    #   4. Otherwise the PR is still waiting on approvers.
     if facts.get("ci_failing_count", 0) > 0 and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
-    if counts["external"]:
-        return "external"
     if facts.get("approval_count", 0) >= approval_threshold and not has_blocking_action(pending_actions):
         return "maintainer"
     return "approver"
@@ -1280,8 +1165,6 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
                 return ci_failing_since, "ci_failure"
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
         return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
-    if route == "external":
-        return parse_ts(facts.get("last_external_activity_at") or ""), "last_external_activity"
     return parse_ts(facts.get("last_activity_at") or ""), "last_activity"
 
 
@@ -1327,7 +1210,7 @@ def author_action_discussion_urls(
 # Discussion actions that count as open and unresolved. A reviewer who commented
 # in such a discussion is not yet satisfied, even if they have approved.
 # "none" means no follow-up is needed, so it does not block a clear check.
-OPEN_DISCUSSION_ACTIONS = {"author", "reviewer", "external", "unclear"}
+OPEN_DISCUSSION_ACTIONS = {"author", "reviewer"}
 
 
 def reviewers_with_open_threads(
@@ -1502,25 +1385,12 @@ def build_pr_result(
             top_level_author_comment_items,
             top_level_author_comment_classifications,
         )
-        if requires_title_edit_lookup(
-            top_level_items,
-            top_level_classifications,
-            previous_top_level_history,
-            author_comment_outcomes,
-            author_comment_source_state,
-        ):
-            raw["pr_metadata"]["titleEdits"] = fetch_pr_title_edits(
-                owner, repo_name, number
-            )
         review_thread_pending_actions = build_review_thread_pending_actions(
             review_threads, review_thread_classifications
         )
         top_level_pending_actions, top_level_history = advance_top_level_actions(
             top_level_items,
             top_level_classifications,
-            events,
-            raw["pr_metadata"],
-            author,
             previous_top_level_history,
             author_comment_outcomes,
             author_comment_source_state,

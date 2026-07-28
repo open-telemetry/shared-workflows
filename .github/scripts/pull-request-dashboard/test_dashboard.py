@@ -153,8 +153,8 @@ class FetchPrRawTest(unittest.TestCase):
             patch("dashboard.gh_api", side_effect=gh_api) as rest_api,
             patch("dashboard.fetch_review_threads", return_value=[]),
             patch(
-                "dashboard.fetch_pr_review_data",
-                return_value={"reviews": [], "pr_metadata": {}},
+                "dashboard.fetch_pr_reviews",
+                return_value=[],
             ),
             patch(
                 "dashboard.gh_pr_check_rollup",

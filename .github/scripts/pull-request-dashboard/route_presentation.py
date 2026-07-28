@@ -20,12 +20,6 @@ ROUTE_PRESENTATION = {
         "status_waiting_on": "Reviewers",
         "status_next_step": "Review the latest changes.",
     },
-    "external": {
-        "dashboard_label": "Waiting on external",
-        "status_headline": "Waiting on an external dependency or decision",
-        "status_waiting_on": "An external dependency or decision",
-        "status_next_step": "Resolve it before work can continue.",
-    },
     "author": {
         "dashboard_label": "Waiting on authors",
         "status_headline": "Waiting on the author",

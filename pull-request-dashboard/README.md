@@ -10,7 +10,7 @@ The classification cache reuses prior results for unchanged review threads, mini
 
 ## Dashboard columns
 
-The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*, *Waiting on external*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
+The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
 
 - **PR** — Pull request number and title, followed by any configured matching labels. The number autolinks to the PR on GitHub. Configured labels are rendered inline for both active and draft PRs.
 - **Author** — GitHub login of the PR author.
@@ -110,49 +110,30 @@ summary that is not attached to an inline review thread.
   clears that state. Empty review summaries are ignored; any inline comments
   are tracked through their own threads.
 
-### Evidence for top-level feedback
+### Closing top-level feedback
 
-For each actionable top-level feedback item, the dashboard identifies one or
-more kinds of observable author evidence:
+An explicit author reply is the only thing that closes an actionable top-level
+feedback item: a later standalone PR comment by the author that answers,
+decides, clarifies, or reports what was done. The reply lets authors explain why
+a suggestion was not applied, ask a clarifying question, or otherwise close the
+dashboard action. If the author instead commits to future work in the current
+PR, such as testing or making another change later, the item remains waiting on
+the author. The dashboard intentionally treats a reply as a handoff signal, not
+proof that the reviewer agrees with the outcome.
 
-| Evidence | Used when the request asks for | Observable signal |
-| -------- | ------------------------------ | ----------------- |
-| `commit` | Code, tests, documentation files, or other repository changes | A later commit attributed to the PR author |
-| `description` | A PR description update | A later description edit by the PR author |
-| `title` | A PR title update | A later title rename by the PR author |
-| `reply` | An answer, decision, clarification, or action without another tracked signal | A later standalone PR comment by the author |
+### Routing after a reply
 
-A compound feedback item can require multiple evidence kinds. For example, a
-request to change the implementation and update the PR description requires
-both a later commit and a later description edit. One commit is sufficient
-observable evidence for a request containing several code changes; the
-dashboard does not try to prove that every requested edit appears in that
-commit.
-
-An explicit completed author reply addresses the item, even when another
-evidence kind was expected. This lets authors explain why a suggestion was not
-applied, ask a clarifying question, or otherwise close the dashboard action.
-If the author instead commits to future work in the current PR, such as testing
-or making another change later, the item remains waiting on the author.
-The dashboard intentionally treats evidence as a handoff signal, not proof that
-the reviewer agrees with the outcome.
-
-Title and description edits are tracked separately, so a compound request can
-require either or both.
-
-### Routing after evidence
-
-| Item | Before accepted evidence | After accepted evidence | When it clears |
-| ---- | ------------------------ | ----------------------- | -------------- |
-| Top-level author action | Waiting on the author; 📌 is visible | Addressed; 📌 disappears and normal approval-based routing resumes | Immediately after all expected evidence is observed, or after an explicit author reply |
+| Item | Before an author reply | After an author reply | When it clears |
+| ---- | ---------------------- | --------------------- | -------------- |
+| Top-level author action | Waiting on the author; 📌 is visible | Addressed; 📌 disappears and normal approval-based routing resumes | Immediately after an explicit author reply |
 
 GitHub remains responsible for enforcing blocking review states when a
 maintainer attempts to merge.
 
 This can hand a PR back to reviewers before every requested change is actually
-complete, such as when an unrelated commit matches the expected evidence kind.
-That handoff is deliberate: reviewers can see the activity and respond, while
-the dashboard avoids leaving an active author indefinitely marked as blocked.
+complete. That handoff is deliberate: reviewers can see the reply and respond,
+while the dashboard avoids leaving an active author indefinitely marked as
+blocked.
 
 ## Live PR status comment
 
@@ -195,8 +176,8 @@ Targeted updates received before the first full dashboard run are ignored.
 
 ## Reviewer routing override
 
-When the dashboard says a pull request is waiting on its author or an external
-dependency but the author believes it is ready for another review, the author
+When the dashboard says a pull request is waiting on its author but the author
+believes it is ready for another review, the author
 can comment `/dashboard route:reviewers`. The dashboard routes the pull request
 to *Waiting on reviewers* and applies the `dashboard:route-overridden` label to
 mark the override. Members of the repository's `approver_teams` can use the same

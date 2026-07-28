@@ -240,49 +240,54 @@ the implementation understandable and operationally cheap.
   attached to an inline review thread.
 - Each top-level feedback item is therefore classified independently with a
   stable GitHub-derived id. The LLM decides only whether the source is
-  actionable and which observable evidence kinds could address it: a commit,
-  PR title edit, PR description edit, explicit reply, or a combination of those
-  signals.
+  actionable.
 - Each refresh reconstructs these independent items with a linear scan of the
   comments and reviews already fetched from GitHub. They are not threaded, and
   the reconstructed list is not stored as a second ledger. This keeps edited or
   deleted source comments authoritative without additional reconciliation.
   Cached classifications avoid repeated LLM calls, while dashboard state
-  retains the evidence already observed for each item.
-- Evidence requirements are an all-of list for compound feedback. For example,
-  a request to update code and the PR description waits for both a commit and a
-  description edit. A later completed author reply addresses the item regardless
-  of the predicted kinds because it can communicate pushback, clarification, or
-  another valid outcome that automation cannot infer. An author's explicit
-  commitment to future work in the current PR is a self-deferral, not a
-  completed reply, so the item continues waiting on the author.
-- Title edits use GitHub's `RenamedTitleEvent` pull request timeline items,
-  including the event actor and creation time. They remain separate from
-  description edits so compound requests can require either or both. The
-  timeline is queried only when a classified title requirement has no
-  previously recorded qualifying title edit.
+  retains the author reply already observed for each item.
+- An explicit author reply is the only thing that closes a top-level item.
+  Commits, PR title edits, and PR description edits are not tied to the item
+  they would close, so any push after the feedback arrived would close every
+  open item at once and hide feedback nobody had answered. The status comment
+  lists the exact open discussions and the nudge says that a reply is what hands
+  the PR back, which makes an explicit reply both cheap and unambiguous. An
+  author's explicit commitment to future work in the current PR is a
+  self-deferral, not a completed reply, so the item continues waiting on the
+  author.
 - Each model call classifies up to ten uncached top-level feedback items
   independently, while retaining a separate cache entry for every item. A
-  refresh processes at most 200 such items per PR; excess items remain visible
-  as non-failing unclear actions and are classified by later refreshes. This
-  bounds both call count and prompt size without allowing one long-lived PR to
-  monopolize the workflow or model quota.
+  refresh processes at most 200 such items per PR. Exceeding that cap means the
+  items went unread, which is reported as a classification failure so the
+  refresh is not published and the next one retries them, rather than the items
+  being given an invented action. This bounds both call count and prompt size
+  without allowing one long-lived PR to monopolize the workflow or model quota.
 - Candidate author replies use a separate classifier with the same batch size,
-  per-PR cap, and immutable cache behavior. Its result distinguishes completed
-  replies, author self-deferrals, and external blockers independently for each
-  earlier feedback item the comment addresses. Timestamp ordering determines
-  which items are candidates, but never applies a comment to every earlier item
-  by itself. Candidate sets are split and model-call batches are greedily packed
-  against the fully serialized prompt, so every Copilot CLI argument remains
-  within the configured character limit. Partial results are merged into one
-  cache entry per author comment. Completed reply evidence retains the source
-  comment id as well as its timestamp, so comments created in the same second
-  cannot be confused. An external author reply moves only its associated
-  feedback to external routing.
+  per-PR cap, and immutable cache behavior. That classifier also has a
+  model-call budget that is expected to bind, so exceeding it defers the items
+  instead of failing; every consumer already treats a deferred author reply as
+  not yet classified, which leaves the earlier handoff in place. Its result
+  distinguishes completed replies from author self-deferrals independently for
+  each earlier feedback item the comment addresses. Timestamp
+  ordering determines which items are candidates, but never applies a comment to
+  every earlier item by itself. Candidate sets are split and model-call batches
+  are greedily packed against the fully serialized prompt, so every Copilot CLI
+  argument remains within the configured character limit. Partial results are
+  merged into one cache entry per author comment. Completed reply evidence
+  retains the source comment id as well as its timestamp, so comments created in
+  the same second cannot be confused.
+- "Unclear" remains classifier vocabulary but is not a route. It collapses onto
+  the author when a pending action is built: when the classifier cannot tell
+  what a discussion needs, the author is the one who can clarify it. There is no
+  separate label for feedback blocked on a dependency, decision, or event
+  outside this repository, because the author still has to drive it. A route for
+  that case would name nobody, could not be nudged, and would outrank approvals,
+  leaving blocked PRs unowned.
 - Lifecycle transitions are deterministic after feedback and author-reply
   classification. An ordinary new item waits on the
-  author with 📌 visible. Once all expected evidence is observed, or the author
-  gives a completed reply, the item is addressed and the pin disappears. Normal
+  author with 📌 visible. Once the author gives a completed reply, the item is
+  addressed and the pin disappears. Normal
   approval-based routing then decides whether the PR waits on reviewers or
   maintainers; ordinary items do not have a separate requester-confirmation
   phase.
@@ -290,17 +295,10 @@ the implementation understandable and operationally cheap.
   of review state. A `CHANGES_REQUESTED` state affects only the reviewer's
   badge; it does not affect dashboard actions or routing. Empty review summaries
   are ignored; their inline comments, if any, define independent actions.
-- Description edits use the pull request's GraphQL `lastEditedAt` and `editor`
-  fields instead of the general `updatedAt`, which also changes for unrelated
-  PR activity.
-- The earliest timestamp for every observed evidence kind is retained in the
-  cached PR result. Evidence is reused only when it remains newer than the
-  item's root, so later metadata edits cannot regress the handoff and an edited
-  request cannot inherit evidence that predates its new text. Ordinary
+- The author reply that closed an item is retained in the cached PR result. It
+  is reused only when it remains newer than the item's root, so an edited
+  request cannot inherit a reply that predates its new text. Ordinary
   requester-confirmation timestamps are not persisted.
-- Matching evidence can address an item before the request is fully satisfied.
-  That recoverable early handoff is preferable to leaving a PR indefinitely
-  assigned to an author who already pushed, edited the description, or replied.
 - Reviewers should prefer inline comments when feedback needs explicit closure.
   Blocking PR-wide feedback should use GitHub's **Request changes** review state;
   ordinary top-level feedback remains a softer coordination mechanism.
