@@ -2116,9 +2116,13 @@
         "assignees": [],
         "author": "jraleigh",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 12,
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10808#issuecomment-5100098791"
+        ],
+        "author_nudge_episode_id": "8dd4ce8c52bd456e9e57087c94624487",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-28T04:48:42+00:00",
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -2136,19 +2140,28 @@
         "head_sha": "48ad8ffb5115159dfcfb8537665459ab17c4c2e7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T00:38:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T04:51:20+00:00",
+        "last_approver_activity_at": "2026-07-28T04:50:53+00:00",
         "last_author_activity_at": "2026-07-21T11:47:21+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "2edc399072f4b3c1306cfe3da6d5d7e701704697e85452dde241537f51ffad7d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-21T11:47:21+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "2de8eff3ee7362fccea0a1d929bae48a799b600dbe809be4cd0366c16cd36bce",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-28T04:48:42+00:00"
       },
       "failed": false,
       "pr_number": 10808,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10808",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "10812": {
