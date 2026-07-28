@@ -1,4 +1,4 @@
-const crypto = require("node:crypto");
+import crypto from "node:crypto";
 
 const GITHUB_API_VERSION = "2022-11-28";
 const MAX_WEBHOOK_BYTES = 1024 * 1024;
@@ -31,35 +31,32 @@ const ALLOWED_ACTIONS = {
   pull_request_review_thread: new Set(["resolved", "unresolved"]),
 };
 
-exports.handler = async (event) => {
+export default async (request) => {
   try {
-    return await handle(event);
+    return await handle(request);
   } catch (error) {
     console.error(error);
     return response(error.statusCode || 500, { error: error.publicMessage || "internal server error" });
   }
 };
 
-exports.isDashboardSelfTriggeredCommentEvent = isDashboardSelfTriggeredCommentEvent;
-exports.isAllowedAction = isAllowedAction;
-
-async function handle(event) {
-  if (event.httpMethod !== "POST") {
+async function handle(request) {
+  if (request.method !== "POST") {
     return response(405, { error: "method not allowed" });
   }
 
   const config = loadConfig();
-  const rawBody = readRawBody(event);
+  const rawBody = Buffer.from(await request.arrayBuffer());
 
   if (rawBody.length > MAX_WEBHOOK_BYTES) {
     return response(413, { error: "payload too large" });
   }
 
-  if (!verifySignature(rawBody, getHeader(event.headers, "x-hub-signature-256"), config.webhookSecret)) {
+  if (!verifySignature(rawBody, request.headers.get("x-hub-signature-256"), config.webhookSecret)) {
     return response(401, { error: "invalid signature" });
   }
 
-  const eventName = getHeader(event.headers, "x-github-event");
+  const eventName = request.headers.get("x-github-event");
   if (eventName === "ping") {
     return response(202, { status: "ignored", reason: "ping" });
   }
@@ -106,11 +103,11 @@ async function handle(event) {
   });
 }
 
-function isAllowedAction(eventName, action) {
+export function isAllowedAction(eventName, action) {
   return Boolean(ALLOWED_ACTIONS[eventName] && ALLOWED_ACTIONS[eventName].has(action));
 }
 
-function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
+export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
   if (eventName !== "issue_comment") {
     return false;
   }
@@ -154,13 +151,6 @@ function readRepository(payload) {
     name,
     owner: repository.owner && repository.owner.login,
   };
-}
-
-function readRawBody(event) {
-  if (!event.body) {
-    return Buffer.alloc(0);
-  }
-  return event.isBase64Encoded ? Buffer.from(event.body, "base64") : Buffer.from(event.body, "utf8");
 }
 
 function verifySignature(rawBody, signatureHeader, secret) {
@@ -367,20 +357,8 @@ function normalizePrivateKey(value, base64Value) {
   return rawValue && rawValue.trim().replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n");
 }
 
-function getHeader(headers, name) {
-  const lowerName = name.toLowerCase();
-  const entry = Object.entries(headers || {}).find(([key]) => key.toLowerCase() === lowerName);
-  return entry && entry[1];
-}
-
-function response(statusCode, body) {
-  return {
-    statusCode,
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  };
+function response(status, body) {
+  return Response.json(body, { status });
 }
 
 function httpError(statusCode, publicMessage, message) {
