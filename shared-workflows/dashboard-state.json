@@ -161,7 +161,7 @@
     },
     "158": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -185,19 +185,28 @@
         "head_sha": "de885daca34a287b31c733ecd3a2ee0bb5f1fdde",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-28T00:36:55+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T01:23:28+00:00",
+        "last_approver_activity_at": "2026-07-28T01:23:28+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-28T00:34:55+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "445691f86011d139e22de27e4bca0acb30be6fbe207db00cd4d2dba03bc65b02",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "5ffc19d8692fbd4295845d199f23c1a90d782080e9ea76df46506cccf455ff6e",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-28T00:34:59+00:00"
       },
       "failed": false,
       "pr_number": 158,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/158",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
