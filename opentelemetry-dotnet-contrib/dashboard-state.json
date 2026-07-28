@@ -717,16 +717,15 @@
     "4904": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
-        "author": "matt-hensley",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4904#discussion_r3667944084"
+        "assignees": [
+          "twenzel",
+          "xiang17"
         ],
+        "author": "matt-hensley",
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "70f71c9805c741878bc0eee00de82f56",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-07-28T17:32:40+00:00",
-        "ci_pending_count": 0,
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -741,10 +740,10 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "479c6a3e999850e83572e74d4f87353968edfa0e",
+        "head_sha": "ea75ad6f17b0352e529070d80b0da8b0f568b982",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T17:50:19+00:00",
+        "last_activity_at": "2026-07-28T17:53:07+00:00",
         "last_approver_activity_at": "2026-07-28T17:50:19+00:00",
         "last_author_activity_at": "2026-07-24T22:02:11+00:00",
         "reviewers": [
@@ -753,18 +752,34 @@
             "approved_non_team": false,
             "changes_requested": true,
             "login": "martincostello",
-            "open_thread": true,
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "twenzel",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "xiang17",
+            "open_thread": false,
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "dff17215b5f070388e903db45de5d43a495a0ddf02e6de799d1d74fb617322fb",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-28T17:32:40+00:00"
+        "routing_input_fingerprint": "d37b6505352ca8ac9fe246955f949db8725fc1247bf97f8a4cdffab6a72fb18f",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-24T22:02:11+00:00"
       },
       "failed": false,
       "pr_number": 4904,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4904",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
