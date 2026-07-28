@@ -20,9 +20,8 @@ on:
 permissions:
   contents: read
 
-# resolve-targets normally finishes in seconds, but during organization-wide
-# runner queueing, redundant webhook runs can accumulate into a large backlog
-# before job-level concurrency applies.
+# During organization-wide runner queueing, redundant webhook runs can
+# accumulate into a large backlog before job-level concurrency applies.
 #
 # Dashboard state is loaded live, so only the latest pending webhook refresh is
 # needed. Manual runs remain separate because they can refresh large
@@ -39,39 +38,34 @@ env:
 
 jobs:
   resolve-targets:
+    # Targeted refreshes go straight to the reusable workflow, which resolves
+    # its own configuration. Only backfills need a matrix resolved up front.
+    if: inputs.repository == '' || inputs.pr_number == ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
     environment: protected
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
-      pr_number: ${{ steps.trigger.outputs.pr_number }}
-      dashboard_precondition_met: ${{ steps.dashboard-precondition.outputs.met }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Resolve trigger inputs
-        id: trigger
         env:
           TARGET_REPOSITORY_FROM_INPUT: ${{ inputs.repository }}
           PR_FROM_INPUT: ${{ inputs.pr_number }}
           TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
         run: |
           set -euo pipefail
-          pr_number="$PR_FROM_INPUT"
-          trigger_event="$TRIGGER_EVENT_FROM_INPUT"
-
-          if [[ -n "$pr_number" ]]; then
-            [[ "$pr_number" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "bad PR number: $pr_number"; exit 1; }
+          if [[ -n "$PR_FROM_INPUT" ]]; then
             [[ -n "$TARGET_REPOSITORY_FROM_INPUT" ]] || { echo "repository is required when pr_number is set"; exit 1; }
           fi
-          if [[ -n "$trigger_event" ]]; then
-            [[ "$trigger_event" =~ ^(schedule|workflow_dispatch|check_suite|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
-              || { echo "bad trigger event: $trigger_event"; exit 1; }
+          if [[ -n "$TRIGGER_EVENT_FROM_INPUT" ]]; then
+            [[ "$TRIGGER_EVENT_FROM_INPUT" =~ ^(schedule|workflow_dispatch|check_suite|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
+              || { echo "bad trigger event: $TRIGGER_EVENT_FROM_INPUT"; exit 1; }
           fi
-          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
 
       - name: Resolve target repositories
         id: targets
@@ -83,48 +77,19 @@ jobs:
             if $repo == "" then
               .
             else
-              [ .[] | select(.name == $repo or ("open-telemetry/" + .name) == $repo) ]
+              [ .[] | select(.name == $repo) ]
             end
+            | [ .[] | {name} ]
           ' "$DASHBOARD_CONFIG")
           if [[ "$matrix" == "[]" ]]; then
             echo "no configured repository matched: ${TARGET_REPOSITORY:-<all>}" >&2
             exit 1
           fi
           echo "matrix={\"include\":${matrix}}" >> "$GITHUB_OUTPUT"
-          echo "repository=$(jq -r '.[0].name' <<< "$matrix")" >> "$GITHUB_OUTPUT"
           echo "$matrix" | jq .
-
-      - name: Check dashboard precondition
-        id: dashboard-precondition
-        env:
-          TRIGGER_PR_NUMBER: ${{ steps.trigger.outputs.pr_number }}
-          REPO_NAME: ${{ steps.targets.outputs.repository }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$TRIGGER_PR_NUMBER" ]]; then
-            echo "met=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          state_branch="otelbot/pull-request-dashboard-state/${REPO_NAME}"
-          initial_backfill_complete=$(python3 .github/scripts/pull-request-dashboard/state.py \
-            --repo "$REPO_NAME" \
-            --state-branch "$state_branch")
-          if [[ "$initial_backfill_complete" == "true" ]]; then
-            echo "met=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [[ "$initial_backfill_complete" == "false" ]]; then
-            echo "Initial dashboard backfill is incomplete; skipping targeted refresh."
-            echo "met=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "unexpected initial backfill result: $initial_backfill_complete" >&2
-          exit 1
 
   run-repo-dashboard:
     needs: resolve-targets
-    if: needs.resolve-targets.outputs.dashboard_precondition_met == 'true'
     permissions:
       contents: write
       copilot-requests: write
@@ -137,15 +102,21 @@ jobs:
     uses: ./.github/workflows/pull-request-dashboard-repo.yml
     with:
       repository: ${{ matrix.name }}
-      pr_number: ${{ needs.resolve-targets.outputs.pr_number }}
-      required_approvals: ${{ matrix.required_approvals || 1 }}
-      approver_teams_json: ${{ toJSON(matrix.approver_teams || fromJSON('[]')) }}
-      non_blocking_check_patterns_json: ${{ toJSON(matrix.non_blocking_check_patterns || fromJSON('[]')) }}
-      require_clean_copilot_review_branches_json: ${{ toJSON(matrix.require_clean_copilot_review_branches || fromJSON('[]')) }}
-      slack_channel: ${{ matrix.slack_channel }}
-      slack_user_mapping_json: ${{ toJSON(matrix.slack_user_mapping || fromJSON('{}')) }}
-      large_repo: ${{ matrix.large_repo || false }}
-      labels_to_display_json: ${{ toJSON(matrix.labels_to_display || fromJSON('[]')) }}
+    secrets:
+      PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  run-targeted-dashboard:
+    # Skipping resolve-targets removes a runner acquisition from the highest
+    # volume path, where webhook refreshes already know their single target.
+    if: inputs.repository != '' && inputs.pr_number != ''
+    permissions:
+      contents: write
+      copilot-requests: write
+    uses: ./.github/workflows/pull-request-dashboard-repo.yml
+    with:
+      repository: ${{ inputs.repository }}
+      pr_number: ${{ inputs.pr_number }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
