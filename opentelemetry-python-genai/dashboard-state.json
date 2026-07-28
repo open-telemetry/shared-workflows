@@ -141,11 +141,14 @@
     },
     "124": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "wrisa",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124#discussion_r3667965913"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "95bc309c5b5e45b29eeae6073be187f0",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
@@ -165,8 +168,8 @@
         "head_sha": "c7bf692fd481d9f90bdf9ecf3fa09260a95162ea",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T17:07:26+00:00",
-        "last_approver_activity_at": "2026-07-20T23:40:53+00:00",
+        "last_activity_at": "2026-07-28T17:53:39+00:00",
+        "last_approver_activity_at": "2026-07-28T17:53:20+00:00",
         "last_author_activity_at": "2026-07-22T13:37:28+00:00",
         "reviewers": [
           {
@@ -178,22 +181,22 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "lmolkova",
-            "open_thread": false,
+            "open_thread": true,
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "3a9cc2dd097e807688bd969cf985c22ec859df39b91eb849dd99798734632514",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-22T13:37:28+00:00"
+        "routing_input_fingerprint": "b3f7896f8f1a176a12f68600a7ea3d15eb3c78156889afe122a9c9b7b74f46b3",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-28T17:53:20+00:00"
       },
       "failed": false,
       "pr_number": 124,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/124",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4916064457": {
           "evidence": {
