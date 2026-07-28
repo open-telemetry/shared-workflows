@@ -4541,8 +4541,10 @@
         "author": "ChrsMark",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "author_nudge_episode_id": "409bbd32ec26450f8d4c463c4c31f541",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-28T08:55:59+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -4560,7 +4562,7 @@
         "head_sha": "1abb47630057e12fb88113083b139a8d14f62feb",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T08:48:32+00:00",
+        "last_activity_at": "2026-07-28T08:49:30+00:00",
         "last_approver_activity_at": "2026-07-22T14:48:33+00:00",
         "last_author_activity_at": "2026-07-28T08:48:03+00:00",
         "last_external_activity_at": "2026-07-17T04:18:14+00:00",
@@ -4590,14 +4592,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "20ab1bcf155d0c53968c16c6afc124a80b1a2133d87eac48498155a55c8940ba",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-17T06:37:23+00:00"
+        "routing_input_fingerprint": "2b2fb9bf906d407c88370775da476b136e35a345c70420c43ed8fdae2e9820d3",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-28T08:55:59+00:00"
       },
       "failed": false,
       "pr_number": 49152,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49152",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5043882314": {
           "evidence": {
