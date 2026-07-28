@@ -112,8 +112,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   when checks could not be fetched.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
-    last_activity_at                str (iso)     Latest substantive activity by
-                                                  any non-bot actor, never earlier
+    last_activity_at                str (iso)     Latest substantive activity by a
+                                                  PR participant, never earlier
                                                   than PR creation time.
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
@@ -245,7 +245,9 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:
     return "outsider"
 
 
-NON_BOT_ACTOR_ROLES = {"author", "approver", "outsider"}
+# `role_for` matches the PR's own author before it checks for bot-shaped logins,
+# so a bot-authored PR counts that bot's activity here.
+PARTICIPANT_ACTOR_ROLES = {"author", "approver", "outsider"}
 
 
 # Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
@@ -554,7 +556,7 @@ def compute_facts(
     created_ts = parse_ts(pr["createdAt"])
     # Not pr["updatedAt"]: the dashboard's own status comment bumps it, which
     # would make every refresh look like new activity and retrigger itself.
-    activity_ts = latest_substantive_activity(events, NON_BOT_ACTOR_ROLES)
+    activity_ts = latest_substantive_activity(events, PARTICIPANT_ACTOR_ROLES)
     # Commits can carry author dates from before the PR was opened.
     last_activity_ts = max(
         [ts for ts in (activity_ts, created_ts) if ts is not None],
