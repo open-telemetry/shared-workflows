@@ -11076,13 +11076,13 @@
     },
     "49905": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 10,
+        "ci_pending_count": 8,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -11100,11 +11100,19 @@
         "head_sha": "a67ab75c3e0206fc5c3cacbc8bb96ce2a1a6c54a",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-28T10:35:55+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T10:53:03+00:00",
+        "last_approver_activity_at": "2026-07-28T10:53:03+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-28T10:24:57+00:00",
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mx-psi",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -11114,14 +11122,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "46e5ac1cac1d67a57daa992947e3233c342e7ff846f14d7e10b968ab769d48da",
+        "routing_input_fingerprint": "34b2cc280c2529f07e39f089eadf657f50c872d1fdc467270b488dc192d03f81",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-28T10:24:09+00:00"
       },
       "failed": false,
       "pr_number": 49905,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49905",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
