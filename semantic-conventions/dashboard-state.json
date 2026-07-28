@@ -1580,8 +1580,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "app/dependabot",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3944#discussion_r3662369168"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "777e6483ea6b43bcaf2902dae277cf4f",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1601,19 +1604,28 @@
         "head_sha": "ec046c45fd54ba04f7a57059dfa1bb6f62d34566",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T02:25:20+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T02:42:35+00:00",
+        "last_approver_activity_at": "2026-07-28T02:42:34+00:00",
         "last_author_activity_at": "",
         "last_external_activity_at": "2026-07-28T02:23:18+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "d82ca184331b6e3a248f35c8c6e0dfd927e6846d398486dbda982529503877f0",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-07-28T02:23:20+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "14506573c04a55d95ef7acad42f9faec0e0ac9ad16a0dd0c1088ee38f8af655d",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-28T02:42:34+00:00"
       },
       "failed": false,
       "pr_number": 3944,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3944",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
