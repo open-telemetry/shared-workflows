@@ -15,14 +15,28 @@ BACKFILL_STATE_FILE = "backfill-state.json"
 AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
-# State files are disposable workflow caches, not durable user data. Bump only
-# the version for the state shape whose meaning changed.
+DELIVERY_VERSIONS_FILE = "delivery-versions.json"
+
+# These monotonic versions jointly order delivery compatibility. Increment the
+# relevant version whenever its stored shape, meaning, or delivered behavior
+# changes. A worker lower in any component skips delivery; after claiming the
+# current vector, ordinary state loaders may regenerate mismatched disposable
+# caches. Every constant ending in _STATE_VERSION or _REVISION is included.
+# dashboard-state.json: accepted PR routing results and backfill readiness.
 DASHBOARD_STATE_VERSION = 5
+# backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
+# notification-state.json: pending and delivered Slack notification records.
 NOTIFICATION_STATE_VERSION = 3
+# author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 2
+# copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 3
+# status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
+# Rendered status-comment behavior. Increment when existing comments need to
+# adopt a change; hourly runs durably roll it out to all open PRs.
+STATUS_COMMENT_REVISION = 13
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -62,6 +76,10 @@ def status_comment_rollout_state_path() -> Path:
     return state_dir() / STATUS_COMMENT_ROLLOUT_STATE_FILE
 
 
+def delivery_versions_path() -> Path:
+    return state_dir() / DELIVERY_VERSIONS_FILE
+
+
 def dashboard_markdown_path() -> Path:
     return state_dir() / DASHBOARD_MARKDOWN_FILE
 
@@ -88,6 +106,14 @@ def empty_status_comment_rollout_state() -> dict[str, Any]:
         "target_revision": 0,
         "completed_revision": 0,
         "pending_pr_numbers": [],
+    }
+
+
+def current_delivery_versions() -> dict[str, int]:
+    return {
+        name: value
+        for name, value in globals().items()
+        if name.endswith(("_STATE_VERSION", "_REVISION"))
     }
 
 
@@ -181,6 +207,52 @@ def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
         },
         STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     )
+
+
+def load_delivery_versions() -> dict[str, int] | None:
+    path = delivery_versions_path()
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"warning: unreadable delivery versions {path}: {e!r}", file=sys.stderr)
+        return None
+    if not isinstance(data, dict):
+        return None
+    if any(
+        not isinstance(value, int) or isinstance(value, bool) or value < 0
+        for value in data.values()
+    ):
+        return None
+    return data
+
+
+def save_delivery_versions(versions: dict[str, int]) -> None:
+    path = delivery_versions_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(versions, sort_keys=True, indent=2),
+        encoding="utf-8",
+    )
+
+
+def claim_delivery_versions() -> bool:
+    active_versions = load_delivery_versions()
+    if active_versions is None:
+        print("delivery versions are unreadable; skipping delivery", file=sys.stderr)
+        return False
+    current_versions = current_delivery_versions()
+    if active_versions.keys() - current_versions.keys():
+        return False
+    if any(
+        active_versions.get(name, 0) > version
+        for name, version in current_versions.items()
+    ):
+        return False
+    if active_versions != current_versions:
+        save_delivery_versions(current_versions)
+    return True
 
 
 def enqueue_status_comment_update(pr_number: int) -> None:
