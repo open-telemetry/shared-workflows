@@ -9136,8 +9136,10 @@
         "author": "splunk-shanu",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 10,
+        "author_nudge_episode_id": "cd3ae829c9904d5089fc2ac555e991f6",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-28T06:17:15+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -9155,7 +9157,7 @@
         "head_sha": "574fdf40687ea83991b974b1675c8cfb39941a9f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T06:10:29+00:00",
+        "last_activity_at": "2026-07-28T06:11:50+00:00",
         "last_approver_activity_at": "2026-07-24T17:54:36+00:00",
         "last_author_activity_at": "2026-07-28T06:10:10+00:00",
         "last_external_activity_at": "2026-07-24T11:29:04+00:00",
@@ -9177,14 +9179,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "989a38211bae71ee2f57442411ce08481c5b2cbc1ec97d6a878e0d3982634141",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-28T06:10:10+00:00"
+        "routing_input_fingerprint": "5f26a59b62823596f035240d5824d945362de494ab9d3f4bf8331c974593c05e",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-28T06:17:15+00:00"
       },
       "failed": false,
       "pr_number": 49798,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49798",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "49801": {
