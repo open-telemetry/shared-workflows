@@ -728,7 +728,7 @@
     },
     "4903": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "matt-hensley",
         "author_action_review_thread_urls": [],
@@ -752,19 +752,28 @@
         "head_sha": "eaa9fa44c9753f07dd09295f1a2fa592c137ee0d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T13:52:31+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T14:38:20+00:00",
+        "last_approver_activity_at": "2026-07-28T14:38:20+00:00",
         "last_author_activity_at": "2026-07-28T13:39:14+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "5197122369ffb601f5be67289caafa2a792f75105810e7b8a638d9f5c36d9eb0",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "121f6687ec3068bd8c18613ff46a37fe2be583f5d03d5df026b6f03ef1cfa32e",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-28T13:39:14+00:00"
       },
       "failed": false,
       "pr_number": 4903,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4903",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
