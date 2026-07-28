@@ -140,8 +140,10 @@ Production function environment before deployment:
   deploy workflow base64-encodes this secret before storing it in Netlify as
   `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64`
 
-The webhook function also supports `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` if the
-deployment environment can store a multiline PEM value directly.
+The `flush-dashboard-refreshes` function also supports
+`OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` if the deployment environment can store a
+multiline PEM value directly. `github-webhook` needs only
+`GITHUB_WEBHOOK_SECRET`; it records refreshes and never calls the GitHub API.
 
 Deploy contexts:
 
@@ -149,8 +151,12 @@ Deploy contexts:
 
 ## 5. Workflow dispatch contract
 
-The webhook bridge should dispatch `pull-request-dashboard.yml` in
-`open-telemetry/shared-workflows` with these inputs:
+Accepted webhooks are recorded in the `dashboard-refresh-queue` Netlify Blobs
+store under the key `<repository>/<pr_number>`. The `flush-dashboard-refreshes`
+scheduled function runs every minute and dispatches
+`pull-request-dashboard.yml` in `open-telemetry/shared-workflows` once a pull
+request has been quiet for 45 seconds, which collapses a burst of webhooks into
+a single run:
 
 ```json
 {
@@ -165,6 +171,9 @@ Notes:
 - `repository` is the short repository name under `open-telemetry`.
 - Omit `pr_number` or set it to an empty string for a backfill.
 - The central workflow validates these inputs before using them.
+- `trigger_event` is the event name of the most recent webhook in the burst.
+- A refresh is owed while `lastDispatchAt` is older than `lastEventAt`, so a
+  dispatch that fails is retried on the next sweep.
 
 ## 6. Post-rollout compatibility cleanup
 

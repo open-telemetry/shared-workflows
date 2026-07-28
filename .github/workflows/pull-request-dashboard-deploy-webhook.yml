@@ -33,6 +33,12 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
+      # Netlify bundles the functions from this checkout, so their runtime
+      # dependencies have to be on disk before the deploy step.
+      - name: Install function dependencies
+        working-directory: .github/scripts/pull-request-dashboard
+        run: npm ci
+
       - name: Configure Netlify dispatcher environment
         working-directory: .github/scripts/pull-request-dashboard
         env:

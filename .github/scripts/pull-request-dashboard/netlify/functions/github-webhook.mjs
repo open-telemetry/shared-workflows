@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
 
-const GITHUB_API_VERSION = "2022-11-28";
+import { getStore } from "@netlify/blobs";
+
+import { REFRESH_QUEUE_STORE, refreshQueueKey } from "../lib/refresh-queue.mjs";
+
 const MAX_WEBHOOK_BYTES = 1024 * 1024;
 const OWNER = "open-telemetry";
-const WORKFLOW_REPOSITORY = "shared-workflows";
-const WORKFLOW_ID = "pull-request-dashboard.yml";
-const WORKFLOW_REF = "main";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
 
 const ALLOWED_ACTIONS = {
@@ -86,17 +86,19 @@ async function handle(request) {
     return response(202, { status: "ignored", reason: "no pull request number found" });
   }
 
-  const dispatcherJwt = createAppJwt({ appId: config.dispatcherAppId, privateKey: config.dispatcherPrivateKey });
-  const installationId = await findRepositoryInstallationId(dispatcherJwt, `${OWNER}/${WORKFLOW_REPOSITORY}`);
-  const installationToken = await createInstallationToken(dispatcherJwt, installationId);
-  await dispatchWorkflow(installationToken, {
-    repository: repository.name,
-    pr_number: String(prNumber),
-    trigger_event: eventName,
+  // Record the event instead of dispatching. The scheduled flush function
+  // collapses each burst into one workflow run per pull request.
+  const store = getStore(REFRESH_QUEUE_STORE);
+  const key = refreshQueueKey(repository.name, prNumber);
+  const queued = (await store.get(key, { type: "json" })) || {};
+  await store.setJSON(key, {
+    ...queued,
+    lastEventAt: Date.now(),
+    triggerEvent: eventName,
   });
 
   return response(202, {
-    status: "dispatched",
+    status: "queued",
     repository: repository.fullName,
     pr_number: prNumber,
     trigger_event: eventName,
@@ -124,11 +126,6 @@ export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
 
 function loadConfig() {
   const config = {
-    dispatcherAppId: process.env.OTELBOT_SHARED_WORKFLOWS_APP_ID,
-    dispatcherPrivateKey: normalizePrivateKey(
-      process.env.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY,
-      process.env.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64,
-    ),
     webhookSecret: process.env.GITHUB_WEBHOOK_SECRET,
   };
 
@@ -249,112 +246,6 @@ function extractPullRequestNumberFromUrls(urls) {
     }
   }
   return undefined;
-}
-
-async function findRepositoryInstallationId(jwt, repository) {
-  const body = await githubJson(
-    `https://api.github.com/repos/${encodeRepository(repository)}/installation`,
-    jwt,
-  );
-  if (!body || !body.id) {
-    throw httpError(502, "GitHub installation lookup failed", `GitHub installation response did not include id for ${repository}`);
-  }
-  return body.id;
-}
-
-async function createInstallationToken(jwt, installationId) {
-  const body = await githubJson(
-    `https://api.github.com/app/installations/${installationId}/access_tokens`,
-    jwt,
-    { method: "POST" },
-  );
-  if (!body || !body.token) {
-    throw httpError(502, "GitHub token request failed", "GitHub installation token response did not include a token");
-  }
-  return body.token;
-}
-
-async function dispatchWorkflow(token, inputs) {
-  const encodedWorkflowId = encodeURIComponent(WORKFLOW_ID);
-  await githubFetch(
-    `https://api.github.com/repos/${OWNER}/${WORKFLOW_REPOSITORY}/actions/workflows/${encodedWorkflowId}/dispatches`,
-    token,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        ref: WORKFLOW_REF,
-        inputs,
-      }),
-    },
-  );
-}
-
-function encodeRepository(repository) {
-  return repository.split("/").map(encodeURIComponent).join("/");
-}
-
-async function githubJson(url, token, options = {}) {
-  const response = await githubFetch(url, token, options);
-  if (response.status === 204) {
-    return null;
-  }
-  return response.json();
-}
-
-async function githubFetch(url, token, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      accept: "application/vnd.github+json",
-      "content-type": "application/json",
-      "user-agent": "pull-request-dashboard-webhook",
-      "x-github-api-version": GITHUB_API_VERSION,
-      authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw httpError(
-      502,
-      "GitHub API request failed",
-      `GitHub API request failed: ${response.status} ${response.statusText}: ${body}`,
-    );
-  }
-
-  return response;
-}
-
-function createAppJwt(config) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64UrlJson({ alg: "RS256", typ: "JWT" });
-  const payload = base64UrlJson({
-    iat: now - 60,
-    exp: now + 10 * 60,
-    iss: config.appId,
-  });
-  const unsignedToken = `${header}.${payload}`;
-  const signature = crypto.sign("RSA-SHA256", Buffer.from(unsignedToken), config.privateKey);
-
-  return `${unsignedToken}.${base64Url(signature)}`;
-}
-
-function base64UrlJson(value) {
-  return base64Url(Buffer.from(JSON.stringify(value)));
-}
-
-function base64Url(buffer) {
-  return buffer
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-}
-
-function normalizePrivateKey(value, base64Value) {
-  const rawValue = base64Value ? Buffer.from(base64Value, "base64").toString("utf8") : value;
-  return rawValue && rawValue.trim().replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n");
 }
 
 function response(status, body) {
