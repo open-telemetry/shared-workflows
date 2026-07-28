@@ -1565,13 +1565,13 @@
     "3945": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
+        "assignees": [
+          "ChrsMark"
+        ],
         "author": "ChrsMark",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "4683512a454f48ec80d7c62261e63a31",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-07-28T12:10:58+00:00",
+        "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -1587,22 +1587,31 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "b253ec34792cb9e3336fd4444a21cc7432bb9e1f",
+        "head_sha": "41f1e1a596c8940f77d304bb74e79c56fb06b924",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T12:11:07+00:00",
+        "last_activity_at": "2026-07-28T12:17:41+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-07-28T11:56:47+00:00",
+        "last_author_activity_at": "2026-07-28T12:17:05+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "452dcd68ecd329482d197d45bd4228bc7f845f035f28d962e463f288ac071d72",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-28T12:10:58+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "ChrsMark",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "8d95e2ffcd3b88687c7b16176d49b094c0731c17abd86e5732db4cfe3fa36474",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-28T12:17:05+00:00"
       },
       "failed": false,
       "pr_number": 3945,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3945",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
