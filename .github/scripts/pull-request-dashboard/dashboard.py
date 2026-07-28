@@ -112,7 +112,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   when checks could not be fetched.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
-    last_activity_at                str (iso)
+    last_activity_at                str (iso)     Latest substantive activity by
+                                                  any non-bot actor, falling back
+                                                  to PR creation time.
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
 
@@ -241,6 +243,9 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:
     if low.startswith("app/") or low.endswith("[bot]"):
         return "bot"
     return "outsider"
+
+
+NON_BOT_ACTOR_ROLES = {"author", "approver", "outsider"}
 
 
 # Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
@@ -546,8 +551,10 @@ def compute_facts(
     pending = [c for c in checks or [] if c.get("bucket") == "pending"]
     failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
     failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
-    last_activity_ts = parse_ts(pr["updatedAt"])
     created_ts = parse_ts(pr["createdAt"])
+    # Not pr["updatedAt"]: the dashboard's own status comment bumps it, which
+    # would make every refresh look like new activity and retrigger itself.
+    last_activity_ts = latest_substantive_activity(events, NON_BOT_ACTOR_ROLES) or created_ts
     author_activity_ts = latest_substantive_activity(events, {"author"})
     approver_activity_ts = latest_substantive_activity(events, {"approver"})
     api_author = actor_login(pr.get("author") or {})

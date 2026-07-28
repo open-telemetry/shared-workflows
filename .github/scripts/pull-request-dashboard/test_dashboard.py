@@ -917,6 +917,65 @@ class RequiredCiRoutingTest(unittest.TestCase):
                 self.assertEqual(basis, current_facts["waiting_age_basis"])
 
 
+class LastActivityTest(unittest.TestCase):
+    def _compute_last_activity_at(self, events: list[dict[str, object]]) -> object:
+        return compute_facts(
+            {
+                "pr": {
+                    # The dashboard's own status comment already bumped updatedAt.
+                    "updatedAt": "2026-07-20T09:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                },
+                "checks": [],
+            },
+            "author",
+            events,
+        )["last_activity_at"]
+
+    def test_ignores_bot_activity(self) -> None:
+        last_activity_at = self._compute_last_activity_at([
+            {
+                "actor_role": "author",
+                "kind": "issue-comment",
+                "body": "ready for another look",
+                "timestamp": "2026-07-20T02:00:00Z",
+            },
+            {
+                "actor_role": "bot",
+                "kind": "issue-comment",
+                "body": "Pull request dashboard status",
+                "timestamp": "2026-07-20T09:00:00Z",
+            },
+        ])
+
+        self.assertEqual("2026-07-20T02:00:00+00:00", last_activity_at)
+
+    def test_uses_latest_activity_from_any_non_bot_role(self) -> None:
+        last_activity_at = self._compute_last_activity_at([
+            {
+                "actor_role": "author",
+                "kind": "issue-comment",
+                "body": "ready for another look",
+                "timestamp": "2026-07-20T02:00:00Z",
+            },
+            {
+                "actor_role": "outsider",
+                "kind": "issue-comment",
+                "body": "hitting this too",
+                "timestamp": "2026-07-20T03:00:00Z",
+            },
+        ])
+
+        self.assertEqual("2026-07-20T03:00:00+00:00", last_activity_at)
+
+    def test_falls_back_to_creation_time_without_activity(self) -> None:
+        self.assertEqual("2026-07-20T01:00:00+00:00", self._compute_last_activity_at([]))
+
+
 class BackfillFailureIsolationTest(unittest.TestCase):
     def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
         args = Namespace(

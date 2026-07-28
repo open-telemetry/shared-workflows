@@ -231,6 +231,12 @@ the implementation understandable and operationally cheap.
   author-action links are collected) and capped at 20 in the comment. If the
   URL invariants need stronger enforcement, fail the affected PR refresh rather
   than advertise a larger item count with fewer actionable links.
+- `last_activity_at` is derived from substantive non-bot events rather than the
+  PR's `updatedAt`. Updating the status comment bumps `updatedAt`, so an
+  `updatedAt`-derived fact made every refresh look like new activity, which
+  queued another comment update, which bumped `updatedAt` again. Besides
+  rewriting the comment indefinitely, that loop reset the inactivity clock
+  `actions/stale` reads, so no PR in a dashboard repository could go stale.
 
 ## Top-Level Feedback
 
