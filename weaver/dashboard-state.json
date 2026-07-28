@@ -707,13 +707,13 @@
     },
     "1649": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jerbly",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 5,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -731,19 +731,28 @@
         "head_sha": "393f2edc819e9435778d68e548906451c5afb633",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T00:20:21+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-28T00:34:02+00:00",
+        "last_approver_activity_at": "2026-07-28T00:34:01+00:00",
         "last_author_activity_at": "2026-07-28T00:19:07+00:00",
         "last_external_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "272134925541623f84d575ff29b9eaa7c71d89b45298b68c3869d9fcd88e7ff8",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "ab363b5d2e37154104fa2d5a9795d8aa9399dcf7f4b62e15f3803f59c69cf308",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-28T00:19:07+00:00"
       },
       "failed": false,
       "pr_number": 1649,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1649",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "845": {
