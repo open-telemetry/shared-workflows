@@ -1056,16 +1056,16 @@
     },
     "331": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": true,
-        "copilot_review_needed": false,
+        "copilot_review_needed": true,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
         "created_at": "2026-07-29T04:21:09+00:00",
@@ -1077,21 +1077,30 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "8a0cf1073711e3aeefecde1053e7c5c5c8d13355",
+        "head_sha": "5174f907458e93e2610eee337056636cf03548a7",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-29T04:21:09+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T14:42:02+00:00",
+        "last_approver_activity_at": "2026-07-29T14:42:02+00:00",
         "last_author_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "b3b0e7b0fc97e1af8773a65991da85d070926e4009ba246a04d7af8cf3d1e1bb",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "75554101eb7ed500f2181a511421c527df3b9eb5f717acc07a923d3f6e7f763a",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-29T04:21:09+00:00"
       },
       "failed": false,
       "pr_number": 331,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/331",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "332": {
