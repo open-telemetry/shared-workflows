@@ -909,13 +909,13 @@
     },
     "7569": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -933,18 +933,27 @@
         "head_sha": "37e1e7351bec628a638bfa580f28914f94ff82e3",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-29T08:08:18+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T08:20:34+00:00",
+        "last_approver_activity_at": "2026-07-29T08:20:34+00:00",
         "last_author_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "96a975b3d1ed65eb9084595ac8e9d9cb305e06467a30a797f1ce8752a2980a64",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "168e2a673453ede7905e655ad0f186072d575482e6dac5ff8b36ff7bd579862b",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-29T08:08:18+00:00"
       },
       "failed": false,
       "pr_number": 7569,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7569",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
