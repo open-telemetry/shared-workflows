@@ -1843,8 +1843,12 @@
         "approval_count": 0,
         "assignees": [],
         "author": "ngowran",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3609#discussion_r3676155709",
+          "https://github.com/open-telemetry/otel-arrow/pull/3609#discussion_r3676159117"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "0227ae2c940946a6885072d68c94d94d",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1864,18 +1868,27 @@
         "head_sha": "9af35b9870a95a4123becb40ace07d2908a05bd1",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-29T13:06:26+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T16:21:22+00:00",
+        "last_approver_activity_at": "2026-07-29T16:21:22+00:00",
         "last_author_activity_at": "2026-07-29T12:50:15+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "a43d81605d4cb0e3d4a5a032f7132105ce4231b291fd67828639c37828b1e62a",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-29T12:50:15+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "drewrelmas",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "5956f0c31bc6e181f99a659ba523c12add97b3b23573bb7000556581795de6d8",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-29T16:21:22+00:00"
       },
       "failed": false,
       "pr_number": 3609,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3609",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
