@@ -57,6 +57,18 @@ def is_non_fast_forward(stderr: str) -> bool:
     return "non-fast-forward" in stderr.lower()
 
 
+def remote_is_behind_local(state_branch: str) -> bool:
+    if not has_state_branch(state_branch):
+        return False
+    fetched = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "FETCH_HEAD", remote_ref(state_branch)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return fetched.returncode == 0
+
+
 def fetch_state_branch(state_branch: str, required: bool) -> bool:
     refspec = f"{state_branch}:{remote_ref(state_branch)}"
     proc = subprocess.run(
@@ -69,10 +81,10 @@ def fetch_state_branch(state_branch: str, required: bool) -> bool:
         return True
     if not required and is_missing_remote_ref(proc.stderr):
         return False
-    if is_non_fast_forward(proc.stderr) and has_state_branch(state_branch):
+    if is_non_fast_forward(proc.stderr) and remote_is_behind_local(state_branch):
         # GitHub answers fetches from server copies that lag slightly behind the copy
         # that accepted the push, so a fetch right after a push can hand back the
-        # pre-push commit; the local ref is newer, so keep it
+        # pre-push commit, which the local ref already contains
         print(f"remote {state_branch} is behind the local ref; keeping the local ref", file=sys.stderr)
         return True
     message = proc.stderr.strip() or proc.stdout.strip() or f"exit code {proc.returncode}"

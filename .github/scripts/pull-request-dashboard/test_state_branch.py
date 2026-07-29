@@ -56,28 +56,68 @@ class FetchStateBranchTest(unittest.TestCase):
             ),
         )
 
-    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(state_branch, "remote_is_behind_local", return_value=True)
     @patch.object(subprocess, "run")
     def test_keeps_local_ref_when_remote_is_behind(
         self,
         run: object,
-        _has_state_branch: object,
+        _remote_is_behind_local: object,
     ) -> None:
         run.return_value = self.rejected_fetch()
 
         self.assertTrue(state_branch.fetch_state_branch("state-branch", required=True))
 
-    @patch.object(state_branch, "has_state_branch", return_value=False)
+    @patch.object(state_branch, "remote_is_behind_local", return_value=False)
     @patch.object(subprocess, "run")
-    def test_raises_when_rejected_without_local_ref(
+    def test_raises_when_remote_diverged(
         self,
         run: object,
-        _has_state_branch: object,
+        _remote_is_behind_local: object,
     ) -> None:
         run.return_value = self.rejected_fetch()
 
         with self.assertRaises(RuntimeError):
             state_branch.fetch_state_branch("state-branch", required=True)
+
+
+class RemoteIsBehindLocalTest(unittest.TestCase):
+    @patch.object(state_branch, "has_state_branch", return_value=False)
+    @patch.object(subprocess, "run")
+    def test_false_without_local_ref(
+        self,
+        run: object,
+        _has_state_branch: object,
+    ) -> None:
+        self.assertFalse(state_branch.remote_is_behind_local("state-branch"))
+
+        run.assert_not_called()
+
+    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(subprocess, "run")
+    def test_checks_fetched_commit_is_contained_in_local_ref(
+        self,
+        run: object,
+        _has_state_branch: object,
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess(args=["git"], returncode=0)
+
+        self.assertTrue(state_branch.remote_is_behind_local("state-branch"))
+
+        self.assertEqual(
+            ["git", "merge-base", "--is-ancestor", "FETCH_HEAD", "refs/remotes/origin/state-branch"],
+            run.call_args.args[0],
+        )
+
+    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(subprocess, "run")
+    def test_false_when_fetched_commit_diverged(
+        self,
+        run: object,
+        _has_state_branch: object,
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess(args=["git"], returncode=1)
+
+        self.assertFalse(state_branch.remote_is_behind_local("state-branch"))
 
 
 if __name__ == "__main__":
