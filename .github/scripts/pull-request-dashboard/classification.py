@@ -1006,8 +1006,9 @@ def classify_review_threads(
     cache_in: dict[str, dict[str, Any]],
     cache_out: dict[str, dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
-    # Praise never decides a thread. It is dropped, so routing falls back to
-    # whoever spoke before it, and a thread that is nothing but praise needs nobody.
+    # Praise never decides a thread. Only the last comment is checked, so a thread
+    # needs nobody exactly when its single comment is praise; praise after anything
+    # else falls back to whoever spoke before it.
     praise = classify_praise(
         number,
         [d for d in discussions if _could_be_praise(d)],

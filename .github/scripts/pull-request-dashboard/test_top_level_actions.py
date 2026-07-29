@@ -233,6 +233,16 @@ class ReviewThreadPraiseTest(unittest.TestCase):
         self.assertEqual(records["t"]["decision"]["discussion_action"], "reviewer")
 
     @patch("classification.run_llm_for_verdict_batch")
+    def test_only_the_last_comment_is_checked_for_praise(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("praise")
+
+        records = classify_review_threads(
+            1, [self.thread(("reviewer", "Nice"), ("reviewer", "LGTM"))], "model", {}, {}
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+
+    @patch("classification.run_llm_for_verdict_batch")
     def test_a_comment_that_is_not_praise_stays_the_authors(self, run_verdict) -> None:
         run_verdict.side_effect = self.answering("not_praise")
 
