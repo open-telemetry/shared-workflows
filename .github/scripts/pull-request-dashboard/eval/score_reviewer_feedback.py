@@ -87,21 +87,23 @@ def classify(cases: list[dict], template: str, field: str, mapping: dict, model:
         if not isinstance(items, list):
             return {}
         out: dict[str, str] = {}
-        duplicates: set[str] = set()
+        requested = {item["discussion_id"] for item in batch}
+        seen: set[str] = set()
         for entry in items:
             if not isinstance(entry, dict):
                 continue
-            label = mapping.get(str(entry.get(field) or "").strip().lower())
             discussion_id = entry.get("discussion_id")
-            if not isinstance(discussion_id, str) or not label:
+            if not isinstance(discussion_id, str) or discussion_id not in requested:
                 continue
-            # Production fails a discussion the model answered twice rather than
-            # keeping either answer; an evaluation must not be more forgiving.
-            if discussion_id in out or discussion_id in duplicates:
-                duplicates.add(discussion_id)
+            # Identity is settled before the verdict is read, so a repeated id
+            # fails the case however the repeat is spelled, as production does.
+            if discussion_id in seen:
                 out.pop(discussion_id, None)
                 continue
-            out[discussion_id] = label
+            seen.add(discussion_id)
+            label = mapping.get(str(entry.get(field) or "").strip().lower())
+            if label:
+                out[discussion_id] = label
         return out
 
     observed: dict[str, str] = {}
