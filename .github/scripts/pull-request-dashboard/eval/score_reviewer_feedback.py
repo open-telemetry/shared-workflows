@@ -29,21 +29,22 @@ BATCH_SIZE = 10
 
 # Classifiers answer in their own vocabulary; map each onto the recorded labels.
 # "substantive" means the author owes something, so every verdict a classifier
-# uses to keep an item with the author maps onto it.
+# uses to keep an item with the author maps onto it. Answer fields are tried in
+# order, matching the fallbacks the production parser accepts.
 VOCABULARIES = {
     "top_level_reviewer_feedback": (
         "TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE",
-        "discussion_action",
+        ("discussion_action", "route"),
         {"author": "substantive", "unclear": "substantive", "none": "noise"},
     ),
     "reviewer_feedback": (
         "REVIEWER_FEEDBACK_PROMPT_TEMPLATE",
-        "verdict",
+        ("verdict",),
         {"substantive": "substantive", "noise": "noise"},
     ),
     "reviewer_feedback_confirm": (
         "REVIEWER_FEEDBACK_CONFIRM_PROMPT_TEMPLATE",
-        "verdict",
+        ("verdict",),
         {"other": "substantive", "confirmed": "noise"},
     ),
 }
@@ -56,7 +57,9 @@ def available_classifiers() -> list[str]:
     ]
 
 
-def classify(cases: list[dict], template: str, field: str, mapping: dict, model: str) -> dict:
+def classify(
+    cases: list[dict], template: str, fields: tuple[str, ...], mapping: dict, model: str
+) -> dict:
     prompt_inputs = [
         {
             "discussion_id": c["id"],
@@ -101,7 +104,8 @@ def classify(cases: list[dict], template: str, field: str, mapping: dict, model:
                 out.pop(discussion_id, None)
                 continue
             seen.add(discussion_id)
-            label = mapping.get(str(entry.get(field) or "").strip().lower())
+            answer = next((entry[name] for name in fields if entry.get(name)), "")
+            label = mapping.get(str(answer).strip().lower())
             if label:
                 out[discussion_id] = label
         return out
@@ -215,7 +219,7 @@ def main() -> None:
     if args.trials < 2:
         parser.error("--trials must be at least 2 to measure stability")
 
-    template_name, field, mapping = VOCABULARIES[args.classifier]
+    template_name, fields, mapping = VOCABULARIES[args.classifier]
     template = getattr(classification, template_name, None)
     if template is None:
         raise SystemExit(
@@ -229,7 +233,7 @@ def main() -> None:
         f"baseline generated {data['generated_at']}\n"
     )
     trials = [
-        classify(data["cases"], template, field, mapping, args.model)
+        classify(data["cases"], template, fields, mapping, args.model)
         for _ in range(args.trials)
     ]
     report(
