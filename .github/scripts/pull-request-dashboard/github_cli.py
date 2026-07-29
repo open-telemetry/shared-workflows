@@ -413,7 +413,7 @@ def gh_pr_check_rollup(
     checks_by_identity: dict[
         tuple[str, int | None, bool], tuple[dict[str, Any], bool]
     ] = {}
-    code_scanning: list[dict[str, Any]] = []
+    code_scanning_by_identity: dict[tuple[str, int | None], dict[str, Any]] = {}
     after: str | None = None
     try:
         while True:
@@ -429,8 +429,15 @@ def gh_pr_check_rollup(
                 name = (node.get("context") or node.get("name") or "")
                 app = ((node.get("checkSuite") or {}).get("app") or {})
                 if app.get("databaseId") == CODE_SCANNING_APP_ID:
-                    code_scanning.append(normalize_check(node))
-                    continue
+                    check = normalize_check(node)
+                    code_scanning_identity = (check["name"], check["integration_id"])
+                    previous_attempt = code_scanning_by_identity.get(
+                        code_scanning_identity
+                    )
+                    if previous_attempt is None or check_attempt_order(
+                        check
+                    ) >= check_attempt_order(previous_attempt):
+                        code_scanning_by_identity[code_scanning_identity] = check
                 if not is_required and not any(
                     fnmatchcase(name, pattern)
                     for pattern in non_blocking_check_patterns
@@ -457,7 +464,7 @@ def gh_pr_check_rollup(
             for check, is_required in checks
             if not is_required and check.get("bucket") in ("fail", "cancel")
         ],
-        "code_scanning": code_scanning,
+        "code_scanning": list(code_scanning_by_identity.values()),
     }
 
 
@@ -528,6 +535,22 @@ def required_code_scanning_checks(
             check = {**check, "bucket": "fail"}
         required.append(check)
     return required
+
+
+def merge_code_scanning_checks(
+    checks: list[dict[str, Any]],
+    code_scanning_checks: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    # The same check can also be a configured required context, in which case
+    # the code scanning bucket wins because it accounts for NEUTRAL.
+    identities = {
+        (check["name"], check["integration_id"]) for check in code_scanning_checks
+    }
+    return [
+        check
+        for check in checks
+        if (check.get("name"), check.get("integration_id")) not in identities
+    ] + code_scanning_checks
 
 
 def include_missing_required_checks(
@@ -872,9 +895,12 @@ def fetch_pr_routing_raw(
             required_check_contexts(branch_rules),
         )
         if checks is not None and check_rollup is not None:
-            checks = checks + required_code_scanning_checks(
-                check_rollup["code_scanning"],
-                code_scanning_tools(branch_rules),
+            checks = merge_code_scanning_checks(
+                checks,
+                required_code_scanning_checks(
+                    check_rollup["code_scanning"],
+                    code_scanning_tools(branch_rules),
+                ),
             )
         return {
             "pr": pr,

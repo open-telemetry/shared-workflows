@@ -17,6 +17,7 @@ from github_cli import (
     include_missing_required_checks,
     is_retryable_gh_error,
     list_open_prs,
+    merge_code_scanning_checks,
     request_copilot_review,
     required_check_contexts,
     required_code_scanning_checks,
@@ -38,6 +39,27 @@ def _review_requests_page(nodes, has_next=False, cursor=""):
                 }
             }
         }
+    }
+
+
+def _rollup_page(nodes):
+    return {
+        "data": {
+            "node": {
+                "commits": {
+                    "nodes": [{
+                        "commit": {
+                            "statusCheckRollup": {
+                                "contexts": {
+                                    "nodes": nodes,
+                                    "pageInfo": {"hasNextPage": False},
+                                },
+                            },
+                        },
+                    }],
+                },
+            },
+        },
     }
 
 
@@ -619,6 +641,78 @@ class GithubCliTest(unittest.TestCase):
             ),
         )
 
+    def test_code_scanning_result_replaces_its_required_context_entry(self) -> None:
+        self.assertEqual(
+            [("build", "pass"), ("CodeQL", "fail")],
+            [
+                (check["name"], check["bucket"])
+                for check in merge_code_scanning_checks(
+                    [
+                        {"name": "build", "integration_id": 1, "bucket": "pass"},
+                        {"name": "CodeQL", "integration_id": 57789, "bucket": "skipping"},
+                    ],
+                    [{"name": "CodeQL", "integration_id": 57789, "bucket": "fail"}],
+                )
+            ],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_keeps_the_latest_code_scanning_attempt(self, graphql) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "CodeQL",
+                "status": "COMPLETED",
+                "conclusion": "NEUTRAL",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": False,
+                "checkSuite": {"app": {"databaseId": 57789}},
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "CodeQL",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": False,
+                "checkSuite": {"app": {"databaseId": 57789}},
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [("CodeQL", "pass")],
+            [(check["name"], check["bucket"]) for check in rollup["code_scanning"]],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_required_code_scanning_context_keeps_normal_classification(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "CodeQL",
+                "status": "COMPLETED",
+                "conclusion": "NEUTRAL",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": True,
+                "checkSuite": {"app": {"databaseId": 57789}},
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(["CodeQL"], [check["name"] for check in rollup["required"]])
+        self.assertEqual(
+            ["CodeQL"],
+            [check["name"] for check in rollup["code_scanning"]],
+        )
+
     @patch("github_cli.gh_graphql")
     def test_check_rollup_separates_code_scanning_results(self, graphql) -> None:
         graphql.return_value = {
@@ -682,9 +776,11 @@ class GithubCliTest(unittest.TestCase):
     @patch(
         "github_cli.gh_pr_check_rollup",
         return_value={
-            "required": [{"name": "build", "bucket": "pass"}],
+            "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
             "non_blocking_failures": [],
-            "code_scanning": [{"name": "CodeQL", "bucket": "skipping"}],
+            "code_scanning": [
+                {"name": "CodeQL", "bucket": "skipping", "integration_id": 57789},
+            ],
         },
     )
     @patch("github_cli.fetch_review_threads", return_value=[])
