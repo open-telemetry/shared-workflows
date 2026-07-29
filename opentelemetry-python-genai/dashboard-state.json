@@ -1063,7 +1063,10 @@
         "assignees": [],
         "author": "ahmadalguydi",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/333#pullrequestreview-4810313607"
+        ],
+        "author_nudge_episode_id": "554e8f6cb0844c54b98caf6ead28f2fc",
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
@@ -1083,18 +1086,27 @@
         "head_sha": "d05c10d53585184a3b3341933b10bc358cf72411",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-29T15:49:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T15:53:09+00:00",
+        "last_approver_activity_at": "2026-07-29T15:53:09+00:00",
         "last_author_activity_at": "2026-07-29T15:49:40+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "740546a5925eb12bde15f1c50bf4b3b0df3678eab6bf2ec8201ffb1e1a16b8e5",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-29T15:49:40+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "b4669a2dcaea4536ea7d5c107fa2e3b033a708db021e17f5aa297354b0ae4475",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-29T15:53:09+00:00"
       },
       "failed": false,
       "pr_number": 333,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/333",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
