@@ -4,6 +4,7 @@ from pathlib import Path
 
 CASES = Path(__file__).resolve().parent / "eval" / "reviewer_feedback_cases.json"
 LABELS = {"substantive", "noise"}
+STABILITIES = {"stable", "flaky"}
 
 
 class EvalFixtureTest(unittest.TestCase):
@@ -48,8 +49,12 @@ class EvalFixtureTest(unittest.TestCase):
                     self.assertIn(observed, LABELS)
 
     def test_stability_agrees_with_the_recorded_runs(self) -> None:
+        expected_runs = self.data["baseline_configuration"]["runs"]
+        self.assertGreater(expected_runs, 1)
         for case in self.cases:
             with self.subTest(case=case["id"]):
+                self.assertIn(case["stability"], STABILITIES)
+                self.assertEqual(expected_runs, len(case["observed_runs"]))
                 distinct = set(case["observed_runs"])
                 if case["stability"] == "stable":
                     self.assertEqual(1, len(distinct))

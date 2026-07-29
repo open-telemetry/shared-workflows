@@ -3,7 +3,8 @@
 Reports three signals, because they answer different questions:
 
   drift       stable cases whose recorded label changed -- a regression signal
-  contested   cases the voters disagreed on -- a stability signal, lower is better
+  flaky       cases this candidate answered inconsistently across trials -- a
+              stability signal, lower is better
   accuracy    agreement with cases a human has adjudicated -- a quality signal
 
 Run manually; it makes model calls and is deliberately not part of the suite.
@@ -89,21 +90,34 @@ def classify(cases: list[dict], template: str, field: str, mapping: dict, model:
     return observed
 
 
-def report(cases: list[dict], observed: dict[str, str]) -> None:
+def majority(labels: list[str]) -> str | None:
+    return Counter(labels).most_common(1)[0][0] if labels else None
+
+
+def report(cases: list[dict], trials: list[dict[str, str]], baseline_flaky: int) -> None:
+    observed = {
+        case["id"]: [t[case["id"]] for t in trials if case["id"] in t] for case in cases
+    }
+    settled = {case_id: majority(labels) for case_id, labels in observed.items()}
+
     drift = [
-        {**c, "got": observed.get(c["id"])}
+        {**c, "got": settled.get(c["id"])}
         for c in cases
-        if c["stability"] == "stable" and observed.get(c["id"]) != c["baseline"]
+        if c["stability"] == "stable" and settled.get(c["id"]) != c["baseline"]
     ]
-    contested = sum(1 for c in cases if c["stability"] == "contested")
+    flaky = [c for c in cases if len(set(observed.get(c["id"]) or [])) > 1]
     adjudicated = [c for c in cases if c["adjudicated"]]
-    correct = sum(1 for c in adjudicated if observed.get(c["id"]) == c["adjudicated"])
-    unanswered = sum(1 for c in cases if c["id"] not in observed)
+    correct = sum(1 for c in adjudicated if settled.get(c["id"]) == c["adjudicated"])
+    unanswered = sum(1 for c in cases if not observed.get(c["id"]))
 
     print(f"cases        {len(cases)}")
+    print(f"trials       {len(trials)}  (a case's label is the majority across trials)")
     print(f"unanswered   {unanswered}")
     print(f"drift        {len(drift)}  (stable cases whose label changed)")
-    print(f"contested    {contested}  (recorded as unstable; lower is better)")
+    print(
+        f"flaky        {len(flaky)}  this candidate; baseline recorded {baseline_flaky}"
+        "  (lower is better)"
+    )
     print(
         f"accuracy     {correct}/{len(adjudicated)} adjudicated"
         if adjudicated
@@ -128,6 +142,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--classifier", choices=sorted(VOCABULARIES), required=True)
     parser.add_argument("--model", default="gpt-5.4-mini")
+    parser.add_argument(
+        "--trials",
+        type=int,
+        default=3,
+        help="runs of the candidate; more than one is needed to measure its flakiness",
+    )
     args = parser.parse_args()
 
     template_name, field, mapping = VOCABULARIES[args.classifier]
@@ -139,9 +159,15 @@ def main() -> None:
         )
 
     data = json.loads(CASES.read_text(encoding="utf-8"))
-    print(f"{args.classifier} / {args.model}   baseline generated {data['generated_at']}\n")
-    observed = classify(data["cases"], template, field, mapping, args.model)
-    report(data["cases"], observed)
+    print(
+        f"{args.classifier} / {args.model} x{args.trials}   "
+        f"baseline generated {data['generated_at']}\n"
+    )
+    trials = [
+        classify(data["cases"], template, field, mapping, args.model)
+        for _ in range(args.trials)
+    ]
+    report(data["cases"], trials, data["counts"]["flaky"])
 
 
 if __name__ == "__main__":
