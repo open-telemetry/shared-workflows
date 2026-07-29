@@ -9,9 +9,8 @@ const WORKFLOW_REF = "main";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
 
 const ALLOWED_ACTIONS = {
-  // Only `completed` changes dashboard-visible CI status. `requested` and
-  // `rerequested` fire at the start of every check suite, so on busy
-  // repositories they multiply dispatches without changing the dashboard.
+  // GitHub only delivers `requested` and `rerequested` to apps with write-level
+  // Checks access; this app has read-only, so `completed` is all that arrives.
   check_suite: new Set(["completed"]),
   pull_request: new Set([
     "assigned",
