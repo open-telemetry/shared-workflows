@@ -125,12 +125,8 @@ def majority(labels: list[str]) -> str | None:
     return label if count * 2 > len(labels) else None
 
 
-def report(
-    cases: list[dict],
-    trials: list[dict[str, str]],
-    baseline_flaky: int,
-    baseline_runs: int,
-) -> None:
+def summarize(cases: list[dict], trials: list[dict[str, str]]) -> dict:
+    """Everything the report prints, as values, so it can be tested without a model."""
     trial_count = len(trials)
     observed = {
         case["id"]: [t[case["id"]] for t in trials if case["id"] in t] for case in cases
@@ -146,28 +142,48 @@ def report(
     undecided = [c for c in complete if settled[c["id"]] is None]
     scorable = [c for c in complete if settled[c["id"]] is not None]
 
-    drift = [
-        {**c, "got": settled[c["id"]]}
-        for c in scorable
-        if c["stability"] == "stable" and settled[c["id"]] != c["baseline"]
-    ]
-    flaky = [c for c in complete if len(set(observed[c["id"]])) > 1]
     # Every adjudicated case counts, so failing to answer a hard one cannot
     # improve the score by leaving the denominator.
     adjudicated = [c for c in cases if c["adjudicated"]]
     scored = [c for c in adjudicated if settled.get(c["id"]) is not None]
-    correct = sum(1 for c in scored if settled[c["id"]] == c["adjudicated"])
+    return {
+        "trial_count": trial_count,
+        "unanswered": unanswered,
+        "incomplete": incomplete,
+        "undecided": undecided,
+        "drift": [
+            {**c, "got": settled[c["id"]]}
+            for c in scorable
+            if c["stability"] == "stable" and settled[c["id"]] != c["baseline"]
+        ],
+        "flaky": [c for c in complete if len(set(observed[c["id"]])) > 1],
+        "complete": complete,
+        "adjudicated": adjudicated,
+        "scored": scored,
+        "correct": sum(1 for c in scored if settled[c["id"]] == c["adjudicated"]),
+    }
+
+
+def report(
+    cases: list[dict],
+    trials: list[dict[str, str]],
+    baseline_flaky: int,
+    baseline_runs: int,
+) -> None:
+    s = summarize(cases, trials)
+    trial_count, drift, flaky = s["trial_count"], s["drift"], s["flaky"]
+    adjudicated, scored = s["adjudicated"], s["scored"]
 
     print(f"cases        {len(cases)}")
     print(f"trials       {trial_count}  (a case's label is the majority across trials)")
-    print(f"unanswered   {len(unanswered)}  (no answer in any trial)")
-    print(f"incomplete   {len(incomplete)}  (answered in some trials; not scored)")
-    print(f"undecided    {len(undecided)}  (answered in every trial but tied; not scored)")
+    print(f"unanswered   {len(s['unanswered'])}  (no answer in any trial)")
+    print(f"incomplete   {len(s['incomplete'])}  (answered in some trials; not scored)")
+    print(f"undecided    {len(s['undecided'])}  (answered in every trial but tied; not scored)")
     print(f"drift        {len(drift)}  (stable cases whose label changed)")
     # More trials mean more chances to disagree, and cases missing from a trial
     # never count as flaky, so the counts only compare when the trial count
     # matches and every case was answered in full.
-    uncovered = len(unanswered) + len(incomplete)
+    uncovered = len(s["unanswered"]) + len(s["incomplete"])
     if trial_count == baseline_runs and not uncovered:
         print(
             f"flaky        {len(flaky)}  this candidate; baseline recorded "
@@ -180,11 +196,11 @@ def report(
         )
     else:
         print(
-            f"flaky        {len(flaky)}  over {len(complete)} fully answered cases; "
+            f"flaky        {len(flaky)}  over {len(s['complete'])} fully answered cases; "
             f"not comparable with the baseline's {baseline_flaky} over all {len(cases)}"
         )
     print(
-        f"accuracy     {correct}/{len(adjudicated)} adjudicated"
+        f"accuracy     {s['correct']}/{len(adjudicated)} adjudicated"
         f"  (scored {len(scored)} of {len(adjudicated)})"
         if adjudicated
         else "accuracy     no adjudicated cases yet"
