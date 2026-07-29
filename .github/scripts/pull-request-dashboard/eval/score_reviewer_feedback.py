@@ -27,7 +27,7 @@ CASES = Path(__file__).resolve().parent / "reviewer_feedback_cases.json"
 BATCH_SIZE = 10
 
 # Classifiers answer in their own vocabulary; map each onto the recorded labels.
-# "substantive" means the author owes something, so every verdict a classifier
+# "author_action" means the author owes something, so every verdict a classifier
 # uses to keep an item with the author maps onto it. Answer fields are tried in
 # order, matching the fallbacks the production parser accepts.
 VOCABULARIES = {
@@ -254,7 +254,7 @@ def report(
         "one /dashboard route:reviewers comment corrects. The reverse does not.\n"
     )
     for d in drift[:40]:
-        print(f"  {d['baseline']} -> {d['got']}  {d['repo']}#{d['pull_request']}")
+        print(f"  {d['recorded_label']} -> {d['got']}  {d['repo']}#{d['pull_request']}")
         print(f"      {' '.join(d['body'].split())[:88]}")
     if len(drift) > 40:
         print(f"  ... and {len(drift) - 40} more")

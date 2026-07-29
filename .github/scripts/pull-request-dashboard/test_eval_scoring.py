@@ -1,10 +1,12 @@
+import contextlib
+import io
 import sys
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
 
-from score_reviewer_feedback import batch_cases, majority, summarize  # noqa: E402
+from score_reviewer_feedback import batch_cases, majority, report, summarize  # noqa: E402
 
 
 def case(case_id: str, *, stability="stable", label="no_author_action", adjudicated=None) -> dict:
@@ -115,6 +117,27 @@ class SummarizeTest(unittest.TestCase):
         self.assertEqual(1, len(summary["stable_settled"]))
         # Dropping a case must not be able to report a clean drift of zero.
         self.assertEqual([], summary["drift"])
+
+
+class ReportTest(unittest.TestCase):
+    """The drift branch only runs when there is drift, so it needs its own cover."""
+
+    def render(self, cases: list[dict], trials: list[dict]) -> str:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            report(cases, trials, baseline_flaky=0, baseline_runs=len(trials))
+        return out.getvalue()
+
+    def test_a_clean_run_reports_no_drift(self) -> None:
+        text = self.render([case("a")], [{"a": "no_author_action"}] * 3)
+
+        self.assertIn("drift          0", text)
+
+    def test_drift_details_are_printed(self) -> None:
+        text = self.render([case("a")], [{"a": "author_action"}] * 3)
+
+        self.assertIn("drift          1", text)
+        self.assertIn("no_author_action -> author_action", text)
 
 
 class BatchCasesTest(unittest.TestCase):
