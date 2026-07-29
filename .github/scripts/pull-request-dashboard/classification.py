@@ -337,6 +337,38 @@ for every input discussion_id and copy each discussion_id exactly:
 )
 
 
+PRAISE_PROMPT_TEMPLATE = (
+    """You are triaging single comments left by reviewers on pull requests.
+
+"""
+    + BATCH_CONTRACT
+    + """
+
+Question: is this comment nothing but praise?
+
+  - praise: the comment only compliments, celebrates, thanks, or agrees that
+    something is good. An emoji on its own, "nice", "love this", "great catch",
+    "LGTM". It asks for nothing, proposes nothing, questions nothing, and
+    contains nothing the pull request author has to read and act on
+  - not_praise: anything else, including a request, a question, a suggestion, an
+    opinion about the design, a correction, a pointer to other work, information
+    about another person, or praise combined with any of these ("LGTM, but...",
+    "nice, could you also...")
+
+Praise aimed at one part of the change is still praise. A comment that praises
+and then raises anything at all is not_praise.
+
+Respond with a single JSON object and nothing else. Include exactly one result
+for every input discussion_id and copy each discussion_id exactly:
+{{"items": [{{"discussion_id": "input id", "verdict": "not_praise" | "praise", "reason": "short explanation grounded in this comment"}}]}}
+
+---BEGIN COMMENTS---
+{discussions}
+---END COMMENTS---
+"""
+)
+
+
 AUTHOR_REPLY_PROMPT_TEMPLATE = (    """You are triaging comments written by pull request authors on their own pull requests.
 
 """
@@ -381,6 +413,7 @@ TOP_LEVEL_DISCUSSION_ACTIONS = ("author", "none", "unclear")
 # item with the author rather than handing the pull request to reviewers.
 REVIEWER_FEEDBACK_VERDICTS = ("author_action", "no_author_action")
 AUTHOR_REPLY_VERDICTS = ("deferral", "complete")
+PRAISE_VERDICTS = ("not_praise", "praise")
 
 
 @dataclass(frozen=True)
@@ -1116,37 +1149,60 @@ def review_thread_author_reply_input(discussion: dict[str, Any]) -> dict[str, An
 
 
 REVIEW_THREAD_REPLY_ACTIONS = {"deferral": "author", "complete": "reviewer"}
-
-# Praise is the one reviewer comment that provably asks for nothing, so it is the
-# only thing spared from the author. Anything carrying a rider ("LGTM, but...")
-# fails these tests and stays the author's.
-_PRAISE_ONLY = re.compile(
-    r"^(lgtm|nice|great|love (this|it)|looks good|perfect|awesome|excellent|thanks?( you)?|\+1)\b[.!]*$",
-    re.IGNORECASE,
-)
+PRAISE_ACTIONS = {"praise": "none", "not_praise": "author"}
+# Pure praise is short. The longest in a 441 pull request corpus was 13 characters,
+# so this is wide headroom, and anything longer stays the author's without a call.
+PRAISE_MAX_CHARS = 80
 
 
-def is_praise_only(body: str) -> bool:
-    text = " ".join((body or "").split())
-    if not text:
-        return False
-    if all(not character.isalnum() for character in text):
-        return True
-    words = "".join(c for c in text if c.isalnum() or c.isspace() or c in ".!'+").strip()
-    return len(words) <= 24 and bool(_PRAISE_ONLY.match(words))
-
-
-def review_thread_without_author_reply(discussion: dict[str, Any]) -> dict[str, Any]:
+def _could_be_praise(discussion: dict[str, Any]) -> bool:
     comments = discussion.get("comments") or []
-    if len(comments) == 1 and is_praise_only(comments[0].get("body") or ""):
-        return {
-            "discussion_action": "none",
-            "reason": "The only comment on this thread is praise.",
-        }
+    if len(comments) != 1:
+        return False
+    return len(" ".join((comments[0].get("body") or "").split())) <= PRAISE_MAX_CHARS
+
+
+def _thread_record(record: dict[str, Any], actions: dict[str, str]) -> dict[str, Any]:
+    """Restate a binary's verdict as the discussion action the dashboard routes on."""
+    decision = dict(record.get("decision") or {})
+    verdict = decision.pop("verdict", "")
+    decision["discussion_action"] = actions.get(verdict, "author")
+    return {**record, "decision": decision}
+
+
+def praise_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
+    comments = discussion.get("comments") or []
     return {
-        "discussion_action": "author",
-        "reason": "The last comment on this unresolved thread is not the author's.",
+        "discussion_id": discussion["discussion_id"],
+        "body": comments[0].get("body") if comments else "",
     }
+
+
+def classify_praise(
+    number: int,
+    discussions: list[dict[str, Any]],
+    model: str,
+    cache_in: dict[str, dict[str, Any]],
+    cache_out: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    return classify_top_level_items(
+        number,
+        discussions,
+        model,
+        cache_in,
+        cache_out,
+        prompt_template=PRAISE_PROMPT_TEMPLATE,
+        prompt_input=praise_prompt_input,
+        run_batch=lambda batch, m: [
+            record
+            for items, prompt in verdict_prompt_batches(
+                batch, PRAISE_PROMPT_TEMPLATE, praise_prompt_input
+            )
+            for record in run_llm_for_verdict_batch(items, m, prompt, PRAISE_VERDICTS)
+        ],
+        fallback_decision=lambda reason: unclear_verdict_decision(reason, PRAISE_VERDICTS),
+        warning_label="praise",
+    )
 
 
 def classify_review_threads(
@@ -1157,19 +1213,31 @@ def classify_review_threads(
     cache_out: dict[str, dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
     # An unresolved thread whose last word is not the author's is the author's to
-    # answer. Only the author's own last word needs a model, to tell a promise of
-    # future work from a finished reply.
+    # answer, except for a lone short comment that only praises the change. A thread
+    # with earlier comments is never spared: praise at the end does not show that
+    # what came before it was settled.
     classifications_by_id: dict[str, dict[str, Any]] = {}
     author_last: list[dict[str, Any]] = []
+    praise_candidates: list[dict[str, Any]] = []
     for discussion in discussions:
-        if (discussion.get("discussion_facts") or {}).get("latest_comment_role") == "author":
+        role = (discussion.get("discussion_facts") or {}).get("latest_comment_role")
+        if role == "author":
             author_last.append(discussion)
-            continue
-        classifications_by_id[discussion["discussion_id"]] = classification_record(
-            discussion,
-            review_thread_without_author_reply(discussion),
-            failed=False,
-        )
+        elif role != "bot" and _could_be_praise(discussion):
+            praise_candidates.append(discussion)
+        else:
+            classifications_by_id[discussion["discussion_id"]] = classification_record(
+                discussion,
+                {
+                    "discussion_action": "author",
+                    "reason": "The last comment on this unresolved thread is not the author's.",
+                },
+                failed=False,
+            )
+    for discussion_id, record in classify_praise(
+        number, praise_candidates, model, cache_in, cache_out
+    ).items():
+        classifications_by_id[discussion_id] = _thread_record(record, PRAISE_ACTIONS)
     replies = classify_author_replies(
         number,
         author_last,
@@ -1179,10 +1247,7 @@ def classify_review_threads(
         prompt_input=review_thread_author_reply_input,
     )
     for discussion_id, record in replies.items():
-        decision = dict(record.get("decision") or {})
-        verdict = decision.pop("verdict", "")
-        decision["discussion_action"] = REVIEW_THREAD_REPLY_ACTIONS.get(verdict, "author")
-        classifications_by_id[discussion_id] = {**record, "decision": decision}
+        classifications_by_id[discussion_id] = _thread_record(record, REVIEW_THREAD_REPLY_ACTIONS)
     return classifications_by_id
 
 

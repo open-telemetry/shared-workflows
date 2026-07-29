@@ -21,8 +21,8 @@ from dashboard import (
 )
 from classification import (
     classify_discussion_domains,
+    classify_review_threads,
     discussion_prompt,
-    is_praise_only,
     parse_discussion_decision,
     run_llm_for_top_level_author_comment_batch,
     run_llm_for_top_level_reviewer_feedback_batch,
@@ -180,23 +180,39 @@ def classify_feedback_domains(
     return review_classifications, top_level_classifications
 
 
-class PraiseOnlyTest(unittest.TestCase):
-    def test_praise_asks_for_nothing(self) -> None:
-        for body in ("\U0001f4af Love this!", "\u2764\ufe0f", "LGTM", "nice!", "Thanks.", "+1", "Looks good"):
-            with self.subTest(body=body):
-                self.assertTrue(is_praise_only(body))
+class ReviewThreadPraiseTest(unittest.TestCase):
+    def thread(self, *bodies: str) -> dict:
+        return {
+            "discussion_id": "t",
+            "discussion_kind": "review-comment-thread",
+            "discussion_facts": {"latest_comment_role": "reviewer"},
+            "comments": [{"actor_role": "reviewer", "body": body} for body in bodies],
+        }
 
-    def test_praise_with_a_rider_stays_the_authors(self) -> None:
-        for body in (
-            "LGTM, but needs a maintainer's sign-off",
-            "nice, could you also rename this?",
-            "Seems @someone is not yet an OTel member, please follow the guide",
-            "I would label this as an enhancement.",
-            "Great catch, fixed in the next commit which also changes X",
-            "",
-        ):
-            with self.subTest(body=body):
-                self.assertFalse(is_praise_only(body))
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_lone_comment_is_spared_only_when_it_is_praise(self, run_verdict) -> None:
+        for verdict, expected in (("praise", "none"), ("not_praise", "author")):
+            with self.subTest(verdict=verdict):
+                run_verdict.side_effect = lambda items, _m, _p, _v, answer=verdict: [
+                    {
+                        "discussion_id": item["discussion_id"],
+                        "discussion_kind": "review-comment-thread",
+                        "failed": False,
+                        "decision": {"verdict": answer, "reason": "because"},
+                    }
+                    for item in items
+                ]
+
+                records = classify_review_threads(1, [self.thread("LGTM")], "model", {}, {})
+
+                self.assertEqual(records["t"]["decision"]["discussion_action"], expected)
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_thread_with_earlier_comments_is_never_spared(self, run_verdict) -> None:
+        records = classify_review_threads(1, [self.thread("please fix", "LGTM")], "model", {}, {})
+
+        run_verdict.assert_not_called()
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
 
 
 class NormalizeEventsCommandTest(unittest.TestCase):
