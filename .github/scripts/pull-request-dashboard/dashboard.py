@@ -180,7 +180,6 @@ from github_cli import (
     repo_state_key,
 )
 from classification import (
-    DISCUSSION_RECENT_COMMENTS_LIMIT,
     classify_discussion_domains,
     is_automation_command_comment,
     is_conflict_resolution_comment,
