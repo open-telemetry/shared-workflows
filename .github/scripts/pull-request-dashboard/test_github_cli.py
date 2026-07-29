@@ -5,17 +5,21 @@ from unittest.mock import ANY, patch
 
 from github_cli import (
     TransientGhError,
+    code_scanning_tools,
     fetch_pr_issue_comments,
     fetch_pr_reviews,
+    fetch_pr_routing_raw,
     fetch_review_requests,
+    gh_branch_rules,
     gh_pr_check_rollup,
     gh_pr_checks,
     gh_pr_view,
-    gh_required_check_contexts,
     include_missing_required_checks,
     is_retryable_gh_error,
     list_open_prs,
     request_copilot_review,
+    required_check_contexts,
+    required_code_scanning_checks,
 )
 
 
@@ -542,7 +546,9 @@ class GithubCliTest(unittest.TestCase):
                 {"context": "EasyCLA", "integration_id": 17893},
                 {"context": "build", "integration_id": 15368},
             ],
-            gh_required_check_contexts("open-telemetry/example", "release/1.x"),
+            required_check_contexts(
+                gh_branch_rules("open-telemetry/example", "release/1.x")
+            ),
         )
         api.assert_called_once_with(
             "/repos/open-telemetry/example/rules/branches/release%2F1.x?per_page=100",
@@ -559,11 +565,158 @@ class GithubCliTest(unittest.TestCase):
                 api.side_effect = error
                 if isinstance(error, RuntimeError):
                     self.assertIsNone(
-                        gh_required_check_contexts("open-telemetry/example", "main")
+                        gh_branch_rules("open-telemetry/example", "main")
                     )
                 else:
                     with self.assertRaises(Exception):
-                        gh_required_check_contexts("open-telemetry/example", "main")
+                        gh_branch_rules("open-telemetry/example", "main")
+
+    def test_code_scanning_tools_deduplicate_across_rules(self) -> None:
+        rules = [
+            {"type": "required_status_checks", "parameters": {}},
+            {
+                "type": "code_scanning",
+                "parameters": {
+                    "code_scanning_tools": [
+                        {"tool": "CodeQL"},
+                        {"tool": "zizmor"},
+                    ],
+                },
+            },
+            {
+                "type": "code_scanning",
+                "parameters": {"code_scanning_tools": [{"tool": "CodeQL"}]},
+            },
+        ]
+
+        self.assertEqual(["CodeQL", "zizmor"], code_scanning_tools(rules))
+        self.assertEqual([], code_scanning_tools(None))
+
+    def test_undetermined_code_scanning_result_is_a_failure(self) -> None:
+        checks = [
+            {"name": "CodeQL", "bucket": "skipping", "state": "NEUTRAL"},
+            {"name": "zizmor", "bucket": "pass", "state": "SUCCESS"},
+            {"name": "Dependabot", "bucket": "skipping", "state": "NEUTRAL"},
+        ]
+
+        self.assertEqual(
+            [("CodeQL", "fail"), ("zizmor", "pass")],
+            [
+                (check["name"], check["bucket"])
+                for check in required_code_scanning_checks(
+                    checks,
+                    ["CodeQL", "zizmor"],
+                )
+            ],
+        )
+
+    def test_code_scanning_checks_are_ignored_without_a_ruleset_rule(self) -> None:
+        self.assertEqual(
+            [],
+            required_code_scanning_checks(
+                [{"name": "CodeQL", "bucket": "skipping"}],
+                [],
+            ),
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_separates_code_scanning_results(self, graphql) -> None:
+        graphql.return_value = {
+            "data": {
+                "node": {
+                    "commits": {
+                        "nodes": [{
+                            "commit": {
+                                "statusCheckRollup": {
+                                    "contexts": {
+                                        "nodes": [
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "CodeQL",
+                                                "status": "COMPLETED",
+                                                "conclusion": "NEUTRAL",
+                                                "url": "https://github.com/open-telemetry/example/runs/1",
+                                                "isRequired": False,
+                                                "checkSuite": {"app": {"databaseId": 57789}},
+                                            },
+                                            {
+                                                "__typename": "CheckRun",
+                                                "name": "Analyze (java)",
+                                                "status": "COMPLETED",
+                                                "conclusion": "FAILURE",
+                                                "url": "https://github.com/open-telemetry/example/runs/2",
+                                                "isRequired": False,
+                                                "checkSuite": {"app": {"databaseId": 15368}},
+                                            },
+                                        ],
+                                        "pageInfo": {"hasNextPage": False},
+                                    },
+                                },
+                            },
+                        }],
+                    },
+                },
+            },
+        }
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", ["Analyze *"])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual([], rollup["required"])
+        self.assertEqual(
+            ["Analyze (java)"],
+            [check["name"] for check in rollup["non_blocking_failures"]],
+        )
+        self.assertEqual(
+            [("CodeQL", "skipping")],
+            [(check["name"], check["bucket"]) for check in rollup["code_scanning"]],
+        )
+
+    @patch(
+        "github_cli.gh_branch_rules",
+        return_value=[{
+            "type": "code_scanning",
+            "parameters": {"code_scanning_tools": [{"tool": "CodeQL"}]},
+        }],
+    )
+    @patch(
+        "github_cli.gh_pr_check_rollup",
+        return_value={
+            "required": [{"name": "build", "bucket": "pass"}],
+            "non_blocking_failures": [],
+            "code_scanning": [{"name": "CodeQL", "bucket": "skipping"}],
+        },
+    )
+    @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
+    @patch("github_cli.fetch_pr_reviews", return_value=[])
+    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
+    @patch("github_cli.gh_api", return_value=[])
+    @patch("github_cli.gh_pr_view")
+    def test_routing_raw_reports_unsatisfied_code_scanning_rule(
+        self,
+        gh_pr_view,
+        _gh_api,
+        _issue_comments,
+        _reviews,
+        _review_requests,
+        _review_threads,
+        _rollup,
+        _branch_rules,
+    ) -> None:
+        gh_pr_view.return_value = {"id": "PR_node", "baseRefName": "main"}
+
+        raw = fetch_pr_routing_raw(
+            "open-telemetry/example",
+            "open-telemetry",
+            "example",
+            7,
+        )
+
+        self.assertEqual(
+            [("build", "pass"), ("CodeQL", "fail")],
+            [(check["name"], check["bucket"]) for check in raw["checks"]],
+        )
 
     def test_missing_required_checks_are_pending(self) -> None:
         self.assertEqual(

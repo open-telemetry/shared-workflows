@@ -14,6 +14,7 @@ GH_RETRY_ATTEMPTS = 4
 GH_RETRY_DELAY_SECONDS = 1.5
 DEFAULT_OWNER = "open-telemetry"
 COPILOT_REVIEWER_BOT_ID = "BOT_kgDOCnlnWA"
+CODE_SCANNING_APP_ID = 57789  # github-advanced-security
 
 
 REQUEST_COPILOT_REVIEW_MUTATION = """
@@ -412,6 +413,7 @@ def gh_pr_check_rollup(
     checks_by_identity: dict[
         tuple[str, int | None, bool], tuple[dict[str, Any], bool]
     ] = {}
+    code_scanning: list[dict[str, Any]] = []
     after: str | None = None
     try:
         while True:
@@ -425,6 +427,10 @@ def gh_pr_check_rollup(
             for node in contexts.get("nodes") or []:
                 is_required = bool(node.get("isRequired"))
                 name = (node.get("context") or node.get("name") or "")
+                app = ((node.get("checkSuite") or {}).get("app") or {})
+                if app.get("databaseId") == CODE_SCANNING_APP_ID:
+                    code_scanning.append(normalize_check(node))
+                    continue
                 if not is_required and not any(
                     fnmatchcase(name, pattern)
                     for pattern in non_blocking_check_patterns
@@ -451,6 +457,7 @@ def gh_pr_check_rollup(
             for check, is_required in checks
             if not is_required and check.get("bucket") in ("fail", "cancel")
         ],
+        "code_scanning": code_scanning,
     }
 
 
@@ -459,7 +466,7 @@ def gh_pr_checks(repo: str, pr_id: str) -> list[dict[str, Any]] | None:
     return None if rollup is None else rollup["required"]
 
 
-def gh_required_check_contexts(repo: str, base_branch: str) -> list[dict[str, Any]] | None:
+def gh_branch_rules(repo: str, base_branch: str) -> list[dict[str, Any]] | None:
     encoded_branch = quote(base_branch, safe="")
     try:
         rules = gh_api(
@@ -468,8 +475,16 @@ def gh_required_check_contexts(repo: str, base_branch: str) -> list[dict[str, An
         )
     except RuntimeError:
         return None
+    return list(rules or [])
+
+
+def required_check_contexts(
+    rules: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]] | None:
+    if rules is None:
+        return None
     contexts: list[dict[str, Any]] = []
-    for rule in rules or []:
+    for rule in rules:
         if rule.get("type") != "required_status_checks":
             continue
         parameters = rule.get("parameters") or {}
@@ -482,6 +497,37 @@ def gh_required_check_contexts(repo: str, base_branch: str) -> list[dict[str, An
             if context and requirement not in contexts:
                 contexts.append(requirement)
     return contexts
+
+
+def code_scanning_tools(rules: list[dict[str, Any]] | None) -> list[str]:
+    tools: list[str] = []
+    for rule in rules or []:
+        if rule.get("type") != "code_scanning":
+            continue
+        parameters = rule.get("parameters") or {}
+        for tool in parameters.get("code_scanning_tools") or []:
+            name = tool.get("tool") or ""
+            if name and name not in tools:
+                tools.append(name)
+    return tools
+
+
+def required_code_scanning_checks(
+    code_scanning_checks: list[dict[str, Any]],
+    tools: list[str],
+) -> list[dict[str, Any]]:
+    # A code_scanning ruleset rule holds the merge on a check named after the
+    # tool, but GitHub never reports that check as required. NEUTRAL there means
+    # the alerts introduced by the PR could not be determined, which also holds
+    # the merge, so it cannot be treated as a skip.
+    required: list[dict[str, Any]] = []
+    for check in code_scanning_checks:
+        if check["name"] not in tools:
+            continue
+        if check["bucket"] == "skipping":
+            check = {**check, "bucket": "fail"}
+        required.append(check)
+    return required
 
 
 def include_missing_required_checks(
@@ -814,12 +860,22 @@ def fetch_pr_routing_raw(
             pr.get("id") or "",
             non_blocking_check_patterns or [],
         )
-        required_contexts_future = pool.submit(
-            gh_required_check_contexts,
+        branch_rules_future = pool.submit(
+            gh_branch_rules,
             repo,
             pr.get("baseRefName") or "",
         )
         check_rollup = check_rollup_future.result()
+        branch_rules = branch_rules_future.result()
+        checks = include_missing_required_checks(
+            None if check_rollup is None else check_rollup["required"],
+            required_check_contexts(branch_rules),
+        )
+        if checks is not None and check_rollup is not None:
+            checks = checks + required_code_scanning_checks(
+                check_rollup["code_scanning"],
+                code_scanning_tools(branch_rules),
+            )
         return {
             "pr": pr,
             "issue_comments": issue_comments_future.result() or [],
@@ -827,10 +883,7 @@ def fetch_pr_routing_raw(
             "reviews": reviews_future.result() or [],
             "review_requests": review_requests_future.result() or [],
             "review_threads": review_threads_future.result() or [],
-            "checks": include_missing_required_checks(
-                None if check_rollup is None else check_rollup["required"],
-                required_contexts_future.result(),
-            ),
+            "checks": checks,
             "non_blocking_check_failures": (
                 [] if check_rollup is None else check_rollup["non_blocking_failures"]
             ),

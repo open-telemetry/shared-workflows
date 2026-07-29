@@ -158,7 +158,12 @@ action. When a repository configures `non_blocking_check_patterns`, matching
 failed checks are named in a note alongside the required-check action when the
 PR is waiting on the author because at least one required check is failing. On
 other routes, matching failures are shown separately. Optional check failures
-do not affect routing. Maintenance-bot PRs keep their
+do not affect routing. When the base branch ruleset requires code scanning
+results, the check GitHub publishes for each configured tool is treated as
+required, including its neutral "could not determine the alerts introduced by
+this pull request" outcome, which holds the merge even though GitHub does not
+mark that check as required.
+Maintenance-bot PRs keep their
 maintainer-oriented routing because the bot cannot act on a dashboard request.
 
 A hidden marker lets the workflow update the comment in place and upgrade
