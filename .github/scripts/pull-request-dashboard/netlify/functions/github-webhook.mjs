@@ -9,7 +9,9 @@ const WORKFLOW_REF = "main";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
 
 const ALLOWED_ACTIONS = {
-  check_suite: new Set(["completed", "requested", "rerequested"]),
+  // GitHub only delivers `requested` and `rerequested` to apps with write-level
+  // Checks access; this app has read-only, so `completed` is all that arrives.
+  check_suite: new Set(["completed"]),
   pull_request: new Set([
     "assigned",
     "closed",
