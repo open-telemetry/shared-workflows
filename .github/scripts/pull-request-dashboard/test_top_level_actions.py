@@ -22,6 +22,7 @@ from dashboard import (
 from classification import (
     classify_discussion_domains,
     discussion_prompt,
+    is_praise_only,
     parse_discussion_decision,
     run_llm_for_top_level_author_comment_batch,
     run_llm_for_top_level_reviewer_feedback_batch,
@@ -177,6 +178,25 @@ def classify_feedback_domains(
         )
     )
     return review_classifications, top_level_classifications
+
+
+class PraiseOnlyTest(unittest.TestCase):
+    def test_praise_asks_for_nothing(self) -> None:
+        for body in ("\U0001f4af Love this!", "\u2764\ufe0f", "LGTM", "nice!", "Thanks.", "+1", "Looks good"):
+            with self.subTest(body=body):
+                self.assertTrue(is_praise_only(body))
+
+    def test_praise_with_a_rider_stays_the_authors(self) -> None:
+        for body in (
+            "LGTM, but needs a maintainer's sign-off",
+            "nice, could you also rename this?",
+            "Seems @someone is not yet an OTel member, please follow the guide",
+            "I would label this as an enhancement.",
+            "Great catch, fixed in the next commit which also changes X",
+            "",
+        ):
+            with self.subTest(body=body):
+                self.assertFalse(is_praise_only(body))
 
 
 class NormalizeEventsCommandTest(unittest.TestCase):

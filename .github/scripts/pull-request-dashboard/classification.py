@@ -1117,6 +1117,37 @@ def review_thread_author_reply_input(discussion: dict[str, Any]) -> dict[str, An
 
 REVIEW_THREAD_REPLY_ACTIONS = {"deferral": "author", "complete": "reviewer"}
 
+# Praise is the one reviewer comment that provably asks for nothing, so it is the
+# only thing spared from the author. Anything carrying a rider ("LGTM, but...")
+# fails these tests and stays the author's.
+_PRAISE_ONLY = re.compile(
+    r"^(lgtm|nice|great|love (this|it)|looks good|perfect|awesome|excellent|thanks?( you)?|\+1)\b[.!]*$",
+    re.IGNORECASE,
+)
+
+
+def is_praise_only(body: str) -> bool:
+    text = " ".join((body or "").split())
+    if not text:
+        return False
+    if all(not character.isalnum() for character in text):
+        return True
+    words = "".join(c for c in text if c.isalnum() or c.isspace() or c in ".!'+").strip()
+    return len(words) <= 24 and bool(_PRAISE_ONLY.match(words))
+
+
+def review_thread_without_author_reply(discussion: dict[str, Any]) -> dict[str, Any]:
+    comments = discussion.get("comments") or []
+    if len(comments) == 1 and is_praise_only(comments[0].get("body") or ""):
+        return {
+            "discussion_action": "none",
+            "reason": "The only comment on this thread is praise.",
+        }
+    return {
+        "discussion_action": "author",
+        "reason": "The last comment on this unresolved thread is not the author's.",
+    }
+
 
 def classify_review_threads(
     number: int,
@@ -1136,10 +1167,7 @@ def classify_review_threads(
             continue
         classifications_by_id[discussion["discussion_id"]] = classification_record(
             discussion,
-            {
-                "discussion_action": "author",
-                "reason": "The last comment on this unresolved thread is not the author's.",
-            },
+            review_thread_without_author_reply(discussion),
             failed=False,
         )
     replies = classify_author_replies(
