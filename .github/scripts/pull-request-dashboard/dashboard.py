@@ -1208,8 +1208,7 @@ def reviewers_with_open_threads(
         action = entry.get("action")
         if action not in OPEN_DISCUSSION_ACTIONS:
             continue
-        # anything after the comment that decided ownership was ignored, so its
-        # author is not waiting on this thread
+        # only praise can follow the deciding comment, and it adds no reviewer
         decided_at = entry.get("since") or ""
         for comment in discussion.get("comments") or []:
             if decided_at and (comment.get("timestamp") or "") > decided_at:
