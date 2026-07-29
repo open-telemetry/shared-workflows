@@ -20,6 +20,7 @@ from dashboard import (
     top_level_author_comment_source_state,
 )
 from classification import (
+    MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR,
     PRAISE_VERDICTS,
     classify_discussion_domains,
     classify_review_threads,
@@ -257,6 +258,23 @@ class ReviewThreadPraiseTest(unittest.TestCase):
         )
 
         self.assertEqual(records["t"]["decision"]["discussion_action"], "reviewer")
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_more_threads_than_the_cap_still_publish(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("not_praise")
+        threads = []
+        for index in range(MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR + 5):
+            thread = self.thread(("reviewer", "LGTM"))
+            thread["discussion_id"] = f"t{index}"
+            threads.append(thread)
+
+        records = classify_review_threads(1, threads, "model", {}, {})
+
+        self.assertEqual(len(threads), len(records))
+        self.assertFalse([r for r in records.values() if r["failed"]])
+        self.assertEqual(
+            {"author"}, {r["decision"]["discussion_action"] for r in records.values()}
+        )
 
     @patch("classification.run_llm_for_verdict_batch")
     def test_a_failed_praise_call_keeps_the_thread_with_the_author(self, run_verdict) -> None:

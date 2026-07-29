@@ -1001,6 +1001,7 @@ def classify_praise(
         ],
         fallback_decision=lambda reason: unclear_verdict_decision(reason, PRAISE_VERDICTS),
         warning_label="praise",
+        overflow_is_safe=True,
     )
 
 
@@ -1102,6 +1103,7 @@ def classify_top_level_items(
     deferrable: bool = False,
     fits_model_call_budget: Callable[[list[dict[str, Any]]], bool] | None = None,
     fallback_decision: Callable[[str], dict[str, Any]] | None = None,
+    overflow_is_safe: bool = False,
     warning_label: str,
 ) -> dict[str, dict[str, Any]]:
     def failed_decision(reason: str) -> dict[str, Any]:
@@ -1142,6 +1144,8 @@ def classify_top_level_items(
         # Everywhere else, running out of room means the item simply went unread,
         # which is a failure: the refresh is not published and the next one
         # retries it, rather than the item being given an invented action.
+        # A caller whose fail-safe verdict already keeps the item with its author
+        # loses nothing by taking that answer instead of failing the refresh.
         reason = (
             "Deferred by per-PR classification limit"
             if deferrable
@@ -1150,9 +1154,9 @@ def classify_top_level_items(
         classifications_by_id[discussion["discussion_id"]] = classification_record(
             discussion,
             failed_decision(reason),
-            failed=not deferrable,
+            failed=not (deferrable or overflow_is_safe),
             deferred=deferrable,
-            error=None if deferrable else reason,
+            error=None if deferrable or overflow_is_safe else reason,
         )
 
     for offset in range(0, len(uncached), TOP_LEVEL_CLASSIFICATION_BATCH_SIZE):
@@ -1354,6 +1358,7 @@ def classify_author_replies(
             reason, AUTHOR_REPLY_VERDICTS
         ),
         warning_label="author_reply",
+        overflow_is_safe=True,
     )
 
 
