@@ -957,10 +957,15 @@ def _could_be_praise(discussion: dict[str, Any]) -> bool:
 
 
 def _thread_record(record: dict[str, Any], actions: dict[str, str]) -> dict[str, Any]:
-    """Restate a binary's verdict as the discussion action the dashboard routes on."""
+    """Restate a binary's verdict as the discussion action the dashboard routes on.
+
+    A failed call keeps the thread with its author whatever verdict it still parsed.
+    """
     decision = dict(record.get("decision") or {})
     verdict = decision.pop("verdict", "")
-    decision["discussion_action"] = actions.get(verdict, "author")
+    decision["discussion_action"] = (
+        "author" if record.get("failed") else actions.get(verdict, "author")
+    )
     return {**record, "decision": decision}
 
 
@@ -1019,12 +1024,22 @@ def classify_review_threads(
     ignored = {
         discussion_id
         for discussion_id, record in praise.items()
-        if (record.get("decision") or {}).get("verdict") == "praise"
+        if not record.get("failed")
+        and (record.get("decision") or {}).get("verdict") == "praise"
+    }
+    # a praise call that failed keeps its failure rather than becoming a clean
+    # deterministic answer, and routes to the author like any other unusable verdict
+    failed_praise: dict[str, dict[str, Any]] = {
+        discussion_id: _thread_record(record, PRAISE_ACTIONS)
+        for discussion_id, record in praise.items()
+        if record.get("failed")
     }
 
-    classifications_by_id: dict[str, dict[str, Any]] = {}
+    classifications_by_id: dict[str, dict[str, Any]] = dict(failed_praise)
     author_last: list[dict[str, Any]] = []
     for discussion in discussions:
+        if discussion["discussion_id"] in failed_praise:
+            continue
         comments = list(discussion.get("comments") or [])
         dropped = discussion["discussion_id"] in ignored
         if dropped:

@@ -259,6 +259,48 @@ class ReviewThreadPraiseTest(unittest.TestCase):
         self.assertEqual(records["t"]["decision"]["discussion_action"], "reviewer")
 
     @patch("classification.run_llm_for_verdict_batch")
+    def test_a_failed_praise_call_keeps_the_thread_with_the_author(self, run_verdict) -> None:
+        run_verdict.side_effect = lambda items, _m, _p, _v: [
+            {
+                "discussion_id": item["discussion_id"],
+                "discussion_kind": "review-comment-thread",
+                "failed": True,
+                "error": "Copilot CLI exited with status 1",
+                "decision": {"verdict": "praise", "reason": "because"},
+            }
+            for item in items
+        ]
+
+        records = classify_review_threads(1, [self.thread(("reviewer", "LGTM"))], "model", {}, {})
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+        self.assertTrue(records["t"]["failed"])
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_failed_deferral_call_keeps_the_thread_with_the_author(self, run_verdict) -> None:
+        run_verdict.side_effect = lambda items, _m, _p, _v: [
+            {
+                "discussion_id": item["discussion_id"],
+                "discussion_kind": "review-comment-thread",
+                "failed": True,
+                "error": "Copilot CLI exited with status 1",
+                "decision": {"verdict": "complete", "reason": "because"},
+            }
+            for item in items
+        ]
+
+        records = classify_review_threads(
+            1,
+            [self.thread(("reviewer", "please fix"), ("author", "a much longer reply than the gate"))],
+            "model",
+            {},
+            {},
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+        self.assertTrue(records["t"]["failed"])
+
+    @patch("classification.run_llm_for_verdict_batch")
     def test_only_the_last_comment_is_checked_for_praise(self, run_verdict) -> None:
         run_verdict.side_effect = self.answering("praise")
 
