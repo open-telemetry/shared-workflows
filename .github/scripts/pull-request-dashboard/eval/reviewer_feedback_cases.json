@@ -18,7 +18,7 @@
     "none": "no_author_action"
   },
   "fields": {
-    "role": "scored cases carry the metrics; context cases are present only so batches match the ones the baseline was measured in",
+    "role": "scored cases carry the metrics; context cases are ones the classifier left unanswered in at least one run, so nothing was recorded for them and they are present only so batches match the ones the baseline was measured in",
     "stability": "whether every run agreed, or null when a run went unanswered",
     "run_actions": "the classifier's raw answer in each run, null when it did not answer",
     "run_labels": "the answers it did give, mapped through action_labels",
