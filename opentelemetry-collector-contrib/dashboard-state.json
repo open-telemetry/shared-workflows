@@ -10416,13 +10416,13 @@
     },
     "49955": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "evan-bradley",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 8,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -10440,18 +10440,27 @@
         "head_sha": "23017b22895fb865d8b5fc695f66971ffe9b1ae9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-29T16:56:58+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T17:05:32+00:00",
+        "last_approver_activity_at": "2026-07-29T17:05:32+00:00",
         "last_author_activity_at": "2026-07-29T16:54:27+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "fc622a84c8d8334741828f7064c8b7d47eeddb72fdb43e9e966f1ba64ab8d274",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "c76dadde052847127210a3ee7d694640a40553a7d21725d102cd9a788a290048",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-29T16:54:27+00:00"
       },
       "failed": false,
       "pr_number": 49955,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49955",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
