@@ -1105,6 +1105,19 @@ def cached_classification(
     return key, record
 
 
+def review_thread_author_reply_input(discussion: dict[str, Any]) -> dict[str, Any]:
+    """The deferral binary judges the author's own last word, not the whole thread."""
+    body = ""
+    for comment in reversed(discussion.get("comments") or []):
+        if comment.get("actor_role") == "author":
+            body = comment.get("body") or ""
+            break
+    return {"discussion_id": discussion["discussion_id"], "body": body}
+
+
+REVIEW_THREAD_REPLY_ACTIONS = {"deferral": "author", "complete": "reviewer"}
+
+
 def classify_review_threads(
     number: int,
     discussions: list[dict[str, Any]],
@@ -1112,42 +1125,38 @@ def classify_review_threads(
     cache_in: dict[str, dict[str, Any]],
     cache_out: dict[str, dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
+    # An unresolved thread whose last word is not the author's is the author's to
+    # answer. Only the author's own last word needs a model, to tell a promise of
+    # future work from a finished reply.
     classifications_by_id: dict[str, dict[str, Any]] = {}
+    author_last: list[dict[str, Any]] = []
     for discussion in discussions:
-        key, record = cached_classification(
-            discussion, model, DISCUSSION_PROMPT_TEMPLATE, cache_in, cache_out
-        )
-        if record is not None:
-            classifications_by_id[discussion["discussion_id"]] = record
+        if (discussion.get("discussion_facts") or {}).get("latest_comment_role") == "author":
+            author_last.append(discussion)
             continue
-        try:
-            record = run_llm_for_discussion(discussion, model)
-        except subprocess.TimeoutExpired as e:
-            record = classification_record(
-                discussion,
-                {"discussion_action": "unclear", "reason": "LLM timeout"},
-                failed=True,
-                cli_call=True,
-                error=f"Copilot CLI timed out after {LLM_DISCUSSION_TIMEOUT_SECONDS}s",
-                response_text=e.stdout if isinstance(e.stdout, str) else None,
-                stderr=e.stderr if isinstance(e.stderr, str) else None,
-            )
-        except Exception as e:
-            print(
-                f"  warning: discussion {discussion['discussion_id']} on PR #{number} failed to classify:",
-                file=sys.stderr,
-            )
-            traceback.print_exc()
-            record = classification_record(
-                discussion,
-                {"discussion_action": "unclear", "reason": f"LLM failed: {e!r}"},
-                failed=True,
-                error=f"LLM failed: {e!r}",
-            )
-        classifications_by_id[discussion["discussion_id"]] = record
-        if not record.get("failed"):
-            cache_out[key] = cached_classification_record(record)
+        classifications_by_id[discussion["discussion_id"]] = classification_record(
+            discussion,
+            {
+                "discussion_action": "author",
+                "reason": "The last comment on this unresolved thread is not the author's.",
+            },
+            failed=False,
+        )
+    replies = classify_author_replies(
+        number,
+        author_last,
+        model,
+        cache_in,
+        cache_out,
+        prompt_input=review_thread_author_reply_input,
+    )
+    for discussion_id, record in replies.items():
+        decision = dict(record.get("decision") or {})
+        verdict = decision.pop("verdict", "")
+        decision["discussion_action"] = REVIEW_THREAD_REPLY_ACTIONS.get(verdict, "author")
+        classifications_by_id[discussion_id] = {**record, "decision": decision}
     return classifications_by_id
+
 
 
 def unclear_top_level_decision(
@@ -1439,6 +1448,7 @@ def classify_author_replies(
     model: str,
     cache_in: dict[str, dict[str, Any]],
     cache_out: dict[str, dict[str, Any]],
+    prompt_input: Callable[[dict[str, Any]], dict[str, Any]] = author_reply_prompt_input,
 ) -> dict[str, dict[str, Any]]:
     return classify_top_level_items(
         number,
@@ -1447,11 +1457,11 @@ def classify_author_replies(
         cache_in,
         cache_out,
         prompt_template=AUTHOR_REPLY_PROMPT_TEMPLATE,
-        prompt_input=author_reply_prompt_input,
+        prompt_input=prompt_input,
         run_batch=lambda batch, m: [
             record
             for items, prompt in verdict_prompt_batches(
-                batch, AUTHOR_REPLY_PROMPT_TEMPLATE, author_reply_prompt_input
+                batch, AUTHOR_REPLY_PROMPT_TEMPLATE, prompt_input
             )
             for record in run_llm_for_verdict_batch(
                 items, m, prompt, AUTHOR_REPLY_VERDICTS

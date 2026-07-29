@@ -777,19 +777,13 @@ class TopLevelActionLedgerTest(unittest.TestCase):
     @patch("classification.load_classification_cache", return_value={})
     @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
     @patch("classification.run_llm_for_discussion")
-    def test_discussion_domains_use_separate_classification_pipelines(
+    def test_a_thread_the_author_has_not_answered_needs_no_model(
         self,
         run_inline,
         run_batch,
         _load_cache,
         save_cache,
     ) -> None:
-        run_inline.side_effect = lambda discussion, _model: {
-            "discussion_id": discussion["discussion_id"],
-            "discussion_kind": discussion["discussion_kind"],
-            "failed": False,
-            "decision": {"discussion_action": "reviewer", "reason": "Author replied"},
-        }
         run_batch.side_effect = lambda discussions, _model: [
             {
                 "discussion_id": discussion["discussion_id"],
@@ -802,27 +796,56 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             }
             for discussion in discussions
         ]
-        review_threads = [review_thread_discussion("inline")]
-        top_level_items = [top_level_item("top-level")]
+        thread = review_thread_discussion("inline")
+        thread["discussion_facts"] = {"latest_comment_role": "reviewer"}
 
         review_thread_classifications, top_level_classifications = (
-            classify_feedback_domains(123, review_threads, top_level_items, "model")
+            classify_feedback_domains(123, [thread], [top_level_item("top-level")], "model")
         )
 
-        self.assertEqual(run_inline.call_args.args[0]["discussion_id"], "inline")
+        run_inline.assert_not_called()
         self.assertEqual(
-            [discussion["discussion_id"] for discussion in run_batch.call_args.args[0]],
-            ["top-level"],
-        )
-        self.assertEqual(
-            [record["discussion_id"] for record in review_thread_classifications],
-            ["inline"],
+            review_thread_classifications[0]["decision"]["discussion_action"], "author"
         )
         self.assertEqual(
             [record["discussion_id"] for record in top_level_classifications],
             ["top-level"],
         )
-        self.assertEqual(len(save_cache.call_args.args[1]), 2)
+
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch", return_value=[])
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_thread_the_author_answered_is_routed_by_the_deferral_binary(
+        self,
+        run_verdict,
+        _run_batch,
+        _load_cache,
+        _save_cache,
+    ) -> None:
+        for verdict, expected in (("deferral", "author"), ("complete", "reviewer")):
+            with self.subTest(verdict=verdict):
+                run_verdict.side_effect = lambda items, _m, _p, _v, answer=verdict: [
+                    {
+                        "discussion_id": item["discussion_id"],
+                        "discussion_kind": "review-comment-thread",
+                        "failed": False,
+                        "decision": {"verdict": answer, "reason": "because"},
+                    }
+                    for item in items
+                ]
+                thread = review_thread_discussion("inline")
+                thread["discussion_facts"] = {"latest_comment_role": "author"}
+                thread["comments"] = [{"actor_role": "author", "body": "I'll fix this"}]
+
+                review_thread_classifications, _ = classify_feedback_domains(
+                    123, [thread], [], "model"
+                )
+
+                self.assertEqual(
+                    review_thread_classifications[0]["decision"]["discussion_action"],
+                    expected,
+                )
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
