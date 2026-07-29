@@ -1610,13 +1610,11 @@
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "6c4fb26508554ec0b67a28b7430d8b40",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-07-29T07:23:02+00:00",
-        "ci_pending_count": 2,
+        "ci_failing_count": 0,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
         "created_at": "2026-07-29T07:03:08+00:00",
@@ -1631,9 +1629,9 @@
         "head_sha": "3cd873dd39329b9fbfcb9927de4d2b45495c5768",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-29T07:20:12+00:00",
+        "last_activity_at": "2026-07-29T07:26:21+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-07-29T07:20:12+00:00",
+        "last_author_activity_at": "2026-07-29T07:26:21+00:00",
         "reviewers": [
           {
             "approved": false,
@@ -1652,14 +1650,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "4e54835c606a489068e1d212547f2f86ef8cc1889c1a3c3fb79d1f2e44831f4d",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-29T07:23:02+00:00"
+        "routing_input_fingerprint": "1c6fb1034a7368b0f989083d9f116a5573c906dc003fe32183c7d20309b289ad",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-29T07:26:21+00:00"
       },
       "failed": false,
       "pr_number": 3951,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3951",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
