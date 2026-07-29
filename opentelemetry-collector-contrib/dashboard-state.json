@@ -10224,13 +10224,9 @@
         "assignees": [],
         "author": "avadla",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49898#issuecomment-5108869609"
-        ],
-        "author_nudge_episode_id": "ecb93a0619f445c6affce15538a67e32",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-07-28T11:32:08+00:00",
-        "ci_pending_count": 0,
+        "author_action_top_level_feedback_urls": [],
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -10248,9 +10244,9 @@
         "head_sha": "aa96439f1f3ab4701b06caa37aa682b03cb11f05",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T19:41:03+00:00",
+        "last_activity_at": "2026-07-29T04:42:10+00:00",
         "last_approver_activity_at": "2026-07-28T18:05:52+00:00",
-        "last_author_activity_at": "2026-07-28T11:25:54+00:00",
+        "last_author_activity_at": "2026-07-29T04:42:10+00:00",
         "reviewers": [
           {
             "approved": true,
@@ -10266,23 +10262,29 @@
             "changes_requested": false,
             "login": "ebrdarSplunk",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "2c624d3549ee5a9b65d448b51808f2ead54f10ec8d2c35e3c9f7d0c3a0b9c860",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-28T11:32:08+00:00"
+        "routing_input_fingerprint": "56ff3e77c5028302a8e7943a85b9acf798936817b08586f67884584c989bbff9",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-29T04:42:10+00:00"
       },
       "failed": false,
       "pr_number": 49898,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49898",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5102017566": {
           "evidence": {
             "reply": "2026-07-28T09:12:26Z"
           },
           "reply_source_id": 5102194562
+        },
+        "pr-issue-comment-5108869609": {
+          "evidence": {
+            "reply": "2026-07-29T04:42:10Z"
+          },
+          "reply_source_id": 5113332466
         }
       }
     },
