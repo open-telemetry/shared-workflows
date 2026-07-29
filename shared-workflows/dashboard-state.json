@@ -43,7 +43,7 @@
     },
     "188": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -67,18 +67,27 @@
         "head_sha": "aec42fa449d4f335daabab9775a903f2b41ae658",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-29T16:00:05+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T18:04:22+00:00",
+        "last_approver_activity_at": "2026-07-29T18:04:22+00:00",
         "last_author_activity_at": "2026-07-29T16:00:05+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "76c3bc1ebf730b02f5de555b73e30fa86324b79f12d0c0fac1e41d3baa51f7e2",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "52755391ce7b87c54cca4db178b14eafbd95efeb69dd4e03c5e19ccc0f2b32e0",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-29T16:00:05+00:00"
       },
       "failed": false,
       "pr_number": 188,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/188",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
