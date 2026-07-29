@@ -1293,7 +1293,7 @@ def run_llm_for_verdict_batch(
                 reasons.append(f"Copilot CLI exited with status {proc.returncode}")
             if discussion_id in duplicate_ids:
                 reasons.append("Copilot CLI returned a duplicate discussion_id")
-            else:
+            elif not valid_response:
                 reasons.append(
                     "Copilot CLI did not return a valid verdict for this discussion_id"
                 )

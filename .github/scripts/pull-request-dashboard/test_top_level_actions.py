@@ -24,6 +24,7 @@ from classification import (
     classify_discussion_domains,
     classify_review_threads,
     parse_discussion_decision,
+    run_llm_for_verdict_batch,
     run_llm_for_top_level_author_comment_batch,
     run_llm_for_top_level_reviewer_feedback_batch,
     top_level_reviewer_feedback_batch_prompt,
@@ -178,6 +179,31 @@ def classify_feedback_domains(
         )
     )
     return review_classifications, top_level_classifications
+
+
+class VerdictBatchErrorTest(unittest.TestCase):
+    def run_batch(self, returncode: int, stdout: str) -> dict:
+        proc = CompletedProcess(["copilot"], returncode, stdout, "")
+        with patch("classification.run_copilot", return_value=proc):
+            return run_llm_for_verdict_batch(
+                [{"discussion_id": "d", "discussion_kind": "review-comment-thread"}],
+                "model",
+                "prompt",
+                ("deferral", "complete"),
+            )[0]
+
+    def test_a_nonzero_exit_with_a_usable_verdict_is_not_called_unreadable(self) -> None:
+        record = self.run_batch(1, '{"items": [{"discussion_id": "d", "verdict": "complete"}]}')
+
+        self.assertTrue(record["failed"])
+        self.assertIn("exited with status 1", record["error"])
+        self.assertNotIn("did not return a valid verdict", record["error"])
+
+    def test_an_unreadable_answer_still_says_so(self) -> None:
+        record = self.run_batch(0, "not json")
+
+        self.assertTrue(record["failed"])
+        self.assertIn("did not return a valid verdict", record["error"])
 
 
 class ReviewThreadPraiseTest(unittest.TestCase):
