@@ -2273,7 +2273,7 @@
     },
     "412": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2297,18 +2297,27 @@
         "head_sha": "997e83f688b507ac4d5b15db39c55ad1ea81e9ed",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-29T04:26:10+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T07:03:42+00:00",
+        "last_approver_activity_at": "2026-07-29T07:03:42+00:00",
         "last_author_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "480eaefc4784658a00af625cb145d6051e5dad9a3c827d605e1758cdd2e50376",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "c1e925e4a15377b490538a307dad941a11dcc565ae8b30313ff0b9140a600c93",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-29T04:26:10+00:00"
       },
       "failed": false,
       "pr_number": 412,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/412",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "98": {
