@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from contextlib import redirect_stderr
+import io
 import unittest
 from unittest.mock import patch
 
 from datetime import datetime, timezone
 
-from copilot_review import deliver_copilot_review_requests, record_copilot_review_observation
+from copilot_review import (
+    deliver_copilot_review_requests,
+    record_copilot_review_observation,
+    stale_request_reason,
+)
 
 
 NOW = datetime(2026, 7, 20, 2, tzinfo=timezone.utc)
@@ -301,15 +307,161 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         request_review,
         _fingerprint,
     ) -> None:
-        errors = deliver_copilot_review_requests(
-            "open-telemetry/example",
-            NOW,
-        )
+        stderr = io.StringIO()
+
+        with redirect_stderr(stderr):
+            errors = deliver_copilot_review_requests(
+                "open-telemetry/example",
+                NOW,
+            )
 
         self.assertEqual([], errors)
         fetch_reviews.assert_not_called()
         request_review.assert_not_called()
         save_requests.assert_called_once_with({})
+        discarded = stderr.getvalue()
+        self.assertIn(
+            "discarding Copilot review request for PR #7: routing fingerprint is "
+            "new-fingerprint but accepted-fingerprint was observed; components ",
+            discarded,
+        )
+        for component in (
+            "base_branch",
+            "checks",
+            "issue_comments",
+            "labels",
+            "pr_text",
+            "review_comments",
+            "reviews",
+            "review_threads",
+        ):
+            self.assertIn(component, discarded)
+
+    @patch(
+        "copilot_review.routing_input_fingerprint",
+        return_value="accepted-fingerprint",
+    )
+    @patch("copilot_review.request_copilot_review")
+    @patch("copilot_review.fetch_pr_reviews", return_value=[])
+    @patch(
+        "copilot_review.fetch_current_pr_routing_inputs",
+        return_value=(
+            {
+                "state": "OPEN",
+                "isDraft": False,
+                "headRefOid": "current-head",
+                "reviewRequests": [],
+            },
+            {},
+        ),
+    )
+    @patch("copilot_review.save_copilot_review_requests")
+    @patch(
+        "copilot_review.load_copilot_review_requests",
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
+            }
+        },
+    )
+    def test_drops_request_when_copilot_review_no_longer_needed(
+        self,
+        _load_requests,
+        save_requests,
+        _fetch_current_state,
+        _fetch_reviews,
+        request_review,
+        _fingerprint,
+    ) -> None:
+        stderr = io.StringIO()
+
+        with redirect_stderr(stderr):
+            errors = deliver_copilot_review_requests(
+                "open-telemetry/example",
+                NOW,
+            )
+
+        self.assertEqual([], errors)
+        request_review.assert_not_called()
+        save_requests.assert_called_once_with({})
+        self.assertIn(
+            "discarding Copilot review request for PR #7: Copilot review "
+            "exists=False needed=False for head current-head",
+            stderr.getvalue(),
+        )
+
+
+class StaleRequestReasonTest(unittest.TestCase):
+    ENTRY = {
+        "head_sha": "current-head",
+        "routing_input_fingerprint": "accepted-fingerprint",
+    }
+    OPEN_PR = {"state": "OPEN", "isDraft": False}
+
+    def reason(
+        self,
+        entry: dict | None = None,
+        pr: dict | None = None,
+        current_head: str = "current-head",
+        current_routing_fingerprint: str = "accepted-fingerprint",
+    ) -> str:
+        return stale_request_reason(
+            self.ENTRY if entry is None else entry,
+            self.OPEN_PR if pr is None else pr,
+            current_head,
+            current_routing_fingerprint,
+            {},
+        )
+
+    def test_current_request_is_not_stale(self) -> None:
+        self.assertEqual("", self.reason())
+
+    def test_reports_closed_pull_request(self) -> None:
+        self.assertEqual(
+            "pull request state is 'CLOSED'",
+            self.reason(pr={"state": "CLOSED"}),
+        )
+
+    def test_reports_draft_pull_request(self) -> None:
+        self.assertEqual(
+            "pull request is a draft",
+            self.reason(pr={"state": "OPEN", "isDraft": True}),
+        )
+
+    def test_reports_advanced_head(self) -> None:
+        self.assertEqual(
+            "head is new-head but current-head was observed",
+            self.reason(current_head="new-head"),
+        )
+
+    def test_reports_missing_observed_fingerprint(self) -> None:
+        self.assertEqual(
+            "no routing fingerprint was observed",
+            self.reason(entry={"head_sha": "current-head"}),
+        )
+
+    def test_fingerprint_mismatch_reports_component_digests(self) -> None:
+        reason = self.reason(current_routing_fingerprint="new-fingerprint")
+
+        self.assertIn(
+            "routing fingerprint is new-fingerprint but accepted-fingerprint "
+            "was observed; components ",
+            reason,
+        )
+        for component in (
+            "base_branch",
+            "checks",
+            "issue_comments",
+            "labels",
+            "pr_text",
+            "review_comments",
+            "reviews",
+            "review_threads",
+        ):
+            self.assertIn(component, reason)
 
 
 if __name__ == "__main__":
