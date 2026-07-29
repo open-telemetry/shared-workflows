@@ -637,8 +637,14 @@ def group_review_threads(
         if discussion.get("isResolved") or discussion.get("isOutdated"):
             continue
         raw_comments = (discussion.get("comments") or {}).get("nodes") or []
+        thread_url = raw_comments[0].get("url") if raw_comments else ""
+        # a thread reads in creation order; sorting on updatedAt would move an
+        # edited old comment to the end and change who last spoke
+        ordered = sorted(
+            raw_comments, key=lambda c: c.get("createdAt") or c.get("updatedAt") or ""
+        )
         comments = []
-        for c in raw_comments:
+        for c in ordered:
             actor = reviewer_actor_login(c.get("author") or {})
             comments.append(discussion_comment(
                 c.get("updatedAt") or c.get("createdAt") or "",
@@ -649,7 +655,6 @@ def group_review_threads(
                 positive_reaction_logins(c),
             ))
         comments = [c for c in comments if c["timestamp"]]
-        comments.sort(key=lambda c: c["timestamp"])
         if not comments or all(c["actor_role"] == "author" for c in comments):
             continue
         discussions.append(add_discussion_facts({
@@ -658,7 +663,7 @@ def group_review_threads(
             "path": discussion.get("path"),
             "line": discussion.get("line"),
             "resolved": False,
-            "discussion_url": raw_comments[0].get("url") if raw_comments else "",
+            "discussion_url": thread_url,
             "comments": comments,
         }, comments, facts))
     discussions.sort(key=lambda t: t["comments"][-1]["timestamp"])

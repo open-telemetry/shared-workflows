@@ -187,6 +187,49 @@ class FetchPrRawTest(unittest.TestCase):
         )
 
 
+class ReviewThreadOrderTest(unittest.TestCase):
+    def test_editing_an_old_comment_does_not_make_it_the_last_word(self) -> None:
+        threads = group_review_threads(
+            {
+                "review_threads": [
+                    {
+                        "id": "thread-1",
+                        "isResolved": False,
+                        "isOutdated": False,
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "url": "https://example.test/discussion/1",
+                                    "body": "please fix",
+                                    "createdAt": "2026-07-14T01:00:00Z",
+                                    "updatedAt": "2026-07-14T03:00:00Z",
+                                    "author": {"login": "reviewer"},
+                                },
+                                {
+                                    "url": "https://example.test/discussion/2",
+                                    "body": "fixed it",
+                                    "createdAt": "2026-07-14T02:00:00Z",
+                                    "updatedAt": "2026-07-14T02:00:00Z",
+                                    "author": {"login": "author"},
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
+            "author",
+            {"reviewer"},
+            {"conflicts": "no"},
+        )
+
+        self.assertEqual(
+            "author", threads[0]["discussion_facts"]["latest_comment_role"]
+        )
+        self.assertEqual(
+            ["please fix", "fixed it"], [c["body"] for c in threads[0]["comments"]]
+        )
+
+
 class ReviewThreadDiscussionUrlTest(unittest.TestCase):
     def test_group_review_threads_ignores_author_only_annotations(self) -> None:
         thread = {
