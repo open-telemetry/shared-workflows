@@ -183,7 +183,6 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "isDraft": False,
             "headRefOid": "current-head",
             "id": "PR_node_id",
-            "reviewRequests": [],
         }
         fetch_current_state.return_value = (pr, {})
         fetch_reviews.return_value = [{
@@ -244,11 +243,18 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "state": "OPEN",
             "isDraft": False,
             "headRefOid": "current-head",
-            "reviewRequests": [
-                {"login": "copilot-pull-request-reviewer[bot]"},
-            ],
         }
-        fetch_current_state.return_value = (pr, {})
+        fetch_current_state.return_value = (
+            pr,
+            {
+                "review_requests": [
+                    {
+                        "__typename": "Bot",
+                        "login": "copilot-pull-request-reviewer",
+                    },
+                ],
+            },
+        )
 
         errors = deliver_copilot_review_requests(
             "open-telemetry/example",
@@ -281,7 +287,6 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "state": "OPEN",
                 "isDraft": False,
                 "headRefOid": "current-head",
-                "reviewRequests": [],
             },
             {},
         ),
@@ -350,7 +355,6 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "state": "OPEN",
                 "isDraft": False,
                 "headRefOid": "current-head",
-                "reviewRequests": [],
             },
             {},
         ),

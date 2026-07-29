@@ -118,6 +118,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         },
     )
     @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
     @patch("github_cli.fetch_pr_reviews", return_value=[])
     @patch("github_cli.fetch_pr_issue_comments", return_value=[])
     @patch("github_cli.gh_api", return_value=[])
@@ -128,6 +129,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         _gh_api,
         _fetch_issue_comments,
         _fetch_review_data,
+        _fetch_review_requests,
         _fetch_review_threads,
         gh_pr_check_rollup,
         gh_required_check_contexts,

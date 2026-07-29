@@ -169,7 +169,7 @@ def deliver_copilot_review_requests(
                 continue
             if any(
                 is_copilot_reviewer(request)
-                for request in (pr.get("reviewRequests") or [])
+                for request in (raw.get("review_requests") or [])
             ):
                 requests[key] = {**entry, "requested_at": format_ts(now)}
                 continue

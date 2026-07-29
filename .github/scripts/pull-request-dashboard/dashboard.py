@@ -553,7 +553,7 @@ def compute_facts(
         **dashboard_override_facts(raw, author, labels, reviewers or set()),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
-            for request in (pr.get("reviewRequests") or [])
+            for request in (raw.get("review_requests") or [])
         ),
         "copilot_review_exists": copilot_review_exists,
         "copilot_review_needed": copilot_review_needed,

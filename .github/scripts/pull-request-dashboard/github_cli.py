@@ -138,7 +138,7 @@ def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
         "id", "number", "title", "body", "url", "author", "state", "isDraft",
         "mergeable", "mergeStateStatus", "createdAt", "updatedAt", "headRefOid",
-        "reviewDecision", "reviewRequests", "assignees", "baseRefName", "labels",
+        "reviewDecision", "assignees", "baseRefName", "labels",
     ])
     cmd = ["gh", "pr", "view", str(number), "--repo", repo, "--json", fields]
     last: dict[str, Any] = {}
@@ -720,6 +720,58 @@ def fetch_review_threads(owner: str, repo_name: str, number: int) -> list[dict[s
         after = page_info.get("endCursor") or ""
 
 
+REVIEW_REQUESTS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
+    repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+            reviewRequests(first: 100, after: $after) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                nodes {
+                    requestedReviewer {
+                        __typename
+                        ... on Bot {
+                            login
+                        }
+                        ... on User {
+                            login
+                        }
+                        ... on Team {
+                            slug
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+"""
+
+
+def fetch_review_requests(owner: str, repo_name: str, number: int) -> list[dict[str, Any]]:
+    # `gh pr view --json reviewRequests` silently drops Bot reviewers, so a
+    # pending Copilot request looks absent. Ask GraphQL for the Bot node
+    # directly instead.
+    reviewers: list[dict[str, Any]] = []
+    after: str | None = None
+    while True:
+        data = gh_graphql(
+            REVIEW_REQUESTS_QUERY,
+            {"owner": owner, "name": repo_name, "number": number, "after": after},
+        )
+        page = (((data.get("data") or {}).get("repository") or {}).get("pullRequest") or {}).get("reviewRequests") or {}
+        for node in page.get("nodes") or []:
+            reviewer = node.get("requestedReviewer")
+            if reviewer:
+                reviewers.append(reviewer)
+        page_info = page.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            return reviewers
+        after = page_info.get("endCursor") or ""
+
+
 def fetch_pr_routing_raw(
     repo: str,
     owner: str,
@@ -749,6 +801,12 @@ def fetch_pr_routing_raw(
             number,
         )
         reviews_future = pool.submit(fetch_pr_reviews, owner, repo_name, number)
+        review_requests_future = pool.submit(
+            fetch_review_requests,
+            owner,
+            repo_name,
+            number,
+        )
         pr = pr_future.result() or {}
         check_rollup_future = pool.submit(
             gh_pr_check_rollup,
@@ -767,6 +825,7 @@ def fetch_pr_routing_raw(
             "issue_comments": issue_comments_future.result() or [],
             "review_comments": review_comments_future.result() or [],
             "reviews": reviews_future.result() or [],
+            "review_requests": review_requests_future.result() or [],
             "review_threads": review_threads_future.result() or [],
             "checks": include_missing_required_checks(
                 None if check_rollup is None else check_rollup["required"],
