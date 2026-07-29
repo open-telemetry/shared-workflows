@@ -12,14 +12,21 @@
     "substantive": "the pull request author owes a response or action",
     "noise": "the item needs nothing from the pull request author"
   },
+  "action_labels": {
+    "author": "substantive",
+    "unclear": "substantive",
+    "none": "noise"
+  },
   "fields": {
-    "observed_actions": "the classifier's raw answer in each run",
-    "observed_runs": "those answers mapped onto the two labels"
+    "observed_actions": "the classifier's raw answer in each run, null when it did not answer",
+    "observed_runs": "those answers mapped through action_labels",
+    "stability": "stable and flaky cases are scored; unobserved cases are kept only so batches match the ones the baseline was measured in"
   },
   "counts": {
-    "cases": 658,
-    "stable": 604,
-    "flaky": 54,
+    "cases": 670,
+    "stable": 608,
+    "flaky": 56,
+    "unobserved": 6,
     "adjudicated": 0
   },
   "cases": [
@@ -1718,6 +1725,28 @@
       "adjudicated": null
     },
     {
+      "id": "opentelemetry-collector-contrib-47445-pr-review-4245003476",
+      "repo": "opentelemetry-collector-contrib",
+      "pull_request": 47445,
+      "requester": "paulojmdias",
+      "pr_author": "Dylan-M",
+      "review_state": "APPROVED",
+      "body": "Overall LGTM, just a small nit.",
+      "stability": "stable",
+      "baseline": "noise",
+      "observed_runs": [
+        "noise",
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
+      "adjudicated": null
+    },
+    {
       "id": "opentelemetry-collector-contrib-47445-pr-review-4684361807",
       "repo": "opentelemetry-collector-contrib",
       "pull_request": 47445,
@@ -2044,6 +2073,28 @@
         "author",
         "author",
         "author"
+      ],
+      "adjudicated": null
+    },
+    {
+      "id": "opentelemetry-collector-contrib-47972-pr-issue-comment-4629239298",
+      "repo": "opentelemetry-collector-contrib",
+      "pull_request": 47972,
+      "requester": "rogercoll",
+      "pr_author": "salvatore-campagna",
+      "review_state": null,
+      "body": "During the System SIG on 04/06/2026 we discussed whether https://github.com/open-telemetry/opentelemetrycollector-contrib/pull/46153 could be moved into a processor or OTTL function. The core challenge is that the PR does not apply fixed-decimal truncation, it derives the correct number of significant digits from the magnitude of the original integer inputs, so the rounding is context-aware and cannot be reconstructed once the float64 is emitted.\r\n\r\n  Two cases:\r\n  - `precision.Ratio`: used for utilization ratios, it could in principle become an OTTL function, but it would require the receiver to expose raw usage integers, so the function has both operands available. This means every utilization metric would need explicit pipeline configuration (usage values) to compute and store the result into a new utilization metric, making default setups verbose and leaving users who don't opt in with the values with false precision.\r\n  - `precision.Scale`: cannot be moved downstream. The rounding corrects noise introduced by the receiver's own time-unit conversion (e.g. ticks → seconds). That information is lost once the float64 is emitted, a processor has no way to recover it. The only alter ...[truncated]",
+      "stability": "stable",
+      "baseline": "noise",
+      "observed_runs": [
+        "noise",
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4644,6 +4695,24 @@
       "adjudicated": null
     },
     {
+      "id": "opentelemetry-collector-contrib-49928-pr-review-4799998402",
+      "repo": "opentelemetry-collector-contrib",
+      "pull_request": 49928,
+      "requester": "carsonip",
+      "pr_author": "blakerouse",
+      "review_state": "APPROVED",
+      "body": "approving to unblock, thanks for adding the tests. One comment about the allowMissingDocs",
+      "stability": "unobserved",
+      "baseline": null,
+      "observed_runs": [],
+      "observed_actions": [
+        "author",
+        "author",
+        null
+      ],
+      "adjudicated": null
+    },
+    {
       "id": "opentelemetry-dotnet-7015-pr-issue-comment-4149972312",
       "repo": "opentelemetry-dotnet",
       "pull_request": 7015,
@@ -6030,6 +6099,28 @@
       "adjudicated": null
     },
     {
+      "id": "opentelemetry-java-8548-pr-issue-comment-4870687837",
+      "repo": "opentelemetry-java",
+      "pull_request": 8548,
+      "requester": "jack-berg",
+      "pr_author": "EvgeniiR",
+      "review_state": null,
+      "body": "Hey so I've been thinking about this. AttributesMap exists because the default implementation of Attributes / AttributesBuilder is not limits aware. I think that the fact that its backed by HashMap is a function of convenience: we need a simple implementation that we can apply limits too as its being built up. I think performance is important, and a Map based implementation also has better put performance than the default array based implementations ImmutableKeyValuePairs / ArrayBackedAttributesBuilder. But I think this is coincidence, since I've never heard us telling people \"prefer using Span.setAttribute because it uses a more performant map based implementation\". \r\n\r\nI've never loved the fact that AttributesMap exists. I'd rather have one implementation. And I think your changes to AttributesMap reinforces this because while it still tries to do some map things for performance, other parts of it are starting to look more like ImmutableKeyValuePairs / ArrayBackedAttributesBuilder. And so its got me thinking about whether we can evolve ImmutableKeyValuePairs / ArrayBackedAttributesBuilder to meet the limits requirements and rip out AttributesMap altogether.\r\n\r\nI've got two protot ...[truncated]",
+      "stability": "flaky",
+      "baseline": null,
+      "observed_runs": [
+        "noise",
+        "substantive",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "none"
+      ],
+      "adjudicated": null
+    },
+    {
       "id": "opentelemetry-java-8548-pr-issue-comment-4870689745",
       "repo": "opentelemetry-java",
       "pull_request": 8548,
@@ -6888,6 +6979,24 @@
       "adjudicated": null
     },
     {
+      "id": "opentelemetry-js-6293-pr-review-4497664148",
+      "repo": "opentelemetry-js",
+      "pull_request": 6293,
+      "requester": "david-luna",
+      "pr_author": "overbalance",
+      "review_state": "COMMENTED",
+      "body": "This looks very good. Just a couple of questions.",
+      "stability": "unobserved",
+      "baseline": null,
+      "observed_runs": [],
+      "observed_actions": [
+        "author",
+        null,
+        "author"
+      ],
+      "adjudicated": null
+    },
+    {
       "id": "opentelemetry-js-6293-pr-review-4499141335",
       "repo": "opentelemetry-js",
       "pull_request": 6293,
@@ -7592,6 +7701,24 @@
       "adjudicated": null
     },
     {
+      "id": "opentelemetry-js-6751-pr-review-4411677922",
+      "repo": "opentelemetry-js",
+      "pull_request": 6751,
+      "requester": "overbalance",
+      "pr_author": "devareddy05",
+      "review_state": "COMMENTED",
+      "body": "Great fix! Just one question.",
+      "stability": "unobserved",
+      "baseline": null,
+      "observed_runs": [],
+      "observed_actions": [
+        "none",
+        null,
+        null
+      ],
+      "adjudicated": null
+    },
+    {
       "id": "opentelemetry-js-6751-pr-review-4488338843",
       "repo": "opentelemetry-js",
       "pull_request": 6751,
@@ -7918,6 +8045,24 @@
         "none",
         "none",
         "none"
+      ],
+      "adjudicated": null
+    },
+    {
+      "id": "opentelemetry-js-contrib-2976-pr-review-3206929990",
+      "repo": "opentelemetry-js-contrib",
+      "pull_request": 2976,
+      "requester": "trentm",
+      "pr_author": "lucas-gregoire",
+      "review_state": "CHANGES_REQUESTED",
+      "body": "See comments above.",
+      "stability": "unobserved",
+      "baseline": null,
+      "observed_runs": [],
+      "observed_actions": [
+        null,
+        "none",
+        null
       ],
       "adjudicated": null
     },
@@ -9170,6 +9315,24 @@
       ],
       "observed_actions": [
         "author",
+        "author",
+        "author"
+      ],
+      "adjudicated": null
+    },
+    {
+      "id": "opentelemetry-python-genai-247-pr-review-4698657099",
+      "repo": "opentelemetry-python-genai",
+      "pull_request": 247,
+      "requester": "lmolkova",
+      "pr_author": "123liuziming",
+      "review_state": "COMMENTED",
+      "body": "LGTM, just some minor questions and concerns around build and release",
+      "stability": "unobserved",
+      "baseline": null,
+      "observed_runs": [],
+      "observed_actions": [
+        null,
         "author",
         "author"
       ],
@@ -10650,6 +10813,24 @@
       "adjudicated": null
     },
     {
+      "id": "otel-arrow-3363-pr-review-4666073835",
+      "repo": "otel-arrow",
+      "pull_request": 3363,
+      "requester": "jmacd",
+      "pr_author": "timr-dev",
+      "review_state": "APPROVED",
+      "body": "Reviewed critically and validated locally (checked out the branch, ran targeted tests + compiled the new bench). Approving — everything below is non-blocking.\n\n## Validation\n\n- `config` 66 passed, `engine::memory_limiter` 24 passed (incl. all 8 new), `memory_admission` bench compiles, clippy clean on `config`.\n- All three `should_shed_ingress()` sites and every ingress consumer (otlp/otap/syslog_cef/user_events receivers + the tower layer) route through the new predicate; no stray `== Hard` shed comparisons remain.\n- `soft_action` propagation mirrors the existing `mode` pattern exactly (atomic on the process inner, plain field on receiver inners), and `configure()` runs before receivers snapshot.\n- Default path is byte-identical (`shed_decision(_, _, Observe)` == old `Enforce && Hard`). Hysteresis is sound: with `soft_action: shed`, the existing Soft→Normal reopen threshold (`soft_limit − hysteresis`) becomes the shed-reopen point, so no oscillation.\n- Doc sweep is thorough — grepped untouched receiver `.rs`/README files for stale \"Soft is informational / Hard-only\" wording; none remain.\n\n## Non-blocking notes\n\n1. **Process-wide `MemoryPressureState::should_shed_ingress()` has no p ...[truncated]",
+      "stability": "unobserved",
+      "baseline": null,
+      "observed_runs": [],
+      "observed_actions": [
+        "none",
+        "author",
+        null
+      ],
+      "adjudicated": null
+    },
+    {
       "id": "otel-arrow-3363-pr-review-4668488884",
       "repo": "otel-arrow",
       "pull_request": 3363,
@@ -10804,6 +10985,28 @@
       "adjudicated": null
     },
     {
+      "id": "otel-arrow-3467-pr-review-4776770163",
+      "repo": "otel-arrow",
+      "pull_request": 3467,
+      "requester": "drewrelmas",
+      "pr_author": "Dipanshusinghh",
+      "review_state": "APPROVED",
+      "body": "LGTM, left one small maintainability comment",
+      "stability": "stable",
+      "baseline": "noise",
+      "observed_runs": [
+        "noise",
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
+      "adjudicated": null
+    },
+    {
       "id": "otel-arrow-3524-pr-issue-comment-5026846525",
       "repo": "otel-arrow",
       "pull_request": 3524,
@@ -10822,6 +11025,28 @@
         "none",
         "none",
         "none"
+      ],
+      "adjudicated": null
+    },
+    {
+      "id": "otel-arrow-3524-pr-issue-comment-5065765015",
+      "repo": "otel-arrow",
+      "pull_request": 3524,
+      "requester": "JakeDern",
+      "pr_author": "yeomin4242",
+      "review_state": null,
+      "body": "> > Thank you for working hard on this! I see there have been a lot of iterations between this PR and the previous.\r\n> \r\n> > \r\n> \r\n> > Apologies if this has already been discussed elsewhere, but I'm wondering why the solution is not to call `OtapArrowRecords::decode_transport_optimized_ids` in the various `try_from` implementations? That would be a very small change (3 lines or so) and I think solve the problem.\r\n> \r\n> > \r\n> \r\n> > In my opinion view creation should not fail unless we're seeing data corruption as there's no alternative for a caller in the failure case. This PR seems to take the same opinion, as we have updated all callers to decode before creating the view to avoid it.\r\n> \r\n> > \r\n> \r\n> > I'm wondering then why we're letting callers make the mistake of not decoding in a way that can only be found at runtime instead of proactively doing it in the implementation.\r\n> \r\n> \r\n> \r\n> Thanks for raising this. \r\n> \r\n> \r\n> \r\n> I agree that callers should not have to remember to decode first, and that this error should not normally surface in application code.\r\n> \r\n> \r\n> \r\n> The current TryFrom<&OtapArrowRecords> implementation only has immutable access, whereas decoding require ...[truncated]",
+      "stability": "flaky",
+      "baseline": null,
+      "observed_runs": [
+        "noise",
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -13121,6 +13346,28 @@
       "pr_author": "eternalcuriouslearner",
       "review_state": "CHANGES_REQUESTED",
       "body": "Looks good, had some feedback but it should be minor.",
+      "stability": "stable",
+      "baseline": "noise",
+      "observed_runs": [
+        "noise",
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
+      "adjudicated": null
+    },
+    {
+      "id": "semantic-conventions-genai-195-pr-review-4507167174",
+      "repo": "semantic-conventions-genai",
+      "pull_request": 195,
+      "requester": "pwkowalski",
+      "pr_author": "eternalcuriouslearner",
+      "review_state": "CHANGES_REQUESTED",
+      "body": "Sorry, one more thing I've noticed after re-reading.",
       "stability": "stable",
       "baseline": "noise",
       "observed_runs": [

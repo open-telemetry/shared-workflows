@@ -4,7 +4,8 @@ from pathlib import Path
 
 CASES = Path(__file__).resolve().parent / "eval" / "reviewer_feedback_cases.json"
 LABELS = {"substantive", "noise"}
-STABILITIES = {"stable", "flaky"}
+STABILITIES = {"stable", "flaky", "unobserved"}
+SCORED = {"stable", "flaky"}
 
 
 class EvalFixtureTest(unittest.TestCase):
@@ -18,7 +19,7 @@ class EvalFixtureTest(unittest.TestCase):
     def test_counts_match_the_cases(self) -> None:
         counts = self.data["counts"]
         self.assertEqual(counts["cases"], len(self.cases))
-        for stability in ("stable", "flaky"):
+        for stability in ("stable", "flaky", "unobserved"):
             self.assertEqual(
                 counts[stability],
                 sum(1 for case in self.cases if case["stability"] == stability),
@@ -61,6 +62,11 @@ class EvalFixtureTest(unittest.TestCase):
         for case in self.cases:
             with self.subTest(case=case["id"]):
                 self.assertIn(case["stability"], STABILITIES)
+                self.assertEqual(expected_runs, len(case["observed_actions"]))
+                if case["stability"] == "unobserved":
+                    self.assertIsNone(case["baseline"])
+                    self.assertIn(None, case["observed_actions"])
+                    continue
                 self.assertEqual(expected_runs, len(case["observed_runs"]))
                 distinct = set(case["observed_runs"])
                 if case["stability"] == "stable":
@@ -69,6 +75,18 @@ class EvalFixtureTest(unittest.TestCase):
                 else:
                     self.assertGreater(len(distinct), 1)
                     self.assertIsNone(case["baseline"])
+
+    def test_observed_runs_are_the_mapped_observed_actions(self) -> None:
+        action_labels = self.data["action_labels"]
+        self.assertTrue(action_labels)
+        for case in self.cases:
+            if case["stability"] not in SCORED:
+                continue
+            with self.subTest(case=case["id"]):
+                self.assertEqual(
+                    [action_labels[action] for action in case["observed_actions"]],
+                    case["observed_runs"],
+                )
 
 
 if __name__ == "__main__":

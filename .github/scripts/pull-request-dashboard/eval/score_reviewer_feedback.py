@@ -143,15 +143,19 @@ def majority(labels: list[str]) -> str | None:
 def summarize(cases: list[dict], trials: list[dict[str, str]]) -> dict:
     """Everything the report prints, as values, so it can be tested without a model."""
     trial_count = len(trials)
+    # Unobserved cases exist only to reproduce the baseline's batches; they have
+    # no recorded behaviour to compare against.
+    scored_cases = [c for c in cases if c["stability"] != "unobserved"]
     observed = {
-        case["id"]: [t[case["id"]] for t in trials if case["id"] in t] for case in cases
+        case["id"]: [t[case["id"]] for t in trials if case["id"] in t]
+        for case in scored_cases
     }
 
     # A case answered in only some trials is not comparable with one answered in
     # all of them, so it is reported rather than settled from the answers present.
-    unanswered = [c for c in cases if not observed[c["id"]]]
-    incomplete = [c for c in cases if 0 < len(observed[c["id"]]) < trial_count]
-    complete = [c for c in cases if len(observed[c["id"]]) == trial_count]
+    unanswered = [c for c in scored_cases if not observed[c["id"]]]
+    incomplete = [c for c in scored_cases if 0 < len(observed[c["id"]]) < trial_count]
+    complete = [c for c in scored_cases if len(observed[c["id"]]) == trial_count]
 
     settled = {c["id"]: majority(observed[c["id"]]) for c in complete}
     undecided = [c for c in complete if settled[c["id"]] is None]
@@ -159,11 +163,13 @@ def summarize(cases: list[dict], trials: list[dict[str, str]]) -> dict:
 
     # Every adjudicated case counts, so failing to answer a hard one cannot
     # improve the score by leaving the denominator.
-    adjudicated = [c for c in cases if c["adjudicated"]]
+    adjudicated = [c for c in scored_cases if c["adjudicated"]]
     scored = [c for c in adjudicated if settled.get(c["id"]) is not None]
-    stable = [c for c in cases if c["stability"] == "stable"]
+    stable = [c for c in scored_cases if c["stability"] == "stable"]
     return {
         "trial_count": trial_count,
+        "scored_cases": scored_cases,
+        "context_only": [c for c in cases if c["stability"] == "unobserved"],
         "unanswered": unanswered,
         "incomplete": incomplete,
         "undecided": undecided,
@@ -194,7 +200,8 @@ def report(
     trial_count, drift, flaky = s["trial_count"], s["drift"], s["flaky"]
     adjudicated, scored = s["adjudicated"], s["scored"]
 
-    print(f"cases        {len(cases)}")
+    print(f"cases        {len(s['scored_cases'])}  scored"
+          f"  (+{len(s['context_only'])} kept only to reproduce baseline batches)")
     print(f"trials       {trial_count}  (a case's label is the majority across trials)")
     print(f"unanswered   {len(s['unanswered'])}  (no answer in any trial)")
     print(f"incomplete   {len(s['incomplete'])}  (answered in some trials; not scored)")
