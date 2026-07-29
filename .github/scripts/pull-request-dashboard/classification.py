@@ -288,8 +288,55 @@ for every input discussion_id and copy each discussion_id exactly:
 )
 
 
-AUTHOR_REPLY_PROMPT_TEMPLATE = (
-    """You are triaging comments written by pull request authors on their own pull requests.
+REVIEWER_FEEDBACK_CONFIRM_PROMPT_TEMPLATE = (
+    """You are reviewing top-level comments from pull request reviewers.
+
+"""
+    + BATCH_CONTRACT
+    + """
+
+Each item contains the reviewer's login in `requester`, the PR author's login in
+`pr_author`, and the comment text in `body`. First-person statements in `body`
+are the reviewer speaking, never the PR author.
+
+Question: does the WHOLE comment fit one of these forms, with nothing else in
+it?
+
+  1. approval with no request ("LGTM", "looks good to me", "I'm fine with the
+     API changes", "feel free to merge"), including approval whose only
+     suggestion is explicitly left for later ("we can clean this up post
+     submission", "an opportunity to refactor after a point fix release")
+  2. thanks, congratulations, or another purely social remark
+  3. a status or progress note that asks for nothing, including a reviewer
+     saying they have not finished looking yet
+  4. a request, question, or hand-off directed at someone other than
+     `pr_author`, including a team
+  5. a repository automation command
+
+Answer `confirmed` only when the entire comment is one of those five forms.
+Answer `other` for everything else, including any question to the author, any
+requested change, any objection or disagreement with the pull request, any
+answer to something the author asked, and any statement that the pull request is
+blocked on other work.
+
+If part of the comment fits one of the forms but another part does not, answer
+`other`.
+
+Do not consider whether the author already responded. That is determined later
+from comment timestamps.
+
+Respond with a single JSON object and nothing else. Include exactly one result
+for every input discussion_id and copy each discussion_id exactly:
+{{"items": [{{"discussion_id": "input id", "verdict": "confirmed" | "other", "reason": "short explanation grounded in this item"}}]}}
+
+---BEGIN TOP-LEVEL FEEDBACK---
+{discussions}
+---END TOP-LEVEL FEEDBACK---
+"""
+)
+
+
+AUTHOR_REPLY_PROMPT_TEMPLATE = (    """You are triaging comments written by pull request authors on their own pull requests.
 
 """
     + BATCH_CONTRACT
