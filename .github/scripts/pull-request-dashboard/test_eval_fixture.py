@@ -74,11 +74,14 @@ class EvalFixtureTest(unittest.TestCase):
             with self.subTest(case=case["id"]):
                 self.assertIn(case["role"], ROLES)
                 self.assertEqual(expected_runs, len(case["run_actions"]))
+                # context is not a dimension of its own: it is exactly the cases a
+                # run left unanswered, so stability has nothing to describe
                 if case["role"] == "context":
                     self.assertIsNone(case["stability"])
                     self.assertIsNone(case["recorded_label"])
                     self.assertIn(None, case["run_actions"])
                     continue
+                self.assertNotIn(None, case["run_actions"])
                 self.assertIn(case["stability"], STABILITIES)
                 self.assertEqual(expected_runs, len(case["run_labels"]))
                 distinct = set(case["run_labels"])
