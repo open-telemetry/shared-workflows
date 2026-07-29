@@ -226,14 +226,19 @@ class NormalizeEventsCommandTest(unittest.TestCase):
             "/workflow-approve",
             "/rerun",
             "/fix:refcache",
-            "/label component:exporter",
             "/workflow-approve\n/rerun",
         )
         for body in accepted:
             with self.subTest(body=body):
                 self.assertEqual([], items(body))
 
-        for body in ("/rerun please take another look", "This needs a /workflow-approve"):
+        kept = (
+            "/rerun please take another look",
+            "This needs a /workflow-approve",
+            "/label component:exporter",
+            "/lgtm cancel",
+        )
+        for body in kept:
             with self.subTest(body=body):
                 self.assertEqual(1, len(items(body)))
 
