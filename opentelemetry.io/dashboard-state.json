@@ -1487,9 +1487,13 @@
         "assignees": [],
         "author": "Therealdk8890",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 12,
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10711#issuecomment-5059642361"
+        ],
+        "author_nudge_episode_id": "7fda7417d3b44d1c802d291974dbc4da",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-29T05:35:15+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -1507,9 +1511,9 @@
         "head_sha": "f50be931389edbb6da023386a1126440c0d58083",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-29T05:31:50+00:00",
+        "last_activity_at": "2026-07-29T05:37:11+00:00",
         "last_approver_activity_at": "2026-07-23T14:31:07+00:00",
-        "last_author_activity_at": "2026-07-29T05:31:50+00:00",
+        "last_author_activity_at": "2026-07-29T05:37:11+00:00",
         "reviewers": [
           {
             "approved": false,
@@ -1517,25 +1521,18 @@
             "changes_requested": false,
             "login": "chalin",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "routing_input_fingerprint": "4636669c3c9773964c7611025bf21a12ba600820b213ec669944828a1050afa5",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-29T05:31:50+00:00"
+        "routing_input_fingerprint": "bd46d6d8276c9a5723c4026eb2f532918b0a1db303cd7e900ff07e295296d5bd",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-29T05:35:15+00:00"
       },
       "failed": false,
       "pr_number": 10711,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10711",
-      "route": "approver",
-      "top_level_history": {
-        "pr-issue-comment-5059642361": {
-          "evidence": {
-            "reply": "2026-07-23T21:17:09Z"
-          },
-          "reply_source_id": 5063530427
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "10713": {
       "facts": {
