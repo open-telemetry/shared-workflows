@@ -121,7 +121,12 @@ def majority(labels: list[str]) -> str | None:
     return label if count * 2 > len(labels) else None
 
 
-def report(cases: list[dict], trials: list[dict[str, str]], baseline_flaky: int) -> None:
+def report(
+    cases: list[dict],
+    trials: list[dict[str, str]],
+    baseline_flaky: int,
+    baseline_runs: int,
+) -> None:
     trial_count = len(trials)
     observed = {
         case["id"]: [t[case["id"]] for t in trials if case["id"] in t] for case in cases
@@ -155,10 +160,18 @@ def report(cases: list[dict], trials: list[dict[str, str]], baseline_flaky: int)
     print(f"incomplete   {len(incomplete)}  (answered in some trials; not scored)")
     print(f"undecided    {len(undecided)}  (answered in every trial but tied; not scored)")
     print(f"drift        {len(drift)}  (stable cases whose label changed)")
-    print(
-        f"flaky        {len(flaky)}  this candidate; baseline recorded {baseline_flaky}"
-        "  (lower is better)"
-    )
+    # More trials mean more chances to disagree, so the counts are only
+    # comparable when both were measured over the same number of runs.
+    if trial_count == baseline_runs:
+        print(
+            f"flaky        {len(flaky)}  this candidate; baseline recorded "
+            f"{baseline_flaky}  (lower is better)"
+        )
+    else:
+        print(
+            f"flaky        {len(flaky)}  over {trial_count} trials; not comparable "
+            f"with the baseline's {baseline_flaky} over {baseline_runs}"
+        )
     print(
         f"accuracy     {correct}/{len(adjudicated)} adjudicated"
         f"  (scored {len(scored)} of {len(adjudicated)})"
@@ -212,7 +225,12 @@ def main() -> None:
         classify(data["cases"], template, field, mapping, args.model)
         for _ in range(args.trials)
     ]
-    report(data["cases"], trials, data["counts"]["flaky"])
+    report(
+        data["cases"],
+        trials,
+        data["counts"]["flaky"],
+        data["baseline_configuration"]["runs"],
+    )
 
 
 if __name__ == "__main__":
