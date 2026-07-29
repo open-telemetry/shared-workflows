@@ -53,6 +53,10 @@ def is_missing_remote_ref(stderr: str) -> bool:
     return "couldn't find remote ref" in stderr.lower()
 
 
+def is_non_fast_forward(stderr: str) -> bool:
+    return "non-fast-forward" in stderr.lower()
+
+
 def fetch_state_branch(state_branch: str, required: bool) -> bool:
     refspec = f"{state_branch}:{remote_ref(state_branch)}"
     proc = subprocess.run(
@@ -65,6 +69,12 @@ def fetch_state_branch(state_branch: str, required: bool) -> bool:
         return True
     if not required and is_missing_remote_ref(proc.stderr):
         return False
+    if is_non_fast_forward(proc.stderr) and has_state_branch(state_branch):
+        # GitHub answers fetches from server copies that lag slightly behind the copy
+        # that accepted the push, so a fetch right after a push can hand back the
+        # pre-push commit; the local ref is newer, so keep it
+        print(f"remote {state_branch} is behind the local ref; keeping the local ref", file=sys.stderr)
+        return True
     message = proc.stderr.strip() or proc.stdout.strip() or f"exit code {proc.returncode}"
     if required:
         raise RuntimeError(f"failed to fetch required state branch {state_branch}: {message}")

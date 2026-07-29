@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -41,6 +42,42 @@ class AcceptedStateDirTest(unittest.TestCase):
             self.assertIsNone(state_dir)
 
         run.assert_not_called()
+
+
+class FetchStateBranchTest(unittest.TestCase):
+    @staticmethod
+    def rejected_fetch() -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=["git", "fetch"],
+            returncode=1,
+            stdout="",
+            stderr=(
+                " ! [rejected] state-branch -> origin/state-branch (non-fast-forward)\n"
+            ),
+        )
+
+    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(subprocess, "run")
+    def test_keeps_local_ref_when_remote_is_behind(
+        self,
+        run: object,
+        _has_state_branch: object,
+    ) -> None:
+        run.return_value = self.rejected_fetch()
+
+        self.assertTrue(state_branch.fetch_state_branch("state-branch", required=True))
+
+    @patch.object(state_branch, "has_state_branch", return_value=False)
+    @patch.object(subprocess, "run")
+    def test_raises_when_rejected_without_local_ref(
+        self,
+        run: object,
+        _has_state_branch: object,
+    ) -> None:
+        run.return_value = self.rejected_fetch()
+
+        with self.assertRaises(RuntimeError):
+            state_branch.fetch_state_branch("state-branch", required=True)
 
 
 if __name__ == "__main__":
