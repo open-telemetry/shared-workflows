@@ -1204,10 +1204,16 @@ def reviewers_with_open_threads(
 ) -> set[str]:
     logins: set[str] = set()
     for discussion in review_threads:
-        action = (pending_actions.get(discussion["discussion_id"]) or {}).get("action")
+        entry = pending_actions.get(discussion["discussion_id"]) or {}
+        action = entry.get("action")
         if action not in OPEN_DISCUSSION_ACTIONS:
             continue
+        # anything after the comment that decided ownership was ignored, so its
+        # author is not waiting on this thread
+        decided_at = entry.get("since") or ""
         for comment in discussion.get("comments") or []:
+            if decided_at and (comment.get("timestamp") or "") > decided_at:
+                continue
             if comment.get("actor_role") in ("approver", "outsider") and comment.get("actor"):
                 logins.add(comment["actor"])
     return logins

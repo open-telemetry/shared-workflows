@@ -399,33 +399,6 @@ def is_automation_command_comment(body: str) -> bool:
     return bool(lines) and all(_AUTOMATION_COMMAND_RE.match(line) for line in lines)
 
 
-def participant_role(actor_role: str) -> str:
-    if actor_role == "author":
-        return "author"
-    if actor_role == "bot":
-        return "bot"
-    return "reviewer"
-
-
-def discussion_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
-    prompt_thread = {
-        key: value
-        for key, value in discussion.items()
-        if key not in ("comments", "discussion_url")
-    }
-    prompt_thread["comments"] = [
-        {
-            "timestamp": comment.get("timestamp") or "",
-            "actor": comment.get("actor") or "",
-            "participant_role": participant_role(comment.get("actor_role") or ""),
-            "body": comment.get("body") or "",
-            "positive_reactors": comment.get("positive_reactors") or [],
-        }
-        for comment in (discussion.get("comments") or [])
-    ]
-    return prompt_thread
-
-
 def top_level_reviewer_feedback_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
     comments = discussion.get("comments") or []
     return {
@@ -862,7 +835,7 @@ def discussion_cache_key(
     discussion: dict[str, Any],
     model: str,
     prompt_template: str,
-    prompt_input: Callable[[dict[str, Any]], dict[str, Any]] = discussion_prompt_input,
+    prompt_input: Callable[[dict[str, Any]], dict[str, Any]],
 ) -> str:
     cache_key_json = json.dumps(
         {
@@ -918,7 +891,7 @@ def cached_classification(
     prompt_template: str,
     cache_in: dict[str, dict[str, Any]],
     cache_out: dict[str, dict[str, Any]],
-    prompt_input: Callable[[dict[str, Any]], dict[str, Any]] = discussion_prompt_input,
+    prompt_input: Callable[[dict[str, Any]], dict[str, Any]],
 ) -> tuple[str, dict[str, Any] | None]:
     key = discussion_cache_key(discussion, model, prompt_template, prompt_input)
     cached = cache_in.get(key)
