@@ -2,10 +2,10 @@
 
 Reports three signals, because they answer different questions:
 
-  drift       stable cases whose recorded label changed -- a regression signal
-  flaky       cases this candidate answered inconsistently across trials -- a
-              stability signal, lower is better
-  accuracy    agreement with cases a human has adjudicated -- a quality signal
+  drift          stable cases whose recorded label changed -- a regression signal
+  inconsistent   cases this candidate answered differently across trials -- a
+                 stability signal, lower is better
+  accuracy       agreement with cases a human has adjudicated -- a quality signal
 
 Run manually; it makes model calls and is deliberately not part of the suite.
 """
@@ -34,17 +34,21 @@ VOCABULARIES = {
     "top_level_reviewer_feedback": (
         "TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE",
         ("discussion_action", "route"),
-        {"author": "substantive", "unclear": "substantive", "none": "noise"},
+        {
+            "author": "author_action",
+            "unclear": "author_action",
+            "none": "no_author_action",
+        },
     ),
     "reviewer_feedback": (
         "REVIEWER_FEEDBACK_PROMPT_TEMPLATE",
         ("verdict",),
-        {"substantive": "substantive", "noise": "noise"},
+        {"substantive": "author_action", "noise": "no_author_action"},
     ),
     "reviewer_feedback_confirm": (
         "REVIEWER_FEEDBACK_CONFIRM_PROMPT_TEMPLATE",
         ("verdict",),
-        {"other": "substantive", "confirmed": "noise"},
+        {"other": "author_action", "confirmed": "no_author_action"},
     ),
 }
 
@@ -143,9 +147,9 @@ def majority(labels: list[str]) -> str | None:
 def summarize(cases: list[dict], trials: list[dict[str, str]]) -> dict:
     """Everything the report prints, as values, so it can be tested without a model."""
     trial_count = len(trials)
-    # Unobserved cases exist only to reproduce the baseline's batches; they have
+    # Context cases exist only to reproduce the baseline's batches; they have
     # no recorded behaviour to compare against.
-    scored_cases = [c for c in cases if c["stability"] != "unobserved"]
+    scored_cases = [c for c in cases if c["role"] == "scored"]
     observed = {
         case["id"]: [t[case["id"]] for t in trials if case["id"] in t]
         for case in scored_cases
@@ -153,26 +157,26 @@ def summarize(cases: list[dict], trials: list[dict[str, str]]) -> dict:
 
     # A case answered in only some trials is not comparable with one answered in
     # all of them, so it is reported rather than settled from the answers present.
-    unanswered = [c for c in scored_cases if not observed[c["id"]]]
-    incomplete = [c for c in scored_cases if 0 < len(observed[c["id"]]) < trial_count]
+    no_answer = [c for c in scored_cases if not observed[c["id"]]]
+    partial_answer = [c for c in scored_cases if 0 < len(observed[c["id"]]) < trial_count]
     complete = [c for c in scored_cases if len(observed[c["id"]]) == trial_count]
 
     settled = {c["id"]: majority(observed[c["id"]]) for c in complete}
-    undecided = [c for c in complete if settled[c["id"]] is None]
+    tied = [c for c in complete if settled[c["id"]] is None]
     scorable = [c for c in complete if settled[c["id"]] is not None]
 
     # Every adjudicated case counts, so failing to answer a hard one cannot
     # improve the score by leaving the denominator.
-    adjudicated = [c for c in scored_cases if c["adjudicated"]]
+    adjudicated = [c for c in scored_cases if c["adjudicated_label"]]
     scored = [c for c in adjudicated if settled.get(c["id"]) is not None]
     stable = [c for c in scored_cases if c["stability"] == "stable"]
     return {
         "trial_count": trial_count,
         "scored_cases": scored_cases,
-        "context_only": [c for c in cases if c["stability"] == "unobserved"],
-        "unanswered": unanswered,
-        "incomplete": incomplete,
-        "undecided": undecided,
+        "context_only": [c for c in cases if c["role"] == "context"],
+        "no_answer": no_answer,
+        "partial_answer": partial_answer,
+        "tied": tied,
         "stable": stable,
         # Drift is only meaningful against the stable cases actually settled, so
         # the denominator is reported and never shrinks silently.
@@ -180,13 +184,13 @@ def summarize(cases: list[dict], trials: list[dict[str, str]]) -> dict:
         "drift": [
             {**c, "got": settled[c["id"]]}
             for c in scorable
-            if c["stability"] == "stable" and settled[c["id"]] != c["baseline"]
+            if c["stability"] == "stable" and settled[c["id"]] != c["recorded_label"]
         ],
-        "flaky": [c for c in complete if len(set(observed[c["id"]])) > 1],
+        "inconsistent": [c for c in complete if len(set(observed[c["id"]])) > 1],
         "complete": complete,
         "adjudicated": adjudicated,
         "scored": scored,
-        "correct": sum(1 for c in scored if settled[c["id"]] == c["adjudicated"]),
+        "correct": sum(1 for c in scored if settled[c["id"]] == c["adjudicated_label"]),
     }
 
 
@@ -197,56 +201,57 @@ def report(
     baseline_runs: int,
 ) -> None:
     s = summarize(cases, trials)
-    trial_count, drift, flaky = s["trial_count"], s["drift"], s["flaky"]
+    trial_count, drift = s["trial_count"], s["drift"]
+    inconsistent = s["inconsistent"]
     adjudicated, scored = s["adjudicated"], s["scored"]
 
-    print(f"cases        {len(s['scored_cases'])}  scored"
+    print(f"cases          {len(s['scored_cases'])}  scored"
           f"  (+{len(s['context_only'])} kept only to reproduce baseline batches)")
-    print(f"trials       {trial_count}  (a case's label is the majority across trials)")
-    print(f"unanswered   {len(s['unanswered'])}  (no answer in any trial)")
-    print(f"incomplete   {len(s['incomplete'])}  (answered in some trials; not scored)")
-    print(f"undecided    {len(s['undecided'])}  (answered in every trial but tied; not scored)")
+    print(f"trials         {trial_count}  (a case's label is the majority across trials)")
+    print(f"no answer      {len(s['no_answer'])}  (nothing in any trial)")
+    print(f"partial answer {len(s['partial_answer'])}  (some trials only; not scored)")
+    print(f"tied           {len(s['tied'])}  (every trial answered but no majority; not scored)")
     settled_stable, all_stable = len(s["stable_settled"]), len(s["stable"])
     if settled_stable == all_stable:
-        print(f"drift        {len(drift)}  (stable cases whose label changed)")
+        print(f"drift          {len(drift)}  (stable cases whose label changed)")
     else:
         print(
-            f"drift        {len(drift)}  over {settled_stable} of {all_stable} stable "
+            f"drift          {len(drift)}  over {settled_stable} of {all_stable} stable "
             "cases settled; not comparable"
         )
     # More trials mean more chances to disagree, and cases missing from a trial
-    # never count as flaky, so the counts only compare when the trial count
-    # matches and every case was answered in full.
-    uncovered = len(s["unanswered"]) + len(s["incomplete"])
+    # never count, so the counts only compare when the trial count matches and
+    # every case was answered in full.
+    uncovered = len(s["no_answer"]) + len(s["partial_answer"])
     if trial_count == baseline_runs and not uncovered:
         print(
-            f"flaky        {len(flaky)}  this candidate; baseline recorded "
+            f"inconsistent   {len(inconsistent)}  this candidate; baseline recorded "
             f"{baseline_flaky}  (lower is better)"
         )
     elif trial_count != baseline_runs:
         print(
-            f"flaky        {len(flaky)}  over {trial_count} trials; not comparable "
+            f"inconsistent   {len(inconsistent)}  over {trial_count} trials; not comparable "
             f"with the baseline's {baseline_flaky} over {baseline_runs}"
         )
     else:
         print(
-            f"flaky        {len(flaky)}  over {len(s['complete'])} fully answered cases; "
-            f"not comparable with the baseline's {baseline_flaky} over all "
+            f"inconsistent   {len(inconsistent)}  over {len(s['complete'])} fully answered "
+            f"cases; not comparable with the baseline's {baseline_flaky} over all "
             f"{len(s['scored_cases'])}"
         )
     print(
-        f"accuracy     {s['correct']}/{len(adjudicated)} adjudicated"
+        f"accuracy       {s['correct']}/{len(adjudicated)} adjudicated"
         f"  (scored {len(scored)} of {len(adjudicated)})"
         if adjudicated
-        else "accuracy     no adjudicated cases yet"
+        else "accuracy       no adjudicated cases yet"
     )
 
     if not drift:
         return
     print(f"\ndrift by new label: {dict(Counter(d['got'] for d in drift))}")
     print(
-        "Moving a case to substantive keeps the pull request with its author, which "
-        "one /dashboard route:reviewers comment corrects. Moving it to noise does not.\n"
+        "Moving a case to author_action keeps the pull request with its author, which "
+        "one /dashboard route:reviewers comment corrects. The reverse does not.\n"
     )
     for d in drift[:40]:
         print(f"  {d['baseline']} -> {d['got']}  {d['repo']}#{d['pull_request']}")
