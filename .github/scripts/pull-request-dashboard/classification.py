@@ -1051,6 +1051,9 @@ def classify_review_threads(
     for discussion_id, since in since_by_id.items():
         if since and discussion_id in classifications_by_id:
             classifications_by_id[discussion_id]["since"] = since
+    for discussion_id in ignored:
+        if discussion_id in classifications_by_id:
+            classifications_by_id[discussion_id]["ignored_last_comment"] = True
     return classifications_by_id
 
 

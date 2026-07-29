@@ -266,6 +266,33 @@ class IgnoredPraiseWaitAgeTest(unittest.TestCase):
 
         self.assertEqual({"alice"}, reviewers_with_open_threads([thread], pending))
 
+    def test_an_edited_request_still_counts_its_reviewer(self) -> None:
+        thread = self.thread(
+            ("approver", "please fix", "2026-06-01T00:00:00Z"),
+            ("author", "fixed it", "2026-04-01T00:00:00Z"),
+            ("approver", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][0]["actor"] = "alice"
+        thread["comments"][2]["actor"] = "bob"
+
+        def batch(items, _model, _prompt, verdicts):
+            answer = "praise" if verdicts == PRAISE_VERDICTS else "complete"
+            return [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "discussion_kind": "review-comment-thread",
+                    "failed": False,
+                    "decision": {"verdict": answer, "reason": "because"},
+                }
+                for item in items
+            ]
+
+        with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
+            records = classify_review_threads(1, [thread], "model", {}, {})
+        pending = build_review_thread_pending_actions([thread], list(records.values()))
+
+        self.assertEqual({"alice"}, reviewers_with_open_threads([thread], pending))
+
     def test_praise_after_a_reviewer_request_keeps_the_request_date(self) -> None:
         thread = self.thread(
             ("reviewer", "please fix", "2026-03-12T00:00:00Z"),
