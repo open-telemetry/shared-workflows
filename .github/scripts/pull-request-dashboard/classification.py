@@ -383,10 +383,9 @@ def is_automation_command_comment(body: str) -> bool:
             return False
         if not _AUTOMATION_COMMAND_RE.match(tokens[0]):
             return False
-        if not all(
-            _AUTOMATION_COMMAND_RE.match(token) or _AUTOMATION_ARGUMENT_RE.match(token)
-            for token in tokens[1:]
-        ):
+        # Only arguments may follow a command on its line; a second command
+        # belongs on its own line, and anything else is feedback.
+        if not all(_AUTOMATION_ARGUMENT_RE.match(token) for token in tokens[1:]):
             return False
     return True
 
