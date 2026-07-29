@@ -91,28 +91,43 @@ def classify(cases: list[dict], template: str, field: str, mapping: dict, model:
 
 
 def majority(labels: list[str]) -> str | None:
-    return Counter(labels).most_common(1)[0][0] if labels else None
+    """The label held by more than half the votes, or None when there is no majority."""
+    if not labels:
+        return None
+    label, count = Counter(labels).most_common(1)[0]
+    return label if count * 2 > len(labels) else None
 
 
 def report(cases: list[dict], trials: list[dict[str, str]], baseline_flaky: int) -> None:
+    trial_count = len(trials)
     observed = {
         case["id"]: [t[case["id"]] for t in trials if case["id"] in t] for case in cases
     }
-    settled = {case_id: majority(labels) for case_id, labels in observed.items()}
+
+    # A case answered in only some trials is not comparable with one answered in
+    # all of them, so it is reported rather than settled from the answers present.
+    unanswered = [c for c in cases if not observed[c["id"]]]
+    incomplete = [c for c in cases if 0 < len(observed[c["id"]]) < trial_count]
+    complete = [c for c in cases if len(observed[c["id"]]) == trial_count]
+
+    settled = {c["id"]: majority(observed[c["id"]]) for c in complete}
+    undecided = [c for c in complete if settled[c["id"]] is None]
+    scorable = [c for c in complete if settled[c["id"]] is not None]
 
     drift = [
-        {**c, "got": settled.get(c["id"])}
-        for c in cases
-        if c["stability"] == "stable" and settled.get(c["id"]) != c["baseline"]
+        {**c, "got": settled[c["id"]]}
+        for c in scorable
+        if c["stability"] == "stable" and settled[c["id"]] != c["baseline"]
     ]
-    flaky = [c for c in cases if len(set(observed.get(c["id"]) or [])) > 1]
-    adjudicated = [c for c in cases if c["adjudicated"]]
-    correct = sum(1 for c in adjudicated if settled.get(c["id"]) == c["adjudicated"])
-    unanswered = sum(1 for c in cases if not observed.get(c["id"]))
+    flaky = [c for c in complete if len(set(observed[c["id"]])) > 1]
+    adjudicated = [c for c in scorable if c["adjudicated"]]
+    correct = sum(1 for c in adjudicated if settled[c["id"]] == c["adjudicated"])
 
     print(f"cases        {len(cases)}")
-    print(f"trials       {len(trials)}  (a case's label is the majority across trials)")
-    print(f"unanswered   {unanswered}")
+    print(f"trials       {trial_count}  (a case's label is the majority across trials)")
+    print(f"unanswered   {len(unanswered)}  (no answer in any trial)")
+    print(f"incomplete   {len(incomplete)}  (answered in some trials; not scored)")
+    print(f"undecided    {len(undecided)}  (answered in every trial but tied; not scored)")
     print(f"drift        {len(drift)}  (stable cases whose label changed)")
     print(
         f"flaky        {len(flaky)}  this candidate; baseline recorded {baseline_flaky}"
@@ -146,9 +161,12 @@ def main() -> None:
         "--trials",
         type=int,
         default=3,
-        help="runs of the candidate; more than one is needed to measure its flakiness",
+        help="runs of the candidate; an odd count of at least 3 avoids ties",
     )
     args = parser.parse_args()
+
+    if args.trials < 2:
+        parser.error("--trials must be at least 2 to measure stability")
 
     template_name, field, mapping = VOCABULARIES[args.classifier]
     template = getattr(classification, template_name, None)
