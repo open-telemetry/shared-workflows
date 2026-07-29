@@ -19,7 +19,7 @@
   },
   "fields": {
     "observed_actions": "the classifier's raw answer in each run, null when it did not answer",
-    "observed_runs": "those answers mapped through action_labels",
+    "observed_runs": "the answers it did give, mapped through action_labels",
     "stability": "stable and flaky cases are scored; unobserved cases are kept only so batches match the ones the baseline was measured in"
   },
   "counts": {
@@ -4704,7 +4704,10 @@
       "body": "approving to unblock, thanks for adding the tests. One comment about the allowMissingDocs",
       "stability": "unobserved",
       "baseline": null,
-      "observed_runs": [],
+      "observed_runs": [
+        "substantive",
+        "substantive"
+      ],
       "observed_actions": [
         "author",
         "author",
@@ -6988,7 +6991,10 @@
       "body": "This looks very good. Just a couple of questions.",
       "stability": "unobserved",
       "baseline": null,
-      "observed_runs": [],
+      "observed_runs": [
+        "substantive",
+        "substantive"
+      ],
       "observed_actions": [
         "author",
         null,
@@ -7710,7 +7716,9 @@
       "body": "Great fix! Just one question.",
       "stability": "unobserved",
       "baseline": null,
-      "observed_runs": [],
+      "observed_runs": [
+        "noise"
+      ],
       "observed_actions": [
         "none",
         null,
@@ -8058,7 +8066,9 @@
       "body": "See comments above.",
       "stability": "unobserved",
       "baseline": null,
-      "observed_runs": [],
+      "observed_runs": [
+        "noise"
+      ],
       "observed_actions": [
         null,
         "none",
@@ -9330,7 +9340,10 @@
       "body": "LGTM, just some minor questions and concerns around build and release",
       "stability": "unobserved",
       "baseline": null,
-      "observed_runs": [],
+      "observed_runs": [
+        "substantive",
+        "substantive"
+      ],
       "observed_actions": [
         null,
         "author",
@@ -10822,7 +10835,10 @@
       "body": "Reviewed critically and validated locally (checked out the branch, ran targeted tests + compiled the new bench). Approving — everything below is non-blocking.\n\n## Validation\n\n- `config` 66 passed, `engine::memory_limiter` 24 passed (incl. all 8 new), `memory_admission` bench compiles, clippy clean on `config`.\n- All three `should_shed_ingress()` sites and every ingress consumer (otlp/otap/syslog_cef/user_events receivers + the tower layer) route through the new predicate; no stray `== Hard` shed comparisons remain.\n- `soft_action` propagation mirrors the existing `mode` pattern exactly (atomic on the process inner, plain field on receiver inners), and `configure()` runs before receivers snapshot.\n- Default path is byte-identical (`shed_decision(_, _, Observe)` == old `Enforce && Hard`). Hysteresis is sound: with `soft_action: shed`, the existing Soft→Normal reopen threshold (`soft_limit − hysteresis`) becomes the shed-reopen point, so no oscillation.\n- Doc sweep is thorough — grepped untouched receiver `.rs`/README files for stale \"Soft is informational / Hard-only\" wording; none remain.\n\n## Non-blocking notes\n\n1. **Process-wide `MemoryPressureState::should_shed_ingress()` has no p ...[truncated]",
       "stability": "unobserved",
       "baseline": null,
-      "observed_runs": [],
+      "observed_runs": [
+        "noise",
+        "substantive"
+      ],
       "observed_actions": [
         "none",
         "author",

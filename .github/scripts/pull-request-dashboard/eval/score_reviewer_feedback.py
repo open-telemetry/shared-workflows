@@ -231,7 +231,8 @@ def report(
     else:
         print(
             f"flaky        {len(flaky)}  over {len(s['complete'])} fully answered cases; "
-            f"not comparable with the baseline's {baseline_flaky} over all {len(cases)}"
+            f"not comparable with the baseline's {baseline_flaky} over all "
+            f"{len(s['scored_cases'])}"
         )
     print(
         f"accuracy     {s['correct']}/{len(adjudicated)} adjudicated"

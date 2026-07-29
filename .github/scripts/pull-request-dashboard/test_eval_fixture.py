@@ -5,7 +5,6 @@ from pathlib import Path
 CASES = Path(__file__).resolve().parent / "eval" / "reviewer_feedback_cases.json"
 LABELS = {"substantive", "noise"}
 STABILITIES = {"stable", "flaky", "unobserved"}
-SCORED = {"stable", "flaky"}
 
 
 class EvalFixtureTest(unittest.TestCase):
@@ -80,11 +79,13 @@ class EvalFixtureTest(unittest.TestCase):
         action_labels = self.data["action_labels"]
         self.assertTrue(action_labels)
         for case in self.cases:
-            if case["stability"] not in SCORED:
-                continue
             with self.subTest(case=case["id"]):
                 self.assertEqual(
-                    [action_labels[action] for action in case["observed_actions"]],
+                    [
+                        action_labels[action]
+                        for action in case["observed_actions"]
+                        if action is not None
+                    ],
                     case["observed_runs"],
                 )
 
