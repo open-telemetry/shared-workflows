@@ -211,6 +211,25 @@ class NormalizeEventsCommandTest(unittest.TestCase):
         self.assertEqual(1, len(events))
         self.assertEqual("I addressed the feedback by doing X.", events[0]["body"])
 
+    def test_automation_command_comments_are_not_top_level_feedback(self) -> None:
+        def items(body: str) -> list[dict]:
+            return top_level_items_from_raw({
+                "issue_comments": [{
+                    "id": 1,
+                    "user": {"login": "reviewer"},
+                    "created_at": "2026-07-14T00:00:00Z",
+                    "body": body,
+                }],
+            })
+
+        for body in ("/workflow-approve", "/rerun", "/fix:refcache", "/workflow-approve\n/rerun"):
+            with self.subTest(body=body):
+                self.assertEqual([], items(body))
+
+        for body in ("/rerun please take another look", "This needs a /workflow-approve"):
+            with self.subTest(body=body):
+                self.assertEqual(1, len(items(body)))
+
 
 class TopLevelActionLedgerTest(unittest.TestCase):
     def test_inline_prompt_treats_author_inability_as_completed_reply(self) -> None:

@@ -360,6 +360,37 @@ def is_conflict_resolution_comment(body: str) -> bool:
     return "conflict" in text and any(word in text for word in ("resolve", "resolved", "merge"))
 
 
+_AUTOMATION_COMMAND_RE = re.compile(r"^/[a-z][a-z0-9]*(?:[:-][a-z0-9]+)*$", re.IGNORECASE)
+# Arguments must be key:value shaped so prose after a command never qualifies.
+_AUTOMATION_ARGUMENT_RE = re.compile(r"^[a-z0-9][\w.-]*[:=][\w.:/-]+$", re.IGNORECASE)
+AUTOMATION_COMMAND_MAX_TOKENS = 3
+
+
+def is_automation_command_comment(body: str) -> bool:
+    """Whether a comment contains nothing but repository automation commands.
+
+    Deliberately conservative: a comment only qualifies when every line is a bare
+    command such as ``/rerun`` or ``/workflow-approve``, so a command followed by
+    an explanation stays feedback.
+    """
+    lines = [line.strip() for line in (body or "").splitlines()]
+    lines = [line for line in lines if line]
+    if not lines:
+        return False
+    for line in lines:
+        tokens = line.split()
+        if len(tokens) > AUTOMATION_COMMAND_MAX_TOKENS:
+            return False
+        if not _AUTOMATION_COMMAND_RE.match(tokens[0]):
+            return False
+        if not all(
+            _AUTOMATION_COMMAND_RE.match(token) or _AUTOMATION_ARGUMENT_RE.match(token)
+            for token in tokens[1:]
+        ):
+            return False
+    return True
+
+
 def participant_role(actor_role: str) -> str:
     if actor_role == "author":
         return "author"
