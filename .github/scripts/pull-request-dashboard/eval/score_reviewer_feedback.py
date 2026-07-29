@@ -87,13 +87,21 @@ def classify(cases: list[dict], template: str, field: str, mapping: dict, model:
         if not isinstance(items, list):
             return {}
         out: dict[str, str] = {}
+        duplicates: set[str] = set()
         for entry in items:
             if not isinstance(entry, dict):
                 continue
             label = mapping.get(str(entry.get(field) or "").strip().lower())
             discussion_id = entry.get("discussion_id")
-            if isinstance(discussion_id, str) and label:
-                out[discussion_id] = label
+            if not isinstance(discussion_id, str) or not label:
+                continue
+            # Production fails a discussion the model answered twice rather than
+            # keeping either answer; an evaluation must not be more forgiving.
+            if discussion_id in out or discussion_id in duplicates:
+                duplicates.add(discussion_id)
+                out.pop(discussion_id, None)
+                continue
+            out[discussion_id] = label
         return out
 
     observed: dict[str, str] = {}
@@ -133,8 +141,11 @@ def report(cases: list[dict], trials: list[dict[str, str]], baseline_flaky: int)
         if c["stability"] == "stable" and settled[c["id"]] != c["baseline"]
     ]
     flaky = [c for c in complete if len(set(observed[c["id"]])) > 1]
-    adjudicated = [c for c in scorable if c["adjudicated"]]
-    correct = sum(1 for c in adjudicated if settled[c["id"]] == c["adjudicated"])
+    # Every adjudicated case counts, so failing to answer a hard one cannot
+    # improve the score by leaving the denominator.
+    adjudicated = [c for c in cases if c["adjudicated"]]
+    scored = [c for c in adjudicated if settled.get(c["id"]) is not None]
+    correct = sum(1 for c in scored if settled[c["id"]] == c["adjudicated"])
 
     print(f"cases        {len(cases)}")
     print(f"trials       {trial_count}  (a case's label is the majority across trials)")
@@ -148,6 +159,7 @@ def report(cases: list[dict], trials: list[dict[str, str]], baseline_flaky: int)
     )
     print(
         f"accuracy     {correct}/{len(adjudicated)} adjudicated"
+        f"  (scored {len(scored)} of {len(adjudicated)})"
         if adjudicated
         else "accuracy     no adjudicated cases yet"
     )
