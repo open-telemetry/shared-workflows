@@ -1518,8 +1518,11 @@
           "ChrsMark"
         ],
         "author": "ChrsMark",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3945#discussion_r3677665220"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "63368b48336642949d2a436d44392fb1",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1539,7 +1542,7 @@
         "head_sha": "41f1e1a596c8940f77d304bb74e79c56fb06b924",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-29T19:12:10+00:00",
+        "last_activity_at": "2026-07-29T19:58:40+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-28T12:17:05+00:00",
         "reviewers": [
@@ -1558,16 +1561,24 @@
             "login": "dashpole",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jinja2",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "e800807128e52c6575dc010bf6f2dbe45351580e3c3f3da1a94a901377a8089c",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-28T12:17:05+00:00"
+        "routing_input_fingerprint": "af452d3c27e0a9b3652dd77f68e29ef6f3d49b277f3e75109c93de8cd4033222",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-29T19:58:40+00:00"
       },
       "failed": false,
       "pr_number": 3945,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3945",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3953": {
