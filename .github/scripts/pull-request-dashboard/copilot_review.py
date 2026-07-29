@@ -8,7 +8,6 @@ import sys
 from typing import Any
 
 from author_nudge import (
-    _digest,
     fetch_current_pr_routing_inputs,
     routing_input_component_digests,
     routing_input_fingerprint,
@@ -106,19 +105,6 @@ def record_copilot_review_observation(
     save_copilot_review_requests(requests)
 
 
-def field_digests(items: list[dict[str, Any]]) -> dict[str, str]:
-    names = sorted({
-        name
-        for item in items
-        if isinstance(item, dict)
-        for name in item
-    })
-    return {
-        name: _digest([item.get(name) for item in items])[:12]
-        for name in names
-    }
-
-
 def stale_request_reason(
     entry: dict[str, Any],
     pr: dict[str, Any],
@@ -142,8 +128,7 @@ def stale_request_reason(
         return (
             f"routing fingerprint is {current_routing_fingerprint} "
             f"but {entry['routing_input_fingerprint']} was observed; "
-            f"components {digests}; "
-            f"review_comment_fields {field_digests(raw.get('review_comments') or [])}"
+            f"components {digests}"
         )
     return ""
 
