@@ -112,9 +112,9 @@ def stale_request_reason(
     current_routing_fingerprint: str,
     raw: dict[str, Any],
 ) -> str:
-    if pr.get("state") != "open":
+    if pr.get("state") != "OPEN":
         return f"pull request state is {pr.get('state')!r}"
-    if pr.get("draft"):
+    if pr.get("isDraft"):
         return "pull request is a draft"
     if current_head != entry.get("head_sha"):
         return (
@@ -151,7 +151,7 @@ def deliver_copilot_review_requests(
                 pr_number,
             )
             current_routing_fingerprint = routing_input_fingerprint(raw)
-            current_head = ((pr.get("head") or {}).get("sha") or "")
+            current_head = pr.get("headRefOid") or ""
             stale_reason = stale_request_reason(
                 entry,
                 pr,
@@ -169,7 +169,7 @@ def deliver_copilot_review_requests(
                 continue
             if any(
                 is_copilot_reviewer(request)
-                for request in (pr.get("requested_reviewers") or [])
+                for request in (pr.get("reviewRequests") or [])
             ):
                 requests[key] = {**entry, "requested_at": format_ts(now)}
                 continue
@@ -187,7 +187,7 @@ def deliver_copilot_review_requests(
                 )
                 requests.pop(key, None)
                 continue
-            pull_request_id = pr.get("node_id") or ""
+            pull_request_id = pr.get("id") or ""
             if not pull_request_id:
                 raise RuntimeError(f"GitHub did not return a node ID for PR #{pr_number}")
             request_copilot_review(pull_request_id)

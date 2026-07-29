@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor
 from fnmatch import fnmatchcase
 from typing import Any
 from urllib.parse import quote, urlparse
@@ -717,3 +718,61 @@ def fetch_review_threads(owner: str, repo_name: str, number: int) -> list[dict[s
         if not page_info.get("hasNextPage"):
             return threads
         after = page_info.get("endCursor") or ""
+
+
+def fetch_pr_routing_raw(
+    repo: str,
+    owner: str,
+    repo_name: str,
+    number: int,
+    non_blocking_check_patterns: list[str] | None = None,
+) -> dict[str, Any]:
+    # Sole producer of every payload the routing fingerprint covers, so the
+    # update and delivery jobs cannot hash differently shaped data.
+    with ThreadPoolExecutor() as pool:
+        pr_future = pool.submit(gh_pr_view, repo, number)
+        issue_comments_future = pool.submit(
+            fetch_pr_issue_comments,
+            owner,
+            repo_name,
+            number,
+        )
+        review_comments_future = pool.submit(
+            gh_api,
+            f"/repos/{owner}/{repo_name}/pulls/{number}/comments?per_page=100",
+            True,
+        )
+        review_threads_future = pool.submit(
+            fetch_review_threads,
+            owner,
+            repo_name,
+            number,
+        )
+        reviews_future = pool.submit(fetch_pr_reviews, owner, repo_name, number)
+        pr = pr_future.result() or {}
+        check_rollup_future = pool.submit(
+            gh_pr_check_rollup,
+            repo,
+            pr.get("id") or "",
+            non_blocking_check_patterns or [],
+        )
+        required_contexts_future = pool.submit(
+            gh_required_check_contexts,
+            repo,
+            pr.get("baseRefName") or "",
+        )
+        check_rollup = check_rollup_future.result()
+        return {
+            "pr": pr,
+            "issue_comments": issue_comments_future.result() or [],
+            "review_comments": review_comments_future.result() or [],
+            "reviews": reviews_future.result() or [],
+            "review_threads": review_threads_future.result() or [],
+            "checks": include_missing_required_checks(
+                None if check_rollup is None else check_rollup["required"],
+                required_contexts_future.result(),
+            ),
+            "non_blocking_check_failures": (
+                [] if check_rollup is None else check_rollup["non_blocking_failures"]
+            ),
+        }

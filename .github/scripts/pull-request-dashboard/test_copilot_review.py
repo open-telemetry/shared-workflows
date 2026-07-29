@@ -173,11 +173,11 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         _fingerprint,
     ) -> None:
         pr = {
-            "state": "open",
-            "draft": False,
-            "head": {"sha": "current-head"},
-            "node_id": "PR_node_id",
-            "requested_reviewers": [],
+            "state": "OPEN",
+            "isDraft": False,
+            "headRefOid": "current-head",
+            "id": "PR_node_id",
+            "reviewRequests": [],
         }
         fetch_current_state.return_value = (pr, {})
         fetch_reviews.return_value = [{
@@ -235,10 +235,10 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         _fingerprint,
     ) -> None:
         pr = {
-            "state": "open",
-            "draft": False,
-            "head": {"sha": "current-head"},
-            "requested_reviewers": [
+            "state": "OPEN",
+            "isDraft": False,
+            "headRefOid": "current-head",
+            "reviewRequests": [
                 {"login": "copilot-pull-request-reviewer[bot]"},
             ],
         }
@@ -272,10 +272,10 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         "copilot_review.fetch_current_pr_routing_inputs",
         return_value=(
             {
-                "state": "open",
-                "draft": False,
-                "head": {"sha": "current-head"},
-                "requested_reviewers": [],
+                "state": "OPEN",
+                "isDraft": False,
+                "headRefOid": "current-head",
+                "reviewRequests": [],
             },
             {},
         ),
