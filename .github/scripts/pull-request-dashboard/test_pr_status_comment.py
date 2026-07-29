@@ -332,7 +332,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("**Waiting on reviewers** · refreshed ", body)
         self.assertIn(
             "**Non-blocking check failure:** codecov/patch",
-            body,
+            body.splitlines(),
         )
 
     def test_non_author_routes_also_name_required_ci_failures(self) -> None:
@@ -376,7 +376,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
                 self.assertIn(f"**{waiting_on}** · refreshed ", body)
                 self.assertIn(f"**Also blocked by:** {blocked_by}", body)
-                self.assertIn(non_blocking_line, body)
+                self.assertIn(non_blocking_line, body.splitlines())
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
