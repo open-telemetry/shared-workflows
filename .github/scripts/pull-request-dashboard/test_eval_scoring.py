@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
 
-from score_reviewer_feedback import majority, summarize  # noqa: E402
+from score_reviewer_feedback import batch_cases, majority, summarize  # noqa: E402
 
 
 def case(case_id: str, *, stability="stable", baseline="noise", adjudicated=None) -> dict:
@@ -89,12 +89,54 @@ class SummarizeTest(unittest.TestCase):
         self.assertEqual(1, len(summary["scored"]))
         self.assertEqual(1, summary["correct"])
 
-    def test_flaky_cases_are_reported_for_every_stability(self) -> None:
-        cases = [case("a"), case("b", stability="flaky", baseline=None)]
-        summary = summarize(cases, [{"a": "noise", "b": "noise"}] * 3)
+    def test_a_wrong_prediction_is_not_counted_correct(self) -> None:
+        cases = [case("a", adjudicated="substantive")]
+        summary = summarize(cases, [{"a": "noise"}] * 3)
 
+        self.assertEqual(1, len(summary["scored"]))
+        self.assertEqual(0, summary["correct"])
+
+    def test_flaky_is_reported_for_a_case_recorded_as_flaky(self) -> None:
+        cases = [case("a", stability="flaky", baseline=None)]
+        summary = summarize(
+            cases, [{"a": "noise"}, {"a": "substantive"}, {"a": "noise"}]
+        )
+
+        self.assertEqual(1, len(summary["flaky"]))
+        # A case with no baseline can never drift.
         self.assertEqual([], summary["drift"])
-        self.assertEqual(2, len(summary["complete"]))
+
+    def test_unsettled_stable_cases_shrink_the_drift_denominator(self) -> None:
+        cases = [case("a"), case("b")]
+        summary = summarize(cases, [{"a": "noise"}] * 3)
+
+        self.assertEqual(2, len(summary["stable"]))
+        self.assertEqual(1, len(summary["stable_settled"]))
+        # Dropping a case must not be able to report a clean drift of zero.
+        self.assertEqual([], summary["drift"])
+
+
+class BatchCasesTest(unittest.TestCase):
+    def test_a_batch_never_mixes_pull_requests(self) -> None:
+        cases = [
+            {**case(f"{repo}-{number}-{index}"), "repo": repo, "pull_request": number}
+            for repo in ("repo-a", "repo-b")
+            for number in (1, 2)
+            for index in range(3)
+        ]
+
+        for batch in batch_cases(cases):
+            with self.subTest(batch=[c["id"] for c in batch]):
+                self.assertEqual(
+                    1, len({(c["repo"], c["pull_request"]) for c in batch})
+                )
+
+    def test_a_large_pull_request_is_split(self) -> None:
+        cases = [case(f"a-{index}") for index in range(25)]
+
+        batches = batch_cases(cases)
+
+        self.assertEqual([10, 10, 5], [len(b) for b in batches])
 
 
 if __name__ == "__main__":

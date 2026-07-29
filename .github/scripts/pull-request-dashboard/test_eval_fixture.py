@@ -39,6 +39,13 @@ class EvalFixtureTest(unittest.TestCase):
                 self.assertTrue(case["repo"])
                 self.assertIsInstance(case["pull_request"], int)
 
+    def test_every_field_the_scorer_reads_is_present(self) -> None:
+        for case in self.cases:
+            with self.subTest(case=case["id"]):
+                for field in ("id", "requester", "pr_author", "body"):
+                    self.assertIsInstance(case[field], str)
+                    self.assertTrue(case[field].strip(), f"{field} is empty")
+
     def test_labels_are_known(self) -> None:
         for case in self.cases:
             with self.subTest(case=case["id"]):

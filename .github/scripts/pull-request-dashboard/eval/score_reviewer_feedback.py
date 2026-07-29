@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -57,31 +56,47 @@ def available_classifiers() -> list[str]:
     ]
 
 
+def batch_cases(cases: list[dict]) -> list[list[dict]]:
+    """Group like production, which classifies one pull request at a time.
+
+    Batch composition is part of the prompt, so mixing pull requests would score
+    the model on context it never sees when deployed.
+    """
+    by_pr: dict[tuple[str, int], list[dict]] = {}
+    for case in cases:
+        by_pr.setdefault((case["repo"], case["pull_request"]), []).append(case)
+    batches: list[list[dict]] = []
+    for group in by_pr.values():
+        for start in range(0, len(group), BATCH_SIZE):
+            batches.append(group[start:start + BATCH_SIZE])
+    return batches
+
+
 def classify(
     cases: list[dict], template: str, fields: tuple[str, ...], mapping: dict, model: str
 ) -> dict:
-    prompt_inputs = [
-        {
-            "discussion_id": c["id"],
-            "requester": c["requester"],
-            "pr_author": c["pr_author"],
-            "body": c["body"],
-        }
-        for c in cases
-    ]
     batches = [
-        prompt_inputs[i:i + BATCH_SIZE] for i in range(0, len(prompt_inputs), BATCH_SIZE)
+        [
+            {
+                "discussion_id": c["id"],
+                "requester": c["requester"],
+                "pr_author": c["pr_author"],
+                "body": c["body"],
+            }
+            for c in group
+        ]
+        for group in batch_cases(cases)
     ]
 
     def run(batch: list[dict]) -> dict[str, str]:
         prompt = classification.render_top_level_batch_prompt(
             batch, template, [dict(item) for item in batch]
         )
-        # A batch that times out or answers unusably is unanswered, not fatal: one
-        # bad response should not discard an evaluation of several hundred calls.
+        # A batch that fails or answers unusably is unanswered, not fatal: one bad
+        # response should not discard an evaluation of several hundred calls.
         try:
             proc = classification.run_copilot(prompt, model)
-        except subprocess.TimeoutExpired:
+        except Exception:  # noqa: BLE001 - production also treats any batch failure as failed
             return {}
         if proc.returncode != 0:
             return {}
@@ -146,11 +161,16 @@ def summarize(cases: list[dict], trials: list[dict[str, str]]) -> dict:
     # improve the score by leaving the denominator.
     adjudicated = [c for c in cases if c["adjudicated"]]
     scored = [c for c in adjudicated if settled.get(c["id"]) is not None]
+    stable = [c for c in cases if c["stability"] == "stable"]
     return {
         "trial_count": trial_count,
         "unanswered": unanswered,
         "incomplete": incomplete,
         "undecided": undecided,
+        "stable": stable,
+        # Drift is only meaningful against the stable cases actually settled, so
+        # the denominator is reported and never shrinks silently.
+        "stable_settled": [c for c in stable if settled.get(c["id"]) is not None],
         "drift": [
             {**c, "got": settled[c["id"]]}
             for c in scorable
@@ -179,7 +199,14 @@ def report(
     print(f"unanswered   {len(s['unanswered'])}  (no answer in any trial)")
     print(f"incomplete   {len(s['incomplete'])}  (answered in some trials; not scored)")
     print(f"undecided    {len(s['undecided'])}  (answered in every trial but tied; not scored)")
-    print(f"drift        {len(drift)}  (stable cases whose label changed)")
+    settled_stable, all_stable = len(s["stable_settled"]), len(s["stable"])
+    if settled_stable == all_stable:
+        print(f"drift        {len(drift)}  (stable cases whose label changed)")
+    else:
+        print(
+            f"drift        {len(drift)}  over {settled_stable} of {all_stable} stable "
+            "cases settled; not comparable"
+        )
     # More trials mean more chances to disagree, and cases missing from a trial
     # never count as flaky, so the counts only compare when the trial count
     # matches and every case was answered in full.

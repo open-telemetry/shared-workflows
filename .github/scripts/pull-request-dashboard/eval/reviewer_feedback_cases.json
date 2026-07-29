@@ -5,16 +5,21 @@
     "model": "gpt-5.4-mini",
     "prompt": "TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE",
     "runs": 3,
-    "note": "one configuration, the one in production. Other models and prompt shapes are what this set is for, so none took part in labelling it."
+    "batching": "one pull request per batch, as the dashboard classifies",
+    "note": "one configuration, the one in production. Other models and prompt shapes are what this set is for, so none took part in labelling it. Cases the classifier left unanswered in any run were excluded rather than given a substitute label."
   },
   "labels": {
     "substantive": "the pull request author owes a response or action",
     "noise": "the item needs nothing from the pull request author"
   },
+  "fields": {
+    "observed_actions": "the classifier's raw answer in each run",
+    "observed_runs": "those answers mapped onto the two labels"
+  },
   "counts": {
-    "cases": 670,
-    "stable": 596,
-    "flaky": 74,
+    "cases": 658,
+    "stable": 604,
+    "flaky": 54,
     "adjudicated": 0
   },
   "cases": [
@@ -33,6 +38,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -49,6 +59,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -67,6 +82,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -83,6 +103,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -101,6 +126,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -114,9 +144,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "substantive",
         "noise",
+        "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -128,12 +163,17 @@
       "pr_author": "aknuds1",
       "review_state": null,
       "body": "Just an update here. We discussed this PR in [slack](https://cloud-native.slack.com/archives/C07CCCMRXBK/p1771958044638699), and our first option is hope that consul maintainers are happy to downgrade their minimum Go version: https://github.com/hashicorp/consul/pull/23268\r\n\r\nIf we don't hear back from them in a week, we'll have to consider other options",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
-        "substantive",
-        "substantive"
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -152,6 +192,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -168,6 +213,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -186,6 +236,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -202,6 +257,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -220,6 +280,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -230,12 +295,17 @@
       "pr_author": "aknuds1",
       "review_state": "COMMENTED",
       "body": "Looks like the commit used is forcing us to move to 1.25.5 🥲",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
-        "substantive",
-        "substantive"
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -254,6 +324,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -270,6 +345,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -288,6 +368,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -304,6 +389,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -322,6 +412,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -338,6 +433,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -356,6 +456,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -372,6 +477,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -390,6 +500,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -406,6 +521,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -424,6 +544,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -441,6 +566,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -451,12 +581,17 @@
       "pr_author": "sfozz",
       "review_state": null,
       "body": "> This won't work for cross-account observability (linked accounts), right? I think we would need to extract the account ID from the log group ARN in that case.\r\n> \r\n> Should the `autodiscovery` case capture the log group ARN and extract the account ID from that? I believe the STS addition may still be needed for the `named` config case.\r\n\r\nCross account observability currently does not work and requires a fix, https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48762 \r\n\r\nIt could be worth trying to get that over the line before implementing this one.",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "substantive",
         "substantive",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -475,6 +610,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -491,6 +631,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -509,6 +654,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -525,6 +675,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -543,6 +698,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -559,6 +719,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -577,6 +742,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -593,6 +763,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -611,6 +786,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -627,6 +807,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -645,6 +830,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -661,6 +851,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -679,6 +874,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -695,6 +895,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -713,6 +918,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -729,6 +939,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -747,6 +962,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -763,6 +983,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -781,6 +1006,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -797,6 +1027,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -815,6 +1050,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -831,6 +1071,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -849,6 +1094,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -859,12 +1109,17 @@
       "pr_author": "paulojmdias",
       "review_state": null,
       "body": "I think it would be really good to have this, but apparently this has lost traction. Is there anything I can do to help to move it forward? I think it \"only\" lacks another round of reviews / an approval. :-)",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
+        "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -883,6 +1138,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -899,6 +1159,11 @@
         "noise",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -917,6 +1182,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -933,6 +1203,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -951,6 +1226,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -967,6 +1247,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -985,6 +1270,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1001,6 +1291,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -1019,6 +1314,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1035,6 +1335,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1053,6 +1358,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1069,6 +1379,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1087,6 +1402,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1103,6 +1423,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1121,6 +1446,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1137,6 +1467,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -1155,6 +1490,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1171,6 +1511,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1189,6 +1534,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1205,6 +1555,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1223,6 +1578,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1239,6 +1599,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1257,6 +1622,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1273,6 +1643,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1291,6 +1666,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1307,6 +1687,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1325,22 +1710,10 @@
         "substantive",
         "substantive"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "opentelemetry-collector-contrib-47445-pr-review-4245003476",
-      "repo": "opentelemetry-collector-contrib",
-      "pull_request": 47445,
-      "requester": "paulojmdias",
-      "pr_author": "Dylan-M",
-      "review_state": "APPROVED",
-      "body": "Overall LGTM, just a small nit.",
-      "stability": "flaky",
-      "baseline": null,
-      "observed_runs": [
-        "noise",
-        "noise",
-        "substantive"
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -1355,9 +1728,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
+        "noise",
         "substantive",
-        "substantive",
-        "noise"
+        "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -1376,6 +1754,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1392,6 +1775,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1410,6 +1798,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1426,6 +1819,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -1444,6 +1842,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1460,6 +1863,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1478,6 +1886,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1494,6 +1907,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1512,6 +1930,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1528,6 +1951,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1546,6 +1974,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1557,11 +1990,16 @@
       "review_state": "CHANGES_REQUESTED",
       "body": "See my comment [here](https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47849/changes#r3561462235) - we can't merge this, not in this state. I'll follow up in https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/47845.",
       "stability": "stable",
-      "baseline": "substantive",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
-        "substantive",
-        "substantive"
+        "noise",
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1580,6 +2018,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1597,22 +2040,10 @@
         "substantive",
         "substantive"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "opentelemetry-collector-contrib-47972-pr-issue-comment-4629239298",
-      "repo": "opentelemetry-collector-contrib",
-      "pull_request": 47972,
-      "requester": "rogercoll",
-      "pr_author": "salvatore-campagna",
-      "review_state": null,
-      "body": "During the System SIG on 04/06/2026 we discussed whether https://github.com/open-telemetry/opentelemetrycollector-contrib/pull/46153 could be moved into a processor or OTTL function. The core challenge is that the PR does not apply fixed-decimal truncation, it derives the correct number of significant digits from the magnitude of the original integer inputs, so the rounding is context-aware and cannot be reconstructed once the float64 is emitted.\r\n\r\n  Two cases:\r\n  - `precision.Ratio`: used for utilization ratios, it could in principle become an OTTL function, but it would require the receiver to expose raw usage integers, so the function has both operands available. This means every utilization metric would need explicit pipeline configuration (usage values) to compute and store the result into a new utilization metric, making default setups verbose and leaving users who don't opt in with the values with false precision.\r\n  - `precision.Scale`: cannot be moved downstream. The rounding corrects noise introduced by the receiver's own time-unit conversion (e.g. ticks → seconds). That information is lost once the float64 is emitted, a processor has no way to recover it. The only alter ...[truncated]",
-      "stability": "flaky",
-      "baseline": null,
-      "observed_runs": [
-        "noise",
-        "noise",
-        "substantive"
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -1631,6 +2062,11 @@
         "substantive",
         "noise"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1647,6 +2083,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1665,6 +2106,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1682,6 +2128,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1692,12 +2143,17 @@
       "pr_author": "meldegwi",
       "review_state": null,
       "body": "I'm sorry for not checking it first, but I just realized while reviewing this PR that this standardization might limit our list support, and what we could possibly express as slices in the future. From one hand, it should be fine as the `pcommon.Slice` only uses the pdata standard data types, and we're constrained to that, but on the other hand, OTTL value model is wider than `pcommon.Slice`, supporting types like `time.Time`, `time.Duration`, `pcommon.SpanID`, `pcommon.TraceID`, and `pprofile.ProfileID`. If we move forward with this, we wouldn't be able create lists of them anymore (e.g `[Duration(\"1s\"), Duration(\"2m\")]`), even if the values are only being used to pass as arguments to functions calls/context paths.\r\n\r\nWDYT @TylerHelmuth @evan-bradley @bogdandrutu? I'm not sure anymore if we should continue with this change, and I'm curious to also hear your take on that.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
+        "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1709,12 +2165,17 @@
       "pr_author": "meldegwi",
       "review_state": null,
       "body": "I don't think we should limit our ability to make lists like `[Duration(\"1s\"), Duration(\"2m\")]` especially with the new lambda function support. It seems likely that a slice of non-pdata types could be returned from one of those functions. \r\n\r\nI like @meldegwi idea of trying to support both as long as it is not underperformant.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
+        "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1733,6 +2194,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1749,6 +2215,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1767,6 +2238,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1783,6 +2259,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1801,6 +2282,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1817,6 +2303,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -1835,6 +2326,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1852,6 +2348,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1862,12 +2363,17 @@
       "pr_author": "jeevan6996",
       "review_state": null,
       "body": "So after a bit of reading around I found https://pkg.go.dev/go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp#WithEndpointURL which I think does exactly what this PR implements. \r\nYou'd still need to join the extracted path with --otlp-http-url-path, but the parsing itself doesn't need to be reimplemented.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
         "substantive",
-        "noise"
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -1886,6 +2392,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1903,6 +2414,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1917,8 +2433,13 @@
       "baseline": null,
       "observed_runs": [
         "substantive",
-        "noise",
+        "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1937,6 +2458,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1953,6 +2479,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -1971,6 +2502,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -1988,6 +2524,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -1999,11 +2540,16 @@
       "review_state": "CHANGES_REQUESTED",
       "body": "Waiting for sponsor",
       "stability": "stable",
-      "baseline": "substantive",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
-        "substantive",
-        "substantive"
+        "noise",
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2022,6 +2568,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2038,6 +2589,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2056,6 +2612,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2072,6 +2633,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2090,6 +2656,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2106,6 +2677,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2124,6 +2700,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2140,6 +2721,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2158,6 +2744,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2174,6 +2765,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2192,6 +2788,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2208,6 +2809,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2226,6 +2832,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2242,6 +2853,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2260,6 +2876,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2276,6 +2897,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2294,6 +2920,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2311,6 +2942,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2324,9 +2960,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
+        "substantive",
         "noise",
-        "noise",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2341,9 +2982,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "noise",
         "substantive",
+        "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2355,12 +3001,17 @@
       "pr_author": "briandavis-viz",
       "review_state": null,
       "body": "> How do you guys feel to pinning bbolt version to https://github.com/etcd-io/bbolt/releases/tag/v1.5.0-rc.0 or https://github.com/etcd-io/bbolt/releases/tag/v1.5.0-beta.0?\r\n\r\nI'd rather wait until there's a final release. But we can definitely work on PRs using the beta in the meantime.",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "noise",
+        "substantive",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2379,6 +3030,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2395,6 +3051,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2413,6 +3074,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2430,6 +3096,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2445,7 +3116,12 @@
       "observed_runs": [
         "noise",
         "substantive",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2464,6 +3140,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2480,6 +3161,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2498,6 +3184,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2514,6 +3205,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2532,6 +3228,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2548,6 +3249,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2566,6 +3272,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2583,6 +3294,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2596,9 +3312,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "noise",
         "substantive",
+        "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2617,6 +3338,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2633,6 +3359,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2651,6 +3382,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2661,12 +3397,17 @@
       "pr_author": "dmfallak",
       "review_state": "COMMENTED",
       "body": "Thanks! At a high level I like the idea of sharding, as we'll eventually need that because of perf. On the other hand I appreciate reasoning behind the single background loop introduced in #43671 by code owner @csmarchbanks which made the code much simpler.\n\nIf you get buy in from @csmarchbanks it'll help drive the PR forward. The bottom line is we'll need to be conscious about the additional complexity from this design decision.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
+        "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2685,6 +3426,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2701,6 +3447,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2719,6 +3470,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2735,6 +3491,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2753,6 +3514,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2769,6 +3535,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2787,6 +3558,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2803,6 +3579,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2821,6 +3602,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2837,6 +3623,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2855,6 +3646,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2871,6 +3667,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2889,6 +3690,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2905,6 +3711,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2923,6 +3734,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -2939,6 +3755,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -2957,6 +3778,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -2973,6 +3799,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -2991,6 +3822,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3007,6 +3843,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3025,6 +3866,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3041,6 +3887,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3059,6 +3910,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3075,6 +3931,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3093,6 +3954,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3109,6 +3975,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3127,6 +3998,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3143,6 +4019,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3161,6 +4042,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3177,6 +4063,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3195,6 +4086,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3211,6 +4107,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3229,6 +4130,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3245,6 +4151,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3263,6 +4174,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3279,6 +4195,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3297,6 +4218,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3313,6 +4239,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3331,6 +4262,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3347,6 +4283,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3365,6 +4306,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3381,6 +4327,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3399,6 +4350,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3415,6 +4371,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3433,6 +4394,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3449,6 +4415,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3467,6 +4438,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3483,6 +4459,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3501,6 +4482,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3517,6 +4503,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3535,6 +4526,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3551,6 +4547,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3569,6 +4570,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3585,6 +4591,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3603,6 +4614,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3620,22 +4636,10 @@
         "substantive",
         "substantive"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "opentelemetry-collector-contrib-49928-pr-review-4799998402",
-      "repo": "opentelemetry-collector-contrib",
-      "pull_request": 49928,
-      "requester": "carsonip",
-      "pr_author": "blakerouse",
-      "review_state": "APPROVED",
-      "body": "approving to unblock, thanks for adding the tests. One comment about the allowMissingDocs",
-      "stability": "stable",
-      "baseline": "substantive",
-      "observed_runs": [
-        "substantive",
-        "substantive",
-        "substantive"
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3654,6 +4658,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3671,6 +4680,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3681,12 +4695,17 @@
       "pr_author": "juliuskoval",
       "review_state": null,
       "body": "@SalvoDeveloper I'm waiting for at least one other approving review from one of the other maintainers before merging this. Once merged it will be part of the next release (which has no specific date at this time).\r\n\r\nAfter it's merged you can use consume prerelease builds from [MyGet](https://github.com/open-telemetry/opentelemetry-dotnet#releases) if you can't wait until then.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
+        "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3705,6 +4724,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3721,6 +4745,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3739,6 +4768,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3755,6 +4789,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3773,6 +4812,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3789,6 +4833,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3807,6 +4856,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3823,6 +4877,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3841,6 +4900,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3857,6 +4921,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3875,6 +4944,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3891,6 +4965,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3909,6 +4988,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3926,6 +5010,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -3940,8 +5029,13 @@
       "baseline": null,
       "observed_runs": [
         "noise",
-        "substantive",
-        "noise"
+        "noise",
+        "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "author"
       ],
       "adjudicated": null
     },
@@ -3953,12 +5047,17 @@
       "pr_author": "saguiitay",
       "review_state": null,
       "body": "> @martincostello was this discussed? Can you update if any decision was made.\r\n\r\nYes, Itay joined the SIG call and myself and Alan discussed it. TL;DR was Itay was going to speak to Raj about it internally and then look to make an experimental opt-in to allow for it to be tested in the wild. I forget exactly what else we discussed, but it'll be in the recording.",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "noise",
+        "substantive",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -3977,6 +5076,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -3993,6 +5097,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4011,6 +5120,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4027,6 +5141,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4045,6 +5164,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4061,6 +5185,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4079,6 +5208,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4095,6 +5229,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4113,6 +5252,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4129,6 +5273,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4147,6 +5296,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4163,6 +5317,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4181,6 +5340,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4197,6 +5361,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4215,6 +5384,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4231,6 +5405,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4249,6 +5428,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4266,6 +5450,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4280,8 +5469,13 @@
       "baseline": null,
       "observed_runs": [
         "substantive",
-        "substantive",
-        "noise"
+        "noise",
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4300,6 +5494,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4310,12 +5509,17 @@
       "pr_author": "jackshirazi",
       "review_state": null,
       "body": "I like the code here and would be happy to approve / merge it once corresponding spec is available 👍",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
+        "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4334,6 +5538,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4344,12 +5553,17 @@
       "pr_author": "lucacavenaghi97",
       "review_state": null,
       "body": "> One thing: now that pretty print isn't on by default, there's no public API for users to actually enable it. The capability only lives on the internal builders\r\n\r\nI think you're referring to the fact that `OtlpStdoutSpanExporter` and `OtlpStdoutSpanExporterBuilder` live in internal packages. In this context, internal indicates that they're still in development and APIs are subject to breaking changes, but users willing to accept that can use:\r\n\r\n```\r\nOtlpStdoutSpanExporter.builder()\r\n        .setPrettyPrint(true)\r\n        .build();\r\n```\r\n\r\nAs you note, we could add a parameter to `OtlpJsonLoggingSpanExporter#create` to allow this to be configured.\r\n\r\n`OtlpStdoutSpanExporter` is supposed to be the replacement for `OtlpJsonLoggingSpanExporter`, but is still in an internal package because we're waiting for the [corresponding spec document](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/file-exporter.md) to stabilize. \r\n\r\n> Add it as a field in the declarative configuration via the ComponentProvider classes\r\n\r\nI support this.",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "noise",
         "noise",
-        "noise"
+        "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4368,6 +5582,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4378,12 +5597,17 @@
       "pr_author": "sridharsurvi1",
       "review_state": null,
       "body": "Sorry for the delay - went on vacation and lost track of this. \r\n\r\n> A load balancer is a heavyweight solution when the actual need is simple: \"if this endpoint is down, try that one.\" The SDK already has the context to make this decision at export time.\r\n\r\nYou could write a delegating exporter, which accepts multiple OTLP exporters as constructor parameters and calls the second if the first fails. The OTLP exporter's CompletableResultCodes return all the information you would need for a caller to determine why the first export failed and if it should try the second or abandon: https://github.com/open-telemetry/opentelemetry-java/blob/47c970d6c2ebc145f44612d7f04005c855939f3f/exporters/common/src/main/java/io/opentelemetry/exporter/internal/http/HttpExporter.java#L111-L126\r\n\r\n> Would you be open to keeping this PR as a reference implementation while the spec discussion happens? \r\n\r\nSure no problem",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
         "noise",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4395,12 +5619,17 @@
       "pr_author": "sridharsurvi1",
       "review_state": "CHANGES_REQUESTED",
       "body": "The behavior of our OTLP exporters and corresponding environment variables is dictated by the spec: https://github.com/open-telemetry/opentelemetry-java/blob/main/CONTRIBUTING.md#project-scope\n\nWe have some examples of java specific programmatic configuration options, like the ability to set the executor service and proxy options. But these accommodate well established configuration expectations of network clients. I.e. the absence of options would be a glaring deficiency in the API.\n\nThis fallback endpoint is more complicated and more controversial, and so I would like to see it go through the spec before we consider adding it in opentelemetry-java. \n\nPersonally, wearing my other hat as a spec contributor, I would expect this problem to be solved through load balancing and retry against a single endpoint. I.e. a single endpoint routes to multiple backing instances. If an attempt against the first fails, it does so in a way that triggers the retry policy to execute a subsequent request, which has the opportunity to resolve a different instance.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
+        "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4419,6 +5648,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4435,6 +5669,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4453,6 +5692,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4469,6 +5713,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4487,6 +5736,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4503,6 +5757,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4521,6 +5780,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4537,6 +5801,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4555,6 +5824,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4572,6 +5846,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4582,12 +5861,17 @@
       "pr_author": "jsuereth",
       "review_state": null,
       "body": "PR with my remaining feedback here: https://github.com/jsuereth/opentelemetry-java/pull/1",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "noise",
+        "substantive",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4606,6 +5890,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4622,6 +5911,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4640,6 +5934,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4656,6 +5955,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4674,6 +5978,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4690,6 +5999,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4708,22 +6022,10 @@
         "substantive",
         "substantive"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "opentelemetry-java-8548-pr-issue-comment-4870687837",
-      "repo": "opentelemetry-java",
-      "pull_request": 8548,
-      "requester": "jack-berg",
-      "pr_author": "EvgeniiR",
-      "review_state": null,
-      "body": "Hey so I've been thinking about this. AttributesMap exists because the default implementation of Attributes / AttributesBuilder is not limits aware. I think that the fact that its backed by HashMap is a function of convenience: we need a simple implementation that we can apply limits too as its being built up. I think performance is important, and a Map based implementation also has better put performance than the default array based implementations ImmutableKeyValuePairs / ArrayBackedAttributesBuilder. But I think this is coincidence, since I've never heard us telling people \"prefer using Span.setAttribute because it uses a more performant map based implementation\". \r\n\r\nI've never loved the fact that AttributesMap exists. I'd rather have one implementation. And I think your changes to AttributesMap reinforces this because while it still tries to do some map things for performance, other parts of it are starting to look more like ImmutableKeyValuePairs / ArrayBackedAttributesBuilder. And so its got me thinking about whether we can evolve ImmutableKeyValuePairs / ArrayBackedAttributesBuilder to meet the limits requirements and rip out AttributesMap altogether.\r\n\r\nI've got two protot ...[truncated]",
-      "stability": "flaky",
-      "baseline": null,
-      "observed_runs": [
-        "noise",
-        "substantive",
-        "noise"
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4742,6 +6044,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4758,6 +6065,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4776,6 +6088,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4786,12 +6103,17 @@
       "pr_author": "opentelemetrybot",
       "review_state": "APPROVED",
       "body": "LGTM, but you could wait until we merge similar in other Java repos and go through release to verify",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4810,6 +6132,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4827,6 +6154,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4837,12 +6169,17 @@
       "pr_author": "ADITYA-CODE-SOURCE",
       "review_state": "COMMENTED",
       "body": "Just a couple more minor comments. Looks pretty good!",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "noise",
+        "substantive",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -4861,6 +6198,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4877,6 +6219,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4895,6 +6242,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4911,6 +6263,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4929,6 +6286,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -4945,6 +6307,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4963,6 +6330,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -4973,12 +6345,17 @@
       "pr_author": "philsttr",
       "review_state": null,
       "body": "check out declarative config and the pattern for includes/excludes: \r\n\r\n- https://github.com/open-telemetry/opentelemetry-configuration\r\n- https://github.com/open-telemetry/opentelemetry-configuration/blob/main/CONTRIBUTING.md#properties-requiring-pattern-matching\r\n- https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk/common/src/main/java/io/opentelemetry/sdk/common/internal/IncludeExcludePredicate.java",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
-        "noise",
+        "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -4997,6 +6374,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5013,6 +6395,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5031,6 +6418,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5047,6 +6439,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5065,6 +6462,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5078,9 +6480,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "substantive",
+        "noise",
         "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5092,12 +6499,17 @@
       "pr_author": "maryantocinn",
       "review_state": null,
       "body": "> @trask do you have any preference on how we should handle this?\r\n\r\nIt has downsides, but I'd lean towards continuing to follow https://github.com/open-telemetry/semantic-conventions/blob/main/docs/messaging/README.md, which basically says, emit the old semconv by default, and only emit new semconv under `OTEL_SEMCONV_STABILITY_OPT_IN` (and in our case starting with 3.0, `OTEL_SEMCONV_STABILITY_PREVIEW`).\r\n\r\nWe could bump to latest (even before stable), but ideally only after we have implemented the same conventions consistently across all of our messaging instrumentations. It would probably be confusing for some of our messaging instrumentations to emit earlier semconv and some later semconv by default.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
-        "substantive",
+        "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5116,6 +6528,11 @@
         "substantive",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "author",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5126,12 +6543,17 @@
       "pr_author": "maryantocinn",
       "review_state": null,
       "body": "> The thing is that our messaging semconv don't really follow a particular version of the semconv.\r\n\r\nYou've convinced me 😅.\r\n\r\nBut if we're going to do it, let's take the opportunity to sync them all up for 3.0:\r\n\r\nhttps://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19233",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "substantive",
         "substantive",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5150,6 +6572,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5166,6 +6593,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5184,6 +6616,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5200,6 +6637,11 @@
         "noise",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5218,6 +6660,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5234,6 +6681,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5252,6 +6704,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5263,11 +6720,16 @@
       "review_state": null,
       "body": "hi @amit306!\r\n\r\nI think the goal of #17858 is more about fixing the API (not just documentation), along the lines of your #18844",
       "stability": "stable",
-      "baseline": "noise",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5286,6 +6748,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5303,6 +6770,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5313,12 +6785,17 @@
       "pr_author": "YaoYingLong",
       "review_state": "COMMENTED",
       "body": "@trask should there be a corresponding semconv issue for this?",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
-        "substantive",
+        "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5337,6 +6814,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5353,6 +6835,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5371,6 +6858,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5388,22 +6880,10 @@
         "noise",
         "noise"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "opentelemetry-js-6293-pr-review-4497664148",
-      "repo": "opentelemetry-js",
-      "pull_request": 6293,
-      "requester": "david-luna",
-      "pr_author": "overbalance",
-      "review_state": "COMMENTED",
-      "body": "This looks very good. Just a couple of questions.",
-      "stability": "stable",
-      "baseline": "substantive",
-      "observed_runs": [
-        "substantive",
-        "substantive",
-        "substantive"
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5422,6 +6902,11 @@
         "noise",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "none",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5439,6 +6924,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5449,12 +6939,17 @@
       "pr_author": "vitorvasc",
       "review_state": null,
       "body": "@cjihrig @vitorvasc can we please get this merged?",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
+        "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5473,6 +6968,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5483,12 +6983,17 @@
       "pr_author": "zakcutner",
       "review_state": null,
       "body": "@zakcutner - my original idea was to provide an interface for people to pass their own transports to the exporters, because different transport implementations are so widely requested.\r\n\r\nMy idea was that people would be able to do something like this, but I ran out of time to work on it:\r\n\r\n```ts\r\nconst exporter = createOtlpExporter({\r\n  serializer: ProtobufTraceSerializer,\r\n  transport: createMyCustomFetchTransport() // returns a custom IExporterTransport impl\r\n});\r\n```\r\n\r\nthe underlying implementation is already somewhat setup for such a thing, but requires a bit more boilerplate\r\n```ts\r\n\r\nimport { createOtlpNetworkExportDelegate } from '@opentelemetry/otlp-exporter-base';\r\nimport { ProtobufTraceSerializer } from `@opentelemetry/otlp-transformer`;\r\n\r\nconst exporter: SpanExporter = new createOtlpExportDelegate({\r\n  options: { /** provide all required options accoding to type**/ },\r\n  serializer: ProtobufTraceSerializer, // or JsonTraceSerializer\r\n  transport: createMyCustomFetchTransport() /** implement this yourself, a wrapper around your custom fetch, make sure to set the content-type header to what you're sending: `application/x-protobuf` or `application/json` **/\r\n}); /* dele ...[truncated]",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
         "noise",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5507,6 +7012,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5523,6 +7033,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5541,6 +7056,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5558,6 +7078,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5568,12 +7093,17 @@
       "pr_author": "CharlieTLe",
       "review_state": null,
       "body": "I ran into this gap while wiring exemplar support into my own metrics and traces stack (Grafana Cloud Mimir and Tempo, fed from a Node agent) and found this PR with all of the earlier review feedback already addressed in the later commits. Since it has been sitting with conflicts for a couple of months, I rebased it onto current main to keep it moving: https://github.com/rnavarro/opentelemetry-js/tree/feat/metrics-exemplars-rebased\n\nThe rebase preserves all five of @CharlieTLe's commits unchanged. Conflicts were limited to the two CHANGELOG files (entries moved to the current Unreleased section) and `ExemplarReservoir.ts`, where I kept this PR's non-mutating `collect()` together with the `for...of` conversion that landed on main since. On the rebased branch the `sdk-metrics` suite passes 431 tests and `otlp-transformer` passes 220, lint is clean on the changed files, and I verified end to end that a histogram recorded under a sampled span context serializes an exemplar with the correct traceId and spanId through `JsonMetricsSerializer`.\n\n@CharlieTLe if you want to pull that branch into this PR, it is yours to take. If you are short on time, I am happy to open a successor PR that ke ...[truncated]",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "substantive",
+        "noise",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5592,6 +7122,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5608,6 +7143,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5626,6 +7166,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5642,6 +7187,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5660,6 +7210,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5676,6 +7231,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5694,6 +7254,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5710,6 +7275,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5728,6 +7298,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5744,6 +7319,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5762,6 +7342,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5778,6 +7363,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5796,6 +7386,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5812,6 +7407,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5830,6 +7430,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5846,6 +7451,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5864,6 +7474,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5880,6 +7495,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -5898,6 +7518,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5914,6 +7539,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5932,6 +7562,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -5949,22 +7584,10 @@
         "substantive",
         "substantive"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "opentelemetry-js-6751-pr-review-4411677922",
-      "repo": "opentelemetry-js",
-      "pull_request": 6751,
-      "requester": "overbalance",
-      "pr_author": "devareddy05",
-      "review_state": "COMMENTED",
-      "body": "Great fix! Just one question.",
-      "stability": "stable",
-      "baseline": "substantive",
-      "observed_runs": [
-        "substantive",
-        "substantive",
-        "substantive"
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -5983,6 +7606,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -5999,6 +7627,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6017,6 +7650,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6033,6 +7671,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6051,6 +7694,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6067,6 +7715,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6085,6 +7738,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6101,6 +7759,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6119,6 +7782,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6135,6 +7803,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6153,6 +7826,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6169,6 +7847,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6187,6 +7870,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6197,12 +7885,17 @@
       "pr_author": "lucas-gregoire",
       "review_state": null,
       "body": "Some context: We discussed this in the OTel JS SIG call today. Doing semconv changes to this instrumentation to get it closer to the current semconv spec state isn't *blocked* until messaging semconv is stabilized. However, because messaging semconv isn't stable yet, we cannot *call these changes \"stable\"* and we probably shouldn't use the `OTEL_SEMCONV_STABILITY_OPT_IN` envvar.",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "noise",
-        "noise",
+        "substantive",
+        "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6221,22 +7914,10 @@
         "noise",
         "noise"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "opentelemetry-js-contrib-2976-pr-review-3206929990",
-      "repo": "opentelemetry-js-contrib",
-      "pull_request": 2976,
-      "requester": "trentm",
-      "pr_author": "lucas-gregoire",
-      "review_state": "CHANGES_REQUESTED",
-      "body": "See comments above.",
-      "stability": "flaky",
-      "baseline": null,
-      "observed_runs": [
-        "substantive",
-        "substantive",
-        "noise"
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6255,6 +7936,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6271,6 +7957,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6289,6 +7980,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6305,6 +8001,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6323,6 +8024,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6339,6 +8045,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6357,6 +8068,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6373,6 +8089,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6391,6 +8112,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6408,6 +8134,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6418,12 +8149,17 @@
       "pr_author": "lukeramsden",
       "review_state": null,
       "body": "@lukeramsden did you have time to review the latest comments?",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
         "substantive",
-        "noise"
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6442,6 +8178,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6458,6 +8199,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6476,6 +8222,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6492,6 +8243,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6510,6 +8266,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6526,6 +8287,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6544,6 +8310,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6560,6 +8331,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6578,6 +8354,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6594,6 +8375,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6612,6 +8398,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6628,6 +8419,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6646,6 +8442,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6662,6 +8463,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6680,6 +8486,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6696,6 +8507,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6714,6 +8530,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6730,6 +8551,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6748,6 +8574,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6764,6 +8595,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6782,6 +8618,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6798,6 +8639,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6816,6 +8662,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6832,6 +8683,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6850,6 +8706,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6866,6 +8727,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6884,6 +8750,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6900,6 +8771,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6918,6 +8794,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6934,6 +8815,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -6952,6 +8838,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -6968,6 +8859,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -6986,6 +8882,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -6999,9 +8900,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "substantive",
         "noise",
+        "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7020,6 +8926,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -7030,12 +8941,17 @@
       "pr_author": "Nik-Reddy",
       "review_state": null,
       "body": "Hi @Nik-Reddy , will have to wait for a maintainer to merge.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
-        "substantive",
+        "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7047,12 +8963,17 @@
       "pr_author": "Nik-Reddy",
       "review_state": null,
       "body": "@lmolkova I am thinking we can use openinference for adding instrumentation coverage for cohere. wdyt?",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "noise",
-        "noise",
+        "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7071,6 +8992,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -7087,6 +9013,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7105,6 +9036,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7118,9 +9054,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "substantive",
+        "noise",
         "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7139,6 +9080,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7155,6 +9101,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7173,6 +9124,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -7189,6 +9145,11 @@
         "substantive",
         "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7207,22 +9168,10 @@
         "substantive",
         "substantive"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "opentelemetry-python-genai-247-pr-review-4698657099",
-      "repo": "opentelemetry-python-genai",
-      "pull_request": 247,
-      "requester": "lmolkova",
-      "pr_author": "123liuziming",
-      "review_state": "COMMENTED",
-      "body": "LGTM, just some minor questions and concerns around build and release",
-      "stability": "flaky",
-      "baseline": null,
-      "observed_runs": [
-        "noise",
-        "substantive",
-        "substantive"
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7241,6 +9190,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7251,12 +9205,17 @@
       "pr_author": "lmolkova",
       "review_state": null,
       "body": "Thanks for picking this up @lmolkova! I'm glad to see the streaming timing work from my original PR #13 moving forward. Happy to review this since I worked on the initial implementation.\n\nAlso happy to co-author this if it helps, since a lot of the design decisions here came out of the iteration on #13. Let me know!",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "noise",
-        "noise",
+        "substantive",
+        "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7275,6 +9234,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7291,6 +9255,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7309,6 +9278,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7325,6 +9299,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7343,6 +9322,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7359,6 +9343,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7377,6 +9366,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7393,6 +9387,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7411,6 +9410,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7421,12 +9425,17 @@
       "pr_author": "jraleigh",
       "review_state": null,
       "body": "/fix:refcache",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
+        "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7445,6 +9454,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7462,6 +9476,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7472,12 +9491,17 @@
       "pr_author": "Goran-n",
       "review_state": null,
       "body": "what @vitorvasc said re CLA, but this is also a vendor not an application integration",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "noise",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7496,6 +9520,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7512,6 +9541,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7530,6 +9564,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7546,6 +9585,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7564,6 +9608,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -7580,6 +9629,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7598,6 +9652,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7614,6 +9673,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7632,6 +9696,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7648,6 +9717,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7666,6 +9740,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7682,6 +9761,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7700,6 +9784,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7716,6 +9805,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7734,6 +9828,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7750,6 +9849,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7768,6 +9872,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -7784,6 +9893,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7802,6 +9916,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7818,6 +9937,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7836,6 +9960,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7852,6 +9981,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7870,6 +10004,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -7886,6 +10025,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7904,6 +10048,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -7920,6 +10069,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -7938,6 +10092,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -7954,6 +10113,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -7972,6 +10136,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -7988,6 +10157,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8006,6 +10180,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8022,6 +10201,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8040,6 +10224,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8056,6 +10245,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8074,6 +10268,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8090,6 +10289,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8108,6 +10312,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8124,6 +10333,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8142,6 +10356,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8158,6 +10377,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8176,6 +10400,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8192,6 +10421,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8210,6 +10444,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8226,6 +10465,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8244,6 +10488,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8260,6 +10509,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8278,6 +10532,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8291,9 +10550,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
+        "substantive",
         "noise",
-        "noise",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8312,6 +10576,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8322,12 +10591,17 @@
       "pr_author": "timr-dev",
       "review_state": null,
       "body": "> > @lalit During the review of this PR, I noticed a few things related to a previous PR on the memory limiter side that seemed suboptimal. I'll file a separate report for those.\r\n> \r\n> Sure @lquerel. Thanks for reviewing that part. Will look forward to your findings.\r\n\r\n@lquerel  - I dug a bit more into the memory limiter after your comment. \r\n\r\nThe [docs](https://github.com/open-telemetry/otel-arrow/blob/main/rust/otap-dataflow/docs/memory-limiter-phase1.md#tradeoffs) describe the mechanics: sampling is periodic and enforcement happens only at ingress when the state reaches `Hard`. So the limitation is mostly implied rather than stated directly: this can reduce new memory growth, but it is not a strict cap and it cannot immediately reclaim memory already held inside the process.\r\n\r\n The real issues I found are more specific:\r\n\r\n -    The default hysteresis is derived from the soft-to-hard gap and can become very large. With a wide gap, `Soft` can become sticky because memory must fall far below the soft limit to return to `Normal`. This mainly affects state reporting today because `Soft` does not reject ingress.\r\n - `source: auto` only checks the current/leaf cgroup limit. In nes ...[truncated]",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "substantive",
+        "noise",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8346,6 +10620,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8363,22 +10642,10 @@
         "noise",
         "noise"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "otel-arrow-3363-pr-review-4666073835",
-      "repo": "otel-arrow",
-      "pull_request": 3363,
-      "requester": "jmacd",
-      "pr_author": "timr-dev",
-      "review_state": "APPROVED",
-      "body": "Reviewed critically and validated locally (checked out the branch, ran targeted tests + compiled the new bench). Approving — everything below is non-blocking.\n\n## Validation\n\n- `config` 66 passed, `engine::memory_limiter` 24 passed (incl. all 8 new), `memory_admission` bench compiles, clippy clean on `config`.\n- All three `should_shed_ingress()` sites and every ingress consumer (otlp/otap/syslog_cef/user_events receivers + the tower layer) route through the new predicate; no stray `== Hard` shed comparisons remain.\n- `soft_action` propagation mirrors the existing `mode` pattern exactly (atomic on the process inner, plain field on receiver inners), and `configure()` runs before receivers snapshot.\n- Default path is byte-identical (`shed_decision(_, _, Observe)` == old `Enforce && Hard`). Hysteresis is sound: with `soft_action: shed`, the existing Soft→Normal reopen threshold (`soft_limit − hysteresis`) becomes the shed-reopen point, so no oscillation.\n- Doc sweep is thorough — grepped untouched receiver `.rs`/README files for stale \"Soft is informational / Hard-only\" wording; none remain.\n\n## Non-blocking notes\n\n1. **Process-wide `MemoryPressureState::should_shed_ingress()` has no p ...[truncated]",
-      "stability": "stable",
-      "baseline": "substantive",
-      "observed_runs": [
-        "substantive",
-        "substantive",
-        "substantive"
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8390,12 +10657,17 @@
       "pr_author": "timr-dev",
       "review_state": "COMMENTED",
       "body": "@timr-dev Overall, this looks good to me. I think there's a small issue in the logic around the soft/hard limits combined with hysteresis.\n\n@lalit During the review of this PR, I noticed a few things related to a previous PR on the memory limiter side that seemed suboptimal. I'll file a separate report for those.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
         "substantive",
-        "noise"
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8414,6 +10686,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8430,6 +10707,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8448,6 +10730,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8464,6 +10751,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8482,6 +10774,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8492,29 +10789,17 @@
       "pr_author": "ethanchewy",
       "review_state": "COMMENTED",
       "body": "Thanks for looking into this change @ethanchewy! Have a few comments below to hopefully future proof this solution.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
         "noise",
-        "substantive"
+        "noise"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "otel-arrow-3467-pr-review-4776770163",
-      "repo": "otel-arrow",
-      "pull_request": 3467,
-      "requester": "drewrelmas",
-      "pr_author": "Dipanshusinghh",
-      "review_state": "APPROVED",
-      "body": "LGTM, left one small maintainability comment",
-      "stability": "flaky",
-      "baseline": null,
-      "observed_runs": [
-        "noise",
-        "noise",
-        "substantive"
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8533,22 +10818,10 @@
         "noise",
         "noise"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "otel-arrow-3524-pr-issue-comment-5065765015",
-      "repo": "otel-arrow",
-      "pull_request": 3524,
-      "requester": "JakeDern",
-      "pr_author": "yeomin4242",
-      "review_state": null,
-      "body": "> > Thank you for working hard on this! I see there have been a lot of iterations between this PR and the previous.\r\n> \r\n> > \r\n> \r\n> > Apologies if this has already been discussed elsewhere, but I'm wondering why the solution is not to call `OtapArrowRecords::decode_transport_optimized_ids` in the various `try_from` implementations? That would be a very small change (3 lines or so) and I think solve the problem.\r\n> \r\n> > \r\n> \r\n> > In my opinion view creation should not fail unless we're seeing data corruption as there's no alternative for a caller in the failure case. This PR seems to take the same opinion, as we have updated all callers to decode before creating the view to avoid it.\r\n> \r\n> > \r\n> \r\n> > I'm wondering then why we're letting callers make the mistake of not decoding in a way that can only be found at runtime instead of proactively doing it in the implementation.\r\n> \r\n> \r\n> \r\n> Thanks for raising this. \r\n> \r\n> \r\n> \r\n> I agree that callers should not have to remember to decode first, and that this error should not normally surface in application code.\r\n> \r\n> \r\n> \r\n> The current TryFrom<&OtapArrowRecords> implementation only has immutable access, whereas decoding require ...[truncated]",
-      "stability": "flaky",
-      "baseline": null,
-      "observed_runs": [
-        "noise",
-        "noise",
-        "substantive"
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8567,6 +10840,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8584,6 +10862,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8594,12 +10877,17 @@
       "pr_author": "c1ly",
       "review_state": "CHANGES_REQUESTED",
       "body": "I believe there are few issues to fix before merging this PR. Thanks",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
         "substantive",
-        "noise"
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8618,6 +10906,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8634,6 +10927,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8652,6 +10950,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8663,11 +10966,16 @@
       "review_state": null,
       "body": "Moved out from merge queue, as @pritishnahar95 is making some updates to align the design with the Azure identity extension.",
       "stability": "stable",
-      "baseline": "noise",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8686,6 +10994,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8702,6 +11015,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8720,6 +11038,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8736,6 +11059,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8754,6 +11082,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -8770,6 +11103,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8788,6 +11126,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8801,9 +11144,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "noise",
         "substantive",
-        "substantive"
+        "substantive",
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8818,9 +11166,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "noise",
         "substantive",
-        "substantive"
+        "substantive",
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8835,9 +11188,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "noise",
         "substantive",
-        "substantive"
+        "substantive",
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8856,6 +11214,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8872,6 +11235,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8890,6 +11258,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8906,6 +11279,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -8924,6 +11302,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8941,6 +11324,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8951,12 +11339,17 @@
       "pr_author": "thompson-tomo",
       "review_state": null,
       "body": "FYI, I haven't had the time to look into this more, but in support of #1821 and https://github.com/open-telemetry/opentelemetry.io/issues/6101. We probably will need to have a `title` field in the front matter too.\r\n\r\nI'm wrapping up and will be OOO so I won't be able to get back to this until the new year (FYI).",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "substantive",
-        "substantive",
+        "noise",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "author"
       ],
       "adjudicated": null
     },
@@ -8975,6 +11368,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -8991,6 +11389,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -9009,6 +11412,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9025,6 +11433,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9043,6 +11456,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9059,6 +11477,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9077,6 +11500,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9090,9 +11518,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "substantive",
+        "noise",
         "noise",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9111,6 +11544,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9128,6 +11566,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9138,12 +11581,17 @@
       "pr_author": "thompson-tomo",
       "review_state": "COMMENTED",
       "body": "A first few questions and comments:\r\n\r\n- Spec and semconv folks expressedly asked me to include the comment \"Hugo front matter used to generate the website version of this page\" so that all contributors know why the front matter is there (and hopefully realize that it's important to keep it up to date). Maybe this preference has changed. I'll let @open-telemetry/specs-maintainers @open-telemetry/specs-semconv-maintainers comment about this. I'm ok either way.\r\n- Why not keep the (inline) array syntax for aliases?",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
-        "noise",
+        "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9162,6 +11610,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9178,6 +11631,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9196,6 +11654,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9206,12 +11669,17 @@
       "pr_author": "PascalSenn",
       "review_state": null,
       "body": "re-opening for discussion!\r\n\r\n@PascalSenn also check out https://github.com/open-telemetry/opentelemetry-specification/pull/4906\r\n\r\nthere has been quite a bit of progress since we discussed last year about the option of hosting semantic conventions outside of this repository. I think the work is pretty bleeding edge still but may be ready for external usage soon. In the meantime, let's review and discuss the GraphQL semantic conventions here.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
-        "noise",
+        "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9230,6 +11698,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9240,12 +11713,17 @@
       "pr_author": "PascalSenn",
       "review_state": null,
       "body": "@PascalSenn unfortunately i dont have permissions to. Ping @open-telemetry/specs-semconv-approvers @open-telemetry/specs-semconv-maintainers",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
         "noise",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -9264,6 +11742,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9280,6 +11763,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9298,6 +11786,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9314,6 +11807,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9332,6 +11830,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9342,12 +11845,17 @@
       "pr_author": "thompson-tomo",
       "review_state": null,
       "body": "@chalin I guess \"code owner\" here would be you. Can you approve to make sure from the OTel website things look ok?",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
+        "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -9359,12 +11867,17 @@
       "pr_author": "thompson-tomo",
       "review_state": null,
       "body": "I view the `process.executable.*` namespace, which encompasses `build_id.gnu`, `build_id.go`, `build_id.htlhash`, `name`, and `path`, as a cohesive unit. Collectively, these attributes serve to uniquely identify an element.\r\n\r\nRedirecting the `process.executable.build_id.*` sub-namespace to `process.entrypoint` for executable identification does not seem appropriate. Consequently, I consider `process.entrypoint` to be a complementary addition rather than a replacement for `process.executable.path`.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
         "substantive",
-        "noise"
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9383,6 +11896,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9399,6 +11917,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9417,6 +11940,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9433,6 +11961,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9451,6 +11984,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9465,8 +12003,13 @@
       "baseline": null,
       "observed_runs": [
         "substantive",
-        "noise",
-        "substantive"
+        "substantive",
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -9485,6 +12028,11 @@
         "substantive",
         "noise"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9501,6 +12049,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9519,6 +12072,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9535,6 +12093,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9553,6 +12116,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9569,6 +12137,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9587,6 +12160,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9603,6 +12181,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9621,6 +12204,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9637,6 +12225,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9655,6 +12248,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9665,12 +12263,17 @@
       "pr_author": "copilot-swe-agent",
       "review_state": null,
       "body": "```\r\nRun make textlint\r\nsemantic-conventions@ /home/runner/work/semantic-conventions/semantic-conventions\r\n├─┬ textlint-filter-rule-allowlist@4.0.0\r\n│ └── textlint@15.7.1 deduped\r\n├─┬ textlint-rule-period-in-header@0.1.2\r\n│ └── textlint@15.7.1 deduped\r\n└── textlint@15.7.1\r\n\r\n\r\n/home/runner/work/semantic-conventions/semantic-conventions/.chloggen/web_vital-attributes.yaml\r\n  13:69  ✓ error  Incorrect term: “id”, use “ID” instead  terminology\r\n\r\n✖ 1 problem (1 error, 0 warnings, 0 infos)\r\n✓ 1 fixable problem.\r\nTry to run: $ textlint --fix [file]\r\nmake: *** [Makefile:115: textlint] Error 1\r\n```",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "substantive",
         "substantive",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -9689,6 +12292,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9700,11 +12308,16 @@
       "review_state": null,
       "body": "Annotation is not as helpful as ci log, much harder to see regardless is you're a human or an agent. It's nice to have, but not at a cost of not having filename in the plain text.\r\n\r\nEspecially problematic when error is on the file that's not in the PR - current problem.",
       "stability": "stable",
-      "baseline": "substantive",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
-        "substantive",
-        "substantive"
+        "noise",
+        "noise",
+        "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -9723,6 +12336,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9733,12 +12351,17 @@
       "pr_author": "copilot-swe-agent",
       "review_state": null,
       "body": "Edge case maybe, it's not the last time it happens - textlint will get new rules and they'll fail in random places. \r\n\r\nThere literally no information when it does on where the problem is\r\n\r\n<img width=\"1069\" height=\"906\" alt=\"Screenshot_20260723-190553\" src=\"https://github.com/user-attachments/assets/7212d80b-fae3-4c5c-9a09-e42e186c0c6d\" />\r\n \r\nI'm going to repeat that path on log is a must, github comment is nice to have. Going through all github comments is much harder than looking into ci logs.",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "substantive",
         "substantive",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -9757,6 +12380,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -9767,12 +12395,17 @@
       "pr_author": "copilot-swe-agent",
       "review_state": null,
       "body": "It's wonderful to see annotations.\r\nIt's not wonderful that they show up collapsed - that's probably why I never look at them. Thanks for educating me they show up there.\r\nIt's not acceptable that they turn off file locations in the CI logs. \r\n\r\n\r\n------\r\n\r\nyamllint for example, does it well: https://github.com/open-telemetry/semantic-conventions/actions/runs/29971521674/job/89094348620?pr=3919\r\n\r\n<img width=\"1248\" height=\"1384\" alt=\"image\" src=\"https://github.com/user-attachments/assets/d0a8ef04-c604-4a97-a9b8-6ca3ba0885e4\" />\r\n\r\nannotations and CI logs are not mutually exclusive. If textlint does it right, I'll be happy to enable github format.",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "substantive",
         "substantive",
-        "substantive"
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -9787,9 +12420,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
+        "noise",
         "substantive",
-        "substantive",
-        "noise"
+        "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9808,6 +12446,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9824,6 +12467,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9842,6 +12490,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9858,6 +12511,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9876,6 +12534,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9892,6 +12555,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9910,6 +12578,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9926,6 +12599,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9944,6 +12622,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9961,6 +12644,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -9971,12 +12659,17 @@
       "pr_author": "Jwrede",
       "review_state": null,
       "body": "> **\"Per-request average\" framing:** This comes from vLLM's deprecation rationale in [vllm-project/vllm#24015](https://github.com/vllm-project/vllm/pull/24015). TPOT is computed as (total_generation_time - TTFT) / (output_tokens - 1) and recorded once per request. That single value is an average over all tokens in the request.\r\n\r\nTPOT can be calculated either after all requests have returned, or in the manner of ITL as you mentioned. I believe these two approaches are essentially equivalent, at least in terms of average values. I agree with Liudmila's perspective — in my view, TPOT and ITL refer to the same concept, and if you feel that TPOT is lacking in some way, perhaps the more appropriate approach would be to enrich and extend it rather than introducing a separate metric.",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "substantive",
+        "noise",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -9991,9 +12684,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "noise",
         "substantive",
+        "noise",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10012,6 +12710,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10028,6 +12731,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10046,6 +12754,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10062,6 +12775,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10080,6 +12798,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10096,6 +12819,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10114,6 +12842,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10130,6 +12863,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10148,6 +12886,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10164,6 +12907,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10182,6 +12930,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10198,6 +12951,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10216,6 +12974,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10229,9 +12992,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "noise",
-        "noise",
-        "substantive"
+        "substantive",
+        "substantive",
+        "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10250,6 +13018,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10266,6 +13039,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10284,6 +13062,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10294,12 +13077,17 @@
       "pr_author": "eternalcuriouslearner",
       "review_state": null,
       "body": "> > I'm also not sure about these method names in general - A2A doesn't define them per se, but uses Pascal Case. However, I think a good reason to keep them like that (`message/send` instead of `SendMessage`) is keeping them aligned with existing MCP semconv method names.\r\n> \r\n> Howdy @aabmass can you pitch in here. Should we use pascal case or keep it as `message/send`?\r\n\r\nThese are attributes values right? IMO we should copy what's in the protocol so keeping the pascal case, see the generic RPC conventions https://opentelemetry.io/docs/specs/semconv/registry/attributes/rpc/#rpc-method",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10318,6 +13106,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10335,22 +13128,10 @@
         "noise",
         "noise"
       ],
-      "adjudicated": null
-    },
-    {
-      "id": "semantic-conventions-genai-195-pr-review-4507167174",
-      "repo": "semantic-conventions-genai",
-      "pull_request": 195,
-      "requester": "pwkowalski",
-      "pr_author": "eternalcuriouslearner",
-      "review_state": "CHANGES_REQUESTED",
-      "body": "Sorry, one more thing I've noticed after re-reading.",
-      "stability": "flaky",
-      "baseline": null,
-      "observed_runs": [
-        "noise",
-        "noise",
-        "substantive"
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10369,6 +13150,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10386,6 +13172,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10396,12 +13187,17 @@
       "pr_author": "trask",
       "review_state": null,
       "body": ">  and reasoning output (priced separately from response output on o-series and Gemini 2.5+).\r\n\r\nPeople do want to track reasoning tokens, but I don't think they have their own pricing on current models, and if I'm wrong I'd love to know.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
+        "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10413,12 +13209,17 @@
       "pr_author": "trask",
       "review_state": null,
       "body": "\"Reasoning\" tokens as far as I know aren't priced differently, they are important to track as the scratch work often ends up being a large differentiator of cost between different models ex.\n\nOpus 4.5, 4.6 , 4.7, 4.8 for example all currently priced the same main differentiator in cost I've observed has been the extent to which the models are configured to aggressively use the \"reasoning\" block revealing this to end users in an easy way to show what \"reasoning\" is costing them and to help them make the determination if the \"reasoning\" provides any value to a given use case.\n\nThank you for this pr from downstream \n\nIt should greatly simplify observability.",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
-        "substantive",
+        "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10430,12 +13231,17 @@
       "pr_author": "trask",
       "review_state": null,
       "body": "We're going to discuss this on an ad-hoc call tomorrow at 12pm PT: [Calendar](https://calendar.google.com/calendar/u/0/r/day/2026/6/5?eid=MnI0NDloamxmdGU3b2ZnYXNsYzR1ZmZoZ2wgY18yYmY3M2UzYjZiNTMwZGE0YmFiZDQ0NGU3MmI3NmE2YWQ4OTNhNWMzZjQzY2Y0MDQ2N2FiYzdhOWE4OTdmOTc3QGc), [Zoom](https://zoom.us/j/91357539844?pwd=MU9ZRUNyVUwrcHdiclU2b2lPOVBkQT09).\r\n\r\nPlease join if you can @alexmojaki @Nik-Reddy @aabmass @trask",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "substantive",
       "observed_runs": [
         "substantive",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10454,6 +13260,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -10471,6 +13282,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10481,12 +13297,17 @@
       "pr_author": "trask",
       "review_state": "COMMENTED",
       "body": "Wow, thanks for this proposal! Made a first pass with some questions",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
         "noise",
-        "substantive",
+        "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10505,6 +13326,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10521,6 +13347,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10539,6 +13370,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10555,6 +13391,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10573,6 +13414,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10589,6 +13435,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10607,6 +13458,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -10617,12 +13473,17 @@
       "pr_author": "nagkumar91",
       "review_state": null,
       "body": "Here are the two worked examples, reproducible from the bytes alone.\n\nStructured (`tool_call`), RFC 8785 (JCS) over the input object then SHA-256:\n\n- input: `{\"name\":\"query_table\",\"arguments\":{\"table\":\"employees\",\"limit\":10}}`\n- canonical bytes: `{\"arguments\":{\"limit\":10,\"table\":\"employees\"},\"name\":\"query_table\"}`\n- `sha256:40cfbce5aa3b2794c73996f4db4e6c2b45a5492cdc2a4bc71773e88eeebc3d95`\n\nFree-text, Unicode NFC then UTF-8 then SHA-256, on `café au lait`:\n\n- normalized bytes (hex): `636166c3a9206175206c616974`\n- `sha256:7c413039fbb2248e2b18b98e7a8d4d85bdcac7cd79b9477a0923f97e3a1f2b50`\n- the same text as NFC and as NFD (`e` + U+0301) both reach that digest once NFC-normalized; the raw NFD bytes hash to `sha256:2f97bdcfe9d8165b6d25df3f56d7b83e16637d199505d01eff4a3e94eb1d9e15` instead, which is why the normalization has to be named rather than implementation-defined.\n\nThe JCS recipe is exact for objects of strings and integers; floating-point values would also need RFC 8785 number formatting. Happy to drop these into the reference scenario or a doc example, whichever you prefer.",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "noise",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10641,6 +13502,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10657,6 +13523,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10675,6 +13546,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10688,9 +13564,14 @@
       "stability": "flaky",
       "baseline": null,
       "observed_runs": [
-        "substantive",
+        "noise",
         "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10709,6 +13590,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10725,6 +13611,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10743,6 +13634,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -10759,6 +13655,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10777,6 +13678,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10793,6 +13699,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10811,6 +13722,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10828,6 +13744,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10838,12 +13759,17 @@
       "pr_author": "thebenignhacker",
       "review_state": null,
       "body": "On \"is there a real component\" — I came across one in AGT: microsoft/agent-governance-toolkit#3190 wires decision events (allow/deny/warn…) over OTel across its SDKs, under an `acs_*` namespace. Whether that's in scope here or just app-level is your call — flagging it as a concrete producer in case it helps.",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "noise",
+        "substantive",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10862,6 +13788,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10872,12 +13803,17 @@
       "pr_author": "thebenignhacker",
       "review_state": null,
       "body": "Building on my prior comment on the gate as producer —\n\nThe connection to AGT#3190 is direct: that PR defines `acs_intervention_{allow,deny,warn,escalate,transform}_total` counters per evaluation and explicitly omits `action_identity`. The gap it leaves: the counter records how many interventions occurred, not which specific action was decided on. `action_ref` fills that field — SHA-256(JCS({agent_id, action_type, scope, timestamp})) — recomputable by any downstream verifier without trusting the emitting component.\n\nOn the path you've outlined:\n\n**Operations to instrument** — the gate's evaluation call, not an agent span. We added §Telemetry Integration to the working draft today ([f3628b7](https://github.com/giskard09/draft-etcheverry-action-ref/commit/f3628b769d0ba953f1f53237e6c9b95801361606)) that formalizes this: \"Implementations MUST NOT derive action_ref at the invoking agent's span level. Agent-level instrumentation does not have access to the complete intent tuple as presented to the gate.\" The gate derives the value before returning the verdict; downstream spans carry it as a correlation key.\n\n**Reference scenarios** — [draft-etcheverry-action-ref](https://datatracker.ietf ...[truncated]",
-      "stability": "flaky",
-      "baseline": null,
+      "stability": "stable",
+      "baseline": "noise",
       "observed_runs": [
-        "substantive",
-        "substantive",
+        "noise",
+        "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10896,6 +13832,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -10912,6 +13853,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -10930,6 +13876,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -10946,6 +13897,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10964,6 +13920,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -10980,6 +13941,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -10998,6 +13964,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11014,6 +13985,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -11032,6 +14008,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11049,6 +14030,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11060,11 +14046,16 @@
       "review_state": "APPROVED",
       "body": "LGTM, just a few cosmetic suggestions",
       "stability": "stable",
-      "baseline": "noise",
+      "baseline": "substantive",
       "observed_runs": [
-        "noise",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive",
+        "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -11083,6 +14074,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -11100,6 +14096,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11110,12 +14111,17 @@
       "pr_author": "Mohnish-Srivats",
       "review_state": "CHANGES_REQUESTED",
       "body": "I asked AI to do research on azure-ai-evals, deep-evals, dspy (the ones we're adding scenarios for)  to check which of these attributes we could capture with generic instrumentations\n\n\n| Attribute | deepeval | dspy | azure-ai-evaluation |\n|---|---|---|---|\n| `evaluator.id` | **Constructed, not native.** Metric has `.name`; build id from name+model: `f\"{metric.__name__}-{metric.evaluation_model}\"` | **Constructed.** Metric is a callable → `metric.__name__` | **Constructed.** Evaluator is a class → `type(ev).__name__` + `model_config[\"model\"]` |\n| `evaluator.version` | **Not native** — no version concept. Scenario hardcodes `\"1.0\"` | **Not native.** Function has no version | **Not native** (not claimed in report). Would be hardcoded |\n| `evaluator.type` | **Inferable.** Native metrics use an LLM (`using_native_model`/`evaluation_model` set) → `llm_judge`; custom `BaseMetric` w/o model → `deterministic` | **Weak.** Metric is just a callable; DSPy can't tell if it calls an LLM. Scenario assumes `deterministic` | **Inferable from class:** AI-assisted (`RelevanceEvaluator`…) → `llm_judge`; NLP/math (`F1ScoreEvaluator`, `BleuScoreEvaluator`, `RougeScoreEvaluator`) → `deterministic` |\n| `r ...[truncated]",
-      "stability": "stable",
-      "baseline": "substantive",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "substantive",
-        "substantive",
+        "noise",
+        "noise",
         "substantive"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "author"
       ],
       "adjudicated": null
     },
@@ -11134,6 +14140,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11150,6 +14161,11 @@
         "noise",
         "substantive",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "author",
+        "none"
       ],
       "adjudicated": null
     },
@@ -11168,6 +14184,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11184,6 +14205,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -11202,6 +14228,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11218,6 +14249,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -11236,6 +14272,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -11252,6 +14293,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -11270,6 +14316,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -11286,6 +14337,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -11304,6 +14360,11 @@
         "substantive",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11320,6 +14381,11 @@
         "substantive",
         "substantive",
         "substantive"
+      ],
+      "observed_actions": [
+        "author",
+        "author",
+        "author"
       ],
       "adjudicated": null
     },
@@ -11338,6 +14404,11 @@
         "noise",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "none",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11355,6 +14426,11 @@
         "noise",
         "substantive"
       ],
+      "observed_actions": [
+        "author",
+        "none",
+        "author"
+      ],
       "adjudicated": null
     },
     {
@@ -11365,12 +14441,17 @@
       "pr_author": "jerbly",
       "review_state": "APPROVED",
       "body": "Fix looks good, thanks for catching this bug.  Looks like an opportunity to refacor/clean up the logic after a point fix release!",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
-        "noise",
+        "substantive",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "author",
+        "none",
+        "none"
       ],
       "adjudicated": null
     },
@@ -11389,6 +14470,11 @@
         "noise",
         "noise"
       ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
+      ],
       "adjudicated": null
     },
     {
@@ -11405,6 +14491,11 @@
         "noise",
         "noise",
         "noise"
+      ],
+      "observed_actions": [
+        "none",
+        "none",
+        "none"
       ],
       "adjudicated": null
     }
