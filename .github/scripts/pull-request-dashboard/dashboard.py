@@ -188,6 +188,7 @@ from github_cli import (
 from classification import (
     DISCUSSION_RECENT_COMMENTS_LIMIT,
     classify_discussion_domains,
+    is_automation_command_comment,
     is_conflict_resolution_comment,
     normalize_discussion_action,
     prune_classification_cache,
@@ -729,6 +730,7 @@ def derive_top_level_items(
             and comment["timestamp"]
             and comment["actor_role"] in ("approver", "outsider")
             and comment["body"]
+            and not is_automation_command_comment(comment["body"])
             and not (
                 state != "CHANGES_REQUESTED"
                 and facts.get("conflicts") == "no"
