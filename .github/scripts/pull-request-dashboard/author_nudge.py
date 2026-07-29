@@ -44,7 +44,7 @@ def nudge_marker(episode_id: str) -> str:
     return f"{NUDGE_MARKER_PREFIX}{episode_id} -->"
 
 
-def routing_input_fingerprint(raw: dict[str, Any]) -> str:
+def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
     dashboard_login = f"{DASHBOARD_APP_SLUG}[bot]"
     pr = raw.get("pr") or raw
     labels = raw.get("labels")
@@ -77,18 +77,41 @@ def routing_input_fingerprint(raw: dict[str, Any]) -> str:
         "reviews": raw.get("reviews") or [],
         "review_threads": raw.get("review_threads") or [],
     }
+    return routing_inputs
+
+
+def _digest(value: Any) -> str:
     encoded = json.dumps(
-        routing_inputs,
+        value,
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
     return hashlib.sha256(encoded).hexdigest()
 
 
+def routing_input_fingerprint(raw: dict[str, Any]) -> str:
+    return _digest(routing_inputs(raw))
+
+
+def routing_input_component_digests(raw: dict[str, Any]) -> dict[str, str]:
+    return {
+        name: _digest(value)[:16]
+        for name, value in routing_inputs(raw).items()
+    }
+
+
 def fetch_current_pr_routing_state(
     repo: str,
     pr_number: int,
 ) -> tuple[dict[str, Any], str]:
+    pr, raw = fetch_current_pr_routing_inputs(repo, pr_number)
+    return pr, routing_input_fingerprint(raw)
+
+
+def fetch_current_pr_routing_inputs(
+    repo: str,
+    pr_number: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     owner, repo_name = repo.split("/", 1)
     with ThreadPoolExecutor() as pool:
         pr_future = pool.submit(gh_api, f"/repos/{repo}/pulls/{pr_number}")
@@ -129,7 +152,7 @@ def fetch_current_pr_routing_state(
         )
         reviews = reviews_future.result() or []
         check_rollup = check_rollup_future.result()
-        fingerprint = routing_input_fingerprint({
+        raw = {
             "checks": include_missing_required_checks(
                 None if check_rollup is None else check_rollup["required"],
                 required_contexts_future.result(),
@@ -140,8 +163,8 @@ def fetch_current_pr_routing_state(
             "review_comments": review_comments_future.result() or [],
             "reviews": reviews,
             "review_threads": review_threads_future.result() or [],
-        })
-        return pr, fingerprint
+        }
+        return pr, raw
 
 
 def plan_nudge(

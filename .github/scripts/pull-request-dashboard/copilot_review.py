@@ -7,7 +7,11 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from author_nudge import fetch_current_pr_routing_state
+from author_nudge import (
+    fetch_current_pr_routing_inputs,
+    routing_input_component_digests,
+    routing_input_fingerprint,
+)
 from github_cli import (
     fetch_pr_reviews,
     request_copilot_review,
@@ -106,6 +110,7 @@ def stale_request_reason(
     pr: dict[str, Any],
     current_head: str,
     current_routing_fingerprint: str,
+    raw: dict[str, Any],
 ) -> str:
     if pr.get("state") != "open":
         return f"pull request state is {pr.get('state')!r}"
@@ -119,9 +124,11 @@ def stale_request_reason(
     if not entry.get("routing_input_fingerprint"):
         return "no routing fingerprint was observed"
     if current_routing_fingerprint != entry["routing_input_fingerprint"]:
+        digests = routing_input_component_digests(raw)
         return (
             f"routing fingerprint is {current_routing_fingerprint} "
-            f"but {entry['routing_input_fingerprint']} was observed"
+            f"but {entry['routing_input_fingerprint']} was observed; "
+            f"components {digests}"
         )
     return ""
 
@@ -139,16 +146,18 @@ def deliver_copilot_review_requests(
             continue
         pr_number = int(key)
         try:
-            pr, current_routing_fingerprint = fetch_current_pr_routing_state(
+            pr, raw = fetch_current_pr_routing_inputs(
                 repo,
                 pr_number,
             )
+            current_routing_fingerprint = routing_input_fingerprint(raw)
             current_head = ((pr.get("head") or {}).get("sha") or "")
             stale_reason = stale_request_reason(
                 entry,
                 pr,
                 current_head,
                 current_routing_fingerprint,
+                raw,
             )
             if stale_reason:
                 print(
