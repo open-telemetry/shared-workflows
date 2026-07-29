@@ -1,10 +1,10 @@
-const assert = require("node:assert/strict");
-const test = require("node:test");
+import assert from "node:assert/strict";
+import test from "node:test";
 
-const {
+import {
   isAllowedAction,
   isDashboardSelfTriggeredCommentEvent,
-} = require("./netlify/functions/github-webhook");
+} from "./netlify/functions/github-webhook.mjs";
 
 const dashboardApp = { slug: "opentelemetry-pr-dashboard" };
 const dashboardActor = { id: 1 };
