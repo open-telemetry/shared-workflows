@@ -9737,18 +9737,18 @@
     },
     "49892": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "shubhgupta2104",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 10,
+        "ci_pending_count": 5,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": false,
+        "copilot_review_requested": true,
         "created_at": "2026-07-28T04:16:26+00:00",
         "dashboard_command_replies": [],
         "dashboard_override": false,
@@ -9761,18 +9761,27 @@
         "head_sha": "2e03e1315af40c6e9c0a7d4880469f248acfc93e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T05:35:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T19:11:17+00:00",
+        "last_approver_activity_at": "2026-07-29T19:11:17+00:00",
         "last_author_activity_at": "2026-07-28T05:35:43+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "c58f760f0e6ac9427b76d77c8167a1a49ee00bec05cfc4e6870fca8759b81da5",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "dc55991543f0ccaf8a6a978e7d6ef5c3ad720998f7ca596e64549f824cff7e61",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-28T05:35:43+00:00"
       },
       "failed": false,
       "pr_number": 49892,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49892",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49909": {
