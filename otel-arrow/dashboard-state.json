@@ -1796,11 +1796,14 @@
     },
     "3612": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "drewrelmas",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3612#discussion_r3678447731"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "3181ae0a70614f54904d89f649b4ff33",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1820,10 +1823,18 @@
         "head_sha": "ae28f5e6b8a3b2716ae6b2e0ead88b0f4310c721",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-29T21:56:48+00:00",
-        "last_approver_activity_at": "2026-07-29T21:56:48+00:00",
+        "last_activity_at": "2026-07-29T22:29:03+00:00",
+        "last_approver_activity_at": "2026-07-29T22:29:03+00:00",
         "last_author_activity_at": "2026-07-29T17:22:33+00:00",
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -1833,14 +1844,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "01dc967e279269f1ef22e0de3d3e17a4c75bc605315956a19169a896138db698",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-29T17:22:33+00:00"
+        "routing_input_fingerprint": "907f86fc483daa3e4d75c4b3ef34f82a66932e6fee464f468964cd983485bb58",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-29T22:28:37+00:00"
       },
       "failed": false,
       "pr_number": 3612,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3612",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "3615": {
