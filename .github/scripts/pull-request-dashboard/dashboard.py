@@ -112,7 +112,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   when checks could not be fetched.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
-    last_activity_at                str (iso)
+    last_activity_at                str (iso)     Latest substantive activity by a
+                                                  PR participant, never earlier
+                                                  than PR creation time.
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
 
@@ -241,6 +243,11 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:
     if low.startswith("app/") or low.endswith("[bot]"):
         return "bot"
     return "outsider"
+
+
+# `role_for` matches the PR's own author before it checks for bot-shaped logins,
+# so a bot-authored PR counts that bot's activity here.
+PARTICIPANT_ACTOR_ROLES = {"author", "approver", "outsider"}
 
 
 # Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
@@ -546,8 +553,15 @@ def compute_facts(
     pending = [c for c in checks or [] if c.get("bucket") == "pending"]
     failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
     failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
-    last_activity_ts = parse_ts(pr["updatedAt"])
     created_ts = parse_ts(pr["createdAt"])
+    # Not pr["updatedAt"]: the dashboard's own status comment bumps it, which
+    # would make every refresh look like new activity and retrigger itself.
+    activity_ts = latest_substantive_activity(events, PARTICIPANT_ACTOR_ROLES)
+    # Commits can carry author dates from before the PR was opened.
+    last_activity_ts = max(
+        [ts for ts in (activity_ts, created_ts) if ts is not None],
+        default=None,
+    )
     author_activity_ts = latest_substantive_activity(events, {"author"})
     approver_activity_ts = latest_substantive_activity(events, {"approver"})
     api_author = actor_login(pr.get("author") or {})
