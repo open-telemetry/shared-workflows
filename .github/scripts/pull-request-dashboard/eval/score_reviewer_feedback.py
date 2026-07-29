@@ -39,12 +39,7 @@ VOCABULARIES = {
     "reviewer_feedback": (
         "REVIEWER_FEEDBACK_PROMPT_TEMPLATE",
         ("verdict",),
-        {"substantive": "substantive", "noise": "noise"},
-    ),
-    "reviewer_feedback_confirm": (
-        "REVIEWER_FEEDBACK_CONFIRM_PROMPT_TEMPLATE",
-        ("verdict",),
-        {"other": "substantive", "confirmed": "noise"},
+        {"author_action": "substantive", "no_author_action": "noise"},
     ),
 }
 
