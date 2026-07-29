@@ -1553,13 +1553,15 @@
     },
     "3948": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3948#issuecomment-5113796388"
+        ],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
@@ -1577,18 +1579,27 @@
         "head_sha": "4887f549790e91ba635524dae1ed5ffce2056c80",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-29T04:34:03+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T05:58:15+00:00",
+        "last_approver_activity_at": "2026-07-29T05:58:15+00:00",
         "last_author_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "f07714f2bb0f02b283e22b3aa84588d32bc615ea46225e225f9ee2a77ba9d11f",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "62923e34eb7bfc5da62c16f5b3dcac1ad58d7655c24594a33879a72b2c8b260a",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-29T04:34:03+00:00"
       },
       "failed": false,
       "pr_number": 3948,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3948",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3949": {
