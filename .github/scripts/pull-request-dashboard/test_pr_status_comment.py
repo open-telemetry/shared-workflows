@@ -263,7 +263,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "Investigate required status check failures. "
-            "Note: CodeQL and workflow-notification are failing but are not required checks.",
+            "Note: CodeQL and workflow-notification are also failing but are not required checks.",
             body,
         )
 
@@ -284,7 +284,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "Note: \\[CodeQL\\] &lt;script&gt; &#64;maintainers and "
-            "pipe\\|slash\\\\check &amp; more are failing but are not required checks.",
+            "pipe\\|slash\\\\check &amp; more are also failing but are not required checks.",
             body,
         )
 
@@ -331,7 +331,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("**Waiting on reviewers** · refreshed ", body)
         self.assertIn(
-            "**Non-blocking check failure:** codecov/patch is failing but is not a required check.",
+            "**Non-blocking check failure:** codecov/patch",
             body,
         )
 
@@ -343,7 +343,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "Waiting on maintainers",
                 ["CodeQL"],
                 "1 required status check is failing.",
-                "**Non-blocking check failure:** CodeQL is failing but is not a required check.",
+                "**Non-blocking check failure:** CodeQL",
             ),
             (
                 "approver",
@@ -351,7 +351,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "Waiting on reviewers",
                 ["CodeQL", "workflow-notification"],
                 "2 required status checks are failing.",
-                "**Non-blocking check failures:** CodeQL and workflow-notification are failing but are not required checks.",
+                "**Non-blocking check failures:** CodeQL and workflow-notification",
             ),
         )
         for (
