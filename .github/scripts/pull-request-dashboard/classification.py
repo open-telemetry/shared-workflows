@@ -1157,9 +1157,10 @@ PRAISE_MAX_CHARS = 80
 
 def _could_be_praise(discussion: dict[str, Any]) -> bool:
     comments = discussion.get("comments") or []
-    if len(comments) != 1:
+    role = (discussion.get("discussion_facts") or {}).get("latest_comment_role")
+    if not comments or role in ("author", "bot"):
         return False
-    return len(" ".join((comments[0].get("body") or "").split())) <= PRAISE_MAX_CHARS
+    return len(" ".join((comments[-1].get("body") or "").split())) <= PRAISE_MAX_CHARS
 
 
 def _thread_record(record: dict[str, Any], actions: dict[str, str]) -> dict[str, Any]:
@@ -1174,7 +1175,7 @@ def praise_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
     comments = discussion.get("comments") or []
     return {
         "discussion_id": discussion["discussion_id"],
-        "body": comments[0].get("body") if comments else "",
+        "body": comments[-1].get("body") if comments else "",
     }
 
 
@@ -1212,19 +1213,36 @@ def classify_review_threads(
     cache_in: dict[str, dict[str, Any]],
     cache_out: dict[str, dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
-    # An unresolved thread whose last word is not the author's is the author's to
-    # answer, except for a lone short comment that only praises the change. A thread
-    # with earlier comments is never spared: praise at the end does not show that
-    # what came before it was settled.
+    # Praise never decides a thread. It is dropped, so routing falls back to
+    # whoever spoke before it, and a thread that is nothing but praise needs nobody.
+    praise = classify_praise(
+        number,
+        [d for d in discussions if _could_be_praise(d)],
+        model,
+        cache_in,
+        cache_out,
+    )
+    ignored = {
+        discussion_id
+        for discussion_id, record in praise.items()
+        if (record.get("decision") or {}).get("verdict") == "praise"
+    }
+
     classifications_by_id: dict[str, dict[str, Any]] = {}
     author_last: list[dict[str, Any]] = []
-    praise_candidates: list[dict[str, Any]] = []
     for discussion in discussions:
-        role = (discussion.get("discussion_facts") or {}).get("latest_comment_role")
-        if role == "author":
-            author_last.append(discussion)
-        elif role != "bot" and _could_be_praise(discussion):
-            praise_candidates.append(discussion)
+        comments = list(discussion.get("comments") or [])
+        dropped = discussion["discussion_id"] in ignored
+        if dropped:
+            comments.pop()
+        if dropped and not comments:
+            classifications_by_id[discussion["discussion_id"]] = classification_record(
+                discussion,
+                {"discussion_action": "none", "reason": "This thread is only praise."},
+                failed=False,
+            )
+        elif comments and comments[-1].get("actor_role") == "author":
+            author_last.append({**discussion, "comments": comments})
         else:
             classifications_by_id[discussion["discussion_id"]] = classification_record(
                 discussion,
@@ -1234,10 +1252,6 @@ def classify_review_threads(
                 },
                 failed=False,
             )
-    for discussion_id, record in classify_praise(
-        number, praise_candidates, model, cache_in, cache_out
-    ).items():
-        classifications_by_id[discussion_id] = _thread_record(record, PRAISE_ACTIONS)
     replies = classify_author_replies(
         number,
         author_last,

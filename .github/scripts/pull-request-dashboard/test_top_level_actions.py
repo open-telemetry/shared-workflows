@@ -21,6 +21,7 @@ from dashboard import (
 )
 from classification import (
     classify_discussion_domains,
+    PRAISE_VERDICTS,
     classify_review_threads,
     discussion_prompt,
     parse_discussion_decision,
@@ -181,37 +182,65 @@ def classify_feedback_domains(
 
 
 class ReviewThreadPraiseTest(unittest.TestCase):
-    def thread(self, *bodies: str) -> dict:
+    def thread(self, *comments: tuple[str, str]) -> dict:
         return {
             "discussion_id": "t",
             "discussion_kind": "review-comment-thread",
-            "discussion_facts": {"latest_comment_role": "reviewer"},
-            "comments": [{"actor_role": "reviewer", "body": body} for body in bodies],
+            "discussion_facts": {"latest_comment_role": comments[-1][0]},
+            "comments": [{"actor_role": role, "body": body} for role, body in comments],
         }
 
-    @patch("classification.run_llm_for_verdict_batch")
-    def test_a_lone_comment_is_spared_only_when_it_is_praise(self, run_verdict) -> None:
-        for verdict, expected in (("praise", "none"), ("not_praise", "author")):
-            with self.subTest(verdict=verdict):
-                run_verdict.side_effect = lambda items, _m, _p, _v, answer=verdict: [
-                    {
-                        "discussion_id": item["discussion_id"],
-                        "discussion_kind": "review-comment-thread",
-                        "failed": False,
-                        "decision": {"verdict": answer, "reason": "because"},
-                    }
-                    for item in items
-                ]
+    def answering(self, praise: str, reply: str = "complete"):
+        def batch(items, _model, _prompt, verdicts):
+            answer = praise if verdicts == PRAISE_VERDICTS else reply
+            return [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "discussion_kind": "review-comment-thread",
+                    "failed": False,
+                    "decision": {"verdict": answer, "reason": "because"},
+                }
+                for item in items
+            ]
 
-                records = classify_review_threads(1, [self.thread("LGTM")], "model", {}, {})
-
-                self.assertEqual(records["t"]["decision"]["discussion_action"], expected)
+        return batch
 
     @patch("classification.run_llm_for_verdict_batch")
-    def test_a_thread_with_earlier_comments_is_never_spared(self, run_verdict) -> None:
-        records = classify_review_threads(1, [self.thread("please fix", "LGTM")], "model", {}, {})
+    def test_a_thread_of_nothing_but_praise_needs_nobody(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("praise")
 
-        run_verdict.assert_not_called()
+        records = classify_review_threads(1, [self.thread(("reviewer", "LGTM"))], "model", {}, {})
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "none")
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_praise_falls_back_to_the_comment_before_it(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("praise")
+
+        records = classify_review_threads(
+            1, [self.thread(("reviewer", "please fix"), ("reviewer", "LGTM"))], "model", {}, {}
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_praise_after_an_author_reply_hands_the_thread_back(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("praise", reply="complete")
+
+        records = classify_review_threads(
+            1, [self.thread(("author", "fixed it"), ("reviewer", "LGTM"))], "model", {}, {}
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "reviewer")
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_comment_that_is_not_praise_stays_the_authors(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("not_praise")
+
+        records = classify_review_threads(
+            1, [self.thread(("author", "fixed it"), ("reviewer", "one more thing"))], "model", {}, {}
+        )
+
         self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
 
 
