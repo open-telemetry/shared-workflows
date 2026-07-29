@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -51,6 +52,11 @@ class EvalFixtureTest(unittest.TestCase):
                 for field in ("id", "requester", "pr_author", "body"):
                     self.assertIsInstance(case[field], str)
                     self.assertTrue(case[field].strip(), f"{field} is empty")
+
+    def test_the_note_only_names_fields_a_case_really_has(self) -> None:
+        """The note instructs humans, so a stale field name there silently misfiles work."""
+        for name in re.findall(r"`([^`]+)`", self.data["note"]):
+            self.assertIn(name, self.cases[0], f"the note tells a human to use `{name}`")
 
     def test_labels_are_known(self) -> None:
         for case in self.cases:

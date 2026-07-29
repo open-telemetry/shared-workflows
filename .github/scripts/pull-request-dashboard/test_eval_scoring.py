@@ -51,7 +51,7 @@ class SummarizeTest(unittest.TestCase):
         self.assertEqual(1, len(summary["drift"]))
         self.assertEqual("author_action", summary["drift"][0]["got"])
 
-    def test_disagreement_between_trials_is_flaky(self) -> None:
+    def test_disagreement_between_trials_is_inconsistent(self) -> None:
         summary = summarize(
             [case("a")], [{"a": "no_author_action"}, {"a": "author_action"}, {"a": "no_author_action"}]
         )
@@ -99,14 +99,14 @@ class SummarizeTest(unittest.TestCase):
         self.assertEqual(1, len(summary["scored"]))
         self.assertEqual(0, summary["correct"])
 
-    def test_flaky_is_reported_for_a_case_recorded_as_flaky(self) -> None:
+    def test_a_case_recorded_as_flaky_can_still_be_inconsistent(self) -> None:
         cases = [case("a", stability="flaky", label=None)]
         summary = summarize(
             cases, [{"a": "no_author_action"}, {"a": "author_action"}, {"a": "no_author_action"}]
         )
 
         self.assertEqual(1, len(summary["inconsistent"]))
-        # A case with no baseline can never drift.
+        # A case with no recorded label can never drift.
         self.assertEqual([], summary["drift"])
 
     def test_unsettled_stable_cases_shrink_the_drift_denominator(self) -> None:
