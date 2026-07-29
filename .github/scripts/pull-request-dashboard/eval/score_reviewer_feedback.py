@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -73,14 +74,26 @@ def classify(cases: list[dict], template: str, field: str, mapping: dict, model:
         prompt = classification.render_top_level_batch_prompt(
             batch, template, [dict(item) for item in batch]
         )
-        proc = classification.run_copilot(prompt, model)
+        # A batch that times out or answers unusably is unanswered, not fatal: one
+        # bad response should not discard an evaluation of several hundred calls.
+        try:
+            proc = classification.run_copilot(prompt, model)
+        except subprocess.TimeoutExpired:
+            return {}
+        if proc.returncode != 0:
+            return {}
         parsed = classification.extract_json_object(proc.stdout) or {}
+        items = parsed.get("items")
+        if not isinstance(items, list):
+            return {}
         out: dict[str, str] = {}
-        for entry in parsed.get("items") or []:
-            verdict = str(entry.get(field) or "").strip().lower()
-            label = mapping.get(verdict)
-            if entry.get("discussion_id") and label:
-                out[entry["discussion_id"]] = label
+        for entry in items:
+            if not isinstance(entry, dict):
+                continue
+            label = mapping.get(str(entry.get(field) or "").strip().lower())
+            discussion_id = entry.get("discussion_id")
+            if isinstance(discussion_id, str) and label:
+                out[discussion_id] = label
         return out
 
     observed: dict[str, str] = {}
