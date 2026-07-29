@@ -1037,6 +1037,8 @@ def classify_review_threads(
 
     classifications_by_id: dict[str, dict[str, Any]] = dict(failed_praise)
     author_last: list[dict[str, Any]] = []
+    # ignoring praise moves the deciding comment, and the wait age has to follow it
+    since_by_id: dict[str, str] = {}
     for discussion in discussions:
         if discussion["discussion_id"] in failed_praise:
             continue
@@ -1044,6 +1046,8 @@ def classify_review_threads(
         dropped = discussion["discussion_id"] in ignored
         if dropped:
             comments.pop()
+        if comments:
+            since_by_id[discussion["discussion_id"]] = comments[-1].get("timestamp") or ""
         if dropped and not comments:
             classifications_by_id[discussion["discussion_id"]] = classification_record(
                 discussion,
@@ -1071,6 +1075,9 @@ def classify_review_threads(
     )
     for discussion_id, record in replies.items():
         classifications_by_id[discussion_id] = _thread_record(record, REVIEW_THREAD_REPLY_ACTIONS)
+    for discussion_id, since in since_by_id.items():
+        if since and discussion_id in classifications_by_id:
+            classifications_by_id[discussion_id]["since"] = since
     return classifications_by_id
 
 

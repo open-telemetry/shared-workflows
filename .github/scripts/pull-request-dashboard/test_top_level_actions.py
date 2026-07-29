@@ -206,6 +206,55 @@ class VerdictBatchErrorTest(unittest.TestCase):
         self.assertIn("did not return a valid verdict", record["error"])
 
 
+class IgnoredPraiseWaitAgeTest(unittest.TestCase):
+    """Praise must not reset the age of the request it was posted after."""
+
+    def thread(self, *comments: tuple[str, str, str]) -> dict:
+        return {
+            "discussion_id": "t",
+            "discussion_kind": "review-comment-thread",
+            "discussion_facts": {"latest_comment_role": comments[-1][0]},
+            "comments": [
+                {"actor_role": role, "body": body, "timestamp": stamp}
+                for role, body, stamp in comments
+            ],
+        }
+
+    def waiting_since(self, thread: dict, reply: str) -> str:
+        def batch(items, _model, _prompt, verdicts):
+            answer = "praise" if verdicts == PRAISE_VERDICTS else reply
+            return [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "discussion_kind": "review-comment-thread",
+                    "failed": False,
+                    "decision": {"verdict": answer, "reason": "because"},
+                }
+                for item in items
+            ]
+
+        with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
+            records = classify_review_threads(1, [thread], "model", {}, {})
+        pending = build_review_thread_pending_actions([thread], list(records.values()))
+        return pending["t"]["since"]
+
+    def test_praise_after_a_reviewer_request_keeps_the_request_date(self) -> None:
+        thread = self.thread(
+            ("reviewer", "please fix", "2026-03-12T00:00:00Z"),
+            ("reviewer", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+
+        self.assertEqual("2026-03-12T00:00:00Z", self.waiting_since(thread, "complete"))
+
+    def test_praise_after_an_author_reply_keeps_the_reply_date(self) -> None:
+        thread = self.thread(
+            ("author", "fixed it", "2026-03-12T00:00:00Z"),
+            ("reviewer", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+
+        self.assertEqual("2026-03-12T00:00:00Z", self.waiting_since(thread, "complete"))
+
+
 class ReviewThreadPraiseTest(unittest.TestCase):
     def thread(self, *comments: tuple[str, str]) -> dict:
         return {

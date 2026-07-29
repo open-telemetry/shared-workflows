@@ -1021,7 +1021,7 @@ def build_review_thread_pending_actions(
         if action != "none" and comments:
             pending_actions[classification["discussion_id"]] = {
                 "action": pending_action_for(action),
-                "since": comments[-1].get("timestamp") or "",
+                "since": classification.get("since") or comments[-1].get("timestamp") or "",
             }
     return pending_actions
 
