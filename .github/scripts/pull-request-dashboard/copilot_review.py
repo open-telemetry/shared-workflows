@@ -4,9 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+import sys
 from typing import Any
 
-from author_nudge import fetch_current_pr_routing_state
+from author_nudge import (
+    fetch_current_pr_routing_inputs,
+    routing_input_component_digests,
+    routing_input_fingerprint,
+)
 from github_cli import (
     fetch_pr_reviews,
     request_copilot_review,
@@ -100,6 +105,34 @@ def record_copilot_review_observation(
     save_copilot_review_requests(requests)
 
 
+def stale_request_reason(
+    entry: dict[str, Any],
+    pr: dict[str, Any],
+    current_head: str,
+    current_routing_fingerprint: str,
+    raw: dict[str, Any],
+) -> str:
+    if pr.get("state") != "OPEN":
+        return f"pull request state is {pr.get('state')!r}"
+    if pr.get("isDraft"):
+        return "pull request is a draft"
+    if current_head != entry.get("head_sha"):
+        return (
+            f"head is {current_head or '(missing)'} "
+            f"but {entry.get('head_sha') or '(missing)'} was observed"
+        )
+    if not entry.get("routing_input_fingerprint"):
+        return "no routing fingerprint was observed"
+    if current_routing_fingerprint != entry["routing_input_fingerprint"]:
+        digests = routing_input_component_digests(raw)
+        return (
+            f"routing fingerprint is {current_routing_fingerprint} "
+            f"but {entry['routing_input_fingerprint']} was observed; "
+            f"components {digests}"
+        )
+    return ""
+
+
 def deliver_copilot_review_requests(
     repo: str,
     now: datetime,
@@ -113,24 +146,30 @@ def deliver_copilot_review_requests(
             continue
         pr_number = int(key)
         try:
-            pr, current_routing_fingerprint = fetch_current_pr_routing_state(
+            pr, raw = fetch_current_pr_routing_inputs(
                 repo,
                 pr_number,
             )
-            current_head = ((pr.get("head") or {}).get("sha") or "")
-            if (
-                pr.get("state") != "open"
-                or pr.get("draft")
-                or current_head != entry.get("head_sha")
-                or not entry.get("routing_input_fingerprint")
-                or current_routing_fingerprint
-                != entry.get("routing_input_fingerprint")
-            ):
+            current_routing_fingerprint = routing_input_fingerprint(raw)
+            current_head = pr.get("headRefOid") or ""
+            stale_reason = stale_request_reason(
+                entry,
+                pr,
+                current_head,
+                current_routing_fingerprint,
+                raw,
+            )
+            if stale_reason:
+                print(
+                    f"discarding Copilot review request for PR #{pr_number}: "
+                    f"{stale_reason}",
+                    file=sys.stderr,
+                )
                 requests.pop(key, None)
                 continue
             if any(
                 is_copilot_reviewer(request)
-                for request in (pr.get("requested_reviewers") or [])
+                for request in (raw.get("review_requests") or [])
             ):
                 requests[key] = {**entry, "requested_at": format_ts(now)}
                 continue
@@ -140,9 +179,15 @@ def deliver_copilot_review_requests(
                 current_head,
             )
             if not review_exists or not review_needed:
+                print(
+                    f"discarding Copilot review request for PR #{pr_number}: "
+                    f"Copilot review exists={review_exists} "
+                    f"needed={review_needed} for head {current_head}",
+                    file=sys.stderr,
+                )
                 requests.pop(key, None)
                 continue
-            pull_request_id = pr.get("node_id") or ""
+            pull_request_id = pr.get("id") or ""
             if not pull_request_id:
                 raise RuntimeError(f"GitHub did not return a node ID for PR #{pr_number}")
             request_copilot_review(pull_request_id)

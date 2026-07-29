@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 import hashlib
 import json
@@ -12,13 +11,8 @@ import sys
 from typing import Any
 
 from github_cli import (
-    fetch_pr_issue_comments,
-    fetch_pr_reviews,
-    fetch_review_threads,
+    fetch_pr_routing_raw,
     gh_api,
-    gh_pr_check_rollup,
-    gh_required_check_contexts,
-    include_missing_required_checks,
     run_gh,
 )
 from dashboard_override import author_override_guidance
@@ -44,28 +38,21 @@ def nudge_marker(episode_id: str) -> str:
     return f"{NUDGE_MARKER_PREFIX}{episode_id} -->"
 
 
-def routing_input_fingerprint(raw: dict[str, Any]) -> str:
+def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
     dashboard_login = f"{DASHBOARD_APP_SLUG}[bot]"
-    pr = raw.get("pr") or raw
-    labels = raw.get("labels")
-    if labels is None:
-        labels = pr.get("labels") or []
+    pr = raw.get("pr") or {}
     issue_comments = [
         comment
         for comment in raw.get("issue_comments") or []
         if (comment.get("user") or {}).get("login") != dashboard_login
     ]
     routing_inputs = {
-        "base_branch": str(
-            pr.get("baseRefName")
-            or (pr.get("base") or {}).get("ref")
-            or ""
-        ),
+        "base_branch": str(pr.get("baseRefName") or ""),
         "checks": raw.get("checks"),
         "issue_comments": issue_comments,
         "labels": sorted(
             label.get("name") or ""
-            for label in labels
+            for label in pr.get("labels") or []
             if isinstance(label, dict)
             and label.get("name") == DASHBOARD_OVERRIDE_LABEL
         ),
@@ -77,71 +64,44 @@ def routing_input_fingerprint(raw: dict[str, Any]) -> str:
         "reviews": raw.get("reviews") or [],
         "review_threads": raw.get("review_threads") or [],
     }
+    return routing_inputs
+
+
+def _digest(value: Any) -> str:
     encoded = json.dumps(
-        routing_inputs,
+        value,
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
     return hashlib.sha256(encoded).hexdigest()
 
 
+def routing_input_fingerprint(raw: dict[str, Any]) -> str:
+    return _digest(routing_inputs(raw))
+
+
+def routing_input_component_digests(raw: dict[str, Any]) -> dict[str, str]:
+    return {
+        name: _digest(value)[:16]
+        for name, value in routing_inputs(raw).items()
+    }
+
+
 def fetch_current_pr_routing_state(
     repo: str,
     pr_number: int,
 ) -> tuple[dict[str, Any], str]:
+    pr, raw = fetch_current_pr_routing_inputs(repo, pr_number)
+    return pr, routing_input_fingerprint(raw)
+
+
+def fetch_current_pr_routing_inputs(
+    repo: str,
+    pr_number: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     owner, repo_name = repo.split("/", 1)
-    with ThreadPoolExecutor() as pool:
-        pr_future = pool.submit(gh_api, f"/repos/{repo}/pulls/{pr_number}")
-        issue_comments_future = pool.submit(
-            fetch_pr_issue_comments,
-            owner,
-            repo_name,
-            pr_number,
-        )
-        review_comments_future = pool.submit(
-            gh_api,
-            f"/repos/{repo}/pulls/{pr_number}/comments?per_page=100",
-            True,
-        )
-        reviews_future = pool.submit(
-            fetch_pr_reviews,
-            owner,
-            repo_name,
-            pr_number,
-        )
-        review_threads_future = pool.submit(
-            fetch_review_threads,
-            owner,
-            repo_name,
-            pr_number,
-        )
-        pr = pr_future.result() or {}
-        check_rollup_future = pool.submit(
-            gh_pr_check_rollup,
-            repo,
-            pr.get("node_id") or "",
-            [],
-        )
-        required_contexts_future = pool.submit(
-            gh_required_check_contexts,
-            repo,
-            ((pr.get("base") or {}).get("ref") or ""),
-        )
-        reviews = reviews_future.result() or []
-        check_rollup = check_rollup_future.result()
-        fingerprint = routing_input_fingerprint({
-            "checks": include_missing_required_checks(
-                None if check_rollup is None else check_rollup["required"],
-                required_contexts_future.result(),
-            ),
-            "issue_comments": issue_comments_future.result() or [],
-            "labels": pr.get("labels") or [],
-            "pr": pr,
-            "review_comments": review_comments_future.result() or [],
-            "reviews": reviews,
-            "review_threads": review_threads_future.result() or [],
-        })
-        return pr, fingerprint
+    raw = fetch_pr_routing_raw(repo, owner, repo_name, pr_number)
+    return raw["pr"], raw
 
 
 def plan_nudge(
@@ -306,8 +266,8 @@ def deliver_prepared_author_nudges(
             )
             expected_head = entry.get("head_sha") or ""
             expected_routing_fingerprint = entry.get("routing_input_fingerprint") or ""
-            current_head = ((pr.get("head") or {}).get("sha") or "")
-            if pr.get("state") != "open" or pr.get("draft"):
+            current_head = pr.get("headRefOid") or ""
+            if pr.get("state") != "OPEN" or pr.get("isDraft"):
                 updated.pop(key, None)
                 continue
             if (

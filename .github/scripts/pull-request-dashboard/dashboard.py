@@ -172,14 +172,8 @@ from typing import Any, TypedDict
 from github_cli import (
     TransientGhError,
     detect_repo,
-    fetch_pr_issue_comments,
-    fetch_pr_reviews,
-    fetch_review_threads,
+    fetch_pr_routing_raw,
     gh_api,
-    gh_pr_check_rollup,
-    gh_pr_view,
-    gh_required_check_contexts,
-    include_missing_required_checks,
     list_open_prs,
     load_reviewer_set,
     normalize_repo,
@@ -294,51 +288,22 @@ def fetch_pr_raw(
 ) -> dict[str, Any]:
     number = pr_summary["number"]
     with ThreadPoolExecutor() as pool:
-        f_pr = pool.submit(gh_pr_view, repo, number)
-        f_issue_comments = pool.submit(
-            fetch_pr_issue_comments,
-            owner,
-            repo_name,
-            number,
-        )
-        f_revcom = pool.submit(
-            gh_api,
-            f"/repos/{owner}/{repo_name}/pulls/{number}/comments?per_page=100",
-            True,
-        )
         f_commits = pool.submit(
             gh_api,
             f"/repos/{owner}/{repo_name}/pulls/{number}/commits?per_page=100",
             True,
         )
-        f_threads = pool.submit(fetch_review_threads, owner, repo_name, number)
-        f_reviews = pool.submit(fetch_pr_reviews, owner, repo_name, number)
-        pr = f_pr.result()
-        f_checks = pool.submit(
-            gh_pr_check_rollup,
+        raw = fetch_pr_routing_raw(
             repo,
-            pr["id"],
+            owner,
+            repo_name,
+            number,
             non_blocking_check_patterns,
         )
-        f_required_contexts = pool.submit(
-            gh_required_check_contexts, repo, pr["baseRefName"]
-        )
-        check_rollup = f_checks.result()
         return {
+            **raw,
             "summary": pr_summary,
-            "pr": pr,
-            "issue_comments": f_issue_comments.result() or [],
-            "review_comments": f_revcom.result() or [],
-            "reviews": f_reviews.result() or [],
             "commits": f_commits.result() or [],
-            "checks": include_missing_required_checks(
-                None if check_rollup is None else check_rollup["required"],
-                f_required_contexts.result(),
-            ),
-            "non_blocking_check_failures": (
-                [] if check_rollup is None else check_rollup["non_blocking_failures"]
-            ),
-            "review_threads": f_threads.result() or [],
         }
 
 
@@ -589,7 +554,7 @@ def compute_facts(
         **dashboard_override_facts(raw, author, labels, reviewers or set()),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
-            for request in (pr.get("reviewRequests") or [])
+            for request in (raw.get("review_requests") or [])
         ),
         "copilot_review_exists": copilot_review_exists,
         "copilot_review_needed": copilot_review_needed,

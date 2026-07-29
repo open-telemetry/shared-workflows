@@ -143,25 +143,27 @@ class FetchPrRawTest(unittest.TestCase):
 
         with (
             patch(
-                "dashboard.gh_pr_view",
+                "github_cli.gh_pr_view",
                 return_value={"id": "PR_node", "baseRefName": "main"},
             ),
             patch(
-                "dashboard.fetch_pr_issue_comments",
+                "github_cli.fetch_pr_issue_comments",
                 return_value=issue_comments,
             ) as fetch_issue_comments,
-            patch("dashboard.gh_api", side_effect=gh_api) as rest_api,
-            patch("dashboard.fetch_review_threads", return_value=[]),
+            patch("github_cli.gh_api", side_effect=gh_api) as routing_rest_api,
+            patch("dashboard.gh_api", side_effect=gh_api) as commits_rest_api,
+            patch("github_cli.fetch_review_threads", return_value=[]),
+            patch("github_cli.fetch_review_requests", return_value=[]),
             patch(
-                "dashboard.fetch_pr_reviews",
+                "github_cli.fetch_pr_reviews",
                 return_value=[],
             ),
             patch(
-                "dashboard.gh_pr_check_rollup",
+                "github_cli.gh_pr_check_rollup",
                 return_value={"required": [], "non_blocking_failures": []},
             ),
-            patch("dashboard.gh_required_check_contexts", return_value=[]),
-            patch("dashboard.include_missing_required_checks", return_value=[]),
+            patch("github_cli.gh_required_check_contexts", return_value=[]),
+            patch("github_cli.include_missing_required_checks", return_value=[]),
         ):
             raw = fetch_pr_raw(
                 "owner/repo",
@@ -173,9 +175,14 @@ class FetchPrRawTest(unittest.TestCase):
 
         self.assertEqual(raw["issue_comments"], issue_comments)
         fetch_issue_comments.assert_called_once_with("owner", "repo", 7)
-        self.assertEqual(rest_api.call_count, 2)
         self.assertEqual(
-            {call.args[0] for call in rest_api.call_args_list},
+            {
+                call.args[0]
+                for call in [
+                    *routing_rest_api.call_args_list,
+                    *commits_rest_api.call_args_list,
+                ]
+            },
             set(rest_payloads),
         )
 
@@ -288,13 +295,16 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "createdAt": "2026-07-20T01:00:00Z",
                     "author": {"login": "author"},
                     "assignees": [],
-                    "reviewRequests": [
-                        {"login": "copilot-pull-request-reviewer"},
-                    ],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
                     "headRefOid": "current-head",
                 },
+                "review_requests": [
+                    {
+                        "__typename": "Bot",
+                        "login": "copilot-pull-request-reviewer",
+                    },
+                ],
                 "reviews": [
                     {
                         "id": 10,
@@ -333,7 +343,6 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "createdAt": "2026-07-20T01:00:00Z",
                     "author": {"login": "author"},
                     "assignees": [],
-                    "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
                     "headRefOid": "current-head",
@@ -372,7 +381,6 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "createdAt": "2026-07-20T01:00:00Z",
                     "author": {"login": "author"},
                     "assignees": [],
-                    "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
                     "headRefOid": "current-head",
@@ -405,7 +413,6 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "createdAt": "2026-07-20T01:00:00Z",
                     "author": {"login": "author"},
                     "assignees": [],
-                    "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
                     "headRefOid": "current-head",
@@ -444,7 +451,6 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "createdAt": "2026-07-20T01:00:00Z",
                     "author": {"login": "author"},
                     "assignees": [],
-                    "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
                     "headRefOid": "current-head",
@@ -476,7 +482,6 @@ class CopilotReviewGateTest(unittest.TestCase):
                     "createdAt": "2026-07-20T01:00:00Z",
                     "author": {"login": "author"},
                     "assignees": [],
-                    "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
                 },
@@ -608,7 +613,6 @@ class HeadShaSourceTest(unittest.TestCase):
                     "createdAt": "2026-07-20T01:00:00Z",
                     "author": {"login": "author"},
                     "assignees": [],
-                    "reviewRequests": [],
                     "mergeStateStatus": "CLEAN",
                     "mergeable": "MERGEABLE",
                     "headRefOid": "real-head",

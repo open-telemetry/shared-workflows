@@ -206,6 +206,10 @@ jobs:
           permission-checks: read
           permission-contents: read
           permission-issues: write
+          # Without members access the API reports org members as CONTRIBUTOR
+          # instead of MEMBER, so routing fingerprints would never match the
+          # ones recorded by update-dashboard.
+          permission-members: read
           permission-pull-requests: write
 
       - name: Deliver dashboard updates

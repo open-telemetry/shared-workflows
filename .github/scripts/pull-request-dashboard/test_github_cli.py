@@ -7,6 +7,7 @@ from github_cli import (
     TransientGhError,
     fetch_pr_issue_comments,
     fetch_pr_reviews,
+    fetch_review_requests,
     gh_pr_check_rollup,
     gh_pr_checks,
     gh_pr_view,
@@ -16,6 +17,88 @@ from github_cli import (
     list_open_prs,
     request_copilot_review,
 )
+
+
+def _review_requests_page(nodes, has_next=False, cursor=""):
+    return {
+        "data": {
+            "repository": {
+                "pullRequest": {
+                    "reviewRequests": {
+                        "pageInfo": {
+                            "hasNextPage": has_next,
+                            "endCursor": cursor,
+                        },
+                        "nodes": nodes,
+                    }
+                }
+            }
+        }
+    }
+
+
+class FetchReviewRequestsTest(unittest.TestCase):
+    def test_returns_bot_reviewers_that_gh_pr_view_omits(self) -> None:
+        # `gh pr view --json reviewRequests` exports only User and Team nodes,
+        # so a pending Copilot request is invisible through that adapter.
+        page = _review_requests_page([
+            {"requestedReviewer": {"__typename": "Team", "slug": "approvers"}},
+            {"requestedReviewer": {"__typename": "User", "login": "adrielp"}},
+            {
+                "requestedReviewer": {
+                    "__typename": "Bot",
+                    "login": "copilot-pull-request-reviewer",
+                }
+            },
+        ])
+
+        with patch("github_cli.gh_graphql", return_value=page) as gh_graphql:
+            reviewers = fetch_review_requests("open-telemetry", "example", 7)
+
+        self.assertIn(
+            {
+                "__typename": "Bot",
+                "login": "copilot-pull-request-reviewer",
+            },
+            reviewers,
+        )
+        # A Bot login is only returned when the query asks for it explicitly.
+        self.assertIn("... on Bot", gh_graphql.call_args.args[0])
+
+    def test_skips_reviewers_the_caller_cannot_see(self) -> None:
+        page = _review_requests_page([
+            {"requestedReviewer": None},
+            {"requestedReviewer": {"__typename": "User", "login": "adrielp"}},
+        ])
+
+        with patch("github_cli.gh_graphql", return_value=page):
+            reviewers = fetch_review_requests("open-telemetry", "example", 7)
+
+        self.assertEqual(
+            [{"__typename": "User", "login": "adrielp"}],
+            reviewers,
+        )
+
+    def test_follows_pagination(self) -> None:
+        pages = [
+            _review_requests_page(
+                [{"requestedReviewer": {"__typename": "User", "login": "first"}}],
+                has_next=True,
+                cursor="cursor-1",
+            ),
+            _review_requests_page(
+                [{"requestedReviewer": {"__typename": "User", "login": "second"}}],
+            ),
+        ]
+
+        with patch("github_cli.gh_graphql", side_effect=pages) as gh_graphql:
+            reviewers = fetch_review_requests("open-telemetry", "example", 7)
+
+        self.assertEqual(["first", "second"], [r["login"] for r in reviewers])
+        self.assertEqual(
+            "cursor-1",
+            gh_graphql.call_args_list[1].args[1]["after"],
+        )
 
 
 class GithubCliTest(unittest.TestCase):

@@ -27,7 +27,6 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         raw = {
             "checks": [],
             "issue_comments": [],
-            "labels": [],
             "review_comments": [],
             "reviews": [],
             "review_threads": [],
@@ -102,60 +101,51 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         self.assertNotEqual(baseline, title_updated)
         self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
 
-    def test_routing_fingerprint_normalizes_and_tracks_base_branch(self) -> None:
-        accepted = {
-            "pr": {"baseRefName": "main"},
-        }
-        live = {
-            "pr": {"base": {"ref": "main"}},
-        }
+    def test_routing_fingerprint_tracks_base_branch(self) -> None:
+        raw = {"pr": {"baseRefName": "main"}}
+        baseline = author_nudge.routing_input_fingerprint(raw)
 
-        self.assertEqual(
-            author_nudge.routing_input_fingerprint(accepted),
-            author_nudge.routing_input_fingerprint(live),
-        )
-        live["pr"]["base"]["ref"] = "release"
-        self.assertNotEqual(
-            author_nudge.routing_input_fingerprint(accepted),
-            author_nudge.routing_input_fingerprint(live),
-        )
+        raw["pr"]["baseRefName"] = "release"
 
-    @patch.object(author_nudge, "gh_required_check_contexts", return_value=[])
-    @patch.object(
-        author_nudge,
-        "gh_pr_check_rollup",
+        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
+    @patch("github_cli.gh_required_check_contexts", return_value=[])
+    @patch(
+        "github_cli.gh_pr_check_rollup",
         return_value={
             "required": [{"name": "build", "bucket": "fail"}],
             "non_blocking_failures": [],
         },
     )
-    @patch.object(author_nudge, "fetch_review_threads", return_value=[])
-    @patch.object(author_nudge, "fetch_pr_reviews", return_value=[])
-    @patch.object(author_nudge, "fetch_pr_issue_comments", return_value=[])
-    @patch.object(author_nudge, "gh_api")
+    @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
+    @patch("github_cli.fetch_pr_reviews", return_value=[])
+    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
+    @patch("github_cli.gh_api", return_value=[])
+    @patch("github_cli.gh_pr_view")
     def test_fetch_current_routing_state_includes_required_checks(
         self,
-        gh_api,
+        gh_pr_view,
+        _gh_api,
         _fetch_issue_comments,
         _fetch_review_data,
+        _fetch_review_requests,
         _fetch_review_threads,
         gh_pr_check_rollup,
         gh_required_check_contexts,
     ) -> None:
         pr = {
-            "node_id": "PR_node",
-            "base": {"ref": "main"},
+            "id": "PR_node",
+            "baseRefName": "main",
             "body": "Current body",
-            "head": {"sha": "current-head"},
+            "headRefOid": "current-head",
             "labels": [
                 {"name": "needs-triage"},
                 {"name": "dashboard:route-overridden"},
             ],
             "title": "Current title",
         }
-        gh_api.side_effect = lambda path, paginate=False: (
-            pr if path.endswith("/pulls/1") else []
-        )
+        gh_pr_view.return_value = pr
 
         current_pr, fingerprint = author_nudge.fetch_current_pr_routing_state(
             "open-telemetry/example",
@@ -167,10 +157,6 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             author_nudge.routing_input_fingerprint({
                 "checks": [{"name": "build", "bucket": "fail"}],
                 "issue_comments": [],
-                "labels": [
-                    {"name": "needs-triage"},
-                    {"name": "dashboard:route-overridden"},
-                ],
                 "pr": pr,
                 "review_comments": [],
                 "reviews": [],
@@ -362,9 +348,9 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         author_nudge,
         "fetch_current_pr_routing_state",
         return_value=({
-            "state": "open",
-            "draft": False,
-            "head": {"sha": "current-head"},
+            "state": "OPEN",
+            "isDraft": False,
+            "headRefOid": "current-head",
         }, "current-fingerprint"),
     )
     def test_delivery_records_posted_nudge(
@@ -414,9 +400,9 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         author_nudge,
         "fetch_current_pr_routing_state",
         return_value=({
-            "state": "open",
-            "draft": False,
-            "head": {"sha": "new-head"},
+            "state": "OPEN",
+            "isDraft": False,
+            "headRefOid": "new-head",
         }, "current-fingerprint"),
     )
     def test_delivery_defers_when_head_advanced(
@@ -465,9 +451,9 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         author_nudge,
         "fetch_current_pr_routing_state",
         return_value=({
-            "state": "open",
-            "draft": False,
-            "head": {"sha": "current-head"},
+            "state": "OPEN",
+            "isDraft": False,
+            "headRefOid": "current-head",
         }, "new-fingerprint"),
     )
     def test_delivery_defers_when_routing_inputs_changed(
@@ -502,7 +488,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "routing_input_fingerprint": "current-fingerprint",
             }
         }
-        for state, draft in (("closed", False), ("open", True)):
+        for state, draft in (("CLOSED", False), ("OPEN", True)):
             with (
                 self.subTest(state=state, draft=draft),
                 patch.object(author_nudge, "load_author_nudges", return_value=pending),
@@ -517,8 +503,8 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                     "fetch_current_pr_routing_state",
                     return_value=({
                         "state": state,
-                        "draft": draft,
-                        "head": {"sha": "current-head"},
+                        "isDraft": draft,
+                        "headRefOid": "current-head",
                     }, "current-fingerprint"),
                 ),
                 patch.object(author_nudge, "ensure_nudge") as ensure_nudge,
