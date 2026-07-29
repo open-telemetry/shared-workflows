@@ -222,7 +222,14 @@ class NormalizeEventsCommandTest(unittest.TestCase):
                 }],
             })
 
-        for body in ("/workflow-approve", "/rerun", "/fix:refcache", "/workflow-approve\n/rerun"):
+        accepted = (
+            "/workflow-approve",
+            "/rerun",
+            "/fix:refcache",
+            "/label component:exporter",
+            "/workflow-approve\n/rerun",
+        )
+        for body in accepted:
             with self.subTest(body=body):
                 self.assertEqual([], items(body))
 
