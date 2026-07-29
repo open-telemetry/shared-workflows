@@ -160,17 +160,24 @@ def report(
     print(f"incomplete   {len(incomplete)}  (answered in some trials; not scored)")
     print(f"undecided    {len(undecided)}  (answered in every trial but tied; not scored)")
     print(f"drift        {len(drift)}  (stable cases whose label changed)")
-    # More trials mean more chances to disagree, so the counts are only
-    # comparable when both were measured over the same number of runs.
-    if trial_count == baseline_runs:
+    # More trials mean more chances to disagree, and cases missing from a trial
+    # never count as flaky, so the counts only compare when the trial count
+    # matches and every case was answered in full.
+    uncovered = len(unanswered) + len(incomplete)
+    if trial_count == baseline_runs and not uncovered:
         print(
             f"flaky        {len(flaky)}  this candidate; baseline recorded "
             f"{baseline_flaky}  (lower is better)"
         )
-    else:
+    elif trial_count != baseline_runs:
         print(
             f"flaky        {len(flaky)}  over {trial_count} trials; not comparable "
             f"with the baseline's {baseline_flaky} over {baseline_runs}"
+        )
+    else:
+        print(
+            f"flaky        {len(flaky)}  over {len(complete)} fully answered cases; "
+            f"not comparable with the baseline's {baseline_flaky} over all {len(cases)}"
         )
     print(
         f"accuracy     {correct}/{len(adjudicated)} adjudicated"
