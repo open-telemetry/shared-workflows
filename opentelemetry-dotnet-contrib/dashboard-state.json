@@ -757,7 +757,7 @@
     },
     "4914": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -781,18 +781,27 @@
         "head_sha": "6c14901b3f4bcdfe3603d4b3434228b51b527644",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-29T08:04:39+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-29T08:23:32+00:00",
+        "last_approver_activity_at": "2026-07-29T08:23:32+00:00",
         "last_author_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "25e43ba09ab0925b53ee4feb6fac5fc72bd37c14327afcaffc1dd9c6c7405ea0",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "8aeb733a0c94fbbd6a6b456089c608ad440a7ca4467aef7e462d360d034b440c",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-29T08:04:39+00:00"
       },
       "failed": false,
       "pr_number": 4914,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4914",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4915": {
