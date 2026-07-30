@@ -1936,9 +1936,12 @@
         "assignees": [],
         "author": "drewrelmas",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3618#pullrequestreview-4814431852"
+        ],
+        "author_nudge_episode_id": "fc52c0f2743b4cb69ee198903ac75a0e",
         "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -1956,18 +1959,27 @@
         "head_sha": "01ab3ff9a951e303d71c4df815905ca5ccaf0f13",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-30T01:19:44+00:00",
+        "last_activity_at": "2026-07-30T01:36:28+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-30T01:19:44+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "95c580ff727915c516e9a497c076bd48c91ed8d0eb8276f3c871f725ea7b9e48",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T01:19:44+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Dipanshusinghh",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "4b66e4d4e17bacaa580efb8071556e6462209b3918621c6226878be8d3f60d28",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-30T01:36:29+00:00"
       },
       "failed": false,
       "pr_number": 3618,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3618",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
