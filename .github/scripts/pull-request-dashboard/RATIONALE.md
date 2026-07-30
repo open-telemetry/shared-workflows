@@ -212,6 +212,12 @@ the implementation understandable and operationally cheap.
   the end of the CI failure and fall back to the last approver activity, which
   is usually far older, so a PR the author had just pushed to would sort to the
   top of the waiting-on-authors section as the stalest item on the board.
+- While a PR stays on a route where someone other than the author owes it a
+  response, its wait age only moves back, never forward. The fallback for those
+  routes is the last author activity, so a push would otherwise restart the
+  clock and present a review nobody has done in a week as brand new. A handoff
+  from the author route does start a fresh wait, because that push is what put
+  the PR in front of reviewers.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
   but do not change who owns the next action.

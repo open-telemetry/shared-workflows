@@ -169,6 +169,84 @@ class AuthorRouteHoldTest(unittest.TestCase):
         self.assertEqual("last_approver_activity", facts["waiting_age_basis"])
 
 
+class ReviewerWaitTest(unittest.TestCase):
+    def test_author_push_does_not_restart_the_reviewer_wait(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "approver",
+                "facts": {
+                    "waiting_since": "2026-07-23T01:00:00+00:00",
+                    "waiting_age_basis": "last_author_activity",
+                },
+            },
+        )
+
+        self.assertEqual("2026-07-23T01:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
+
+    def test_wait_survives_the_copilot_review_detour(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "copilot",
+                "facts": {
+                    "waiting_since": "2026-07-23T01:00:00+00:00",
+                    "waiting_age_basis": "last_author_activity",
+                },
+            },
+        )
+
+        self.assertEqual("2026-07-23T01:00:00+00:00", facts["waiting_since"])
+
+    def test_handoff_from_the_author_starts_a_new_wait(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "author",
+                "facts": {"waiting_since": "2026-07-23T01:00:00+00:00"},
+            },
+        )
+
+        self.assertEqual("2026-07-30T01:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
+
+    def test_older_evidence_still_moves_the_wait_back(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-10T01:00:00+00:00"}
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "approver",
+                "facts": {"waiting_since": "2026-07-23T01:00:00+00:00"},
+            },
+        )
+
+        self.assertEqual("2026-07-10T01:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
+
+    def test_first_observation_computes_the_wait(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
+
+        add_wait_age_facts(facts, "approver", {}, None)
+
+        self.assertEqual("2026-07-30T01:00:00+00:00", facts["waiting_since"])
+
+
 class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_preserves_episode_while_route_remains_author(self) -> None:
         facts: dict[str, object] = {}

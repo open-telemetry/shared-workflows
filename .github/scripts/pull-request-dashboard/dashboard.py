@@ -130,7 +130,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   route-appropriate fallback,
                                                   or PR creation time. Carried
                                                   forward while the author route
-                                                  is held.
+                                                  is held, and never moves
+                                                  forward while the PR stays on
+                                                  a reviewer route.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
     author_action_review_thread_urls
@@ -1153,8 +1155,13 @@ def oldest_pending_action_ts(
     return min(timestamps) if timestamps else None
 
 
+# Routes where the PR is out of the author's hands and someone else owes it a
+# response, so an author push does not change whose turn it is.
+REVIEWER_ROUTES = ("approver", "maintainer", "copilot")
+
+
 def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
-    if route in ("approver", "maintainer", "copilot"):
+    if route in REVIEWER_ROUTES:
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
         if facts.get("ci_failing_count", 0) > 0:
@@ -1192,6 +1199,19 @@ def add_wait_age_facts(
     if wait_ts is None:
         wait_ts = parse_ts(facts.get("created_at") or "")
         basis = "created"
+    previous_wait_ts = parse_ts(previous_facts.get("waiting_since") or "")
+    # Reviewers have been waiting since the PR reached them, so while it stays
+    # with them the clock only moves back, never forward: an author push is not
+    # a fresh start for a review that has not happened yet.
+    if (
+        route in REVIEWER_ROUTES
+        and (previous_result or {}).get("route") in REVIEWER_ROUTES
+        and previous_wait_ts is not None
+        and wait_ts is not None
+        and previous_wait_ts < wait_ts
+    ):
+        wait_ts = previous_wait_ts
+        basis = previous_facts.get("waiting_age_basis") or ""
     facts["waiting_since"] = format_ts(wait_ts)
     facts["waiting_age_basis"] = basis
 
