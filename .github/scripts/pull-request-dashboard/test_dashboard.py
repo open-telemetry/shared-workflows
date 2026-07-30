@@ -77,6 +77,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         route = resolve_pr_route(facts, {}, 1, False, {"route": "author"})
 
         self.assertEqual("approver", route)
+        self.assertFalse(facts["author_route_held_for_checks"])
 
 
 class AuthorRouteHoldTest(unittest.TestCase):

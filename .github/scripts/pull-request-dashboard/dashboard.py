@@ -1343,7 +1343,7 @@ def resolve_pr_route(
     # Apply the manual reviewer-routing override before the Copilot review gate
     # so an overridden route (for example author -> reviewers) is still held for
     # a required clean Copilot review instead of bypassing it.
-    return apply_copilot_review_gate(
+    route = apply_copilot_review_gate(
         facts,
         apply_dashboard_override(
             facts,
@@ -1355,6 +1355,11 @@ def resolve_pr_route(
         ),
         enabled=require_clean_copilot_review,
     )
+    if route != "author":
+        # The override outranks the hold, and a route the PR did not keep has no
+        # wait to carry forward.
+        facts["author_route_held_for_checks"] = False
+    return route
 
 
 def assign_author_nudge_episode(
