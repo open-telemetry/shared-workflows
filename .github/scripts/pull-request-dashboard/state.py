@@ -8,6 +8,7 @@ from typing import Any
 
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
+from utils import required_checks_settled
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
@@ -265,10 +266,21 @@ def enqueue_status_comment_update(pr_number: int) -> None:
 
 def migrated_pr_record(record: Any) -> Any:
     # The retired copilot route held a PR while its review was outstanding,
-    # which is now part of the author's turn.
+    # which is now part of the author's turn. The gate facts travel with the
+    # route so cached records read as held until the PR is refreshed.
     if not isinstance(record, dict) or record.get("route") != "copilot":
         return record
-    return {**record, "route": "author"}
+    facts = record.get("facts") or {}
+    return {
+        **record,
+        "route": "author",
+        "facts": {
+            **facts,
+            "route_held_for_gates": True,
+            "copilot_review_outstanding": True,
+            "required_checks_settled": required_checks_settled(facts),
+        },
+    }
 
 
 def load_dashboard_state_cache() -> dict[str, Any] | None:

@@ -214,7 +214,6 @@ from copilot_review import (
     copilot_review_status,
     is_copilot_reviewer,
     record_copilot_review_observation,
-    required_checks_settled,
     set_copilot_review_request_needed,
 )
 from dashboard_override import (
@@ -239,7 +238,14 @@ from state import (
     update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import actor_login, format_ts, parse_ts, truncate, utc_now
+from utils import (
+    actor_login,
+    format_ts,
+    parse_ts,
+    required_checks_settled,
+    truncate,
+    utc_now,
+)
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"

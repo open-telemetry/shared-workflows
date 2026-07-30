@@ -17,7 +17,12 @@ from github_cli import (
     request_copilot_review,
 )
 from state import load_copilot_review_requests, save_copilot_review_requests
-from utils import actor_login, format_ts, is_copilot_reviewer_login
+from utils import (
+    actor_login,
+    format_ts,
+    is_copilot_reviewer_login,
+    required_checks_settled,
+)
 
 
 def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
@@ -49,14 +54,6 @@ def copilot_review_status(
         key=lambda review: review.get("submitted_at") or "",
     )
     return True, bool(latest_review.get("finding_count"))
-
-
-def required_checks_settled(facts: dict[str, Any]) -> bool:
-    # A route computed while checks are still running is provisional: route_pr
-    # can only see a failure once the check has completed.
-    if "ci_pending_count" not in facts:
-        return False
-    return not facts.get("ci_pending_count", 0)
 
 
 def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:

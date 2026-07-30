@@ -155,8 +155,18 @@ class StateTest(unittest.TestCase):
                     "version": DASHBOARD_STATE_VERSION,
                     "initial_backfill_complete": True,
                     "prs": {
-                        "1": {"route": "copilot", "facts": {"waiting_since": "2026-07-01T00:00:00Z"}},
-                        "2": {"route": "approver"},
+                        "1": {
+                            "route": "copilot",
+                            "facts": {
+                                "waiting_since": "2026-07-01T00:00:00Z",
+                                "ci_pending_count": 0,
+                            },
+                        },
+                        "2": {
+                            "route": "copilot",
+                            "facts": {"ci_pending_count": 2},
+                        },
+                        "3": {"route": "approver"},
                     },
                 }),
                 encoding="utf-8",
@@ -168,8 +178,26 @@ class StateTest(unittest.TestCase):
             self.assertEqual(
                 state["prs"],
                 {
-                    "1": {"route": "author", "facts": {"waiting_since": "2026-07-01T00:00:00Z"}},
-                    "2": {"route": "approver"},
+                    "1": {
+                        "route": "author",
+                        "facts": {
+                            "waiting_since": "2026-07-01T00:00:00Z",
+                            "ci_pending_count": 0,
+                            "route_held_for_gates": True,
+                            "copilot_review_outstanding": True,
+                            "required_checks_settled": True,
+                        },
+                    },
+                    "2": {
+                        "route": "author",
+                        "facts": {
+                            "ci_pending_count": 2,
+                            "route_held_for_gates": True,
+                            "copilot_review_outstanding": True,
+                            "required_checks_settled": False,
+                        },
+                    },
+                    "3": {"route": "approver"},
                 },
             )
 
