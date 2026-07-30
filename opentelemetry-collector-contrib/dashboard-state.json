@@ -3075,8 +3075,10 @@
         "author": "paulojmdias",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "author_nudge_episode_id": "175dee734d4948878ccb8b55b57bee0a",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-30T10:50:15+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -3123,14 +3125,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "00685469fb8ee9c59e87aef128524f9de9d34e01cc9d7bc63b5b942632db2d96",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T10:41:22+00:00"
+        "routing_input_fingerprint": "14d2453c86716cb7f71ed9887d509089b27ab464df0b6623be6f11195b812de5",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-30T10:50:15+00:00"
       },
       "failed": false,
       "pr_number": 48785,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48785",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4986316143": {
           "evidence": {
