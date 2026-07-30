@@ -29,7 +29,6 @@ _OVERRIDE_ACK_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-override-ack:(\d+) -->"
 )
 PRE_REVIEW_ROUTES = ("author",)
-REVIEWERS_OR_LATER_ROUTES = ("approver", "maintainer")
 
 
 def author_override_guidance(staleness_note: str = "") -> str:
@@ -105,6 +104,31 @@ def latest_authorized_command(
     return best_id, best_user
 
 
+def latest_authorized_command_at(
+    raw: dict[str, Any],
+    author: str,
+    reviewers: set[str] | None,
+) -> str:
+    """Timestamp of the newest authorized override command, acknowledged or not.
+
+    Unlike `latest_authorized_command`, acknowledged commands still count: the
+    watermark has to outlive the acknowledgement, or the discussions a command
+    cleared would come back on the next refresh.
+    """
+    latest = ""
+    for comment in raw.get("issue_comments") or []:
+        if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
+            continue
+        if not is_authorized_commander(
+            actor_login(comment.get("user") or {}), author, reviewers
+        ):
+            continue
+        created_at = comment.get("created_at") or ""
+        if created_at > latest:
+            latest = created_at
+    return latest
+
+
 def dashboard_override_facts(
     raw: dict[str, Any],
     author: str,
@@ -119,6 +143,9 @@ def dashboard_override_facts(
         "dashboard_override_label_applied": label_applied,
         "dashboard_override_command_id": command_id,
         "dashboard_override_command_user": command_user,
+        "dashboard_override_since": latest_authorized_command_at(
+            raw, author, reviewers
+        ),
         "dashboard_override_requested": command_pending and not label_applied,
         "dashboard_override_release_requested": False,
         "dashboard_command_replies": pending_command_replies(raw, author, reviewers),
@@ -240,14 +267,21 @@ def render_command_reply(reply: dict[str, Any]) -> str:
         else:
             message = "routed this pull request to reviewers."
     elif kind == "already_routed":
-        where = ROUTE_ALREADY_ROUTED_PHRASE.get(
-            reply.get("route") or "", "not currently waiting on you"
-        )
-        message = (
-            f"this pull request is {where}, so `/dashboard route:reviewers` had "
-            "no effect. The command only applies while the pull request is "
-            "waiting on you."
-        )
+        if reply.get("route") in PRE_REVIEW_ROUTES:
+            message = (
+                "everything still open on this pull request arrived after your "
+                "`/dashboard route:reviewers` command, so it is still waiting "
+                "on you."
+            )
+        else:
+            where = ROUTE_ALREADY_ROUTED_PHRASE.get(
+                reply.get("route") or "", "not currently waiting on you"
+            )
+            message = (
+                f"this pull request is {where}, so `/dashboard route:reviewers` had "
+                "no effect. The command only applies while the pull request is "
+                "waiting on you."
+            )
     else:
         subcommand = reply.get("subcommand") or ""
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
@@ -333,29 +367,82 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
     return errors
 
 
+def clear_overridden_actions(
+    facts: dict[str, Any],
+    pending_actions: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Drop the author actions an override command already answered.
+
+    `/dashboard route:reviewers` is the author saying everything open at that
+    moment is handled. Clearing those actions, instead of only masking the route
+    once, keeps them from routing the pull request back to the author on every
+    later refresh, which would make the author repeat the command each time
+    review comes back around. Anything that happens after the command keeps its
+    author action, so new feedback still reaches the author.
+    """
+    override_since = facts.get("dashboard_override_since") or ""
+    active = bool(facts.get("dashboard_override_label_applied")) or bool(
+        facts.get("dashboard_override_requested")
+    )
+    facts["dashboard_override_cleared_count"] = 0
+    facts["dashboard_override_cleared_ci"] = False
+    if not override_since or not active:
+        return pending_actions
+    remaining: dict[str, dict[str, Any]] = {}
+    cleared = 0
+    for discussion_id, entry in pending_actions.items():
+        since = entry.get("since") or ""
+        if entry.get("action") == "author" and since and since <= override_since:
+            cleared += 1
+            continue
+        remaining[discussion_id] = entry
+    ci_failing_since = facts.get("ci_failing_since") or ""
+    facts["dashboard_override_cleared_count"] = cleared
+    facts["dashboard_override_cleared_ci"] = bool(
+        facts.get("ci_failing_count")
+        and ci_failing_since
+        and ci_failing_since <= override_since
+    )
+    return remaining
+
+
 def apply_dashboard_override(facts: dict[str, Any], route: str) -> str:
     label_applied = bool(facts.get("dashboard_override_label_applied"))
     requested = bool(facts.get("dashboard_override_requested"))
     command_pending = bool(facts.get("dashboard_override_command_id"))
-    # The override only takes effect before review, while automatic routing waits
-    # on the author. On every later route the natural routing stands.
-    override_applies = route in PRE_REVIEW_ROUTES and (label_applied or requested)
-    # A command that does not newly move the pull request to reviewers is a no-op;
-    # the author is told where it is routed. This covers both a non-overridable
-    # route and an existing label that already provides the reviewer handoff.
-    facts["dashboard_override_noop"] = command_pending and (
+    cleared = bool(facts.get("dashboard_override_cleared_count")) or bool(
+        facts.get("dashboard_override_cleared_ci")
+    )
+    # `route` already reflects what `clear_overridden_actions` cleared, so a
+    # command needs no further route masking. Masking is left for a label applied
+    # by hand, which carries no command and so clears nothing; it only takes
+    # effect before review, and on every later route natural routing stands.
+    masks_route = (
+        route in PRE_REVIEW_ROUTES
+        and (label_applied or requested)
+        and not facts.get("dashboard_override_since")
+    )
+    override_applies = cleared or masks_route
+    # A command that does not newly move the pull request to reviewers is a
+    # no-op; the author is told where it is routed. This covers both a
+    # non-overridable route and an existing override that already provides the
+    # reviewer handoff.
+    facts["dashboard_override_noop"] = command_pending and not cleared and (
         label_applied or not override_applies
     )
     if requested and not override_applies:
         facts["dashboard_override_requested"] = False
+    elif command_pending and cleared and not requested:
+        # A command that cleared something while the label was already applied
+        # still needs its label refresh and acknowledgement reply.
+        facts["dashboard_override_requested"] = True
     facts["dashboard_override"] = override_applies
-    # Release the label once automatic routing reaches or passes reviewers, so a
-    # forgotten override cannot pin the pull request at reviewers or drag it back
-    # from maintainers.
+    # Release the label once the override stops clearing anything, so a
+    # forgotten override cannot keep new feedback away from the author.
     facts["dashboard_override_release_requested"] = (
-        label_applied and route in REVIEWERS_OR_LATER_ROUTES
+        label_applied and not cleared and not masks_route
     )
-    return "approver" if override_applies else route
+    return "approver" if masks_route else route
 
 
 def append_route_noop_reply(

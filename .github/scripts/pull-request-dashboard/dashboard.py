@@ -198,6 +198,7 @@ from copilot_review import (
 from dashboard_override import (
     apply_dashboard_override,
     append_route_noop_reply,
+    clear_overridden_actions,
     dashboard_command_body_remainder,
     dashboard_override_facts,
 )
@@ -1114,12 +1115,15 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
-    #   1. A required status check failure -> "author".
+    #   1. A required status check failure the author has not overridden -> "author".
     #   2. A discussion waiting on the author -> "author".
     #   3. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer -> "maintainer".
     #   4. Otherwise the PR is still waiting on approvers.
-    if facts.get("ci_failing_count", 0) > 0 and not is_maintenance_bot:
+    ci_failing = facts.get("ci_failing_count", 0) > 0 and not facts.get(
+        "dashboard_override_cleared_ci"
+    )
+    if ci_failing and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
@@ -1391,6 +1395,7 @@ def build_pr_result(
             author_comment_source_state,
         )
         pending_actions = review_thread_pending_actions | top_level_pending_actions
+        pending_actions = clear_overridden_actions(facts, pending_actions)
         failed_classifications = [
             classification
             for classification in (

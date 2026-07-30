@@ -183,8 +183,11 @@ Targeted updates received before the first full dashboard run are ignored.
 
 When the dashboard says a pull request is waiting on its author but the author
 believes it is ready for another review, the author
-can comment `/dashboard route:reviewers`. The dashboard routes the pull request
-to *Waiting on reviewers* and applies the `dashboard:route-overridden` label to
+can comment `/dashboard route:reviewers`. The command clears every review item
+and required check failure that was already open when it was posted, so the
+pull request routes to *Waiting on reviewers* and stays there instead of falling
+back to the author on the next refresh. The dashboard applies the
+`dashboard:route-overridden` label to
 mark the override, which the dashboard shows inline after the PR title. Members of the repository's `approver_teams` can use the same
 command. A `/dashboard route:reviewers` command from anyone else, or a command
 on a pull request already at or past reviewers, has no routing effect. The
@@ -193,10 +196,12 @@ explaining that only the author or an approver can use it, replies to an author
 or approver command on a pull request already at or past reviewers noting where
 it is currently routed, and replies to any unrecognized `/dashboard` command.
 
-Removing the `dashboard:route-overridden` label restores automatic routing. The
-dashboard also removes the label automatically once routing would place the pull
-request with reviewers on its own, so a forgotten override does not linger. A
-command that has already been applied is not replayed after label removal; the
+Anything that happens after the command keeps its author action, so new review
+feedback and new check failures still route the pull request back to the author.
+Removing the `dashboard:route-overridden` label restores automatic routing for
+the cleared items too. The dashboard also removes the label automatically once
+the override no longer clears anything, so a forgotten override does not linger.
+A command that has already been applied is not replayed after label removal; the
 author can post a new `/dashboard route:reviewers` command if another override
 is needed later.
 

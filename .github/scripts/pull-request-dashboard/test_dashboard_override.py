@@ -194,6 +194,20 @@ class DashboardOverrideTest(unittest.TestCase):
                 self.assertIn(f"@author this pull request is {phrase}, so", body)
                 self.assertIn("`/dashboard route:reviewers` had no effect", body)
 
+    def test_renders_already_routed_reply_for_a_command_that_cleared_nothing(
+        self,
+    ) -> None:
+        body = dashboard_override.render_command_reply(
+            {"comment_id": 7, "kind": "already_routed", "user": "author", "route": "author"}
+        )
+
+        self.assertIn(dashboard_override.override_ack_marker(7), body)
+        self.assertIn(
+            "@author everything still open on this pull request arrived after "
+            "your `/dashboard route:reviewers` command",
+            body,
+        )
+
     def test_appends_already_routed_reply_for_author_noop(self) -> None:
         facts = {
             "author": "author",
@@ -441,6 +455,123 @@ class DashboardOverrideTest(unittest.TestCase):
             (0, ""),
             dashboard_override.latest_authorized_command(raw, "author", set()),
         )
+
+    def test_watermark_survives_acknowledgement(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 3,
+                    "user": {"login": "author"},
+                    "created_at": "2026-07-30T12:00:00Z",
+                    "body": "/dashboard route:reviewers",
+                },
+                {
+                    "id": 4,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "created_at": "2026-07-30T12:05:00Z",
+                    "body": dashboard_override.override_ack_marker(3),
+                },
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(raw, "author", set())
+
+        self.assertEqual(0, facts["dashboard_override_command_id"])
+        self.assertEqual("2026-07-30T12:00:00Z", facts["dashboard_override_since"])
+
+    def test_clears_only_author_actions_that_predate_the_command(self) -> None:
+        facts = {
+            "dashboard_override_label_applied": True,
+            "dashboard_override_since": "2026-07-30T12:00:00Z",
+        }
+        pending_actions = {
+            "old": {"action": "author", "since": "2026-07-30T11:00:00Z"},
+            "new": {"action": "author", "since": "2026-07-30T13:00:00Z"},
+            "reviewer": {"action": "reviewer", "since": "2026-07-30T11:00:00Z"},
+        }
+
+        remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
+
+        self.assertEqual(["new", "reviewer"], sorted(remaining))
+        self.assertEqual(1, facts["dashboard_override_cleared_count"])
+
+    def test_clears_check_failures_that_predate_the_command(self) -> None:
+        for ci_failing_since, expected in (
+            ("2026-07-30T11:00:00Z", True),
+            ("2026-07-30T13:00:00Z", False),
+        ):
+            with self.subTest(ci_failing_since=ci_failing_since):
+                facts = {
+                    "dashboard_override_label_applied": True,
+                    "dashboard_override_since": "2026-07-30T12:00:00Z",
+                    "ci_failing_count": 1,
+                    "ci_failing_since": ci_failing_since,
+                }
+
+                dashboard_override.clear_overridden_actions(facts, {})
+
+                self.assertEqual(expected, facts["dashboard_override_cleared_ci"])
+
+    def test_label_removal_restores_cleared_actions(self) -> None:
+        facts = {
+            "dashboard_override_label_applied": False,
+            "dashboard_override_requested": False,
+            "dashboard_override_since": "2026-07-30T12:00:00Z",
+        }
+        pending_actions = {"old": {"action": "author", "since": "2026-07-30T11:00:00Z"}}
+
+        remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
+
+        self.assertEqual(pending_actions, remaining)
+        self.assertEqual(0, facts["dashboard_override_cleared_count"])
+
+    def test_cleared_command_is_acknowledged_without_masking_the_route(self) -> None:
+        facts = {
+            "dashboard_override_label_applied": False,
+            "dashboard_override_requested": True,
+            "dashboard_override_command_id": 5,
+            "dashboard_override_since": "2026-07-30T12:00:00Z",
+            "dashboard_override_cleared_count": 1,
+        }
+
+        route = dashboard_override.apply_dashboard_override(facts, "maintainer")
+
+        self.assertEqual("maintainer", route)
+        self.assertTrue(facts["dashboard_override"])
+        self.assertTrue(facts["dashboard_override_requested"])
+        self.assertFalse(facts["dashboard_override_noop"])
+        self.assertFalse(facts["dashboard_override_release_requested"])
+
+    def test_command_arriving_with_the_label_present_is_acknowledged_when_it_clears(
+        self,
+    ) -> None:
+        facts = {
+            "dashboard_override_label_applied": True,
+            "dashboard_override_requested": False,
+            "dashboard_override_command_id": 5,
+            "dashboard_override_since": "2026-07-30T12:00:00Z",
+            "dashboard_override_cleared_count": 1,
+        }
+
+        route = dashboard_override.apply_dashboard_override(facts, "approver")
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["dashboard_override_requested"])
+        self.assertFalse(facts["dashboard_override_noop"])
+
+    def test_new_feedback_after_the_command_reaches_the_author(self) -> None:
+        facts = {
+            "dashboard_override_label_applied": True,
+            "dashboard_override_requested": False,
+            "dashboard_override_since": "2026-07-30T12:00:00Z",
+            "dashboard_override_cleared_count": 0,
+        }
+
+        route = dashboard_override.apply_dashboard_override(facts, "author")
+
+        self.assertEqual("author", route)
+        self.assertFalse(facts["dashboard_override"])
+        self.assertTrue(facts["dashboard_override_release_requested"])
 
     def test_fresh_command_with_label_present_is_a_noop(self) -> None:
         facts = {

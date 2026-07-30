@@ -896,6 +896,16 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
         self.assertEqual("author", route_pr(facts, {}, 1))
 
+    def test_override_cleared_ci_failure_does_not_route_to_author(self) -> None:
+        facts = {
+            "approval_count": 0,
+            "ci_failing_count": 1,
+            "is_maintenance_bot": False,
+            "dashboard_override_cleared_ci": True,
+        }
+
+        self.assertEqual("approver", route_pr(facts, {}, 1))
+
     def test_required_ci_failure_preserves_maintenance_bot_routing(self) -> None:
         for approval_count, expected_route in ((0, "approver"), (1, "maintainer")):
             with self.subTest(approval_count=approval_count):
