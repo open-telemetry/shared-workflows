@@ -196,8 +196,7 @@ from copilot_review import (
     record_copilot_review_observation,
 )
 from dashboard_override import (
-    apply_dashboard_override,
-    append_route_noop_reply,
+    append_command_ack_reply,
     clear_overridden_actions,
     dashboard_command_body_remainder,
     dashboard_override_facts,
@@ -543,17 +542,12 @@ def compute_facts(
         raw.get("reviews") or [],
         head_sha,
     )
-    labels = {
-        label.get("name") or ""
-        for label in pr.get("labels") or []
-        if isinstance(label, dict)
-    }
     facts = {
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
         "routing_input_fingerprint": routing_input_fingerprint(raw),
-        **dashboard_override_facts(raw, author, labels, reviewers or set()),
+        **dashboard_override_facts(raw, author, reviewers or set()),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (raw.get("review_requests") or [])
@@ -1292,15 +1286,9 @@ def resolve_pr_route(
     required_approvals: int,
     require_clean_copilot_review: bool,
 ) -> str:
-    # Apply the manual reviewer-routing override before the Copilot review gate
-    # so an overridden route (for example author -> reviewers) is still held for
-    # a required clean Copilot review instead of bypassing it.
     return apply_copilot_review_gate(
         facts,
-        apply_dashboard_override(
-            facts,
-            route_pr(facts, pending_actions, required_approvals),
-        ),
+        route_pr(facts, pending_actions, required_approvals),
         enabled=require_clean_copilot_review,
     )
 
@@ -1438,7 +1426,7 @@ def build_pr_result(
             previous_result,
             raw.get("issue_comments") or [],
         )
-        append_route_noop_reply(raw, facts, route)
+        append_command_ack_reply(raw, facts, route)
         add_wait_age_facts(facts, route, pending_actions)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions

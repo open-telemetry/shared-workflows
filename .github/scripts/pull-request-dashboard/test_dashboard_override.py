@@ -208,35 +208,43 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
 
-    def test_appends_already_routed_reply_for_author_noop(self) -> None:
+    def test_appends_already_routed_reply_for_a_command_that_cleared_nothing(self) -> None:
         facts = {
             "author": "author",
-            "dashboard_override_noop": True,
             "dashboard_override_command_id": 12,
         }
 
-        dashboard_override.append_route_noop_reply({"issue_comments": []}, facts, "approver")
+        dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
 
         self.assertEqual(
             [{"comment_id": 12, "kind": "already_routed", "user": "author", "route": "approver"}],
             facts["dashboard_command_replies"],
         )
 
-    def test_no_already_routed_reply_when_command_applies(self) -> None:
+    def test_appends_routed_reply_when_the_command_cleared_something(self) -> None:
         facts = {
             "author": "author",
-            "dashboard_override_noop": False,
             "dashboard_override_command_id": 12,
+            "dashboard_override_cleared_count": 1,
         }
 
-        dashboard_override.append_route_noop_reply({"issue_comments": []}, facts, "author")
+        dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
+
+        self.assertEqual(
+            [{"comment_id": 12, "kind": "routed", "user": "author", "route": "approver"}],
+            facts["dashboard_command_replies"],
+        )
+
+    def test_no_ack_reply_without_a_pending_command(self) -> None:
+        facts = {"author": "author", "dashboard_override_command_id": 0}
+
+        dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "author")
 
         self.assertNotIn("dashboard_command_replies", facts)
 
     def test_already_routed_reply_deduped_by_existing_marker(self) -> None:
         facts = {
             "author": "author",
-            "dashboard_override_noop": True,
             "dashboard_override_command_id": 12,
         }
         raw = {
@@ -248,14 +256,13 @@ class DashboardOverrideTest(unittest.TestCase):
             ]
         }
 
-        dashboard_override.append_route_noop_reply(raw, facts, "approver")
+        dashboard_override.append_command_ack_reply(raw, facts, "approver")
 
         self.assertNotIn("dashboard_command_replies", facts)
 
     def test_forged_marker_does_not_dedupe_already_routed_reply(self) -> None:
         facts = {
             "author": "author",
-            "dashboard_override_noop": True,
             "dashboard_override_command_id": 12,
         }
         raw = {
@@ -267,7 +274,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ]
         }
 
-        dashboard_override.append_route_noop_reply(raw, facts, "approver")
+        dashboard_override.append_command_ack_reply(raw, facts, "approver")
 
         self.assertEqual(
             [{"comment_id": 12, "kind": "already_routed", "user": "author", "route": "approver"}],
@@ -346,13 +353,8 @@ class DashboardOverrideTest(unittest.TestCase):
             ]
         }
 
-        first = dashboard_override.dashboard_override_facts(raw, "author", set())
-        retry = dashboard_override.dashboard_override_facts(raw, "author", set())
-        label_observed = dashboard_override.dashboard_override_facts(
-            raw,
-            "author",
-            {"dashboard:route-overridden"},
-        )
+        first = dashboard_override.dashboard_override_facts(raw, "author")
+        retry = dashboard_override.dashboard_override_facts(raw, "author")
         acknowledged_raw = {
             "issue_comments": [
                 *raw["issue_comments"],
@@ -366,16 +368,11 @@ class DashboardOverrideTest(unittest.TestCase):
         acknowledged = dashboard_override.dashboard_override_facts(
             acknowledged_raw,
             "author",
-            set(),
         )
 
-        self.assertTrue(first["dashboard_override_requested"])
-        self.assertTrue(retry["dashboard_override_requested"])
-        self.assertTrue(label_observed["dashboard_override_label_applied"])
-        self.assertEqual(3, label_observed["dashboard_override_command_id"])
-        self.assertFalse(label_observed["dashboard_override_requested"])
+        self.assertEqual(3, first["dashboard_override_command_id"])
+        self.assertEqual(3, retry["dashboard_override_command_id"])
         self.assertEqual(0, acknowledged["dashboard_override_command_id"])
-        self.assertFalse(acknowledged["dashboard_override_requested"])
 
     def test_newer_command_reapplies_removed_override(self) -> None:
         raw = {
@@ -390,13 +387,8 @@ class DashboardOverrideTest(unittest.TestCase):
             ]
         }
 
-        facts = dashboard_override.dashboard_override_facts(
-            raw,
-            "author",
-            set(),
-        )
+        facts = dashboard_override.dashboard_override_facts(raw, "author")
 
-        self.assertTrue(facts["dashboard_override_requested"])
         self.assertEqual(5, facts["dashboard_override_command_id"])
 
     def test_rebuilds_unacknowledged_already_routed_reply_across_refreshes(self) -> None:
@@ -407,9 +399,8 @@ class DashboardOverrideTest(unittest.TestCase):
         }
 
         for _ in range(2):
-            facts = dashboard_override.dashboard_override_facts(raw, "author", set())
-            route = dashboard_override.apply_dashboard_override(facts, "approver")
-            dashboard_override.append_route_noop_reply(raw, facts, route)
+            facts = dashboard_override.dashboard_override_facts(raw, "author")
+            dashboard_override.append_command_ack_reply(raw, facts, "approver")
 
             self.assertEqual(
                 [{"comment_id": 5, "kind": "already_routed", "user": "author", "route": "approver"}],
@@ -428,14 +419,9 @@ class DashboardOverrideTest(unittest.TestCase):
             ]
         }
 
-        facts = dashboard_override.dashboard_override_facts(
-            raw,
-            "author",
-            set(),
-        )
+        facts = dashboard_override.dashboard_override_facts(raw, "author")
 
         self.assertEqual(0, facts["dashboard_override_command_id"])
-        self.assertFalse(facts["dashboard_override_requested"])
         self.assertEqual([], facts["dashboard_command_replies"])
 
     def test_newest_acknowledgement_consumes_older_authorized_commands(self) -> None:
@@ -474,16 +460,13 @@ class DashboardOverrideTest(unittest.TestCase):
             ]
         }
 
-        facts = dashboard_override.dashboard_override_facts(raw, "author", set())
+        facts = dashboard_override.dashboard_override_facts(raw, "author")
 
         self.assertEqual(0, facts["dashboard_override_command_id"])
         self.assertEqual("2026-07-30T12:00:00Z", facts["dashboard_override_since"])
 
     def test_clears_only_author_actions_that_predate_the_command(self) -> None:
-        facts = {
-            "dashboard_override_label_applied": True,
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-        }
+        facts = {"dashboard_override_since": "2026-07-30T12:00:00Z"}
         pending_actions = {
             "old": {"action": "author", "since": "2026-07-30T11:00:00Z"},
             "new": {"action": "author", "since": "2026-07-30T13:00:00Z"},
@@ -502,7 +485,6 @@ class DashboardOverrideTest(unittest.TestCase):
         ):
             with self.subTest(ci_failing_since=ci_failing_since):
                 facts = {
-                    "dashboard_override_label_applied": True,
                     "dashboard_override_since": "2026-07-30T12:00:00Z",
                     "ci_failing_count": 1,
                     "ci_failing_since": ci_failing_since,
@@ -512,12 +494,8 @@ class DashboardOverrideTest(unittest.TestCase):
 
                 self.assertEqual(expected, facts["dashboard_override_cleared_ci"])
 
-    def test_label_removal_restores_cleared_actions(self) -> None:
-        facts = {
-            "dashboard_override_label_applied": False,
-            "dashboard_override_requested": False,
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-        }
+    def test_clears_nothing_without_a_command(self) -> None:
+        facts = {"dashboard_override_since": ""}
         pending_actions = {"old": {"action": "author", "since": "2026-07-30T11:00:00Z"}}
 
         remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
@@ -525,193 +503,20 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(pending_actions, remaining)
         self.assertEqual(0, facts["dashboard_override_cleared_count"])
 
-    def test_cleared_command_is_acknowledged_without_masking_the_route(self) -> None:
-        facts = {
-            "dashboard_override_label_applied": False,
-            "dashboard_override_requested": True,
-            "dashboard_override_command_id": 5,
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-            "dashboard_override_cleared_count": 1,
-        }
-
-        route = dashboard_override.apply_dashboard_override(facts, "maintainer")
-
-        self.assertEqual("maintainer", route)
-        self.assertTrue(facts["dashboard_override"])
-        self.assertTrue(facts["dashboard_override_requested"])
-        self.assertFalse(facts["dashboard_override_noop"])
-        self.assertFalse(facts["dashboard_override_release_requested"])
-
-    def test_command_arriving_with_the_label_present_is_acknowledged_when_it_clears(
-        self,
-    ) -> None:
-        facts = {
-            "dashboard_override_label_applied": True,
-            "dashboard_override_requested": False,
-            "dashboard_override_command_id": 5,
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-            "dashboard_override_cleared_count": 1,
-        }
-
-        route = dashboard_override.apply_dashboard_override(facts, "approver")
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["dashboard_override_requested"])
-        self.assertFalse(facts["dashboard_override_noop"])
-
-    def test_new_feedback_after_the_command_reaches_the_author(self) -> None:
-        facts = {
-            "dashboard_override_label_applied": True,
-            "dashboard_override_requested": False,
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-            "dashboard_override_cleared_count": 0,
-        }
-
-        route = dashboard_override.apply_dashboard_override(facts, "author")
-
-        self.assertEqual("author", route)
-        self.assertFalse(facts["dashboard_override"])
-        self.assertTrue(facts["dashboard_override_release_requested"])
-
-    def test_fresh_command_with_label_present_is_a_noop(self) -> None:
-        facts = {
-            "dashboard_override_label_applied": True,
-            "dashboard_override_requested": False,
-            "dashboard_override_command_id": 5,
-        }
-
-        route = dashboard_override.apply_dashboard_override(facts, "approver")
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["dashboard_override_noop"])
-        self.assertTrue(facts["dashboard_override_release_requested"])
-
-    def test_fresh_command_gets_reply_when_label_already_overrides_author_route(self) -> None:
+    def test_command_that_cleared_nothing_is_acknowledged_where_it_is_routed(self) -> None:
         raw = {
             "issue_comments": [
                 {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
             ]
         }
-        facts = dashboard_override.dashboard_override_facts(
-            raw,
-            "author",
-            {"dashboard:route-overridden"},
-        )
+        facts = dashboard_override.dashboard_override_facts(raw, "author")
 
-        route = dashboard_override.apply_dashboard_override(facts, "author")
-        dashboard_override.append_route_noop_reply(raw, facts, route)
+        dashboard_override.append_command_ack_reply(raw, facts, "author")
 
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["dashboard_override_noop"])
         self.assertEqual(
-            [{"comment_id": 5, "kind": "already_routed", "user": "author", "route": "approver"}],
+            [{"comment_id": 5, "kind": "already_routed", "user": "author", "route": "author"}],
             facts["dashboard_command_replies"],
         )
-
-    def test_command_only_overrides_pre_review_routes(self) -> None:
-        for route, expected_route, expected_pending, expected_noop in (
-            ("author", "approver", True, False),
-            ("approver", "approver", False, True),
-            ("maintainer", "maintainer", False, True),
-            ("copilot", "copilot", False, True),
-        ):
-            with self.subTest(route=route):
-                facts = {
-                    "dashboard_override_label_applied": False,
-                    "dashboard_override_requested": True,
-                    "dashboard_override_command_id": 5,
-                }
-
-                actual = dashboard_override.apply_dashboard_override(facts, route)
-
-                self.assertEqual(expected_route, actual)
-                self.assertEqual(expected_pending, facts["dashboard_override_requested"])
-                self.assertEqual(expected_noop, facts["dashboard_override_noop"])
-
-    def test_label_yields_to_maintainer_route_and_releases(self) -> None:
-        facts = {
-            "dashboard_override_label_applied": True,
-            "dashboard_override_requested": False,
-        }
-
-        route = dashboard_override.apply_dashboard_override(facts, "maintainer")
-
-        self.assertEqual("maintainer", route)
-        self.assertFalse(facts["dashboard_override"])
-        self.assertTrue(facts["dashboard_override_release_requested"])
-
-    def test_releases_label_once_natural_route_reaches_reviewers(self) -> None:
-        facts = {
-            "dashboard_override_label_applied": True,
-            "dashboard_override_requested": False,
-        }
-
-        route = dashboard_override.apply_dashboard_override(facts, "approver")
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["dashboard_override_release_requested"])
-
-    def test_does_not_release_label_while_override_holds_author_route(self) -> None:
-        facts = {
-            "dashboard_override_label_applied": True,
-            "dashboard_override_requested": False,
-        }
-
-        route = dashboard_override.apply_dashboard_override(facts, "author")
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["dashboard_override"])
-        self.assertFalse(facts["dashboard_override_release_requested"])
-
-    @patch.object(dashboard_override, "run_gh")
-    @patch.object(
-        dashboard_override,
-        "load_dashboard_state_cache",
-        return_value={
-            "prs": {
-                "9": {"facts": {"dashboard_override_release_requested": True}},
-            }
-        },
-    )
-    def test_delivery_removes_released_override_label(self, _load_state, run_gh) -> None:
-        errors = dashboard_override.deliver_dashboard_override_requests(
-            "open-telemetry/example"
-        )
-
-        self.assertEqual([], errors)
-        self.assertEqual(
-            [
-                call([
-                    "gh", "api", "--method", "DELETE",
-                    "repos/open-telemetry/example/issues/9/labels/dashboard%3Aroute-overridden",
-                ]),
-            ],
-            run_gh.call_args_list,
-        )
-
-    @patch.object(dashboard_override, "run_gh")
-    @patch.object(dashboard_override, "load_dashboard_state_cache", return_value=None)
-    def test_does_not_create_label_without_dashboard_state(self, _load_state, run_gh) -> None:
-        errors = dashboard_override.deliver_dashboard_override_requests(
-            "open-telemetry/example"
-        )
-
-        self.assertEqual([], errors)
-        run_gh.assert_not_called()
-
-    @patch.object(dashboard_override, "run_gh")
-    @patch.object(
-        dashboard_override,
-        "load_dashboard_state_cache",
-        return_value={"prs": {}},
-    )
-    def test_does_not_create_label_without_pending_command(self, _load_state, run_gh) -> None:
-        errors = dashboard_override.deliver_dashboard_override_requests(
-            "open-telemetry/example"
-        )
-
-        self.assertEqual([], errors)
-        run_gh.assert_not_called()
 
     @patch.object(dashboard_override, "run_gh")
     @patch.object(dashboard_override, "gh_api", return_value=[])
@@ -721,46 +526,28 @@ class DashboardOverrideTest(unittest.TestCase):
         return_value={
             "prs": {
                 "7": {
-                    "route": "copilot",
                     "facts": {
-                        "dashboard_override_requested": True,
-                        "dashboard_override_command_id": 3,
-                        "dashboard_override_command_user": "author",
+                        "dashboard_command_replies": [
+                            {
+                                "comment_id": 3,
+                                "kind": "routed",
+                                "route": "copilot",
+                                "user": "author",
+                            },
+                        ]
                     }
                 },
-                "8": {"facts": {"dashboard_override_requested": False}},
             }
         },
     )
-    def test_delivers_pending_override_label_and_acknowledges_command(
-        self,
-        _load_state,
-        gh_api,
-        run_gh,
-    ) -> None:
-        errors = dashboard_override.deliver_dashboard_override_requests(
+    def test_delivers_command_acknowledgement(self, _load_state, _gh_api, run_gh) -> None:
+        errors = dashboard_override.deliver_dashboard_command_replies(
             "open-telemetry/example"
         )
 
         self.assertEqual([], errors)
-        gh_api.assert_called_once_with(
-            "/repos/open-telemetry/example/issues/7/comments?per_page=100",
-            paginate=True,
-        )
         self.assertEqual(
             [
-                call([
-                    "gh", "label", "create", "dashboard:route-overridden",
-                    "--repo", "open-telemetry/example",
-                    "--color", dashboard_override.DASHBOARD_OVERRIDE_LABEL_COLOR,
-                    "--description", dashboard_override.DASHBOARD_OVERRIDE_LABEL_DESCRIPTION,
-                    "--force",
-                ]),
-                call([
-                    "gh", "api", "--method", "POST",
-                    "repos/open-telemetry/example/issues/7/labels",
-                    "-f", "labels[]=dashboard:route-overridden",
-                ]),
                 call([
                     "gh", "api", "--method", "POST",
                     "repos/open-telemetry/example/issues/7/comments",
@@ -769,55 +556,6 @@ class DashboardOverrideTest(unittest.TestCase):
             ],
             run_gh.call_args_list,
         )
-
-    @patch.object(dashboard_override, "run_gh")
-    @patch.object(dashboard_override, "gh_api", return_value=[])
-    @patch.object(
-        dashboard_override,
-        "load_dashboard_state_cache",
-        return_value={
-            "prs": {
-                "7": {
-                    "facts": {
-                        "dashboard_override_requested": True,
-                        "dashboard_override_command_id": 3,
-                        "dashboard_override_command_user": "author",
-                    }
-                },
-            }
-        },
-    )
-    def test_retry_observes_acknowledgement_after_ambiguous_post_failure(
-        self,
-        _load_state,
-        gh_api,
-        run_gh,
-    ) -> None:
-        run_gh.side_effect = [None, None, RuntimeError("comment response lost")]
-
-        errors = dashboard_override.deliver_dashboard_override_requests(
-            "open-telemetry/example"
-        )
-
-        self.assertEqual(["PR #7: comment response lost"], errors)
-
-        run_gh.reset_mock()
-        run_gh.side_effect = None
-        gh_api.return_value = [{
-            "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
-            "body": dashboard_override.render_command_reply({
-                "comment_id": 3,
-                "kind": "routed",
-                "user": "author",
-            }),
-        }]
-
-        errors = dashboard_override.deliver_dashboard_override_requests(
-            "open-telemetry/example"
-        )
-
-        self.assertEqual([], errors)
-        self.assertEqual(2, run_gh.call_count)
 
 
 if __name__ == "__main__":

@@ -32,11 +32,11 @@ from dashboard import (
 
 class ResolvePrRouteTest(unittest.TestCase):
     def _author_route_facts(self, **overrides: object) -> dict[str, object]:
-        # A failing required check routes a human-authored PR to the author.
+        # A failing required check routes a human-authored PR to the author
+        # unless an override already cleared it.
         facts: dict[str, object] = {
             "ci_failing_count": 1,
-            "dashboard_override_label_applied": True,
-            "dashboard_override_requested": False,
+            "dashboard_override_cleared_ci": True,
         }
         facts.update(overrides)
         return facts
