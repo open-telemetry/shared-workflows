@@ -109,6 +109,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
+    ci_failing_latest               str (iso)     Latest completion time among
+                                                  current required failures.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
                                                   fetched.
@@ -200,6 +202,7 @@ from dashboard_override import (
     clear_overridden_actions,
     dashboard_command_body_remainder,
     dashboard_override_facts,
+    uncleared_ci_failing_count,
 )
 from pr_status_comment import status_author_nudge_episode_id
 from state import (
@@ -567,6 +570,7 @@ def compute_facts(
         facts["ci_failing_count"] = len(failing)
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
+            facts["ci_failing_latest"] = format_ts(max(failing_timestamps))
         facts["ci_pending_count"] = len(pending)
     non_blocking_check_failures = sorted({
         check.get("name") or ""
@@ -1114,9 +1118,7 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     #   3. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer -> "maintainer".
     #   4. Otherwise the PR is still waiting on approvers.
-    ci_failing = facts.get("ci_failing_count", 0) > 0 and not facts.get(
-        "dashboard_override_cleared_ci"
-    )
+    ci_failing = uncleared_ci_failing_count(facts) > 0
     if ci_failing and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:

@@ -378,6 +378,20 @@ class RenderStatusCommentTest(unittest.TestCase):
                 self.assertIn(f"**Also blocked by:** {blocked_by}", body)
                 self.assertIn(non_blocking_line, body.splitlines())
 
+    def test_override_cleared_check_failure_is_not_reported_as_blocking(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "approver",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "dashboard_override_cleared_ci": True,
+                },
+            },
+        )
+
+        self.assertNotIn("**Also blocked by:**", body)
+
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
             f"https://github.com/open-telemetry/example/pull/1#discussion_r{index}"

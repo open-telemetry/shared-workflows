@@ -479,20 +479,34 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(1, facts["dashboard_override_cleared_count"])
 
     def test_clears_check_failures_that_predate_the_command(self) -> None:
-        for ci_failing_since, expected in (
+        for ci_failing_latest, expected in (
             ("2026-07-30T11:00:00Z", True),
             ("2026-07-30T13:00:00Z", False),
         ):
-            with self.subTest(ci_failing_since=ci_failing_since):
+            with self.subTest(ci_failing_latest=ci_failing_latest):
                 facts = {
                     "dashboard_override_since": "2026-07-30T12:00:00Z",
                     "ci_failing_count": 1,
-                    "ci_failing_since": ci_failing_since,
+                    "ci_failing_since": ci_failing_latest,
+                    "ci_failing_latest": ci_failing_latest,
                 }
 
                 dashboard_override.clear_overridden_actions(facts, {})
 
                 self.assertEqual(expected, facts["dashboard_override_cleared_ci"])
+
+    def test_keeps_a_check_that_fails_after_the_command(self) -> None:
+        facts = {
+            "dashboard_override_since": "2026-07-30T12:00:00Z",
+            "ci_failing_count": 2,
+            "ci_failing_since": "2026-07-30T11:00:00Z",
+            "ci_failing_latest": "2026-07-30T13:00:00Z",
+        }
+
+        dashboard_override.clear_overridden_actions(facts, {})
+
+        self.assertFalse(facts["dashboard_override_cleared_ci"])
+        self.assertEqual(2, dashboard_override.uncleared_ci_failing_count(facts))
 
     def test_clears_items_that_share_the_command_timestamp(self) -> None:
         # The command's own `...Z` timestamp is compared against `format_ts`
@@ -500,7 +514,7 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = {
             "dashboard_override_since": "2026-07-30T12:00:00Z",
             "ci_failing_count": 1,
-            "ci_failing_since": "2026-07-30T12:00:00+00:00",
+            "ci_failing_latest": "2026-07-30T12:00:00+00:00",
         }
         pending_actions = {
             "same": {"action": "author", "since": "2026-07-30T12:00:00+00:00"},
