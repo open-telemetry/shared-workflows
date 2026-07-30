@@ -5039,13 +5039,13 @@
     },
     "11112": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "chalin",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 6,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -5063,18 +5063,27 @@
         "head_sha": "b581bb9887438c5b4e000b3a4c74908eed8c6b6f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-30T11:17:28+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-30T12:12:59+00:00",
+        "last_approver_activity_at": "2026-07-30T12:12:59+00:00",
         "last_author_activity_at": "2026-07-30T11:17:28+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "17c175246a6d23cf07d71443be1c4bc955eec52d5b937606544ba9f2f85c7a22",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "b86e4a417865af993d2336edf377a1f725eef06464d632b79dd3d151f63d4e8c",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-30T11:17:28+00:00"
       },
       "failed": false,
       "pr_number": 11112,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11112",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11113": {
