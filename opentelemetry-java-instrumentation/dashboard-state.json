@@ -1128,12 +1128,14 @@
         "author": "amirdeljouyi",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "8b58fb277fbf4a1288c5288db61ffeef",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-30T13:19:04+00:00",
         "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
-        "copilot_review_request_needed": true,
+        "copilot_review_request_needed": false,
         "copilot_review_requested": false,
         "created_at": "2026-07-05T16:29:47+00:00",
         "dashboard_command_replies": [],
@@ -1160,14 +1162,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "ee3938a6e8fd63c5f6b6267f07ac9f7c62c8e154fed59012570c7fa52f1c4c4d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T13:17:49+00:00"
+        "routing_input_fingerprint": "f6692b3dbab0a1971633b6bd9e4f802ccda91009adfced1f5c29f84a7d0256ce",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-30T13:19:04+00:00"
       },
       "failed": false,
       "pr_number": 19123,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19123",
-      "route": "copilot",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4948313313": {
           "evidence": {
