@@ -162,6 +162,9 @@ The webhook bridge should dispatch `pull-request-dashboard.yml` in
 
 Notes:
 
-- `repository` is the short repository name under `open-telemetry`.
+- `repository` is the short repository name under `open-telemetry`, and must
+  match a `repositories.json` entry exactly. An owner-prefixed name is rejected.
 - Omit `pr_number` or set it to an empty string for a backfill.
-- The central workflow validates these inputs before using them.
+- The central workflow validates `repository` and `pr_number` before using them.
+  `trigger_event` only selects a concurrency group, so it is validated on the
+  backfill path only; the bridge is what restricts it to known event names.
