@@ -2388,7 +2388,7 @@
     },
     "6964": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Zuhef",
         "author_action_review_thread_urls": [],
@@ -2412,18 +2412,27 @@
         "head_sha": "f338ec76f90f4d7904f8463ef812396dc0a10623",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-30T07:38:18+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-30T12:39:22+00:00",
+        "last_approver_activity_at": "2026-07-30T12:39:22+00:00",
         "last_author_activity_at": "2026-07-30T07:38:18+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "0daa2a6103950e897cf1084d286678e22fb98d3cf29915f152545b349b8d45db",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "david-luna",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "27bb1313fccba4f2a20d6ea0487c866b21c3cfc9f7d309f015e0f35276e3c9f7",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-30T07:38:18+00:00"
       },
       "failed": false,
       "pr_number": 6964,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6964",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
