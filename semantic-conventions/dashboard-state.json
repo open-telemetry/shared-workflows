@@ -938,7 +938,10 @@
         "assignees": [],
         "author": "sudarshan12s",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3901#pullrequestreview-4725259244"
+        ],
+        "author_nudge_episode_id": "23d627e2434649069ca417a89f83f136",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -976,25 +979,18 @@
             "changes_requested": false,
             "login": "lmolkova",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
         "routing_input_fingerprint": "48e35fd15fc9aabee20ef2e8863968874716f53f0863c122df942063a936b31d",
-        "waiting_age_basis": "last_author_activity",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-07-30T10:51:04+00:00"
       },
       "failed": false,
       "pr_number": 3901,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3901",
-      "route": "approver",
-      "top_level_history": {
-        "pr-review-4725259244": {
-          "evidence": {
-            "reply": "2026-07-30T10:51:04Z"
-          },
-          "reply_source_id": 5129881965
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "3902": {
       "facts": {
