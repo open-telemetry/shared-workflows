@@ -64,6 +64,18 @@ def actor_login(obj: dict[str, Any] | None) -> str:
     return ((obj or {}).get("login") or "").strip()
 
 
+# Every login GitHub has used for the Copilot reviewer, lowercased.
+COPILOT_REVIEWER_LOGINS = frozenset({
+    "copilot",
+    "copilot-pull-request-reviewer",
+    "copilot-pull-request-reviewer[bot]",
+})
+
+
+def is_copilot_reviewer_login(login: str) -> bool:
+    return (login or "").strip().lower() in COPILOT_REVIEWER_LOGINS
+
+
 def format_ts(ts: datetime | None) -> str:
     return ts.isoformat() if ts else ""
 

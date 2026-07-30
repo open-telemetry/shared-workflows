@@ -17,18 +17,11 @@ from github_cli import (
     request_copilot_review,
 )
 from state import load_copilot_review_requests, save_copilot_review_requests
-from utils import actor_login, format_ts
-
-
-_COPILOT_REVIEWER_LOGINS = {
-    "copilot",
-    "copilot-pull-request-reviewer",
-    "copilot-pull-request-reviewer[bot]",
-}
+from utils import actor_login, format_ts, is_copilot_reviewer_login
 
 
 def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
-    return actor_login(obj).lower() in _COPILOT_REVIEWER_LOGINS
+    return is_copilot_reviewer_login(actor_login(obj))
 
 
 def copilot_review_status(

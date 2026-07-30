@@ -240,7 +240,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("Wait for the required status checks to finish;", body)
+        self.assertIn("Wait for the required status checks to report;", body)
 
     def test_held_pr_names_only_the_outstanding_copilot_gate(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -256,7 +256,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("Wait for the Copilot review to finish;", body)
+        self.assertIn("Wait for the Copilot review to report;", body)
 
     def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
         body = pr_status_comment.render_status_comment(

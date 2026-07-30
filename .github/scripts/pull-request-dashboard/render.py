@@ -5,7 +5,15 @@ from fnmatch import fnmatchcase
 from typing import Any
 
 from route_presentation import ROUTE_ORDER, route_label
-from utils import actor_login, activity_age, markdown_escape, parse_ts, seconds_since
+from utils import (
+    COPILOT_REVIEWER_LOGINS,
+    actor_login,
+    activity_age,
+    is_copilot_reviewer_login,
+    markdown_escape,
+    parse_ts,
+    seconds_since,
+)
 
 
 # Mirrors dashboard_override.DASHBOARD_OVERRIDE_LABEL; duplicated here to keep
@@ -131,9 +139,7 @@ def reviewer_icon(reviewer: dict[str, Any]) -> str:
 
 # Friendlier display names for bot reviewers whose login is verbose.
 REVIEWER_DISPLAY_NAMES = {
-    "copilot": "Copilot",
-    "copilot-pull-request-reviewer": "Copilot",
-    "copilot-pull-request-reviewer[bot]": "Copilot",
+    login: "Copilot" for login in COPILOT_REVIEWER_LOGINS
 }
 
 
@@ -151,7 +157,7 @@ def display_reviewers(facts: dict[str, Any]) -> list[dict[str, Any]]:
     if not facts.get("copilot_review_outstanding"):
         return reviewers
     for reviewer in reviewers:
-        if reviewer_display_name(reviewer.get("login") or "") == "Copilot":
+        if is_copilot_reviewer_login(reviewer.get("login") or ""):
             reviewer["pending_review"] = True
             return reviewers
     reviewers.append({"login": COPILOT_REVIEWER_LOGIN, "pending_review": True})

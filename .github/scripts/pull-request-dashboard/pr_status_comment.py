@@ -220,7 +220,7 @@ def author_body(
         return [sentence]
     if held_gates:
         return [
-            f"Wait for {held_gates} to finish; this pull request moves to "
+            f"Wait for {held_gates} to report; this pull request moves to "
             "reviewers once the results are clean."
         ]
     _, fallback_next_step = route_status_summary("author")
