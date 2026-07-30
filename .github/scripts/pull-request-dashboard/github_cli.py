@@ -334,6 +334,7 @@ query($id: ID!, $after: String) {
                                                 databaseId
                                             }
                                             workflowRun {
+                                                databaseId
                                                 workflow {
                                                     name
                                                 }
@@ -384,6 +385,7 @@ def normalize_check(node: dict[str, Any]) -> dict[str, Any]:
         "state": state,
         "bucket": check_bucket(state),
         "workflow": workflow.get("name") or "",
+        "workflow_run_id": workflow_run.get("databaseId"),
         "description": node.get("description") or "",
         "link": (node.get("targetUrl") if is_status else node.get("detailsUrl")) or "",
         "started_at": (node.get("createdAt") if is_status else node.get("startedAt")) or "",
@@ -410,6 +412,12 @@ def check_identity(check: dict[str, Any]) -> tuple[str, str, int | None]:
     return check["workflow"], check["name"], check["integration_id"]
 
 
+def check_execution_identity(check: dict[str, Any]) -> tuple[int | None, str, int | None]:
+    # Two runs of one workflow can be in flight for the same commit, so a check
+    # that finished in one run must not hide the one still running in another.
+    return check["workflow_run_id"], check["name"], check["integration_id"]
+
+
 def gh_pr_check_rollup(
     repo: str,
     pr_id: str,
@@ -419,8 +427,8 @@ def gh_pr_check_rollup(
     checks_by_identity: dict[
         tuple[str, str, int | None, bool], tuple[dict[str, Any], bool]
     ] = {}
-    latest_by_identity: dict[tuple[str, str, int | None], dict[str, Any]] = {}
-    code_scanning_identities: set[tuple[str, str, int | None]] = set()
+    latest_by_execution: dict[tuple[int | None, str, int | None], dict[str, Any]] = {}
+    code_scanning_executions: set[tuple[int | None, str, int | None]] = set()
     after: str | None = None
     try:
         while True:
@@ -437,13 +445,14 @@ def gh_pr_check_rollup(
                 app = ((node.get("checkSuite") or {}).get("app") or {})
                 check = normalize_check(node)
                 identity = check_identity(check)
-                latest_attempt = latest_by_identity.get(identity)
+                execution = check_execution_identity(check)
+                latest_attempt = latest_by_execution.get(execution)
                 if latest_attempt is None or check_attempt_order(
                     check
                 ) >= check_attempt_order(latest_attempt):
-                    latest_by_identity[identity] = check
+                    latest_by_execution[execution] = check
                 if app.get("databaseId") == CODE_SCANNING_APP_ID:
-                    code_scanning_identities.add(identity)
+                    code_scanning_executions.add(execution)
                 if not is_required and not any(
                     fnmatchcase(name, pattern)
                     for pattern in non_blocking_check_patterns
@@ -471,15 +480,15 @@ def gh_pr_check_rollup(
         ],
         "code_scanning": [
             check
-            for identity, check in latest_by_identity.items()
-            if identity in code_scanning_identities
+            for execution, check in latest_by_execution.items()
+            if execution in code_scanning_executions
         ],
         # Every check at the head, not just the required ones, because the
         # optional job that uploads a code scanning analysis is what decides
         # whether an undetermined result is final.
         "pending": [
             check
-            for check in latest_by_identity.values()
+            for check in latest_by_execution.values()
             if check["bucket"] == "pending"
         ],
     }
