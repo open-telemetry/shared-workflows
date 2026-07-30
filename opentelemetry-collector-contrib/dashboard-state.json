@@ -169,8 +169,10 @@
         "author": "aknuds1",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 5,
+        "author_nudge_episode_id": "de21dd99ff7649e8ac1606a9e764d2ae",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-30T12:31:46+00:00",
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -233,14 +235,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "3f126e752eab82dd20042d294e4aa72300e3f176a1429f4cd0a804aea4da3a86",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T12:25:20+00:00"
+        "routing_input_fingerprint": "f599d83b16207506b6769ce850218b72420636e6fbed8c30ae27edc031219238",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-30T12:31:46+00:00"
       },
       "failed": false,
       "pr_number": 45773,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/45773",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-3887089395": {
           "evidence": {
