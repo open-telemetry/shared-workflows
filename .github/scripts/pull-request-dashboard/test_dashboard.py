@@ -31,9 +31,9 @@ from dashboard import (
 
 
 class ResolvePrRouteTest(unittest.TestCase):
-    def _author_route_facts(self, **overrides: object) -> dict[str, object]:
-        # A failing required check routes a human-authored PR to the author
-        # unless an override already cleared it.
+    def _cleared_ci_facts(self, **overrides: object) -> dict[str, object]:
+        # A failing required check that an override already cleared, which
+        # would otherwise route a human-authored pull request to the author.
         facts: dict[str, object] = {
             "ci_failing_count": 1,
             "dashboard_override_cleared_ci": True,
@@ -42,7 +42,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         return facts
 
     def test_override_is_still_gated_by_required_copilot_review(self) -> None:
-        facts = self._author_route_facts(
+        facts = self._cleared_ci_facts(
             copilot_review_exists=True,
             copilot_review_needed=True,
             copilot_review_requested=False,
@@ -53,7 +53,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertEqual("copilot", route)
 
     def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
-        facts = self._author_route_facts(
+        facts = self._cleared_ci_facts(
             copilot_review_exists=True,
             copilot_review_needed=False,
         )
@@ -63,7 +63,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertEqual("approver", route)
 
     def test_override_reaches_reviewers_when_gate_disabled(self) -> None:
-        facts = self._author_route_facts()
+        facts = self._cleared_ci_facts()
 
         route = resolve_pr_route(facts, {}, 1, False)
 
