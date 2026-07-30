@@ -739,6 +739,46 @@ class GithubCliTest(unittest.TestCase):
         )
 
     @patch("github_cli.gh_graphql")
+    def test_check_rollup_keeps_same_named_checks_from_separate_workflows(
+        self,
+        graphql,
+    ) -> None:
+        # A later check run id means a rerun only within one workflow.
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "IN_PROGRESS",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {"workflow": {"name": "build"}},
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {"workflow": {"name": "native-tests"}},
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [("build", "test")],
+            [(check["workflow"], check["name"]) for check in rollup["pending"]],
+        )
+
+    @patch("github_cli.gh_graphql")
     def test_required_code_scanning_context_keeps_normal_classification(
         self,
         graphql,

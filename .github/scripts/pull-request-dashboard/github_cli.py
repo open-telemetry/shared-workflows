@@ -404,6 +404,12 @@ def check_attempt_order(check: dict[str, Any]) -> tuple[int, int | str]:
     return 1, check["check_run_id"] or 0
 
 
+def check_identity(check: dict[str, Any]) -> tuple[str, str, int | None]:
+    # Separate workflows can name a job identically, so the workflow keeps their
+    # checks apart while rerun attempts of one check still collapse.
+    return check["workflow"], check["name"], check["integration_id"]
+
+
 def gh_pr_check_rollup(
     repo: str,
     pr_id: str,
@@ -411,10 +417,10 @@ def gh_pr_check_rollup(
 ) -> dict[str, list[dict[str, Any]]] | None:
     del repo
     checks_by_identity: dict[
-        tuple[str, int | None, bool], tuple[dict[str, Any], bool]
+        tuple[str, str, int | None, bool], tuple[dict[str, Any], bool]
     ] = {}
-    latest_by_identity: dict[tuple[str, int | None], dict[str, Any]] = {}
-    code_scanning_identities: set[tuple[str, int | None]] = set()
+    latest_by_identity: dict[tuple[str, str, int | None], dict[str, Any]] = {}
+    code_scanning_identities: set[tuple[str, str, int | None]] = set()
     after: str | None = None
     try:
         while True:
@@ -430,7 +436,7 @@ def gh_pr_check_rollup(
                 name = (node.get("context") or node.get("name") or "")
                 app = ((node.get("checkSuite") or {}).get("app") or {})
                 check = normalize_check(node)
-                identity = (check["name"], check["integration_id"])
+                identity = check_identity(check)
                 latest_attempt = latest_by_identity.get(identity)
                 if latest_attempt is None or check_attempt_order(
                     check
@@ -443,7 +449,7 @@ def gh_pr_check_rollup(
                     for pattern in non_blocking_check_patterns
                 ):
                     continue
-                required_identity = (check["name"], check["integration_id"], is_required)
+                required_identity = (*identity, is_required)
                 previous = checks_by_identity.get(required_identity)
                 if previous is None or check_attempt_order(check) >= check_attempt_order(previous[0]):
                     checks_by_identity[required_identity] = (check, is_required)
