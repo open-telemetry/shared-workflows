@@ -63,7 +63,7 @@ Permission rationale:
 | Permission | Access | Why it is needed |
 | ---------- | ------ | ---------------- |
 | Checks | Read | Required to subscribe to check-suite and check-run events and to read check data for dashboard rows. |
-| Commit statuses | Read | Required to subscribe to commit status events, which are the only notification for checks reported as statuses instead of check runs. |
+| Commit statuses | Read | Required to subscribe to commit status events, which are the only notification for checks reported as statuses instead of check runs, and to read those status contexts in the check rollup. |
 | Contents | Read | Reads PR commits and repository metadata needed by pull/commit APIs. |
 | Issues | Read and write | Finds, creates, and updates the dashboard issue. |
 | Metadata | Read | Required by GitHub for GitHub App repository access. |
