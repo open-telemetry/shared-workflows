@@ -552,7 +552,7 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertTrue(facts["dashboard_override_cleared_ci"])
         self.assertEqual(1, dashboard_override.uncleared_ci_failing_count(facts))
 
-    def test_clears_items_that_share_the_command_timestamp(self) -> None:
+    def test_keeps_items_that_share_the_command_timestamp(self) -> None:
         # The command's own `...Z` timestamp is compared against `format_ts`
         # output, so the same instant reaches here written two different ways.
         facts = {
@@ -560,13 +560,14 @@ class DashboardOverrideTest(unittest.TestCase):
             "ci_failing_count": 1,
         }
         pending_actions = {
+            "earlier": {"action": "author", "since": "2026-07-30T11:59:59+00:00"},
             "same": {"action": "author", "since": "2026-07-30T12:00:00+00:00"},
             "later": {"action": "author", "since": "2026-07-30T12:00:00.500000+00:00"},
         }
 
         remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
 
-        self.assertEqual(["later"], sorted(remaining))
+        self.assertEqual(["later", "same"], sorted(remaining))
         self.assertEqual(1, facts["dashboard_override_cleared_count"])
 
     def test_clears_nothing_without_a_command(self) -> None:

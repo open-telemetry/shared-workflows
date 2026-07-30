@@ -996,13 +996,13 @@ class RequiredCiRoutingTest(unittest.TestCase):
         )
 
         self.assertEqual(3, facts["ci_failing_count"])
-        self.assertEqual(1, facts["ci_uncleared_failing_count"])
-        self.assertEqual("2026-07-17T05:00:00+00:00", facts["ci_uncleared_failing_since"])
+        self.assertEqual(2, facts["ci_uncleared_failing_count"])
+        self.assertEqual("2026-07-17T02:00:00+00:00", facts["ci_uncleared_failing_since"])
         self.assertEqual("author", route_pr(facts, {}, 1))
 
         add_wait_age_facts(facts, "author", {})
 
-        self.assertEqual("2026-07-17T05:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("2026-07-17T02:00:00+00:00", facts["waiting_since"])
         self.assertEqual("ci_failure", facts["waiting_age_basis"])
 
 

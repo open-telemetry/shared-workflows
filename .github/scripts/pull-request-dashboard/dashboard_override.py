@@ -385,7 +385,9 @@ def clear_overridden_actions(
     cleared = 0
     for discussion_id, entry in pending_actions.items():
         since = parse_ts(entry.get("since"))
-        if entry.get("action") == "author" and since and since <= override_since:
+        # GitHub timestamps are second-granularity, so an item sharing the
+        # command's second is left open rather than risking masking it.
+        if entry.get("action") == "author" and since and since < override_since:
             cleared += 1
             continue
         remaining[discussion_id] = entry

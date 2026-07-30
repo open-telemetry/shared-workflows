@@ -573,13 +573,14 @@ def compute_facts(
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
         # A failure with no completion time cannot be shown to predate the
-        # override command, so it counts as uncleared.
+        # override command, so it counts as uncleared. So does one that shares
+        # the command's second, since GitHub timestamps cannot order them.
         untimed = len(failing) - len(failing_timestamps)
         override_since = parse_ts(facts.get("dashboard_override_since") or "")
         uncleared = [
             ts
             for ts in failing_timestamps
-            if override_since is None or ts > override_since
+            if override_since is None or ts >= override_since
         ]
         facts["ci_uncleared_failing_count"] = untimed + len(uncleared)
         if uncleared:
