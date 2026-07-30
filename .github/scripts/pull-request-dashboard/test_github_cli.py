@@ -963,17 +963,24 @@ class GithubCliTest(unittest.TestCase):
 
     @patch("github_cli.gh_api")
     def test_settled_app_ids_require_every_suite_to_complete(self, gh_api) -> None:
-        gh_api.return_value = {
-            "check_suites": [
-                {"status": "completed", "app": {"id": 15368}},
-                {"status": "in_progress", "app": {"id": 15368}},
-                {"status": "completed", "app": {"id": 17893}},
-            ],
-        }
+        gh_api.return_value = [
+            {
+                "check_suites": [
+                    {"status": "completed", "app": {"id": 15368}},
+                    {"status": "completed", "app": {"id": 17893}},
+                ],
+            },
+            {
+                "check_suites": [
+                    {"status": "in_progress", "app": {"id": 15368}},
+                ],
+            },
+        ]
 
         self.assertEqual({17893}, settled_check_suite_app_ids("owner/repo", "head"))
         gh_api.assert_called_once_with(
-            "/repos/owner/repo/commits/head/check-suites?per_page=100"
+            "/repos/owner/repo/commits/head/check-suites?per_page=100",
+            paginate=True,
         )
 
     @patch("github_cli.gh_api")

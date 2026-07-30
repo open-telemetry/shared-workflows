@@ -563,18 +563,20 @@ def settled_check_suite_app_ids(repo: str, head_sha: str) -> set[int]:
     if not head_sha:
         return set()
     try:
-        payload = gh_api(
-            f"/repos/{repo}/commits/{head_sha}/check-suites?per_page=100"
+        pages = gh_api(
+            f"/repos/{repo}/commits/{head_sha}/check-suites?per_page=100",
+            paginate=True,
         )
     except RuntimeError:
         return set()
     settled: dict[int, bool] = {}
-    for suite in (payload or {}).get("check_suites") or []:
-        app_id = (suite.get("app") or {}).get("id")
-        if app_id is None:
-            continue
-        completed = suite.get("status") == "completed"
-        settled[app_id] = settled.get(app_id, True) and completed
+    for page in pages or []:
+        for suite in page.get("check_suites") or []:
+            app_id = (suite.get("app") or {}).get("id")
+            if app_id is None:
+                continue
+            completed = suite.get("status") == "completed"
+            settled[app_id] = settled.get(app_id, True) and completed
     return {app_id for app_id, completed in settled.items() if completed}
 
 
