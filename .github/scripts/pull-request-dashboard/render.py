@@ -111,6 +111,8 @@ WORD_JOINER = "\u2060"
 
 def reviewer_icon(reviewer: dict[str, Any]) -> str:
     discussion_icons = []
+    if reviewer.get("pending_review"):
+        discussion_icons.append("⏳")
     if reviewer.get("open_thread"):
         discussion_icons.append("💬")
     if reviewer.get("top_level_feedback"):
@@ -138,10 +140,27 @@ def reviewer_display_name(login: str) -> str:
     return REVIEWER_DISPLAY_NAMES.get(login, login)
 
 
-def reviewers_cell_text(facts: dict[str, Any]) -> str:
-    reviewers = facts.get("reviewers") or []
-    parts = []
+COPILOT_REVIEWER_LOGIN = "copilot-pull-request-reviewer"
+
+
+def display_reviewers(facts: dict[str, Any]) -> list[dict[str, Any]]:
+    # Copilot only joins the reviewer list once it has reviewed, so an
+    # outstanding review has to be added for the wait to be visible at all.
+    reviewers = [dict(reviewer) for reviewer in facts.get("reviewers") or []]
+    if not facts.get("copilot_review_outstanding"):
+        return reviewers
     for reviewer in reviewers:
+        if reviewer_display_name(reviewer.get("login") or "") == "Copilot":
+            reviewer["pending_review"] = True
+            return reviewers
+    reviewers.append({"login": COPILOT_REVIEWER_LOGIN, "pending_review": True})
+    reviewers.sort(key=lambda reviewer: str(reviewer.get("login") or "").lower())
+    return reviewers
+
+
+def reviewers_cell_text(facts: dict[str, Any]) -> str:
+    parts = []
+    for reviewer in display_reviewers(facts):
         login = markdown_escape(reviewer_display_name(reviewer.get("login") or ""))
         if not login:
             continue
@@ -264,7 +283,8 @@ def render_pr_tables(
     )
     reviewers_note = (
         "Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · "
-        "💬 open review thread · 📌 top-level feedback needs author action · 🔴 changes requested."
+        "⏳ review pending · 💬 open review thread · 📌 top-level feedback needs author action · "
+        "🔴 changes requested."
     )
     out: list[str] = [
         "> [!NOTE]",

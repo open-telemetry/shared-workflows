@@ -211,10 +211,13 @@ the implementation understandable and operationally cheap.
   is evidence the gates cannot undo. Unavailable check results hold the handoff
   for the same reason a pending one does, and resolve on a later run.
 - A held PR is presented as waiting on its author rather than on the robot it
-  is waiting for. The CI column and the reviewers column already name what is
-  outstanding, and the live status comment tells the author the handoff happens
-  once those are clean, so a separate route would add a section that nobody is
-  expected to act on.
+  is waiting for, so a separate route would add a section that nobody is
+  expected to act on. What it waits for is named in the columns instead: the CI
+  column already shows running checks, and an outstanding Copilot review is
+  listed in the reviewers column with the same pending icon. Copilot otherwise
+  joins that column only once it has reviewed, so without this the Copilot gate
+  would hold a PR with nothing on the row to explain why. The live status
+  comment tells the author the handoff happens once both are clean.
 - A held route also holds its wait age. Recomputing it would read the push as
   the end of the CI failure and fall back to the last approver activity, which
   is usually far older, so a PR the author had just pushed to would sort to the

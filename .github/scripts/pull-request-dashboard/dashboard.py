@@ -123,6 +123,11 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_approver_activity_at       str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
+    copilot_review_outstanding      bool          The Copilot review gate applies
+                                                  to this PR and its review is
+                                                  missing or stale, so the
+                                                  reviewers column shows Copilot
+                                                  as pending.
     route_held_for_gates            bool          The PR did not advance to the
                                                   route it computed, because
                                                   the required checks or the
@@ -1342,13 +1347,14 @@ def hold_route_until_gates_settle(
     previous_route = (previous_result or {}).get("route") or ""
     if previous_route not in ROUTE_PROGRESSION:
         previous_route = "author"
+    facts["copilot_review_outstanding"] = copilot_review_outstanding(
+        facts, enabled=require_clean_copilot_review
+    )
     held = (
         route_progress(route) > route_progress(previous_route)
         and (
             not required_checks_settled(facts)
-            or copilot_review_outstanding(
-                facts, enabled=require_clean_copilot_review
-            )
+            or facts["copilot_review_outstanding"]
         )
     )
     facts["route_held_for_gates"] = held
