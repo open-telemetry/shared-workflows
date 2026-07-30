@@ -267,13 +267,15 @@ def enqueue_status_comment_update(pr_number: int) -> None:
 def migrated_pr_record(record: Any) -> Any:
     # The retired copilot route held a PR while its review was outstanding,
     # which is now part of the author's turn. The gate facts travel with the
-    # route so cached records read as held until the PR is refreshed.
+    # route so cached records read as held until the PR is refreshed, and the
+    # held route picks the same fallback a maintenance bot gets, because it has
+    # no author to act.
     if not isinstance(record, dict) or record.get("route") != "copilot":
         return record
     facts = record.get("facts") or {}
     return {
         **record,
-        "route": "author",
+        "route": "approver" if facts.get("is_maintenance_bot") else "author",
         "facts": {
             **facts,
             "route_held_for_gates": True,

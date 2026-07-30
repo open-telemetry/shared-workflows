@@ -166,7 +166,14 @@ class StateTest(unittest.TestCase):
                             "route": "copilot",
                             "facts": {"ci_pending_count": 2},
                         },
-                        "3": {"route": "approver"},
+                        "3": {
+                            "route": "copilot",
+                            "facts": {
+                                "ci_pending_count": 0,
+                                "is_maintenance_bot": True,
+                            },
+                        },
+                        "4": {"route": "approver"},
                     },
                 }),
                 encoding="utf-8",
@@ -197,7 +204,17 @@ class StateTest(unittest.TestCase):
                             "required_checks_settled": False,
                         },
                     },
-                    "3": {"route": "approver"},
+                    "3": {
+                        "route": "approver",
+                        "facts": {
+                            "ci_pending_count": 0,
+                            "is_maintenance_bot": True,
+                            "route_held_for_gates": True,
+                            "copilot_review_outstanding": True,
+                            "required_checks_settled": True,
+                        },
+                    },
+                    "4": {"route": "approver"},
                 },
             )
 
