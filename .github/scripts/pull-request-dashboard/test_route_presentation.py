@@ -5,6 +5,7 @@ import unittest
 from route_presentation import (
     ROUTE_ORDER,
     ROUTE_PRESENTATION,
+    outstanding_gate_phrase,
     route_label,
     route_status_summary,
 )
@@ -34,6 +35,15 @@ class RoutePresentationTest(unittest.TestCase):
     def test_unrecognized_route_uses_unknown_presentation(self) -> None:
         self.assertEqual(route_label("unknown"), route_label("other"))
         self.assertEqual(route_status_summary("unknown"), route_status_summary("other"))
+
+    def test_both_outstanding_gates_are_named_in_one_phrase(self) -> None:
+        self.assertEqual(
+            "the required status checks and the Copilot review",
+            outstanding_gate_phrase({
+                "required_checks_settled": False,
+                "copilot_review_outstanding": True,
+            }),
+        )
 
 
 if __name__ == "__main__":
