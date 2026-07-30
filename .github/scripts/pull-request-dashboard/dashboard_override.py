@@ -109,13 +109,20 @@ def latest_authorized_command_at(
 
     Unlike `latest_authorized_command`, acknowledged commands still count: the
     watermark has to outlive the acknowledgement, or the discussions a command
-    cleared would come back on the next refresh.
+    cleared would come back on the next refresh. An acknowledgement is also
+    treated as durable proof of authorization, since approver-team membership is
+    resolved live and an approver can leave the team after commanding.
     """
+    acknowledged_ids = _acknowledged_override_command_ids(raw.get("issue_comments"))
     latest = ""
     for comment in raw.get("issue_comments") or []:
         if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
             continue
-        if not is_authorized_commander(
+        try:
+            comment_id = int(comment.get("id"))
+        except (TypeError, ValueError):
+            comment_id = 0
+        if comment_id not in acknowledged_ids and not is_authorized_commander(
             actor_login(comment.get("user") or {}), author, reviewers
         ):
             continue
@@ -168,16 +175,27 @@ def _replied_command_ids(comments: list[dict[str, Any]] | None) -> set[int]:
     return replied_ids
 
 
-def _acknowledged_override_command_id(
+def _acknowledged_override_command_ids(
     comments: list[dict[str, Any]] | None,
-) -> int:
-    acknowledged_id = 0
+) -> set[int]:
+    """Command ids the dashboard app has already acknowledged.
+
+    Ack markers are matched only in comments authored by the dashboard app, so a
+    user cannot forge one to authorize their own command.
+    """
+    acknowledged_ids: set[int] = set()
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
         for match in _OVERRIDE_ACK_MARKER_RE.findall(comment.get("body") or ""):
-            acknowledged_id = max(acknowledged_id, int(match))
-    return acknowledged_id
+            acknowledged_ids.add(int(match))
+    return acknowledged_ids
+
+
+def _acknowledged_override_command_id(
+    comments: list[dict[str, Any]] | None,
+) -> int:
+    return max(_acknowledged_override_command_ids(comments), default=0)
 
 
 def pending_command_replies(

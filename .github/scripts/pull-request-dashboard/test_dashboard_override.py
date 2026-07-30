@@ -465,7 +465,44 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(0, facts["dashboard_override_command_id"])
         self.assertEqual("2026-07-30T12:00:00Z", facts["dashboard_override_since"])
 
-    def test_clears_only_author_actions_that_predate_the_command(self) -> None:
+    def test_watermark_survives_the_commander_leaving_the_approver_team(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 3,
+                    "user": {"login": "former-approver"},
+                    "created_at": "2026-07-30T12:00:00Z",
+                    "body": "/dashboard route:reviewers",
+                },
+                {
+                    "id": 4,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "created_at": "2026-07-30T12:05:00Z",
+                    "body": dashboard_override.override_ack_marker(3),
+                },
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(raw, "author", set())
+
+        self.assertEqual("2026-07-30T12:00:00Z", facts["dashboard_override_since"])
+
+    def test_unacknowledged_command_needs_current_authorization(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 3,
+                    "user": {"login": "former-approver"},
+                    "created_at": "2026-07-30T12:00:00Z",
+                    "body": "/dashboard route:reviewers",
+                },
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(raw, "author", set())
+
+        self.assertEqual("", facts["dashboard_override_since"])
+
         facts = {"dashboard_override_since": "2026-07-30T12:00:00Z"}
         pending_actions = {
             "old": {"action": "author", "since": "2026-07-30T11:00:00Z"},
