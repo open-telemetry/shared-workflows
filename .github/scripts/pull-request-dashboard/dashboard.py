@@ -133,6 +133,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   the required checks or the
                                                   Copilot review are still
                                                   outstanding.
+    required_checks_settled         bool          Every required check has
+                                                  reported on the current head,
+                                                  so the computed route is not
+                                                  provisional.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
                                                   or PR creation time. Carried
@@ -1346,14 +1350,16 @@ def hold_route_until_gates_settle(
     # author is always allowed, because those are decisions a gate cannot undo.
     previous_route = (previous_result or {}).get("route") or ""
     if previous_route not in ROUTE_PROGRESSION:
-        previous_route = "author"
+        # A maintenance bot has no author route to fall back to.
+        previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
     facts["copilot_review_outstanding"] = copilot_review_outstanding(
         facts, enabled=require_clean_copilot_review
     )
+    facts["required_checks_settled"] = required_checks_settled(facts)
     held = (
         route_progress(route) > route_progress(previous_route)
         and (
-            not required_checks_settled(facts)
+            not facts["required_checks_settled"]
             or facts["copilot_review_outstanding"]
         )
     )

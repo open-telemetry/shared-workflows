@@ -424,7 +424,11 @@ def gh_pr_check_rollup(
             commits = pull_request.get("commits") or {}
             commit_nodes = commits.get("nodes") or []
             commit = (commit_nodes[0] if commit_nodes else {}).get("commit") or {}
-            head_oid = commit.get("oid") or head_oid
+            page_oid = commit.get("oid") or ""
+            if head_oid and page_oid and page_oid != head_oid:
+                # The pages describe two different commits, so neither is whole.
+                return None
+            head_oid = page_oid or head_oid
             rollup = commit.get("statusCheckRollup") or {}
             contexts = rollup.get("contexts") or {}
             for node in contexts.get("nodes") or []:

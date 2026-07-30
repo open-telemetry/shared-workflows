@@ -230,7 +230,8 @@ the implementation understandable and operationally cheap.
   the PR in front of reviewers.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
-  but do not change who owns the next action.
+  but never route one of these PRs to its author: a bot PR whose handoff is
+  held waits on reviewers instead.
 
 ## Copilot Review Gate
 

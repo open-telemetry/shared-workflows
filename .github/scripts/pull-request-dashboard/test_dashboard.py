@@ -152,6 +152,15 @@ class GateHoldTest(unittest.TestCase):
 
         self.assertEqual("author", route)
 
+    def test_a_held_maintenance_bot_pr_is_never_routed_to_its_author(self) -> None:
+        route = self._hold(
+            {"ci_pending_count": 1, "is_maintenance_bot": True},
+            "maintainer",
+            None,
+        )
+
+        self.assertEqual("approver", route)
+
     def test_held_route_carries_the_previous_wait_forward(self) -> None:
         facts = {
             "route_held_for_gates": True,

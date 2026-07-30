@@ -143,6 +143,14 @@ class RenderTest(unittest.TestCase):
 
         self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
 
+    def test_outstanding_copilot_review_marks_its_short_login_entry(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "copilot", "open_thread": True}],
+            "copilot_review_outstanding": True,
+        })
+
+        self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
+
     def test_clean_copilot_review_is_not_listed_as_pending(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "reviewer", "approved": True}],

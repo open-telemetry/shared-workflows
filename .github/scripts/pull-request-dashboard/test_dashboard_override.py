@@ -153,7 +153,7 @@ class DashboardOverrideTest(unittest.TestCase):
         gate_held = dashboard_override.render_command_reply({
             "comment_id": 5,
             "kind": "routed",
-            "held_for_gates": True,
+            "held_gates": "the required status checks",
             "user": "author",
         })
 
@@ -174,8 +174,7 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
             "@author accepted the reviewer-routing override; the reviewer "
-            "handoff is waiting on the required status checks and the Copilot "
-            "review.",
+            "handoff is waiting on the required status checks.",
             gate_held,
         )
 
@@ -595,6 +594,8 @@ class DashboardOverrideTest(unittest.TestCase):
                         "dashboard_override_command_id": 3,
                         "dashboard_override_command_user": "author",
                         "route_held_for_gates": True,
+                        "required_checks_settled": True,
+                        "copilot_review_outstanding": True,
                     }
                 },
                 "8": {"facts": {"dashboard_override_requested": False}},
@@ -633,7 +634,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 call([
                     "gh", "api", "--method", "POST",
                     "repos/open-telemetry/example/issues/7/comments",
-                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author accepted the reviewer-routing override; the reviewer handoff is waiting on the required status checks and the Copilot review.\n",
+                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author accepted the reviewer-routing override; the reviewer handoff is waiting on the Copilot review.\n",
                 ]),
             ],
             run_gh.call_args_list,

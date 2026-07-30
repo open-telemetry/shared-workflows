@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import quote
 
 from github_cli import gh_api, run_gh
+from route_presentation import outstanding_gate_phrase
 from state import load_dashboard_state_cache
 from utils import actor_login
 
@@ -231,11 +232,11 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             "use `/dashboard route:reviewers`."
         )
     elif kind == "routed":
-        if reply.get("held_for_gates"):
+        held_gates = reply.get("held_gates") or ""
+        if held_gates:
             message = (
                 "accepted the reviewer-routing override; the reviewer handoff "
-                "is waiting on the required status checks and the Copilot "
-                "review."
+                f"is waiting on {held_gates}."
             )
         else:
             message = "routed this pull request to reviewers."
@@ -422,7 +423,11 @@ def deliver_dashboard_override_requests(repo: str) -> list[str]:
                     {
                         "comment_id": facts["dashboard_override_command_id"],
                         "kind": "routed",
-                        "held_for_gates": bool(facts.get("route_held_for_gates")),
+                        "held_gates": (
+                            outstanding_gate_phrase(facts)
+                            if facts.get("route_held_for_gates")
+                            else ""
+                        ),
                         "user": facts.get("dashboard_override_command_user") or "",
                     },
                 )

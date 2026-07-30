@@ -480,6 +480,48 @@ class GithubCliTest(unittest.TestCase):
         )
 
     @patch("github_cli.gh_graphql")
+    def test_check_rollup_rejects_pages_from_different_commits(self, graphql) -> None:
+        def page(oid: str, name: str, has_next: bool) -> dict:
+            return {
+                "data": {
+                    "node": {
+                        "commits": {
+                            "nodes": [{
+                                "commit": {
+                                    "oid": oid,
+                                    "statusCheckRollup": {
+                                        "contexts": {
+                                            "nodes": [{
+                                                "__typename": "CheckRun",
+                                                "name": name,
+                                                "status": "COMPLETED",
+                                                "conclusion": "SUCCESS",
+                                                "url": "https://github.com/open-telemetry/example/runs/1",
+                                                "isRequired": True,
+                                            }],
+                                            "pageInfo": {
+                                                "hasNextPage": has_next,
+                                                "endCursor": "cursor-1",
+                                            },
+                                        },
+                                    },
+                                },
+                            }],
+                        },
+                    },
+                },
+            }
+
+        graphql.side_effect = [
+            page("stale-head", "build", True),
+            page("current-head", "test", False),
+        ]
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNone(rollup)
+
+    @patch("github_cli.gh_graphql")
     def test_check_rollup_keeps_required_and_non_blocking_attempts_separate(
         self,
         graphql,

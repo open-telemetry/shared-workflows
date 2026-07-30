@@ -131,6 +131,7 @@ def reviewer_icon(reviewer: dict[str, Any]) -> str:
 
 # Friendlier display names for bot reviewers whose login is verbose.
 REVIEWER_DISPLAY_NAMES = {
+    "copilot": "Copilot",
     "copilot-pull-request-reviewer": "Copilot",
     "copilot-pull-request-reviewer[bot]": "Copilot",
 }

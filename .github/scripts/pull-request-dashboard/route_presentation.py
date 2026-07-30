@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 
 ROUTE_PRESENTATION = {
     "maintainer": {
@@ -50,3 +52,15 @@ def route_status_summary(route: str) -> tuple[str, str]:
 
 def status_headline(route: str) -> str:
     return ROUTE_PRESENTATION.get(route, ROUTE_PRESENTATION["unknown"])["status_headline"]
+
+
+def outstanding_gate_phrase(facts: dict[str, Any]) -> str:
+    # Only one gate has to be outstanding for a PR to be held, and a branch
+    # without the Copilot gate never has that one, so naming both would tell
+    # the author to wait for work that is finished or never happens.
+    gates = []
+    if not facts.get("required_checks_settled"):
+        gates.append("the required status checks")
+    if facts.get("copilot_review_outstanding"):
+        gates.append("the Copilot review")
+    return " and ".join(gates)
