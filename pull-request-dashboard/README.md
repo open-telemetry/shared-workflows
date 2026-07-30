@@ -182,18 +182,19 @@ Targeted updates received before the first full dashboard run are ignored.
 ## Reviewer routing override
 
 When the dashboard says a pull request is waiting on its author but the author
-believes it is ready for another review, the author
-can comment `/dashboard route:reviewers`. The command clears every review item
-and required check failure that was already open when it was posted, so the
-pull request routes to *Waiting on reviewers* and stays there instead of falling
-back to the author on the next refresh. Members of the repository's
-`approver_teams` can use the same
+believes it is ready for another review, the author can comment
+`/dashboard route:reviewers`. The command clears every review item and required
+check failure that was already open when it was posted, so the pull request
+leaves *Waiting on authors* and routing continues from there instead of falling
+back to the author on the next refresh. Where it lands is whatever routing
+decides next, which for an already-approved pull request is *Waiting on
+maintainers*. Members of the repository's `approver_teams` can use the same
 command. A `/dashboard route:reviewers` command from anyone else, or a command
-that clears nothing, has no routing effect. The
-dashboard replies to a `/dashboard route:reviewers` from an unauthorized user
-explaining that only the author or an approver can use it, replies to an author
-or approver command that cleared nothing noting where it is currently routed,
-and replies to any unrecognized `/dashboard` command.
+that clears nothing, has no routing effect. The dashboard replies to a
+`/dashboard route:reviewers` from an unauthorized user explaining that only the
+author or an approver can use it, replies to an author or approver command that
+cleared nothing noting where it is currently routed, and replies to any
+unrecognized `/dashboard` command.
 
 Anything that happens after the command keeps its author action, so new review
 feedback and new check failures still route the pull request back to the author.
