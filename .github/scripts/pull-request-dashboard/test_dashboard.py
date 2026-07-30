@@ -319,6 +319,21 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
 
         self.assertEqual("abc123", facts["author_nudge_episode_id"])
 
+    def test_ends_episode_while_route_is_held_for_gates(self) -> None:
+        facts: dict[str, object] = {"route_held_for_gates": True}
+
+        assign_author_nudge_episode(
+            facts,
+            "author",
+            {
+                "route": "author",
+                "facts": {"author_nudge_episode_id": "abc123"},
+            },
+            [],
+        )
+
+        self.assertNotIn("author_nudge_episode_id", facts)
+
 class FetchPrRawTest(unittest.TestCase):
     def test_uses_graphql_issue_comments_without_rest_join(self) -> None:
         issue_comments = [{"id": 101, "body": "GraphQL comment"}]

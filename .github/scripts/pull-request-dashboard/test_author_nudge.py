@@ -226,6 +226,19 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         self.assertFalse(due)
         self.assertIsNone(entry)
 
+    def test_gate_held_route_resets_clock_and_does_not_nudge(self) -> None:
+        held = author_result()
+        held["facts"]["route_held_for_gates"] = True
+
+        due, entry = author_nudge.plan_nudge(
+            held,
+            {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""},
+            NOW,
+        )
+
+        self.assertFalse(due)
+        self.assertIsNone(entry)
+
     def test_returning_to_author_route_starts_new_episode(self) -> None:
         previous = {
             "waiting_since": "2026-07-01T00:00:00+00:00",

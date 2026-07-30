@@ -222,6 +222,11 @@ the implementation understandable and operationally cheap.
   the end of the CI failure and fall back to the last approver activity, which
   is usually far older, so a PR the author had just pushed to would sort to the
   top of the waiting-on-authors section as the stalest item on the board.
+- A held PR sends no reminder in either direction. The author nudge and the
+  reviewer Slack notification both ask a person to respond, and while the hold
+  lasts the response is owed by a robot that is already working. The author's
+  waiting episode ends when the hold begins, so a later handoff back to the
+  author starts a fresh one instead of resuming a wait the author has answered.
 - While a PR stays on a route where someone other than the author owes it a
   response, its wait age only moves back, never forward. The fallback for those
   routes is the last author activity, so a push would otherwise restart the

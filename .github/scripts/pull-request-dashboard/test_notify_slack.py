@@ -14,7 +14,7 @@ class NotifySlackTest(unittest.TestCase):
         results = {
             7: {
                 "pr_number": 7,
-                "route": "author",
+                "route": "approver",
                 "facts": {
                     "route_held_for_gates": True,
                     "reviewers": [{"login": "reviewer"}],
