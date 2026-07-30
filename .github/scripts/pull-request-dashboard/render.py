@@ -137,14 +137,15 @@ def reviewer_icon(reviewer: dict[str, Any]) -> str:
     return WORD_JOINER.join(discussion_icons)
 
 
-# Friendlier display names for bot reviewers whose login is verbose.
+# Friendlier display names for bot reviewers whose login is verbose, keyed by
+# the lowercased login so they match the same way the reviewer itself does.
 REVIEWER_DISPLAY_NAMES = {
     login: "Copilot" for login in COPILOT_REVIEWER_LOGINS
 }
 
 
 def reviewer_display_name(login: str) -> str:
-    return REVIEWER_DISPLAY_NAMES.get(login, login)
+    return REVIEWER_DISPLAY_NAMES.get((login or "").strip().lower(), login)
 
 
 COPILOT_REVIEWER_LOGIN = "copilot-pull-request-reviewer"
