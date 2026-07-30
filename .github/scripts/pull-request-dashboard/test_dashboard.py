@@ -7,7 +7,6 @@ import tempfile
 import unittest
 from unittest.mock import ANY, Mock, call, patch
 
-from classification import discussion_prompt_input
 from copilot_review import apply_copilot_review_gate
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
@@ -160,9 +159,13 @@ class FetchPrRawTest(unittest.TestCase):
             ),
             patch(
                 "github_cli.gh_pr_check_rollup",
-                return_value={"required": [], "non_blocking_failures": []},
+                return_value={
+                    "required": [],
+                    "non_blocking_failures": [],
+                    "code_scanning": [],
+                },
             ),
-            patch("github_cli.gh_required_check_contexts", return_value=[]),
+            patch("github_cli.gh_branch_rules", return_value=[]),
             patch("github_cli.include_missing_required_checks", return_value=[]),
         ):
             raw = fetch_pr_raw(
@@ -184,6 +187,49 @@ class FetchPrRawTest(unittest.TestCase):
                 ]
             },
             set(rest_payloads),
+        )
+
+
+class ReviewThreadOrderTest(unittest.TestCase):
+    def test_editing_an_old_comment_does_not_make_it_the_last_word(self) -> None:
+        threads = group_review_threads(
+            {
+                "review_threads": [
+                    {
+                        "id": "thread-1",
+                        "isResolved": False,
+                        "isOutdated": False,
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "url": "https://example.test/discussion/1",
+                                    "body": "please fix",
+                                    "createdAt": "2026-07-14T01:00:00Z",
+                                    "updatedAt": "2026-07-14T03:00:00Z",
+                                    "author": {"login": "reviewer"},
+                                },
+                                {
+                                    "url": "https://example.test/discussion/2",
+                                    "body": "fixed it",
+                                    "createdAt": "2026-07-14T02:00:00Z",
+                                    "updatedAt": "2026-07-14T02:00:00Z",
+                                    "author": {"login": "author"},
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
+            "author",
+            {"reviewer"},
+            {"conflicts": "no"},
+        )
+
+        self.assertEqual(
+            "author", threads[0]["discussion_facts"]["latest_comment_role"]
+        )
+        self.assertEqual(
+            ["please fix", "fixed it"], [c["body"] for c in threads[0]["comments"]]
         )
 
 
@@ -592,16 +638,6 @@ class CopilotReviewGateTest(unittest.TestCase):
 
         self.assertEqual(route, "maintainer")
         self.assertFalse(facts["copilot_review_request_needed"])
-
-    def test_discussion_url_is_excluded_from_classifier_input(self) -> None:
-        prompt_input = discussion_prompt_input({
-            "discussion_id": "thread-1",
-            "discussion_kind": "review-comment-thread",
-            "discussion_url": "https://example.test/discussion/1",
-            "comments": [],
-        })
-
-        self.assertNotIn("discussion_url", prompt_input)
 
 
 class HeadShaSourceTest(unittest.TestCase):

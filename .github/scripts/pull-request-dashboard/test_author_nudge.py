@@ -109,12 +109,13 @@ class AuthorNudgePolicyTest(unittest.TestCase):
 
         self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
 
-    @patch("github_cli.gh_required_check_contexts", return_value=[])
+    @patch("github_cli.gh_branch_rules", return_value=[])
     @patch(
         "github_cli.gh_pr_check_rollup",
         return_value={
             "required": [{"name": "build", "bucket": "fail"}],
             "non_blocking_failures": [],
+            "code_scanning": [],
         },
     )
     @patch("github_cli.fetch_review_threads", return_value=[])
@@ -132,7 +133,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         _fetch_review_requests,
         _fetch_review_threads,
         gh_pr_check_rollup,
-        gh_required_check_contexts,
+        gh_branch_rules,
     ) -> None:
         pr = {
             "id": "PR_node",
@@ -169,7 +170,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             "PR_node",
             [],
         )
-        gh_required_check_contexts.assert_called_once_with(
+        gh_branch_rules.assert_called_once_with(
             "open-telemetry/example",
             "main",
         )

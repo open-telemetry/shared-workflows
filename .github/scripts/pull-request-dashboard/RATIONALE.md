@@ -172,6 +172,14 @@ the implementation understandable and operationally cheap.
 - Classic branch-protection required status checks are not discovered when they
   have not reported. This is an accepted limitation because configured
   OpenTelemetry repositories use rulesets for required status checks.
+- A `code_scanning` ruleset rule holds the merge on a check that the code
+  scanning app publishes per configured tool, named after that tool, which
+  GitHub never marks as required. Those checks are matched by app and by the
+  tool names in the rule, then treated as required. Their `NEUTRAL` conclusion
+  means the alerts introduced by the PR could not be determined, which also
+  holds the merge, so it is reported as failing rather than skipped. Tools with
+  no such check are not reported, because GitHub expects results only from the
+  tool configurations that actually ran.
 - A failing required status check routes a human-authored PR to the author
   before discussion and approval routing. The live PR status comment names the
   CI failure, including when review feedback also needs author action.

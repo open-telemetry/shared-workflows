@@ -263,7 +263,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "Investigate required status check failures. "
-            "Note: CodeQL and workflow-notification are failing but are not required checks.",
+            "Note: CodeQL and workflow-notification are also failing but are not required checks.",
             body,
         )
 
@@ -284,7 +284,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "Note: \\[CodeQL\\] &lt;script&gt; &#64;maintainers and "
-            "pipe\\|slash\\\\check &amp; more are failing but are not required checks.",
+            "pipe\\|slash\\\\check &amp; more are also failing but are not required checks.",
             body,
         )
 
@@ -331,8 +331,8 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("**Waiting on reviewers** · refreshed ", body)
         self.assertIn(
-            "**Non-blocking check failure:** codecov/patch is failing but is not a required check.",
-            body,
+            "**Non-blocking check failure:** codecov/patch",
+            body.splitlines(),
         )
 
     def test_non_author_routes_also_name_required_ci_failures(self) -> None:
@@ -343,7 +343,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "Waiting on maintainers",
                 ["CodeQL"],
                 "1 required status check is failing.",
-                "**Non-blocking check failure:** CodeQL is failing but is not a required check.",
+                "**Non-blocking check failure:** CodeQL",
             ),
             (
                 "approver",
@@ -351,7 +351,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "Waiting on reviewers",
                 ["CodeQL", "workflow-notification"],
                 "2 required status checks are failing.",
-                "**Non-blocking check failures:** CodeQL and workflow-notification are failing but are not required checks.",
+                "**Non-blocking check failures:** CodeQL and workflow-notification",
             ),
         )
         for (
@@ -376,7 +376,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
                 self.assertIn(f"**{waiting_on}** · refreshed ", body)
                 self.assertIn(f"**Also blocked by:** {blocked_by}", body)
-                self.assertIn(non_blocking_line, body)
+                self.assertIn(non_blocking_line, body.splitlines())
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
@@ -536,11 +536,11 @@ class UpsertStatusCommentTest(unittest.TestCase):
         pr_status_comment,
         "managed_status_comments",
         return_value=[
-            {"id": 7, "body": "<!-- review-guidance --> old"},
+            {"id": 7, "body": "<!-- pull-request-dashboard-status --> old"},
             {"id": 8, "body": "<!-- pull-request-dashboard-status --> duplicate"},
         ],
     )
-    def test_migrates_legacy_comment_and_deletes_duplicates(self, _comments: object) -> None:
+    def test_updates_comment_and_deletes_duplicates(self, _comments: object) -> None:
         pr_status_comment.upsert_status_comment("open-telemetry/example", 1, "body")
 
         self.assertEqual(["PATCH", "DELETE"], [command[3] for command in self.commands])
@@ -559,7 +559,7 @@ class ManagedStatusCommentsTest(unittest.TestCase):
             },
             {
                 "id": 3,
-                "body": "<!-- review-guidance --> legacy",
+                "body": "no marker",
                 "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
             },
             {
@@ -572,7 +572,7 @@ class ManagedStatusCommentsTest(unittest.TestCase):
     def test_requires_dashboard_app_identity_and_marker(self, _gh_api: object) -> None:
         comments = pr_status_comment.managed_status_comments("open-telemetry/example", 1)
 
-        self.assertEqual([2, 3], [comment["id"] for comment in comments])
+        self.assertEqual([2], [comment["id"] for comment in comments])
 
 
 class RolloutStateTest(unittest.TestCase):

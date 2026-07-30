@@ -17,16 +17,6 @@ on:
         description: Event that requested the refresh.
         required: false
         type: string
-      # Remove these two inputs after the post-rollout compatibility cleanup in
-      # WEBHOOK_SETUP.md.
-      trigger_action:
-        description: Deprecated compatibility input; accepted and ignored during webhook rollout.
-        required: false
-        type: string
-      trigger_review_id:
-        description: Deprecated compatibility input; accepted and ignored during webhook rollout.
-        required: false
-        type: string
 permissions:
   contents: read
 

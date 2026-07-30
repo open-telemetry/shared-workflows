@@ -8,6 +8,11 @@ from route_presentation import ROUTE_ORDER, route_label
 from utils import actor_login, activity_age, markdown_escape, parse_ts, seconds_since
 
 
+# Mirrors dashboard_override.DASHBOARD_OVERRIDE_LABEL; duplicated here to keep
+# rendering free of that module's GitHub CLI dependencies.
+DASHBOARD_OVERRIDE_LABEL = "dashboard:route-overridden"
+
+
 def _limit_rows(rows: list[Any], max_rows: int | None) -> tuple[list[Any], int]:
     if max_rows is None or max_rows <= 0 or len(rows) <= max_rows:
         return rows, 0
@@ -26,15 +31,14 @@ def _pr_cell_text(
     number = pr["number"]
     title = markdown_escape(pr.get("title", ""))
     pr_cell = f"#{number} {title}"
-    if not labels_to_display:
-        return pr_cell
+    patterns = [*(labels_to_display or []), DASHBOARD_OVERRIDE_LABEL]
 
     matched_labels: list[str] = []
     seen: set[str] = set()
     for label in pr.get("labels") or []:
         if not isinstance(label, str) or not label or label in seen:
             continue
-        if any(fnmatchcase(label, pattern) for pattern in labels_to_display):
+        if any(fnmatchcase(label, pattern) for pattern in patterns):
             matched_labels.append(label)
             seen.add(label)
     if not matched_labels:

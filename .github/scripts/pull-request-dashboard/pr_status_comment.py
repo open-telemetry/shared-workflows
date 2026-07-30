@@ -43,12 +43,6 @@ STATUS_REPORT_TRUNCATION_NOTICE = (
 )
 RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
-# Remove after migrating open PRs as described by the post-rollout
-# compatibility cleanup in WEBHOOK_SETUP.md.
-LEGACY_MARKERS = (
-    "<!-- review-guidance -->",
-    "<!-- copilot-review-guidance -->",
-)
 
 
 def author_nudge_episode_marker(episode_id: str) -> str:
@@ -150,7 +144,9 @@ def status_footer(
     return lines
 
 
-def non_blocking_failure_summary(non_blocking_check_failures: list[str]) -> str:
+def non_blocking_failure_summary(
+    non_blocking_check_failures: list[str], *, names_only: bool = False
+) -> str:
     if not non_blocking_check_failures:
         return ""
     displayed_failures = non_blocking_check_failures[:NON_BLOCKING_CHECK_FAILURE_LIMIT]
@@ -158,18 +154,21 @@ def non_blocking_failure_summary(non_blocking_check_failures: list[str]) -> str:
         markdown_escape(truncate(name, NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT))
         for name in displayed_failures
     ])
-    if len(non_blocking_check_failures) == 1:
-        note = f"{names} is failing but is not a required check."
+    if names_only:
+        note = names
+    elif len(non_blocking_check_failures) == 1:
+        note = f"{names} is also failing but is not a required check."
     else:
-        note = f"{names} are failing but are not required checks."
+        note = f"{names} are also failing but are not required checks."
     omitted_count = len(non_blocking_check_failures) - len(displayed_failures)
     if omitted_count:
         noun = "failure" if omitted_count == 1 else "failures"
         omitted_verb = "is" if omitted_count == 1 else "are"
-        note += (
-            f" {omitted_count} additional non-blocking check {noun} "
-            f"{omitted_verb} not shown."
+        omitted = (
+            f"{omitted_count} additional non-blocking check {noun} "
+            f"{omitted_verb} not shown"
         )
+        note = f"{note} ({omitted})" if names_only else f"{note} {omitted}."
     return note
 
 
@@ -224,7 +223,6 @@ def render_status_comment(
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
     failing_count = facts.get("ci_failing_count", 0)
     non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
-    non_blocking_failure_note = non_blocking_failure_summary(non_blocking_check_failures)
 
     override_route = ""
     terminal = False
@@ -251,7 +249,9 @@ def render_status_comment(
             body = author_body(
                 feedback_count=feedback_count,
                 failing_count=failing_count,
-                non_blocking_failure_note=non_blocking_failure_note,
+                non_blocking_failure_note=non_blocking_failure_summary(
+                    non_blocking_check_failures
+                ),
                 review_thread_urls=review_thread_urls,
                 top_level_feedback_urls=top_level_feedback_urls,
             )
@@ -265,13 +265,16 @@ def render_status_comment(
                     else f"{failing_count} required status checks are failing."
                 )
                 body.extend(["", f"**Also blocked by:** {check_summary}"])
-            if non_blocking_failure_note:
+            if non_blocking_check_failures:
                 label = (
                     "Non-blocking check failure"
                     if len(non_blocking_check_failures) == 1
                     else "Non-blocking check failures"
                 )
-                body.extend(["", f"**{label}:** {non_blocking_failure_note}"])
+                names = non_blocking_failure_summary(
+                    non_blocking_check_failures, names_only=True
+                )
+                body.extend(["", f"**{label}:** {names}"])
 
     lines = [
         STATUS_MARKER,
@@ -347,12 +350,11 @@ def managed_status_comments(repo: str, pr_number: int) -> list[dict[str, Any]]:
         f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
         paginate=True,
     )
-    markers = (STATUS_MARKER, *LEGACY_MARKERS)
     return [
         comment
         for comment in comments or []
         if (comment.get("performed_via_github_app") or {}).get("slug") == DASHBOARD_APP_SLUG
-        and any(marker in (comment.get("body") or "") for marker in markers)
+        and STATUS_MARKER in (comment.get("body") or "")
     ]
 
 
