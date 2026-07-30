@@ -195,8 +195,9 @@ phrased ("LGTM", "I'm fine with the API changes", "looks good to me, feel free
 to merge"), and stays no_author_action when it carries a suggestion the reviewer
 explicitly leaves for later ("we can clean this up post submission", "an
 opportunity to refactor after a point fix release", "left one small
-maintainability comment"). An item that ends by telling the author they may
-merge is always no_author_action.
+maintainability comment"). Permission to merge is not itself a request and never
+makes an item author_action, but it does not settle one either: an item that also
+asks, questions, or objects is author_action despite ending that way.
 
 Compare every login and team mentioned in `body` against `pr_author`. An item
 asking a different person or team to review, decide, or weigh in is
