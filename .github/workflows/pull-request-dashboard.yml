@@ -118,10 +118,15 @@ jobs:
           # Check suites, check runs and commit statuses on a fork head carry no
           # pull request association, so they report the head commit instead.
           if [[ -z "$pr_number" && -n "$head_sha" ]]; then
-            pr_number=$(gh api "repos/open-telemetry/${REPO_NAME}/commits/${head_sha}/pulls" \
-              | jq -r --arg sha "$head_sha" '[ .[] | select(.state == "open" and .head.sha == $sha) ][0].number // empty')
+            matches=$(gh api "repos/open-telemetry/${REPO_NAME}/commits/${head_sha}/pulls" \
+              | jq -r --arg sha "$head_sha" '[ .[] | select(.state == "open" and .head.sha == $sha) | .number ] | sort | join(" ")')
+            pr_number="${matches%% *}"
             if [[ -z "$pr_number" ]]; then
               echo "no open pull request has head $head_sha; skipping refresh."
+            elif [[ "$matches" == *" "* ]]; then
+              # One head branch can be open against several base branches. The
+              # rest keep refreshing on their own events and on the backfill.
+              echo "head $head_sha belongs to open pull requests $matches; refreshing #$pr_number"
             else
               echo "resolved head $head_sha to pull request #$pr_number"
             fi
