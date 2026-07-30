@@ -286,6 +286,11 @@ def render_command_reply(reply: dict[str, Any]) -> str:
                 "accepted the reviewer-routing override; the reviewer handoff "
                 "is waiting on Copilot."
             )
+        elif route == "maintainer":
+            message = (
+                "accepted the reviewer-routing override; this pull request has "
+                "the approvals it needs and is now waiting on maintainers."
+            )
         else:
             message = "routed this pull request to reviewers."
     else:

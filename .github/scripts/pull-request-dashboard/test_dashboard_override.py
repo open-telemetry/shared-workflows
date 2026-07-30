@@ -156,6 +156,12 @@ class DashboardOverrideTest(unittest.TestCase):
             "route": "copilot",
             "user": "author",
         })
+        maintainer = dashboard_override.render_command_reply({
+            "comment_id": 6,
+            "kind": "routed",
+            "route": "maintainer",
+            "user": "author",
+        })
 
         self.assertIn(dashboard_override.command_reply_marker(2), unauthorized)
         self.assertIn(
@@ -176,6 +182,12 @@ class DashboardOverrideTest(unittest.TestCase):
             "@author accepted the reviewer-routing override; the reviewer "
             "handoff is waiting on Copilot.",
             copilot_gated,
+        )
+        self.assertIn(dashboard_override.command_reply_marker(6), maintainer)
+        self.assertIn(
+            "@author accepted the reviewer-routing override; this pull request "
+            "has the approvals it needs and is now waiting on maintainers.",
+            maintainer,
         )
 
     def test_renders_already_routed_replies_per_route(self) -> None:
