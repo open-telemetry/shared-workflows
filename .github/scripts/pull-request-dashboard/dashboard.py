@@ -104,12 +104,14 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     is_draft                        bool
     approval_count                  int           Current unique APPROVED reviews
                                                   from approver-team members.
-    ci_failing_count                int           Required checks only; absent
-                                                  when checks could not be fetched.
+    ci_failing_count                int           Merge-blocking checks only;
+                                                  absent when checks could not be
+                                                  fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
-    ci_pending_count                int           Required checks only; absent
-                                                  when checks could not be fetched.
+    ci_pending_count                int           Merge-blocking checks only;
+                                                  absent when checks could not be
+                                                  fetched.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by a

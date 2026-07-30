@@ -160,9 +160,13 @@ class FetchPrRawTest(unittest.TestCase):
             ),
             patch(
                 "github_cli.gh_pr_check_rollup",
-                return_value={"required": [], "non_blocking_failures": []},
+                return_value={
+                    "required": [],
+                    "non_blocking_failures": [],
+                    "code_scanning": [],
+                },
             ),
-            patch("github_cli.gh_required_check_contexts", return_value=[]),
+            patch("github_cli.gh_branch_rules", return_value=[]),
             patch("github_cli.include_missing_required_checks", return_value=[]),
         ):
             raw = fetch_pr_raw(
