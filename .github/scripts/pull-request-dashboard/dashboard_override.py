@@ -7,7 +7,7 @@ from typing import Any
 
 from github_cli import gh_api, run_gh
 from state import load_dashboard_state_cache
-from utils import actor_login
+from utils import actor_login, parse_ts
 
 
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
@@ -351,20 +351,22 @@ def clear_overridden_actions(
     reaches the author, including a reviewer reopening something the command
     cleared.
     """
-    override_since = facts.get("dashboard_override_since") or ""
+    # Timestamps reach here in both GitHub's `...Z` form and `format_ts`'s
+    # `...+00:00` form, so they have to be parsed rather than compared as text.
+    override_since = parse_ts(facts.get("dashboard_override_since"))
     facts["dashboard_override_cleared_count"] = 0
     facts["dashboard_override_cleared_ci"] = False
-    if not override_since:
+    if override_since is None:
         return pending_actions
     remaining: dict[str, dict[str, Any]] = {}
     cleared = 0
     for discussion_id, entry in pending_actions.items():
-        since = entry.get("since") or ""
+        since = parse_ts(entry.get("since"))
         if entry.get("action") == "author" and since and since <= override_since:
             cleared += 1
             continue
         remaining[discussion_id] = entry
-    ci_failing_since = facts.get("ci_failing_since") or ""
+    ci_failing_since = parse_ts(facts.get("ci_failing_since"))
     facts["dashboard_override_cleared_count"] = cleared
     facts["dashboard_override_cleared_ci"] = bool(
         facts.get("ci_failing_count")
