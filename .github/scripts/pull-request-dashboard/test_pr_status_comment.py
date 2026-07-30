@@ -536,11 +536,11 @@ class UpsertStatusCommentTest(unittest.TestCase):
         pr_status_comment,
         "managed_status_comments",
         return_value=[
-            {"id": 7, "body": "<!-- review-guidance --> old"},
+            {"id": 7, "body": "<!-- pull-request-dashboard-status --> old"},
             {"id": 8, "body": "<!-- pull-request-dashboard-status --> duplicate"},
         ],
     )
-    def test_migrates_legacy_comment_and_deletes_duplicates(self, _comments: object) -> None:
+    def test_updates_comment_and_deletes_duplicates(self, _comments: object) -> None:
         pr_status_comment.upsert_status_comment("open-telemetry/example", 1, "body")
 
         self.assertEqual(["PATCH", "DELETE"], [command[3] for command in self.commands])
@@ -559,7 +559,7 @@ class ManagedStatusCommentsTest(unittest.TestCase):
             },
             {
                 "id": 3,
-                "body": "<!-- review-guidance --> legacy",
+                "body": "no marker",
                 "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
             },
             {
@@ -572,7 +572,7 @@ class ManagedStatusCommentsTest(unittest.TestCase):
     def test_requires_dashboard_app_identity_and_marker(self, _gh_api: object) -> None:
         comments = pr_status_comment.managed_status_comments("open-telemetry/example", 1)
 
-        self.assertEqual([2, 3], [comment["id"] for comment in comments])
+        self.assertEqual([2], [comment["id"] for comment in comments])
 
 
 class RolloutStateTest(unittest.TestCase):

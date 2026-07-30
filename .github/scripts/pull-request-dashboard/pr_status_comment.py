@@ -43,12 +43,6 @@ STATUS_REPORT_TRUNCATION_NOTICE = (
 )
 RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
-# Remove after migrating open PRs as described by the post-rollout
-# compatibility cleanup in WEBHOOK_SETUP.md.
-LEGACY_MARKERS = (
-    "<!-- review-guidance -->",
-    "<!-- copilot-review-guidance -->",
-)
 
 
 def author_nudge_episode_marker(episode_id: str) -> str:
@@ -356,12 +350,11 @@ def managed_status_comments(repo: str, pr_number: int) -> list[dict[str, Any]]:
         f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
         paginate=True,
     )
-    markers = (STATUS_MARKER, *LEGACY_MARKERS)
     return [
         comment
         for comment in comments or []
         if (comment.get("performed_via_github_app") or {}).get("slug") == DASHBOARD_APP_SLUG
-        and any(marker in (comment.get("body") or "") for marker in markers)
+        and STATUS_MARKER in (comment.get("body") or "")
     ]
 
 
