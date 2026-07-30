@@ -155,8 +155,8 @@ def existing_nudge_comment(
 def render_nudge(author: str, status_url: str, episode_id: str) -> str:
     return "\n".join([
         nudge_marker(episode_id),
-        f"Hi @{author} — just a friendly reminder that this pull request has "
-        "been waiting on you for a week.",
+        f"Hi @{author} — just a friendly reminder that this pull request is "
+        "waiting on you.",
         "",
         f"There are still items that need your attention. See the "
         f"[dashboard status comment]({status_url}) for the full list. You don't "
