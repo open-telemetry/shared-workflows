@@ -148,6 +148,31 @@ class StateTest(unittest.TestCase):
                 {"version": BACKFILL_STATE_VERSION, "cursor": {}},
             )
 
+    def test_dashboard_state_migrates_the_retired_copilot_route(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            dashboard_state_path().write_text(
+                json.dumps({
+                    "version": DASHBOARD_STATE_VERSION,
+                    "initial_backfill_complete": True,
+                    "prs": {
+                        "1": {"route": "copilot", "facts": {"waiting_since": "2026-07-01T00:00:00Z"}},
+                        "2": {"route": "approver"},
+                    },
+                }),
+                encoding="utf-8",
+            )
+
+            state = load_dashboard_state_cache()
+
+            self.assertTrue(state["initial_backfill_complete"])
+            self.assertEqual(
+                state["prs"],
+                {
+                    "1": {"route": "author", "facts": {"waiting_since": "2026-07-01T00:00:00Z"}},
+                    "2": {"route": "approver"},
+                },
+            )
+
     def test_dashboard_state_save_writes_explicit_shape(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
             save_dashboard_state_cache({"unknown": "discard me"})
@@ -164,7 +189,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 7)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 6)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 2)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 4)

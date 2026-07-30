@@ -23,7 +23,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 7
+DASHBOARD_STATE_VERSION = 6
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -263,15 +263,24 @@ def enqueue_status_comment_update(pr_number: int) -> None:
     save_status_comment_rollout_state(state)
 
 
+def migrated_pr_record(record: Any) -> Any:
+    # The retired copilot route held a PR while its review was outstanding,
+    # which is now part of the author's turn.
+    if not isinstance(record, dict) or record.get("route") != "copilot":
+        return record
+    return {**record, "route": "author"}
+
+
 def load_dashboard_state_cache() -> dict[str, Any] | None:
     state = load_state_file(dashboard_state_path(), DASHBOARD_STATE_VERSION)
     if state is None:
         return None
     prs = state.get("prs")
+    prs = prs if isinstance(prs, dict) else {}
     return {
         "version": DASHBOARD_STATE_VERSION,
         INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
-        "prs": prs if isinstance(prs, dict) else {},
+        "prs": {number: migrated_pr_record(record) for number, record in prs.items()},
     }
 
 
