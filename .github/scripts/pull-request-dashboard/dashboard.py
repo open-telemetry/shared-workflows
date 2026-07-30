@@ -109,8 +109,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
-    ci_failing_latest               str (iso)     Latest completion time among
-                                                  current required failures.
+    ci_uncleared_failing_count      int           Required failures an override
+                                                  command has not cleared.
+    ci_uncleared_failing_since      str (iso)     Earliest completion time among
+                                                  those uncleared failures.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
                                                   fetched.
@@ -570,7 +572,18 @@ def compute_facts(
         facts["ci_failing_count"] = len(failing)
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
-            facts["ci_failing_latest"] = format_ts(max(failing_timestamps))
+        # A failure with no completion time cannot be shown to predate the
+        # override command, so it counts as uncleared.
+        untimed = len(failing) - len(failing_timestamps)
+        override_since = parse_ts(facts.get("dashboard_override_since") or "")
+        uncleared = [
+            ts
+            for ts in failing_timestamps
+            if override_since is None or ts > override_since
+        ]
+        facts["ci_uncleared_failing_count"] = untimed + len(uncleared)
+        if uncleared:
+            facts["ci_uncleared_failing_since"] = format_ts(min(uncleared))
         facts["ci_pending_count"] = len(pending)
     non_blocking_check_failures = sorted({
         check.get("name") or ""
@@ -1149,8 +1162,8 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
     if route in ("approver", "maintainer", "copilot"):
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
-        if facts.get("ci_failing_count", 0) > 0:
-            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
+        if uncleared_ci_failing_count(facts) > 0:
+            ci_failing_since = parse_ts(facts.get("ci_uncleared_failing_since") or "")
             if ci_failing_since is not None:
                 return ci_failing_since, "ci_failure"
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"

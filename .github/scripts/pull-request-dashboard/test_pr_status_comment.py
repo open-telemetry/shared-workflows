@@ -180,7 +180,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": [
                         "&" * pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT
                         for _ in range(
@@ -217,7 +217,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             self.pr(),
             {
                 "route": "author",
-                "facts": {"author": "alice", "ci_failing_count": 1},
+                "facts": {"author": "alice", "ci_uncleared_failing_count": 1},
             },
         )
 
@@ -233,7 +233,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "route": "author",
                 "facts": {
                     "author": "alice",
-                    "ci_failing_count": 2,
+                    "ci_uncleared_failing_count": 2,
                     "author_action_review_thread_urls": [
                         "https://github.com/open-telemetry/example/pull/1#discussion_r1",
                     ],
@@ -252,7 +252,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 2,
+                    "ci_uncleared_failing_count": 2,
                     "non_blocking_check_failures": [
                         "CodeQL",
                         "workflow-notification",
@@ -273,7 +273,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": [
                         "[CodeQL] <script>\n@maintainers",
                         r"pipe|slash\check & more",
@@ -303,7 +303,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": failures,
                 },
             },
@@ -368,7 +368,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                     {
                         "route": route,
                         "facts": {
-                            "ci_failing_count": failing_count,
+                            "ci_uncleared_failing_count": failing_count,
                             "non_blocking_check_failures": non_blocking_failures,
                         },
                     },
@@ -385,7 +385,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "route": "approver",
                 "facts": {
                     "ci_failing_count": 1,
-                    "dashboard_override_cleared_ci": True,
+                    "ci_uncleared_failing_count": 0,
                 },
             },
         )

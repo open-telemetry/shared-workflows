@@ -389,23 +389,15 @@ def clear_overridden_actions(
             cleared += 1
             continue
         remaining[discussion_id] = entry
-    ci_failing_latest = parse_ts(facts.get("ci_failing_latest"))
+    ci_failing_count = facts.get("ci_failing_count") or 0
     facts["dashboard_override_cleared_count"] = cleared
-    # Keyed off the newest failure so a check that fails after the command still
-    # routes to the author, even while an older cleared failure persists.
-    facts["dashboard_override_cleared_ci"] = bool(
-        facts.get("ci_failing_count")
-        and ci_failing_latest
-        and ci_failing_latest <= override_since
-    )
+    facts["dashboard_override_cleared_ci"] = uncleared_ci_failing_count(facts) < ci_failing_count
     return remaining
 
 
 def uncleared_ci_failing_count(facts: dict[str, Any]) -> int:
     """Failing required checks that an override command has not cleared."""
-    if facts.get("dashboard_override_cleared_ci"):
-        return 0
-    return facts.get("ci_failing_count") or 0
+    return facts.get("ci_uncleared_failing_count") or 0
 
 
 def append_command_ack_reply(

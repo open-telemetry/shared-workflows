@@ -36,7 +36,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         # would otherwise route a human-authored pull request to the author.
         facts: dict[str, object] = {
             "ci_failing_count": 1,
-            "dashboard_override_cleared_ci": True,
+            "ci_uncleared_failing_count": 0,
         }
         facts.update(overrides)
         return facts
@@ -890,7 +890,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
     def test_required_ci_failure_routes_to_author_before_approval_state(self) -> None:
         facts = {
             "approval_count": 1,
-            "ci_failing_count": 1,
+            "ci_uncleared_failing_count": 1,
             "is_maintenance_bot": False,
         }
 
@@ -900,8 +900,8 @@ class RequiredCiRoutingTest(unittest.TestCase):
         facts = {
             "approval_count": 0,
             "ci_failing_count": 1,
+            "ci_uncleared_failing_count": 0,
             "is_maintenance_bot": False,
-            "dashboard_override_cleared_ci": True,
         }
 
         self.assertEqual("approver", route_pr(facts, {}, 1))
@@ -911,7 +911,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
             with self.subTest(approval_count=approval_count):
                 facts = {
                     "approval_count": approval_count,
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "is_maintenance_bot": True,
                 }
 
@@ -965,6 +965,45 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
                 self.assertEqual(waiting_since, current_facts["waiting_since"])
                 self.assertEqual(basis, current_facts["waiting_age_basis"])
+
+    def test_override_command_clears_only_the_failures_that_predate_it(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-17T03:00:00Z",
+                    "createdAt": "2026-07-14T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                },
+                "checks": [
+                    {"bucket": "fail", "completed_at": "2026-07-17T01:00:00Z"},
+                    {"bucket": "fail", "completed_at": "2026-07-17T02:00:00Z"},
+                    {"bucket": "fail", "completed_at": "2026-07-17T05:00:00Z"},
+                ],
+                "issue_comments": [
+                    {
+                        "id": 7,
+                        "user": {"login": "author"},
+                        "created_at": "2026-07-17T02:00:00Z",
+                        "body": "/dashboard route:reviewers",
+                    }
+                ],
+            },
+            "author",
+            [],
+        )
+
+        self.assertEqual(3, facts["ci_failing_count"])
+        self.assertEqual(1, facts["ci_uncleared_failing_count"])
+        self.assertEqual("2026-07-17T05:00:00+00:00", facts["ci_uncleared_failing_since"])
+        self.assertEqual("author", route_pr(facts, {}, 1))
+
+        add_wait_age_facts(facts, "author", {})
+
+        self.assertEqual("2026-07-17T05:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("ci_failure", facts["waiting_age_basis"])
 
 
 class LastActivityTest(unittest.TestCase):
