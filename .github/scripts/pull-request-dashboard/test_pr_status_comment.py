@@ -263,7 +263,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "Investigate required status check failures. "
-            "Note: CodeQL and workflow-notification are failing but are not required checks.",
+            "Note: CodeQL and workflow-notification are also failing but are not required checks.",
             body,
         )
 
@@ -284,7 +284,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn(
             "Note: \\[CodeQL\\] &lt;script&gt; &#64;maintainers and "
-            "pipe\\|slash\\\\check &amp; more are failing but are not required checks.",
+            "pipe\\|slash\\\\check &amp; more are also failing but are not required checks.",
             body,
         )
 
@@ -331,8 +331,8 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("**Waiting on reviewers** · refreshed ", body)
         self.assertIn(
-            "**Non-blocking check failure:** codecov/patch is failing but is not a required check.",
-            body,
+            "**Non-blocking check failure:** codecov/patch",
+            body.splitlines(),
         )
 
     def test_non_author_routes_also_name_required_ci_failures(self) -> None:
@@ -343,7 +343,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "Waiting on maintainers",
                 ["CodeQL"],
                 "1 required status check is failing.",
-                "**Non-blocking check failure:** CodeQL is failing but is not a required check.",
+                "**Non-blocking check failure:** CodeQL",
             ),
             (
                 "approver",
@@ -351,7 +351,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "Waiting on reviewers",
                 ["CodeQL", "workflow-notification"],
                 "2 required status checks are failing.",
-                "**Non-blocking check failures:** CodeQL and workflow-notification are failing but are not required checks.",
+                "**Non-blocking check failures:** CodeQL and workflow-notification",
             ),
         )
         for (
@@ -376,7 +376,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
                 self.assertIn(f"**{waiting_on}** · refreshed ", body)
                 self.assertIn(f"**Also blocked by:** {blocked_by}", body)
-                self.assertIn(non_blocking_line, body)
+                self.assertIn(non_blocking_line, body.splitlines())
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
