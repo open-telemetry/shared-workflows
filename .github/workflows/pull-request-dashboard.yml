@@ -13,6 +13,10 @@ on:
         description: Pull request number to refresh. Empty means backfill.
         required: false
         type: string
+      head_sha:
+        description: Head commit to resolve to a pull request when the event carries no number.
+        required: false
+        type: string
       trigger_event:
         description: Event that requested the refresh.
         required: false
@@ -31,7 +35,7 @@ permissions:
 # review id.
 concurrency:
   group: >-
-    pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || 'backfill' }}-${{ github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
+    pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || inputs.head_sha || 'backfill' }}-${{ github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
   cancel-in-progress: false
 
 env:
@@ -51,27 +55,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Resolve trigger inputs
-        id: trigger
-        env:
-          TARGET_REPOSITORY_FROM_INPUT: ${{ inputs.repository }}
-          PR_FROM_INPUT: ${{ inputs.pr_number }}
-          TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
-        run: |
-          set -euo pipefail
-          pr_number="$PR_FROM_INPUT"
-          trigger_event="$TRIGGER_EVENT_FROM_INPUT"
-
-          if [[ -n "$pr_number" ]]; then
-            [[ "$pr_number" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "bad PR number: $pr_number"; exit 1; }
-            [[ -n "$TARGET_REPOSITORY_FROM_INPUT" ]] || { echo "repository is required when pr_number is set"; exit 1; }
-          fi
-          if [[ -n "$trigger_event" ]]; then
-            [[ "$trigger_event" =~ ^(schedule|workflow_dispatch|check_suite|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
-              || { echo "bad trigger event: $trigger_event"; exit 1; }
-          fi
-          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
 
       - name: Resolve target repositories
         id: targets
@@ -94,14 +77,72 @@ jobs:
           echo "repository=$(jq -r '.[0].name' <<< "$matrix")" >> "$GITHUB_OUTPUT"
           echo "$matrix" | jq .
 
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: head-sha-token
+        if: inputs.head_sha != '' && inputs.pr_number == ''
+        with:
+          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ steps.targets.outputs.repository }}
+          permission-pull-requests: read
+
+      - name: Resolve trigger inputs
+        id: trigger
+        env:
+          TARGET_REPOSITORY_FROM_INPUT: ${{ inputs.repository }}
+          PR_FROM_INPUT: ${{ inputs.pr_number }}
+          HEAD_SHA_FROM_INPUT: ${{ inputs.head_sha }}
+          TRIGGER_EVENT_FROM_INPUT: ${{ inputs.trigger_event }}
+          REPO_NAME: ${{ steps.targets.outputs.repository }}
+          GH_TOKEN: ${{ steps.head-sha-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          pr_number="$PR_FROM_INPUT"
+          head_sha="$HEAD_SHA_FROM_INPUT"
+          trigger_event="$TRIGGER_EVENT_FROM_INPUT"
+
+          if [[ -n "$pr_number" ]]; then
+            [[ "$pr_number" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "bad PR number: $pr_number"; exit 1; }
+            [[ -n "$TARGET_REPOSITORY_FROM_INPUT" ]] || { echo "repository is required when pr_number is set"; exit 1; }
+          fi
+          if [[ -n "$head_sha" ]]; then
+            [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]] || { echo "bad head SHA: $head_sha"; exit 1; }
+            [[ -n "$TARGET_REPOSITORY_FROM_INPUT" ]] || { echo "repository is required when head_sha is set"; exit 1; }
+          fi
+          if [[ -n "$trigger_event" ]]; then
+            [[ "$trigger_event" =~ ^(schedule|workflow_dispatch|check_suite|check_run|status|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
+              || { echo "bad trigger event: $trigger_event"; exit 1; }
+          fi
+
+          # Check suites, check runs and commit statuses on a fork head carry no
+          # pull request association, so they report the head commit instead.
+          if [[ -z "$pr_number" && -n "$head_sha" ]]; then
+            pr_number=$(gh api "repos/open-telemetry/${REPO_NAME}/commits/${head_sha}/pulls" \
+              | jq -r --arg sha "$head_sha" '[ .[] | select(.state == "open" and .head.sha == $sha) ][0].number // empty')
+            if [[ -z "$pr_number" ]]; then
+              echo "no open pull request has head $head_sha; skipping refresh."
+            else
+              echo "resolved head $head_sha to pull request #$pr_number"
+            fi
+          fi
+
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+
       - name: Check dashboard precondition
         id: dashboard-precondition
         env:
           TRIGGER_PR_NUMBER: ${{ steps.trigger.outputs.pr_number }}
+          HEAD_SHA_FROM_INPUT: ${{ inputs.head_sha }}
           REPO_NAME: ${{ steps.targets.outputs.repository }}
         run: |
           set -euo pipefail
           if [[ -z "$TRIGGER_PR_NUMBER" ]]; then
+            # An unresolved head commit is not a request to refresh every PR.
+            if [[ -n "$HEAD_SHA_FROM_INPUT" ]]; then
+              echo "met=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             echo "met=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi

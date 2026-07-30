@@ -116,6 +116,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             "required": [{"name": "build", "bucket": "fail"}],
             "non_blocking_failures": [],
             "code_scanning": [],
+            "pending": [],
         },
     )
     @patch("github_cli.fetch_review_threads", return_value=[])
