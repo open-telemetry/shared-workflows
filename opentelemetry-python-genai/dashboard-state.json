@@ -952,7 +952,7 @@
     },
     "335": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -976,18 +976,27 @@
         "head_sha": "23f5484d3bffe768d37ec003e33a35913d3f3383",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-30T00:38:35+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-30T01:50:11+00:00",
+        "last_approver_activity_at": "2026-07-30T01:50:11+00:00",
         "last_author_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "187dec89edec84b871176e960266bab7306d5e2146f77599ca6ab05984da83c7",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "20e3aa61187165d27277fcd03486a88e3c316b04e5a42f63d15d47b4df56d23d",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-30T00:38:35+00:00"
       },
       "failed": false,
       "pr_number": 335,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/335",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
