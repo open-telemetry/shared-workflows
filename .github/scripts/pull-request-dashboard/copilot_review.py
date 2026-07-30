@@ -66,24 +66,31 @@ def required_checks_settled(facts: dict[str, Any]) -> bool:
     return not facts.get("ci_pending_count", 0)
 
 
-def apply_copilot_review_gate(
+def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:
+    if not enabled:
+        return False
+    return not facts.get("copilot_review_exists") or bool(
+        facts.get("copilot_review_needed")
+    )
+
+
+def set_copilot_review_request_needed(
     facts: dict[str, Any],
     route: str,
     *,
     enabled: bool,
-) -> str:
-    facts["copilot_review_request_needed"] = False
-    if not enabled or route not in ("approver", "maintainer"):
-        return route
-    if not required_checks_settled(facts):
-        return route
-    if not facts.get("copilot_review_exists"):
-        return "copilot"
-    if not facts.get("copilot_review_needed"):
-        return route
-    if not facts.get("copilot_review_requested"):
-        facts["copilot_review_request_needed"] = True
-    return "copilot"
+) -> None:
+    # Requesting a re-review before the checks report would spend it on code CI
+    # is about to reject, and a PR GitHub has never reviewed is already queued
+    # for the automatic first review.
+    facts["copilot_review_request_needed"] = (
+        enabled
+        and route in ("approver", "maintainer")
+        and bool(facts.get("copilot_review_exists"))
+        and bool(facts.get("copilot_review_needed"))
+        and not facts.get("copilot_review_requested")
+        and required_checks_settled(facts)
+    )
 
 
 def record_copilot_review_observation(
@@ -99,7 +106,6 @@ def record_copilot_review_observation(
     if (
         not result
         or result.get("failed")
-        or result.get("route") != "copilot"
         or not facts.get("copilot_review_request_needed")
         or not head_sha
         or not routing_fingerprint

@@ -24,7 +24,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         record_copilot_review_observation(
             7,
             {
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
@@ -52,7 +52,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         record_copilot_review_observation(
             7,
             {
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
@@ -89,7 +89,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         record_copilot_review_observation(
             7,
             {
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
@@ -138,7 +138,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         record_copilot_review_observation(
             7,
             {
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_exists": False,

@@ -150,10 +150,10 @@ class DashboardOverrideTest(unittest.TestCase):
         routed = dashboard_override.render_command_reply(
             {"comment_id": 4, "kind": "routed", "user": "author"}
         )
-        copilot_gated = dashboard_override.render_command_reply({
+        gate_held = dashboard_override.render_command_reply({
             "comment_id": 5,
             "kind": "routed",
-            "route": "copilot",
+            "held_for_gates": True,
             "user": "author",
         })
 
@@ -171,18 +171,18 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertIn(dashboard_override.command_reply_marker(4), routed)
         self.assertIn(dashboard_override.override_ack_marker(4), routed)
         self.assertIn("@author routed this pull request to reviewers.", routed)
-        self.assertIn(dashboard_override.command_reply_marker(5), copilot_gated)
+        self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
             "@author accepted the reviewer-routing override; the reviewer "
-            "handoff is waiting on Copilot.",
-            copilot_gated,
+            "handoff is waiting on the required status checks and the Copilot "
+            "review.",
+            gate_held,
         )
 
     def test_renders_already_routed_replies_per_route(self) -> None:
         cases = {
             "approver": "already waiting on reviewers",
             "maintainer": "already past review and waiting on maintainers",
-            "copilot": "waiting on an automated Copilot review",
         }
         for route, phrase in cases.items():
             with self.subTest(route=route):
@@ -482,7 +482,6 @@ class DashboardOverrideTest(unittest.TestCase):
             ("author", "approver", True, False),
             ("approver", "approver", False, True),
             ("maintainer", "maintainer", False, True),
-            ("copilot", "copilot", False, True),
         ):
             with self.subTest(route=route):
                 facts = {
@@ -590,11 +589,12 @@ class DashboardOverrideTest(unittest.TestCase):
         return_value={
             "prs": {
                 "7": {
-                    "route": "copilot",
+                    "route": "author",
                     "facts": {
                         "dashboard_override_requested": True,
                         "dashboard_override_command_id": 3,
                         "dashboard_override_command_user": "author",
+                        "route_held_for_gates": True,
                     }
                 },
                 "8": {"facts": {"dashboard_override_requested": False}},
@@ -633,7 +633,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 call([
                     "gh", "api", "--method", "POST",
                     "repos/open-telemetry/example/issues/7/comments",
-                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author accepted the reviewer-routing override; the reviewer handoff is waiting on Copilot.\n",
+                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author accepted the reviewer-routing override; the reviewer handoff is waiting on the required status checks and the Copilot review.\n",
                 ]),
             ],
             run_gh.call_args_list,

@@ -123,14 +123,15 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_approver_activity_at       str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
-    author_route_held_for_checks    bool          Author route retained because
-                                                  the required checks have not
-                                                  reported since a push.
+    route_held_for_gates            bool          Reviewer handoff withheld
+                                                  because the required checks or
+                                                  the Copilot review are still
+                                                  outstanding.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
                                                   or PR creation time. Carried
-                                                  forward while the author route
-                                                  is held, and never moves
+                                                  forward while the handoff is
+                                                  held, and never moves
                                                   forward while the PR stays on
                                                   a reviewer route.
     waiting_age_basis               str           Which heuristic chose
@@ -199,11 +200,12 @@ from classification import (
 )
 from author_nudge import record_author_nudge_observation, routing_input_fingerprint
 from copilot_review import (
-    apply_copilot_review_gate,
+    copilot_review_outstanding,
     copilot_review_status,
     is_copilot_reviewer,
     record_copilot_review_observation,
     required_checks_settled,
+    set_copilot_review_request_needed,
 )
 from dashboard_override import (
     apply_dashboard_override,
@@ -1157,7 +1159,7 @@ def oldest_pending_action_ts(
 
 # Routes where the PR is out of the author's hands and someone else owes it a
 # response, so an author push does not change whose turn it is.
-REVIEWER_ROUTES = ("approver", "maintainer", "copilot")
+REVIEWER_ROUTES = ("approver", "maintainer")
 
 
 def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
@@ -1182,7 +1184,7 @@ def add_wait_age_facts(
     previous_facts = (previous_result or {}).get("facts") or {}
     # A held route was not re-evaluated, so its wait continues uninterrupted
     # rather than restarting from whatever the incomplete facts now imply.
-    if facts.get("author_route_held_for_checks") and previous_facts.get("waiting_since"):
+    if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
         facts["waiting_since"] = previous_facts["waiting_since"]
         facts["waiting_age_basis"] = previous_facts.get("waiting_age_basis") or ""
         return
@@ -1318,18 +1320,27 @@ def add_reviewers(
     ]
 
 
-def hold_author_route_until_checks_report(
+def hold_route_until_gates_settle(
     facts: dict[str, Any],
     route: str,
     previous_result: dict[str, Any] | None,
+    *,
+    require_clean_copilot_review: bool,
 ) -> str:
-    # A push clears the failing count before the replacement checks report, so
-    # the author would otherwise hand the PR off on evidence that does not exist
-    # yet. Routes that do not depend on a check result move freely.
-    held = (previous_result or {}).get(
-        "route"
-    ) == "author" and not required_checks_settled(facts)
-    facts["author_route_held_for_checks"] = held
+    # The required checks and the Copilot review are the author's to clear, so
+    # an outstanding one keeps the PR with them. A PR that already reached
+    # reviewers is never pulled back, so a push cannot change whose turn it is.
+    held = (
+        route in REVIEWER_ROUTES
+        and (previous_result or {}).get("route") not in REVIEWER_ROUTES
+        and (
+            not required_checks_settled(facts)
+            or copilot_review_outstanding(
+                facts, enabled=require_clean_copilot_review
+            )
+        )
+    )
+    facts["route_held_for_gates"] = held
     return "author" if held else route
 
 
@@ -1340,26 +1351,21 @@ def resolve_pr_route(
     require_clean_copilot_review: bool,
     previous_result: dict[str, Any] | None = None,
 ) -> str:
-    # Apply the manual reviewer-routing override before the Copilot review gate
-    # so an overridden route (for example author -> reviewers) is still held for
-    # a required clean Copilot review instead of bypassing it.
-    route = apply_copilot_review_gate(
+    # The override hands the PR to reviewers the same way automatic routing
+    # does, so the gates hold it the same way rather than being bypassed.
+    route = apply_dashboard_override(
         facts,
-        apply_dashboard_override(
-            facts,
-            hold_author_route_until_checks_report(
-                facts,
-                route_pr(facts, pending_actions, required_approvals),
-                previous_result,
-            ),
-        ),
-        enabled=require_clean_copilot_review,
+        route_pr(facts, pending_actions, required_approvals),
     )
-    if route != "author":
-        # The override outranks the hold, and a route the PR did not keep has no
-        # wait to carry forward.
-        facts["author_route_held_for_checks"] = False
-    return route
+    set_copilot_review_request_needed(
+        facts, route, enabled=require_clean_copilot_review
+    )
+    return hold_route_until_gates_settle(
+        facts,
+        route,
+        previous_result,
+        require_clean_copilot_review=require_clean_copilot_review,
+    )
 
 
 def assign_author_nudge_episode(

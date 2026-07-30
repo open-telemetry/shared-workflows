@@ -200,14 +200,20 @@ the implementation understandable and operationally cheap.
   Repository-configured `non_blocking_check_patterns` identify failed optional
   checks in a note alongside this action, without changing required-check facts
   or routing.
-- A PR already routed to its author stays there until the required checks
-  report again. A push clears the failing count before the replacement checks
-  produce a result, so the PR would otherwise be handed off on evidence that
-  does not exist yet and handed back minutes later when the same check fails.
-  Only the author route is held, because it is the only one a check result can
-  restore; a PR moving between reviewer and maintainer routes is not waiting on
-  CI. Unavailable check results hold the route for the same reason a pending
-  one does, and resolve on a later run.
+- A PR the dashboard would hand to reviewers stays with its author until the
+  required checks report. Clearing the checks is the author's job, so an
+  outstanding one is not yet a reason to spend reviewer attention, and a push
+  clears the failing count before the replacement checks produce a result, so
+  the PR would otherwise be handed off on evidence that does not exist yet and
+  handed back minutes later when the same check fails. A PR that has already
+  reached reviewers is never pulled back, because a check result alone does not
+  make it the author's turn again. Unavailable check results hold the handoff
+  for the same reason a pending one does, and resolve on a later run.
+- A held PR is presented as waiting on its author rather than on the robot it
+  is waiting for. The CI column and the reviewers column already name what is
+  outstanding, and the live status comment tells the author the handoff happens
+  once those are clean, so a separate route would add a section that nobody is
+  expected to act on.
 - A held route also holds its wait age. Recomputing it would read the push as
   the end of the CI failure and fall back to the last approver activity, which
   is usually far older, so a PR the author had just pushed to would sort to the
@@ -231,7 +237,7 @@ the implementation understandable and operationally cheap.
 - The setting lists the base branches to gate rather than a single on/off
   switch, because automatic Copilot review is itself configured per branch
   (often only the default branch). Gating a branch with no automatic review
-  would park every ready PR on the copilot route waiting for a review that never
+  would hold every ready PR with its author waiting for a review that never
   runs, so only branches with automatic review are listed and PRs targeting
   other branches route normally.
 - Copilot findings normally return a PR to the author through ordinary
@@ -246,12 +252,17 @@ the implementation understandable and operationally cheap.
   gate or produces fresh actionable threads that route the PR back to the
   author, so re-requesting an unchanged commit is self-correcting rather than a
   re-request loop.
-- The gate only fires once the required checks have settled. A route computed
-  while checks are still running is provisional: a failure that has not
-  completed yet cannot route the PR to its author, so the PR looks ready for
-  reviewers and the gate would spend a Copilot review on code CI is about to
-  reject. Unavailable check results are treated the same as running ones,
-  because both mean the routing decision cannot be trusted yet.
+- An outstanding Copilot review holds the reviewer handoff the same way an
+  unsettled required check does, including when a reviewer-routing override
+  asked for the handoff. The override says the author is done with the
+  discussion, not that the robots have finished, and a handoff made before they
+  report would only change back.
+- The gate withholds the re-review request until the required checks have
+  settled. A route computed while checks are still running is provisional: a
+  failure that has not completed yet cannot route the PR to its author, so the
+  PR looks ready for reviewers and the gate would spend a Copilot review on code
+  CI is about to reject. Unavailable check results are treated the same as
+  running ones, because both mean the routing decision cannot be trusted yet.
 - Delivery re-validates the required checks against live data rather than
   relying on the routing fingerprint alone. The fingerprint only detects
   change, so checks that were unsettled when the request was recorded and are
@@ -260,7 +271,7 @@ the implementation understandable and operationally cheap.
   review, not from the classifier's actionability judgment. Accepted
   limitation: if Copilot leaves comments the classifier treats as
   non-actionable while they stay unresolved, routing sits at reviewers but the
-  gate holds the PR on the copilot route and re-requests until Copilot returns a
+  handoff stays held with the author and re-requests until Copilot returns a
   comment-free review or the author pushes. The strict count is intentional —
   the gate is a conservative "Copilot had nothing to say about this exact code"
   check, and folding in classifier judgment could let a real-but-non-actionable

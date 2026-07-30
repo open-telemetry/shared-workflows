@@ -218,7 +218,6 @@ def override_ack_marker(comment_id: int) -> str:
 ROUTE_ALREADY_ROUTED_PHRASE = {
     "approver": "already waiting on reviewers",
     "maintainer": "already past review and waiting on maintainers",
-    "copilot": "waiting on an automated Copilot review",
 }
 
 
@@ -232,10 +231,11 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             "use `/dashboard route:reviewers`."
         )
     elif kind == "routed":
-        if reply.get("route") == "copilot":
+        if reply.get("held_for_gates"):
             message = (
                 "accepted the reviewer-routing override; the reviewer handoff "
-                "is waiting on Copilot."
+                "is waiting on the required status checks and the Copilot "
+                "review."
             )
         else:
             message = "routed this pull request to reviewers."
@@ -422,7 +422,7 @@ def deliver_dashboard_override_requests(repo: str) -> list[str]:
                     {
                         "comment_id": facts["dashboard_override_command_id"],
                         "kind": "routed",
-                        "route": (result or {}).get("route") or "",
+                        "held_for_gates": bool(facts.get("route_held_for_gates")),
                         "user": facts.get("dashboard_override_command_user") or "",
                     },
                 )

@@ -185,6 +185,7 @@ def author_body(
     non_blocking_failure_note: str,
     review_thread_urls: list[str],
     top_level_feedback_urls: list[str],
+    held_for_gates: bool = False,
 ) -> list[str]:
     noun = "item" if feedback_count == 1 else "items"
     if failing_count and feedback_count:
@@ -213,6 +214,11 @@ def author_body(
         if non_blocking_failure_note:
             sentence += f" Note: {non_blocking_failure_note}"
         return [sentence]
+    if held_for_gates:
+        return [
+            "Wait for the required status checks and the Copilot review to "
+            "finish; this pull request moves to reviewers once they are clean."
+        ]
     _, fallback_next_step = route_status_summary("author")
     return [fallback_next_step]
 
@@ -260,6 +266,7 @@ def render_status_comment(
                 ),
                 review_thread_urls=review_thread_urls,
                 top_level_feedback_urls=top_level_feedback_urls,
+                held_for_gates=bool(facts.get("route_held_for_gates")),
             )
         else:
             _, next_step = route_status_summary(route)

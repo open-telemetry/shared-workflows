@@ -8,12 +8,6 @@ ROUTE_PRESENTATION = {
         "status_waiting_on": "Maintainers",
         "status_next_step": "Merge when ready.",
     },
-    "copilot": {
-        "dashboard_label": "Waiting on Copilot",
-        "status_headline": "Waiting on Copilot",
-        "status_waiting_on": "Copilot",
-        "status_next_step": "Wait for the pending review to complete.",
-    },
     "approver": {
         "dashboard_label": "Waiting on reviewers",
         "status_headline": "Waiting on reviewers",

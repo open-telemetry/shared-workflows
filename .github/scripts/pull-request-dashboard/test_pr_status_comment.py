@@ -485,7 +485,6 @@ class RenderStatusCommentTest(unittest.TestCase):
         expected_summaries = {
             "approver": ("Waiting on reviewers", "Review the latest changes."),
             "maintainer": ("Waiting on maintainers", "Merge when ready."),
-            "copilot": ("Waiting on Copilot", "Wait for the pending review to complete."),
             "transient-failure": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
             "unknown": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
         }
