@@ -4585,8 +4585,10 @@
         "author": "anarwal",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "author_nudge_episode_id": "5b8741be32ae4f79a426abbe343cfa81",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-30T14:11:43+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -4625,14 +4627,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "51b8a0bc7b1d969016e153dcdc227a4202c65558f1e1db00d7afb1ae4353343b",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T14:04:27+00:00"
+        "routing_input_fingerprint": "413035bfc178775985273ed1982cd01d9fc5a9402b2287129c90a8a66009af05",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-30T14:11:43+00:00"
       },
       "failed": false,
       "pr_number": 49211,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49211",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "49212": {
