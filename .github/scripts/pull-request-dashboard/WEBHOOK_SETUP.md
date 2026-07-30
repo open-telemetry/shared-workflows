@@ -169,11 +169,15 @@ The webhook bridge should dispatch `pull-request-dashboard.yml` in
 
 Notes:
 
-- `repository` is the short repository name under `open-telemetry`.
+- `repository` is the short repository name under `open-telemetry`, and must
+  match a `repositories.json` entry exactly. An owner-prefixed name is rejected.
 - Omit `pr_number` or set it to an empty string for a backfill.
 - Send `head_sha` instead of `pr_number` when the event carries no pull request
   number. Check and status events for a pull request whose head branch lives in
   a fork report no pull request association, so the central workflow resolves
   the head commit to an open pull request and skips the refresh when there is
   none.
-- The central workflow validates these inputs before using them.
+- The central workflow validates `repository`, `pr_number` and `head_sha` before
+  using them. `trigger_event` only selects a concurrency group, so it is
+  validated on the backfill path only; the bridge is what restricts it to known
+  event names.
