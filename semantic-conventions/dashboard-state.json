@@ -1300,13 +1300,18 @@
     },
     "3931": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [
           "ChrsMark"
         ],
         "author": "ChrsMark",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3931#discussion_r3686289115",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3931#discussion_r3686290327",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3931#discussion_r3686310440"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "2f63ca6964534cd3ba88cb5901c021cf",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1326,8 +1331,8 @@
         "head_sha": "112d4626964db42ef812f0ac32f61ddfa880179c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-30T15:59:59+00:00",
-        "last_approver_activity_at": "2026-07-27T11:45:35+00:00",
+        "last_activity_at": "2026-07-30T21:24:00+00:00",
+        "last_approver_activity_at": "2026-07-30T21:24:00+00:00",
         "last_author_activity_at": "2026-07-27T12:21:21+00:00",
         "reviewers": [
           {
@@ -1353,16 +1358,24 @@
             "login": "joaopgrassi",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "84238bd388e97bb8c4167a9da6fbc1ee8e6ad376bece31ed62769ea74cde6e0d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-27T12:21:21+00:00"
+        "routing_input_fingerprint": "6e75860632b6a6e0fdc97bbc4bf43895622de56430332f66144b537136f5b0c4",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-30T21:24:00+00:00"
       },
       "failed": false,
       "pr_number": 3931,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3931",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3935": {
