@@ -904,6 +904,123 @@ class GithubCliTest(unittest.TestCase):
 
         self.assertIsNone(raw["checks"])
 
+    @patch("github_cli.settled_check_suite_app_ids", return_value=set())
+    @patch(
+        "github_cli.gh_branch_rules",
+        return_value=[{
+            "type": "required_status_checks",
+            "parameters": {
+                "required_status_checks": [{"context": "build", "integration_id": 1}],
+            },
+        }],
+    )
+    @patch(
+        "github_cli.gh_pr_check_rollup",
+        return_value={
+            "head_oid": "current-head",
+            "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
+            "non_blocking_failures": [],
+            "code_scanning": [],
+        },
+    )
+    @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
+    @patch("github_cli.fetch_pr_reviews", return_value=[])
+    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
+    @patch("github_cli.gh_api", return_value=[])
+    @patch("github_cli.gh_pr_view")
+    def test_routing_raw_skips_check_suites_when_every_context_reported(
+        self,
+        gh_pr_view,
+        _gh_api,
+        _issue_comments,
+        _reviews,
+        _review_requests,
+        _review_threads,
+        _rollup,
+        _branch_rules,
+        settled_app_ids,
+    ) -> None:
+        gh_pr_view.return_value = {
+            "id": "PR_node",
+            "baseRefName": "main",
+            "headRefOid": "current-head",
+        }
+
+        raw = fetch_pr_routing_raw(
+            "open-telemetry/example",
+            "open-telemetry",
+            "example",
+            7,
+        )
+
+        self.assertEqual(
+            [("build", "pass")],
+            [(check["name"], check["bucket"]) for check in raw["checks"]],
+        )
+        settled_app_ids.assert_not_called()
+
+    @patch("github_cli.settled_check_suite_app_ids", return_value={2})
+    @patch(
+        "github_cli.gh_branch_rules",
+        return_value=[{
+            "type": "required_status_checks",
+            "parameters": {
+                "required_status_checks": [
+                    {"context": "build", "integration_id": 1},
+                    {"context": "windows", "integration_id": 2},
+                ],
+            },
+        }],
+    )
+    @patch(
+        "github_cli.gh_pr_check_rollup",
+        return_value={
+            "head_oid": "current-head",
+            "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
+            "non_blocking_failures": [],
+            "code_scanning": [],
+        },
+    )
+    @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
+    @patch("github_cli.fetch_pr_reviews", return_value=[])
+    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
+    @patch("github_cli.gh_api", return_value=[])
+    @patch("github_cli.gh_pr_view")
+    def test_routing_raw_reads_check_suites_for_an_unreported_context(
+        self,
+        gh_pr_view,
+        _gh_api,
+        _issue_comments,
+        _reviews,
+        _review_requests,
+        _review_threads,
+        _rollup,
+        _branch_rules,
+        settled_app_ids,
+    ) -> None:
+        gh_pr_view.return_value = {
+            "id": "PR_node",
+            "baseRefName": "main",
+            "headRefOid": "current-head",
+        }
+
+        raw = fetch_pr_routing_raw(
+            "open-telemetry/example",
+            "open-telemetry",
+            "example",
+            7,
+        )
+
+        self.assertEqual(
+            [("build", "pass")],
+            [(check["name"], check["bucket"]) for check in raw["checks"]],
+        )
+        settled_app_ids.assert_called_once_with(
+            "open-telemetry/example", "current-head"
+        )
+
     def test_missing_required_checks_are_pending(self) -> None:
         self.assertEqual(
             [

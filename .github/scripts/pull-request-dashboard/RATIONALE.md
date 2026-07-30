@@ -185,7 +185,9 @@ the implementation understandable and operationally cheap.
   ruleset context that no workflow produces — an obsolete or conditionally
   skipped job — would be reported as permanently pending. Such a PR cannot
   merge either way; the difference is that the dashboard stops treating it as
-  "still running."
+  "still running." The suites are read only when an app-owned required context
+  has not reported, so the refreshes that cannot use the answer do not pay for
+  it.
 - A `code_scanning` ruleset rule holds the merge on a check that the code
   scanning app publishes per configured tool, named after that tool, which
   GitHub never marks as required. Those checks are matched by app and by the

@@ -409,7 +409,7 @@ def gh_pr_check_rollup(
     repo: str,
     pr_id: str,
     non_blocking_check_patterns: list[str],
-) -> dict[str, list[dict[str, Any]]] | None:
+) -> dict[str, Any] | None:
     del repo
     checks_by_identity: dict[
         tuple[str, int | None, bool], tuple[dict[str, Any], bool]
@@ -584,14 +584,11 @@ def settled_check_suite_app_ids(repo: str, head_sha: str) -> set[int]:
     return {app_id for app_id, completed in settled.items() if completed}
 
 
-def include_missing_required_checks(
-    checks: list[dict[str, Any]] | None,
-    required_contexts: list[dict[str, Any]] | None,
-    settled_app_ids: set[int] | None = None,
-) -> list[dict[str, Any]] | None:
-    if checks is None or required_contexts is None:
-        return None
-    complete = list(checks)
+def unreported_required_contexts(
+    checks: list[dict[str, Any]],
+    required_contexts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    unreported: list[dict[str, Any]] = []
     for requirement in required_contexts:
         context = requirement["context"]
         integration_id = requirement.get("integration_id")
@@ -612,8 +609,22 @@ def include_missing_required_checks(
                 candidate.get("context") == context
                 for candidate in required_contexts
             ) == 1
-        if reported:
-            continue
+        if not reported:
+            unreported.append(requirement)
+    return unreported
+
+
+def include_missing_required_checks(
+    checks: list[dict[str, Any]] | None,
+    required_contexts: list[dict[str, Any]] | None,
+    settled_app_ids: set[int] | None = None,
+) -> list[dict[str, Any]] | None:
+    if checks is None or required_contexts is None:
+        return None
+    complete = list(checks)
+    for requirement in unreported_required_contexts(checks, required_contexts):
+        context = requirement["context"]
+        integration_id = requirement.get("integration_id")
         # A settled app will never report this context, so it cannot be pending.
         if integration_id is not None and integration_id in (settled_app_ids or set()):
             continue
@@ -923,11 +934,6 @@ def fetch_pr_routing_raw(
             repo,
             pr.get("baseRefName") or "",
         )
-        settled_app_ids_future = pool.submit(
-            settled_check_suite_app_ids,
-            repo,
-            pr.get("headRefOid") or "",
-        )
         check_rollup = check_rollup_future.result()
         branch_rules = branch_rules_future.result()
         # commits(last: 1) can lag headRefOid, and the previous head's checks
@@ -936,10 +942,24 @@ def fetch_pr_routing_raw(
             pr.get("headRefOid") or ""
         ):
             check_rollup = None
+        required_contexts = required_check_contexts(branch_rules)
+        # The check suites only say whether an app-owned context that has not
+        # reported can still arrive, so nothing else has to pay for that read.
+        settled_app_ids: set[int] = set()
+        if check_rollup is not None and required_contexts is not None and any(
+            requirement.get("integration_id") is not None
+            for requirement in unreported_required_contexts(
+                check_rollup["required"], required_contexts
+            )
+        ):
+            settled_app_ids = settled_check_suite_app_ids(
+                repo,
+                pr.get("headRefOid") or "",
+            )
         checks = include_missing_required_checks(
             None if check_rollup is None else check_rollup["required"],
-            required_check_contexts(branch_rules),
-            settled_app_ids_future.result(),
+            required_contexts,
+            settled_app_ids,
         )
         if checks is not None and check_rollup is not None:
             checks = merge_code_scanning_checks(
