@@ -111,7 +111,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   current required failures.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
-                                                  fetched.
+                                                  fetched, and excludes required
+                                                  contexts whose app has already
+                                                  finished reporting.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by a
@@ -121,9 +123,14 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_approver_activity_at       str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
+    author_route_held_for_checks    bool          Author route retained because
+                                                  the required checks have not
+                                                  reported since a push.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
-                                                  or PR creation time.
+                                                  or PR creation time. Carried
+                                                  forward while the author route
+                                                  is held.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
     author_action_review_thread_urls
@@ -194,6 +201,7 @@ from copilot_review import (
     copilot_review_status,
     is_copilot_reviewer,
     record_copilot_review_observation,
+    required_checks_settled,
 )
 from dashboard_override import (
     apply_dashboard_override,
@@ -1162,7 +1170,15 @@ def add_wait_age_facts(
     facts: dict[str, Any],
     route: str,
     pending_actions: dict[str, dict[str, Any]],
+    previous_result: dict[str, Any] | None = None,
 ) -> None:
+    previous_facts = (previous_result or {}).get("facts") or {}
+    # A held route was not re-evaluated, so its wait continues uninterrupted
+    # rather than restarting from whatever the incomplete facts now imply.
+    if facts.get("author_route_held_for_checks") and previous_facts.get("waiting_since"):
+        facts["waiting_since"] = previous_facts["waiting_since"]
+        facts["waiting_age_basis"] = previous_facts.get("waiting_age_basis") or ""
+        return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
@@ -1282,11 +1298,27 @@ def add_reviewers(
     ]
 
 
+def hold_author_route_until_checks_report(
+    facts: dict[str, Any],
+    route: str,
+    previous_result: dict[str, Any] | None,
+) -> str:
+    # A push clears the failing count before the replacement checks report, so
+    # the author would otherwise hand the PR off on evidence that does not exist
+    # yet. Routes that do not depend on a check result move freely.
+    held = (previous_result or {}).get(
+        "route"
+    ) == "author" and not required_checks_settled(facts)
+    facts["author_route_held_for_checks"] = held
+    return "author" if held else route
+
+
 def resolve_pr_route(
     facts: dict[str, Any],
     pending_actions: dict[str, dict[str, Any]],
     required_approvals: int,
     require_clean_copilot_review: bool,
+    previous_result: dict[str, Any] | None = None,
 ) -> str:
     # Apply the manual reviewer-routing override before the Copilot review gate
     # so an overridden route (for example author -> reviewers) is still held for
@@ -1295,7 +1327,11 @@ def resolve_pr_route(
         facts,
         apply_dashboard_override(
             facts,
-            route_pr(facts, pending_actions, required_approvals),
+            hold_author_route_until_checks_report(
+                facts,
+                route_pr(facts, pending_actions, required_approvals),
+                previous_result,
+            ),
         ),
         enabled=require_clean_copilot_review,
     )
@@ -1426,6 +1462,7 @@ def build_pr_result(
             pending_actions,
             required_approvals,
             require_clean_copilot_review,
+            previous_result,
         )
         assign_author_nudge_episode(
             facts,
@@ -1434,7 +1471,7 @@ def build_pr_result(
             raw.get("issue_comments") or [],
         )
         append_route_noop_reply(raw, facts, route)
-        add_wait_age_facts(facts, route, pending_actions)
+        add_wait_age_facts(facts, route, pending_actions, previous_result)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
         )

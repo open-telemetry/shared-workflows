@@ -113,6 +113,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
     @patch(
         "github_cli.gh_pr_check_rollup",
         return_value={
+            "head_oid": "current-head",
             "required": [{"name": "build", "bucket": "fail"}],
             "non_blocking_failures": [],
             "code_scanning": [],

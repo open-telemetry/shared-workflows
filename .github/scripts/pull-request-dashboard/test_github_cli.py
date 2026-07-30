@@ -21,6 +21,7 @@ from github_cli import (
     request_copilot_review,
     required_check_contexts,
     required_code_scanning_checks,
+    settled_check_suite_app_ids,
 )
 
 
@@ -776,6 +777,7 @@ class GithubCliTest(unittest.TestCase):
     @patch(
         "github_cli.gh_pr_check_rollup",
         return_value={
+            "head_oid": "current-head",
             "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
             "non_blocking_failures": [],
             "code_scanning": [
@@ -800,7 +802,11 @@ class GithubCliTest(unittest.TestCase):
         _rollup,
         _branch_rules,
     ) -> None:
-        gh_pr_view.return_value = {"id": "PR_node", "baseRefName": "main"}
+        gh_pr_view.return_value = {
+            "id": "PR_node",
+            "baseRefName": "main",
+            "headRefOid": "current-head",
+        }
 
         raw = fetch_pr_routing_raw(
             "open-telemetry/example",
@@ -813,6 +819,48 @@ class GithubCliTest(unittest.TestCase):
             [("build", "pass"), ("CodeQL", "fail")],
             [(check["name"], check["bucket"]) for check in raw["checks"]],
         )
+
+    @patch("github_cli.gh_branch_rules", return_value=[])
+    @patch(
+        "github_cli.gh_pr_check_rollup",
+        return_value={
+            "head_oid": "previous-head",
+            "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
+            "non_blocking_failures": [],
+            "code_scanning": [],
+        },
+    )
+    @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
+    @patch("github_cli.fetch_pr_reviews", return_value=[])
+    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
+    @patch("github_cli.gh_api", return_value=[])
+    @patch("github_cli.gh_pr_view")
+    def test_routing_raw_discards_checks_from_a_superseded_head(
+        self,
+        gh_pr_view,
+        _gh_api,
+        _issue_comments,
+        _reviews,
+        _review_requests,
+        _review_threads,
+        _rollup,
+        _branch_rules,
+    ) -> None:
+        gh_pr_view.return_value = {
+            "id": "PR_node",
+            "baseRefName": "main",
+            "headRefOid": "current-head",
+        }
+
+        raw = fetch_pr_routing_raw(
+            "open-telemetry/example",
+            "open-telemetry",
+            "example",
+            7,
+        )
+
+        self.assertIsNone(raw["checks"])
 
     def test_missing_required_checks_are_pending(self) -> None:
         self.assertEqual(
@@ -890,6 +938,52 @@ class GithubCliTest(unittest.TestCase):
             None, [{"context": "build", "integration_id": 1}]
         ))
         self.assertIsNone(include_missing_required_checks([], None))
+
+    def test_settled_app_never_reports_its_missing_required_check(self) -> None:
+        self.assertEqual(
+            [],
+            include_missing_required_checks(
+                [],
+                [{"context": "windows-unittest", "integration_id": 15368}],
+                {15368},
+            ),
+        )
+
+    def test_unsettled_app_still_owes_its_missing_required_check(self) -> None:
+        checks = include_missing_required_checks(
+            [],
+            [{"context": "windows-unittest", "integration_id": 15368}],
+            {17893},
+        )
+
+        self.assertEqual(
+            [("windows-unittest", "pending")],
+            [(check["name"], check["bucket"]) for check in checks or []],
+        )
+
+    @patch("github_cli.gh_api")
+    def test_settled_app_ids_require_every_suite_to_complete(self, gh_api) -> None:
+        gh_api.return_value = {
+            "check_suites": [
+                {"status": "completed", "app": {"id": 15368}},
+                {"status": "in_progress", "app": {"id": 15368}},
+                {"status": "completed", "app": {"id": 17893}},
+            ],
+        }
+
+        self.assertEqual({17893}, settled_check_suite_app_ids("owner/repo", "head"))
+        gh_api.assert_called_once_with(
+            "/repos/owner/repo/commits/head/check-suites?per_page=100"
+        )
+
+    @patch("github_cli.gh_api")
+    def test_settled_app_ids_are_empty_without_a_head_sha(self, gh_api) -> None:
+        self.assertEqual(set(), settled_check_suite_app_ids("owner/repo", ""))
+        gh_api.assert_not_called()
+
+    @patch("github_cli.gh_api", side_effect=RuntimeError("boom"))
+    def test_settled_app_ids_are_empty_when_suites_cannot_be_read(self, _gh_api) -> None:
+        self.assertEqual(set(), settled_check_suite_app_ids("owner/repo", "head"))
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_reviews_normalizes_paginated_reviews(self, graphql) -> None:

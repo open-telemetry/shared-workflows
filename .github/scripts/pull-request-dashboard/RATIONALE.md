@@ -172,6 +172,20 @@ the implementation understandable and operationally cheap.
 - Classic branch-protection required status checks are not discovered when they
   have not reported. This is an accepted limitation because configured
   OpenTelemetry repositories use rulesets for required status checks.
+- The rollup is read from the PR's last commit, which can still be the previous
+  head just after a push. That commit's checks are already complete, so they
+  would read as a settled result for code that is no longer proposed. The
+  rollup therefore carries its commit oid and is discarded when it does not
+  match the PR head, leaving check facts unavailable until the rollup catches
+  up.
+- A required context is only pending while the app that owns it may still
+  report. Check suites for the head commit are consulted, and a context is
+  dropped from the pending set once every suite its app created has completed,
+  because the app has then reported everything it is going to. Without this a
+  ruleset context that no workflow produces — an obsolete or conditionally
+  skipped job — would be reported as permanently pending. Such a PR cannot
+  merge either way; the difference is that the dashboard stops treating it as
+  "still running."
 - A `code_scanning` ruleset rule holds the merge on a check that the code
   scanning app publishes per configured tool, named after that tool, which
   GitHub never marks as required. Those checks are matched by app and by the
@@ -186,6 +200,18 @@ the implementation understandable and operationally cheap.
   Repository-configured `non_blocking_check_patterns` identify failed optional
   checks in a note alongside this action, without changing required-check facts
   or routing.
+- A PR already routed to its author stays there until the required checks
+  report again. A push clears the failing count before the replacement checks
+  produce a result, so the PR would otherwise be handed off on evidence that
+  does not exist yet and handed back minutes later when the same check fails.
+  Only the author route is held, because it is the only one a check result can
+  restore; a PR moving between reviewer and maintainer routes is not waiting on
+  CI. Unavailable check results hold the route for the same reason a pending
+  one does, and resolve on a later run.
+- A held route also holds its wait age. Recomputing it would read the push as
+  the end of the CI failure and fall back to the last approver activity, which
+  is usually far older, so a PR the author had just pushed to would sort to the
+  top of the waiting-on-authors section as the stalest item on the board.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
   but do not change who owns the next action.
@@ -214,6 +240,16 @@ the implementation understandable and operationally cheap.
   gate or produces fresh actionable threads that route the PR back to the
   author, so re-requesting an unchanged commit is self-correcting rather than a
   re-request loop.
+- The gate only fires once the required checks have settled. A route computed
+  while checks are still running is provisional: a failure that has not
+  completed yet cannot route the PR to its author, so the PR looks ready for
+  reviewers and the gate would spend a Copilot review on code CI is about to
+  reject. Unavailable check results are treated the same as running ones,
+  because both mean the routing decision cannot be trusted yet.
+- Delivery re-validates the required checks against live data rather than
+  relying on the routing fingerprint alone. The fingerprint only detects
+  change, so checks that were unsettled when the request was recorded and are
+  still unsettled at delivery would otherwise pass through unnoticed.
 - "Clean" means no inline comments on the current head, counted from the
   review, not from the classifier's actionability judgment. Accepted
   limitation: if Copilot leaves comments the classifier treats as

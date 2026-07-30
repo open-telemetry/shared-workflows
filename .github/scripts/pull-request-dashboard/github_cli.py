@@ -308,6 +308,7 @@ query($id: ID!, $after: String) {
             commits(last: 1) {
                 nodes {
                     commit {
+                        oid
                         statusCheckRollup {
                             contexts(first: 100, after: $after) {
                                 nodes {
@@ -415,6 +416,7 @@ def gh_pr_check_rollup(
     ] = {}
     code_scanning_by_identity: dict[tuple[str, int | None], dict[str, Any]] = {}
     after: str | None = None
+    head_oid = ""
     try:
         while True:
             data = gh_graphql(PR_CHECKS_QUERY, {"id": pr_id, "after": after})
@@ -422,6 +424,7 @@ def gh_pr_check_rollup(
             commits = pull_request.get("commits") or {}
             commit_nodes = commits.get("nodes") or []
             commit = (commit_nodes[0] if commit_nodes else {}).get("commit") or {}
+            head_oid = commit.get("oid") or head_oid
             rollup = commit.get("statusCheckRollup") or {}
             contexts = rollup.get("contexts") or {}
             for node in contexts.get("nodes") or []:
@@ -458,6 +461,7 @@ def gh_pr_check_rollup(
         return None
     checks = list(checks_by_identity.values())
     return {
+        "head_oid": head_oid,
         "required": [check for check, is_required in checks if is_required],
         "non_blocking_failures": [
             check
@@ -553,9 +557,31 @@ def merge_code_scanning_checks(
     ] + code_scanning_checks
 
 
+def settled_check_suite_app_ids(repo: str, head_sha: str) -> set[int]:
+    # An app is settled once every check suite it created for this head has
+    # completed, which means it has reported every context it is going to.
+    if not head_sha:
+        return set()
+    try:
+        payload = gh_api(
+            f"/repos/{repo}/commits/{head_sha}/check-suites?per_page=100"
+        )
+    except RuntimeError:
+        return set()
+    settled: dict[int, bool] = {}
+    for suite in (payload or {}).get("check_suites") or []:
+        app_id = (suite.get("app") or {}).get("id")
+        if app_id is None:
+            continue
+        completed = suite.get("status") == "completed"
+        settled[app_id] = settled.get(app_id, True) and completed
+    return {app_id for app_id, completed in settled.items() if completed}
+
+
 def include_missing_required_checks(
     checks: list[dict[str, Any]] | None,
     required_contexts: list[dict[str, Any]] | None,
+    settled_app_ids: set[int] | None = None,
 ) -> list[dict[str, Any]] | None:
     if checks is None or required_contexts is None:
         return None
@@ -581,6 +607,9 @@ def include_missing_required_checks(
                 for candidate in required_contexts
             ) == 1
         if reported:
+            continue
+        # A settled app will never report this context, so it cannot be pending.
+        if integration_id is not None and integration_id in (settled_app_ids or set()):
             continue
         complete.append({
             "name": context,
@@ -888,11 +917,23 @@ def fetch_pr_routing_raw(
             repo,
             pr.get("baseRefName") or "",
         )
+        settled_app_ids_future = pool.submit(
+            settled_check_suite_app_ids,
+            repo,
+            pr.get("headRefOid") or "",
+        )
         check_rollup = check_rollup_future.result()
         branch_rules = branch_rules_future.result()
+        # commits(last: 1) can lag headRefOid, and the previous head's checks
+        # are already complete, so a mismatch has to read as no check data.
+        if check_rollup is not None and check_rollup["head_oid"] != (
+            pr.get("headRefOid") or ""
+        ):
+            check_rollup = None
         checks = include_missing_required_checks(
             None if check_rollup is None else check_rollup["required"],
             required_check_contexts(branch_rules),
+            settled_app_ids_future.result(),
         )
         if checks is not None and check_rollup is not None:
             checks = merge_code_scanning_checks(

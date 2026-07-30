@@ -58,6 +58,14 @@ def copilot_review_status(
     return True, bool(latest_review.get("finding_count"))
 
 
+def required_checks_settled(facts: dict[str, Any]) -> bool:
+    # A route computed while checks are still running is provisional: route_pr
+    # can only see a failure once the check has completed.
+    if "ci_pending_count" not in facts:
+        return False
+    return not facts.get("ci_pending_count", 0)
+
+
 def apply_copilot_review_gate(
     facts: dict[str, Any],
     route: str,
@@ -66,6 +74,8 @@ def apply_copilot_review_gate(
 ) -> str:
     facts["copilot_review_request_needed"] = False
     if not enabled or route not in ("approver", "maintainer"):
+        return route
+    if not required_checks_settled(facts):
         return route
     if not facts.get("copilot_review_exists"):
         return "copilot"
@@ -105,6 +115,13 @@ def record_copilot_review_observation(
     save_copilot_review_requests(requests)
 
 
+def named_checks(checks: list[dict[str, Any]]) -> str:
+    names = sorted(check.get("name") or "" for check in checks)
+    if len(names) > 3:
+        return f"{', '.join(names[:3])} and {len(names) - 3} more"
+    return ", ".join(names)
+
+
 def stale_request_reason(
     entry: dict[str, Any],
     pr: dict[str, Any],
@@ -121,6 +138,17 @@ def stale_request_reason(
             f"head is {current_head or '(missing)'} "
             f"but {entry.get('head_sha') or '(missing)'} was observed"
         )
+    # The fingerprint below only detects change, so checks that were unsettled
+    # when the request was recorded and still are would otherwise pass through.
+    checks = raw.get("checks")
+    if checks is None:
+        return "required check results are unavailable"
+    failing = [check for check in checks if check.get("bucket") in ("fail", "cancel")]
+    if failing:
+        return f"required checks are failing: {named_checks(failing)}"
+    pending = [check for check in checks if check.get("bucket") == "pending"]
+    if pending:
+        return f"required checks have not completed: {named_checks(pending)}"
     if not entry.get("routing_input_fingerprint"):
         return "no routing fingerprint was observed"
     if current_routing_fingerprint != entry["routing_input_fingerprint"]:

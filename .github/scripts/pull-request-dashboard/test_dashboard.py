@@ -20,6 +20,7 @@ from dashboard import (
     compute_facts,
     fetch_pr_raw,
     group_review_threads,
+    hold_author_route_until_checks_report,
     main,
     remove_cached_dashboard_prs,
     resolve_pr_route,
@@ -35,6 +36,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         # A failing required check routes a human-authored PR to the author.
         facts: dict[str, object] = {
             "ci_failing_count": 1,
+            "ci_pending_count": 0,
             "dashboard_override_label_applied": True,
             "dashboard_override_requested": False,
         }
@@ -68,6 +70,103 @@ class ResolvePrRouteTest(unittest.TestCase):
         route = resolve_pr_route(facts, {}, 1, False)
 
         self.assertEqual("approver", route)
+
+    def test_override_reaches_reviewers_while_checks_are_running(self) -> None:
+        facts = self._author_route_facts(ci_failing_count=0, ci_pending_count=1)
+
+        route = resolve_pr_route(facts, {}, 1, False, {"route": "author"})
+
+        self.assertEqual("approver", route)
+
+
+class AuthorRouteHoldTest(unittest.TestCase):
+    def test_author_keeps_the_pr_while_replacement_checks_run(self) -> None:
+        route = hold_author_route_until_checks_report(
+            {"ci_failing_count": 0, "ci_pending_count": 1},
+            "approver",
+            {"route": "author"},
+        )
+
+        self.assertEqual("author", route)
+
+    def test_author_keeps_the_pr_while_check_results_are_unavailable(self) -> None:
+        route = hold_author_route_until_checks_report(
+            {},
+            "maintainer",
+            {"route": "author"},
+        )
+
+        self.assertEqual("author", route)
+
+    def test_settled_checks_release_the_pr_to_reviewers(self) -> None:
+        route = hold_author_route_until_checks_report(
+            {"ci_failing_count": 0, "ci_pending_count": 0},
+            "approver",
+            {"route": "author"},
+        )
+
+        self.assertEqual("approver", route)
+
+    def test_reviewer_route_moves_on_while_checks_run(self) -> None:
+        route = hold_author_route_until_checks_report(
+            {"ci_pending_count": 1},
+            "maintainer",
+            {"route": "approver"},
+        )
+
+        self.assertEqual("maintainer", route)
+
+    def test_first_observation_of_a_pr_is_not_held(self) -> None:
+        route = hold_author_route_until_checks_report(
+            {"ci_pending_count": 1},
+            "approver",
+            None,
+        )
+
+        self.assertEqual("approver", route)
+
+    def test_held_route_carries_the_previous_wait_forward(self) -> None:
+        facts = {
+            "author_route_held_for_checks": True,
+            "ci_failing_count": 0,
+            "last_approver_activity_at": "2026-07-10T01:00:00+00:00",
+        }
+
+        add_wait_age_facts(
+            facts,
+            "author",
+            {},
+            {
+                "route": "author",
+                "facts": {
+                    "waiting_since": "2026-07-20T01:00:00+00:00",
+                    "waiting_age_basis": "ci_failure",
+                },
+            },
+        )
+
+        self.assertEqual("2026-07-20T01:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("ci_failure", facts["waiting_age_basis"])
+
+    def test_released_route_recomputes_the_wait(self) -> None:
+        facts = {
+            "author_route_held_for_checks": False,
+            "ci_failing_count": 0,
+            "last_approver_activity_at": "2026-07-10T01:00:00+00:00",
+        }
+
+        add_wait_age_facts(
+            facts,
+            "author",
+            {},
+            {
+                "route": "author",
+                "facts": {"waiting_since": "2026-07-20T01:00:00+00:00"},
+            },
+        )
+
+        self.assertEqual("2026-07-10T01:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("last_approver_activity", facts["waiting_age_basis"])
 
 
 class AuthorNudgeEpisodeTest(unittest.TestCase):
@@ -160,6 +259,7 @@ class FetchPrRawTest(unittest.TestCase):
             patch(
                 "github_cli.gh_pr_check_rollup",
                 return_value={
+                    "head_oid": "",
                     "required": [],
                     "non_blocking_failures": [],
                     "code_scanning": [],
@@ -545,6 +645,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
     def test_initial_automatic_review_blocks_human_handoff(self) -> None:
         facts = {
+            "ci_pending_count": 0,
             "copilot_review_requested": True,
             "copilot_review_exists": False,
             "copilot_review_needed": False,
@@ -561,6 +662,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
     def test_marks_re_review_needed_after_push_since_clean_review(self) -> None:
         facts = {
+            "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
             "copilot_review_needed": True,
@@ -577,6 +679,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
     def test_marks_re_review_needed_before_reviewer_handoff(self) -> None:
         facts = {
+            "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
             "copilot_review_needed": True,
@@ -593,6 +696,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
     def test_pending_re_review_waits_without_duplicate_request(self) -> None:
         facts = {
+            "ci_pending_count": 0,
             "copilot_review_requested": True,
             "copilot_review_exists": True,
             "copilot_review_needed": True,
@@ -609,6 +713,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
     def test_current_head_clean_review_moves_to_maintainers(self) -> None:
         facts = {
+            "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
             "copilot_review_needed": False,
@@ -623,8 +728,59 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertEqual(route, "maintainer")
         self.assertFalse(facts["copilot_review_request_needed"])
 
+    def test_running_checks_hold_re_review_request(self) -> None:
+        facts = {
+            "ci_pending_count": 1,
+            "copilot_review_requested": False,
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "approver",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "approver")
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_unavailable_check_results_hold_re_review_request(self) -> None:
+        facts = {
+            "copilot_review_requested": False,
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "approver",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "approver")
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_running_checks_hold_initial_review_handoff(self) -> None:
+        facts = {
+            "ci_pending_count": 2,
+            "copilot_review_requested": False,
+            "copilot_review_exists": False,
+            "copilot_review_needed": False,
+        }
+
+        route = apply_copilot_review_gate(
+            facts,
+            "approver",
+            enabled=True,
+        )
+
+        self.assertEqual(route, "approver")
+        self.assertFalse(facts["copilot_review_request_needed"])
+
     def test_disabled_gate_preserves_maintainer_route(self) -> None:
         facts = {
+            "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
             "copilot_review_needed": True,
