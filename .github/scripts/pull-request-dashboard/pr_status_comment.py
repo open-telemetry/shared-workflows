@@ -12,7 +12,11 @@ from github_cli import (
     gh_api,
     run_gh,
 )
-from dashboard_override import PRE_REVIEW_ROUTES
+from dashboard_override import (
+    OVERRIDE_LABEL_MARKER,
+    PRE_REVIEW_ROUTES,
+    override_ack_marker,
+)
 from route_presentation import route_status_summary, status_headline
 from state import (
     STATUS_COMMENT_REVISION,
@@ -286,6 +290,11 @@ def render_status_comment(
     episode_id = str(facts.get("author_nudge_episode_id") or "")
     if (result or {}).get("route") == "author" and episode_id:
         lines.insert(2, author_nudge_episode_marker(episode_id))
+    override_ack_id = int(facts.get("dashboard_override_ack_id") or 0)
+    if override_ack_id:
+        lines.insert(2, override_ack_marker(override_ack_id))
+    if facts.get("dashboard_override_label_applied"):
+        lines.insert(2, OVERRIDE_LABEL_MARKER)
 
     if body:
         lines.append("")

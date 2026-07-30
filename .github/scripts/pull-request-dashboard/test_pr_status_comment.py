@@ -57,6 +57,40 @@ class RenderStatusCommentTest(unittest.TestCase):
             body,
         )
 
+    def test_carries_override_acknowledgement_marker(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "approver",
+                "facts": {"author": "alice", "dashboard_override_ack_id": 42},
+            },
+        )
+
+        self.assertIn(pr_status_comment.override_ack_marker(42), body)
+
+    def test_omits_override_acknowledgement_marker_without_override(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {"route": "approver", "facts": {"author": "alice"}},
+        )
+
+        self.assertNotIn("pull-request-dashboard-override-ack", body)
+        self.assertNotIn(pr_status_comment.OVERRIDE_LABEL_MARKER, body)
+
+    def test_records_the_override_label_it_reports(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "approver",
+                "facts": {
+                    "author": "alice",
+                    "dashboard_override_label_applied": True,
+                },
+            },
+        )
+
+        self.assertIn(pr_status_comment.OVERRIDE_LABEL_MARKER, body)
+
     def test_recovers_episode_only_from_app_authored_status_comment(self) -> None:
         marker = pr_status_comment.author_nudge_episode_marker("abc123")
         comments = [
