@@ -10331,8 +10331,10 @@
         "author": "mx-psi",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "author_nudge_episode_id": "37d468092f574122b51a8ca98615e482",
+        "ci_failing_count": 2,
+        "ci_failing_since": "2026-07-30T11:33:12+00:00",
+        "ci_pending_count": 2,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -10363,14 +10365,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "b92e422ff4ffeeb5432fc89d3a6630f1144c873c0952a26481bc5744bd40dc70",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T11:07:11+00:00"
+        "routing_input_fingerprint": "34a6eed91f35478687d5aad0f2d7b80d2ddb47db4c68362647c66d8163b9f3c0",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-30T11:33:12+00:00"
       },
       "failed": false,
       "pr_number": 49965,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49965",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "49966": {
