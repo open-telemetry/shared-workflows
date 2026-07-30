@@ -200,14 +200,15 @@ the implementation understandable and operationally cheap.
   Repository-configured `non_blocking_check_patterns` identify failed optional
   checks in a note alongside this action, without changing required-check facts
   or routing.
-- A PR the dashboard would hand to reviewers stays with its author until the
-  required checks report. Clearing the checks is the author's job, so an
-  outstanding one is not yet a reason to spend reviewer attention, and a push
-  clears the failing count before the replacement checks produce a result, so
-  the PR would otherwise be handed off on evidence that does not exist yet and
-  handed back minutes later when the same check fails. A PR that has already
-  reached reviewers is never pulled back, because a check result alone does not
-  make it the author's turn again. Unavailable check results hold the handoff
+- A PR does not advance toward merge while the required checks are unsettled:
+  an author waiting on CI keeps the PR, and a PR already with approvers is not
+  handed to maintainers to merge. Clearing the checks is the author's job, so
+  an outstanding one is not yet a reason to spend anyone else's attention, and a
+  push clears the failing count before the replacement checks produce a result,
+  so the PR would otherwise move forward on evidence that does not exist yet and
+  move back minutes later when the same check fails. Moving back toward the
+  author is never held, because a failing check or new author-owned discussion
+  is evidence the gates cannot undo. Unavailable check results hold the handoff
   for the same reason a pending one does, and resolve on a later run.
 - A held PR is presented as waiting on its author rather than on the robot it
   is waiting for. The CI column and the reviewers column already name what is
@@ -252,7 +253,7 @@ the implementation understandable and operationally cheap.
   gate or produces fresh actionable threads that route the PR back to the
   author, so re-requesting an unchanged commit is self-correcting rather than a
   re-request loop.
-- An outstanding Copilot review holds the reviewer handoff the same way an
+- An outstanding Copilot review holds the PR where it is the same way an
   unsettled required check does, including when a reviewer-routing override
   asked for the handoff. The override says the author is done with the
   discussion, not that the robots have finished, and a handoff made before they

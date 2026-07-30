@@ -129,8 +129,21 @@ class GateHoldTest(unittest.TestCase):
 
         self.assertEqual("approver", route)
 
-    def test_reviewer_route_moves_on_while_checks_run(self) -> None:
+    def test_reviewers_do_not_hand_off_to_maintainers_while_checks_run(self) -> None:
         route = self._hold({"ci_pending_count": 1}, "maintainer", {"route": "approver"})
+
+        self.assertEqual("approver", route)
+
+    def test_a_pr_still_moves_back_to_its_author_while_checks_run(self) -> None:
+        facts: dict[str, object] = {"ci_pending_count": 1, "ci_failing_count": 1}
+
+        route = self._hold(facts, "author", {"route": "maintainer"})
+
+        self.assertEqual("author", route)
+        self.assertFalse(facts["route_held_for_gates"])
+
+    def test_an_unchanged_route_is_not_held(self) -> None:
+        route = self._hold({"ci_pending_count": 1}, "maintainer", {"route": "maintainer"})
 
         self.assertEqual("maintainer", route)
 

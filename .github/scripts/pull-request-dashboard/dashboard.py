@@ -123,9 +123,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_approver_activity_at       str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
-    route_held_for_gates            bool          Reviewer handoff withheld
-                                                  because the required checks or
-                                                  the Copilot review are still
+    route_held_for_gates            bool          The PR did not advance to the
+                                                  route it computed, because
+                                                  the required checks or the
+                                                  Copilot review are still
                                                   outstanding.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
@@ -1161,6 +1162,14 @@ def oldest_pending_action_ts(
 # response, so an author push does not change whose turn it is.
 REVIEWER_ROUTES = ("approver", "maintainer")
 
+# How far a PR has travelled toward merge. An unsettled gate stops it from
+# advancing, but never from moving back toward its author.
+ROUTE_PROGRESSION = ("author", "approver", "maintainer")
+
+
+def route_progress(route: str) -> int:
+    return ROUTE_PROGRESSION.index(route) if route in ROUTE_PROGRESSION else 0
+
 
 def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
     if route in REVIEWER_ROUTES:
@@ -1328,11 +1337,13 @@ def hold_route_until_gates_settle(
     require_clean_copilot_review: bool,
 ) -> str:
     # The required checks and the Copilot review are the author's to clear, so
-    # an outstanding one keeps the PR with them. A PR that already reached
-    # reviewers is never pulled back, so a push cannot change whose turn it is.
+    # a PR does not advance while one is outstanding. Moving back toward the
+    # author is always allowed, because those are decisions a gate cannot undo.
+    previous_route = (previous_result or {}).get("route") or ""
+    if previous_route not in ROUTE_PROGRESSION:
+        previous_route = "author"
     held = (
-        route in REVIEWER_ROUTES
-        and (previous_result or {}).get("route") not in REVIEWER_ROUTES
+        route_progress(route) > route_progress(previous_route)
         and (
             not required_checks_settled(facts)
             or copilot_review_outstanding(
@@ -1341,7 +1352,7 @@ def hold_route_until_gates_settle(
         )
     )
     facts["route_held_for_gates"] = held
-    return "author" if held else route
+    return previous_route if held else route
 
 
 def resolve_pr_route(
