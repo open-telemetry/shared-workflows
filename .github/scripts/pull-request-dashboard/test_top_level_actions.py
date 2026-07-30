@@ -22,6 +22,7 @@ from dashboard import (
 )
 from classification import (
     PRAISE_VERDICTS,
+    REVIEWER_FEEDBACK_VERDICTS,
     classify_discussion_domains,
     classify_review_threads,
     parse_discussion_decision,
@@ -64,6 +65,15 @@ def review_thread_discussion(discussion_id: str) -> dict:
         "discussion_id": discussion_id,
         "discussion_kind": "review-comment-thread",
         "comments": [],
+    }
+
+
+def verdict_record(discussion_id: str, verdict: str = "author_action") -> dict:
+    return {
+        "discussion_id": discussion_id,
+        "discussion_kind": "top-level-feedback",
+        "failed": False,
+        "decision": {"verdict": verdict, "reason": "action requested"},
     }
 
 
@@ -999,27 +1009,20 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
     @patch("classification.run_llm_for_verdict_batch")
     def test_a_thread_the_author_has_not_answered_needs_no_model(
         self,
-        run_inline,
         run_batch,
         _load_cache,
         save_cache,
     ) -> None:
-        run_batch.side_effect = lambda discussions, _model: [
-            {
-                "discussion_id": discussion["discussion_id"],
-                "discussion_kind": discussion["discussion_kind"],
-                "failed": False,
-                "decision": {
-                    "discussion_action": "author",
-                    "reason": "Reviewer asked a question",
-                },
-            }
-            for discussion in discussions
-        ]
+        asked = []
+
+        def batch(items, _model, _prompt, verdicts):
+            asked.append(verdicts)
+            return [verdict_record(item["discussion_id"]) for item in items]
+
+        run_batch.side_effect = batch
         thread = review_thread_discussion("inline")
         thread["discussion_facts"] = {"latest_comment_role": "reviewer"}
         # a real reviewer comment, too long to be a praise candidate, so no binary runs
@@ -1037,7 +1040,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             classify_feedback_domains(123, [thread], [top_level_item("top-level")], "model")
         )
 
-        run_inline.assert_not_called()
+        self.assertEqual([REVIEWER_FEEDBACK_VERDICTS], asked)
         self.assertEqual(
             review_thread_classifications[0]["decision"]["discussion_action"], "author"
         )
@@ -1045,7 +1048,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [record["discussion_id"] for record in top_level_classifications],
             ["top-level"],
         )
-
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
     @patch("classification.run_llm_for_top_level_reviewer_feedback_batch", return_value=[])
@@ -1247,7 +1249,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
+    @patch("classification.run_llm_for_verdict_batch")
     def test_later_run_classifies_only_failed_top_level_item(
         self,
         run_batch,
@@ -1257,15 +1259,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         valid = top_level_item("valid")
         missing = top_level_item("missing")
         run_batch.return_value = [
-            classification("valid"),
+            verdict_record("valid"),
             {
                 "discussion_id": "missing",
                 "discussion_kind": "top-level-feedback",
                 "failed": True,
-                "decision": {
-                    "discussion_action": "unclear",
-                    "reason": "Missing result",
-                },
+                "decision": {"verdict": "author_action", "reason": "Missing result"},
             },
         ]
 
@@ -1275,7 +1274,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(len(cached), 1)
         load_cache.return_value = cached
         run_batch.reset_mock()
-        run_batch.return_value = [classification("missing")]
+        run_batch.return_value = [verdict_record("missing")]
 
         classify_feedback_domains(123, [], [valid, missing], "model")
 
@@ -1286,16 +1285,15 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
+    @patch("classification.run_llm_for_verdict_batch")
     def test_top_level_cache_ignores_mutable_facts_but_includes_body(
         self,
         run_batch,
         load_cache,
         save_cache,
     ) -> None:
-        run_batch.side_effect = lambda discussions, _model: [
-            classification(discussion["discussion_id"])
-            for discussion in discussions
+        run_batch.side_effect = lambda items, _m, _p, _v: [
+            verdict_record(item["discussion_id"]) for item in items
         ]
         discussion = top_level_item("top-level")
         discussion["comments"] = [{"body": "Could you clarify this?"}]
@@ -1319,24 +1317,15 @@ class TopLevelActionLedgerTest(unittest.TestCase):
     @patch("classification.TOP_LEVEL_CLASSIFICATION_BATCH_SIZE", 10)
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
-    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
+    @patch("classification.run_llm_for_verdict_batch")
     def test_uncached_top_level_classification_is_batched_and_bounded(
         self,
         run_batch,
         _load_cache,
         save_cache,
     ) -> None:
-        run_batch.side_effect = lambda discussions, _model: [
-            {
-                "discussion_id": discussion["discussion_id"],
-                "discussion_kind": discussion["discussion_kind"],
-                "failed": False,
-                "decision": {
-                    "discussion_action": "none",
-                    "reason": "No action",
-                },
-            }
-            for discussion in discussions
+        run_batch.side_effect = lambda items, _m, _p, _v: [
+            verdict_record(item["discussion_id"], "no_author_action") for item in items
         ]
         discussions = [top_level_item(f"item-{index}") for index in range(23)]
 
@@ -1349,7 +1338,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(len(classifications), 23)
         self.assertEqual(
             [record["decision"]["discussion_action"] for record in classifications],
-            ["none"] * 20 + ["unclear"] * 3,
+            ["none"] * 20 + ["author"] * 3,
         )
         self.assertEqual(
             [bool(record.get("failed")) for record in classifications],
@@ -1395,7 +1384,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(
             classifications[0]["decision"],
             {
-                "discussion_action": "unclear",
+                "discussion_action": "author",
                 "reason": "Exceeded per-PR classification limit",
             },
         )
