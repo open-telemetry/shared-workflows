@@ -12,6 +12,7 @@ from dashboard import (
     advance_top_level_actions,
     build_dashboard_update_for_pr,
     build_review_thread_pending_actions,
+    reviewers_with_open_threads,
     derive_top_level_author_comment_items,
     derive_top_level_items,
     normalize_events,
@@ -20,9 +21,11 @@ from dashboard import (
     top_level_author_comment_source_state,
 )
 from classification import (
+    PRAISE_VERDICTS,
     classify_discussion_domains,
-    discussion_prompt,
+    classify_review_threads,
     parse_discussion_decision,
+    run_llm_for_verdict_batch,
     run_llm_for_top_level_author_comment_batch,
     run_llm_for_top_level_reviewer_feedback_batch,
     top_level_reviewer_feedback_batch_prompt,
@@ -179,6 +182,249 @@ def classify_feedback_domains(
     return review_classifications, top_level_classifications
 
 
+class VerdictBatchErrorTest(unittest.TestCase):
+    def run_batch(self, returncode: int, stdout: str) -> dict:
+        proc = CompletedProcess(["copilot"], returncode, stdout, "")
+        with patch("classification.run_copilot", return_value=proc):
+            return run_llm_for_verdict_batch(
+                [{"discussion_id": "d", "discussion_kind": "review-comment-thread"}],
+                "model",
+                "prompt",
+                ("deferral", "complete"),
+            )[0]
+
+    def test_a_nonzero_exit_with_a_usable_verdict_is_not_called_unreadable(self) -> None:
+        record = self.run_batch(1, '{"items": [{"discussion_id": "d", "verdict": "complete"}]}')
+
+        self.assertTrue(record["failed"])
+        self.assertIn("exited with status 1", record["error"])
+        self.assertNotIn("did not return a valid verdict", record["error"])
+
+    def test_an_unreadable_answer_still_says_so(self) -> None:
+        record = self.run_batch(0, "not json")
+
+        self.assertTrue(record["failed"])
+        self.assertIn("did not return a valid verdict", record["error"])
+
+
+class IgnoredPraiseWaitAgeTest(unittest.TestCase):
+    """Praise must not reset the age of the request it was posted after."""
+
+    def thread(self, *comments: tuple[str, str, str]) -> dict:
+        return {
+            "discussion_id": "t",
+            "discussion_kind": "review-comment-thread",
+            "discussion_facts": {"latest_comment_role": comments[-1][0]},
+            "comments": [
+                {"actor_role": role, "body": body, "timestamp": stamp}
+                for role, body, stamp in comments
+            ],
+        }
+
+    def waiting_since(self, thread: dict, reply: str) -> str:
+        def batch(items, _model, _prompt, verdicts):
+            answer = "praise" if verdicts == PRAISE_VERDICTS else reply
+            return [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "discussion_kind": "review-comment-thread",
+                    "failed": False,
+                    "decision": {"verdict": answer, "reason": "because"},
+                }
+                for item in items
+            ]
+
+        with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
+            records = classify_review_threads(1, [thread], "model", {}, {})
+        pending = build_review_thread_pending_actions([thread], list(records.values()))
+        return pending["t"]["since"]
+
+    def test_praise_does_not_make_its_author_a_waiting_reviewer(self) -> None:
+        thread = self.thread(
+            ("approver", "please fix", "2026-03-12T00:00:00Z"),
+            ("author", "fixed it", "2026-04-01T00:00:00Z"),
+            ("approver", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][0]["actor"] = "alice"
+        thread["comments"][2]["actor"] = "bob"
+
+        def batch(items, _model, _prompt, verdicts):
+            answer = "praise" if verdicts == PRAISE_VERDICTS else "complete"
+            return [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "discussion_kind": "review-comment-thread",
+                    "failed": False,
+                    "decision": {"verdict": answer, "reason": "because"},
+                }
+                for item in items
+            ]
+
+        with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
+            records = classify_review_threads(1, [thread], "model", {}, {})
+        pending = build_review_thread_pending_actions([thread], list(records.values()))
+
+        self.assertEqual({"alice"}, reviewers_with_open_threads([thread], pending))
+
+    def test_an_edited_request_still_counts_its_reviewer(self) -> None:
+        thread = self.thread(
+            ("approver", "please fix", "2026-06-01T00:00:00Z"),
+            ("author", "fixed it", "2026-04-01T00:00:00Z"),
+            ("approver", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][0]["actor"] = "alice"
+        thread["comments"][2]["actor"] = "bob"
+
+        def batch(items, _model, _prompt, verdicts):
+            answer = "praise" if verdicts == PRAISE_VERDICTS else "complete"
+            return [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "discussion_kind": "review-comment-thread",
+                    "failed": False,
+                    "decision": {"verdict": answer, "reason": "because"},
+                }
+                for item in items
+            ]
+
+        with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
+            records = classify_review_threads(1, [thread], "model", {}, {})
+        pending = build_review_thread_pending_actions([thread], list(records.values()))
+
+        self.assertEqual({"alice"}, reviewers_with_open_threads([thread], pending))
+
+    def test_praise_after_a_reviewer_request_keeps_the_request_date(self) -> None:
+        thread = self.thread(
+            ("reviewer", "please fix", "2026-03-12T00:00:00Z"),
+            ("reviewer", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+
+        self.assertEqual("2026-03-12T00:00:00Z", self.waiting_since(thread, "complete"))
+
+    def test_praise_after_an_author_reply_keeps_the_reply_date(self) -> None:
+        thread = self.thread(
+            ("author", "fixed it", "2026-03-12T00:00:00Z"),
+            ("reviewer", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+
+        self.assertEqual("2026-03-12T00:00:00Z", self.waiting_since(thread, "complete"))
+
+
+class ReviewThreadPraiseTest(unittest.TestCase):
+    def thread(self, *comments: tuple[str, str]) -> dict:
+        return {
+            "discussion_id": "t",
+            "discussion_kind": "review-comment-thread",
+            "discussion_facts": {"latest_comment_role": comments[-1][0]},
+            "comments": [{"actor_role": role, "body": body} for role, body in comments],
+        }
+
+    def answering(self, praise: str, reply: str = "complete"):
+        def batch(items, _model, _prompt, verdicts):
+            answer = praise if verdicts == PRAISE_VERDICTS else reply
+            return [
+                {
+                    "discussion_id": item["discussion_id"],
+                    "discussion_kind": "review-comment-thread",
+                    "failed": False,
+                    "decision": {"verdict": answer, "reason": "because"},
+                }
+                for item in items
+            ]
+
+        return batch
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_thread_of_nothing_but_praise_needs_nobody(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("praise")
+
+        records = classify_review_threads(1, [self.thread(("reviewer", "LGTM"))], "model", {}, {})
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "none")
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_praise_falls_back_to_the_comment_before_it(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("praise")
+
+        records = classify_review_threads(
+            1, [self.thread(("reviewer", "please fix"), ("reviewer", "LGTM"))], "model", {}, {}
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_praise_after_an_author_reply_hands_the_thread_back(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("praise", reply="complete")
+
+        records = classify_review_threads(
+            1, [self.thread(("author", "fixed it"), ("reviewer", "LGTM"))], "model", {}, {}
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "reviewer")
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_failed_praise_call_keeps_the_thread_with_the_author(self, run_verdict) -> None:
+        run_verdict.side_effect = lambda items, _m, _p, _v: [
+            {
+                "discussion_id": item["discussion_id"],
+                "discussion_kind": "review-comment-thread",
+                "failed": True,
+                "error": "Copilot CLI exited with status 1",
+                "decision": {"verdict": "praise", "reason": "because"},
+            }
+            for item in items
+        ]
+
+        records = classify_review_threads(1, [self.thread(("reviewer", "LGTM"))], "model", {}, {})
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+        self.assertTrue(records["t"]["failed"])
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_failed_deferral_call_keeps_the_thread_with_the_author(self, run_verdict) -> None:
+        run_verdict.side_effect = lambda items, _m, _p, _v: [
+            {
+                "discussion_id": item["discussion_id"],
+                "discussion_kind": "review-comment-thread",
+                "failed": True,
+                "error": "Copilot CLI exited with status 1",
+                "decision": {"verdict": "complete", "reason": "because"},
+            }
+            for item in items
+        ]
+
+        records = classify_review_threads(
+            1,
+            [self.thread(("reviewer", "please fix"), ("author", "a much longer reply than the gate"))],
+            "model",
+            {},
+            {},
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+        self.assertTrue(records["t"]["failed"])
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_only_the_last_comment_is_checked_for_praise(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("praise")
+
+        records = classify_review_threads(
+            1, [self.thread(("reviewer", "Nice"), ("reviewer", "LGTM"))], "model", {}, {}
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_comment_that_is_not_praise_stays_the_authors(self, run_verdict) -> None:
+        run_verdict.side_effect = self.answering("not_praise")
+
+        records = classify_review_threads(
+            1, [self.thread(("author", "fixed it"), ("reviewer", "one more thing"))], "model", {}, {}
+        )
+
+        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+
+
 class NormalizeEventsCommandTest(unittest.TestCase):
     def _issue_comment_events(self, body: str) -> list[dict]:
         events = normalize_events(
@@ -256,28 +502,6 @@ class NormalizeEventsCommandTest(unittest.TestCase):
 
 
 class TopLevelActionLedgerTest(unittest.TestCase):
-    def test_inline_prompt_treats_author_inability_as_completed_reply(self) -> None:
-        discussion = review_thread_discussion("inline")
-        discussion["comments"] = [
-            {
-                "timestamp": "2026-07-17T18:57:50Z",
-                "actor": "reviewer",
-                "actor_role": "approver",
-                "body": "any chance to make it deterministic without relying on sleep?",
-            },
-            {
-                "timestamp": "2026-07-17T20:56:50Z",
-                "actor": "author",
-                "actor_role": "author",
-                "body": "I couldn't find a good way",
-            },
-        ]
-
-        prompt = discussion_prompt(discussion)
-
-        self.assertIn("Require an explicit statement", prompt)
-        self.assertIn("I couldn't find a good way", prompt)
-        self.assertIn("is a completed reply and maps to reviewer", prompt)
 
     def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
         review_threads = [
@@ -776,20 +1000,14 @@ class TopLevelActionLedgerTest(unittest.TestCase):
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
     @patch("classification.run_llm_for_top_level_reviewer_feedback_batch")
-    @patch("classification.run_llm_for_discussion")
-    def test_discussion_domains_use_separate_classification_pipelines(
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_thread_the_author_has_not_answered_needs_no_model(
         self,
         run_inline,
         run_batch,
         _load_cache,
         save_cache,
     ) -> None:
-        run_inline.side_effect = lambda discussion, _model: {
-            "discussion_id": discussion["discussion_id"],
-            "discussion_kind": discussion["discussion_kind"],
-            "failed": False,
-            "decision": {"discussion_action": "reviewer", "reason": "Author replied"},
-        }
         run_batch.side_effect = lambda discussions, _model: [
             {
                 "discussion_id": discussion["discussion_id"],
@@ -802,27 +1020,66 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             }
             for discussion in discussions
         ]
-        review_threads = [review_thread_discussion("inline")]
-        top_level_items = [top_level_item("top-level")]
+        thread = review_thread_discussion("inline")
+        thread["discussion_facts"] = {"latest_comment_role": "reviewer"}
+        # a real reviewer comment, too long to be a praise candidate, so no binary runs
+        thread["comments"] = [
+            {
+                "timestamp": "2026-07-17T18:57:50Z",
+                "actor": "reviewer",
+                "actor_role": "approver",
+                "body": "any chance to make it deterministic without relying on sleep? "
+                        "the current approach is flaky on slower machines",
+            },
+        ]
 
         review_thread_classifications, top_level_classifications = (
-            classify_feedback_domains(123, review_threads, top_level_items, "model")
+            classify_feedback_domains(123, [thread], [top_level_item("top-level")], "model")
         )
 
-        self.assertEqual(run_inline.call_args.args[0]["discussion_id"], "inline")
+        run_inline.assert_not_called()
         self.assertEqual(
-            [discussion["discussion_id"] for discussion in run_batch.call_args.args[0]],
-            ["top-level"],
-        )
-        self.assertEqual(
-            [record["discussion_id"] for record in review_thread_classifications],
-            ["inline"],
+            review_thread_classifications[0]["decision"]["discussion_action"], "author"
         )
         self.assertEqual(
             [record["discussion_id"] for record in top_level_classifications],
             ["top-level"],
         )
-        self.assertEqual(len(save_cache.call_args.args[1]), 2)
+
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_top_level_reviewer_feedback_batch", return_value=[])
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_a_thread_the_author_answered_is_routed_by_the_deferral_binary(
+        self,
+        run_verdict,
+        _run_batch,
+        _load_cache,
+        _save_cache,
+    ) -> None:
+        for verdict, expected in (("deferral", "author"), ("complete", "reviewer")):
+            with self.subTest(verdict=verdict):
+                run_verdict.side_effect = lambda items, _m, _p, _v, answer=verdict: [
+                    {
+                        "discussion_id": item["discussion_id"],
+                        "discussion_kind": "review-comment-thread",
+                        "failed": False,
+                        "decision": {"verdict": answer, "reason": "because"},
+                    }
+                    for item in items
+                ]
+                thread = review_thread_discussion("inline")
+                thread["discussion_facts"] = {"latest_comment_role": "author"}
+                thread["comments"] = [{"actor_role": "author", "body": "I'll fix this"}]
+
+                review_thread_classifications, _ = classify_feedback_domains(
+                    123, [thread], [], "model"
+                )
+
+                self.assertEqual(
+                    review_thread_classifications[0]["decision"]["discussion_action"],
+                    expected,
+                )
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})

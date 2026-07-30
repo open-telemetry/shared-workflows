@@ -182,7 +182,6 @@ from github_cli import (
     repo_state_key,
 )
 from classification import (
-    DISCUSSION_RECENT_COMMENTS_LIMIT,
     classify_discussion_domains,
     is_automation_command_comment,
     is_conflict_resolution_comment,
@@ -640,8 +639,14 @@ def group_review_threads(
         if discussion.get("isResolved") or discussion.get("isOutdated"):
             continue
         raw_comments = (discussion.get("comments") or {}).get("nodes") or []
+        thread_url = raw_comments[0].get("url") if raw_comments else ""
+        # a thread reads in creation order; sorting on updatedAt would move an
+        # edited old comment to the end and change who last spoke
+        ordered = sorted(
+            raw_comments, key=lambda c: c.get("createdAt") or c.get("updatedAt") or ""
+        )
         comments = []
-        for c in raw_comments:
+        for c in ordered:
             actor = reviewer_actor_login(c.get("author") or {})
             comments.append(discussion_comment(
                 c.get("updatedAt") or c.get("createdAt") or "",
@@ -652,7 +657,6 @@ def group_review_threads(
                 positive_reaction_logins(c),
             ))
         comments = [c for c in comments if c["timestamp"]]
-        comments.sort(key=lambda c: c["timestamp"])
         if not comments or all(c["actor_role"] == "author" for c in comments):
             continue
         discussions.append(add_discussion_facts({
@@ -661,7 +665,7 @@ def group_review_threads(
             "path": discussion.get("path"),
             "line": discussion.get("line"),
             "resolved": False,
-            "discussion_url": raw_comments[0].get("url") if raw_comments else "",
+            "discussion_url": thread_url,
             "comments": comments,
         }, comments, facts))
     discussions.sort(key=lambda t: t["comments"][-1]["timestamp"])
@@ -1017,10 +1021,13 @@ def build_review_thread_pending_actions(
         discussion = by_id.get(classification.get("discussion_id") or "")
         comments = (discussion or {}).get("comments") or []
         if action != "none" and comments:
-            pending_actions[classification["discussion_id"]] = {
+            entry = {
                 "action": pending_action_for(action),
-                "since": comments[-1].get("timestamp") or "",
+                "since": classification.get("since") or comments[-1].get("timestamp") or "",
             }
+            if classification.get("ignored_last_comment"):
+                entry["ignored_last_comment"] = True
+            pending_actions[classification["discussion_id"]] = entry
     return pending_actions
 
 
@@ -1202,10 +1209,15 @@ def reviewers_with_open_threads(
 ) -> set[str]:
     logins: set[str] = set()
     for discussion in review_threads:
-        action = (pending_actions.get(discussion["discussion_id"]) or {}).get("action")
+        entry = pending_actions.get(discussion["discussion_id"]) or {}
+        action = entry.get("action")
         if action not in OPEN_DISCUSSION_ACTIONS:
             continue
-        for comment in discussion.get("comments") or []:
+        # praise was dropped for routing, so it does not make its writer a reviewer here
+        comments = discussion.get("comments") or []
+        if entry.get("ignored_last_comment"):
+            comments = comments[:-1]
+        for comment in comments:
             if comment.get("actor_role") in ("approver", "outsider") and comment.get("actor"):
                 logins.add(comment["actor"])
     return logins
