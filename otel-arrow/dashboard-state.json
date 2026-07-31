@@ -2063,6 +2063,7 @@
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
+        "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
         "created_at": "2026-07-31T16:29:53+00:00",
@@ -2075,15 +2076,24 @@
         "head_sha": "69b36f49400f03682a6775e89aba77341dd5f4d9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-31T18:09:51+00:00",
+        "last_activity_at": "2026-07-31T18:47:29+00:00",
         "last_approver_activity_at": "2026-07-31T18:00:14+00:00",
         "last_author_activity_at": "2026-07-31T18:09:51+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": true,
             "changes_requested": false,
             "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "gouslu",
             "open_thread": false,
             "top_level_feedback": false
           },
@@ -2096,7 +2106,8 @@
             "top_level_feedback": true
           }
         ],
-        "routing_input_fingerprint": "3af58e5401599a3dff20b736bc93b50febdd7dd641bc8b0d6ba6709b8e92bb0a",
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "55fd4c8e78fec40d601c5ca3e5a275827380280e2f5aac98078dd27fa47882d2",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-07-31T18:00:14+00:00"
       },
