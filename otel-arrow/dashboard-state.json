@@ -1650,13 +1650,17 @@
     },
     "3600": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "lalitb"
         ],
         "author": "ragumarimuthu-git",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3600#discussion_r3692216427",
+          "https://github.com/open-telemetry/otel-arrow/pull/3600#discussion_r3692232664"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "6d5837c195604e9c83b28dee14f410b3",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1675,12 +1679,12 @@
         "head_sha": "84eb9e2192fa4d7dbc43798b745ec0529d75c9e4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-30T19:00:22+00:00",
-        "last_approver_activity_at": "2026-07-30T01:36:17+00:00",
+        "last_activity_at": "2026-07-31T17:31:51+00:00",
+        "last_approver_activity_at": "2026-07-31T17:31:51+00:00",
         "last_author_activity_at": "2026-07-30T19:00:22+00:00",
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "lalitb",
@@ -1688,15 +1692,22 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "672b5a955ce2db3c0ebb70509127a67bb90c162ef9cdfdd192258aa0eccc0374",
+        "routing_input_fingerprint": "59c6ebe4f6b3e06367b3dba077a8483eb61f1d428c16bb93fa0feddd78ab3f98",
         "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-30T17:49:31+00:00"
+        "waiting_since": "2026-07-31T17:27:23+00:00"
       },
       "failed": false,
       "pr_number": 3600,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3600",
-      "route": "approver",
-      "top_level_history": {}
+      "route": "author",
+      "top_level_history": {
+        "pr-issue-comment-5125324432": {
+          "evidence": {
+            "reply": "2026-07-30T18:18:50Z"
+          },
+          "reply_source_id": 5134653108
+        }
+      }
     },
     "3601": {
       "facts": {
