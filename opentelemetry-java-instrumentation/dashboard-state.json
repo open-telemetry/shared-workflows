@@ -1411,13 +1411,15 @@
         "author": "YaoYingLong",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "be889b58d60a47c89ccf332bb9c39a0e",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-31T05:55:53+00:00",
         "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_review_exists": true,
-        "copilot_review_needed": true,
+        "copilot_review_needed": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "created_at": "2026-07-09T12:16:20+00:00",
         "dashboard_command_replies": [],
         "dashboard_override": false,
@@ -1451,14 +1453,14 @@
             "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "968d8e34d64b6a39e13feb86d3d2fef3f5f367954d64d704ca0082ef72c94ec9",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-31T05:53:32+00:00"
+        "routing_input_fingerprint": "d9ad76d278d70ed5633f72d434af424b8d96e10dd24cbf6614aaf065b15c7010",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-31T05:55:53+00:00"
       },
       "failed": false,
       "pr_number": 19160,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19160",
-      "route": "copilot",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4938178545": {
           "evidence": {
