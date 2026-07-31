@@ -655,7 +655,7 @@ def run_llm_for_author_comment_prompt(
         item = response_by_id.get(discussion_id)
         decision, validation_errors = parse_author_comment_decision(
             json.dumps(item) if item is not None else "",
-            feedback_ids_by_discussion_id.get(discussion_id, {}),
+            feedback_ids_by_discussion_id[discussion_id],
         )
         failed = (
             proc.returncode != 0
