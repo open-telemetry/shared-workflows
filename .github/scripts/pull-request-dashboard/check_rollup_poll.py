@@ -80,14 +80,10 @@ def fetch_repository_signatures(owner: str, name: str) -> dict[int, str]:
 
 
 def changed_pull_requests(
-    previous: dict[int, str] | None,
+    previous: dict[int, str],
     current: dict[int, str],
     limit: int,
 ) -> list[int]:
-    # Without a baseline every open pull request looks changed, which on a first
-    # poll would dispatch a refresh for the whole repository.
-    if previous is None:
-        return []
     changed = sorted(
         (number for number, signature in current.items() if previous.get(number) != signature),
         reverse=True,
@@ -140,13 +136,26 @@ def poll_repositories(
     owner: str,
     state: dict[str, dict[int, str]],
     limit: int,
-) -> list[tuple[str, int]]:
-    changed: list[tuple[str, int]] = []
+) -> list[tuple[str, int, str]]:
+    changed: list[tuple[str, int, str]] = []
     for repository in repositories:
         current = fetch_repository_signatures(owner, repository)
-        for pr_number in changed_pull_requests(state.get(repository), current, limit):
-            changed.append((repository, pr_number))
-        state[repository] = current
+        previous = state.get(repository)
+        if previous is None:
+            # Without a baseline every open pull request looks changed, which on
+            # a first poll would refresh the whole repository.
+            state[repository] = current
+            continue
+        # Only closed pull requests are retired here. A changed signature is
+        # recorded once its refresh is dispatched, so one that was capped or
+        # failed to dispatch still looks changed on the next poll.
+        state[repository] = {
+            number: signature for number, signature in previous.items() if number in current
+        }
+        changed.extend(
+            (repository, number, current[number])
+            for number in changed_pull_requests(previous, current, limit)
+        )
     return changed
 
 
@@ -174,20 +183,37 @@ def main() -> int:
     # installed on this repository, and a GITHUB_TOKEN dispatch would not start
     # a workflow run at all.
     dispatch_token = os.environ.get("DISPATCH_TOKEN") or None
-    changed: list[tuple[str, int]] = []
+
+    if args.dry_run:
+        return report_changes(repositories, args)
+
+    dispatched = 0
 
     def update_state(state_dir: Path) -> int:
-        nonlocal changed
+        nonlocal dispatched
         state_path = state_dir / STATE_FILENAME
         state = load_poll_state(state_path)
-        # A push conflict replays this, so the list is rebuilt rather than
-        # appended to.
         changed = poll_repositories(
             repositories,
             args.owner,
             state,
             args.max_dispatches_per_repository,
         )
+        # Dispatching before the push means a rejected push replays these
+        # refreshes. The workflow's concurrency group runs one poll at a time
+        # and nothing else writes this branch, so a conflict is not expected,
+        # and a repeated refresh is harmless where a dropped one is not.
+        dispatched = 0
+        for repository, pr_number, signature in changed:
+            print(f"{repository}#{pr_number} checks changed", file=sys.stderr)
+            try:
+                dispatch_refresh(repository, pr_number, dispatch_token)
+            except RuntimeError as e:
+                # Leaving the old signature in place retries this refresh.
+                print(f"{repository}#{pr_number} dispatch failed: {e}", file=sys.stderr)
+                continue
+            state.setdefault(repository, {})[pr_number] = signature
+            dispatched += 1
         save_poll_state(state_path, state)
         return 0
 
@@ -200,15 +226,17 @@ def main() -> int:
             add_paths=[STATE_FILENAME],
         )
 
-    # Dispatching only after the new signatures are stored keeps a failed push
-    # from replaying the same refreshes on the next poll.
-    if status != 0:
-        return status
-    for repository, pr_number in changed:
+    print(f"dispatched {dispatched} refresh(es)", file=sys.stderr)
+    return status
+
+
+def report_changes(repositories: list[str], args: argparse.Namespace) -> int:
+    with state_branch.accepted_state_dir(args.state_branch, required=False) as state_dir:
+        state = load_poll_state(state_dir / STATE_FILENAME) if state_dir else {}
+    changed = poll_repositories(repositories, args.owner, state, args.max_dispatches_per_repository)
+    for repository, pr_number, _ in changed:
         print(f"{repository}#{pr_number} checks changed", file=sys.stderr)
-        if not args.dry_run:
-            dispatch_refresh(repository, pr_number, dispatch_token)
-    print(f"dispatched {len(changed)} refresh(es)", file=sys.stderr)
+    print(f"would dispatch {len(changed)} refresh(es)", file=sys.stderr)
     return 0
 
 

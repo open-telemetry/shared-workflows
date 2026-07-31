@@ -38,12 +38,6 @@ class RollupSignatureTest(unittest.TestCase):
 
 
 class ChangedPullRequestsTest(unittest.TestCase):
-    def test_reports_nothing_without_a_baseline(self) -> None:
-        self.assertEqual(
-            [],
-            check_rollup_poll.changed_pull_requests(None, {1: "abc:PENDING", 2: "def:SUCCESS"}, 25),
-        )
-
     def test_reports_a_new_pull_request(self) -> None:
         self.assertEqual(
             [2],
@@ -131,7 +125,30 @@ class PollRepositoriesTest(unittest.TestCase):
             return_value={1: "abc:SUCCESS"},
         ):
             changed = check_rollup_poll.poll_repositories(["repo-a"], "open-telemetry", state, 25)
-        self.assertEqual([("repo-a", 1)], changed)
+        self.assertEqual([("repo-a", 1, "abc:SUCCESS")], changed)
+        # The caller records the new signature once the refresh is dispatched.
+        self.assertEqual({"repo-a": {1: "abc:PENDING"}}, state)
+
+    def test_keeps_a_capped_pull_request_changed(self) -> None:
+        state = {"repo-a": {1: "abc:PENDING", 2: "def:PENDING"}}
+        with patch.object(
+            check_rollup_poll,
+            "fetch_repository_signatures",
+            return_value={1: "abc:SUCCESS", 2: "def:SUCCESS"},
+        ):
+            changed = check_rollup_poll.poll_repositories(["repo-a"], "open-telemetry", state, 1)
+        self.assertEqual([("repo-a", 2, "def:SUCCESS")], changed)
+        self.assertEqual({"repo-a": {1: "abc:PENDING", 2: "def:PENDING"}}, state)
+
+    def test_retires_a_closed_pull_request(self) -> None:
+        state = {"repo-a": {1: "abc:SUCCESS", 2: "def:SUCCESS"}}
+        with patch.object(
+            check_rollup_poll,
+            "fetch_repository_signatures",
+            return_value={1: "abc:SUCCESS"},
+        ):
+            changed = check_rollup_poll.poll_repositories(["repo-a"], "open-telemetry", state, 25)
+        self.assertEqual([], changed)
         self.assertEqual({"repo-a": {1: "abc:SUCCESS"}}, state)
 
 
