@@ -92,6 +92,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
     @patch(
         "github_cli.gh_pr_check_rollup",
         return_value={
+            "head_oid": "current-head",
             "required": [{"name": "build", "bucket": "fail"}],
             "non_blocking_failures": [],
             "code_scanning": [],
@@ -195,6 +196,19 @@ class AuthorNudgePolicyTest(unittest.TestCase):
     def test_leaving_author_route_resets_unnudged_clock(self) -> None:
         due, entry = author_nudge.plan_nudge(
             author_result("approver"),
+            {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""},
+            NOW,
+        )
+
+        self.assertFalse(due)
+        self.assertIsNone(entry)
+
+    def test_gate_held_route_resets_clock_and_does_not_nudge(self) -> None:
+        held = author_result()
+        held["facts"]["route_held_for_gates"] = True
+
+        due, entry = author_nudge.plan_nudge(
+            held,
             {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""},
             NOW,
         )

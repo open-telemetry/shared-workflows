@@ -24,7 +24,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         record_copilot_review_observation(
             7,
             {
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
@@ -52,7 +52,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         record_copilot_review_observation(
             7,
             {
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
@@ -89,7 +89,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         record_copilot_review_observation(
             7,
             {
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
@@ -138,7 +138,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         record_copilot_review_observation(
             7,
             {
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_exists": False,
@@ -184,7 +184,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "headRefOid": "current-head",
             "id": "PR_node_id",
         }
-        fetch_current_state.return_value = (pr, {})
+        fetch_current_state.return_value = (pr, {"checks": []})
         fetch_reviews.return_value = [{
             "id": 20,
             "commit_id": "reviewed-head",
@@ -247,6 +247,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         fetch_current_state.return_value = (
             pr,
             {
+                "checks": [],
                 "review_requests": [
                     {
                         "__typename": "Bot",
@@ -288,7 +289,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "isDraft": False,
                 "headRefOid": "current-head",
             },
-            {},
+            {"checks": []},
         ),
     )
     @patch("copilot_review.save_copilot_review_requests")
@@ -355,7 +356,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "isDraft": False,
                 "headRefOid": "current-head",
             },
-            {},
+            {"checks": []},
         ),
     )
     @patch("copilot_review.save_copilot_review_requests")
@@ -410,13 +411,14 @@ class StaleRequestReasonTest(unittest.TestCase):
         pr: dict | None = None,
         current_head: str = "current-head",
         current_routing_fingerprint: str = "accepted-fingerprint",
+        raw: dict | None = None,
     ) -> str:
         return stale_request_reason(
             self.ENTRY if entry is None else entry,
             self.OPEN_PR if pr is None else pr,
             current_head,
             current_routing_fingerprint,
-            {},
+            {"checks": []} if raw is None else raw,
         )
 
     def test_current_request_is_not_stale(self) -> None:
@@ -444,6 +446,51 @@ class StaleRequestReasonTest(unittest.TestCase):
         self.assertEqual(
             "no routing fingerprint was observed",
             self.reason(entry={"head_sha": "current-head"}),
+        )
+
+    def test_reports_unavailable_check_results(self) -> None:
+        self.assertEqual(
+            "required check results are unavailable",
+            self.reason(raw={}),
+        )
+
+    def test_reports_failing_required_checks(self) -> None:
+        self.assertEqual(
+            "required checks are failing: build",
+            self.reason(
+                raw={
+                    "checks": [
+                        {"name": "build", "bucket": "fail"},
+                        {"name": "lint", "bucket": "pass"},
+                    ],
+                },
+            ),
+        )
+
+    def test_reports_pending_required_checks(self) -> None:
+        self.assertEqual(
+            "required checks have not completed: build",
+            self.reason(
+                raw={
+                    "checks": [
+                        {"name": "build", "bucket": "pending"},
+                        {"name": "lint", "bucket": "pass"},
+                    ],
+                },
+            ),
+        )
+
+    def test_summarizes_long_lists_of_unsettled_checks(self) -> None:
+        self.assertEqual(
+            "required checks have not completed: a, b, c and 2 more",
+            self.reason(
+                raw={
+                    "checks": [
+                        {"name": name, "bucket": "pending"}
+                        for name in ("e", "d", "c", "b", "a")
+                    ],
+                },
+            ),
         )
 
     def test_fingerprint_mismatch_reports_component_digests(self) -> None:

@@ -150,10 +150,10 @@ class DashboardOverrideTest(unittest.TestCase):
         routed = dashboard_override.render_command_reply(
             {"comment_id": 4, "kind": "routed", "user": "author"}
         )
-        copilot_gated = dashboard_override.render_command_reply({
+        gate_held = dashboard_override.render_command_reply({
             "comment_id": 5,
             "kind": "routed",
-            "route": "copilot",
+            "held_gates": "the required status checks",
             "user": "author",
         })
         maintainer = dashboard_override.render_command_reply({
@@ -177,11 +177,11 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertIn(dashboard_override.command_reply_marker(4), routed)
         self.assertIn(dashboard_override.override_ack_marker(4), routed)
         self.assertIn("@author routed this pull request to reviewers.", routed)
-        self.assertIn(dashboard_override.command_reply_marker(5), copilot_gated)
+        self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
             "@author accepted the reviewer-routing override; the reviewer "
-            "handoff is waiting on Copilot.",
-            copilot_gated,
+            "handoff is waiting on the required status checks.",
+            gate_held,
         )
         self.assertIn(dashboard_override.command_reply_marker(6), maintainer)
         self.assertIn(
@@ -194,7 +194,6 @@ class DashboardOverrideTest(unittest.TestCase):
         cases = {
             "approver": "already waiting on reviewers",
             "maintainer": "already past review and waiting on maintainers",
-            "copilot": "waiting on an automated Copilot review",
         }
         for route, phrase in cases.items():
             with self.subTest(route=route):
@@ -229,7 +228,13 @@ class DashboardOverrideTest(unittest.TestCase):
         dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
 
         self.assertEqual(
-            [{"comment_id": 12, "kind": "already_routed", "user": "author", "route": "approver"}],
+            [{
+                "comment_id": 12,
+                "kind": "already_routed",
+                "user": "author",
+                "route": "approver",
+                "held_gates": "",
+            }],
             facts["dashboard_command_replies"],
         )
 
@@ -243,7 +248,13 @@ class DashboardOverrideTest(unittest.TestCase):
         dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
 
         self.assertEqual(
-            [{"comment_id": 12, "kind": "routed", "user": "author", "route": "approver"}],
+            [{
+                "comment_id": 12,
+                "kind": "routed",
+                "user": "author",
+                "route": "approver",
+                "held_gates": "",
+            }],
             facts["dashboard_command_replies"],
         )
 
@@ -289,7 +300,13 @@ class DashboardOverrideTest(unittest.TestCase):
         dashboard_override.append_command_ack_reply(raw, facts, "approver")
 
         self.assertEqual(
-            [{"comment_id": 12, "kind": "already_routed", "user": "author", "route": "approver"}],
+            [{
+                "comment_id": 12,
+                "kind": "already_routed",
+                "user": "author",
+                "route": "approver",
+                "held_gates": "",
+            }],
             facts["dashboard_command_replies"],
         )
 
@@ -415,7 +432,13 @@ class DashboardOverrideTest(unittest.TestCase):
             dashboard_override.append_command_ack_reply(raw, facts, "approver")
 
             self.assertEqual(
-                [{"comment_id": 5, "kind": "already_routed", "user": "author", "route": "approver"}],
+                [{
+                    "comment_id": 5,
+                    "kind": "already_routed",
+                    "user": "author",
+                    "route": "approver",
+                    "held_gates": "",
+                }],
                 facts["dashboard_command_replies"],
             )
 
@@ -590,7 +613,13 @@ class DashboardOverrideTest(unittest.TestCase):
         dashboard_override.append_command_ack_reply(raw, facts, "author")
 
         self.assertEqual(
-            [{"comment_id": 5, "kind": "already_routed", "user": "author", "route": "author"}],
+            [{
+                "comment_id": 5,
+                "kind": "already_routed",
+                "user": "author",
+                "route": "author",
+                "held_gates": "",
+            }],
             facts["dashboard_command_replies"],
         )
 
@@ -607,7 +636,8 @@ class DashboardOverrideTest(unittest.TestCase):
                             {
                                 "comment_id": 3,
                                 "kind": "routed",
-                                "route": "copilot",
+                                "route": "author",
+                                "held_gates": "the Copilot review",
                                 "user": "author",
                             },
                         ]
@@ -627,7 +657,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 call([
                     "gh", "api", "--method", "POST",
                     "repos/open-telemetry/example/issues/7/comments",
-                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author accepted the reviewer-routing override; the reviewer handoff is waiting on Copilot.\n",
+                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author accepted the reviewer-routing override; the reviewer handoff is waiting on the Copilot review.\n",
                 ]),
             ],
             run_gh.call_args_list,

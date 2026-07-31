@@ -226,6 +226,38 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertNotIn("### Review feedback", body)
         self.assertNotIn(pr_status_comment.RESPONSE_EXAMPLES, body)
 
+    def test_held_pr_names_only_the_outstanding_check_gate(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "author": "alice",
+                    "route_held_for_gates": True,
+                    "required_checks_settled": False,
+                    "copilot_review_outstanding": False,
+                },
+            },
+        )
+
+        self.assertIn("Wait for the required status checks to report;", body)
+
+    def test_held_pr_names_only_the_outstanding_copilot_gate(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "author": "alice",
+                    "route_held_for_gates": True,
+                    "required_checks_settled": True,
+                    "copilot_review_outstanding": True,
+                },
+            },
+        )
+
+        self.assertIn("Wait for the Copilot review to report;", body)
+
     def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
@@ -499,7 +531,6 @@ class RenderStatusCommentTest(unittest.TestCase):
         expected_summaries = {
             "approver": ("Waiting on reviewers", "Review the latest changes."),
             "maintainer": ("Waiting on maintainers", "Merge when ready."),
-            "copilot": ("Waiting on Copilot", "Wait for the pending review to complete."),
             "transient-failure": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
             "unknown": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
         }

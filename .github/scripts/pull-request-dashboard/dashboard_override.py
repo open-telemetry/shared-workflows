@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from github_cli import gh_api, run_gh
+from route_presentation import outstanding_gate_phrase
 from state import load_dashboard_state_cache
 from utils import actor_login, parse_ts
 
@@ -252,7 +253,6 @@ def override_ack_marker(comment_id: int) -> str:
 ROUTE_ALREADY_ROUTED_PHRASE = {
     "approver": "already waiting on reviewers",
     "maintainer": "already past review and waiting on maintainers",
-    "copilot": "waiting on an automated Copilot review",
 }
 
 
@@ -267,7 +267,13 @@ def render_command_reply(reply: dict[str, Any]) -> str:
         )
     elif kind in ("routed", "already_routed"):
         route = reply.get("route") or ""
-        if route in PRE_REVIEW_ROUTES:
+        held_gates = reply.get("held_gates") or ""
+        if held_gates:
+            message = (
+                "accepted the reviewer-routing override; the reviewer handoff "
+                f"is waiting on {held_gates}."
+            )
+        elif route in PRE_REVIEW_ROUTES:
             message = (
                 "everything still open on this pull request arrived after your "
                 "`/dashboard route:reviewers` command, so it is still waiting "
@@ -280,11 +286,6 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             message = (
                 f"this pull request is {where}, so `/dashboard route:reviewers` had "
                 "no effect."
-            )
-        elif route == "copilot":
-            message = (
-                "accepted the reviewer-routing override; the reviewer handoff "
-                "is waiting on Copilot."
             )
         elif route == "maintainer":
             message = (
@@ -430,4 +431,9 @@ def append_command_ack_reply(
         "kind": "routed" if cleared else "already_routed",
         "user": facts.get("dashboard_override_command_user") or facts.get("author") or "",
         "route": route,
+        "held_gates": (
+            outstanding_gate_phrase(facts)
+            if facts.get("route_held_for_gates")
+            else ""
+        ),
     })

@@ -10,12 +10,13 @@ from notify_slack import notify_slack_from_state
 
 class NotifySlackTest(unittest.TestCase):
     @patch("notifications.send_slack_notification")
-    def test_copilot_route_does_not_notify_reviewers(self, send_notification) -> None:
+    def test_gate_held_pr_does_not_notify_reviewers(self, send_notification) -> None:
         results = {
             7: {
                 "pr_number": 7,
-                "route": "copilot",
+                "route": "approver",
                 "facts": {
+                    "route_held_for_gates": True,
                     "reviewers": [{"login": "reviewer"}],
                     "waiting_since": "2026-07-20T01:00:00Z",
                 },

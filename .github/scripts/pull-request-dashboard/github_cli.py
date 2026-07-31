@@ -308,6 +308,7 @@ query($id: ID!, $after: String) {
             commits(last: 1) {
                 nodes {
                     commit {
+                        oid
                         statusCheckRollup {
                             contexts(first: 100, after: $after) {
                                 nodes {
@@ -422,7 +423,7 @@ def gh_pr_check_rollup(
     repo: str,
     pr_id: str,
     non_blocking_check_patterns: list[str],
-) -> dict[str, list[dict[str, Any]]] | None:
+) -> dict[str, Any] | None:
     del repo
     checks_by_identity: dict[
         tuple[str, str, int | None, bool], tuple[dict[str, Any], bool]
@@ -430,6 +431,7 @@ def gh_pr_check_rollup(
     latest_by_execution: dict[tuple[int | None, str, int | None], dict[str, Any]] = {}
     code_scanning_executions: set[tuple[int | None, str, int | None]] = set()
     after: str | None = None
+    head_oid = ""
     try:
         while True:
             data = gh_graphql(PR_CHECKS_QUERY, {"id": pr_id, "after": after})
@@ -437,6 +439,11 @@ def gh_pr_check_rollup(
             commits = pull_request.get("commits") or {}
             commit_nodes = commits.get("nodes") or []
             commit = (commit_nodes[0] if commit_nodes else {}).get("commit") or {}
+            page_oid = commit.get("oid") or ""
+            if head_oid and page_oid and page_oid != head_oid:
+                # The pages describe two different commits, so neither is whole.
+                return None
+            head_oid = page_oid or head_oid
             rollup = commit.get("statusCheckRollup") or {}
             contexts = rollup.get("contexts") or {}
             for node in contexts.get("nodes") or []:
@@ -472,6 +479,7 @@ def gh_pr_check_rollup(
         return None
     checks = list(checks_by_identity.values())
     return {
+        "head_oid": head_oid,
         "required": [check for check, is_required in checks if is_required],
         "non_blocking_failures": [
             check
@@ -586,13 +594,34 @@ def merge_code_scanning_checks(
     ] + code_scanning_checks
 
 
-def include_missing_required_checks(
-    checks: list[dict[str, Any]] | None,
-    required_contexts: list[dict[str, Any]] | None,
-) -> list[dict[str, Any]] | None:
-    if checks is None or required_contexts is None:
-        return None
-    complete = list(checks)
+def settled_check_suite_app_ids(repo: str, head_sha: str) -> set[int]:
+    # An app is settled once every check suite it created for this head has
+    # completed, which means it has reported every context it is going to.
+    if not head_sha:
+        return set()
+    try:
+        pages = gh_api(
+            f"/repos/{repo}/commits/{head_sha}/check-suites?per_page=100",
+            paginate=True,
+        )
+    except RuntimeError:
+        return set()
+    settled: dict[int, bool] = {}
+    for page in pages or []:
+        for suite in page.get("check_suites") or []:
+            app_id = (suite.get("app") or {}).get("id")
+            if app_id is None:
+                continue
+            completed = suite.get("status") == "completed"
+            settled[app_id] = settled.get(app_id, True) and completed
+    return {app_id for app_id, completed in settled.items() if completed}
+
+
+def unreported_required_contexts(
+    checks: list[dict[str, Any]],
+    required_contexts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    unreported: list[dict[str, Any]] = []
     for requirement in required_contexts:
         context = requirement["context"]
         integration_id = requirement.get("integration_id")
@@ -613,7 +642,24 @@ def include_missing_required_checks(
                 candidate.get("context") == context
                 for candidate in required_contexts
             ) == 1
-        if reported:
+        if not reported:
+            unreported.append(requirement)
+    return unreported
+
+
+def include_missing_required_checks(
+    checks: list[dict[str, Any]] | None,
+    required_contexts: list[dict[str, Any]] | None,
+    settled_app_ids: set[int] | None = None,
+) -> list[dict[str, Any]] | None:
+    if checks is None or required_contexts is None:
+        return None
+    complete = list(checks)
+    for requirement in unreported_required_contexts(checks, required_contexts):
+        context = requirement["context"]
+        integration_id = requirement.get("integration_id")
+        # A settled app will never report this context, so it cannot be pending.
+        if integration_id is not None and integration_id in (settled_app_ids or set()):
             continue
         complete.append({
             "name": context,
@@ -921,9 +967,30 @@ def fetch_pr_routing_raw(
         )
         check_rollup = check_rollup_future.result()
         branch_rules = branch_rules_future.result()
+        # commits(last: 1) can lag headRefOid, and the previous head's checks
+        # are already complete, so a mismatch has to read as no check data.
+        if check_rollup is not None and check_rollup["head_oid"] != (
+            pr.get("headRefOid") or ""
+        ):
+            check_rollup = None
+        required_contexts = required_check_contexts(branch_rules)
+        # The check suites only say whether an app-owned context that has not
+        # reported can still arrive, so nothing else has to pay for that read.
+        settled_app_ids: set[int] = set()
+        if check_rollup is not None and required_contexts is not None and any(
+            requirement.get("integration_id") is not None
+            for requirement in unreported_required_contexts(
+                check_rollup["required"], required_contexts
+            )
+        ):
+            settled_app_ids = settled_check_suite_app_ids(
+                repo,
+                pr.get("headRefOid") or "",
+            )
         checks = include_missing_required_checks(
             None if check_rollup is None else check_rollup["required"],
-            required_check_contexts(branch_rules),
+            required_contexts,
+            settled_app_ids,
         )
         if checks is not None and check_rollup is not None:
             checks = merge_code_scanning_checks(
