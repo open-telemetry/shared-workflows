@@ -38,27 +38,8 @@ ACTION_LABELS = {"author_action": "substantive", "no_author_action": "noise"}
 _printed = Lock()
 
 
-def cache_key(batch: list[dict], model: str, salt: str) -> str:
-    payload = json.dumps(
-        {
-            "template": classification.REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
-            "model": model,
-            "salt": salt,
-            "items": [
-                [c["id"], c["requester"], c["pr_author"], c["body"]] for c in batch
-            ],
-        },
-        sort_keys=True,
-    )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
-
-
-def run_batch(batch: list[dict], model: str, salt: str) -> dict:
-    """Return the raw Copilot result for one batch, from cache when present."""
-    path = CACHE_DIR / f"{cache_key(batch, model, salt)}.json"
-    if path.exists():
-        return json.loads(path.read_text(encoding="utf-8"))
-
+def batch_prompt(batch: list[dict]) -> str:
+    """The prompt the dashboard would send for one batch."""
     items = [
         {
             "discussion_id": c["id"],
@@ -71,11 +52,28 @@ def run_batch(batch: list[dict], model: str, salt: str) -> dict:
     # The cases already hold the joined comment body the pipeline would build,
     # so they are their own prompt input. Copies, because rendering truncates in
     # place when a batch runs long.
-    prompt = classification.render_top_level_batch_prompt(
+    return classification.render_top_level_batch_prompt(
         items,
         classification.REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
         [dict(item) for item in items],
     )
+
+
+def cache_key(prompt: str, model: str, salt: str) -> str:
+    """Key on the prompt text itself, so a change to how it renders misses."""
+    payload = json.dumps(
+        {"prompt": prompt, "model": model, "salt": salt}, sort_keys=True
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
+
+
+def run_batch(batch: list[dict], model: str, salt: str) -> dict:
+    """Return the raw Copilot result for one batch, from cache when present."""
+    prompt = batch_prompt(batch)
+    path = CACHE_DIR / f"{cache_key(prompt, model, salt)}.json"
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+
     try:
         proc = classification.run_copilot(prompt, model)
         raw = {"returncode": proc.returncode, "stdout": proc.stdout}
