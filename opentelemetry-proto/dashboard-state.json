@@ -276,7 +276,7 @@
     },
     "836": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -300,18 +300,27 @@
         "head_sha": "95824773048d2d3f6aad58fee3e46957d9fd1496",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-31T00:29:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-31T01:41:41+00:00",
+        "last_approver_activity_at": "2026-07-31T01:41:41+00:00",
         "last_author_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "2ac74a9cd1d2ed6bffcb9dbbe5d8d4df8ccba972fe37a0f0a4bf2db616574de2",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "e2c9a453e5186220aeaf855832987c194583a4431ec3f91bc5224100bf09574b",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-31T00:29:06+00:00"
       },
       "failed": false,
       "pr_number": 836,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/836",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
