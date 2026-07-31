@@ -10511,10 +10511,14 @@
         "approval_count": 0,
         "assignees": [],
         "author": "constanca-m",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49985#discussion_r3689762333"
+        ],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "author_nudge_episode_id": "b6de5a41095e4aee80b977dd4b70a014",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-07-31T09:25:41+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -10532,18 +10536,27 @@
         "head_sha": "5c7a8146bc442f6a196c81470052da5c545c10cf",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-31T09:19:36+00:00",
+        "last_activity_at": "2026-07-31T10:27:15+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-07-31T09:19:36+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "a1a12153ec702282762d04778c67821621f48262c17c9dc47333c55e508d533f",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-31T09:19:36+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "4f0394c15297d3f0db31a76d4b132cdf5a247f69a82bbb81e5381a79a1ff21b2",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-07-31T09:25:41+00:00"
       },
       "failed": false,
       "pr_number": 49985,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49985",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
