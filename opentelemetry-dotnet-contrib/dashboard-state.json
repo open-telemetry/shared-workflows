@@ -411,11 +411,14 @@
     },
     "4923": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "opentelemetrybot",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4923#discussion_r3688281647"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "2f2e6401c3dd427e9a816d0a6e85d577",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -435,18 +438,27 @@
         "head_sha": "34285c626b8e2bfa72ad4be72bb299681bb0dbca",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-30T21:46:45+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-31T05:36:22+00:00",
+        "last_approver_activity_at": "2026-07-31T05:36:22+00:00",
         "last_author_activity_at": "2026-07-30T21:46:45+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "95076f780ece60854487ed46489c920c940f69c48d5410770675264e28927707",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T21:46:45+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "9e66d88495a3653b29082014fc612c71a0c59add0dc0d0b6c3b72efe0c7dd48f",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-31T05:36:22+00:00"
       },
       "failed": false,
       "pr_number": 4923,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4923",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
