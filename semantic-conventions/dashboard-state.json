@@ -584,8 +584,15 @@
         "approval_count": 0,
         "assignees": [],
         "author": "cijothomas",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3723#discussion_r3692098791",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3723#discussion_r3692098803",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3723#discussion_r3692098806",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3723#discussion_r3692098814",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3723#discussion_r3692098831"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "57b87f468c9c4b7aa7e99c0bfb9b3b9b",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -604,9 +611,9 @@
         "head_sha": "6390e01a2367d97d223cc7c095c7300f7bfad8e3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T16:18:10+00:00",
-        "last_approver_activity_at": "2026-06-25T18:30:10+00:00",
-        "last_author_activity_at": "2026-07-28T16:18:10+00:00",
+        "last_activity_at": "2026-07-31T17:29:36+00:00",
+        "last_approver_activity_at": "2026-07-31T17:29:36+00:00",
+        "last_author_activity_at": "2026-07-31T16:09:18+00:00",
         "reviewers": [
           {
             "approved": false,
@@ -615,16 +622,24 @@
             "login": "lmolkova",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "b8e54da23b13ffe6e201867338b13bc6c16424810f8204bf2dd56b2499abcb35",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-28T16:18:10+00:00"
+        "routing_input_fingerprint": "73e91153150a96e2e1f9262287732b3654fdf067191d055eaa99bf072eba3bbb",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-31T17:05:21+00:00"
       },
       "failed": false,
       "pr_number": 3723,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3723",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4560818524": {
           "evidence": {
