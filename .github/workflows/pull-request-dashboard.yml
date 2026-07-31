@@ -67,7 +67,7 @@ jobs:
             [[ -n "$TARGET_REPOSITORY_FROM_INPUT" ]] || { echo "repository is required when pr_number is set"; exit 1; }
           fi
           if [[ -n "$TRIGGER_EVENT_FROM_INPUT" ]]; then
-            [[ "$TRIGGER_EVENT_FROM_INPUT" =~ ^(schedule|workflow_dispatch|check_suite|check_run|status|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
+            [[ "$TRIGGER_EVENT_FROM_INPUT" =~ ^(schedule|workflow_dispatch|check_suite|status|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
               || { echo "bad trigger event: $TRIGGER_EVENT_FROM_INPUT"; exit 1; }
           fi
 

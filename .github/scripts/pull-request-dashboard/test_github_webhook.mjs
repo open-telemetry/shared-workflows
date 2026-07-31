@@ -6,13 +6,11 @@ import {
   extractPullRequestNumber,
   isAllowedAction,
   isDashboardSelfTriggeredCommentEvent,
-  isDefaultBranchStatusEvent,
-  isRedundantCheckRunEvent,
+  isDefaultBranchEvent,
 } from "./netlify/functions/github-webhook.mjs";
 
 const dashboardApp = { slug: "opentelemetry-pr-dashboard" };
 const dashboardActor = { id: 1 };
-const codeScanningApp = { id: 57789 };
 const headSha = "65325a64c9b2e4b8a1d0f3c7e5a9b1d2c3e4f5a6";
 
 test("refreshes when the dashboard override label changes", () => {
@@ -31,9 +29,8 @@ test("refreshes only once a check suite completes", () => {
   assert.equal(isAllowedAction("check_suite", "rerequested"), false);
 });
 
-test("refreshes when a check run completes", () => {
-  assert.equal(isAllowedAction("check_run", "completed"), true);
-  assert.equal(isAllowedAction("check_run", "created"), false);
+test("ignores check runs, which the app no longer subscribes to", () => {
+  assert.equal(isAllowedAction("check_run", "completed"), false);
 });
 
 test("refreshes on commit statuses, which carry no action", () => {
@@ -41,30 +38,31 @@ test("refreshes on commit statuses, which carry no action", () => {
   assert.equal(isAllowedAction("pull_request", ""), false);
 });
 
-test("ignores check runs reported by apps other than code scanning", () => {
-  assert.equal(isRedundantCheckRunEvent("check_run", {
-    check_run: { app: codeScanningApp },
-  }), false);
-  assert.equal(isRedundantCheckRunEvent("check_run", {
-    check_run: { app: { id: 15368 } },
-  }), true);
-  assert.equal(isRedundantCheckRunEvent("check_suite", {
-    check_suite: { app: { id: 15368 } },
-  }), false);
-});
-
-test("ignores statuses reported on the default branch", () => {
+test("ignores check and status events on the default branch", () => {
   const repository = { default_branch: "main" };
-  assert.equal(isDefaultBranchStatusEvent("status", {
+  assert.equal(isDefaultBranchEvent("status", {
     repository,
     branches: [{ name: "main" }],
   }), true);
-  assert.equal(isDefaultBranchStatusEvent("status", {
+  assert.equal(isDefaultBranchEvent("status", {
     repository,
     branches: [{ name: "renovate/kotlin-plugin-updates" }],
   }), false);
   // A fork head is not a branch in the repository that emitted the event.
-  assert.equal(isDefaultBranchStatusEvent("status", { repository, branches: [] }), false);
+  assert.equal(isDefaultBranchEvent("status", { repository, branches: [] }), false);
+  assert.equal(isDefaultBranchEvent("check_suite", {
+    repository,
+    check_suite: { head_branch: "main" },
+  }), true);
+  assert.equal(isDefaultBranchEvent("check_suite", {
+    repository,
+    check_suite: { head_branch: "peschinskiy/host-id-definition" },
+  }), false);
+  // A fork head reports no branch, and so does code scanning on any branch.
+  assert.equal(isDefaultBranchEvent("check_suite", {
+    repository,
+    check_suite: { head_branch: null },
+  }), false);
 });
 
 test("reports the head commit when a check event has no pull request", () => {
@@ -80,14 +78,14 @@ test("reports the head commit when a check event has no pull request", () => {
 test("prefers the pull request a check event names", () => {
   const payload = {
     repository: { url: "https://api.github.com/repos/open-telemetry/example" },
-    check_run: {
+    check_suite: {
       head_sha: headSha,
       pull_requests: [
         { number: 19286, url: "https://api.github.com/repos/open-telemetry/example/pulls/19286" },
       ],
     },
   };
-  assert.equal(extractPullRequestNumber("check_run", payload), 19286);
+  assert.equal(extractPullRequestNumber("check_suite", payload), 19286);
 });
 
 test("reports the head commit of a status event", () => {

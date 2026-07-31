@@ -7,13 +7,11 @@ const WORKFLOW_REPOSITORY = "shared-workflows";
 const WORKFLOW_ID = "pull-request-dashboard.yml";
 const WORKFLOW_REF = "main";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
-const CODE_SCANNING_APP_ID = 57789; // github-advanced-security
 
 const ALLOWED_ACTIONS = {
   // GitHub only delivers `requested` and `rerequested` to apps with write-level
   // Checks access; this app has read-only, so `completed` is all that arrives.
   check_suite: new Set(["completed"]),
-  check_run: new Set(["completed"]),
   // Commit statuses carry no action.
   status: new Set([""]),
   pull_request: new Set([
@@ -78,12 +76,6 @@ async function handle(request) {
   if (isDashboardSelfTriggeredCommentEvent(eventName, payload)) {
     return response(202, { status: "ignored", reason: "dashboard-managed comment" });
   }
-  if (isRedundantCheckRunEvent(eventName, payload)) {
-    return response(202, { status: "ignored", reason: "check run covered by its check suite" });
-  }
-  if (isDefaultBranchStatusEvent(eventName, payload)) {
-    return response(202, { status: "ignored", reason: "status on the default branch" });
-  }
 
   const repository = readRepository(payload);
   if (!repository.fullName) {
@@ -97,6 +89,9 @@ async function handle(request) {
   const headSha = extractHeadSha(eventName, payload);
   const dispatchPrNumber = Number.isInteger(prNumber) && prNumber > 0 ? String(prNumber) : "";
   const dispatchHeadSha = dispatchPrNumber ? "" : headSha;
+  if (dispatchHeadSha && isDefaultBranchEvent(eventName, payload)) {
+    return response(202, { status: "ignored", reason: "head commit is on the default branch" });
+  }
   if (!dispatchPrNumber && !dispatchHeadSha) {
     return response(202, { status: "ignored", reason: "no pull request number or head commit found" });
   }
@@ -124,26 +119,27 @@ export function isAllowedAction(eventName, action) {
   return Boolean(ALLOWED_ACTIONS[eventName] && ALLOWED_ACTIONS[eventName].has(action));
 }
 
-// Every other app reports its check runs under a check suite that completes
-// with them, and one dispatch per job would multiply webhook volume. The code
-// scanning app instead rewrites its already completed check run when the
-// analysis arrives, which nothing else reports.
-export function isRedundantCheckRunEvent(eventName, payload) {
-  if (eventName !== "check_run") {
-    return false;
-  }
-  const app = (payload.check_run || {}).app || {};
-  return app.id !== CODE_SCANNING_APP_ID;
-}
-
-export function isDefaultBranchStatusEvent(eventName, payload) {
-  if (eventName !== "status") {
-    return false;
-  }
+// A check or status event on the default branch reports a push, and the head
+// SHA fallback would otherwise dispatch a refresh for it. The dashboard's own
+// workflow runs are check suites on this repository's default branch, so each
+// run would dispatch the next one and never stop.
+//
+// A fork pull request whose head branch is itself named `main` is
+// indistinguishable here and falls back to the hourly backfill.
+export function isDefaultBranchEvent(eventName, payload) {
   const defaultBranch = (payload.repository || {}).default_branch;
-  return (payload.branches || []).some(
-    (branch) => branch && branch.name === defaultBranch,
-  );
+  if (!defaultBranch) {
+    return false;
+  }
+  if (eventName === "status") {
+    return (payload.branches || []).some(
+      (branch) => branch && branch.name === defaultBranch,
+    );
+  }
+  if (eventName === "check_suite") {
+    return (payload.check_suite || {}).head_branch === defaultBranch;
+  }
+  return false;
 }
 
 export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
@@ -242,16 +238,12 @@ export function extractPullRequestNumber(eventName, payload) {
 }
 
 export function extractHeadSha(eventName, payload) {
-  const sha =
-    eventName === "status"
-      ? payload.sha
-      : (payload.check_suite || payload.check_run || {}).head_sha;
+  const sha = eventName === "status" ? payload.sha : (payload.check_suite || {}).head_sha;
   return typeof sha === "string" && /^[0-9a-f]{40}$/.test(sha) ? sha : "";
 }
 
 function checkPullRequests(payload) {
-  const source = payload.check_suite || payload.check_run || {};
-  return source.pull_requests;
+  return (payload.check_suite || {}).pull_requests;
 }
 
 function extractPullRequestNumberFromCheckPullRequests(pullRequests, repository) {
