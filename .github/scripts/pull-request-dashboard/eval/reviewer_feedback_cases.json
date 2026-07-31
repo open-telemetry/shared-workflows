@@ -3,7 +3,7 @@
   "generated_at": "2026-07-29",
   "baseline_configuration": {
     "model": "gpt-5.4-mini",
-    "prompt": "TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE",
+    "prompt": "TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE (retired; removed once it was no longer the shipped classifier, so this baseline can no longer be reproduced)",
     "runs": 5,
     "batching": "one pull request per batch, as the dashboard classifies",
     "note": "one configuration, the one in production. Other models and prompt shapes are what this set is for, so none took part in labelling it. Cases the classifier left unanswered in any run were excluded rather than given a substitute label."
