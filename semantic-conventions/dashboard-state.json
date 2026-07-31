@@ -925,17 +925,14 @@
         "assignees": [],
         "author": "sudarshan12s",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/3901#pullrequestreview-4725259244"
-        ],
-        "author_nudge_episode_id": "d313b7f0753f4f8299a155c268402b30",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": false,
+        "copilot_review_requested": true,
         "created_at": "2026-07-16T18:10:49+00:00",
         "dashboard_command_replies": [],
         "dashboard_override": false,
@@ -966,18 +963,25 @@
             "changes_requested": false,
             "login": "lmolkova",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "routing_input_fingerprint": "4b69f543161883948a1b32131f4f64b9518464453ec333b446270b14e6ba9f39",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-30T10:51:04+00:00"
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-31T11:48:02+00:00"
       },
       "failed": false,
       "pr_number": 3901,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3901",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-review-4725259244": {
+          "evidence": {
+            "reply": "2026-07-30T10:51:04Z"
+          },
+          "reply_source_id": 5129881965
+        }
+      }
     },
     "3902": {
       "facts": {
