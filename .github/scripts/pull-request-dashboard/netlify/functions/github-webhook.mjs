@@ -81,9 +81,6 @@ async function handle(request) {
   if (isRedundantCheckRunEvent(eventName, payload)) {
     return response(202, { status: "ignored", reason: "check run covered by its check suite" });
   }
-  if (isDefaultBranchStatusEvent(eventName, payload)) {
-    return response(202, { status: "ignored", reason: "status on the default branch" });
-  }
 
   const repository = readRepository(payload);
   if (!repository.fullName) {
@@ -97,6 +94,9 @@ async function handle(request) {
   const headSha = extractHeadSha(eventName, payload);
   const dispatchPrNumber = Number.isInteger(prNumber) && prNumber > 0 ? String(prNumber) : "";
   const dispatchHeadSha = dispatchPrNumber ? "" : headSha;
+  if (dispatchHeadSha && isDefaultBranchEvent(eventName, payload)) {
+    return response(202, { status: "ignored", reason: "head commit is on the default branch" });
+  }
   if (!dispatchPrNumber && !dispatchHeadSha) {
     return response(202, { status: "ignored", reason: "no pull request number or head commit found" });
   }
@@ -136,14 +136,28 @@ export function isRedundantCheckRunEvent(eventName, payload) {
   return app.id !== CODE_SCANNING_APP_ID;
 }
 
-export function isDefaultBranchStatusEvent(eventName, payload) {
-  if (eventName !== "status") {
+// A check or status event on the default branch reports a push, and the head
+// SHA fallback would otherwise dispatch a refresh for it. The dashboard's own
+// workflow runs are check suites on this repository's default branch, so each
+// run would dispatch the next one and never stop.
+//
+// A fork pull request whose head branch is itself named `main` is
+// indistinguishable here and falls back to the hourly backfill.
+export function isDefaultBranchEvent(eventName, payload) {
+  const defaultBranch = (payload.repository || {}).default_branch;
+  if (!defaultBranch) {
     return false;
   }
-  const defaultBranch = (payload.repository || {}).default_branch;
-  return (payload.branches || []).some(
-    (branch) => branch && branch.name === defaultBranch,
-  );
+  if (eventName === "status") {
+    return (payload.branches || []).some(
+      (branch) => branch && branch.name === defaultBranch,
+    );
+  }
+  if (eventName === "check_suite" || eventName === "check_run") {
+    const checkSuite = payload.check_suite || (payload.check_run || {}).check_suite || {};
+    return checkSuite.head_branch === defaultBranch;
+  }
+  return false;
 }
 
 export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {

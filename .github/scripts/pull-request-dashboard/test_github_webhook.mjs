@@ -6,7 +6,7 @@ import {
   extractPullRequestNumber,
   isAllowedAction,
   isDashboardSelfTriggeredCommentEvent,
-  isDefaultBranchStatusEvent,
+  isDefaultBranchEvent,
   isRedundantCheckRunEvent,
 } from "./netlify/functions/github-webhook.mjs";
 
@@ -55,23 +55,48 @@ test("ignores check runs reported by apps other than code scanning", () => {
 
 test("ignores statuses reported on the default branch", () => {
   const repository = { default_branch: "main" };
-  assert.equal(isDefaultBranchStatusEvent("status", {
+  assert.equal(isDefaultBranchEvent("status", {
     repository,
     branches: [{ name: "main" }],
   }), true);
-  assert.equal(isDefaultBranchStatusEvent("status", {
+  assert.equal(isDefaultBranchEvent("status", {
     repository,
     branches: [{ name: "renovate/kotlin-plugin-updates" }],
   }), false);
   // A fork head is not a branch in the repository that emitted the event.
-  assert.equal(isDefaultBranchStatusEvent("status", { repository, branches: [] }), false);
+  assert.equal(isDefaultBranchEvent("status", { repository, branches: [] }), false);
+});
+
+test("ignores check events reported on the default branch", () => {
+  const repository = { default_branch: "main" };
+  assert.equal(isDefaultBranchEvent("check_suite", {
+    repository,
+    check_suite: { head_branch: "main" },
+  }), true);
+  assert.equal(isDefaultBranchEvent("check_run", {
+    repository,
+    check_run: { check_suite: { head_branch: "main" } },
+  }), true);
+  assert.equal(isDefaultBranchEvent("check_suite", {
+    repository,
+    check_suite: { head_branch: "peschinskiy/host-id-definition" },
+  }), false);
+  // Code scanning reports no head branch, on a fork head and on the default branch alike.
+  assert.equal(isDefaultBranchEvent("check_suite", {
+    repository,
+    check_suite: { head_branch: null },
+  }), false);
+  assert.equal(isDefaultBranchEvent("pull_request", {
+    repository,
+    check_suite: { head_branch: "main" },
+  }), false);
 });
 
 test("reports the head commit when a check event has no pull request", () => {
-  // Check suites on a fork head report head_branch: null and no pull requests.
+  // Check suites on a fork head carry the fork's branch name and no pull requests.
   const payload = {
     repository: { url: "https://api.github.com/repos/open-telemetry/example", default_branch: "main" },
-    check_suite: { head_branch: null, head_sha: headSha, pull_requests: [] },
+    check_suite: { head_branch: "contributor/fix", head_sha: headSha, pull_requests: [] },
   };
   assert.equal(extractPullRequestNumber("check_suite", payload), undefined);
   assert.equal(extractHeadSha("check_suite", payload), headSha);
