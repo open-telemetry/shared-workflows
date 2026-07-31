@@ -2360,7 +2360,7 @@
     },
     "3629": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2384,8 +2384,8 @@
         "head_sha": "860bb8854793cf97e992e0fdd0d9d48af3784689",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-07-31T21:00:58+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-31T21:41:32+00:00",
+        "last_approver_activity_at": "2026-07-31T21:41:32+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
@@ -2396,11 +2396,19 @@
             "login": "AaronRM",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "drewrelmas",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "4c8a253aa50deb83153908ef84140d4931d4708cdd99e34501f7a9aef357af33",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "c6c42ad7e624602de16fcb2b0b936a53bca895b6af7e6e80dc44f7e2579e20e6",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-07-31T20:58:18+00:00"
       },
       "failed": false,
