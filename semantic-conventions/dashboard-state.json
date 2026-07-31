@@ -961,13 +961,13 @@
     },
     "3902": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 6,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -985,11 +985,19 @@
         "head_sha": "f356d8a1599b95500727867a4e5d468d7a61edb3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-31T19:50:37+00:00",
-        "last_approver_activity_at": "2026-07-31T17:20:46+00:00",
+        "last_activity_at": "2026-07-31T20:00:43+00:00",
+        "last_approver_activity_at": "2026-07-31T20:00:43+00:00",
         "last_author_activity_at": "2026-07-31T19:50:37+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -1008,14 +1016,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "5ce676c73f2c92508010f5cad87a176db8e3964c9a13de71d3655f67db1f7d85",
+        "routing_input_fingerprint": "fdf4bd200664e5378218cbe13b5403f9eba23db45ecfc11092d9c3233097a427",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-28T23:33:13+00:00"
       },
       "failed": false,
       "pr_number": 3902,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3902",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5109788965": {
           "evidence": {
