@@ -13,7 +13,6 @@ class DeliveryTest(unittest.TestCase):
     @patch.object(delivery, "deliver_copilot_review_requests", return_value=[])
     @patch.object(delivery, "deliver_prepared_author_nudges", return_value=[])
     @patch.object(delivery, "deliver_dashboard_command_replies", return_value=[])
-    @patch.object(delivery, "deliver_dashboard_override_requests", return_value=[])
     @patch.object(delivery, "update_status_comments_from_state", return_value=[])
     @patch.object(
         delivery,
@@ -27,7 +26,6 @@ class DeliveryTest(unittest.TestCase):
         self,
         _list_open,
         status_comments,
-        dashboard_overrides,
         dashboard_command_replies,
         author_nudges,
         copilot_reviews,
@@ -40,7 +38,6 @@ class DeliveryTest(unittest.TestCase):
             return []
 
         status_comments.side_effect = lambda *_args: record("status")
-        dashboard_overrides.side_effect = lambda *_args: record("override")
         dashboard_command_replies.side_effect = lambda *_args: record("replies")
         author_nudges.side_effect = lambda *_args: record("author")
         copilot_reviews.side_effect = lambda *_args: record("copilot")
@@ -55,7 +52,7 @@ class DeliveryTest(unittest.TestCase):
         self.assertEqual([], errors)
         _list_open.assert_called_once_with("open-telemetry/example")
         self.assertEqual(
-            [call("override"), call("replies"), call("author"), call("status"), call("copilot"), call("slack")],
+            [call("replies"), call("author"), call("status"), call("copilot"), call("slack")],
             order.call_args_list,
         )
         status_comments.assert_called_once_with(
@@ -76,7 +73,6 @@ class DeliveryTest(unittest.TestCase):
     @patch.object(delivery, "deliver_copilot_review_requests", return_value=[])
     @patch.object(delivery, "deliver_prepared_author_nudges", return_value=[])
     @patch.object(delivery, "deliver_dashboard_command_replies", return_value=[])
-    @patch.object(delivery, "deliver_dashboard_override_requests", return_value=[])
     @patch.object(delivery, "update_status_comments_from_state", side_effect=RuntimeError("boom"))
     @patch.object(
         delivery,
@@ -87,7 +83,6 @@ class DeliveryTest(unittest.TestCase):
         self,
         _list_open,
         _status_comments,
-        dashboard_overrides,
         dashboard_command_replies,
         author_nudges,
         copilot_reviews,
@@ -101,7 +96,6 @@ class DeliveryTest(unittest.TestCase):
         )
 
         self.assertIn("status comments: boom", errors)
-        dashboard_overrides.assert_called_once()
         dashboard_command_replies.assert_called_once()
         author_nudges.assert_called_once()
         copilot_reviews.assert_called_once()
@@ -110,7 +104,6 @@ class DeliveryTest(unittest.TestCase):
     def test_open_pr_list_failure_skips_dependent_stages(self) -> None:
         with (
             patch.object(delivery, "list_open_prs", side_effect=RuntimeError("unavailable")),
-            patch.object(delivery, "deliver_dashboard_override_requests", return_value=[]) as overrides,
             patch.object(delivery, "deliver_dashboard_command_replies", return_value=[]) as replies,
             patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]) as nudges,
             patch.object(delivery, "update_status_comments_from_state", return_value=[]) as status,
@@ -125,7 +118,6 @@ class DeliveryTest(unittest.TestCase):
             )
 
         self.assertEqual(["open pull requests: unavailable"], errors)
-        overrides.assert_called_once()
         replies.assert_called_once()
         nudges.assert_called_once()
         copilot.assert_called_once()
@@ -140,7 +132,6 @@ class DeliveryTest(unittest.TestCase):
                 "gh_api",
                 return_value={"state": "open", "draft": False, "title": "Seven"},
             ) as gh_api,
-            patch.object(delivery, "deliver_dashboard_override_requests", return_value=[]),
             patch.object(delivery, "deliver_dashboard_command_replies", return_value=[]),
             patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]),
             patch.object(delivery, "update_status_comments_from_state") as bulk_status,

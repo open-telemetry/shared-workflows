@@ -47,27 +47,6 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         })
         self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
 
-    def test_routing_fingerprint_tracks_normalized_labels(self) -> None:
-        raw = {
-            "checks": [],
-            "issue_comments": [],
-            "pr": {"labels": [{"name": "needs-triage"}]},
-            "review_comments": [],
-            "reviews": [],
-            "review_threads": [],
-        }
-        baseline = author_nudge.routing_input_fingerprint(raw)
-        raw["pr"]["labels"].append({"name": "documentation"})
-
-        self.assertEqual(baseline, author_nudge.routing_input_fingerprint(raw))
-
-        raw["pr"]["labels"].append({"name": "dashboard:route-overridden"})
-        overridden = author_nudge.routing_input_fingerprint(raw)
-
-        self.assertNotEqual(baseline, overridden)
-        raw["pr"]["labels"].reverse()
-        self.assertEqual(overridden, author_nudge.routing_input_fingerprint(raw))
-
     def test_routing_fingerprint_tracks_required_check_state(self) -> None:
         raw = {
             "checks": [{"name": "build", "bucket": "fail"}],
@@ -141,10 +120,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             "baseRefName": "main",
             "body": "Current body",
             "headRefOid": "current-head",
-            "labels": [
-                {"name": "needs-triage"},
-                {"name": "dashboard:route-overridden"},
-            ],
+            "labels": [{"name": "needs-triage"}],
             "title": "Current title",
         }
         gh_pr_view.return_value = pr

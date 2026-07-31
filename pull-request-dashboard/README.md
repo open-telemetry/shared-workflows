@@ -12,7 +12,7 @@ The classification cache reuses prior results for unchanged review threads, mini
 
 The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
 
-- **PR** — Pull request number and title, followed by any configured matching labels. The number autolinks to the PR on GitHub. Configured labels are rendered inline for both active and draft PRs. The `dashboard:route-overridden` label is always rendered, regardless of configuration.
+- **PR** — Pull request number and title, followed by any configured matching labels. The number autolinks to the PR on GitHub. Configured labels are rendered inline for both active and draft PRs.
 - **Author** — GitHub login of the PR author.
 - **Reviewers** — Reviewers who have engaged with the PR, each annotated with one or more icons:
   - ✅ approved
@@ -69,7 +69,7 @@ Fields:
 | `name` | yes | Name of the repository under `open-telemetry`. |
 | `approver_teams` | yes | GitHub team slugs whose members count as approvers. |
 | `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
-| `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays only the `dashboard:route-overridden` label. |
+| `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
 | `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review with no inline findings on the current head is required before routing a PR to reviewers or maintainers. The dashboard re-requests Copilot review when needed and does not duplicate a pending request. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
@@ -182,23 +182,24 @@ Targeted updates received before the first full dashboard run are ignored.
 ## Reviewer routing override
 
 When the dashboard says a pull request is waiting on its author but the author
-believes it is ready for another review, the author
-can comment `/dashboard route:reviewers`. The dashboard routes the pull request
-to *Waiting on reviewers* and applies the `dashboard:route-overridden` label to
-mark the override, which the dashboard shows inline after the PR title. Members of the repository's `approver_teams` can use the same
+believes it is ready for another review, the author can comment
+`/dashboard route:reviewers`. The command clears every review item and required
+check failure that was already open when it was posted, so the pull request
+leaves *Waiting on authors* and routing continues from there instead of falling
+back to the author on the next refresh. Where it lands is whatever routing
+decides next, which for an already-approved pull request is *Waiting on
+maintainers*. Members of the repository's `approver_teams` can use the same
 command. A `/dashboard route:reviewers` command from anyone else, or a command
-on a pull request already at or past reviewers, has no routing effect. The
-dashboard replies to a `/dashboard route:reviewers` from an unauthorized user
-explaining that only the author or an approver can use it, replies to an author
-or approver command on a pull request already at or past reviewers noting where
-it is currently routed, and replies to any unrecognized `/dashboard` command.
+that clears nothing, has no routing effect. The dashboard replies to a
+`/dashboard route:reviewers` from an unauthorized user explaining that only the
+author or an approver can use it, replies to an author or approver command that
+cleared nothing noting where it is currently routed, and replies to any
+unrecognized `/dashboard` command.
 
-Removing the `dashboard:route-overridden` label restores automatic routing. The
-dashboard also removes the label automatically once routing would place the pull
-request with reviewers on its own, so a forgotten override does not linger. A
-command that has already been applied is not replayed after label removal; the
-author can post a new `/dashboard route:reviewers` command if another override
-is needed later.
+Anything that happens after the command keeps its author action, so new review
+feedback and new check failures still route the pull request back to the author.
+A reviewer who disagrees that a cleared item was handled says so on that item,
+which routes the pull request back to the author on the next refresh.
 
 ## Author reminder
 

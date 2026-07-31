@@ -109,6 +109,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
+    ci_uncleared_failing_count      int           Required failures an override
+                                                  command has not cleared.
+    ci_uncleared_failing_since      str (iso)     Earliest completion time among
+                                                  those uncleared failures.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
                                                   fetched.
@@ -196,10 +200,11 @@ from copilot_review import (
     record_copilot_review_observation,
 )
 from dashboard_override import (
-    apply_dashboard_override,
-    append_route_noop_reply,
+    append_command_ack_reply,
+    clear_overridden_actions,
     dashboard_command_body_remainder,
     dashboard_override_facts,
+    uncleared_ci_failing_count,
 )
 from pr_status_comment import status_author_nudge_episode_id
 from state import (
@@ -542,17 +547,12 @@ def compute_facts(
         raw.get("reviews") or [],
         head_sha,
     )
-    labels = {
-        label.get("name") or ""
-        for label in pr.get("labels") or []
-        if isinstance(label, dict)
-    }
     facts = {
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
         "routing_input_fingerprint": routing_input_fingerprint(raw),
-        **dashboard_override_facts(raw, author, labels, reviewers or set()),
+        **dashboard_override_facts(raw, author, reviewers or set()),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (raw.get("review_requests") or [])
@@ -572,6 +572,19 @@ def compute_facts(
         facts["ci_failing_count"] = len(failing)
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
+        # A failure with no completion time cannot be shown to predate the
+        # override command, so it counts as uncleared. So does one that shares
+        # the command's second, since GitHub timestamps cannot order them.
+        untimed = len(failing) - len(failing_timestamps)
+        override_since = parse_ts(facts.get("dashboard_override_since") or "")
+        uncleared = [
+            ts
+            for ts in failing_timestamps
+            if override_since is None or ts >= override_since
+        ]
+        facts["ci_uncleared_failing_count"] = untimed + len(uncleared)
+        if uncleared:
+            facts["ci_uncleared_failing_since"] = format_ts(min(uncleared))
         facts["ci_pending_count"] = len(pending)
     non_blocking_check_failures = sorted({
         check.get("name") or ""
@@ -1114,12 +1127,13 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
-    #   1. A required status check failure -> "author".
+    #   1. A required status check failure the author has not overridden -> "author".
     #   2. A discussion waiting on the author -> "author".
     #   3. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer -> "maintainer".
     #   4. Otherwise the PR is still waiting on approvers.
-    if facts.get("ci_failing_count", 0) > 0 and not is_maintenance_bot:
+    ci_failing = uncleared_ci_failing_count(facts) > 0
+    if ci_failing and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
@@ -1149,8 +1163,8 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
     if route in ("approver", "maintainer", "copilot"):
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
-        if facts.get("ci_failing_count", 0) > 0:
-            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
+        if uncleared_ci_failing_count(facts) > 0:
+            ci_failing_since = parse_ts(facts.get("ci_uncleared_failing_since") or "")
             if ci_failing_since is not None:
                 return ci_failing_since, "ci_failure"
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
@@ -1288,15 +1302,9 @@ def resolve_pr_route(
     required_approvals: int,
     require_clean_copilot_review: bool,
 ) -> str:
-    # Apply the manual reviewer-routing override before the Copilot review gate
-    # so an overridden route (for example author -> reviewers) is still held for
-    # a required clean Copilot review instead of bypassing it.
     return apply_copilot_review_gate(
         facts,
-        apply_dashboard_override(
-            facts,
-            route_pr(facts, pending_actions, required_approvals),
-        ),
+        route_pr(facts, pending_actions, required_approvals),
         enabled=require_clean_copilot_review,
     )
 
@@ -1391,6 +1399,7 @@ def build_pr_result(
             author_comment_source_state,
         )
         pending_actions = review_thread_pending_actions | top_level_pending_actions
+        pending_actions = clear_overridden_actions(facts, pending_actions)
         failed_classifications = [
             classification
             for classification in (
@@ -1433,7 +1442,7 @@ def build_pr_result(
             previous_result,
             raw.get("issue_comments") or [],
         )
-        append_route_noop_reply(raw, facts, route)
+        append_command_ack_reply(raw, facts, route)
         add_wait_age_facts(facts, route, pending_actions)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
