@@ -195,12 +195,10 @@ the implementation understandable and operationally cheap.
   untouched, and the dashboard does not subscribe to check runs, so no webhook
   reports it. That only delays the dashboard when the code scanning analysis is
   the last thing to finish at the head, because any check suite completing after
-  it triggers the refresh that observes the final result. Across 44 recent pull
-  request heads in the two configured repositories whose margins are narrowest,
-  code scanning finished first every time, so the affected case is rare; when it
-  does occur the transition waits for the hourly refresh. Subscribing to check
-  runs would close that window at roughly ten times the webhook volume of every
-  other event combined, because GitHub emits one check run per job.
+  it triggers the refresh that observes the final result; when it does, the
+  transition waits for the hourly refresh. Subscribing to check runs would close
+  that window at roughly ten times the webhook volume of every other event
+  combined, because GitHub emits one check run per job.
 - Required checks reported as commit statuses, such as EasyCLA, never belong to
   a check suite, so commit status events are subscribed as well.
 - A failing required status check routes a human-authored PR to the author
