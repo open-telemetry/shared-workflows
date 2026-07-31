@@ -126,6 +126,11 @@ export function isAllowedAction(eventName, action) {
 //
 // A fork pull request whose head branch is itself named `main` is
 // indistinguishable here and falls back to the hourly backfill.
+//
+// Code scanning reports no head branch at all, and is deliberately left
+// dispatchable. It publishes its check suite on pull request heads rather than
+// on the default branch, so the head SHA fallback resolves to the pull request
+// that owns the commit rather than to a push.
 export function isDefaultBranchEvent(eventName, payload) {
   const defaultBranch = (payload.repository || {}).default_branch;
   if (!defaultBranch) {

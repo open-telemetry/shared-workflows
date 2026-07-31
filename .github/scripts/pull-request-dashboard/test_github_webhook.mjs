@@ -58,7 +58,8 @@ test("ignores check and status events on the default branch", () => {
     repository,
     check_suite: { head_branch: "peschinskiy/host-id-definition" },
   }), false);
-  // A fork head reports no branch, and so does code scanning on any branch.
+  // Code scanning reports no head branch, and publishes only on pull request
+  // heads, so leaving it dispatchable refreshes a pull request, not a push.
   assert.equal(isDefaultBranchEvent("check_suite", {
     repository,
     check_suite: { head_branch: null },
@@ -66,10 +67,11 @@ test("ignores check and status events on the default branch", () => {
 });
 
 test("reports the head commit when a check event has no pull request", () => {
-  // Check suites on a fork head report head_branch: null and no pull requests.
+  // Check suites on a fork head name the fork's branch and list no pull
+  // requests, which is why the head commit has to carry the association.
   const payload = {
     repository: { url: "https://api.github.com/repos/open-telemetry/example", default_branch: "main" },
-    check_suite: { head_branch: null, head_sha: headSha, pull_requests: [] },
+    check_suite: { head_branch: "kangyi/bump-logsagentexporter", head_sha: headSha, pull_requests: [] },
   };
   assert.equal(extractPullRequestNumber("check_suite", payload), undefined);
   assert.equal(extractHeadSha("check_suite", payload), headSha);
