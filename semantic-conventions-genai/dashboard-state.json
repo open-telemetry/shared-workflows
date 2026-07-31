@@ -1234,7 +1234,10 @@
         ],
         "author": "AgentGymLeader",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/283#issuecomment-5144286615"
+        ],
+        "author_nudge_episode_id": "0e3358d6e5564a6ba19e4b7cdf5c1ba1",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1253,8 +1256,8 @@
         "head_sha": "18310a91cfb3253aa47e104e429694be444cae80",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-08T20:22:53+00:00",
-        "last_approver_activity_at": "2026-06-22T17:57:48+00:00",
+        "last_activity_at": "2026-07-31T14:59:58+00:00",
+        "last_approver_activity_at": "2026-07-31T14:59:58+00:00",
         "last_author_activity_at": "2026-07-08T20:22:53+00:00",
         "reviewers": [
           {
@@ -1272,16 +1275,24 @@
             "login": "MikeGoldsmith",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "top_level_feedback": true
           }
         ],
-        "routing_input_fingerprint": "c591980a084ec06eab832a7557935cdcf6f78abf3e089e4d378d011ce86aa25a",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-08T20:22:53+00:00"
+        "routing_input_fingerprint": "2bd9b3ea03632caea23b792c7bbc79b86d5d48ce571c467cb4a4397b91a21b17",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-31T14:59:58+00:00"
       },
       "failed": false,
       "pr_number": 283,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/283",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4516705596": {
           "evidence": {
