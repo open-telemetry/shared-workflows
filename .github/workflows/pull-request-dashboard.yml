@@ -13,10 +13,6 @@ on:
         description: Pull request number to refresh. Empty means backfill.
         required: false
         type: string
-      head_sha:
-        description: Head commit to resolve to a pull request when the event carries no number.
-        required: false
-        type: string
       trigger_event:
         description: Event that requested the refresh.
         required: false
@@ -34,7 +30,7 @@ permissions:
 # review id.
 concurrency:
   group: >-
-    pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || inputs.head_sha || 'backfill' }}-${{ github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
+    pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || 'backfill' }}-${{ github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
   cancel-in-progress: false
 
 env:
@@ -44,7 +40,7 @@ jobs:
   resolve-targets:
     # Targeted refreshes go straight to the reusable workflow, which resolves
     # its own configuration. Only backfills need a matrix resolved up front.
-    if: inputs.head_sha == '' && (inputs.repository == '' || inputs.pr_number == '')
+    if: inputs.repository == '' || inputs.pr_number == ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -67,7 +63,7 @@ jobs:
             [[ -n "$TARGET_REPOSITORY_FROM_INPUT" ]] || { echo "repository is required when pr_number is set"; exit 1; }
           fi
           if [[ -n "$TRIGGER_EVENT_FROM_INPUT" ]]; then
-            [[ "$TRIGGER_EVENT_FROM_INPUT" =~ ^(schedule|workflow_dispatch|check_suite|check_run|status|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
+            [[ "$TRIGGER_EVENT_FROM_INPUT" =~ ^(schedule|workflow_dispatch|poll|pull_request|issue_comment|pull_request_review|pull_request_review_comment|pull_request_review_thread)$ ]] \
               || { echo "bad trigger event: $TRIGGER_EVENT_FROM_INPUT"; exit 1; }
           fi
 
@@ -91,70 +87,6 @@ jobs:
           fi
           echo "matrix={\"include\":${matrix}}" >> "$GITHUB_OUTPUT"
           echo "$matrix" | jq .
-
-  resolve-head-sha:
-    # Check and status events for a fork head carry no pull request number, so
-    # the head commit has to be resolved before the reusable workflow runs.
-    if: inputs.head_sha != '' && inputs.pr_number == ''
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    environment: protected
-    outputs:
-      pr_number: ${{ steps.trigger.outputs.pr_number }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Resolve trigger inputs
-        id: targets
-        env:
-          TARGET_REPOSITORY: ${{ inputs.repository }}
-          HEAD_SHA_FROM_INPUT: ${{ inputs.head_sha }}
-        run: |
-          set -euo pipefail
-          [[ -n "$TARGET_REPOSITORY" ]] || { echo "repository is required when head_sha is set"; exit 1; }
-          [[ "$HEAD_SHA_FROM_INPUT" =~ ^[0-9a-f]{40}$ ]] || { echo "bad head SHA: $HEAD_SHA_FROM_INPUT"; exit 1; }
-          name=$(jq -r --arg repo "$TARGET_REPOSITORY" '
-            [ .[] | select(.name == $repo) ] | first | .name // empty
-          ' "$DASHBOARD_CONFIG")
-          if [[ -z "$name" ]]; then
-            echo "no configured repository matched: $TARGET_REPOSITORY" >&2
-            exit 1
-          fi
-          echo "repository=$name" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: head-sha-token
-        with:
-          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
-          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-          owner: open-telemetry
-          repositories: ${{ steps.targets.outputs.repository }}
-          permission-pull-requests: read
-
-      - name: Resolve head commit
-        id: trigger
-        env:
-          HEAD_SHA: ${{ inputs.head_sha }}
-          REPO_NAME: ${{ steps.targets.outputs.repository }}
-          GH_TOKEN: ${{ steps.head-sha-token.outputs.token }}
-        run: |
-          set -euo pipefail
-          matches=$(gh api "repos/open-telemetry/${REPO_NAME}/commits/${HEAD_SHA}/pulls" \
-            | jq -r --arg sha "$HEAD_SHA" '[ .[] | select(.state == "open" and .head.sha == $sha) | .number ] | sort | join(" ")')
-          pr_number="${matches%% *}"
-          if [[ -z "$pr_number" ]]; then
-            echo "no open pull request has head $HEAD_SHA; skipping refresh."
-          elif [[ "$matches" == *" "* ]]; then
-            # One head branch can be open against several base branches. The
-            # rest keep refreshing on their own events and on the backfill.
-            echo "head $HEAD_SHA belongs to open pull requests $matches; refreshing #$pr_number"
-          else
-            echo "resolved head $HEAD_SHA to pull request #$pr_number"
-          fi
-          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
 
   run-repo-dashboard:
     needs: resolve-targets
@@ -185,22 +117,6 @@ jobs:
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ inputs.pr_number }}
-    secrets:
-      PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-  run-head-sha-dashboard:
-    needs: resolve-head-sha
-    # A head commit that matches no open pull request is not a request to
-    # refresh the whole repository.
-    if: needs.resolve-head-sha.outputs.pr_number != ''
-    permissions:
-      contents: write
-      copilot-requests: write
-    uses: ./.github/workflows/pull-request-dashboard-repo.yml
-    with:
-      repository: ${{ inputs.repository }}
-      pr_number: ${{ needs.resolve-head-sha.outputs.pr_number }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

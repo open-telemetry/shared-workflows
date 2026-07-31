@@ -1,0 +1,65 @@
+name: Pull request dashboard check poll
+
+on:
+  schedule:
+    # Backstop only. The Netlify scheduled function drives the normal cadence
+    # because GitHub's schedule trigger is best effort and unreliable below an
+    # hourly interval.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A poll reads live state and rewrites the whole baseline, so a queued second
+# poll would only repeat the first. Cancelling in flight would lose the push.
+concurrency:
+  group: pull-request-dashboard-check-poll
+  cancel-in-progress: false
+
+env:
+  DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
+  POLL_STATE_BRANCH: otelbot/pull-request-dashboard-poll-state
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    environment: protected
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          permission-checks: read
+          permission-contents: read
+          permission-pull-requests: read
+          permission-statuses: read
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dispatch-token
+        with:
+          app-id: ${{ vars.OTELBOT_SHARED_WORKFLOWS_APP_ID }}
+          private-key: ${{ secrets.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: shared-workflows
+          permission-actions: write
+
+      - name: Poll check rollups
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          DISPATCH_TOKEN: ${{ steps.dispatch-token.outputs.token }}
+          # push_state authenticates the state branch push with this token.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/pull-request-dashboard/check_rollup_poll.py \
+            --config "$DASHBOARD_CONFIG" \
+            --state-branch "$POLL_STATE_BRANCH"

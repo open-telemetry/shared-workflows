@@ -1,21 +1,25 @@
 import crypto from "node:crypto";
 
-const GITHUB_API_VERSION = "2022-11-28";
-const MAX_WEBHOOK_BYTES = 1024 * 1024;
-const OWNER = "open-telemetry";
-const WORKFLOW_REPOSITORY = "shared-workflows";
-const WORKFLOW_ID = "pull-request-dashboard.yml";
-const WORKFLOW_REF = "main";
-const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
-const CODE_SCANNING_APP_ID = 57789; // github-advanced-security
+import {
+  OWNER,
+  createDispatcherToken,
+  dispatchWorkflow,
+  httpError,
+  jsonResponse as response,
+  loadDispatcherCredentials,
+} from "../lib/github-app.mjs";
 
+const MAX_WEBHOOK_BYTES = 1024 * 1024;
+const WORKFLOW_ID = "pull-request-dashboard.yml";
+const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
+
+// Check suite, check run, and status events are deliberately absent. They
+// arrive about ten times per push, report no pull request number when the head
+// branch lives in a fork, and the dashboard's own runs reached the head commit
+// fallback and dispatched each other. The scheduled poll in
+// `pull-request-dashboard-check-poll.yml` reads the same rollup once per
+// repository, keyed by pull request number.
 const ALLOWED_ACTIONS = {
-  // GitHub only delivers `requested` and `rerequested` to apps with write-level
-  // Checks access; this app has read-only, so `completed` is all that arrives.
-  check_suite: new Set(["completed"]),
-  check_run: new Set(["completed"]),
-  // Commit statuses carry no action.
-  status: new Set([""]),
   pull_request: new Set([
     "assigned",
     "closed",
@@ -78,12 +82,6 @@ async function handle(request) {
   if (isDashboardSelfTriggeredCommentEvent(eventName, payload)) {
     return response(202, { status: "ignored", reason: "dashboard-managed comment" });
   }
-  if (isRedundantCheckRunEvent(eventName, payload)) {
-    return response(202, { status: "ignored", reason: "check run covered by its check suite" });
-  }
-  if (isDefaultBranchStatusEvent(eventName, payload)) {
-    return response(202, { status: "ignored", reason: "status on the default branch" });
-  }
 
   const repository = readRepository(payload);
   if (!repository.fullName) {
@@ -94,56 +92,27 @@ async function handle(request) {
   }
 
   const prNumber = extractPullRequestNumber(eventName, payload);
-  const headSha = extractHeadSha(eventName, payload);
-  const dispatchPrNumber = Number.isInteger(prNumber) && prNumber > 0 ? String(prNumber) : "";
-  const dispatchHeadSha = dispatchPrNumber ? "" : headSha;
-  if (!dispatchPrNumber && !dispatchHeadSha) {
-    return response(202, { status: "ignored", reason: "no pull request number or head commit found" });
+  if (!Number.isInteger(prNumber) || prNumber <= 0) {
+    return response(202, { status: "ignored", reason: "no pull request number found" });
   }
 
-  const dispatcherJwt = createAppJwt({ appId: config.dispatcherAppId, privateKey: config.dispatcherPrivateKey });
-  const installationId = await findRepositoryInstallationId(dispatcherJwt, `${OWNER}/${WORKFLOW_REPOSITORY}`);
-  const installationToken = await createInstallationToken(dispatcherJwt, installationId);
-  await dispatchWorkflow(installationToken, {
+  const installationToken = await createDispatcherToken(config.dispatcher);
+  await dispatchWorkflow(installationToken, WORKFLOW_ID, {
     repository: repository.name,
-    pr_number: dispatchPrNumber,
-    head_sha: dispatchHeadSha,
+    pr_number: String(prNumber),
     trigger_event: eventName,
   });
 
   return response(202, {
     status: "dispatched",
     repository: repository.fullName,
-    pr_number: dispatchPrNumber,
-    head_sha: dispatchHeadSha,
+    pr_number: String(prNumber),
     trigger_event: eventName,
   });
 }
 
 export function isAllowedAction(eventName, action) {
   return Boolean(ALLOWED_ACTIONS[eventName] && ALLOWED_ACTIONS[eventName].has(action));
-}
-
-// Every other app reports its check runs under a check suite that completes
-// with them, and one dispatch per job would multiply webhook volume. The code
-// scanning app instead rewrites its already completed check run when the
-// analysis arrives, which nothing else reports.
-export function isRedundantCheckRunEvent(eventName, payload) {
-  if (eventName !== "check_run") {
-    return false;
-  }
-  const app = (payload.check_run || {}).app || {};
-  return app.id !== CODE_SCANNING_APP_ID;
-}
-
-export function isDefaultBranchStatusEvent(eventName, payload) {
-  if (eventName !== "status") {
-    return false;
-  }
-  const defaultBranch = (payload.repository || {}).default_branch;
-  return (payload.branches || []).some(
-    (branch) => branch && branch.name === defaultBranch,
-  );
 }
 
 export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
@@ -162,23 +131,15 @@ export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
 }
 
 function loadConfig() {
-  const config = {
-    dispatcherAppId: process.env.OTELBOT_SHARED_WORKFLOWS_APP_ID,
-    dispatcherPrivateKey: normalizePrivateKey(
-      process.env.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY,
-      process.env.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64,
-    ),
-    webhookSecret: process.env.GITHUB_WEBHOOK_SECRET,
-  };
-
-  const missing = Object.entries(config)
-    .filter(([, value]) => !value)
-    .map(([key]) => key);
-  if (missing.length > 0) {
-    throw httpError(500, "missing required configuration", `missing required configuration: ${missing.join(", ")}`);
+  const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    throw httpError(
+      500,
+      "missing required configuration",
+      "missing required configuration: webhookSecret",
+    );
   }
-
-  return config;
+  return { dispatcher: loadDispatcherCredentials(), webhookSecret };
 }
 
 function readRepository(payload) {
@@ -219,17 +180,6 @@ export function extractPullRequestNumber(eventName, payload) {
     return payload.issue.number;
   }
 
-  // Check suites and check runs on a fork head report an empty association,
-  // because GitHub only matches them to a pull request whose head branch lives
-  // in this repository. Those events fall back to the head SHA.
-  const checkPullRequestNumber = extractPullRequestNumberFromCheckPullRequests(
-    checkPullRequests(payload),
-    payload.repository,
-  );
-  if (checkPullRequestNumber) {
-    return checkPullRequestNumber;
-  }
-
   if (payload.pull_request && Number.isInteger(payload.pull_request.number)) {
     return payload.pull_request.number;
   }
@@ -239,58 +189,6 @@ export function extractPullRequestNumber(eventName, payload) {
     payload.review_thread && payload.review_thread.pull_request_url,
     payload.thread && payload.thread.pull_request_url,
   ]);
-}
-
-export function extractHeadSha(eventName, payload) {
-  const sha =
-    eventName === "status"
-      ? payload.sha
-      : (payload.check_suite || payload.check_run || {}).head_sha;
-  return typeof sha === "string" && /^[0-9a-f]{40}$/.test(sha) ? sha : "";
-}
-
-function checkPullRequests(payload) {
-  const source = payload.check_suite || payload.check_run || {};
-  return source.pull_requests;
-}
-
-function extractPullRequestNumberFromCheckPullRequests(pullRequests, repository) {
-  if (!Array.isArray(pullRequests)) {
-    return undefined;
-  }
-  for (const pullRequest of pullRequests) {
-    if (
-      pullRequest &&
-      Number.isInteger(pullRequest.number) &&
-      checkPullRequestBelongsToRepository(pullRequest, repository)
-    ) {
-      return pullRequest.number;
-    }
-  }
-  return undefined;
-}
-
-function checkPullRequestBelongsToRepository(pullRequest, repository) {
-  const repositoryUrl = repository && repository.url;
-  if (!repositoryUrl) {
-    return false;
-  }
-  // check_suite.pull_requests are commit/ref associations and can point at a
-  // fork PR whose head is this repository. Only dispatch when the associated PR
-  // itself belongs to the repository that emitted this webhook event; the
-  // workflow dispatch passes repository + pr_number, and PR numbers are
-  // repository-scoped.
-  const pullRequestRepositoryUrl = repositoryUrlFromPullRequestApiUrl(pullRequest.url);
-  const baseRepositoryUrl = pullRequest.base && pullRequest.base.repo && pullRequest.base.repo.url;
-  return pullRequestRepositoryUrl === repositoryUrl || baseRepositoryUrl === repositoryUrl;
-}
-
-function repositoryUrlFromPullRequestApiUrl(url) {
-  if (typeof url !== "string") {
-    return "";
-  }
-  const match = url.match(/^(https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+)\/pulls\/\d+$/);
-  return match ? match[1] : "";
 }
 
 function extractPullRequestNumberFromUrls(urls) {
@@ -304,121 +202,4 @@ function extractPullRequestNumberFromUrls(urls) {
     }
   }
   return undefined;
-}
-
-async function findRepositoryInstallationId(jwt, repository) {
-  const body = await githubJson(
-    `https://api.github.com/repos/${encodeRepository(repository)}/installation`,
-    jwt,
-  );
-  if (!body || !body.id) {
-    throw httpError(502, "GitHub installation lookup failed", `GitHub installation response did not include id for ${repository}`);
-  }
-  return body.id;
-}
-
-async function createInstallationToken(jwt, installationId) {
-  const body = await githubJson(
-    `https://api.github.com/app/installations/${installationId}/access_tokens`,
-    jwt,
-    { method: "POST" },
-  );
-  if (!body || !body.token) {
-    throw httpError(502, "GitHub token request failed", "GitHub installation token response did not include a token");
-  }
-  return body.token;
-}
-
-async function dispatchWorkflow(token, inputs) {
-  const encodedWorkflowId = encodeURIComponent(WORKFLOW_ID);
-  await githubFetch(
-    `https://api.github.com/repos/${OWNER}/${WORKFLOW_REPOSITORY}/actions/workflows/${encodedWorkflowId}/dispatches`,
-    token,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        ref: WORKFLOW_REF,
-        inputs,
-      }),
-    },
-  );
-}
-
-function encodeRepository(repository) {
-  return repository.split("/").map(encodeURIComponent).join("/");
-}
-
-async function githubJson(url, token, options = {}) {
-  const response = await githubFetch(url, token, options);
-  if (response.status === 204) {
-    return null;
-  }
-  return response.json();
-}
-
-async function githubFetch(url, token, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      accept: "application/vnd.github+json",
-      "content-type": "application/json",
-      "user-agent": "pull-request-dashboard-webhook",
-      "x-github-api-version": GITHUB_API_VERSION,
-      authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw httpError(
-      502,
-      "GitHub API request failed",
-      `GitHub API request failed: ${response.status} ${response.statusText}: ${body}`,
-    );
-  }
-
-  return response;
-}
-
-function createAppJwt(config) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64UrlJson({ alg: "RS256", typ: "JWT" });
-  const payload = base64UrlJson({
-    iat: now - 60,
-    exp: now + 10 * 60,
-    iss: config.appId,
-  });
-  const unsignedToken = `${header}.${payload}`;
-  const signature = crypto.sign("RSA-SHA256", Buffer.from(unsignedToken), config.privateKey);
-
-  return `${unsignedToken}.${base64Url(signature)}`;
-}
-
-function base64UrlJson(value) {
-  return base64Url(Buffer.from(JSON.stringify(value)));
-}
-
-function base64Url(buffer) {
-  return buffer
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-}
-
-function normalizePrivateKey(value, base64Value) {
-  const rawValue = base64Value ? Buffer.from(base64Value, "base64").toString("utf8") : value;
-  return rawValue && rawValue.trim().replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n");
-}
-
-function response(status, body) {
-  return Response.json(body, { status });
-}
-
-function httpError(statusCode, publicMessage, message) {
-  const error = new Error(message);
-  error.statusCode = statusCode;
-  error.publicMessage = publicMessage;
-  return error;
 }
