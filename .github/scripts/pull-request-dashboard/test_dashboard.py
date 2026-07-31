@@ -182,7 +182,7 @@ class GateHoldTest(unittest.TestCase):
         )
 
         self.assertEqual("2026-07-20T01:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("ci_failure", facts["waiting_age_basis"])
+        self.assertEqual("gate_hold", facts["waiting_age_basis"])
 
     def test_released_route_recomputes_the_wait(self) -> None:
         facts = {

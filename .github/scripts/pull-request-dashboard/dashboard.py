@@ -1225,7 +1225,7 @@ def add_wait_age_facts(
     # rather than restarting from whatever the incomplete facts now imply.
     if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
         facts["waiting_since"] = previous_facts["waiting_since"]
-        facts["waiting_age_basis"] = previous_facts.get("waiting_age_basis") or ""
+        facts["waiting_age_basis"] = "gate_hold"
         return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
