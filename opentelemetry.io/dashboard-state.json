@@ -4986,8 +4986,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "app/otelbot-docs",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11118#discussion_r3689657494"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "9f8f1ea6d38942db8c28a5a77530ce55",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -5007,18 +5010,27 @@
         "head_sha": "d5ddad0cfe77499a1a5ffda4b37c5efd5d8f4caf",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-31T04:11:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-31T10:06:51+00:00",
+        "last_approver_activity_at": "2026-07-31T10:06:51+00:00",
         "last_author_activity_at": "",
-        "reviewers": [],
-        "routing_input_fingerprint": "f8c146fbc64d2c78c59c052e4165bb55aa2f580c6462101767ec30db2d1c06a8",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-07-31T04:11:53+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "routing_input_fingerprint": "56ac63d4b51727a8124b624715b5450cd4501f48a90d9c35d2023f4815dbf5b0",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-31T10:06:51+00:00"
       },
       "failed": false,
       "pr_number": 11118,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11118",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11119": {
