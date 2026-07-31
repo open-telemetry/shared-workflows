@@ -42,11 +42,14 @@
     },
     "199": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/shared-workflows/pull/199#pullrequestreview-4830945758"
+        ],
+        "author_nudge_episode_id": "05a33043e7b242a7ade5edd109506dfd",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -65,18 +68,27 @@
         "head_sha": "409e4fecb321c55214b1ed9828e77235c230c130",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-30T22:52:37+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-31T17:52:27+00:00",
+        "last_approver_activity_at": "2026-07-31T17:52:27+00:00",
         "last_author_activity_at": "2026-07-30T22:52:37+00:00",
-        "reviewers": [],
-        "routing_input_fingerprint": "e2f7d45eb9eeeb803112458480b3fdb314aacec9ea2769c4a24b94ec5119e7af",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T22:52:37+00:00"
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "routing_input_fingerprint": "c705f717b4e3a22bdd12525f3f84e8098ed84d12364a915af44e6cd0f024e7b8",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-31T17:52:27+00:00"
       },
       "failed": false,
       "pr_number": 199,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/199",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "210": {
