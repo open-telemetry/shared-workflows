@@ -31,20 +31,10 @@ BATCH_SIZE = 10
 # uses to keep an item with the author maps onto it. Answer fields are tried in
 # order, matching the fallbacks the production parser accepts.
 VOCABULARIES = {
-    "top_level_reviewer_feedback": (
-        "TOP_LEVEL_REVIEWER_FEEDBACK_BATCH_PROMPT_TEMPLATE",
-        ("discussion_action", "route"),
-        {"author": "substantive", "unclear": "substantive", "none": "noise"},
-    ),
     "reviewer_feedback": (
         "REVIEWER_FEEDBACK_PROMPT_TEMPLATE",
         ("verdict",),
-        {"substantive": "substantive", "noise": "noise"},
-    ),
-    "reviewer_feedback_confirm": (
-        "REVIEWER_FEEDBACK_CONFIRM_PROMPT_TEMPLATE",
-        ("verdict",),
-        {"other": "substantive", "confirmed": "noise"},
+        {"author_action": "substantive", "no_author_action": "noise"},
     ),
 }
 

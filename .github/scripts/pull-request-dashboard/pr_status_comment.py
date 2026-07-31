@@ -12,7 +12,7 @@ from github_cli import (
     gh_api,
     run_gh,
 )
-from dashboard_override import PRE_REVIEW_ROUTES
+from dashboard_override import PRE_REVIEW_ROUTES, uncleared_ci_failing_count
 from route_presentation import (
     outstanding_gate_phrase,
     route_status_summary,
@@ -47,12 +47,6 @@ STATUS_REPORT_TRUNCATION_NOTICE = (
 )
 RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
-# Remove after migrating open PRs as described by the post-rollout
-# compatibility cleanup in WEBHOOK_SETUP.md.
-LEGACY_MARKERS = (
-    "<!-- review-guidance -->",
-    "<!-- copilot-review-guidance -->",
-)
 
 
 def author_nudge_episode_marker(episode_id: str) -> str:
@@ -237,7 +231,7 @@ def render_status_comment(
     review_thread_urls = facts.get("author_action_review_thread_urls") or []
     top_level_feedback_urls = facts.get("author_action_top_level_feedback_urls") or []
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
-    failing_count = facts.get("ci_failing_count", 0)
+    failing_count = uncleared_ci_failing_count(facts)
     non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
 
     override_route = ""
@@ -371,12 +365,11 @@ def managed_status_comments(repo: str, pr_number: int) -> list[dict[str, Any]]:
         f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
         paginate=True,
     )
-    markers = (STATUS_MARKER, *LEGACY_MARKERS)
     return [
         comment
         for comment in comments or []
         if (comment.get("performed_via_github_app") or {}).get("slug") == DASHBOARD_APP_SLUG
-        and any(marker in (comment.get("body") or "") for marker in markers)
+        and STATUS_MARKER in (comment.get("body") or "")
     ]
 
 

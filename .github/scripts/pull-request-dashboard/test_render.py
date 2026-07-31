@@ -252,26 +252,6 @@ class RenderTest(unittest.TestCase):
         )
         self.assertNotIn("<code>", render_pr_tables(prs, results))
 
-    def test_renders_route_override_label_without_configuration(self) -> None:
-        prs = [
-            {
-                "number": 127,
-                "title": "Feature",
-                "author": {"login": "author"},
-                "isDraft": False,
-                "labels": ["size/L", "dashboard:route-overridden"],
-            },
-        ]
-        results = {127: {"route": "reviewers", "facts": {}}}
-
-        markdown = render_pr_tables(prs, results)
-
-        self.assertIn(
-            "#127 Feature · <code>dashboard:route-overridden</code>",
-            markdown,
-        )
-        self.assertNotIn("<code>size/L</code>", markdown)
-
 
 if __name__ == "__main__":
     unittest.main()

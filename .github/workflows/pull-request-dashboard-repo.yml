@@ -3,44 +3,14 @@ name: Pull request dashboard repo
 on:
   workflow_call:
     inputs:
+      # The concurrency groups below key off this raw input, so any alternate
+      # spelling would split them while still writing one state branch.
       repository:
         required: true
         type: string
       pr_number:
         required: false
         default: ""
-        type: string
-      required_approvals:
-        required: false
-        default: 1
-        type: number
-      approver_teams_json:
-        required: false
-        default: "[]"
-        type: string
-      non_blocking_check_patterns_json:
-        required: false
-        default: "[]"
-        type: string
-      require_clean_copilot_review_branches_json:
-        required: false
-        default: "[]"
-        type: string
-      slack_channel:
-        required: false
-        default: ""
-        type: string
-      slack_user_mapping_json:
-        required: false
-        default: "{}"
-        type: string
-      large_repo:
-        required: false
-        default: false
-        type: boolean
-      labels_to_display_json:
-        required: false
-        default: "[]"
         type: string
     secrets:
       PR_DASHBOARD_PRIVATE_KEY:
@@ -52,6 +22,7 @@ permissions:
   contents: read
 
 env:
+  DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
   DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
 
 jobs:
@@ -71,37 +42,63 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Load repository configuration
+        id: config
+        env:
+          TARGET_REPOSITORY: ${{ inputs.repository }}
+          TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$TRIGGER_PR_NUMBER" ]]; then
+            [[ "$TRIGGER_PR_NUMBER" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "bad PR number: $TRIGGER_PR_NUMBER"; exit 1; }
+          fi
+          entry=$(jq -c --arg repo "$TARGET_REPOSITORY" '
+            [ .[] | select(.name == $repo) ] | first
+          ' "$DASHBOARD_CONFIG")
+          if [[ "$entry" == "null" ]]; then
+            echo "no configured repository matched: $TARGET_REPOSITORY" >&2
+            exit 1
+          fi
+          {
+            echo "name=$(jq -r '.name' <<< "$entry")"
+            echo "required_approvals=$(jq -r '.required_approvals // 1' <<< "$entry")"
+            echo "approver_teams_json=$(jq -c '.approver_teams // []' <<< "$entry")"
+            echo "non_blocking_check_patterns_json=$(jq -c '.non_blocking_check_patterns // []' <<< "$entry")"
+            echo "require_clean_copilot_review_branches_json=$(jq -c '.require_clean_copilot_review_branches // []' <<< "$entry")"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: dashboard-token
         with:
           client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
-          repositories: ${{ inputs.repository }}
+          repositories: ${{ steps.config.outputs.name }}
           permission-checks: read
           permission-contents: read
           permission-issues: read
           permission-members: read
           permission-pull-requests: read
+          permission-statuses: read
 
       - name: Restore per-PR classification cache
         if: inputs.pr_number != ''
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-
-            pull-request-dashboard-classifications-${{ inputs.repository }}-all-
+            pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-${{ inputs.pr_number }}-
+            pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-all-
 
       - name: Restore shared backfill classification cache
         if: inputs.pr_number == ''
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}-${{ github.run_attempt }}
+          key: pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-all-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            pull-request-dashboard-classifications-${{ inputs.repository }}-all-
+            pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-all-
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -125,15 +122,35 @@ jobs:
           # CLI has to be pointed explicitly at the Actions token granted copilot-requests: write.
           COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          REPO_NAME: ${{ inputs.repository }}
-          REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
-          APPROVER_TEAMS_JSON: ${{ inputs.approver_teams_json }}
-          NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ inputs.non_blocking_check_patterns_json }}
-          REQUIRE_CLEAN_COPILOT_REVIEW_BRANCHES_JSON: ${{ inputs.require_clean_copilot_review_branches_json }}
+          REPO_NAME: ${{ steps.config.outputs.name }}
+          REQUIRED_APPROVALS: ${{ steps.config.outputs.required_approvals }}
+          APPROVER_TEAMS_JSON: ${{ steps.config.outputs.approver_teams_json }}
+          NON_BLOCKING_CHECK_PATTERNS_JSON: ${{ steps.config.outputs.non_blocking_check_patterns_json }}
+          REQUIRE_CLEAN_COPILOT_REVIEW_BRANCHES_JSON: ${{ steps.config.outputs.require_clean_copilot_review_branches_json }}
           PREPARE_AUTHOR_NUDGES: ${{ github.event_name == 'schedule' }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+
+          # A targeted refresh has nothing to update until the first full
+          # backfill has populated the state branch.
+          if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
+            initial_backfill_complete=$(python3 .github/scripts/pull-request-dashboard/state.py \
+              --repo "$REPO_NAME" \
+              --state-branch "$state_branch")
+            case "$initial_backfill_complete" in
+              true) ;;
+              false)
+                echo "Initial dashboard backfill is incomplete; skipping targeted refresh."
+                exit 0
+                ;;
+              *)
+                echo "unexpected initial backfill result: $initial_backfill_complete" >&2
+                exit 1
+                ;;
+            esac
+          fi
+
           dashboard_args=(--state-branch "$state_branch" --repo "$REPO_NAME" --github-output "$GITHUB_OUTPUT")
           dashboard_args+=(--required-approvals "$REQUIRED_APPROVALS")
           for team in $(jq -r '.[]' <<< "$APPROVER_TEAMS_JSON"); do
@@ -161,7 +178,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Save shared backfill classification cache
         # Preserve valid classifications even when another item fails the update.
@@ -169,7 +186,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
-          key: pull-request-dashboard-classifications-${{ inputs.repository }}-all-${{ github.run_id }}-${{ github.run_attempt }}
+          key: pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-all-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Report GitHub App rate limits
         if: always()
@@ -196,13 +213,34 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Load repository configuration
+        id: config
+        env:
+          TARGET_REPOSITORY: ${{ inputs.repository }}
+        run: |
+          set -euo pipefail
+          entry=$(jq -c --arg repo "$TARGET_REPOSITORY" '
+            [ .[] | select(.name == $repo) ] | first
+          ' "$DASHBOARD_CONFIG")
+          if [[ "$entry" == "null" ]]; then
+            echo "no configured repository matched: $TARGET_REPOSITORY" >&2
+            exit 1
+          fi
+          {
+            echo "name=$(jq -r '.name' <<< "$entry")"
+            echo "slack_channel=$(jq -r '.slack_channel // ""' <<< "$entry")"
+            echo "slack_user_mapping_json=$(jq -c '.slack_user_mapping // {}' <<< "$entry")"
+            echo "large_repo=$(jq -r '.large_repo // false' <<< "$entry")"
+            echo "labels_to_display_json=$(jq -c '.labels_to_display // []' <<< "$entry")"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: dashboard-token
         with:
           client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
-          repositories: ${{ inputs.repository }}
+          repositories: ${{ steps.config.outputs.name }}
           permission-checks: read
           permission-contents: read
           permission-issues: write
@@ -219,9 +257,9 @@ jobs:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_CHANNEL: ${{ inputs.slack_channel }}
-          SLACK_USER_MAP_JSON: ${{ inputs.slack_user_mapping_json }}
-          REPO_NAME: ${{ inputs.repository }}
+          SLACK_CHANNEL: ${{ steps.config.outputs.slack_channel }}
+          SLACK_USER_MAP_JSON: ${{ steps.config.outputs.slack_user_mapping_json }}
+          REPO_NAME: ${{ steps.config.outputs.name }}
           TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           set -euo pipefail
@@ -243,9 +281,9 @@ jobs:
           steps.delivery.outputs.active == 'true'
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-          REPO_NAME: ${{ inputs.repository }}
-          LARGE_REPO: ${{ inputs.large_repo }}
-          LABELS_TO_DISPLAY_JSON: ${{ inputs.labels_to_display_json }}
+          REPO_NAME: ${{ steps.config.outputs.name }}
+          LARGE_REPO: ${{ steps.config.outputs.large_repo }}
+          LABELS_TO_DISPLAY_JSON: ${{ steps.config.outputs.labels_to_display_json }}
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"

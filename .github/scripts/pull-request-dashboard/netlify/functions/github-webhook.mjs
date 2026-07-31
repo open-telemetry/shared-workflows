@@ -7,11 +7,15 @@ const WORKFLOW_REPOSITORY = "shared-workflows";
 const WORKFLOW_ID = "pull-request-dashboard.yml";
 const WORKFLOW_REF = "main";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
+const CODE_SCANNING_APP_ID = 57789; // github-advanced-security
 
 const ALLOWED_ACTIONS = {
   // GitHub only delivers `requested` and `rerequested` to apps with write-level
   // Checks access; this app has read-only, so `completed` is all that arrives.
   check_suite: new Set(["completed"]),
+  check_run: new Set(["completed"]),
+  // Commit statuses carry no action.
+  status: new Set([""]),
   pull_request: new Set([
     "assigned",
     "closed",
@@ -67,12 +71,18 @@ async function handle(request) {
   }
 
   const payload = parseJson(rawBody);
-  const action = payload.action;
+  const action = payload.action || "";
   if (!isAllowedAction(eventName, action)) {
     return response(202, { status: "ignored", reason: `unsupported action: ${eventName}.${action || "missing"}` });
   }
   if (isDashboardSelfTriggeredCommentEvent(eventName, payload)) {
     return response(202, { status: "ignored", reason: "dashboard-managed comment" });
+  }
+  if (isRedundantCheckRunEvent(eventName, payload)) {
+    return response(202, { status: "ignored", reason: "check run covered by its check suite" });
+  }
+  if (isDefaultBranchStatusEvent(eventName, payload)) {
+    return response(202, { status: "ignored", reason: "status on the default branch" });
   }
 
   const repository = readRepository(payload);
@@ -84,8 +94,11 @@ async function handle(request) {
   }
 
   const prNumber = extractPullRequestNumber(eventName, payload);
-  if (!Number.isInteger(prNumber) || prNumber <= 0) {
-    return response(202, { status: "ignored", reason: "no pull request number found" });
+  const headSha = extractHeadSha(eventName, payload);
+  const dispatchPrNumber = Number.isInteger(prNumber) && prNumber > 0 ? String(prNumber) : "";
+  const dispatchHeadSha = dispatchPrNumber ? "" : headSha;
+  if (!dispatchPrNumber && !dispatchHeadSha) {
+    return response(202, { status: "ignored", reason: "no pull request number or head commit found" });
   }
 
   const dispatcherJwt = createAppJwt({ appId: config.dispatcherAppId, privateKey: config.dispatcherPrivateKey });
@@ -93,20 +106,44 @@ async function handle(request) {
   const installationToken = await createInstallationToken(dispatcherJwt, installationId);
   await dispatchWorkflow(installationToken, {
     repository: repository.name,
-    pr_number: String(prNumber),
+    pr_number: dispatchPrNumber,
+    head_sha: dispatchHeadSha,
     trigger_event: eventName,
   });
 
   return response(202, {
     status: "dispatched",
     repository: repository.fullName,
-    pr_number: prNumber,
+    pr_number: dispatchPrNumber,
+    head_sha: dispatchHeadSha,
     trigger_event: eventName,
   });
 }
 
 export function isAllowedAction(eventName, action) {
   return Boolean(ALLOWED_ACTIONS[eventName] && ALLOWED_ACTIONS[eventName].has(action));
+}
+
+// Every other app reports its check runs under a check suite that completes
+// with them, and one dispatch per job would multiply webhook volume. The code
+// scanning app instead rewrites its already completed check run when the
+// analysis arrives, which nothing else reports.
+export function isRedundantCheckRunEvent(eventName, payload) {
+  if (eventName !== "check_run") {
+    return false;
+  }
+  const app = (payload.check_run || {}).app || {};
+  return app.id !== CODE_SCANNING_APP_ID;
+}
+
+export function isDefaultBranchStatusEvent(eventName, payload) {
+  if (eventName !== "status") {
+    return false;
+  }
+  const defaultBranch = (payload.repository || {}).default_branch;
+  return (payload.branches || []).some(
+    (branch) => branch && branch.name === defaultBranch,
+  );
 }
 
 export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
@@ -174,7 +211,7 @@ function parseJson(rawBody) {
   }
 }
 
-function extractPullRequestNumber(eventName, payload) {
+export function extractPullRequestNumber(eventName, payload) {
   if (eventName === "issue_comment") {
     if (!payload.issue || !payload.issue.pull_request) {
       return undefined;
@@ -182,8 +219,11 @@ function extractPullRequestNumber(eventName, payload) {
     return payload.issue.number;
   }
 
-  const checkPullRequestNumber = extractPullRequestNumberFromCheckSuitePullRequests(
-    payload.check_suite && payload.check_suite.pull_requests,
+  // Check suites and check runs on a fork head report an empty association,
+  // because GitHub only matches them to a pull request whose head branch lives
+  // in this repository. Those events fall back to the head SHA.
+  const checkPullRequestNumber = extractPullRequestNumberFromCheckPullRequests(
+    checkPullRequests(payload),
     payload.repository,
   );
   if (checkPullRequestNumber) {
@@ -201,7 +241,20 @@ function extractPullRequestNumber(eventName, payload) {
   ]);
 }
 
-function extractPullRequestNumberFromCheckSuitePullRequests(pullRequests, repository) {
+export function extractHeadSha(eventName, payload) {
+  const sha =
+    eventName === "status"
+      ? payload.sha
+      : (payload.check_suite || payload.check_run || {}).head_sha;
+  return typeof sha === "string" && /^[0-9a-f]{40}$/.test(sha) ? sha : "";
+}
+
+function checkPullRequests(payload) {
+  const source = payload.check_suite || payload.check_run || {};
+  return source.pull_requests;
+}
+
+function extractPullRequestNumberFromCheckPullRequests(pullRequests, repository) {
   if (!Array.isArray(pullRequests)) {
     return undefined;
   }
@@ -209,7 +262,7 @@ function extractPullRequestNumberFromCheckSuitePullRequests(pullRequests, reposi
     if (
       pullRequest &&
       Number.isInteger(pullRequest.number) &&
-      checkSuitePullRequestBelongsToRepository(pullRequest, repository)
+      checkPullRequestBelongsToRepository(pullRequest, repository)
     ) {
       return pullRequest.number;
     }
@@ -217,7 +270,7 @@ function extractPullRequestNumberFromCheckSuitePullRequests(pullRequests, reposi
   return undefined;
 }
 
-function checkSuitePullRequestBelongsToRepository(pullRequest, repository) {
+function checkPullRequestBelongsToRepository(pullRequest, repository) {
   const repositoryUrl = repository && repository.url;
   if (!repositoryUrl) {
     return false;

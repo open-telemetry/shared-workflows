@@ -335,6 +335,7 @@ query($id: ID!, $after: String) {
                                                 databaseId
                                             }
                                             workflowRun {
+                                                databaseId
                                                 workflow {
                                                     name
                                                 }
@@ -385,6 +386,7 @@ def normalize_check(node: dict[str, Any]) -> dict[str, Any]:
         "state": state,
         "bucket": check_bucket(state),
         "workflow": workflow.get("name") or "",
+        "workflow_run_id": workflow_run.get("databaseId"),
         "description": node.get("description") or "",
         "link": (node.get("targetUrl") if is_status else node.get("detailsUrl")) or "",
         "started_at": (node.get("createdAt") if is_status else node.get("startedAt")) or "",
@@ -405,6 +407,18 @@ def check_attempt_order(check: dict[str, Any]) -> tuple[int, int | str]:
     return 1, check["check_run_id"] or 0
 
 
+def check_identity(check: dict[str, Any]) -> tuple[str, str, int | None]:
+    # Separate workflows can name a job identically, so the workflow keeps their
+    # checks apart while rerun attempts of one check still collapse.
+    return check["workflow"], check["name"], check["integration_id"]
+
+
+def check_execution_identity(check: dict[str, Any]) -> tuple[int | None, str, int | None]:
+    # Two runs of one workflow can be in flight for the same commit, so a check
+    # that finished in one run must not hide the one still running in another.
+    return check["workflow_run_id"], check["name"], check["integration_id"]
+
+
 def gh_pr_check_rollup(
     repo: str,
     pr_id: str,
@@ -412,9 +426,10 @@ def gh_pr_check_rollup(
 ) -> dict[str, Any] | None:
     del repo
     checks_by_identity: dict[
-        tuple[str, int | None, bool], tuple[dict[str, Any], bool]
+        tuple[str, str, int | None, bool], tuple[dict[str, Any], bool]
     ] = {}
-    code_scanning_by_identity: dict[tuple[str, int | None], dict[str, Any]] = {}
+    latest_by_execution: dict[tuple[int | None, str, int | None], dict[str, Any]] = {}
+    code_scanning_executions: set[tuple[int | None, str, int | None]] = set()
     after: str | None = None
     head_oid = ""
     try:
@@ -435,26 +450,25 @@ def gh_pr_check_rollup(
                 is_required = bool(node.get("isRequired"))
                 name = (node.get("context") or node.get("name") or "")
                 app = ((node.get("checkSuite") or {}).get("app") or {})
+                check = normalize_check(node)
+                identity = check_identity(check)
+                execution = check_execution_identity(check)
+                latest_attempt = latest_by_execution.get(execution)
+                if latest_attempt is None or check_attempt_order(
+                    check
+                ) >= check_attempt_order(latest_attempt):
+                    latest_by_execution[execution] = check
                 if app.get("databaseId") == CODE_SCANNING_APP_ID:
-                    check = normalize_check(node)
-                    code_scanning_identity = (check["name"], check["integration_id"])
-                    previous_attempt = code_scanning_by_identity.get(
-                        code_scanning_identity
-                    )
-                    if previous_attempt is None or check_attempt_order(
-                        check
-                    ) >= check_attempt_order(previous_attempt):
-                        code_scanning_by_identity[code_scanning_identity] = check
+                    code_scanning_executions.add(execution)
                 if not is_required and not any(
                     fnmatchcase(name, pattern)
                     for pattern in non_blocking_check_patterns
                 ):
                     continue
-                check = normalize_check(node)
-                identity = (check["name"], check["integration_id"], is_required)
-                previous = checks_by_identity.get(identity)
+                required_identity = (*identity, is_required)
+                previous = checks_by_identity.get(required_identity)
                 if previous is None or check_attempt_order(check) >= check_attempt_order(previous[0]):
-                    checks_by_identity[identity] = (check, is_required)
+                    checks_by_identity[required_identity] = (check, is_required)
             page_info = contexts.get("pageInfo") or {}
             if not page_info.get("hasNextPage"):
                 break
@@ -472,7 +486,19 @@ def gh_pr_check_rollup(
             for check, is_required in checks
             if not is_required and check.get("bucket") in ("fail", "cancel")
         ],
-        "code_scanning": list(code_scanning_by_identity.values()),
+        "code_scanning": [
+            check
+            for execution, check in latest_by_execution.items()
+            if execution in code_scanning_executions
+        ],
+        # Every check at the head, not just the required ones, because the
+        # optional job that uploads a code scanning analysis is what decides
+        # whether an undetermined result is final.
+        "pending": [
+            check
+            for check in latest_by_execution.values()
+            if check["bucket"] == "pending"
+        ],
     }
 
 
@@ -530,17 +556,24 @@ def code_scanning_tools(rules: list[dict[str, Any]] | None) -> list[str]:
 def required_code_scanning_checks(
     code_scanning_checks: list[dict[str, Any]],
     tools: list[str],
+    checks_still_running: bool,
 ) -> list[dict[str, Any]]:
     # A code_scanning ruleset rule holds the merge on a check named after the
     # tool, but GitHub never reports that check as required. NEUTRAL there means
     # the alerts introduced by the PR could not be determined, which also holds
-    # the merge, so it cannot be treated as a skip.
+    # the merge, so it cannot be treated as a skip. While other checks are still
+    # running that NEUTRAL is usually a placeholder for an analysis that has not
+    # been uploaded yet, and code scanning replaces it in place without any
+    # event that would refresh a stale failure.
     required: list[dict[str, Any]] = []
     for check in code_scanning_checks:
         if check["name"] not in tools:
             continue
         if check["bucket"] == "skipping":
-            check = {**check, "bucket": "fail"}
+            check = {
+                **check,
+                "bucket": "pending" if checks_still_running else "fail",
+            }
         required.append(check)
     return required
 
@@ -732,7 +765,6 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                             url
                             body
                             createdAt
-                            updatedAt
                             author {
                                 login
                             }
@@ -769,7 +801,6 @@ query($thread_id: ID!, $after: String) {
                     url
                     body
                     createdAt
-                    updatedAt
                     author {
                         login
                     }
@@ -967,6 +998,7 @@ def fetch_pr_routing_raw(
                 required_code_scanning_checks(
                     check_rollup["code_scanning"],
                     code_scanning_tools(branch_rules),
+                    bool(check_rollup["pending"]),
                 ),
             )
         return {

@@ -180,7 +180,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": [
                         "&" * pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT
                         for _ in range(
@@ -217,7 +217,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             self.pr(),
             {
                 "route": "author",
-                "facts": {"author": "alice", "ci_failing_count": 1},
+                "facts": {"author": "alice", "ci_uncleared_failing_count": 1},
             },
         )
 
@@ -265,7 +265,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "route": "author",
                 "facts": {
                     "author": "alice",
-                    "ci_failing_count": 2,
+                    "ci_uncleared_failing_count": 2,
                     "author_action_review_thread_urls": [
                         "https://github.com/open-telemetry/example/pull/1#discussion_r1",
                     ],
@@ -284,7 +284,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 2,
+                    "ci_uncleared_failing_count": 2,
                     "non_blocking_check_failures": [
                         "CodeQL",
                         "workflow-notification",
@@ -305,7 +305,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": [
                         "[CodeQL] <script>\n@maintainers",
                         r"pipe|slash\check & more",
@@ -335,7 +335,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": failures,
                 },
             },
@@ -400,7 +400,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                     {
                         "route": route,
                         "facts": {
-                            "ci_failing_count": failing_count,
+                            "ci_uncleared_failing_count": failing_count,
                             "non_blocking_check_failures": non_blocking_failures,
                         },
                     },
@@ -409,6 +409,20 @@ class RenderStatusCommentTest(unittest.TestCase):
                 self.assertIn(f"**{waiting_on}** · refreshed ", body)
                 self.assertIn(f"**Also blocked by:** {blocked_by}", body)
                 self.assertIn(non_blocking_line, body.splitlines())
+
+    def test_override_cleared_check_failure_is_not_reported_as_blocking(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "approver",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 0,
+                },
+            },
+        )
+
+        self.assertNotIn("**Also blocked by:**", body)
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
@@ -567,11 +581,11 @@ class UpsertStatusCommentTest(unittest.TestCase):
         pr_status_comment,
         "managed_status_comments",
         return_value=[
-            {"id": 7, "body": "<!-- review-guidance --> old"},
+            {"id": 7, "body": "<!-- pull-request-dashboard-status --> old"},
             {"id": 8, "body": "<!-- pull-request-dashboard-status --> duplicate"},
         ],
     )
-    def test_migrates_legacy_comment_and_deletes_duplicates(self, _comments: object) -> None:
+    def test_updates_comment_and_deletes_duplicates(self, _comments: object) -> None:
         pr_status_comment.upsert_status_comment("open-telemetry/example", 1, "body")
 
         self.assertEqual(["PATCH", "DELETE"], [command[3] for command in self.commands])
@@ -590,7 +604,7 @@ class ManagedStatusCommentsTest(unittest.TestCase):
             },
             {
                 "id": 3,
-                "body": "<!-- review-guidance --> legacy",
+                "body": "no marker",
                 "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
             },
             {
@@ -603,7 +617,7 @@ class ManagedStatusCommentsTest(unittest.TestCase):
     def test_requires_dashboard_app_identity_and_marker(self, _gh_api: object) -> None:
         comments = pr_status_comment.managed_status_comments("open-telemetry/example", 1)
 
-        self.assertEqual([2, 3], [comment["id"] for comment in comments])
+        self.assertEqual([2], [comment["id"] for comment in comments])
 
 
 class RolloutStateTest(unittest.TestCase):

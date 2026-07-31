@@ -16,7 +16,6 @@ from github_cli import (
     run_gh,
 )
 from dashboard_override import author_override_guidance
-from dashboard_override import DASHBOARD_OVERRIDE_LABEL
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
     managed_status_comments,
@@ -50,12 +49,6 @@ def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
         "base_branch": str(pr.get("baseRefName") or ""),
         "checks": raw.get("checks"),
         "issue_comments": issue_comments,
-        "labels": sorted(
-            label.get("name") or ""
-            for label in pr.get("labels") or []
-            if isinstance(label, dict)
-            and label.get("name") == DASHBOARD_OVERRIDE_LABEL
-        ),
         "pr_text": {
             "body": str(pr.get("body") or "").replace("\r\n", "\n"),
             "title": str(pr.get("title") or ""),

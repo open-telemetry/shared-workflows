@@ -4,20 +4,16 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from urllib.parse import quote
 
 from github_cli import gh_api, run_gh
 from route_presentation import outstanding_gate_phrase
 from state import load_dashboard_state_cache
-from utils import actor_login
+from utils import actor_login, parse_ts
 
 
-DASHBOARD_OVERRIDE_LABEL = "dashboard:route-overridden"
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
 DASHBOARD_OVERRIDE_COMMAND = "/dashboard route:reviewers"
 DASHBOARD_OVERRIDE_SUBCOMMAND = "route:reviewers"
-DASHBOARD_OVERRIDE_LABEL_COLOR = "1D76DB"
-DASHBOARD_OVERRIDE_LABEL_DESCRIPTION = "Routing manually overridden to reviewers"
 # Mirrors pr_status_comment.DASHBOARD_APP_SLUG; duplicated here to avoid a
 # circular import between the two modules.
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
@@ -30,7 +26,6 @@ _OVERRIDE_ACK_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-override-ack:(\d+) -->"
 )
 PRE_REVIEW_ROUTES = ("author",)
-REVIEWERS_OR_LATER_ROUTES = ("approver", "maintainer")
 
 
 def author_override_guidance(staleness_note: str = "") -> str:
@@ -106,22 +101,50 @@ def latest_authorized_command(
     return best_id, best_user
 
 
+def latest_authorized_command_at(
+    raw: dict[str, Any],
+    author: str,
+    reviewers: set[str] | None,
+) -> str:
+    """Timestamp of the newest authorized override command, acknowledged or not.
+
+    Unlike `latest_authorized_command`, acknowledged commands still count: the
+    watermark has to outlive the acknowledgement, or the discussions a command
+    cleared would come back on the next refresh. An acknowledgement is also
+    treated as durable proof of authorization, since approver-team membership is
+    resolved live and an approver can leave the team after commanding.
+    """
+    acknowledged_ids = _acknowledged_override_command_ids(raw.get("issue_comments"))
+    latest = ""
+    for comment in raw.get("issue_comments") or []:
+        if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
+            continue
+        try:
+            comment_id = int(comment.get("id"))
+        except (TypeError, ValueError):
+            comment_id = 0
+        if comment_id not in acknowledged_ids and not is_authorized_commander(
+            actor_login(comment.get("user") or {}), author, reviewers
+        ):
+            continue
+        created_at = comment.get("created_at") or ""
+        if created_at > latest:
+            latest = created_at
+    return latest
+
+
 def dashboard_override_facts(
     raw: dict[str, Any],
     author: str,
-    labels: set[str],
     reviewers: set[str] | None = None,
 ) -> dict[str, Any]:
-    label_applied = DASHBOARD_OVERRIDE_LABEL in labels
     command_id, command_user = latest_authorized_command(raw, author, reviewers)
-    command_pending = bool(command_id)
     return {
-        "dashboard_override": label_applied,
-        "dashboard_override_label_applied": label_applied,
         "dashboard_override_command_id": command_id,
         "dashboard_override_command_user": command_user,
-        "dashboard_override_requested": command_pending and not label_applied,
-        "dashboard_override_release_requested": False,
+        "dashboard_override_since": latest_authorized_command_at(
+            raw, author, reviewers
+        ),
         "dashboard_command_replies": pending_command_replies(raw, author, reviewers),
     }
 
@@ -153,16 +176,27 @@ def _replied_command_ids(comments: list[dict[str, Any]] | None) -> set[int]:
     return replied_ids
 
 
-def _acknowledged_override_command_id(
+def _acknowledged_override_command_ids(
     comments: list[dict[str, Any]] | None,
-) -> int:
-    acknowledged_id = 0
+) -> set[int]:
+    """Command ids the dashboard app has already acknowledged.
+
+    Ack markers are matched only in comments authored by the dashboard app, so a
+    user cannot forge one to authorize their own command.
+    """
+    acknowledged_ids: set[int] = set()
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
         for match in _OVERRIDE_ACK_MARKER_RE.findall(comment.get("body") or ""):
-            acknowledged_id = max(acknowledged_id, int(match))
-    return acknowledged_id
+            acknowledged_ids.add(int(match))
+    return acknowledged_ids
+
+
+def _acknowledged_override_command_id(
+    comments: list[dict[str, Any]] | None,
+) -> int:
+    return max(_acknowledged_override_command_ids(comments), default=0)
 
 
 def pending_command_replies(
@@ -231,24 +265,35 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             "only the pull request author or a member of an approving team can "
             "use `/dashboard route:reviewers`."
         )
-    elif kind == "routed":
+    elif kind in ("routed", "already_routed"):
+        route = reply.get("route") or ""
         held_gates = reply.get("held_gates") or ""
         if held_gates:
             message = (
                 "accepted the reviewer-routing override; the reviewer handoff "
                 f"is waiting on {held_gates}."
             )
+        elif route in PRE_REVIEW_ROUTES:
+            message = (
+                "everything still open on this pull request arrived after your "
+                "`/dashboard route:reviewers` command, so it is still waiting "
+                "on you."
+            )
+        elif kind == "already_routed":
+            where = ROUTE_ALREADY_ROUTED_PHRASE.get(
+                route, "not currently waiting on you"
+            )
+            message = (
+                f"this pull request is {where}, so `/dashboard route:reviewers` had "
+                "no effect."
+            )
+        elif route == "maintainer":
+            message = (
+                "accepted the reviewer-routing override; this pull request has "
+                "the approvals it needs and is now waiting on maintainers."
+            )
         else:
             message = "routed this pull request to reviewers."
-    elif kind == "already_routed":
-        where = ROUTE_ALREADY_ROUTED_PHRASE.get(
-            reply.get("route") or "", "not currently waiting on you"
-        )
-        message = (
-            f"this pull request is {where}, so `/dashboard route:reviewers` had "
-            "no effect. The command only applies while the pull request is "
-            "waiting on you."
-        )
     else:
         subcommand = reply.get("subcommand") or ""
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
@@ -279,24 +324,6 @@ def command_reply_exists(
         and marker in (comment.get("body") or "")
         for comment in comments or []
     )
-
-
-def ensure_command_reply(
-    repo: str,
-    pr_number: int,
-    reply: dict[str, Any],
-) -> None:
-    comments = gh_api(
-        f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
-        paginate=True,
-    )
-    if command_reply_exists(comments, int(reply["comment_id"])):
-        return
-    run_gh([
-        "gh", "api", "--method", "POST",
-        f"repos/{repo}/issues/{pr_number}/comments",
-        "-f", f"body={render_command_reply(reply)}",
-    ])
 
 
 def deliver_dashboard_command_replies(repo: str) -> list[str]:
@@ -334,112 +361,79 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
     return errors
 
 
-def apply_dashboard_override(facts: dict[str, Any], route: str) -> str:
-    label_applied = bool(facts.get("dashboard_override_label_applied"))
-    requested = bool(facts.get("dashboard_override_requested"))
-    command_pending = bool(facts.get("dashboard_override_command_id"))
-    # The override only takes effect before review, while automatic routing waits
-    # on the author. On every later route the natural routing stands.
-    override_applies = route in PRE_REVIEW_ROUTES and (label_applied or requested)
-    # A command that does not newly move the pull request to reviewers is a no-op;
-    # the author is told where it is routed. This covers both a non-overridable
-    # route and an existing label that already provides the reviewer handoff.
-    facts["dashboard_override_noop"] = command_pending and (
-        label_applied or not override_applies
-    )
-    if requested and not override_applies:
-        facts["dashboard_override_requested"] = False
-    facts["dashboard_override"] = override_applies
-    # Release the label once automatic routing reaches or passes reviewers, so a
-    # forgotten override cannot pin the pull request at reviewers or drag it back
-    # from maintainers.
-    facts["dashboard_override_release_requested"] = (
-        label_applied and route in REVIEWERS_OR_LATER_ROUTES
-    )
-    return "approver" if override_applies else route
+def clear_overridden_actions(
+    facts: dict[str, Any],
+    pending_actions: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Drop the author actions an override command already answered.
+
+    `/dashboard route:reviewers` is the author saying everything open at that
+    moment is handled. Clearing those actions keeps them from routing the pull
+    request back to the author on every later refresh, which would make the
+    author repeat the command each time review comes back around. Anything that
+    happens after the command keeps its author action, so new feedback still
+    reaches the author, including a reviewer reopening something the command
+    cleared.
+    """
+    # Timestamps reach here in both GitHub's `...Z` form and `format_ts`'s
+    # `...+00:00` form, so they have to be parsed rather than compared as text.
+    override_since = parse_ts(facts.get("dashboard_override_since"))
+    facts["dashboard_override_cleared_count"] = 0
+    facts["dashboard_override_cleared_ci"] = False
+    if override_since is None:
+        return pending_actions
+    remaining: dict[str, dict[str, Any]] = {}
+    cleared = 0
+    for discussion_id, entry in pending_actions.items():
+        since = parse_ts(entry.get("since"))
+        # GitHub timestamps are second-granularity, so an item sharing the
+        # command's second is left open rather than risking masking it.
+        if entry.get("action") == "author" and since and since < override_since:
+            cleared += 1
+            continue
+        remaining[discussion_id] = entry
+    ci_failing_count = facts.get("ci_failing_count") or 0
+    facts["dashboard_override_cleared_count"] = cleared
+    facts["dashboard_override_cleared_ci"] = uncleared_ci_failing_count(facts) < ci_failing_count
+    return remaining
 
 
-def append_route_noop_reply(
+def uncleared_ci_failing_count(facts: dict[str, Any]) -> int:
+    """Failing required checks that an override command has not cleared."""
+    return facts.get("ci_uncleared_failing_count") or 0
+
+
+def append_command_ack_reply(
     raw: dict[str, Any],
     facts: dict[str, Any],
     route: str,
 ) -> None:
-    if not facts.get("dashboard_override_noop"):
-        return
+    """Queue the reply that acknowledges an override command.
+
+    The reply carries the acknowledgement marker that stops the command from
+    being processed again, so every command gets one, whether or not it cleared
+    anything. `route` is already what the cleared items produced, so a command
+    that cleared nothing is answered with where the pull request is routed.
+    """
     command_id = int(facts.get("dashboard_override_command_id") or 0)
     if not command_id:
         return
-    replied_ids = _replied_command_ids(raw.get("issue_comments") or [])
-    if command_id in replied_ids:
+    if command_id in _replied_command_ids(raw.get("issue_comments") or []):
         return
     replies = facts.setdefault("dashboard_command_replies", [])
     if any(reply.get("comment_id") == command_id for reply in replies):
         return
+    cleared = bool(facts.get("dashboard_override_cleared_count")) or bool(
+        facts.get("dashboard_override_cleared_ci")
+    )
     replies.append({
         "comment_id": command_id,
-        "kind": "already_routed",
+        "kind": "routed" if cleared else "already_routed",
         "user": facts.get("dashboard_override_command_user") or facts.get("author") or "",
         "route": route,
+        "held_gates": (
+            outstanding_gate_phrase(facts)
+            if facts.get("route_held_for_gates")
+            else ""
+        ),
     })
-
-
-def deliver_dashboard_override_requests(repo: str) -> list[str]:
-    dashboard_state = load_dashboard_state_cache()
-    if dashboard_state is None:
-        return []
-    pr_results = sorted(
-        (dashboard_state.get("prs") or {}).items(),
-        key=lambda item: int(item[0]),
-    )
-    if any(
-        ((result or {}).get("facts") or {}).get("dashboard_override_requested")
-        for _key, result in pr_results
-    ):
-        try:
-            run_gh([
-                "gh", "label", "create", DASHBOARD_OVERRIDE_LABEL,
-                "--repo", repo,
-                "--color", DASHBOARD_OVERRIDE_LABEL_COLOR,
-                "--description", DASHBOARD_OVERRIDE_LABEL_DESCRIPTION,
-                "--force",
-            ])
-        except Exception as e:
-            return [f"label: {e}"]
-
-    errors: list[str] = []
-    for key, result in pr_results:
-        facts = (result or {}).get("facts") or {}
-        pr_number = int(key)
-        if facts.get("dashboard_override_requested"):
-            try:
-                run_gh([
-                    "gh", "api", "--method", "POST",
-                    f"repos/{repo}/issues/{pr_number}/labels",
-                    "-f", f"labels[]={DASHBOARD_OVERRIDE_LABEL}",
-                ])
-                ensure_command_reply(
-                    repo,
-                    pr_number,
-                    {
-                        "comment_id": facts["dashboard_override_command_id"],
-                        "kind": "routed",
-                        "held_gates": (
-                            outstanding_gate_phrase(facts)
-                            if facts.get("route_held_for_gates")
-                            else ""
-                        ),
-                        "user": facts.get("dashboard_override_command_user") or "",
-                    },
-                )
-            except Exception as e:
-                errors.append(f"PR #{pr_number}: {e}")
-        elif facts.get("dashboard_override_release_requested"):
-            try:
-                run_gh([
-                    "gh", "api", "--method", "DELETE",
-                    f"repos/{repo}/issues/{pr_number}/labels/{quote(DASHBOARD_OVERRIDE_LABEL)}",
-                ])
-            except Exception as e:
-                if "404" not in str(e):
-                    errors.append(f"PR #{pr_number}: {e}")
-    return errors
