@@ -233,6 +233,39 @@ class ReviewThreadOrderTest(unittest.TestCase):
             ["please fix", "fixed it"], [c["body"] for c in threads[0]["comments"]]
         )
 
+    def test_editing_a_comment_does_not_reset_how_long_the_thread_has_waited(
+        self,
+    ) -> None:
+        threads = group_review_threads(
+            {
+                "review_threads": [
+                    {
+                        "id": "thread-1",
+                        "isResolved": False,
+                        "isOutdated": False,
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "url": "https://example.test/discussion/1",
+                                    "body": "please fix",
+                                    "createdAt": "2026-07-01T01:00:00Z",
+                                    "updatedAt": "2026-07-14T03:00:00Z",
+                                    "author": {"login": "reviewer"},
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
+            "author",
+            {"reviewer"},
+            {"conflicts": "no"},
+        )
+
+        self.assertEqual(
+            ["2026-07-01T01:00:00Z"], [c["timestamp"] for c in threads[0]["comments"]]
+        )
+
 
 class ReviewThreadDiscussionUrlTest(unittest.TestCase):
     def test_group_review_threads_ignores_author_only_annotations(self) -> None:

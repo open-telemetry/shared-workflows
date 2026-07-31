@@ -264,6 +264,15 @@ the implementation understandable and operationally cheap.
   `actions/stale` reads, so no PR in a dashboard repository could go stale.
   The dashboard app is never a PR's author, so `role_for` always classifies its
   comments as `bot` and they never count.
+- An inline review thread's wait age and list position come from its last
+  comment's `createdAt`, never its edit time. Wait age is what makes a neglected
+  thread visible, so a reviewer fixing a typo in their own comment must not make
+  a weeks-old thread look freshly raised. Top-level feedback items deliberately
+  differ and date from the edit time, because a top-level item is closed by an
+  explicit author reply and editing the request changes what was asked; the
+  reply that closed it is only reused while it stays newer than the item's root.
+  Inline threads have no such reply ledger to invalidate, so there is nothing an
+  edit needs to reset.
 
 ## Top-Level Feedback
 

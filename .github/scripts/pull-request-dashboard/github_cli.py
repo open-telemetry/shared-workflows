@@ -719,7 +719,6 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                             url
                             body
                             createdAt
-                            updatedAt
                             author {
                                 login
                             }
@@ -756,7 +755,6 @@ query($thread_id: ID!, $after: String) {
                     url
                     body
                     createdAt
-                    updatedAt
                     author {
                         login
                     }

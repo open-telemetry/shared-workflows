@@ -655,14 +655,15 @@ def group_review_threads(
         thread_url = raw_comments[0].get("url") if raw_comments else ""
         # a thread reads in creation order; sorting on updatedAt would move an
         # edited old comment to the end and change who last spoke
-        ordered = sorted(
-            raw_comments, key=lambda c: c.get("createdAt") or c.get("updatedAt") or ""
-        )
+        ordered = sorted(raw_comments, key=lambda c: c.get("createdAt") or "")
         comments = []
         for c in ordered:
             actor = reviewer_actor_login(c.get("author") or {})
+            # Not updatedAt: this timestamp becomes how long the thread has been
+            # waiting, and a reviewer fixing a typo in their own comment must not
+            # make a weeks-old thread look freshly raised.
             comments.append(discussion_comment(
-                c.get("updatedAt") or c.get("createdAt") or "",
+                c.get("createdAt") or "",
                 actor,
                 author,
                 reviewers,
