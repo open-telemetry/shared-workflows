@@ -22,6 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
+from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -80,7 +81,11 @@ def run_batch(batch: list[dict], model: str, salt: str) -> dict:
         raw = {"returncode": proc.returncode, "stdout": proc.stdout}
     except Exception as e:  # noqa: BLE001 - one bad batch must not end the run
         raw = {"returncode": -1, "stdout": "", "error": f"{type(e).__name__}: {e}"}
-    path.write_text(json.dumps(raw), encoding="utf-8")
+    # Via a temporary name, so an interrupt cannot leave a half-written entry
+    # for the next run to read back.
+    tmp = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
+    tmp.write_text(json.dumps(raw), encoding="utf-8")
+    tmp.replace(path)
     return raw
 
 
