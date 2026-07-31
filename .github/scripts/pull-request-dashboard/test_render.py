@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from render import render_diagnostics_section, render_pr_tables
+from render import render_diagnostics_section, render_pr_tables, reviewers_cell_text
 
 
 class RenderTest(unittest.TestCase):
@@ -122,9 +122,50 @@ class RenderTest(unittest.TestCase):
         markdown = render_pr_tables([], {})
 
         self.assertIn(
-            "💬 open review thread · 📌 top-level feedback needs author action · 🔴 changes requested.",
+            "⏳ review pending · 💬 open review thread · "
+            "📌 top-level feedback needs author action · 🔴 changes requested.",
             markdown,
         )
+
+    def test_outstanding_copilot_review_is_listed_as_pending(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "reviewer", "approved": True}],
+            "copilot_review_outstanding": True,
+        })
+
+        self.assertEqual("Copilot&nbsp;⏳<br>reviewer&nbsp;✅", cell)
+
+    def test_outstanding_copilot_review_marks_its_existing_entry(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "copilot-pull-request-reviewer", "open_thread": True}],
+            "copilot_review_outstanding": True,
+        })
+
+        self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
+
+    def test_outstanding_copilot_review_marks_its_short_login_entry(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "copilot", "open_thread": True}],
+            "copilot_review_outstanding": True,
+        })
+
+        self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
+
+    def test_outstanding_copilot_review_marks_its_api_cased_entry(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "Copilot", "open_thread": True}],
+            "copilot_review_outstanding": True,
+        })
+
+        self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
+
+    def test_clean_copilot_review_is_not_listed_as_pending(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "reviewer", "approved": True}],
+            "copilot_review_outstanding": False,
+        })
+
+        self.assertEqual("reviewer&nbsp;✅", cell)
 
     def test_dashboard_does_not_claim_approvers_can_force_refresh(self) -> None:
         markdown = render_pr_tables([], {})

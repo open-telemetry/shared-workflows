@@ -115,7 +115,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   those uncleared failures.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
-                                                  fetched.
+                                                  fetched, and excludes required
+                                                  contexts whose app has already
+                                                  finished reporting.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by a
@@ -125,9 +127,27 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_approver_activity_at       str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
+    copilot_review_outstanding      bool          The Copilot review gate applies
+                                                  to this PR and its review is
+                                                  missing or stale, so the
+                                                  reviewers column shows Copilot
+                                                  as pending.
+    route_held_for_gates            bool          The PR did not advance to the
+                                                  route it computed, because
+                                                  the required checks or the
+                                                  Copilot review are still
+                                                  outstanding.
+    required_checks_settled         bool          Every required check has
+                                                  reported on the current head,
+                                                  so the computed route is not
+                                                  provisional.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
-                                                  or PR creation time.
+                                                  or PR creation time. Carried
+                                                  forward while the handoff is
+                                                  held, and never moves
+                                                  forward while the PR stays on
+                                                  a reviewer route.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
     author_action_review_thread_urls
@@ -194,10 +214,11 @@ from classification import (
 )
 from author_nudge import record_author_nudge_observation, routing_input_fingerprint
 from copilot_review import (
-    apply_copilot_review_gate,
+    copilot_review_outstanding,
     copilot_review_status,
     is_copilot_reviewer,
     record_copilot_review_observation,
+    set_copilot_review_request_needed,
 )
 from dashboard_override import (
     append_command_ack_reply,
@@ -222,7 +243,14 @@ from state import (
     update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import actor_login, format_ts, parse_ts, truncate, utc_now
+from utils import (
+    actor_login,
+    format_ts,
+    parse_ts,
+    required_checks_settled,
+    truncate,
+    utc_now,
+)
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
@@ -1160,8 +1188,21 @@ def oldest_pending_action_ts(
     return min(timestamps) if timestamps else None
 
 
+# Routes where the PR is out of the author's hands and someone else owes it a
+# response, so an author push does not change whose turn it is.
+REVIEWER_ROUTES = ("approver", "maintainer")
+
+# How far a PR has travelled toward merge. An unsettled gate stops it from
+# advancing, but never from moving back toward its author.
+ROUTE_PROGRESSION = ("author", "approver", "maintainer")
+
+
+def route_progress(route: str) -> int:
+    return ROUTE_PROGRESSION.index(route) if route in ROUTE_PROGRESSION else 0
+
+
 def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
-    if route in ("approver", "maintainer", "copilot"):
+    if route in REVIEWER_ROUTES:
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
         if uncleared_ci_failing_count(facts) > 0:
@@ -1177,7 +1218,15 @@ def add_wait_age_facts(
     facts: dict[str, Any],
     route: str,
     pending_actions: dict[str, dict[str, Any]],
+    previous_result: dict[str, Any] | None = None,
 ) -> None:
+    previous_facts = (previous_result or {}).get("facts") or {}
+    # A held route was not re-evaluated, so its wait continues uninterrupted
+    # rather than restarting from whatever the incomplete facts now imply.
+    if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
+        facts["waiting_since"] = previous_facts["waiting_since"]
+        facts["waiting_age_basis"] = "gate_hold"
+        return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
@@ -1191,6 +1240,19 @@ def add_wait_age_facts(
     if wait_ts is None:
         wait_ts = parse_ts(facts.get("created_at") or "")
         basis = "created"
+    previous_wait_ts = parse_ts(previous_facts.get("waiting_since") or "")
+    # Reviewers have been waiting since the PR reached them, so while it stays
+    # with them the clock only moves back, never forward: an author push is not
+    # a fresh start for a review that has not happened yet.
+    if (
+        route in REVIEWER_ROUTES
+        and (previous_result or {}).get("route") in REVIEWER_ROUTES
+        and previous_wait_ts is not None
+        and wait_ts is not None
+        and previous_wait_ts < wait_ts
+    ):
+        wait_ts = previous_wait_ts
+        basis = previous_facts.get("waiting_age_basis") or ""
     facts["waiting_since"] = format_ts(wait_ts)
     facts["waiting_age_basis"] = basis
 
@@ -1297,16 +1359,51 @@ def add_reviewers(
     ]
 
 
+def hold_route_until_gates_settle(
+    facts: dict[str, Any],
+    route: str,
+    previous_result: dict[str, Any] | None,
+    *,
+    require_clean_copilot_review: bool,
+) -> str:
+    # The required checks and the Copilot review are the author's to clear, so
+    # a PR does not advance while one is outstanding. Moving back toward the
+    # author is always allowed, because those are decisions a gate cannot undo.
+    previous_route = (previous_result or {}).get("route") or ""
+    if previous_route not in ROUTE_PROGRESSION:
+        # A maintenance bot has no author route to fall back to.
+        previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
+    facts["copilot_review_outstanding"] = copilot_review_outstanding(
+        facts, enabled=require_clean_copilot_review
+    )
+    facts["required_checks_settled"] = required_checks_settled(facts)
+    held = (
+        route_progress(route) > route_progress(previous_route)
+        and (
+            not facts["required_checks_settled"]
+            or facts["copilot_review_outstanding"]
+        )
+    )
+    facts["route_held_for_gates"] = held
+    return previous_route if held else route
+
+
 def resolve_pr_route(
     facts: dict[str, Any],
     pending_actions: dict[str, dict[str, Any]],
     required_approvals: int,
     require_clean_copilot_review: bool,
+    previous_result: dict[str, Any] | None = None,
 ) -> str:
-    return apply_copilot_review_gate(
+    route = route_pr(facts, pending_actions, required_approvals)
+    set_copilot_review_request_needed(
+        facts, route, enabled=require_clean_copilot_review
+    )
+    return hold_route_until_gates_settle(
         facts,
-        route_pr(facts, pending_actions, required_approvals),
-        enabled=require_clean_copilot_review,
+        route,
+        previous_result,
+        require_clean_copilot_review=require_clean_copilot_review,
     )
 
 
@@ -1316,7 +1413,9 @@ def assign_author_nudge_episode(
     previous_result: dict[str, Any] | None,
     issue_comments: list[dict[str, Any]],
 ) -> None:
-    if route != "author":
+    # A held PR only shows the author route because a gate has not reported,
+    # so the author's waiting episode ended when the route was computed.
+    if route != "author" or facts.get("route_held_for_gates"):
         facts.pop("author_nudge_episode_id", None)
         return
     previous_facts = (previous_result or {}).get("facts") or {}
@@ -1436,6 +1535,7 @@ def build_pr_result(
             pending_actions,
             required_approvals,
             require_clean_copilot_review,
+            previous_result,
         )
         assign_author_nudge_episode(
             facts,
@@ -1444,7 +1544,7 @@ def build_pr_result(
             raw.get("issue_comments") or [],
         )
         append_command_ack_reply(raw, facts, route)
-        add_wait_age_facts(facts, route, pending_actions)
+        add_wait_age_facts(facts, route, pending_actions, previous_result)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
         )

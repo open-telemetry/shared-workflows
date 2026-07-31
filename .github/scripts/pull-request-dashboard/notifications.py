@@ -216,6 +216,13 @@ def next_notifications(
             continue
 
         facts = result.get("facts") or {}
+        # A held PR did not reach the reviewers who would be reminded here; it
+        # is only waiting for a robot gate to report.
+        if facts.get("route_held_for_gates"):
+            if last_pr_notification:
+                updated_notifications[pr_key] = last_pr_notification
+            continue
+
         mapped_reviewers = [
             (reviewer, slack_user_map[reviewer.lower()])
             for reviewer in reviewer_logins_for_notification(facts)

@@ -8,6 +8,7 @@ from typing import Any
 
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
+from utils import required_checks_settled
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
@@ -31,7 +32,7 @@ NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 2
 # copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 3
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 4
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
 # Rendered status-comment behavior. Increment when existing comments need to
@@ -263,15 +264,37 @@ def enqueue_status_comment_update(pr_number: int) -> None:
     save_status_comment_rollout_state(state)
 
 
+def migrated_pr_record(record: Any) -> Any:
+    # The retired copilot route held a PR while its review was outstanding,
+    # which is now part of the author's turn. The gate facts travel with the
+    # route so cached records read as held until the PR is refreshed, and the
+    # held route picks the same fallback a maintenance bot gets, because it has
+    # no author to act.
+    if not isinstance(record, dict) or record.get("route") != "copilot":
+        return record
+    facts = record.get("facts") or {}
+    return {
+        **record,
+        "route": "approver" if facts.get("is_maintenance_bot") else "author",
+        "facts": {
+            **facts,
+            "route_held_for_gates": True,
+            "copilot_review_outstanding": True,
+            "required_checks_settled": required_checks_settled(facts),
+        },
+    }
+
+
 def load_dashboard_state_cache() -> dict[str, Any] | None:
     state = load_state_file(dashboard_state_path(), DASHBOARD_STATE_VERSION)
     if state is None:
         return None
     prs = state.get("prs")
+    prs = prs if isinstance(prs, dict) else {}
     return {
         "version": DASHBOARD_STATE_VERSION,
         INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
-        "prs": prs if isinstance(prs, dict) else {},
+        "prs": {number: migrated_pr_record(record) for number, record in prs.items()},
     }
 
 
