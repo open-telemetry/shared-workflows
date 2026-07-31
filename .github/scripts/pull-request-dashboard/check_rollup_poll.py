@@ -41,6 +41,9 @@ query($owner: String!, $name: String!, $after: String) {
                         commit {
                             statusCheckRollup {
                                 state
+                                contexts(first: 1) {
+                                    totalCount
+                                }
                             }
                         }
                     }
@@ -57,7 +60,13 @@ def rollup_signature(node: dict[str, Any]) -> str:
     commit = (commit_nodes[0] if commit_nodes else {}).get("commit") or {}
     # A pull request with no checks at all reports no rollup.
     rollup = commit.get("statusCheckRollup") or {}
-    return f"{node.get('headRefOid') or ''}:{rollup.get('state') or 'NONE'}"
+    contexts = rollup.get("contexts") or {}
+    # The context count catches checks appearing or disappearing while the
+    # aggregate state holds steady. Per-context states are not compared: the
+    # connection caps `first` at 100, most pull requests on the busiest
+    # repository carry more, and paging them every poll costs more than the
+    # hourly backfill that already recomputes each context.
+    return f"{node.get('headRefOid') or ''}:{rollup.get('state') or 'NONE'}:{contexts.get('totalCount') or 0}"
 
 
 def fetch_repository_signatures(owner: str, name: str) -> dict[int, str]:

@@ -9,30 +9,37 @@ from unittest.mock import patch
 import check_rollup_poll
 
 
-def rollup_node(number: int, head_sha: str, state: str | None) -> dict[str, object]:
+def rollup_node(number: int, head_sha: str, state: str | None, contexts: int = 3) -> dict[str, object]:
+    rollup = None if state is None else {"state": state, "contexts": {"totalCount": contexts}}
     return {
         "number": number,
         "headRefOid": head_sha,
-        "commits": {"nodes": [{"commit": {"statusCheckRollup": None if state is None else {"state": state}}}]},
+        "commits": {"nodes": [{"commit": {"statusCheckRollup": rollup}}]},
     }
 
 
 class RollupSignatureTest(unittest.TestCase):
-    def test_combines_head_and_state(self) -> None:
+    def test_combines_head_state_and_context_count(self) -> None:
         self.assertEqual(
-            "abc:SUCCESS",
+            "abc:SUCCESS:3",
             check_rollup_poll.rollup_signature(rollup_node(1, "abc", "SUCCESS")),
+        )
+
+    def test_separates_an_added_check(self) -> None:
+        self.assertNotEqual(
+            check_rollup_poll.rollup_signature(rollup_node(1, "abc", "FAILURE", contexts=3)),
+            check_rollup_poll.rollup_signature(rollup_node(1, "abc", "FAILURE", contexts=4)),
         )
 
     def test_reports_a_pull_request_with_no_checks(self) -> None:
         self.assertEqual(
-            "abc:NONE",
+            "abc:NONE:0",
             check_rollup_poll.rollup_signature(rollup_node(1, "abc", None)),
         )
 
     def test_tolerates_a_missing_commit(self) -> None:
         self.assertEqual(
-            "abc:NONE",
+            "abc:NONE:0",
             check_rollup_poll.rollup_signature({"number": 1, "headRefOid": "abc", "commits": {"nodes": []}}),
         )
 
@@ -178,7 +185,7 @@ class FetchRepositorySignaturesTest(unittest.TestCase):
         ]
         with patch.object(check_rollup_poll, "gh_graphql", side_effect=pages) as gh_graphql:
             signatures = check_rollup_poll.fetch_repository_signatures("open-telemetry", "repo-a")
-        self.assertEqual({1: "abc:SUCCESS", 2: "def:PENDING"}, signatures)
+        self.assertEqual({1: "abc:SUCCESS:3", 2: "def:PENDING:3"}, signatures)
         self.assertEqual("cursor", gh_graphql.call_args_list[1].args[1]["after"])
 
 
