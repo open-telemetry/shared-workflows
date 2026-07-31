@@ -7557,15 +7557,13 @@
     },
     "49736": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "dmytrohysht",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "12a5d1466c2e49178243786af6673220",
-        "ci_failing_count": 2,
-        "ci_failing_since": "2026-07-27T15:32:27+00:00",
-        "ci_pending_count": 0,
+        "ci_failing_count": 0,
+        "ci_pending_count": 9,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -7580,11 +7578,11 @@
         "dashboard_override_noop": false,
         "dashboard_override_release_requested": false,
         "dashboard_override_requested": false,
-        "head_sha": "d74d70831b1e1e3023585b083c9fe98112c72417",
+        "head_sha": "aa8a65d2f0df3a5177776da01e603bc91afa1656",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-27T15:08:46+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-07-31T07:50:43+00:00",
+        "last_approver_activity_at": "2026-07-31T07:50:43+00:00",
         "last_author_activity_at": "2026-07-27T15:08:46+00:00",
         "reviewers": [
           {
@@ -7594,16 +7592,24 @@
             "login": "MikeGoldsmith",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "MovieStoreGuy",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
-        "routing_input_fingerprint": "8503aa8a31a26af92ee1bc970d2ea04c848cfeefa0601e36f95e323df1a3f4ac",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-07-27T15:32:27+00:00"
+        "routing_input_fingerprint": "fe49fdde7685f9fd4e742e4e52d04a46a491e0d50a2645ab9fe2eb1e896c15ec",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-27T15:08:46+00:00"
       },
       "failed": false,
       "pr_number": 49736,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49736",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49739": {
