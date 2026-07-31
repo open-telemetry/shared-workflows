@@ -379,6 +379,7 @@ class GithubCliTest(unittest.TestCase):
                                             {
                                                 "__typename": "CheckRun",
                                                 "name": "optional",
+                                                "url": "https://github.com/open-telemetry/example/runs/87974237001",
                                                 "isRequired": False,
                                             },
                                         ],
@@ -628,6 +629,22 @@ class GithubCliTest(unittest.TestCase):
                 for check in required_code_scanning_checks(
                     checks,
                     ["CodeQL", "zizmor"],
+                    False,
+                )
+            ],
+        )
+
+    def test_undetermined_code_scanning_result_is_pending_while_checks_run(
+        self,
+    ) -> None:
+        self.assertEqual(
+            [("CodeQL", "pending")],
+            [
+                (check["name"], check["bucket"])
+                for check in required_code_scanning_checks(
+                    [{"name": "CodeQL", "bucket": "skipping", "state": "NEUTRAL"}],
+                    ["CodeQL"],
+                    True,
                 )
             ],
         )
@@ -638,6 +655,7 @@ class GithubCliTest(unittest.TestCase):
             required_code_scanning_checks(
                 [{"name": "CodeQL", "bucket": "skipping"}],
                 [],
+                False,
             ),
         )
 
@@ -685,6 +703,226 @@ class GithubCliTest(unittest.TestCase):
         self.assertEqual(
             [("CodeQL", "pass")],
             [(check["name"], check["bucket"]) for check in rollup["code_scanning"]],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_reports_unfinished_optional_checks_as_pending(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "CodeQL",
+                "status": "COMPLETED",
+                "conclusion": "NEUTRAL",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": False,
+                "checkSuite": {"app": {"databaseId": 57789}},
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "Analyze (java)",
+                "status": "IN_PROGRESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": False,
+                "checkSuite": {"app": {"databaseId": 15368}},
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            ["Analyze (java)"],
+            [check["name"] for check in rollup["pending"]],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_keeps_same_named_checks_from_separate_workflows(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "FAILURE",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": True,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": True,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 200,
+                        "workflow": {"name": "native-tests"},
+                    },
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [("build", "fail"), ("native-tests", "pass")],
+            sorted(
+                (check["workflow"], check["bucket"])
+                for check in rollup["required"]
+            ),
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_keeps_same_named_checks_from_separate_runs(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "IN_PROGRESS",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 200,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [(100, "test")],
+            [
+                (check["workflow_run_id"], check["name"])
+                for check in rollup["pending"]
+            ],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_collapses_rerun_attempts_of_one_run(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "IN_PROGRESS",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual([], rollup["pending"])
+
+    @patch("github_cli.gh_graphql")
+    def test_required_check_keeps_only_the_latest_attempt_of_a_name(
+        self,
+        graphql,
+    ) -> None:
+        # A superseded run leaves a cancelled check behind that the run which
+        # replaced it has already passed.
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "changelog",
+                "status": "COMPLETED",
+                "conclusion": "CANCELLED",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": True,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "Changelog"},
+                    },
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "changelog",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": True,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 200,
+                        "workflow": {"name": "Changelog"},
+                    },
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [("changelog", "pass")],
+            [(check["name"], check["bucket"]) for check in rollup["required"]],
         )
 
     @patch("github_cli.gh_graphql")
@@ -781,6 +1019,7 @@ class GithubCliTest(unittest.TestCase):
             "code_scanning": [
                 {"name": "CodeQL", "bucket": "skipping", "integration_id": 57789},
             ],
+            "pending": [],
         },
     )
     @patch("github_cli.fetch_review_threads", return_value=[])

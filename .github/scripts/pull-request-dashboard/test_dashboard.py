@@ -163,6 +163,7 @@ class FetchPrRawTest(unittest.TestCase):
                     "required": [],
                     "non_blocking_failures": [],
                     "code_scanning": [],
+                    "pending": [],
                 },
             ),
             patch("github_cli.gh_branch_rules", return_value=[]),

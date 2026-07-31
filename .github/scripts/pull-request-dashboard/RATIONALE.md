@@ -26,6 +26,13 @@ the implementation understandable and operationally cheap.
   repository's current open PR list.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
+- Refresh events that carry no pull request number report the head commit
+  instead, and the workflow resolves it to an open pull request. GitHub omits
+  the pull request association from check and status events whose head branch
+  lives in a fork, which is where nearly every contribution comes from, so
+  without this the CI columns of those PRs would only refresh on the hourly
+  backfill. The webhook bridge cannot resolve the commit itself, because its
+  GitHub App is installed only on `shared-workflows`.
 
 ## Workflow Concurrency
 
@@ -180,6 +187,16 @@ the implementation understandable and operationally cheap.
   holds the merge, so it is reported as failing rather than skipped. Tools with
   no such check are not reported, because GitHub expects results only from the
   tool configurations that actually ran.
+- That `NEUTRAL` is only reported as failing once every check at the head has
+  finished, including optional ones. The code scanning app publishes the tool
+  check as `NEUTRAL` before the analysis is uploaded and then replaces it in
+  place, so an analysis still running is reported as pending instead of pinning
+  the PR to its author. The replacement leaves the enclosing check suite
+  untouched, so the dashboard subscribes to code scanning check runs to observe
+  the final result. Check runs from other apps are ignored, because their check
+  suite reports them and one refresh per job would multiply webhook volume.
+- Required checks reported as commit statuses, such as EasyCLA, never belong to
+  a check suite, so commit status events are subscribed as well.
 - A failing required status check routes a human-authored PR to the author
   before discussion and approval routing. The live PR status comment names the
   CI failure, including when review feedback also needs author action.

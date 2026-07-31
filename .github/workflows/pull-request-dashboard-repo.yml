@@ -79,6 +79,7 @@ jobs:
           permission-issues: read
           permission-members: read
           permission-pull-requests: read
+          permission-statuses: read
 
       - name: Restore per-PR classification cache
         if: inputs.pr_number != ''
