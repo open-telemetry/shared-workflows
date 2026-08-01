@@ -1,5 +1,6 @@
 import json
 import unittest
+from itertools import groupby
 from pathlib import Path
 
 from utils import truncate
@@ -47,6 +48,18 @@ class EvalFixtureTest(unittest.TestCase):
         for case in self.cases:
             with self.subTest(case=case["id"]):
                 self.assertEqual(truncate(case["body"]), case["body"])
+
+    def test_cases_are_in_the_order_production_sends_them(self) -> None:
+        # Batch boundaries follow this order, so a case out of place would be
+        # measured in a batch the dashboard never assembles.
+        seen: set[tuple[str, int]] = set()
+        for group, cases in groupby(self.cases, key=lambda c: (c["repo"], c["pull_request"])):
+            with self.subTest(pull_request=group):
+                self.assertNotIn(group, seen)
+                seen.add(group)
+                stamps = [case["root_timestamp"] for case in cases]
+                self.assertTrue(all(stamps))
+                self.assertEqual(sorted(stamps), stamps)
 
     def test_every_field_the_scorer_reads_is_present(self) -> None:
         for case in self.cases:

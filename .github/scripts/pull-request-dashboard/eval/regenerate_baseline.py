@@ -163,14 +163,17 @@ def rebuild(payload: dict, trials: list[dict[str, str]], model: str) -> dict:
             stability, baseline = "flaky", None
         cases.append({
             **{k: case[k] for k in
-               ("id", "repo", "pull_request", "requester", "pr_author", "review_state", "body")},
+               ("id", "repo", "pull_request", "requester", "pr_author", "review_state",
+                "root_timestamp", "body")},
             "stability": stability,
             "baseline": baseline,
             "observed_runs": observed,
             "observed_actions": raw,
             "adjudicated": case["adjudicated"],
         })
-    cases.sort(key=lambda c: (c["repo"], c["pull_request"], c["id"]))
+    # The order the dashboard sends a pull request's items in, which decides
+    # where the ten-item batch boundaries fall and so what each prompt contains.
+    cases.sort(key=lambda c: (c["repo"], c["pull_request"], c["root_timestamp"]))
     counts = Counter(c["stability"] for c in cases)
     return {
         **payload,

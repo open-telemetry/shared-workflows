@@ -19,6 +19,7 @@ def case(case_id: str, *, adjudicated=None) -> dict:
         "requester": "reviewer",
         "pr_author": "author",
         "review_state": None,
+        "root_timestamp": "2026-01-01T00:00:00Z",
         "body": "body",
         "stability": "stable",
         "baseline": "noise",
