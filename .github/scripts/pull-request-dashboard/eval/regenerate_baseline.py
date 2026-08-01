@@ -198,6 +198,11 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=12)
     parser.add_argument("--dry-run", action="store_true", help="report without writing")
     args = parser.parse_args()
+    # Zero runs would observe nothing and rewrite every case as flaky.
+    if args.runs < 1:
+        parser.error("--runs must be at least 1")
+    if args.workers < 1:
+        parser.error("--workers must be at least 1")
 
     payload = json.loads(CASES.read_text(encoding="utf-8"))
     before = payload["counts"]
