@@ -247,8 +247,8 @@ a small set of repositories before it reaches everyone.
   release's commit SHA, hash pinned with the release tag as a comment.
 
 Repository configuration is never staged. `repositories.json` is always read
-from `main`, so opting a repository in, or changing its settings, takes effect
-on the next run in both channels.
+from the commit that triggered the run, so opting a repository in, or changing
+its settings, takes effect on the next run in both channels.
 
 ### Promoting a change
 

@@ -37,10 +37,10 @@ the implementation understandable and operationally cheap.
 ## Staged Rollout
 
 - Dashboard changes reach repositories in two stages. Canary repositories run
-  the workflow and its scripts from `main`; every other repository runs them
-  from a promoted release commit, hash pinned with the release tag as a
-  comment. A regression therefore shows up on a small set of repositories
-  before it reaches the whole fleet.
+  the workflow and its scripts from the commit that triggered the run; every
+  other repository runs them from a promoted release commit, hash pinned with
+  the release tag as a comment. A regression therefore shows up on a small set
+  of repositories before it reaches the whole fleet.
 - Staging the code rather than gating individual changes behind feature flags
   also covers the changes nobody thought were risky, which is where regressions
   actually come from. Feature flags remain available for a single genuinely
@@ -52,8 +52,8 @@ the implementation understandable and operationally cheap.
   repeating it again; `test_rollout.py` keeps the copy in sync.
 - The stable jobs pass the release commit they are called at as `code_ref`, and
   the reusable workflow checks that ref out. Without it the workflow YAML would
-  come from that commit while the scripts came from `main`, so any change to
-  their interface would break the pinned repositories.
+  come from that commit while the scripts came from the commit that triggered
+  the run, so any change to their interface would break the pinned repositories.
 - Repository configuration is deliberately not staged. `repositories.json` is
   always read from the commit that triggered the run, so opting a repository in
   or changing its settings takes effect immediately in both channels. The cost
