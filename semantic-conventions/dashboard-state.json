@@ -1720,7 +1720,7 @@
     },
     "3957": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
@@ -1744,11 +1744,19 @@
         "head_sha": "721f1e382109abd34585b5064872c089b656e59c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-01T19:14:37+00:00",
-        "last_approver_activity_at": "2026-08-01T15:35:24+00:00",
+        "last_activity_at": "2026-08-01T19:42:42+00:00",
+        "last_approver_activity_at": "2026-08-01T19:42:42+00:00",
         "last_author_activity_at": "2026-08-01T19:14:37+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -1759,14 +1767,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "e12596be2017b2eecafbcc5fe0e9fab3a6de33ed78dbd986bba8d1ee1f50843e",
+        "routing_input_fingerprint": "56e5139817cc0026eea24d02efb30cd7989fa399ba56fea7e789b3099fc452c9",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-01T19:14:37+00:00"
       },
       "failed": false,
       "pr_number": 3957,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3957",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
