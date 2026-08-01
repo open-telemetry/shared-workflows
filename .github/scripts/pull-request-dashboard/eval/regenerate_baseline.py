@@ -4,9 +4,9 @@ Drives from the cases already in the file rather than re-collecting them from
 GitHub. Re-collecting would silently change the set, because the original
 collection kept only pull requests that were open on the day it ran.
 
-Raw responses are cached under .cache/baseline/, so a failed or interrupted run
-resumes without paying for the calls it already made, and a change to how
-answers are read costs nothing to apply.
+Raw responses are cached in .cache/baseline/ beside the dashboard scripts, so a
+failed or interrupted run resumes without paying for the calls it already made,
+and a change to how answers are read costs nothing to apply.
 
 Run manually; it makes several hundred model calls.
 """
@@ -79,11 +79,13 @@ def run_batch(batch: list[dict], model: str, salt: str) -> dict:
         raw = {"returncode": proc.returncode, "stdout": proc.stdout}
     except Exception as e:  # noqa: BLE001 - one bad batch must not end the run
         raw = {"returncode": -1, "stdout": "", "error": f"{type(e).__name__}: {e}"}
-    # Via a temporary name, so an interrupt cannot leave a half-written entry
-    # for the next run to read back.
-    tmp = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
-    tmp.write_text(json.dumps(raw), encoding="utf-8")
-    tmp.replace(path)
+    # A failure is not a result: caching it would make every later run replay it
+    # instead of retrying the call. Via a temporary name, so an interrupt cannot
+    # leave a half-written entry for the next run to read back.
+    if raw["returncode"] == 0:
+        tmp = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
+        tmp.write_text(json.dumps(raw), encoding="utf-8")
+        tmp.replace(path)
     return raw
 
 
