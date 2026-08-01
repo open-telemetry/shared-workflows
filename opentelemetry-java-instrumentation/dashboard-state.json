@@ -1390,9 +1390,12 @@
         "author": "YaoYingLong",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "f2d6bde192234fb4b4963fdaac086e8a",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-01T14:40:31+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-01T14:40:31+00:00",
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -1412,7 +1415,7 @@
         "last_activity_at": "2026-08-01T14:08:00+00:00",
         "last_approver_activity_at": "2026-07-13T21:23:04+00:00",
         "last_author_activity_at": "2026-08-01T14:08:00+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1423,10 +1426,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "3b6e0b27e6bee886908de9be0565d7fdcffaecd9293c29d88e2e4e12d6c3f152",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-07-13T21:23:04+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "7dadf30ce2641b2a673882b8eb90817ec9f710e03cf626cd2f95a70088e23ce0",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-01T14:40:31+00:00"
       },
       "failed": false,
       "pr_number": 19159,
