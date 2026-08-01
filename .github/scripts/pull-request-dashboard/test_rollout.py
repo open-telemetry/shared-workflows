@@ -1,10 +1,11 @@
 """Guards for the pull request dashboard staged rollout wiring.
 
 The rollout splits every entry path into a canary job that runs dashboard code
-from ``main`` and a stable job that runs it from the promoted rollout ref.
-``uses`` cannot take an expression, so the ref and the canary membership list
-are repeated across jobs; these tests keep the copies in sync so a promotion
-cannot land half applied.
+from the triggering commit and a stable job that runs it from the promoted
+rollout ref. ``uses`` cannot take an expression and a job-level ``if`` cannot
+read ``env``, so the ref and the canary membership list are repeated across
+jobs; these tests keep the copies in sync so a promotion cannot land half
+applied.
 """
 
 from __future__ import annotations
@@ -62,13 +63,18 @@ class RolloutWiringTest(unittest.TestCase):
         self.jobs = job_blocks(self.text)
         self.canary = canary_repositories(self.text)
 
-    def test_inline_canary_lists_match_the_workflow_env(self) -> None:
-        targeted = [job for job in self.jobs if job.startswith("run-targeted-dashboard-")]
-        self.assertTrue(targeted, "expected the targeted jobs to exist")
-        for job in targeted:
-            inline = re.findall(r"fromJSON\('(\[[^']*\])'\)", self.jobs[job])
-            self.assertEqual(len(inline), 1, f"{job} does not inline the canary list exactly once")
-            self.assertEqual(json.loads(inline[0]), self.canary, job)
+    def test_targeted_canary_job_inlines_the_workflow_canary_list(self) -> None:
+        body = self.jobs["run-targeted-dashboard-canary"]
+        inline = re.findall(r"fromJSON\('(\[[^']*\])'\)", body)
+        self.assertEqual(len(inline), 1, "expected exactly one inlined canary list")
+        self.assertEqual(json.loads(inline[0]), self.canary)
+
+    def test_targeted_stable_job_derives_membership_from_the_canary_skip(self) -> None:
+        body = self.jobs["run-targeted-dashboard-stable"]
+        self.assertIn("needs: run-targeted-dashboard-canary", body)
+        self.assertIn("needs.run-targeted-dashboard-canary.result == 'skipped'", body)
+        # A second inlined list would reintroduce the copy this job avoids.
+        self.assertNotIn("fromJSON('[", body)
 
     def test_canary_repositories_are_configured(self) -> None:
         configured = {entry["name"] for entry in json.loads(CONFIG.read_text(encoding="utf-8"))}

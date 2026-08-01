@@ -39,11 +39,10 @@ concurrency:
 
 env:
   DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
-  # Repositories that run dashboard code from main, ahead of everyone else.
-  # Every other configured repository runs the promoted rollout ref below.
-  # Job-level `if` cannot read `env`, so the targeted jobs repeat this list
-  # inline; test_rollout.py keeps every copy in sync.
-  CANARY_REPOSITORIES: '["shared-workflows"]'
+  # Repositories that run dashboard code from the triggering commit, ahead of
+  # everyone else. Job-level `if` cannot read `env`, so the targeted canary job
+  # repeats this list inline; test_rollout.py keeps the two in sync.
+  CANARY_REPOSITORIES: '["opentelemetry-java-instrumentation", "shared-workflows"]'
 
 jobs:
   resolve-targets:
@@ -245,7 +244,7 @@ jobs:
     if: >-
       inputs.repository != '' &&
       inputs.pr_number != '' &&
-      contains(fromJSON('["shared-workflows"]'), inputs.repository)
+      contains(fromJSON('["opentelemetry-java-instrumentation", "shared-workflows"]'), inputs.repository)
     permissions:
       contents: write
       copilot-requests: write
@@ -258,10 +257,14 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   run-targeted-dashboard-stable:
+    needs: run-targeted-dashboard-canary
+    # Reading the skip keeps the canary list in one place, and a skipped
+    # reusable workflow call acquires no runner.
     if: >-
+      always() &&
       inputs.repository != '' &&
       inputs.pr_number != '' &&
-      !contains(fromJSON('["shared-workflows"]'), inputs.repository)
+      needs.run-targeted-dashboard-canary.result == 'skipped'
     permissions:
       contents: write
       copilot-requests: write

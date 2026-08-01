@@ -46,9 +46,10 @@ the implementation understandable and operationally cheap.
   actually come from. Feature flags remain available for a single genuinely
   risky behavior.
 - `jobs.<id>.uses` cannot take an expression, so the channel cannot come from a
-  matrix value. Each entry path instead has one job per channel, which is also
-  why the canary list is repeated inline in the targeted jobs: resolving it
-  would put a runner acquisition back on the highest volume path.
+  matrix value. Each entry path instead has one job per channel. A job-level
+  `if` cannot read `env` either, so the targeted canary job repeats the canary
+  list inline and the targeted stable job reads that job's skip rather than
+  repeating it again; `test_rollout.py` keeps the copy in sync.
 - The stable jobs pass the release commit they are called at as `code_ref`, and
   the reusable workflow checks that ref out. Without it the workflow YAML would
   come from that commit while the scripts came from `main`, so any change to

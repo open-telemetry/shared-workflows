@@ -237,11 +237,12 @@ without `slack_channel` configured do not send Slack notifications.
 Dashboard changes reach repositories in two stages, so a regression shows up on
 a small set of repositories before it reaches everyone.
 
-- **Canary** repositories run the workflow and its scripts from `main` and pick
-  up a change as soon as it merges. The canary set is the
+- **Canary** repositories run the workflow and its scripts from the triggering
+  commit and pick up a change as soon as it merges. The canary set is the
   `CANARY_REPOSITORIES` list in
   [`pull-request-dashboard.yml`](../.github/workflows/pull-request-dashboard.yml),
-  which currently holds `shared-workflows` itself.
+  which currently holds `shared-workflows` itself and
+  `opentelemetry-java-instrumentation`.
 - **Every other repository** runs them from the promoted rollout ref: a
   release's commit SHA, hash pinned with the release tag as a comment.
 
