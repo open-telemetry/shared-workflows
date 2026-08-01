@@ -119,6 +119,20 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   contexts whose app has already
                                                   finished reporting.
     conflicts                       str           "yes" | "no" | "unknown".
+    copilot_review_requested        bool          Copilot is a pending requested
+                                                  reviewer, so a review is in
+                                                  flight and the reviewers
+                                                  column shows it as pending.
+    copilot_review_exists           bool          Copilot has reviewed this PR
+                                                  at least once.
+    copilot_review_stale            bool          No Copilot review covers the
+                                                  current head, so a re-review
+                                                  would see unreviewed code.
+                                                  Only a stale review is worth
+                                                  re-requesting.
+    copilot_review_needed           bool          The review is stale or Copilot
+                                                  owns unresolved, non-outdated
+                                                  review threads.
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by a
                                                   PR participant, never earlier
@@ -129,9 +143,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
     copilot_review_outstanding      bool          The Copilot review gate applies
                                                   to this PR and its review is
-                                                  missing or stale, so the
-                                                  reviewers column shows Copilot
-                                                  as pending.
+                                                  missing or stale, so the route
+                                                  is held.
     route_held_for_gates            bool          The PR did not advance to the
                                                   route it computed, because
                                                   the required checks or the
@@ -571,9 +584,10 @@ def compute_facts(
     # raw["commits"] is wrong for PRs with more than 250 commits, where the
     # commits REST endpoint truncates and the last entry is not the real head.
     head_sha = pr.get("headRefOid") or ""
-    copilot_review_exists, copilot_review_needed = copilot_review_status(
+    copilot_review_exists, copilot_review_stale, copilot_review_findings = copilot_review_status(
         raw.get("reviews") or [],
         head_sha,
+        raw.get("review_threads") or [],
     )
     facts = {
         "author": author,
@@ -586,7 +600,8 @@ def compute_facts(
             for request in (raw.get("review_requests") or [])
         ),
         "copilot_review_exists": copilot_review_exists,
-        "copilot_review_needed": copilot_review_needed,
+        "copilot_review_stale": copilot_review_stale,
+        "copilot_review_needed": copilot_review_stale or copilot_review_findings,
         "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
         "is_draft": bool(pr.get("isDraft")),
         "approval_count": current_approval_count(events),

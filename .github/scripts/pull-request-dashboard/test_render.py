@@ -127,42 +127,93 @@ class RenderTest(unittest.TestCase):
             markdown,
         )
 
-    def test_outstanding_copilot_review_is_listed_as_pending(self) -> None:
+    def test_requested_copilot_review_is_listed_as_pending(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_outstanding": True,
+            "copilot_review_requested": True,
         })
 
         self.assertEqual("Copilot&nbsp;⏳<br>reviewer&nbsp;✅", cell)
 
-    def test_outstanding_copilot_review_marks_its_existing_entry(self) -> None:
+    def test_requested_copilot_review_marks_its_existing_entry(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "copilot-pull-request-reviewer", "open_thread": True}],
-            "copilot_review_outstanding": True,
+            "copilot_review_requested": True,
         })
 
         self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
 
-    def test_outstanding_copilot_review_marks_its_short_login_entry(self) -> None:
+    def test_requested_copilot_review_marks_its_short_login_entry(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "copilot", "open_thread": True}],
-            "copilot_review_outstanding": True,
+            "copilot_review_requested": True,
         })
 
         self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
 
-    def test_outstanding_copilot_review_marks_its_api_cased_entry(self) -> None:
+    def test_requested_copilot_review_marks_its_api_cased_entry(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "Copilot", "open_thread": True}],
-            "copilot_review_outstanding": True,
+            "copilot_review_requested": True,
         })
 
         self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
+
+    def test_stale_copilot_review_without_a_request_is_not_pending(self) -> None:
+        # Nothing is in flight, so the row would otherwise claim a wait that no
+        # one is serving.
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "reviewer", "approved": True}],
+            "copilot_review_outstanding": True,
+            "copilot_review_exists": True,
+            "copilot_review_requested": False,
+        })
+
+        self.assertEqual("reviewer&nbsp;✅", cell)
+
+    def test_held_pr_awaiting_the_automatic_first_review_is_pending(self) -> None:
+        # The automatic first review is never requested, so the hold it causes
+        # needs the icon to explain the row.
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "reviewer", "approved": True}],
+            "copilot_review_requested": False,
+            "copilot_review_exists": False,
+            "copilot_review_outstanding": True,
+            "route_held_for_gates": True,
+        })
+
+        self.assertEqual("Copilot&nbsp;⏳<br>reviewer&nbsp;✅", cell)
+
+    def test_unheld_pr_awaiting_the_automatic_first_review_is_not_pending(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "reviewer", "approved": True}],
+            "copilot_review_requested": False,
+            "copilot_review_exists": False,
+            "copilot_review_outstanding": True,
+            "route_held_for_gates": False,
+        })
+
+        self.assertEqual("reviewer&nbsp;✅", cell)
+
+    def test_pr_held_only_by_unsettled_checks_is_not_copilot_pending(self) -> None:
+        # Unsettled checks hold a route too, so the hold alone would put Copilot
+        # on every row of a repository the gate does not cover.
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "reviewer", "approved": True}],
+            "copilot_review_requested": False,
+            "copilot_review_exists": False,
+            "copilot_review_outstanding": False,
+            "required_checks_settled": False,
+            "route_held_for_gates": True,
+        })
+
+        self.assertEqual("reviewer&nbsp;✅", cell)
 
     def test_clean_copilot_review_is_not_listed_as_pending(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_outstanding": False,
+            "copilot_review_requested": False,
+            "copilot_review_exists": True,
         })
 
         self.assertEqual("reviewer&nbsp;✅", cell)

@@ -232,11 +232,11 @@ the implementation understandable and operationally cheap.
 - A held PR is presented as waiting on its author rather than on the robot it
   is waiting for, so a separate route would add a section that nobody is
   expected to act on. What it waits for is named in the columns instead: the CI
-  column already shows running checks, and an outstanding Copilot review is
-  listed in the reviewers column with the same pending icon. Copilot otherwise
-  joins that column only once it has reviewed, so without this the Copilot gate
-  would hold a PR with nothing on the row to explain why. The live status
-  comment tells the author the handoff happens once both are clean.
+  column already shows running checks, and a Copilot review that is actually in
+  flight is listed in the reviewers column with the pending icon. Copilot
+  otherwise joins that column only once it has reviewed, so without this the
+  Copilot gate would hold a PR with nothing on the row to explain why. The live
+  status comment tells the author the handoff happens once both are clean.
 - A held route also holds its wait age. Recomputing it would read the push as
   the end of the CI failure and fall back to the last approver activity, which
   is usually far older, so a PR the author had just pushed to would sort to the
@@ -273,14 +273,24 @@ the implementation understandable and operationally cheap.
   discussion routing: an inline finding is an unresolved review thread, and an
   actionable one routes the PR to "waiting on author." In that common path the
   gate never fires and no re-review is requested.
-- The gate's re-request path is deliberately narrow: it triggers when the
-  current head has no Copilot review yet (a push made the prior review stale) or
-  the author resolved Copilot's threads without a code change. Re-requesting the
-  same head is intentional — it asks Copilot to re-review after the author
-  responded, mirroring a human review cycle. Copilot's answer either clears the
-  gate or produces fresh actionable threads that route the PR back to the
-  author, so re-requesting an unchanged commit is self-correcting rather than a
-  re-request loop.
+- Findings are counted from unresolved, non-outdated review threads Copilot
+  started, not from the comment count on its review. A review's comment count
+  never shrinks, so it keeps counting feedback the author has since addressed
+  and holds the PR on work that is already done.
+- The gate's re-request path is deliberately narrow: it triggers only when the
+  current head has no Copilot review, because a push is the one change a
+  re-review can respond to. Findings on the current head sit on unchanged code,
+  so asking Copilot to look at it again would reach the same verdict and be
+  requested again on the next pass; those threads clear when the author resolves
+  them or pushes a fix, which is a re-request in its own right.
+- The reviewers column marks Copilot pending only while a review is genuinely
+  in flight — a requested re-review, or the automatic first review on a PR the
+  Copilot gate is holding because Copilot has never reviewed it. A hold alone
+  is not enough, because unsettled required checks hold a route too and the
+  gate does not cover every base branch. Marking every outstanding gate instead
+  puts the icon on nearly every row, because a stale review is the ordinary
+  state between a push and the next re-review, and an icon that is always
+  present says nothing about which PRs are actually waiting.
 - An outstanding Copilot review holds the PR where it is the same way an
   unsettled required check does, including when a reviewer-routing override
   asked for the handoff. The override says the author is done with the

@@ -20,6 +20,7 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   - 💬 has an open (unresolved) review thread on the PR
   - 📌 has tracked top-level feedback that still needs author action
   - 🔴 requested changes
+  - ⏳ a review is in flight (only used for Copilot: a requested re-review, or the automatic first review while it holds the PR)
   - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has both an unresolved inline thread and tracked top-level feedback; ✅ may accompany either or both.
 - **CI** — Aggregate check status across the PR's required status checks. Optional checks do not affect this column:
   - ✅ all required checks passing
@@ -71,7 +72,7 @@ Fields:
 | `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
-| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review with no inline findings on the current head is required before routing a PR to reviewers or maintainers. The dashboard re-requests Copilot review when needed and does not duplicate a pending request. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
+| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head with no unresolved Copilot review threads is required before routing a PR to reviewers or maintainers. The dashboard re-requests Copilot review when a push has left the previous review stale, and does not duplicate a pending request. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |

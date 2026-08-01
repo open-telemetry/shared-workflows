@@ -696,7 +696,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_requested"])
         self.assertTrue(facts["copilot_review_needed"])
 
-    def test_latest_findings_review_replaces_clean_review_on_same_head(self) -> None:
+    def test_unresolved_copilot_thread_on_current_head_needs_rereview(self) -> None:
         facts = compute_facts(
             {
                 "pr": {
@@ -726,13 +726,149 @@ class CopilotReviewGateTest(unittest.TestCase):
                 ],
                 "commits": [{"sha": "current-head"}],
                 "review_comments": [{"pull_request_review_id": 20}],
+                "review_threads": [
+                    {
+                        "id": "thread-1",
+                        "isResolved": False,
+                        "isOutdated": False,
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "id": "comment-1",
+                                    "url": "https://example.com/1",
+                                    "body": "this leaks",
+                                    "createdAt": "2026-07-20T02:30:00Z",
+                                    "author": {"login": "copilot"},
+                                },
+                            ],
+                        },
+                    },
+                ],
                 "checks": [],
             },
             "author",
             [],
         )
 
+        self.assertFalse(facts["copilot_review_stale"])
         self.assertTrue(facts["copilot_review_needed"])
+
+    def test_resolved_copilot_findings_on_current_head_are_clean(self) -> None:
+        # A review's comment count never shrinks, so counting it would hold the
+        # PR on feedback the author already addressed.
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
+                },
+                "reviews": [
+                    {
+                        "id": 20,
+                        "commit_id": "current-head",
+                        "finding_count": 2,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                ],
+                "commits": [{"sha": "current-head"}],
+                "review_comments": [{"pull_request_review_id": 20}],
+                "review_threads": [
+                    {
+                        "id": "thread-1",
+                        "isResolved": True,
+                        "isOutdated": False,
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "id": "comment-1",
+                                    "url": "https://example.com/1",
+                                    "body": "this leaks",
+                                    "createdAt": "2026-07-20T02:30:00Z",
+                                    "author": {"login": "copilot"},
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        "id": "thread-2",
+                        "isResolved": False,
+                        "isOutdated": True,
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "id": "comment-2",
+                                    "url": "https://example.com/2",
+                                    "body": "prefer a constant",
+                                    "createdAt": "2026-07-20T02:31:00Z",
+                                    "author": {"login": "copilot"},
+                                },
+                            ],
+                        },
+                    },
+                ],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertFalse(facts["copilot_review_stale"])
+        self.assertFalse(facts["copilot_review_needed"])
+
+    def test_human_thread_does_not_count_as_a_copilot_finding(self) -> None:
+        facts = compute_facts(
+            {
+                "pr": {
+                    "updatedAt": "2026-07-20T03:00:00Z",
+                    "createdAt": "2026-07-20T01:00:00Z",
+                    "author": {"login": "author"},
+                    "assignees": [],
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                    "headRefOid": "current-head",
+                },
+                "reviews": [
+                    {
+                        "id": 20,
+                        "commit_id": "current-head",
+                        "finding_count": 0,
+                        "user": {"login": "copilot"},
+                        "submitted_at": "2026-07-20T02:30:00Z",
+                    },
+                ],
+                "commits": [{"sha": "current-head"}],
+                "review_comments": [],
+                "review_threads": [
+                    {
+                        "id": "thread-1",
+                        "isResolved": False,
+                        "isOutdated": False,
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "id": "comment-1",
+                                    "url": "https://example.com/1",
+                                    "body": "please rename this",
+                                    "createdAt": "2026-07-20T02:30:00Z",
+                                    "author": {"login": "reviewer"},
+                                },
+                            ],
+                        },
+                    },
+                ],
+                "checks": [],
+            },
+            "author",
+            [],
+        )
+
+        self.assertFalse(facts["copilot_review_needed"])
 
     def test_findings_only_history_needs_rereview(self) -> None:
         facts = compute_facts(
@@ -793,7 +929,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             "ci_pending_count": 0,
             "copilot_review_requested": True,
             "copilot_review_exists": False,
-            "copilot_review_needed": False,
+            "copilot_review_stale": False,
         }
 
         set_copilot_review_request_needed(facts, "approver", enabled=True)
@@ -805,7 +941,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
-            "copilot_review_needed": True,
+            "copilot_review_stale": True,
         }
 
         set_copilot_review_request_needed(facts, "maintainer", enabled=True)
@@ -817,19 +953,34 @@ class CopilotReviewGateTest(unittest.TestCase):
             "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
-            "copilot_review_needed": True,
+            "copilot_review_stale": True,
         }
 
         set_copilot_review_request_needed(facts, "approver", enabled=True)
 
         self.assertTrue(facts["copilot_review_request_needed"])
 
+    def test_open_findings_on_current_head_request_no_re_review(self) -> None:
+        # Re-reviewing unchanged code cannot resolve a thread the author owns,
+        # so requesting one here would repeat on every pass.
+        facts = {
+            "ci_pending_count": 0,
+            "copilot_review_requested": False,
+            "copilot_review_exists": True,
+            "copilot_review_stale": False,
+            "copilot_review_needed": True,
+        }
+
+        set_copilot_review_request_needed(facts, "maintainer", enabled=True)
+
+        self.assertFalse(facts["copilot_review_request_needed"])
+
     def test_pending_re_review_is_not_requested_twice(self) -> None:
         facts = {
             "ci_pending_count": 0,
             "copilot_review_requested": True,
             "copilot_review_exists": True,
-            "copilot_review_needed": True,
+            "copilot_review_stale": True,
         }
 
         set_copilot_review_request_needed(facts, "maintainer", enabled=True)
@@ -841,7 +992,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
-            "copilot_review_needed": False,
+            "copilot_review_stale": False,
         }
 
         set_copilot_review_request_needed(facts, "maintainer", enabled=True)
@@ -853,7 +1004,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             "ci_pending_count": 1,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
-            "copilot_review_needed": True,
+            "copilot_review_stale": True,
         }
 
         set_copilot_review_request_needed(facts, "approver", enabled=True)
@@ -864,7 +1015,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         facts = {
             "copilot_review_requested": False,
             "copilot_review_exists": True,
-            "copilot_review_needed": True,
+            "copilot_review_stale": True,
         }
 
         set_copilot_review_request_needed(facts, "approver", enabled=True)
@@ -876,7 +1027,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
-            "copilot_review_needed": True,
+            "copilot_review_stale": True,
         }
 
         set_copilot_review_request_needed(facts, "author", enabled=True)
@@ -888,7 +1039,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             "ci_pending_count": 0,
             "copilot_review_requested": False,
             "copilot_review_exists": True,
-            "copilot_review_needed": True,
+            "copilot_review_stale": True,
         }
 
         set_copilot_review_request_needed(facts, "maintainer", enabled=False)

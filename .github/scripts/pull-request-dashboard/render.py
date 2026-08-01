@@ -146,11 +146,28 @@ def reviewer_display_name(login: str) -> str:
 COPILOT_REVIEWER_LOGIN = "copilot-pull-request-reviewer"
 
 
+def copilot_review_pending(facts: dict[str, Any]) -> bool:
+    # "Pending" has to mean a review is genuinely in flight, or the icon shows
+    # on nearly every row and stops carrying information. A requested review
+    # qualifies; so does a pull request Copilot has never reviewed, because the
+    # automatic first review is never requested and the hold it causes would
+    # otherwise have nothing on the row to explain it. A hold is not enough on
+    # its own: unsettled checks hold a route too, and on a branch the gate does
+    # not cover no Copilot review is coming at all.
+    if facts.get("copilot_review_requested"):
+        return True
+    return (
+        bool(facts.get("route_held_for_gates"))
+        and bool(facts.get("copilot_review_outstanding"))
+        and not facts.get("copilot_review_exists")
+    )
+
+
 def display_reviewers(facts: dict[str, Any]) -> list[dict[str, Any]]:
-    # Copilot only joins the reviewer list once it has reviewed, so an
-    # outstanding review has to be added for the wait to be visible at all.
+    # Copilot only joins the reviewer list once it has reviewed, so a review
+    # that is still in flight has to be added for the wait to be visible at all.
     reviewers = [dict(reviewer) for reviewer in facts.get("reviewers") or []]
-    if not facts.get("copilot_review_outstanding"):
+    if not copilot_review_pending(facts):
         return reviewers
     for reviewer in reviewers:
         if is_copilot_reviewer_login(reviewer.get("login") or ""):
