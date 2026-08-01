@@ -63,10 +63,12 @@ class RolloutWiringTest(unittest.TestCase):
         self.canary = canary_repositories(self.text)
 
     def test_inline_canary_lists_match_the_workflow_env(self) -> None:
-        inline = re.findall(r"fromJSON\('(\[[^']*\])'\)", self.text)
-        self.assertTrue(inline, "expected the targeted jobs to inline the canary list")
-        for literal in inline:
-            self.assertEqual(json.loads(literal), self.canary)
+        targeted = [job for job in self.jobs if job.startswith("run-targeted-dashboard-")]
+        self.assertTrue(targeted, "expected the targeted jobs to exist")
+        for job in targeted:
+            inline = re.findall(r"fromJSON\('(\[[^']*\])'\)", self.jobs[job])
+            self.assertEqual(len(inline), 1, f"{job} does not inline the canary list exactly once")
+            self.assertEqual(json.loads(inline[0]), self.canary, job)
 
     def test_canary_repositories_are_configured(self) -> None:
         configured = {entry["name"] for entry in json.loads(CONFIG.read_text(encoding="utf-8"))}
