@@ -111,7 +111,9 @@ class RolloutWiringTest(unittest.TestCase):
                 continue
             ref = match.group(1)
             refs.add(ref)
-            self.assertIn(f"code_ref: {ref}", body, f"{job} runs scripts from a different ref")
+            # Anchored so a commented out or partially edited value cannot pass.
+            code_ref = re.compile(rf"^\s*code_ref: {re.escape(ref)}\s*(#.*)?$", re.MULTILINE)
+            self.assertRegex(body, code_ref, f"{job} runs scripts from a different ref")
         self.assertEqual(len(refs), 1, f"stable jobs disagree on the rollout ref: {sorted(refs)}")
 
     def test_repo_workflow_accepts_the_code_ref_input(self) -> None:
