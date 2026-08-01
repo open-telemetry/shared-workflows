@@ -1,6 +1,6 @@
 {
   "note": "baseline records how the shipped classifier behaved when this file was generated, not an adjudicated correct answer. A run matching the baseline has not regressed; it has not been shown to be right. Set `adjudicated` on a case once a human has decided it.",
-  "generated_at": "2026-07-31",
+  "generated_at": "2026-08-01",
   "baseline_configuration": {
     "model": "gpt-5.4-mini",
     "prompt": "REVIEWER_FEEDBACK_PROMPT_TEMPLATE",
@@ -23,8 +23,8 @@
   },
   "counts": {
     "cases": 616,
-    "stable": 528,
-    "flaky": 86,
+    "stable": 526,
+    "flaky": 88,
     "unobserved": 2,
     "adjudicated": 1
   },
@@ -6510,22 +6510,22 @@
       "requester": "copilot-pull-request-reviewer[bot]",
       "pr_author": "YaoYingLong",
       "review_state": "COMMENTED",
-      "body": "## Pull request overview\n\nThis PR adds a new `redisson-metrics-2.3` javaagent instrumentation module that emits database connection pool metrics (used/idle connections, min/max pool sizes, and pending requests) for Redisson versions `[2.3.0, 3.18.0)`. It fills a gap in the existing Redisson instrumentation (which only provides client spans/metrics for 3.0+) by instrumenting the internal `ClientConnectionsEntry` construction and `RedisClient.shutdownAsync()` lifecycle, mirroring the established connection-pool-metrics pattern used by the c3p0 and Tomcat JDBC modules.\n\n**Changes:**\n- New instrumentation module instruments the 7-arg `ClientConnectionsEntry` constructor to register `DbConnectionPoolMetrics` and `RedisClient.shutdownAsync()` to unregister them.\n- Reads pool counters via reflection through `AsyncSemaphoreAccessor`, supporting both the legacy `AtomicInteger` and newer `AsyncSemaphore` free-connection counters, with pending-requests support only when an `AsyncSemaphore` is present.\n- Adds Testcontainers-based coverage (default 2.3.0 and latest 3.17.x), plus build/config/docs wiring (settings, FOSSA, CI instrumentation list, latest-dep pin, supported-libraries doc).\n\n### Reviewed changes\n\nCopilot reviewed 13 out of 13 changed files in this pull request and generated no comments.\n\n<details>\n<summary>Show a summary per file</summary>\n\n| File | Description |\r\n| ---- | ----------- |\r\n| `settings.gradle.kts` | Registers the new javaagent subproject |\r\n| `instrumentation/redisson/redisson-metrics-2.3/metadata.yaml` | Declares pool metrics + semconv-stability config (matches tomcat-jdbc) |\r\n| `.../RedissonMetricsInstrumentationModule.java` | Module wiring; classloader matcher scoped to `org.redisson.pubsub.AsyncSemaphore` |\r\n| `.../ClientConnectionsEntryInstrumentation.java` | Constructor advice to register pool metrics |\r\n| `.../RedisClientInstrumentation.java` | `shutdownAsync()` advice to unregister metrics |\r\n| `.../RedissonConnectionPoolMetrics.java` | Registers/records the pool metric instruments, identity-keyed callback map |\r\n| `.../AsyncSemaphoreAccessor.java` | Reflection helper for free-connection and pending-request counters |\r\n| `.../RedissonConnectionPoolMetricsTest.java` | Testcontainers coverage for registration/unregistration |\r\n| `.../javaagent/build.gradle.kts` | Muzzle range `[2.3.0,3.18.0)`, latest-dep cap at 3.17, stable-semconv task |\r\n| `docs/supported-libraries.md` | Documents 2.3+ pool metrics through 3.17.x |\r\n| `.github/scripts/instrumentations.sh` | Adds test/testStableSemconv jobs |\r\n| `.github/config/latest-dep-versions.json` | Pins `redisson#3.17.+` to 3.17.7 |\r\n| `.fossa.yml` | Adds FOSSA target for the new module |\r\n\r\nI reviewed the metric-recording logic, the identity-key callback map (matches the c3p0/Tomcat pattern), the reflection accessor's null/exception guarding, the Byte Buddy matchers (7-arg constructor, `shutdownAsync()`), and the test conventions (AssertJ, catch-variable naming, latest-deps gating) and did not find concrete defects on the changed lines. That said, correctness here depends heavily on internal Redisson implementation details (field names `freeConnectionsCounter`/`counter`/`listeners` and the exact constructor signature) that vary across the wide `[2.3.0, 3.18.0)` range but are only exercised at two version points, which warrants human judgment.\n</details>",
-      "stability": "stable",
-      "baseline": "noise",
+      "body": "## Pull request overview\n\nThis PR adds a new `redisson-metrics-2.3` javaagent instrumentation module that emits database connection pool metrics (used/idle connections, min/max pool sizes, and pending requests) for Redisson versions `[2.3.0, 3.18.0)`. It fills a gap in the existing Redisson instrumentation (which only provides client spans/metrics for 3.0+) by instrumenting the internal `ClientConnectionsEntry` construction and `RedisClient.shutdownAsync()` lifecycle, mirroring the established connection-pool-metrics pattern used by the c3p0 and Tomcat JDBC modules.\n\n**Changes:**\n- New instrumentation module instruments the 7-arg `ClientConnectionsEntry` constructor to register `DbConnectionPoolMetrics` and `RedisClient.shutdownAsync()` to unregister them.\n- Reads pool counters via reflection through `AsyncSemaphoreAccessor`, supporting both the legacy `AtomicInteger` and newer `AsyncSemaphore` free-connection counters, with pending-requests support only when an `AsyncSemaphore` is present.\n- Adds Testcontainers-based coverage (default 2.3.0 and latest 3.17.x), plus build/config/docs wiring (settings, FOSSA, CI instrumentation list, latest-dep pin, supported-libraries doc).\n\n### Re ...[truncated]",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
+        "substantive",
+        "substantive",
         "noise",
-        "noise",
-        "noise",
-        "noise",
-        "noise"
+        "substantive",
+        "substantive"
       ],
       "observed_actions": [
+        "author_action",
+        "author_action",
         "no_author_action",
-        "no_author_action",
-        "no_author_action",
-        "no_author_action",
-        "no_author_action"
+        "author_action",
+        "author_action"
       ],
       "adjudicated": null
     },
@@ -6615,21 +6615,21 @@
       "pr_author": "YaoYingLong",
       "review_state": "COMMENTED",
       "body": "Lightly filtered AI-generated feedback — push back freely",
-      "stability": "stable",
-      "baseline": "noise",
+      "stability": "flaky",
+      "baseline": null,
       "observed_runs": [
         "noise",
         "noise",
         "noise",
         "noise",
-        "noise"
+        "substantive"
       ],
       "observed_actions": [
         "no_author_action",
         "no_author_action",
         "no_author_action",
         "no_author_action",
-        "no_author_action"
+        "author_action"
       ],
       "adjudicated": null
     },

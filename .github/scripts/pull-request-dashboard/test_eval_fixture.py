@@ -2,6 +2,8 @@ import json
 import unittest
 from pathlib import Path
 
+from utils import truncate
+
 CASES = Path(__file__).resolve().parent / "eval" / "reviewer_feedback_cases.json"
 LABELS = {"substantive", "noise"}
 STABILITIES = {"stable", "flaky", "unobserved"}
@@ -38,6 +40,13 @@ class EvalFixtureTest(unittest.TestCase):
                 self.assertTrue(case["body"].strip())
                 self.assertTrue(case["repo"])
                 self.assertIsInstance(case["pull_request"], int)
+
+    def test_bodies_are_what_production_sends(self) -> None:
+        # derive_top_level_items truncates before classifying, so a body recorded
+        # verbatim would be scored against input the dashboard never sends.
+        for case in self.cases:
+            with self.subTest(case=case["id"]):
+                self.assertEqual(truncate(case["body"]), case["body"])
 
     def test_every_field_the_scorer_reads_is_present(self) -> None:
         for case in self.cases:
