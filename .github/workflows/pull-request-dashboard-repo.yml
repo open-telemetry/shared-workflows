@@ -12,6 +12,14 @@ on:
         required: false
         default: ""
         type: string
+      # Ref of this repository that the dashboard code runs from. Empty means
+      # the commit that triggered the run. A staged rollout passes the same
+      # release tag that this workflow file is called at, so the scripts always
+      # match the workflow YAML that invoked them.
+      code_ref:
+        required: false
+        default: ""
+        type: string
     secrets:
       PR_DASHBOARD_PRIVATE_KEY:
         required: true
@@ -22,7 +30,7 @@ permissions:
   contents: read
 
 env:
-  DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
+  DASHBOARD_CONFIG: live-config/.github/scripts/pull-request-dashboard/repositories.json
   DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
 
 jobs:
@@ -40,6 +48,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.code_ref }}
+          persist-credentials: false
+
+      # Repository configuration is deliberately not pinned to code_ref: opting
+      # a repository in, or changing its settings, takes effect immediately on
+      # every rollout ref.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: live-config
+          sparse-checkout: .github/scripts/pull-request-dashboard/repositories.json
+          sparse-checkout-cone-mode: false
           persist-credentials: false
 
       - name: Load repository configuration
@@ -211,6 +231,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.code_ref }}
+          persist-credentials: false
+
+      # Repository configuration is deliberately not pinned to code_ref: opting
+      # a repository in, or changing its settings, takes effect immediately on
+      # every rollout ref.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: live-config
+          sparse-checkout: .github/scripts/pull-request-dashboard/repositories.json
+          sparse-checkout-cone-mode: false
           persist-credentials: false
 
       - name: Load repository configuration

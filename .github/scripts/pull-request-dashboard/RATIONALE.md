@@ -34,6 +34,38 @@ the implementation understandable and operationally cheap.
   backfill. The webhook bridge cannot resolve the commit itself, because its
   GitHub App is installed only on `shared-workflows`.
 
+## Staged Rollout
+
+- Dashboard changes reach repositories in two stages. Canary repositories run
+  the workflow and its scripts from `main`; every other repository runs them
+  from a promoted release tag. A regression therefore shows up on a small set
+  of repositories before it reaches the whole fleet.
+- Staging the code rather than gating individual changes behind feature flags
+  also covers the changes nobody thought were risky, which is where regressions
+  actually come from. Feature flags remain available for a single genuinely
+  risky behavior.
+- `jobs.<id>.uses` cannot take an expression, so the channel cannot come from a
+  matrix value. Each entry path instead has one job per channel, which is also
+  why the canary list is repeated inline in the targeted jobs: resolving it
+  would put a runner acquisition back on the highest volume path.
+- The stable jobs pass the tag they are called at as `code_ref`, and the
+  reusable workflow checks that ref out. Without it the workflow YAML would come
+  from the tag while the scripts came from `main`, so any change to their
+  interface would break the pinned repositories.
+- Repository configuration is deliberately not staged. `repositories.json` is
+  always read from the commit that triggered the run, so opting a repository in
+  or changing its settings takes effect immediately in both channels. The cost
+  is that configuration changes must be additive for one promotion cycle,
+  because pinned code reads live configuration.
+- Promotion is a pull request that pins the ref, rather than a moving tag or
+  branch. The version that each repository runs is then visible in the workflow
+  file, a rollback is a revert, and the reference stays hash pinned the way
+  every other action reference in this repository is.
+- Until the first promotion the stable jobs call the local workflow, so both
+  channels run the same code. A cross-repository reference cannot be introduced
+  in the same change that adds the `code_ref` input, because the commit it would
+  have to pin does not exist yet.
+
 ## Workflow Concurrency
 
 - Webhook refreshes are grouped by target repository and PR before the first

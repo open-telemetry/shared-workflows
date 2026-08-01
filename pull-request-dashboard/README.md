@@ -232,6 +232,45 @@ Each repository can route Slack notifications to its own `slack_channel` and
 map GitHub logins to Slack user IDs via `slack_user_mapping`. Repositories
 without `slack_channel` configured do not send Slack notifications.
 
+## Staged rollout
+
+Dashboard changes reach repositories in two stages, so a regression shows up on
+a small set of repositories before it reaches everyone.
+
+- **Canary** repositories run the workflow and its scripts from `main` and pick
+  up a change as soon as it merges. The canary set is the
+  `CANARY_REPOSITORIES` list in
+  [`pull-request-dashboard.yml`](../.github/workflows/pull-request-dashboard.yml),
+  which currently holds `shared-workflows` itself.
+- **Every other repository** runs them from the promoted rollout ref, a release
+  tag of this repository.
+
+Repository configuration is never staged. `repositories.json` is always read
+from `main`, so opting a repository in, or changing its settings, takes effect
+on the next run in both channels.
+
+### Promoting a change
+
+1. Merge the change. Canary repositories pick it up on their next run.
+2. Let it soak.
+3. Cut a release with the [Release workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/release.yml).
+4. Open a pull request pointing every stable job at that release's commit, in
+   both the `uses:` ref and the matching `code_ref` input, each carrying the tag
+   as a comment the way actions are pinned elsewhere in this repository.
+   `test_rollout.py` fails if the two disagree.
+
+Rolling back before a promotion means not promoting; after a promotion it means
+reverting the bump. Until the first promotion the stable jobs call the workflow
+at the triggering commit, so both channels run the same code.
+
+Running two versions at once adds two rules for changes to this workflow:
+
+- A new input on `pull-request-dashboard-repo.yml` is passed by the canary jobs
+  only, until the promotion that teaches the rollout ref about it.
+- `repositories.json` changes must be additive for one promotion cycle, because
+  pinned code reads live configuration. Renames and removals land after the code
+  that understands them has been promoted.
+
 ## Prerequisites
 
 The target repository GitHub App must be installed on your repository. Follow

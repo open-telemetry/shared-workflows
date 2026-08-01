@@ -39,6 +39,11 @@ concurrency:
 
 env:
   DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
+  # Repositories that run dashboard code from main, ahead of everyone else.
+  # Every other configured repository runs the promoted rollout ref below.
+  # Job-level `if` cannot read `env`, so the targeted jobs repeat this list
+  # inline; test_rollout.py keeps every copy in sync.
+  CANARY_REPOSITORIES: '["shared-workflows"]'
 
 jobs:
   resolve-targets:
@@ -50,7 +55,10 @@ jobs:
       contents: read
     environment: protected
     outputs:
-      matrix: ${{ steps.targets.outputs.matrix }}
+      canary_matrix: ${{ steps.targets.outputs.canary_matrix }}
+      canary_count: ${{ steps.targets.outputs.canary_count }}
+      stable_matrix: ${{ steps.targets.outputs.stable_matrix }}
+      stable_count: ${{ steps.targets.outputs.stable_count }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -77,7 +85,7 @@ jobs:
           TARGET_REPOSITORY: ${{ inputs.repository }}
         run: |
           set -euo pipefail
-          matrix=$(jq -c --arg repo "$TARGET_REPOSITORY" '
+          selected=$(jq -c --arg repo "$TARGET_REPOSITORY" '
             if $repo == "" then
               .
             else
@@ -85,12 +93,24 @@ jobs:
             end
             | [ .[] | {name} ]
           ' "$DASHBOARD_CONFIG")
-          if [[ "$matrix" == "[]" ]]; then
+          if [[ "$selected" == "[]" ]]; then
             echo "no configured repository matched: ${TARGET_REPOSITORY:-<all>}" >&2
             exit 1
           fi
-          echo "matrix={\"include\":${matrix}}" >> "$GITHUB_OUTPUT"
-          echo "$matrix" | jq .
+          canary=$(jq -c --argjson canary "$CANARY_REPOSITORIES" '
+            [ .[] | select(.name as $name | $canary | index($name) != null) ]
+          ' <<< "$selected")
+          stable=$(jq -c --argjson canary "$CANARY_REPOSITORIES" '
+            [ .[] | select(.name as $name | $canary | index($name) == null) ]
+          ' <<< "$selected")
+          {
+            echo "canary_matrix={\"include\":${canary}}"
+            echo "canary_count=$(jq 'length' <<< "$canary")"
+            echo "stable_matrix={\"include\":${stable}}"
+            echo "stable_count=$(jq 'length' <<< "$stable")"
+          } >> "$GITHUB_OUTPUT"
+          jq -n --argjson canary "$canary" --argjson stable "$stable" \
+            '{canary: [$canary[].name], stable: [$stable[].name]}'
 
   resolve-head-sha:
     # Check and status events for a fork head carry no pull request number, so
@@ -102,6 +122,7 @@ jobs:
     environment: protected
     outputs:
       pr_number: ${{ steps.trigger.outputs.pr_number }}
+      channel: ${{ steps.targets.outputs.channel }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -124,6 +145,12 @@ jobs:
             exit 1
           fi
           echo "repository=$name" >> "$GITHUB_OUTPUT"
+          if jq -e -n --arg repo "$name" --argjson canary "$CANARY_REPOSITORIES" \
+            '$canary | index($repo) != null' > /dev/null; then
+            echo "channel=canary" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: head-sha-token
@@ -156,17 +183,37 @@ jobs:
           fi
           echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
 
-  run-repo-dashboard:
+  # Rollout channels. Canary repositories run the workflow and scripts at the
+  # commit that triggered the run; every other repository runs them at the
+  # promoted rollout ref, so a change reaches the fleet only after it has soaked
+  # on the canary repositories.
+  #
+  # `uses` cannot take an expression, so each entry path has one job per
+  # channel. The stable jobs below still call the local workflow, which means
+  # both channels currently run the same code. Promoting for the first time, and
+  # every time after, means cutting a release and opening a pull request that
+  # points every stable job at that release:
+  #
+  #   uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@<sha> # vX.Y.Z
+  #   with:
+  #     code_ref: <sha> # vX.Y.Z
+  #
+  # Both halves name the same commit so the scripts always match the workflow
+  # YAML that invoked them; test_rollout.py fails if they disagree.
+  run-repo-dashboard-canary:
     needs: resolve-targets
+    if: needs.resolve-targets.outputs.canary_count != '0'
     permissions:
       contents: write
       copilot-requests: write
     strategy:
       fail-fast: false
       # Repositories hold separate state branches, so they only contend for the
-      # shared GitHub App rate limit and the Copilot CLI token.
-      max-parallel: 3
-      matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
+      # shared GitHub App rate limit and the Copilot CLI token. The canary set
+      # is small, so it takes one of the parallel slots and the stable channel
+      # keeps the rest.
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.resolve-targets.outputs.canary_matrix) }}
     uses: ./.github/workflows/pull-request-dashboard-repo.yml
     with:
       repository: ${{ matrix.name }}
@@ -174,10 +221,31 @@ jobs:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  run-targeted-dashboard:
+  run-repo-dashboard-stable:
+    needs: resolve-targets
+    if: needs.resolve-targets.outputs.stable_count != '0'
+    permissions:
+      contents: write
+      copilot-requests: write
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.resolve-targets.outputs.stable_matrix) }}
+    uses: ./.github/workflows/pull-request-dashboard-repo.yml
+    with:
+      repository: ${{ matrix.name }}
+    secrets:
+      PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  run-targeted-dashboard-canary:
     # Skipping resolve-targets removes a runner acquisition from the highest
     # volume path, where webhook refreshes already know their single target.
-    if: inputs.repository != '' && inputs.pr_number != ''
+    # That is also why the canary list is inlined here instead of resolved.
+    if: >-
+      inputs.repository != '' &&
+      inputs.pr_number != '' &&
+      contains(fromJSON('["shared-workflows"]'), inputs.repository)
     permissions:
       contents: write
       copilot-requests: write
@@ -189,11 +257,45 @@ jobs:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  run-head-sha-dashboard:
+  run-targeted-dashboard-stable:
+    if: >-
+      inputs.repository != '' &&
+      inputs.pr_number != '' &&
+      !contains(fromJSON('["shared-workflows"]'), inputs.repository)
+    permissions:
+      contents: write
+      copilot-requests: write
+    uses: ./.github/workflows/pull-request-dashboard-repo.yml
+    with:
+      repository: ${{ inputs.repository }}
+      pr_number: ${{ inputs.pr_number }}
+    secrets:
+      PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  run-head-sha-dashboard-canary:
     needs: resolve-head-sha
     # A head commit that matches no open pull request is not a request to
     # refresh the whole repository.
-    if: needs.resolve-head-sha.outputs.pr_number != ''
+    if: >-
+      needs.resolve-head-sha.outputs.pr_number != '' &&
+      needs.resolve-head-sha.outputs.channel == 'canary'
+    permissions:
+      contents: write
+      copilot-requests: write
+    uses: ./.github/workflows/pull-request-dashboard-repo.yml
+    with:
+      repository: ${{ inputs.repository }}
+      pr_number: ${{ needs.resolve-head-sha.outputs.pr_number }}
+    secrets:
+      PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  run-head-sha-dashboard-stable:
+    needs: resolve-head-sha
+    if: >-
+      needs.resolve-head-sha.outputs.pr_number != '' &&
+      needs.resolve-head-sha.outputs.channel == 'stable'
     permissions:
       contents: write
       copilot-requests: write
@@ -208,7 +310,8 @@ jobs:
   notify-hourly-failure:
     needs:
       - resolve-targets
-      - run-repo-dashboard
+      - run-repo-dashboard-canary
+      - run-repo-dashboard-stable
     # Notify for backfills: scheduled runs and unfiltered manual runs.
     if: >-
       always() &&
@@ -226,5 +329,6 @@ jobs:
     with:
       # GitHub replaces an older pending per-repo publisher even with
       # cancel-in-progress disabled. Its replacement drains all durable work,
-      # while genuine matrix failures take precedence over cancellation.
-      success: ${{ needs.resolve-targets.result == 'success' && (needs.run-repo-dashboard.result == 'success' || needs.run-repo-dashboard.result == 'cancelled') }}
+      # while genuine matrix failures take precedence over cancellation. A
+      # channel with no repositories is skipped, which is not a failure.
+      success: ${{ needs.resolve-targets.result == 'success' && (needs.run-repo-dashboard-canary.result == 'success' || needs.run-repo-dashboard-canary.result == 'cancelled' || needs.run-repo-dashboard-canary.result == 'skipped') && (needs.run-repo-dashboard-stable.result == 'success' || needs.run-repo-dashboard-stable.result == 'cancelled' || needs.run-repo-dashboard-stable.result == 'skipped') }}
