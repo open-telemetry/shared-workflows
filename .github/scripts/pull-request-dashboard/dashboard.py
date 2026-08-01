@@ -125,14 +125,21 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   column shows it as pending.
     copilot_review_exists           bool          Copilot has reviewed this PR
                                                   at least once.
-    copilot_review_stale            bool          No Copilot review covers the
+    copilot_review_stale            bool          Copilot has reviewed this PR,
+                                                  but no review covers the
                                                   current head, so a re-review
                                                   would see unreviewed code.
-                                                  Only a stale review is worth
-                                                  re-requesting.
+                                                  False when Copilot has never
+                                                  reviewed, because that PR
+                                                  awaits the automatic first
+                                                  review rather than a
+                                                  re-request. Only a stale
+                                                  review is worth re-requesting.
     copilot_review_needed           bool          The review is stale or Copilot
-                                                  owns unresolved, non-outdated
-                                                  review threads.
+                                                  owns open review threads,
+                                                  meaning unresolved threads
+                                                  GitHub has not marked
+                                                  outdated.
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by a
                                                   PR participant, never earlier
