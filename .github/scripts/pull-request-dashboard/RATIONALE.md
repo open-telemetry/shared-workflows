@@ -283,14 +283,17 @@ the implementation understandable and operationally cheap.
   so asking Copilot to look at it again would reach the same verdict and be
   requested again on the next pass; those threads clear when the author resolves
   them or pushes a fix, which is a re-request in its own right.
-- The reviewers column marks Copilot pending only while a review is genuinely
-  in flight — a requested re-review, or the automatic first review on a PR the
-  Copilot gate is holding because Copilot has never reviewed it. A hold alone
-  is not enough, because unsettled required checks hold a route too and the
-  gate does not cover every base branch. Marking every outstanding gate instead
-  puts the icon on nearly every row, because a stale review is the ordinary
-  state between a push and the next re-review, and an icon that is always
-  present says nothing about which PRs are actually waiting.
+- The reviewers column marks Copilot pending only where the gate applies and a
+  review is genuinely in flight — a requested re-review, or the automatic first
+  review on a PR the Copilot gate is holding because Copilot has never reviewed
+  it. The gate scope is part of the meaning, not just a hold: a requested human
+  reviewer who has not responded is left off the row entirely, so Copilot earns
+  a place only where its review is what the PR is waiting on. A hold alone is
+  not enough either, because unsettled required checks hold a route too. Marking
+  every outstanding gate instead puts the icon on nearly every row, because a
+  stale review is the ordinary state between a push and the next re-review, and
+  an icon that is always present says nothing about which PRs are actually
+  waiting.
 - An outstanding Copilot review holds the PR where it is the same way an
   unsettled required check does, including when a reviewer-routing override
   asked for the handoff. The override says the author is done with the

@@ -130,14 +130,28 @@ class RenderTest(unittest.TestCase):
     def test_requested_copilot_review_is_listed_as_pending(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "reviewer", "approved": True}],
+            "copilot_review_outstanding": True,
             "copilot_review_requested": True,
         })
 
         self.assertEqual("Copilot&nbsp;⏳<br>reviewer&nbsp;✅", cell)
 
+    def test_requested_copilot_review_on_an_ungated_branch_is_not_pending(self) -> None:
+        # Nothing holds the pull request there, and a requested human reviewer
+        # who has not responded is left off the row, so Copilot gets no row
+        # either. The gate is what makes the wait someone's turn.
+        cell = reviewers_cell_text({
+            "reviewers": [{"login": "reviewer", "approved": True}],
+            "copilot_review_outstanding": False,
+            "copilot_review_requested": True,
+        })
+
+        self.assertEqual("reviewer&nbsp;✅", cell)
+
     def test_requested_copilot_review_marks_its_existing_entry(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "copilot-pull-request-reviewer", "open_thread": True}],
+            "copilot_review_outstanding": True,
             "copilot_review_requested": True,
         })
 
@@ -146,6 +160,7 @@ class RenderTest(unittest.TestCase):
     def test_requested_copilot_review_marks_its_short_login_entry(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "copilot", "open_thread": True}],
+            "copilot_review_outstanding": True,
             "copilot_review_requested": True,
         })
 
@@ -154,6 +169,7 @@ class RenderTest(unittest.TestCase):
     def test_requested_copilot_review_marks_its_api_cased_entry(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "Copilot", "open_thread": True}],
+            "copilot_review_outstanding": True,
             "copilot_review_requested": True,
         })
 
