@@ -728,9 +728,6 @@ def derive_top_level_items(
         body = truncate(event.get("body") or "")
         if source_kind == "review-state" and not body:
             continue
-        # Not the edit time: this timestamp orders the items, becomes how long the
-        # feedback has been waiting, and is the cutoff for what counts as a reply
-        # to it, so a reviewer fixing their own typo must not move any of those.
         root_timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
         comment = {
             "timestamp": root_timestamp,
