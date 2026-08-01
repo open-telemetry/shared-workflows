@@ -2892,7 +2892,7 @@
     },
     "19362": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "opentelemetrybot",
         "author_action_review_thread_urls": [],
@@ -2916,14 +2916,23 @@
         "head_sha": "bd637e27595c9a0c48249e25991f727d1f141697",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-01T14:43:42+00:00",
-        "last_approver_activity_at": "2026-08-01T14:43:42+00:00",
+        "last_activity_at": "2026-08-01T14:44:46+00:00",
+        "last_approver_activity_at": "2026-08-01T14:44:46+00:00",
         "last_author_activity_at": "2026-08-01T06:16:54+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "943b9d6323f1a6dd84eac429f58b2290feb7aa500220f50151d1cdae5be13b85",
-        "waiting_age_basis": "last_author_activity",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "8ec3cd933ec5c0d8f7cce724a56b45846cedd089649d44198c114188675ba51c",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-01T06:16:54+00:00"
       },
       "failed": false,
