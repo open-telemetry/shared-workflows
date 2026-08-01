@@ -2498,9 +2498,12 @@
         "author": "harshitt13",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "e50b14077d4648cb8a5b1091a2cf9a00",
+        "ci_failing_count": 3,
+        "ci_failing_since": "2026-08-01T08:46:31+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 3,
+        "ci_uncleared_failing_since": "2026-08-01T08:46:31+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -2520,7 +2523,7 @@
         "last_activity_at": "2026-08-01T08:42:00+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-01T08:42:00+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2540,14 +2543,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "e770aa52813992801591555cb7e6ba5994f6f41bcd90d116406c87a4a560b060",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-22T06:47:48+00:00"
+        "routing_input_fingerprint": "50a3733da60c20aa75adbea5539a12a9368ea200f9b32d36f78534b7372dffbf",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-01T08:46:31+00:00"
       },
       "failed": false,
       "pr_number": 48626,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48626",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4607444877": {
           "evidence": {
