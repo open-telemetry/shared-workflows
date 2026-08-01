@@ -22,10 +22,12 @@ REPO_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-re
 CONFIG = SCRIPT_DIR / "repositories.json"
 
 REPO_WORKFLOW_PATH = ".github/workflows/pull-request-dashboard-repo.yml"
+# Anchored to the job-level key so a commented out line cannot satisfy a guard.
 STABLE_USES = re.compile(
-    r"uses:\s*open-telemetry/shared-workflows/" + re.escape(REPO_WORKFLOW_PATH) + r"@(\S+)"
+    r"^ {4}uses:\s*open-telemetry/shared-workflows/" + re.escape(REPO_WORKFLOW_PATH) + r"@(\S+)",
+    re.MULTILINE,
 )
-LOCAL_USES = f"uses: ./{REPO_WORKFLOW_PATH}"
+LOCAL_USES = re.compile(r"^ {4}uses:\s*\./" + re.escape(REPO_WORKFLOW_PATH) + r"\s*$", re.MULTILINE)
 ENTRY_PATHS = ("run-repo-dashboard", "run-targeted-dashboard", "run-head-sha-dashboard")
 
 
@@ -90,7 +92,7 @@ class RolloutWiringTest(unittest.TestCase):
         for job, body in self.jobs.items():
             if not job.endswith("-canary"):
                 continue
-            self.assertIn(LOCAL_USES, body)
+            self.assertRegex(body, LOCAL_USES)
             # Checking out anything other than the triggering commit would
             # split the canary workflow from the canary scripts.
             self.assertNotIn("code_ref:", body)
@@ -105,7 +107,7 @@ class RolloutWiringTest(unittest.TestCase):
             if match is None:
                 # Before the first promotion the stable jobs call the local
                 # workflow, so both channels run the same code.
-                self.assertIn(LOCAL_USES, body, f"{job} calls an unexpected workflow")
+                self.assertRegex(body, LOCAL_USES, f"{job} calls an unexpected workflow")
                 self.assertNotIn("code_ref:", body, f"{job} pins scripts but not the workflow")
                 refs.add("")
                 continue
