@@ -210,8 +210,8 @@ jobs:
       fail-fast: false
       # Repositories hold separate state branches, so they only contend for the
       # shared GitHub App rate limit and the Copilot CLI token. The canary set
-      # is small, so it takes one of the parallel slots and the stable channel
-      # keeps the rest.
+      # is small enough that one at a time keeps its added contention with the
+      # stable channel's slots negligible.
       max-parallel: 1
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.canary_matrix) }}
     uses: ./.github/workflows/pull-request-dashboard-repo.yml
