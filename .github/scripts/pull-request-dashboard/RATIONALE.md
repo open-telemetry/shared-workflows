@@ -332,12 +332,9 @@ the implementation understandable and operationally cheap.
 - An inline review thread's wait age and list position come from its last
   comment's `createdAt`, never its edit time. Wait age is what makes a neglected
   thread visible, so a reviewer fixing a typo in their own comment must not make
-  a weeks-old thread look freshly raised. Top-level feedback items deliberately
-  differ and date from the edit time, because a top-level item is closed by an
-  explicit author reply and editing the request changes what was asked; the
-  reply that closed it is only reused while it stays newer than the item's root.
-  Inline threads have no such reply ledger to invalidate, so there is nothing an
-  edit needs to reset.
+  a weeks-old thread look freshly raised. Top-level feedback items date from
+  their creation time for the same reason, so editing a comment cannot reorder
+  the list or reset how long an item has been waiting.
 
 ## Top-Level Feedback
 
@@ -403,9 +400,11 @@ the implementation understandable and operationally cheap.
   badge; it does not affect dashboard actions or routing. Empty review summaries
   are ignored; their inline comments, if any, define independent actions.
 - The author reply that closed an item is retained in the cached PR result. It
-  is reused only when it remains newer than the item's root, so an edited
-  request cannot inherit a reply that predates its new text. Ordinary
-  requester-confirmation timestamps are not persisted.
+  is reused only when it is newer than the item's creation time, which an edit
+  never moves. Accepted tradeoff: a substantively rewritten request keeps the
+  reply that answered its earlier text, so a reviewer who needs the new text
+  answered should post it as a new comment. Ordinary requester-confirmation
+  timestamps are not persisted.
 - Reviewers should prefer inline comments when feedback needs explicit closure.
   Blocking PR-wide feedback should use GitHub's **Request changes** review state;
   ordinary top-level feedback remains a softer coordination mechanism.
