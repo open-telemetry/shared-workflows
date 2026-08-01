@@ -413,7 +413,6 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "kind": "issue-comment",
             "timestamp": timestamp,
             "created_timestamp": c.get("created_at") or timestamp,
-            "updated_timestamp": timestamp,
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
             "body": body,
@@ -446,7 +445,7 @@ def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> l
             "discussion_url": r.get("url") or "",
             "kind": "review-state",
             "timestamp": r.get("submitted_at") or "",
-            "updated_timestamp": r.get("updated_at") or r.get("submitted_at") or "",
+            "created_timestamp": r.get("submitted_at") or "",
             "actor": login,
             "actor_role": role_for(login, author, reviewers),
             "body": r.get("body") or "",
@@ -729,7 +728,10 @@ def derive_top_level_items(
         body = truncate(event.get("body") or "")
         if source_kind == "review-state" and not body:
             continue
-        root_timestamp = event.get("updated_timestamp") or event.get("timestamp") or ""
+        # Not the edit time: this timestamp orders the items, becomes how long the
+        # feedback has been waiting, and is the cutoff for what counts as a reply
+        # to it, so a reviewer fixing their own typo must not move any of those.
+        root_timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
         comment = {
             "timestamp": root_timestamp,
             "actor": event.get("actor") or "",

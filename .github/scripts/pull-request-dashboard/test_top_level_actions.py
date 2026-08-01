@@ -1418,10 +1418,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ["https://example.test/issue-comment/101", "https://example.test/review/202"],
         )
         self.assertEqual([item["pr_author"] for item in items], ["author", "author"])
-        self.assertEqual(items[1]["root_timestamp"], "2026-07-14T03:00:00Z")
-        review_event = next(event for event in events if event["kind"] == "review-state")
-        self.assertEqual(review_event["timestamp"], "2026-07-14T02:00:00Z")
-        self.assertEqual(review_event["updated_timestamp"], "2026-07-14T03:00:00Z")
+        self.assertEqual(items[1]["root_timestamp"], "2026-07-14T02:00:00Z")
 
     def test_top_level_items_require_github_identity_and_requester(self) -> None:
         raw = {
@@ -2282,6 +2279,49 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual([event["source_id"] for event in events], [101, 102])
         self.assertEqual(events[0]["timestamp"], "2026-07-14T05:00:00Z")
         self.assertEqual(events[0]["created_timestamp"], "2026-07-14T01:00:00Z")
+
+    def test_top_level_items_use_creation_order_not_edit_order(self) -> None:
+        events = normalize_events(
+            {
+                "commits": [],
+                "issue_comments": [
+                    {
+                        "id": 101,
+                        "created_at": "2026-07-14T01:00:00Z",
+                        "updated_at": "2026-07-14T05:00:00Z",
+                        "content_updated_at": "2026-07-14T05:00:00Z",
+                        "user": {"login": "reviewer"},
+                        "body": "Older comment edited later.",
+                    },
+                    {
+                        "id": 102,
+                        "created_at": "2026-07-14T02:00:00Z",
+                        "updated_at": "2026-07-14T02:00:00Z",
+                        "content_updated_at": "2026-07-14T02:00:00Z",
+                        "user": {"login": "reviewer"},
+                        "body": "Newer comment.",
+                    },
+                ],
+                "review_comments": [],
+                "reviews": [],
+            },
+            "author",
+            {"reviewer"},
+        )
+
+        items = derive_top_level_items(
+            events,
+            {"author": "author", "conflicts": "no"},
+        )
+
+        self.assertEqual(
+            [item["discussion_id"] for item in items],
+            ["pr-issue-comment-101", "pr-issue-comment-102"],
+        )
+        self.assertEqual(
+            [item["root_timestamp"] for item in items],
+            ["2026-07-14T01:00:00Z", "2026-07-14T02:00:00Z"],
+        )
 
     def test_edited_old_author_comment_does_not_count_as_reply(self) -> None:
         events = normalize_events(
