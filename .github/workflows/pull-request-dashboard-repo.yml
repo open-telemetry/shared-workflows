@@ -14,8 +14,8 @@ on:
         type: string
       # Ref of this repository that the dashboard code runs from. Empty means
       # the commit that triggered the run. A staged rollout passes the same
-      # release tag that this workflow file is called at, so the scripts always
-      # match the workflow YAML that invoked them.
+      # hash pinned release commit that this workflow file is called at, so the
+      # scripts always match the workflow YAML that invoked them.
       code_ref:
         required: false
         default: ""

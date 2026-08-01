@@ -242,8 +242,8 @@ a small set of repositories before it reaches everyone.
   `CANARY_REPOSITORIES` list in
   [`pull-request-dashboard.yml`](../.github/workflows/pull-request-dashboard.yml),
   which currently holds `shared-workflows` itself.
-- **Every other repository** runs them from the promoted rollout ref, a release
-  tag of this repository.
+- **Every other repository** runs them from the promoted rollout ref: a
+  release's commit SHA, hash pinned with the release tag as a comment.
 
 Repository configuration is never staged. `repositories.json` is always read
 from `main`, so opting a repository in, or changing its settings, takes effect
