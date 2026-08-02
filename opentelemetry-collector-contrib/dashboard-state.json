@@ -10739,9 +10739,12 @@
         "assignees": [],
         "author": "singhvibhanshu",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50000#pullrequestreview-4839328318"
+        ],
+        "author_nudge_episode_id": "f27f236680d34da3be4bbeec1b81d918",
         "ci_failing_count": 0,
-        "ci_pending_count": 10,
+        "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -10759,15 +10762,24 @@
         "head_sha": "3bdc4faa53c7fe6997c3e5bf658aea0b7c477641",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-02T17:23:20+00:00",
+        "last_activity_at": "2026-08-02T17:30:25+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-02T17:23:20+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "91b0f94714414b0232f03989daaabf683ea2409a1c22cf8c5fb28bf2926cc6b4",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-02T17:01:44+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "douglascamata",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "ad7782bd39854d1e7f8ff6dbd6a8f5e7bf0ea13dda2459cf4e87c6fc9dd63922",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-02T17:30:25+00:00"
       },
       "failed": false,
       "pr_number": 50000,
