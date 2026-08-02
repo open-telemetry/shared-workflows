@@ -567,11 +567,7 @@
         "assignees": [],
         "author": "shashank-reddy-nr",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#issuecomment-4890295548",
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#issuecomment-4891309029"
-        ],
-        "author_nudge_episode_id": "e4d0dbd254c240d1a878b5ddfc9b4074",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -579,15 +575,23 @@
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
-        "copilot_review_request_needed": false,
+        "copilot_review_request_needed": true,
         "copilot_review_requested": false,
         "created_at": "2026-06-12T15:48:18+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5160089664,
+            "held_gates": "the Copilot review",
+            "kind": "routed",
+            "route": "author",
+            "user": "trask"
+          }
+        ],
         "dashboard_override_cleared_ci": false,
-        "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "",
+        "dashboard_override_cleared_count": 3,
+        "dashboard_override_command_id": 5160089664,
+        "dashboard_override_command_user": "trask",
+        "dashboard_override_since": "2026-08-02T20:00:06Z",
         "head_sha": "a5911c0f3449451a8e5a9dd6d4e66120da0c4df3",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -596,14 +600,6 @@
         "last_author_activity_at": "2026-08-02T09:01:32+00:00",
         "required_checks_settled": true,
         "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "Kielek",
-            "open_thread": false,
-            "top_level_feedback": true
-          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -621,9 +617,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "205882f58b7c2d2022778c37d778ac276382a1a6cb3310721011d6fbe00eca7b",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "d76835df522045f29911f79893ff0c261610b2ff56f5f1d163246277c6b51469",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-07-30T18:45:48+00:00"
       },
       "failed": false,
