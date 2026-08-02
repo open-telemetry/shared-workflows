@@ -2134,8 +2134,12 @@
         "approval_count": 0,
         "assignees": [],
         "author": "AgentGymLeader",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3697591037",
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3697591044"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "023d47d26e67427ab98d07b1f92127ed",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2155,20 +2159,29 @@
         "head_sha": "cd07fc22fc60b474e4e549548a805224c8399ff7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-31T20:20:39+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-02T03:20:51+00:00",
+        "last_approver_activity_at": "2026-08-02T03:20:51+00:00",
         "last_author_activity_at": "2026-07-31T20:20:39+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "d086ac2bae5365c819b861aae15b94b4673f8a642dd8c527def6fd94fccb19f7",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-31T09:52:26+00:00"
+        "routing_input_fingerprint": "545db11ca5d16978b145924ec495887d3a686a84a89819507ef18c1f610aba00",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-02T03:19:47+00:00"
       },
       "failed": false,
       "pr_number": 415,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "417": {
