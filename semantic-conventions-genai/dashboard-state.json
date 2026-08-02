@@ -2223,11 +2223,14 @@
     },
     "419": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/419#discussion_r3696956299"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "e035ba465ac44e708aebbda47260c8c8",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2247,20 +2250,29 @@
         "head_sha": "bea961f4b4b3d576a281f286afb9beef9f667045",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-01T20:18:55+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-02T00:08:03+00:00",
+        "last_approver_activity_at": "2026-08-02T00:08:03+00:00",
         "last_author_activity_at": "2026-08-01T20:18:55+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "0b492114a7ea4c814e69ee3742d611e4e7fdbc62310b01caaf0c4fa91885eacc",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-01T20:18:55+00:00"
+        "routing_input_fingerprint": "37dabb9a19382f7d3e1d76c9bcd60e6409d88c635fe84833ec55ff35f87f5d71",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-01T23:54:15+00:00"
       },
       "failed": false,
       "pr_number": 419,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/419",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "98": {
