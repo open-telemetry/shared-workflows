@@ -421,12 +421,15 @@
     "4929": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
+        "assignees": [
+          "matt-hensley",
+          "martincostello"
+        ],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -441,16 +444,33 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "e7e227d25c10d27f944e1df7b385eca204180eb9",
+        "head_sha": "87e587cc2dac7298e5a1fa5d1e9d3daf96c2cae8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T13:57:37+00:00",
+        "last_activity_at": "2026-08-03T13:57:47+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-03T13:57:37+00:00",
-        "required_checks_settled": true,
-        "reviewers": [],
+        "last_author_activity_at": "2026-08-03T13:57:47+00:00",
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "matt-hensley",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a91281882feca0e681aa2d552a2499515a970e6b0208540b516ef1708fecd632",
+        "routing_input_fingerprint": "650bc373af1ae8398a0aea3bbe18ce6b259b754b1cc2a07ac258516404eb0a97",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-03T13:31:03+00:00"
       },
