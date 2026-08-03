@@ -5130,12 +5130,9 @@
         "assignees": [],
         "author": "ymotongpoo",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11110#issuecomment-5137292563"
-        ],
-        "author_nudge_episode_id": "d1a50eb9065940b890a0b4ab5b0dc34f",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 4,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -5153,10 +5150,10 @@
         "head_sha": "c9a4501b60a8dfb0bf43aa727911f264ded63dff",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T07:50:01+00:00",
+        "last_activity_at": "2026-08-03T08:08:10+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-03T07:50:01+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-08-03T08:08:10+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -5164,19 +5161,26 @@
             "changes_requested": false,
             "login": "kohbis",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "86ee3395ffb2b0e54c17f5ef338343ac0f5d0ab99fdb5ab96df19fedfa2cfe62",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-30T23:24:38+00:00"
+        "routing_input_fingerprint": "03af20a59d35874f5388f2b9e9e0ff20631b785752f98d82e1d82bb366b539df",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-03T08:08:10+00:00"
       },
       "failed": false,
       "pr_number": 11110,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11110",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5137292563": {
+          "evidence": {
+            "reply": "2026-08-03T08:08:10Z"
+          },
+          "reply_source_id": 5163837209
+        }
+      }
     },
     "11121": {
       "facts": {
