@@ -9,14 +9,18 @@ from collections.abc import Callable
 from collections.abc import Iterator
 from contextlib import contextmanager
 import os
+import random
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 
-DEFAULT_MAX_ATTEMPTS = 3
+DEFAULT_MAX_ATTEMPTS = 8
+RETRY_BACKOFF_BASE_SECONDS = 0.5
+RETRY_BACKOFF_MAX_SECONDS = 8.0
 
 
 @contextmanager
@@ -152,6 +156,12 @@ def copy_snapshots(snapshots: list[tuple[Path, Path]]) -> None:
             shutil.copyfile(source, destination)
 
 
+def retry_delay_seconds(attempt: int) -> float:
+    # Full jitter so concurrent writers de-synchronize instead of colliding again.
+    ceiling = min(RETRY_BACKOFF_BASE_SECONDS * (2 ** (attempt - 1)), RETRY_BACKOFF_MAX_SECONDS)
+    return random.uniform(0, ceiling)
+
+
 def push_state_changes(
     state_dir: Path,
     commit_message: str,
@@ -188,7 +198,12 @@ def push_state_changes(
             print(f"CAS retry exhausted after {attempt} attempt(s)", file=sys.stderr)
             return 1
 
-        print(f"push rejected (attempt {attempt}); refetching and retrying", file=sys.stderr)
+        delay = retry_delay_seconds(attempt)
+        print(
+            f"push rejected (attempt {attempt}); refetching and retrying in {delay:.2f}s",
+            file=sys.stderr,
+        )
+        time.sleep(delay)
         if not reset_state(state_dir, state_branch):
             return 1
     return 1

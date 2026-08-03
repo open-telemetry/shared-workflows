@@ -47,27 +47,6 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         })
         self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
 
-    def test_routing_fingerprint_tracks_normalized_labels(self) -> None:
-        raw = {
-            "checks": [],
-            "issue_comments": [],
-            "pr": {"labels": [{"name": "needs-triage"}]},
-            "review_comments": [],
-            "reviews": [],
-            "review_threads": [],
-        }
-        baseline = author_nudge.routing_input_fingerprint(raw)
-        raw["pr"]["labels"].append({"name": "documentation"})
-
-        self.assertEqual(baseline, author_nudge.routing_input_fingerprint(raw))
-
-        raw["pr"]["labels"].append({"name": "dashboard:route-overridden"})
-        overridden = author_nudge.routing_input_fingerprint(raw)
-
-        self.assertNotEqual(baseline, overridden)
-        raw["pr"]["labels"].reverse()
-        self.assertEqual(overridden, author_nudge.routing_input_fingerprint(raw))
-
     def test_routing_fingerprint_tracks_required_check_state(self) -> None:
         raw = {
             "checks": [{"name": "build", "bucket": "fail"}],
@@ -113,9 +92,11 @@ class AuthorNudgePolicyTest(unittest.TestCase):
     @patch(
         "github_cli.gh_pr_check_rollup",
         return_value={
+            "head_oid": "current-head",
             "required": [{"name": "build", "bucket": "fail"}],
             "non_blocking_failures": [],
             "code_scanning": [],
+            "pending": [],
         },
     )
     @patch("github_cli.fetch_review_threads", return_value=[])
@@ -140,10 +121,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             "baseRefName": "main",
             "body": "Current body",
             "headRefOid": "current-head",
-            "labels": [
-                {"name": "needs-triage"},
-                {"name": "dashboard:route-overridden"},
-            ],
+            "labels": [{"name": "needs-triage"}],
             "title": "Current title",
         }
         gh_pr_view.return_value = pr
@@ -218,6 +196,19 @@ class AuthorNudgePolicyTest(unittest.TestCase):
     def test_leaving_author_route_resets_unnudged_clock(self) -> None:
         due, entry = author_nudge.plan_nudge(
             author_result("approver"),
+            {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""},
+            NOW,
+        )
+
+        self.assertFalse(due)
+        self.assertIsNone(entry)
+
+    def test_gate_held_route_resets_clock_and_does_not_nudge(self) -> None:
+        held = author_result()
+        held["facts"]["route_held_for_gates"] = True
+
+        due, entry = author_nudge.plan_nudge(
+            held,
             {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""},
             NOW,
         )

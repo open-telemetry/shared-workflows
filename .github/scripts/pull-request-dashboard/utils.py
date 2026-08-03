@@ -64,6 +64,26 @@ def actor_login(obj: dict[str, Any] | None) -> str:
     return ((obj or {}).get("login") or "").strip()
 
 
+# Every login GitHub has used for the Copilot reviewer, lowercased.
+COPILOT_REVIEWER_LOGINS = frozenset({
+    "copilot",
+    "copilot-pull-request-reviewer",
+    "copilot-pull-request-reviewer[bot]",
+})
+
+
+def is_copilot_reviewer_login(login: str) -> bool:
+    return (login or "").strip().lower() in COPILOT_REVIEWER_LOGINS
+
+
+def required_checks_settled(facts: dict[str, Any]) -> bool:
+    # A route computed while checks are still running is provisional: route_pr
+    # can only see a failure once the check has completed.
+    if "ci_pending_count" not in facts:
+        return False
+    return not facts.get("ci_pending_count", 0)
+
+
 def format_ts(ts: datetime | None) -> str:
     return ts.isoformat() if ts else ""
 

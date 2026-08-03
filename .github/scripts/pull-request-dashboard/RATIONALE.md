@@ -26,6 +26,13 @@ the implementation understandable and operationally cheap.
   repository's current open PR list.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
+- Refresh events that carry no pull request number report the head commit
+  instead, and the workflow resolves it to an open pull request. GitHub omits
+  the pull request association from check and status events whose head branch
+  lives in a fork, which is where nearly every contribution comes from, so
+  without this the CI columns of those PRs would only refresh on the hourly
+  backfill. The webhook bridge cannot resolve the commit itself, because its
+  GitHub App is installed only on `shared-workflows`.
 
 ## Workflow Concurrency
 
@@ -172,6 +179,22 @@ the implementation understandable and operationally cheap.
 - Classic branch-protection required status checks are not discovered when they
   have not reported. This is an accepted limitation because configured
   OpenTelemetry repositories use rulesets for required status checks.
+- The rollup is read from the PR's last commit, which can still be the previous
+  head just after a push. That commit's checks are already complete, so they
+  would read as a settled result for code that is no longer proposed. The
+  rollup therefore carries its commit oid and is discarded when it does not
+  match the PR head, leaving check facts unavailable until the rollup catches
+  up.
+- A required context is only pending while the app that owns it may still
+  report. Check suites for the head commit are consulted, and a context is
+  dropped from the pending set once every suite its app created has completed,
+  because the app has then reported everything it is going to. Without this a
+  ruleset context that no workflow produces — an obsolete or conditionally
+  skipped job — would be reported as permanently pending. Such a PR cannot
+  merge either way; the difference is that the dashboard stops treating it as
+  "still running." The suites are read only when an app-owned required context
+  has not reported, so the refreshes that cannot use the answer do not pay for
+  it.
 - A `code_scanning` ruleset rule holds the merge on a check that the code
   scanning app publishes per configured tool, named after that tool, which
   GitHub never marks as required. Those checks are matched by app and by the
@@ -180,15 +203,59 @@ the implementation understandable and operationally cheap.
   holds the merge, so it is reported as failing rather than skipped. Tools with
   no such check are not reported, because GitHub expects results only from the
   tool configurations that actually ran.
+- That `NEUTRAL` is only reported as failing once every check at the head has
+  finished, including optional ones. The code scanning app publishes the tool
+  check as `NEUTRAL` before the analysis is uploaded and then replaces it in
+  place, so an analysis still running is reported as pending instead of pinning
+  the PR to its author. The replacement leaves the enclosing check suite
+  untouched, so the dashboard subscribes to code scanning check runs to observe
+  the final result. Check runs from other apps are ignored, because their check
+  suite reports them and one refresh per job would multiply webhook volume.
+- Required checks reported as commit statuses, such as EasyCLA, never belong to
+  a check suite, so commit status events are subscribed as well.
 - A failing required status check routes a human-authored PR to the author
   before discussion and approval routing. The live PR status comment names the
   CI failure, including when review feedback also needs author action.
   Repository-configured `non_blocking_check_patterns` identify failed optional
   checks in a note alongside this action, without changing required-check facts
   or routing.
+- A PR does not advance toward merge while the required checks are unsettled:
+  an author waiting on CI keeps the PR, and a PR already with approvers is not
+  handed to maintainers to merge. Clearing the checks is the author's job, so
+  an outstanding one is not yet a reason to spend anyone else's attention, and a
+  push clears the failing count before the replacement checks produce a result,
+  so the PR would otherwise move forward on evidence that does not exist yet and
+  move back minutes later when the same check fails. Moving back toward the
+  author is never held, because a failing check or new author-owned discussion
+  is evidence the gates cannot undo. Unavailable check results hold the handoff
+  for the same reason a pending one does, and resolve on a later run.
+- A held PR is presented as waiting on its author rather than on the robot it
+  is waiting for, so a separate route would add a section that nobody is
+  expected to act on. What it waits for is named in the columns instead: the CI
+  column already shows running checks, and an outstanding Copilot review is
+  listed in the reviewers column with the same pending icon. Copilot otherwise
+  joins that column only once it has reviewed, so without this the Copilot gate
+  would hold a PR with nothing on the row to explain why. The live status
+  comment tells the author the handoff happens once both are clean.
+- A held route also holds its wait age. Recomputing it would read the push as
+  the end of the CI failure and fall back to the last approver activity, which
+  is usually far older, so a PR the author had just pushed to would sort to the
+  top of the waiting-on-authors section as the stalest item on the board.
+- A held PR sends no reminder in either direction. The author nudge and the
+  reviewer Slack notification both ask a person to respond, and while the hold
+  lasts the response is owed by a robot that is already working. The author's
+  waiting episode ends when the hold begins, so a later handoff back to the
+  author starts a fresh one instead of resuming a wait the author has answered.
+- While a PR stays on a route where someone other than the author owes it a
+  response, its wait age only moves back, never forward. The fallback for those
+  routes is the last author activity, so a push would otherwise restart the
+  clock and present a review nobody has done in a week as brand new. A handoff
+  from the author route does start a fresh wait, because that push is what put
+  the PR in front of reviewers.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
-  but do not change who owns the next action.
+  but never route one of these PRs to its author: a bot PR whose handoff is
+  held waits on reviewers instead.
 
 ## Copilot Review Gate
 
@@ -199,7 +266,7 @@ the implementation understandable and operationally cheap.
 - The setting lists the base branches to gate rather than a single on/off
   switch, because automatic Copilot review is itself configured per branch
   (often only the default branch). Gating a branch with no automatic review
-  would park every ready PR on the copilot route waiting for a review that never
+  would hold every ready PR with its author waiting for a review that never
   runs, so only branches with automatic review are listed and PRs targeting
   other branches route normally.
 - Copilot findings normally return a PR to the author through ordinary
@@ -214,11 +281,26 @@ the implementation understandable and operationally cheap.
   gate or produces fresh actionable threads that route the PR back to the
   author, so re-requesting an unchanged commit is self-correcting rather than a
   re-request loop.
+- An outstanding Copilot review holds the PR where it is the same way an
+  unsettled required check does, including when a reviewer-routing override
+  asked for the handoff. The override says the author is done with the
+  discussion, not that the robots have finished, and a handoff made before they
+  report would only change back.
+- The gate withholds the re-review request until the required checks have
+  settled. A route computed while checks are still running is provisional: a
+  failure that has not completed yet cannot route the PR to its author, so the
+  PR looks ready for reviewers and the gate would spend a Copilot review on code
+  CI is about to reject. Unavailable check results are treated the same as
+  running ones, because both mean the routing decision cannot be trusted yet.
+- Delivery re-validates the required checks against live data rather than
+  relying on the routing fingerprint alone. The fingerprint only detects
+  change, so checks that were unsettled when the request was recorded and are
+  still unsettled at delivery would otherwise pass through unnoticed.
 - "Clean" means no inline comments on the current head, counted from the
   review, not from the classifier's actionability judgment. Accepted
   limitation: if Copilot leaves comments the classifier treats as
   non-actionable while they stay unresolved, routing sits at reviewers but the
-  gate holds the PR on the copilot route and re-requests until Copilot returns a
+  handoff stays held with the author and re-requests until Copilot returns a
   comment-free review or the author pushes. The strict count is intentional —
   the gate is a conservative "Copilot had nothing to say about this exact code"
   check, and folding in classifier judgment could let a real-but-non-actionable
@@ -247,6 +329,15 @@ the implementation understandable and operationally cheap.
   `actions/stale` reads, so no PR in a dashboard repository could go stale.
   The dashboard app is never a PR's author, so `role_for` always classifies its
   comments as `bot` and they never count.
+- An inline review thread's wait age and list position come from its last
+  comment's `createdAt`, never its edit time. Wait age is what makes a neglected
+  thread visible, so a reviewer fixing a typo in their own comment must not make
+  a weeks-old thread look freshly raised. Top-level feedback items deliberately
+  differ and date from the edit time, because a top-level item is closed by an
+  explicit author reply and editing the request changes what was asked; the
+  reply that closed it is only reused while it stays newer than the item's root.
+  Inline threads have no such reply ledger to invalidate, so there is nothing an
+  edit needs to reset.
 
 ## Top-Level Feedback
 

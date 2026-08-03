@@ -180,7 +180,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": [
                         "&" * pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT
                         for _ in range(
@@ -217,7 +217,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             self.pr(),
             {
                 "route": "author",
-                "facts": {"author": "alice", "ci_failing_count": 1},
+                "facts": {"author": "alice", "ci_uncleared_failing_count": 1},
             },
         )
 
@@ -226,6 +226,38 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertNotIn("### Review feedback", body)
         self.assertNotIn(pr_status_comment.RESPONSE_EXAMPLES, body)
 
+    def test_held_pr_names_only_the_outstanding_check_gate(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "author": "alice",
+                    "route_held_for_gates": True,
+                    "required_checks_settled": False,
+                    "copilot_review_outstanding": False,
+                },
+            },
+        )
+
+        self.assertIn("Wait for the required status checks to report;", body)
+
+    def test_held_pr_names_only_the_outstanding_copilot_gate(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "author": "alice",
+                    "route_held_for_gates": True,
+                    "required_checks_settled": True,
+                    "copilot_review_outstanding": True,
+                },
+            },
+        )
+
+        self.assertIn("Wait for the Copilot review to report;", body)
+
     def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
@@ -233,7 +265,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 "route": "author",
                 "facts": {
                     "author": "alice",
-                    "ci_failing_count": 2,
+                    "ci_uncleared_failing_count": 2,
                     "author_action_review_thread_urls": [
                         "https://github.com/open-telemetry/example/pull/1#discussion_r1",
                     ],
@@ -252,7 +284,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 2,
+                    "ci_uncleared_failing_count": 2,
                     "non_blocking_check_failures": [
                         "CodeQL",
                         "workflow-notification",
@@ -273,7 +305,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": [
                         "[CodeQL] <script>\n@maintainers",
                         r"pipe|slash\check & more",
@@ -303,7 +335,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             {
                 "route": "author",
                 "facts": {
-                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 1,
                     "non_blocking_check_failures": failures,
                 },
             },
@@ -368,7 +400,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                     {
                         "route": route,
                         "facts": {
-                            "ci_failing_count": failing_count,
+                            "ci_uncleared_failing_count": failing_count,
                             "non_blocking_check_failures": non_blocking_failures,
                         },
                     },
@@ -377,6 +409,20 @@ class RenderStatusCommentTest(unittest.TestCase):
                 self.assertIn(f"**{waiting_on}** · refreshed ", body)
                 self.assertIn(f"**Also blocked by:** {blocked_by}", body)
                 self.assertIn(non_blocking_line, body.splitlines())
+
+    def test_override_cleared_check_failure_is_not_reported_as_blocking(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "approver",
+                "facts": {
+                    "ci_failing_count": 1,
+                    "ci_uncleared_failing_count": 0,
+                },
+            },
+        )
+
+        self.assertNotIn("**Also blocked by:**", body)
 
     def test_waiting_on_author_caps_feedback_links_across_sections(self) -> None:
         review_thread_urls = [
@@ -485,7 +531,6 @@ class RenderStatusCommentTest(unittest.TestCase):
         expected_summaries = {
             "approver": ("Waiting on reviewers", "Review the latest changes."),
             "maintainer": ("Waiting on maintainers", "Merge when ready."),
-            "copilot": ("Waiting on Copilot", "Wait for the pending review to complete."),
             "transient-failure": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
             "unknown": ("Waiting on the pull request dashboard maintainers", "Determine the next action."),
         }

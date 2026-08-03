@@ -17,18 +17,16 @@ from github_cli import (
     request_copilot_review,
 )
 from state import load_copilot_review_requests, save_copilot_review_requests
-from utils import actor_login, format_ts
-
-
-_COPILOT_REVIEWER_LOGINS = {
-    "copilot",
-    "copilot-pull-request-reviewer",
-    "copilot-pull-request-reviewer[bot]",
-}
+from utils import (
+    actor_login,
+    format_ts,
+    is_copilot_reviewer_login,
+    required_checks_settled,
+)
 
 
 def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
-    return actor_login(obj).lower() in _COPILOT_REVIEWER_LOGINS
+    return is_copilot_reviewer_login(actor_login(obj))
 
 
 def copilot_review_status(
@@ -58,22 +56,31 @@ def copilot_review_status(
     return True, bool(latest_review.get("finding_count"))
 
 
-def apply_copilot_review_gate(
+def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:
+    if not enabled:
+        return False
+    return not facts.get("copilot_review_exists") or bool(
+        facts.get("copilot_review_needed")
+    )
+
+
+def set_copilot_review_request_needed(
     facts: dict[str, Any],
     route: str,
     *,
     enabled: bool,
-) -> str:
-    facts["copilot_review_request_needed"] = False
-    if not enabled or route not in ("approver", "maintainer"):
-        return route
-    if not facts.get("copilot_review_exists"):
-        return "copilot"
-    if not facts.get("copilot_review_needed"):
-        return route
-    if not facts.get("copilot_review_requested"):
-        facts["copilot_review_request_needed"] = True
-    return "copilot"
+) -> None:
+    # Requesting a re-review before the checks report would spend it on code CI
+    # is about to reject, and a PR GitHub has never reviewed is already queued
+    # for the automatic first review.
+    facts["copilot_review_request_needed"] = (
+        enabled
+        and route in ("approver", "maintainer")
+        and bool(facts.get("copilot_review_exists"))
+        and bool(facts.get("copilot_review_needed"))
+        and not facts.get("copilot_review_requested")
+        and required_checks_settled(facts)
+    )
 
 
 def record_copilot_review_observation(
@@ -89,7 +96,6 @@ def record_copilot_review_observation(
     if (
         not result
         or result.get("failed")
-        or result.get("route") != "copilot"
         or not facts.get("copilot_review_request_needed")
         or not head_sha
         or not routing_fingerprint
@@ -103,6 +109,13 @@ def record_copilot_review_observation(
             "routing_input_fingerprint": routing_fingerprint,
         }
     save_copilot_review_requests(requests)
+
+
+def named_checks(checks: list[dict[str, Any]]) -> str:
+    names = sorted(check.get("name") or "" for check in checks)
+    if len(names) > 3:
+        return f"{', '.join(names[:3])} and {len(names) - 3} more"
+    return ", ".join(names)
 
 
 def stale_request_reason(
@@ -121,6 +134,17 @@ def stale_request_reason(
             f"head is {current_head or '(missing)'} "
             f"but {entry.get('head_sha') or '(missing)'} was observed"
         )
+    # The fingerprint below only detects change, so checks that were unsettled
+    # when the request was recorded and still are would otherwise pass through.
+    checks = raw.get("checks")
+    if checks is None:
+        return "required check results are unavailable"
+    failing = [check for check in checks if check.get("bucket") in ("fail", "cancel")]
+    if failing:
+        return f"required checks are failing: {named_checks(failing)}"
+    pending = [check for check in checks if check.get("bucket") == "pending"]
+    if pending:
+        return f"required checks have not completed: {named_checks(pending)}"
     if not entry.get("routing_input_fingerprint"):
         return "no routing fingerprint was observed"
     if current_routing_fingerprint != entry["routing_input_fingerprint"]:

@@ -109,9 +109,15 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
+    ci_uncleared_failing_count      int           Required failures an override
+                                                  command has not cleared.
+    ci_uncleared_failing_since      str (iso)     Earliest completion time among
+                                                  those uncleared failures.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
-                                                  fetched.
+                                                  fetched, and excludes required
+                                                  contexts whose app has already
+                                                  finished reporting.
     conflicts                       str           "yes" | "no" | "unknown".
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by a
@@ -121,9 +127,27 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_approver_activity_at       str (iso)
 
     Stage 2 — add_wait_age_facts (depends on routing + pending actions):
+    copilot_review_outstanding      bool          The Copilot review gate applies
+                                                  to this PR and its review is
+                                                  missing or stale, so the
+                                                  reviewers column shows Copilot
+                                                  as pending.
+    route_held_for_gates            bool          The PR did not advance to the
+                                                  route it computed, because
+                                                  the required checks or the
+                                                  Copilot review are still
+                                                  outstanding.
+    required_checks_settled         bool          Every required check has
+                                                  reported on the current head,
+                                                  so the computed route is not
+                                                  provisional.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
-                                                  or PR creation time.
+                                                  or PR creation time. Carried
+                                                  forward while the handoff is
+                                                  held, and never moves
+                                                  forward while the PR stays on
+                                                  a reviewer route.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
     author_action_review_thread_urls
@@ -190,16 +214,18 @@ from classification import (
 )
 from author_nudge import record_author_nudge_observation, routing_input_fingerprint
 from copilot_review import (
-    apply_copilot_review_gate,
+    copilot_review_outstanding,
     copilot_review_status,
     is_copilot_reviewer,
     record_copilot_review_observation,
+    set_copilot_review_request_needed,
 )
 from dashboard_override import (
-    apply_dashboard_override,
-    append_route_noop_reply,
+    append_command_ack_reply,
+    clear_overridden_actions,
     dashboard_command_body_remainder,
     dashboard_override_facts,
+    uncleared_ci_failing_count,
 )
 from pr_status_comment import status_author_nudge_episode_id
 from state import (
@@ -217,7 +243,14 @@ from state import (
     update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import actor_login, format_ts, parse_ts, truncate, utc_now
+from utils import (
+    actor_login,
+    format_ts,
+    parse_ts,
+    required_checks_settled,
+    truncate,
+    utc_now,
+)
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
@@ -542,17 +575,12 @@ def compute_facts(
         raw.get("reviews") or [],
         head_sha,
     )
-    labels = {
-        label.get("name") or ""
-        for label in pr.get("labels") or []
-        if isinstance(label, dict)
-    }
     facts = {
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
         "routing_input_fingerprint": routing_input_fingerprint(raw),
-        **dashboard_override_facts(raw, author, labels, reviewers or set()),
+        **dashboard_override_facts(raw, author, reviewers or set()),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (raw.get("review_requests") or [])
@@ -572,6 +600,19 @@ def compute_facts(
         facts["ci_failing_count"] = len(failing)
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
+        # A failure with no completion time cannot be shown to predate the
+        # override command, so it counts as uncleared. So does one that shares
+        # the command's second, since GitHub timestamps cannot order them.
+        untimed = len(failing) - len(failing_timestamps)
+        override_since = parse_ts(facts.get("dashboard_override_since") or "")
+        uncleared = [
+            ts
+            for ts in failing_timestamps
+            if override_since is None or ts >= override_since
+        ]
+        facts["ci_uncleared_failing_count"] = untimed + len(uncleared)
+        if uncleared:
+            facts["ci_uncleared_failing_since"] = format_ts(min(uncleared))
         facts["ci_pending_count"] = len(pending)
     non_blocking_check_failures = sorted({
         check.get("name") or ""
@@ -642,14 +683,15 @@ def group_review_threads(
         thread_url = raw_comments[0].get("url") if raw_comments else ""
         # a thread reads in creation order; sorting on updatedAt would move an
         # edited old comment to the end and change who last spoke
-        ordered = sorted(
-            raw_comments, key=lambda c: c.get("createdAt") or c.get("updatedAt") or ""
-        )
+        ordered = sorted(raw_comments, key=lambda c: c.get("createdAt") or "")
         comments = []
         for c in ordered:
             actor = reviewer_actor_login(c.get("author") or {})
+            # Not updatedAt: this timestamp becomes how long the thread has been
+            # waiting, and a reviewer fixing a typo in their own comment must not
+            # make a weeks-old thread look freshly raised.
             comments.append(discussion_comment(
-                c.get("updatedAt") or c.get("createdAt") or "",
+                c.get("createdAt") or "",
                 actor,
                 author,
                 reviewers,
@@ -1114,12 +1156,13 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
-    #   1. A required status check failure -> "author".
+    #   1. A required status check failure the author has not overridden -> "author".
     #   2. A discussion waiting on the author -> "author".
     #   3. If there are enough approvals and no inline or top-level feedback is
     #      still waiting on a reviewer -> "maintainer".
     #   4. Otherwise the PR is still waiting on approvers.
-    if facts.get("ci_failing_count", 0) > 0 and not is_maintenance_bot:
+    ci_failing = uncleared_ci_failing_count(facts) > 0
+    if ci_failing and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
@@ -1145,12 +1188,25 @@ def oldest_pending_action_ts(
     return min(timestamps) if timestamps else None
 
 
+# Routes where the PR is out of the author's hands and someone else owes it a
+# response, so an author push does not change whose turn it is.
+REVIEWER_ROUTES = ("approver", "maintainer")
+
+# How far a PR has travelled toward merge. An unsettled gate stops it from
+# advancing, but never from moving back toward its author.
+ROUTE_PROGRESSION = ("author", "approver", "maintainer")
+
+
+def route_progress(route: str) -> int:
+    return ROUTE_PROGRESSION.index(route) if route in ROUTE_PROGRESSION else 0
+
+
 def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
-    if route in ("approver", "maintainer", "copilot"):
+    if route in REVIEWER_ROUTES:
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
-        if facts.get("ci_failing_count", 0) > 0:
-            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
+        if uncleared_ci_failing_count(facts) > 0:
+            ci_failing_since = parse_ts(facts.get("ci_uncleared_failing_since") or "")
             if ci_failing_since is not None:
                 return ci_failing_since, "ci_failure"
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
@@ -1162,7 +1218,15 @@ def add_wait_age_facts(
     facts: dict[str, Any],
     route: str,
     pending_actions: dict[str, dict[str, Any]],
+    previous_result: dict[str, Any] | None = None,
 ) -> None:
+    previous_facts = (previous_result or {}).get("facts") or {}
+    # A held route was not re-evaluated, so its wait continues uninterrupted
+    # rather than restarting from whatever the incomplete facts now imply.
+    if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
+        facts["waiting_since"] = previous_facts["waiting_since"]
+        facts["waiting_age_basis"] = "gate_hold"
+        return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
@@ -1176,6 +1240,19 @@ def add_wait_age_facts(
     if wait_ts is None:
         wait_ts = parse_ts(facts.get("created_at") or "")
         basis = "created"
+    previous_wait_ts = parse_ts(previous_facts.get("waiting_since") or "")
+    # Reviewers have been waiting since the PR reached them, so while it stays
+    # with them the clock only moves back, never forward: an author push is not
+    # a fresh start for a review that has not happened yet.
+    if (
+        route in REVIEWER_ROUTES
+        and (previous_result or {}).get("route") in REVIEWER_ROUTES
+        and previous_wait_ts is not None
+        and wait_ts is not None
+        and previous_wait_ts < wait_ts
+    ):
+        wait_ts = previous_wait_ts
+        basis = previous_facts.get("waiting_age_basis") or ""
     facts["waiting_since"] = format_ts(wait_ts)
     facts["waiting_age_basis"] = basis
 
@@ -1282,22 +1359,51 @@ def add_reviewers(
     ]
 
 
+def hold_route_until_gates_settle(
+    facts: dict[str, Any],
+    route: str,
+    previous_result: dict[str, Any] | None,
+    *,
+    require_clean_copilot_review: bool,
+) -> str:
+    # The required checks and the Copilot review are the author's to clear, so
+    # a PR does not advance while one is outstanding. Moving back toward the
+    # author is always allowed, because those are decisions a gate cannot undo.
+    previous_route = (previous_result or {}).get("route") or ""
+    if previous_route not in ROUTE_PROGRESSION:
+        # A maintenance bot has no author route to fall back to.
+        previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
+    facts["copilot_review_outstanding"] = copilot_review_outstanding(
+        facts, enabled=require_clean_copilot_review
+    )
+    facts["required_checks_settled"] = required_checks_settled(facts)
+    held = (
+        route_progress(route) > route_progress(previous_route)
+        and (
+            not facts["required_checks_settled"]
+            or facts["copilot_review_outstanding"]
+        )
+    )
+    facts["route_held_for_gates"] = held
+    return previous_route if held else route
+
+
 def resolve_pr_route(
     facts: dict[str, Any],
     pending_actions: dict[str, dict[str, Any]],
     required_approvals: int,
     require_clean_copilot_review: bool,
+    previous_result: dict[str, Any] | None = None,
 ) -> str:
-    # Apply the manual reviewer-routing override before the Copilot review gate
-    # so an overridden route (for example author -> reviewers) is still held for
-    # a required clean Copilot review instead of bypassing it.
-    return apply_copilot_review_gate(
+    route = route_pr(facts, pending_actions, required_approvals)
+    set_copilot_review_request_needed(
+        facts, route, enabled=require_clean_copilot_review
+    )
+    return hold_route_until_gates_settle(
         facts,
-        apply_dashboard_override(
-            facts,
-            route_pr(facts, pending_actions, required_approvals),
-        ),
-        enabled=require_clean_copilot_review,
+        route,
+        previous_result,
+        require_clean_copilot_review=require_clean_copilot_review,
     )
 
 
@@ -1307,7 +1413,9 @@ def assign_author_nudge_episode(
     previous_result: dict[str, Any] | None,
     issue_comments: list[dict[str, Any]],
 ) -> None:
-    if route != "author":
+    # A held PR only shows the author route because a gate has not reported,
+    # so the author's waiting episode ended when the route was computed.
+    if route != "author" or facts.get("route_held_for_gates"):
         facts.pop("author_nudge_episode_id", None)
         return
     previous_facts = (previous_result or {}).get("facts") or {}
@@ -1391,6 +1499,7 @@ def build_pr_result(
             author_comment_source_state,
         )
         pending_actions = review_thread_pending_actions | top_level_pending_actions
+        pending_actions = clear_overridden_actions(facts, pending_actions)
         failed_classifications = [
             classification
             for classification in (
@@ -1426,6 +1535,7 @@ def build_pr_result(
             pending_actions,
             required_approvals,
             require_clean_copilot_review,
+            previous_result,
         )
         assign_author_nudge_episode(
             facts,
@@ -1433,8 +1543,8 @@ def build_pr_result(
             previous_result,
             raw.get("issue_comments") or [],
         )
-        append_route_noop_reply(raw, facts, route)
-        add_wait_age_facts(facts, route, pending_actions)
+        append_command_ack_reply(raw, facts, route)
+        add_wait_age_facts(facts, route, pending_actions, previous_result)
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
         )

@@ -16,7 +16,6 @@ from github_cli import (
     run_gh,
 )
 from dashboard_override import author_override_guidance
-from dashboard_override import DASHBOARD_OVERRIDE_LABEL
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
     managed_status_comments,
@@ -50,12 +49,6 @@ def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
         "base_branch": str(pr.get("baseRefName") or ""),
         "checks": raw.get("checks"),
         "issue_comments": issue_comments,
-        "labels": sorted(
-            label.get("name") or ""
-            for label in pr.get("labels") or []
-            if isinstance(label, dict)
-            and label.get("name") == DASHBOARD_OVERRIDE_LABEL
-        ),
         "pr_text": {
             "body": str(pr.get("body") or "").replace("\r\n", "\n"),
             "title": str(pr.get("title") or ""),
@@ -104,6 +97,16 @@ def fetch_current_pr_routing_inputs(
     return raw["pr"], raw
 
 
+def waiting_on_author(result: dict[str, Any] | None) -> bool:
+    # A held PR shows the author route only because a robot gate has not
+    # reported yet, and the author has nothing to answer while it runs.
+    facts = (result or {}).get("facts") or {}
+    return (
+        (result or {}).get("route") == "author"
+        and not facts.get("route_held_for_gates")
+    )
+
+
 def plan_nudge(
     result: dict[str, Any] | None,
     previous: dict[str, Any] | None,
@@ -116,7 +119,7 @@ def plan_nudge(
         or result.get("route") in ("transient-failure", "unknown")
     ):
         return False, entry or None
-    if not result or result.get("route") != "author":
+    if not waiting_on_author(result):
         return False, None
     if nudged_at:
         return False, entry
@@ -252,7 +255,7 @@ def deliver_prepared_author_nudges(
             continue
         pr_number = int(key)
         result = dashboard_prs.get(key)
-        if not result or result.get("route") != "author":
+        if not waiting_on_author(result):
             _due, reset_entry = plan_nudge(result, entry, now)
             if reset_entry is None:
                 updated.pop(key, None)

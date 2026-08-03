@@ -21,6 +21,7 @@ from github_cli import (
     request_copilot_review,
     required_check_contexts,
     required_code_scanning_checks,
+    settled_check_suite_app_ids,
 )
 
 
@@ -379,6 +380,7 @@ class GithubCliTest(unittest.TestCase):
                                             {
                                                 "__typename": "CheckRun",
                                                 "name": "optional",
+                                                "url": "https://github.com/open-telemetry/example/runs/87974237001",
                                                 "isRequired": False,
                                             },
                                         ],
@@ -477,6 +479,48 @@ class GithubCliTest(unittest.TestCase):
             ["workflow-notification"],
             [check["name"] for check in rollup["non_blocking_failures"]],
         )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_rejects_pages_from_different_commits(self, graphql) -> None:
+        def page(oid: str, name: str, has_next: bool) -> dict:
+            return {
+                "data": {
+                    "node": {
+                        "commits": {
+                            "nodes": [{
+                                "commit": {
+                                    "oid": oid,
+                                    "statusCheckRollup": {
+                                        "contexts": {
+                                            "nodes": [{
+                                                "__typename": "CheckRun",
+                                                "name": name,
+                                                "status": "COMPLETED",
+                                                "conclusion": "SUCCESS",
+                                                "url": "https://github.com/open-telemetry/example/runs/1",
+                                                "isRequired": True,
+                                            }],
+                                            "pageInfo": {
+                                                "hasNextPage": has_next,
+                                                "endCursor": "cursor-1",
+                                            },
+                                        },
+                                    },
+                                },
+                            }],
+                        },
+                    },
+                },
+            }
+
+        graphql.side_effect = [
+            page("stale-head", "build", True),
+            page("current-head", "test", False),
+        ]
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNone(rollup)
 
     @patch("github_cli.gh_graphql")
     def test_check_rollup_keeps_required_and_non_blocking_attempts_separate(
@@ -628,6 +672,22 @@ class GithubCliTest(unittest.TestCase):
                 for check in required_code_scanning_checks(
                     checks,
                     ["CodeQL", "zizmor"],
+                    False,
+                )
+            ],
+        )
+
+    def test_undetermined_code_scanning_result_is_pending_while_checks_run(
+        self,
+    ) -> None:
+        self.assertEqual(
+            [("CodeQL", "pending")],
+            [
+                (check["name"], check["bucket"])
+                for check in required_code_scanning_checks(
+                    [{"name": "CodeQL", "bucket": "skipping", "state": "NEUTRAL"}],
+                    ["CodeQL"],
+                    True,
                 )
             ],
         )
@@ -638,6 +698,7 @@ class GithubCliTest(unittest.TestCase):
             required_code_scanning_checks(
                 [{"name": "CodeQL", "bucket": "skipping"}],
                 [],
+                False,
             ),
         )
 
@@ -685,6 +746,226 @@ class GithubCliTest(unittest.TestCase):
         self.assertEqual(
             [("CodeQL", "pass")],
             [(check["name"], check["bucket"]) for check in rollup["code_scanning"]],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_reports_unfinished_optional_checks_as_pending(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "CodeQL",
+                "status": "COMPLETED",
+                "conclusion": "NEUTRAL",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": False,
+                "checkSuite": {"app": {"databaseId": 57789}},
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "Analyze (java)",
+                "status": "IN_PROGRESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": False,
+                "checkSuite": {"app": {"databaseId": 15368}},
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            ["Analyze (java)"],
+            [check["name"] for check in rollup["pending"]],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_keeps_same_named_checks_from_separate_workflows(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "FAILURE",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": True,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": True,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 200,
+                        "workflow": {"name": "native-tests"},
+                    },
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [("build", "fail"), ("native-tests", "pass")],
+            sorted(
+                (check["workflow"], check["bucket"])
+                for check in rollup["required"]
+            ),
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_keeps_same_named_checks_from_separate_runs(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "IN_PROGRESS",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 200,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [(100, "test")],
+            [
+                (check["workflow_run_id"], check["name"])
+                for check in rollup["pending"]
+            ],
+        )
+
+    @patch("github_cli.gh_graphql")
+    def test_check_rollup_collapses_rerun_attempts_of_one_run(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "IN_PROGRESS",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "test",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": False,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "build"},
+                    },
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual([], rollup["pending"])
+
+    @patch("github_cli.gh_graphql")
+    def test_required_check_keeps_only_the_latest_attempt_of_a_name(
+        self,
+        graphql,
+    ) -> None:
+        # A superseded run leaves a cancelled check behind that the run which
+        # replaced it has already passed.
+        graphql.return_value = _rollup_page([
+            {
+                "__typename": "CheckRun",
+                "name": "changelog",
+                "status": "COMPLETED",
+                "conclusion": "CANCELLED",
+                "url": "https://github.com/open-telemetry/example/runs/1",
+                "isRequired": True,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 100,
+                        "workflow": {"name": "Changelog"},
+                    },
+                },
+            },
+            {
+                "__typename": "CheckRun",
+                "name": "changelog",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "url": "https://github.com/open-telemetry/example/runs/2",
+                "isRequired": True,
+                "checkSuite": {
+                    "app": {"databaseId": 15368},
+                    "workflowRun": {
+                        "databaseId": 200,
+                        "workflow": {"name": "Changelog"},
+                    },
+                },
+            },
+        ])
+
+        rollup = gh_pr_check_rollup("open-telemetry/example", "PR_id", [])
+
+        self.assertIsNotNone(rollup)
+        self.assertEqual(
+            [("changelog", "pass")],
+            [(check["name"], check["bucket"]) for check in rollup["required"]],
         )
 
     @patch("github_cli.gh_graphql")
@@ -776,11 +1057,13 @@ class GithubCliTest(unittest.TestCase):
     @patch(
         "github_cli.gh_pr_check_rollup",
         return_value={
+            "head_oid": "current-head",
             "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
             "non_blocking_failures": [],
             "code_scanning": [
                 {"name": "CodeQL", "bucket": "skipping", "integration_id": 57789},
             ],
+            "pending": [],
         },
     )
     @patch("github_cli.fetch_review_threads", return_value=[])
@@ -800,7 +1083,11 @@ class GithubCliTest(unittest.TestCase):
         _rollup,
         _branch_rules,
     ) -> None:
-        gh_pr_view.return_value = {"id": "PR_node", "baseRefName": "main"}
+        gh_pr_view.return_value = {
+            "id": "PR_node",
+            "baseRefName": "main",
+            "headRefOid": "current-head",
+        }
 
         raw = fetch_pr_routing_raw(
             "open-telemetry/example",
@@ -812,6 +1099,167 @@ class GithubCliTest(unittest.TestCase):
         self.assertEqual(
             [("build", "pass"), ("CodeQL", "fail")],
             [(check["name"], check["bucket"]) for check in raw["checks"]],
+        )
+
+    @patch("github_cli.gh_branch_rules", return_value=[])
+    @patch(
+        "github_cli.gh_pr_check_rollup",
+        return_value={
+            "head_oid": "previous-head",
+            "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
+            "non_blocking_failures": [],
+            "code_scanning": [],
+        },
+    )
+    @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
+    @patch("github_cli.fetch_pr_reviews", return_value=[])
+    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
+    @patch("github_cli.gh_api", return_value=[])
+    @patch("github_cli.gh_pr_view")
+    def test_routing_raw_discards_checks_from_a_superseded_head(
+        self,
+        gh_pr_view,
+        _gh_api,
+        _issue_comments,
+        _reviews,
+        _review_requests,
+        _review_threads,
+        _rollup,
+        _branch_rules,
+    ) -> None:
+        gh_pr_view.return_value = {
+            "id": "PR_node",
+            "baseRefName": "main",
+            "headRefOid": "current-head",
+        }
+
+        raw = fetch_pr_routing_raw(
+            "open-telemetry/example",
+            "open-telemetry",
+            "example",
+            7,
+        )
+
+        self.assertIsNone(raw["checks"])
+
+    @patch("github_cli.settled_check_suite_app_ids", return_value=set())
+    @patch(
+        "github_cli.gh_branch_rules",
+        return_value=[{
+            "type": "required_status_checks",
+            "parameters": {
+                "required_status_checks": [{"context": "build", "integration_id": 1}],
+            },
+        }],
+    )
+    @patch(
+        "github_cli.gh_pr_check_rollup",
+        return_value={
+            "head_oid": "current-head",
+            "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
+            "non_blocking_failures": [],
+            "code_scanning": [],
+            "pending": [],
+        },
+    )
+    @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
+    @patch("github_cli.fetch_pr_reviews", return_value=[])
+    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
+    @patch("github_cli.gh_api", return_value=[])
+    @patch("github_cli.gh_pr_view")
+    def test_routing_raw_skips_check_suites_when_every_context_reported(
+        self,
+        gh_pr_view,
+        _gh_api,
+        _issue_comments,
+        _reviews,
+        _review_requests,
+        _review_threads,
+        _rollup,
+        _branch_rules,
+        settled_app_ids,
+    ) -> None:
+        gh_pr_view.return_value = {
+            "id": "PR_node",
+            "baseRefName": "main",
+            "headRefOid": "current-head",
+        }
+
+        raw = fetch_pr_routing_raw(
+            "open-telemetry/example",
+            "open-telemetry",
+            "example",
+            7,
+        )
+
+        self.assertEqual(
+            [("build", "pass")],
+            [(check["name"], check["bucket"]) for check in raw["checks"]],
+        )
+        settled_app_ids.assert_not_called()
+
+    @patch("github_cli.settled_check_suite_app_ids", return_value={2})
+    @patch(
+        "github_cli.gh_branch_rules",
+        return_value=[{
+            "type": "required_status_checks",
+            "parameters": {
+                "required_status_checks": [
+                    {"context": "build", "integration_id": 1},
+                    {"context": "windows", "integration_id": 2},
+                ],
+            },
+        }],
+    )
+    @patch(
+        "github_cli.gh_pr_check_rollup",
+        return_value={
+            "head_oid": "current-head",
+            "required": [{"name": "build", "bucket": "pass", "integration_id": 1}],
+            "non_blocking_failures": [],
+            "code_scanning": [],
+            "pending": [],
+        },
+    )
+    @patch("github_cli.fetch_review_threads", return_value=[])
+    @patch("github_cli.fetch_review_requests", return_value=[])
+    @patch("github_cli.fetch_pr_reviews", return_value=[])
+    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
+    @patch("github_cli.gh_api", return_value=[])
+    @patch("github_cli.gh_pr_view")
+    def test_routing_raw_reads_check_suites_for_an_unreported_context(
+        self,
+        gh_pr_view,
+        _gh_api,
+        _issue_comments,
+        _reviews,
+        _review_requests,
+        _review_threads,
+        _rollup,
+        _branch_rules,
+        settled_app_ids,
+    ) -> None:
+        gh_pr_view.return_value = {
+            "id": "PR_node",
+            "baseRefName": "main",
+            "headRefOid": "current-head",
+        }
+
+        raw = fetch_pr_routing_raw(
+            "open-telemetry/example",
+            "open-telemetry",
+            "example",
+            7,
+        )
+
+        self.assertEqual(
+            [("build", "pass")],
+            [(check["name"], check["bucket"]) for check in raw["checks"]],
+        )
+        settled_app_ids.assert_called_once_with(
+            "open-telemetry/example", "current-head"
         )
 
     def test_missing_required_checks_are_pending(self) -> None:
@@ -890,6 +1338,59 @@ class GithubCliTest(unittest.TestCase):
             None, [{"context": "build", "integration_id": 1}]
         ))
         self.assertIsNone(include_missing_required_checks([], None))
+
+    def test_settled_app_never_reports_its_missing_required_check(self) -> None:
+        self.assertEqual(
+            [],
+            include_missing_required_checks(
+                [],
+                [{"context": "windows-unittest", "integration_id": 15368}],
+                {15368},
+            ),
+        )
+
+    def test_unsettled_app_still_owes_its_missing_required_check(self) -> None:
+        checks = include_missing_required_checks(
+            [],
+            [{"context": "windows-unittest", "integration_id": 15368}],
+            {17893},
+        )
+
+        self.assertEqual(
+            [("windows-unittest", "pending")],
+            [(check["name"], check["bucket"]) for check in checks or []],
+        )
+
+    @patch("github_cli.gh_api")
+    def test_settled_app_ids_require_every_suite_to_complete(self, gh_api) -> None:
+        gh_api.return_value = [
+            {
+                "check_suites": [
+                    {"status": "completed", "app": {"id": 15368}},
+                    {"status": "completed", "app": {"id": 17893}},
+                ],
+            },
+            {
+                "check_suites": [
+                    {"status": "in_progress", "app": {"id": 15368}},
+                ],
+            },
+        ]
+
+        self.assertEqual({17893}, settled_check_suite_app_ids("owner/repo", "head"))
+        gh_api.assert_called_once_with(
+            "/repos/owner/repo/commits/head/check-suites?per_page=100",
+            paginate=True,
+        )
+
+    @patch("github_cli.gh_api")
+    def test_settled_app_ids_are_empty_without_a_head_sha(self, gh_api) -> None:
+        self.assertEqual(set(), settled_check_suite_app_ids("owner/repo", ""))
+        gh_api.assert_not_called()
+
+    @patch("github_cli.gh_api", side_effect=RuntimeError("boom"))
+    def test_settled_app_ids_are_empty_when_suites_cannot_be_read(self, _gh_api) -> None:
+        self.assertEqual(set(), settled_check_suite_app_ids("owner/repo", "head"))
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_reviews_normalizes_paginated_reviews(self, graphql) -> None:

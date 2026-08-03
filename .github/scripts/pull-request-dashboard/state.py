@@ -23,7 +23,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 6
+DASHBOARD_STATE_VERSION = 7
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -31,12 +31,12 @@ NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
 AUTHOR_NUDGE_STATE_VERSION = 2
 # copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 3
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 4
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 14
+STATUS_COMMENT_REVISION = 15
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -268,10 +268,11 @@ def load_dashboard_state_cache() -> dict[str, Any] | None:
     if state is None:
         return None
     prs = state.get("prs")
+    prs = prs if isinstance(prs, dict) else {}
     return {
         "version": DASHBOARD_STATE_VERSION,
         INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
-        "prs": prs if isinstance(prs, dict) else {},
+        "prs": prs,
     }
 
 
