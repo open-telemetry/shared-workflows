@@ -208,9 +208,13 @@ the implementation understandable and operationally cheap.
   check as `NEUTRAL` before the analysis is uploaded and then replaces it in
   place, so an analysis still running is reported as pending instead of pinning
   the PR to its author. The replacement leaves the enclosing check suite
-  untouched, so the dashboard subscribes to code scanning check runs to observe
-  the final result. Check runs from other apps are ignored, because their check
-  suite reports them and one refresh per job would multiply webhook volume.
+  untouched, and the dashboard does not subscribe to check runs, so no webhook
+  reports it. That only delays the dashboard when the code scanning analysis is
+  the last thing to finish at the head, because any check suite completing after
+  it triggers the refresh that observes the final result; when it does, the
+  transition waits for the hourly refresh. Subscribing to check runs would close
+  that window at roughly ten times the webhook volume of every other event
+  combined, because GitHub emits one check run per job.
 - Required checks reported as commit statuses, such as EasyCLA, never belong to
   a check suite, so commit status events are subscribed as well.
 - A failing required status check routes a human-authored PR to the author
