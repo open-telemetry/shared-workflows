@@ -5703,13 +5703,13 @@
     },
     "11155": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 10,
+        "ci_pending_count": 6,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -5727,14 +5727,23 @@
         "head_sha": "0d238d3874c735edfe687dd3ab4dc573c61ee1a8",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-03T06:17:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-03T06:18:12+00:00",
+        "last_approver_activity_at": "2026-08-03T06:18:12+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "a6996d2fca4e5ec989b08c6efc9befb4210c21f3b380789c4ec4a33b97d76149",
-        "waiting_age_basis": "created",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "913a3fbd9801830ac21a4b96bf87e9efb18c220c9e103f53e1d438795ca37543",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-03T06:17:29+00:00"
       },
       "failed": false,
