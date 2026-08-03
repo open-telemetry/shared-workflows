@@ -5634,7 +5634,7 @@
     },
     "11142": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-docs",
         "author_action_review_thread_urls": [],
@@ -5642,7 +5642,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
-        "conflicts": "no",
+        "conflicts": "unknown",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -5658,11 +5658,19 @@
         "head_sha": "001e482804d02d98ec0e40e6e41fb1c2f851489c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-02T22:53:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-03T05:30:12+00:00",
+        "last_approver_activity_at": "2026-08-03T05:30:12+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -5673,14 +5681,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "1e6db1acce4132a689fd21e74727b1fb69ec075050ee586b549ae0411fa0c458",
+        "routing_input_fingerprint": "5256c15a4f45fcaed3a8a8fb6692d60ccccffcd88e9a3f8f75e6749fa20c95a1",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-02T22:03:05+00:00"
       },
       "failed": false,
       "pr_number": 11142,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11142",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11145": {
