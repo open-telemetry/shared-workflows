@@ -8095,10 +8095,14 @@
         "approval_count": 1,
         "assignees": [],
         "author": "MikeGoldsmith",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49772#discussion_r3703774363",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49772#discussion_r3703791011"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "31835d0285dd4ae2a6ff019801be3f35",
         "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -8116,10 +8120,10 @@
         "head_sha": "8b500dd54ac40996f7b30a6af6c5e135f129b822",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T11:24:02+00:00",
+        "last_activity_at": "2026-08-03T12:19:23+00:00",
         "last_approver_activity_at": "2026-07-31T17:03:10+00:00",
         "last_author_activity_at": "2026-08-03T11:24:02+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -8128,12 +8132,20 @@
             "login": "jmacd",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "VinozzZ",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "3ef63fdc718e4a1325b6f453c28f6c15ba1ed54a2c47802b6b11e61c050b69cb",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-03T10:41:27+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "605d92543e4973a0ccc6f48284babe6d2daa311ca6f58fd2cc8c81ccd2b4cabd",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-03T12:16:22+00:00"
       },
       "failed": false,
       "pr_number": 49772,
