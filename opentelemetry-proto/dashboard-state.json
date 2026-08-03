@@ -242,13 +242,13 @@
     },
     "837": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -266,20 +266,29 @@
         "head_sha": "92647090dc1a6ff261cd6639ac8326833994e78c",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-03T14:21:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-03T14:22:15+00:00",
+        "last_approver_activity_at": "2026-08-03T14:22:15+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "pellared",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a7d1ac650d429780630254892310f597696a86ab2b88a9ea5d7342234ce13c97",
+        "routing_input_fingerprint": "ecb21b0decd8e64c2d421cc194e5cb12c2f14847ca058acb155bdfa6f13ba221",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-03T14:21:06+00:00"
       },
       "failed": false,
       "pr_number": 837,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/837",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
