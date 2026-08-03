@@ -566,8 +566,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "shashank-reddy-nr",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3707431332"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "62640e3a19f34be197af32df66422538",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -587,8 +590,8 @@
         "head_sha": "e108e1d066d23202984cabc65e3c0ff0dbf71ece",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T16:08:40+00:00",
-        "last_approver_activity_at": "2026-08-02T23:23:35+00:00",
+        "last_activity_at": "2026-08-03T20:29:36+00:00",
+        "last_approver_activity_at": "2026-08-03T20:29:36+00:00",
         "last_author_activity_at": "2026-08-03T16:08:40+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -605,19 +608,19 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "trask",
-            "open_thread": false,
+            "open_thread": true,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "5d63c02ac22afca631134bfa7b8b7778d8fb6f19fc8ab7ce57962939c24b29e2",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-03T14:04:13+00:00"
+        "routing_input_fingerprint": "2b6fc238ca4b7b545ec13b023f686d4eab0fc122e784d32c789dc7ab9fae989e",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-03T20:27:25+00:00"
       },
       "failed": false,
       "pr_number": 18978,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4890295548": {
           "evidence": {
@@ -626,6 +629,12 @@
           "reply_source_id": 5168835074
         },
         "pr-issue-comment-4891309029": {
+          "evidence": {
+            "reply": "2026-08-03T16:08:40Z"
+          },
+          "reply_source_id": 5168835074
+        },
+        "pr-issue-comment-4892333913": {
           "evidence": {
             "reply": "2026-08-03T16:08:40Z"
           },
