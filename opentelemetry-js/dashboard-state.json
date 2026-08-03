@@ -1991,12 +1991,10 @@
         "author": "LarryHu0217",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "eaec038b05b247dea48e4637ed8e8e1b",
         "ci_failing_count": 1,
         "ci_failing_since": "2026-08-02T14:24:28+00:00",
         "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 1,
-        "ci_uncleared_failing_since": "2026-08-02T14:24:28+00:00",
+        "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -2004,12 +2002,20 @@
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
         "created_at": "2026-07-15T17:31:16+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_cleared_ci": false,
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5169290572,
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "user": "LarryHu0217"
+          }
+        ],
+        "dashboard_override_cleared_ci": true,
         "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "",
+        "dashboard_override_command_id": 5169290572,
+        "dashboard_override_command_user": "LarryHu0217",
+        "dashboard_override_since": "2026-08-03T16:53:43Z",
         "head_sha": "f9acb99e66779aa0282b4a8742353e56c9f8ca38",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -2019,14 +2025,14 @@
         "required_checks_settled": true,
         "reviewers": [],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "ca7167f6b452aa314d2ea4f327a32a20fd2af5f37651844b081c40e1acd76a53",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-08-02T14:24:28+00:00"
+        "routing_input_fingerprint": "f644b9c38d47a7e25937865373941547132f7866bff2c4bcfda5c3612515c1a1",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-03T15:13:49+00:00"
       },
       "failed": false,
       "pr_number": 6920,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6920",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "6921": {
