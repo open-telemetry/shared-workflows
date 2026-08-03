@@ -833,10 +833,7 @@
         "assignees": [],
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/10559#issuecomment-5059637855"
-        ],
-        "author_nudge_episode_id": "64d9f3fd03a64d379c2f6543590da8f2",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -856,7 +853,7 @@
         "head_sha": "8f6828b7f2f2b62baac778655e974942e6793610",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-31T01:58:27+00:00",
+        "last_activity_at": "2026-08-03T07:28:55+00:00",
         "last_approver_activity_at": "2026-07-23T14:30:42+00:00",
         "last_author_activity_at": "2026-07-31T01:58:27+00:00",
         "required_checks_settled": true,
@@ -867,19 +864,34 @@
             "changes_requested": false,
             "login": "chalin",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "julianocosta89",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "f296e883d162adde74edc9aa785bed6969c762b928fc40bb65b689e185f3ca88",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-23T14:30:42+00:00"
+        "routing_input_fingerprint": "e6a120e4befe727ea02c2ce1d6e5b40ff591fd94f54037328d6d1d472a1fbf15",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-31T01:58:27+00:00"
       },
       "failed": false,
       "pr_number": 10559,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10559",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5059637855": {
+          "evidence": {
+            "reply": "2026-07-29T22:54:03Z"
+          },
+          "reply_source_id": 5124205206
+        }
+      }
     },
     "10606": {
       "facts": {
