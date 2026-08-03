@@ -10513,7 +10513,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -10531,20 +10531,29 @@
         "head_sha": "9893ef6adc13f5c2a7c1eb05f8aaf31149d81bf5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T15:04:09+00:00",
+        "last_activity_at": "2026-08-03T15:29:14+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-03T15:04:09+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "282b8610fc09ca7fa5237a10cd6429d32ea8261211a4795ab39a245b86929c51",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-03T14:16:13+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "VinozzZ",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "1b8599245ef479a5e0de68d0b4e02216432450081065a7c4f5d17c2c4ad22667",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-03T15:04:09+00:00"
       },
       "failed": false,
       "pr_number": 50005,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50005",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "50006": {
