@@ -2097,9 +2097,12 @@
         "author": "YaoYingLong",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "c6c335f565174a39bb2788867f62bd62",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-03T07:43:29+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-03T07:43:29+00:00",
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -2119,7 +2122,7 @@
         "last_activity_at": "2026-08-03T05:55:09+00:00",
         "last_approver_activity_at": "2026-08-02T19:55:27+00:00",
         "last_author_activity_at": "2026-08-03T05:55:09+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2139,14 +2142,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "b92683ac692533d2cc8a645b777c92e11c6aecf1a93b26919aadb980cdaf5174",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-03T03:15:14+00:00"
+        "routing_input_fingerprint": "f9b2ff36c86b030f37400120fa3356a2eaef7f39966748fc1242638a2cad469a",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-03T07:43:29+00:00"
       },
       "failed": false,
       "pr_number": 19277,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19277",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "19290": {
