@@ -10644,12 +10644,9 @@
         "author": "thompson-tomo",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "e33a6a701436473989f92f4058321690",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-08-03T13:20:34+00:00",
-        "ci_pending_count": 2,
-        "ci_uncleared_failing_count": 1,
-        "ci_uncleared_failing_since": "2026-08-03T13:20:34+00:00",
+        "ci_failing_count": 0,
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -10666,20 +10663,29 @@
         "head_sha": "f115cb00408d51242ffaf54ee985d4dad7d38b12",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T13:18:47+00:00",
+        "last_activity_at": "2026-08-03T13:24:07+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-03T13:14:21+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "edb4fd565ec05748e97d03db6b0f15164055c7d0e56549e6a0d09ad2085cbff5",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-08-03T13:20:34+00:00"
+        "routing_input_fingerprint": "c2c36a2f586997abd515d2044080d06c73c6338f0ef701d989ab873a3540fec2",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-03T13:14:21+00:00"
       },
       "failed": false,
       "pr_number": 50004,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50004",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
