@@ -532,7 +532,7 @@
     },
     "7573": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
@@ -556,20 +556,29 @@
         "head_sha": "12afdb0dc9ce492e68e3de20f889036041caafeb",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T13:24:08+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-03T21:12:29+00:00",
+        "last_approver_activity_at": "2026-08-03T21:12:29+00:00",
         "last_author_activity_at": "2026-08-03T13:24:08+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Kielek",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "b0545c45397dd05047aca736a62fe2f271343763f994f6466e900f0d73014dad",
+        "routing_input_fingerprint": "ae992b652676a9e74fb07ede5147ee87a0a70a9e30c2b6b60784f02266aa5eb0",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-31T14:43:15+00:00"
       },
       "failed": false,
       "pr_number": 7573,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7573",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "7579": {
