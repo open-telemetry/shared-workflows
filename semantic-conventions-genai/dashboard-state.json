@@ -2073,11 +2073,14 @@
     },
     "415": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "AgentGymLeader",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/415#discussion_r3705790189"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "9669a608abd84f19a727fac2178a3033",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2097,29 +2100,29 @@
         "head_sha": "820af161707920621077172304cd09517b4013be",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T03:48:36+00:00",
-        "last_approver_activity_at": "2026-08-02T18:27:50+00:00",
+        "last_activity_at": "2026-08-03T16:25:49+00:00",
+        "last_approver_activity_at": "2026-08-03T16:25:49+00:00",
         "last_author_activity_at": "2026-08-03T03:48:36+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "trask",
-            "open_thread": false,
+            "open_thread": true,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "27b0ed9a757a81f8bbe41d80218d76585942b3462b93cf0c228c804c2089507d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-03T03:48:36+00:00"
+        "routing_input_fingerprint": "eb0e8a1a2cba4907a6297ec5a4ad8ab4bccfdd1b6e8d8c815b6ec3e87820589c",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-03T16:22:33+00:00"
       },
       "failed": false,
       "pr_number": 415,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/415",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "417": {
