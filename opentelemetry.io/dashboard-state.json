@@ -5781,13 +5781,13 @@
     },
     "11147": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -5805,20 +5805,29 @@
         "head_sha": "435a6a7955cbb462909b320ceee45d63a159e266",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-03T05:18:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-03T05:29:04+00:00",
+        "last_approver_activity_at": "2026-08-03T05:29:04+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "1a11b21e63f867586b2b553b9dec90d6537708cdc4dab03e85103617f43f22c0",
+        "routing_input_fingerprint": "e798c55495d699bc7cdb05eab7d5ae7315c59582ac782b5f69440591e6beb820",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-03T00:56:36+00:00"
       },
       "failed": false,
       "pr_number": 11147,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11147",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11148": {
