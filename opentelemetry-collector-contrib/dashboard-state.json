@@ -10702,10 +10702,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "dloucasfx",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50011#discussion_r3708400782"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "b4a9b8e09923413a99227b80b3f4d040",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -10723,20 +10726,29 @@
         "head_sha": "59d5cfa4b51213ef7e543d894c071e5698125116",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T22:48:53+00:00",
+        "last_activity_at": "2026-08-03T23:37:23+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-03T22:48:53+00:00",
-        "required_checks_settled": true,
-        "reviewers": [],
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "822c8ac60d69385798db808b4eb6696437d92309fa9a036ff8653ce187a4548b",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-03T22:48:53+00:00"
+        "routing_input_fingerprint": "078eaffb013dcae4a671a780d35e7ec0907b5818e720dbc4ccb79ecf0bc8e4ab",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-03T23:37:18+00:00"
       },
       "failed": false,
       "pr_number": 50011,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50011",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "50012": {
