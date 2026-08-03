@@ -2764,9 +2764,12 @@
         "author": "ymotongpoo",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 10,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "4e46f5e2c4f24dcc80c0ec51d0d0070b",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-03T08:07:32+00:00",
+        "ci_pending_count": 6,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-03T08:07:32+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -2798,14 +2801,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a459d9393e4caa1f7510b64ec99cb84ca357ed0bacb04663f19b68e81a8aba83",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-27T01:51:39+00:00"
+        "routing_input_fingerprint": "e6b2b7efaba29e21522a96f666cefed1f01e991efd547eb3f191c58b0493b07f",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-03T08:07:32+00:00"
       },
       "failed": false,
       "pr_number": 11006,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11006",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11008": {
