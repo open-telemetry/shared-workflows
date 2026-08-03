@@ -884,7 +884,7 @@
     },
     "349": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "alexander-akhmetov",
         "author_action_review_thread_urls": [],
@@ -908,20 +908,29 @@
         "head_sha": "0a0c3903d674881bab1ebefdaa9324ddb339b36c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T17:02:32+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-03T17:46:05+00:00",
+        "last_approver_activity_at": "2026-08-03T17:46:05+00:00",
         "last_author_activity_at": "2026-08-03T17:02:32+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "be921589d2c6d3cadc4573b0f8f5843f0e214ee565a51a924e63d08c4c14d60d",
+        "routing_input_fingerprint": "5a397976d79088f7309cecc8f707ffb5ff8f6aa39cdc820238e7ca6127d6542c",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-03T17:02:32+00:00"
       },
       "failed": false,
       "pr_number": 349,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/349",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "350": {
