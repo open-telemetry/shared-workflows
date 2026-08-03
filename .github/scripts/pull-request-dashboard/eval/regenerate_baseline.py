@@ -31,9 +31,10 @@ from score_reviewer_feedback import CASES, batch_cases  # noqa: E402
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / ".cache" / "baseline"
 PROMPT = "REVIEWER_FEEDBACK_PROMPT_TEMPLATE"
-# The shipped binary answers author_action/no_author_action; the file records the
-# outcome those verdicts produce.
-ACTION_LABELS = {"author_action": "substantive", "no_author_action": "noise"}
+# The shipped binary answers in the recorded labels themselves, so this maps one
+# onto the other unchanged. It stays because the file records the mapping it was
+# built with, and a prompt answering in its own vocabulary would need one.
+ACTION_LABELS = {"author_action": "author_action", "no_author_action": "no_author_action"}
 
 _printed = Lock()
 
@@ -156,25 +157,27 @@ def rebuild(payload: dict, trials: list[dict[str, str]], model: str) -> dict:
         # An unanswered run is not an observation; a substitute label would make
         # the file claim evidence it does not have.
         if any(a is None for a in raw):
-            stability, baseline = "unobserved", None
+            role, stability, recorded = "context", None, None
         elif len(set(observed)) == 1:
-            stability, baseline = "stable", observed[0]
+            role, stability, recorded = "scored", "stable", observed[0]
         else:
-            stability, baseline = "flaky", None
+            role, stability, recorded = "scored", "flaky", None
         cases.append({
             **{k: case[k] for k in
                ("id", "repo", "pull_request", "requester", "pr_author", "review_state",
                 "root_timestamp", "body")},
+            "role": role,
             "stability": stability,
-            "baseline": baseline,
-            "observed_runs": observed,
-            "observed_actions": raw,
-            "adjudicated": case["adjudicated"],
+            "recorded_label": recorded,
+            "adjudicated_label": case["adjudicated_label"],
+            "run_actions": raw,
+            "run_labels": observed,
         })
     # The order the dashboard sends a pull request's items in, which decides
     # where the ten-item batch boundaries fall and so what each prompt contains.
     cases.sort(key=lambda c: (c["repo"], c["pull_request"], c["root_timestamp"]))
-    counts = Counter(c["stability"] for c in cases)
+    roles = Counter(c["role"] for c in cases)
+    stabilities = Counter(c["stability"] for c in cases)
     return {
         **payload,
         "generated_at": datetime.now(UTC).strftime("%Y-%m-%d"),
@@ -187,10 +190,11 @@ def rebuild(payload: dict, trials: list[dict[str, str]], model: str) -> dict:
         "action_labels": ACTION_LABELS,
         "counts": {
             "cases": len(cases),
-            "stable": counts["stable"],
-            "flaky": counts["flaky"],
-            "unobserved": counts["unobserved"],
-            "adjudicated": sum(1 for c in cases if c["adjudicated"]),
+            "scored": roles["scored"],
+            "context": roles["context"],
+            "stable": stabilities["stable"],
+            "flaky": stabilities["flaky"],
+            "adjudicated": sum(1 for c in cases if c["adjudicated_label"]),
         },
         "cases": cases,
     }
@@ -216,17 +220,20 @@ def main() -> None:
     after = rebuilt["counts"]
 
     print(f"\n            {'was':>6} {'now':>6}")
-    for key in ("cases", "stable", "flaky", "unobserved", "adjudicated"):
+    for key in ("cases", "scored", "context", "stable", "flaky", "adjudicated"):
         print(f"{key:<11} {before.get(key, 0):>6} {after[key]:>6}")
 
     by_id = {c["id"]: c for c in payload["cases"]}
     changed = [
         c for c in rebuilt["cases"]
         if c["stability"] == "stable" == by_id[c["id"]]["stability"]
-        and c["baseline"] != by_id[c["id"]]["baseline"]
+        and c["recorded_label"] != by_id[c["id"]]["recorded_label"]
     ]
     print(f"\nlabel changed on {len(changed)} cases stable in both recordings")
-    print(f"label balance {dict(Counter(c['baseline'] for c in rebuilt['cases'] if c['baseline']))}")
+    print(
+        "label balance "
+        f"{dict(Counter(c['recorded_label'] for c in rebuilt['cases'] if c['recorded_label']))}"
+    )
 
     if args.dry_run:
         print("\ndry run; nothing written")

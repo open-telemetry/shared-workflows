@@ -11,7 +11,7 @@ import regenerate_baseline  # noqa: E402
 from regenerate_baseline import answers, rebuild, run_batch  # noqa: E402
 
 
-def case(case_id: str, *, adjudicated=None) -> dict:
+def case(case_id: str, *, adjudicated_label=None) -> dict:
     return {
         "id": case_id,
         "repo": "repo",
@@ -21,11 +21,12 @@ def case(case_id: str, *, adjudicated=None) -> dict:
         "review_state": None,
         "root_timestamp": "2026-01-01T00:00:00Z",
         "body": "body",
+        "role": "scored",
         "stability": "stable",
-        "baseline": "noise",
-        "observed_runs": [],
-        "observed_actions": [],
-        "adjudicated": adjudicated,
+        "recorded_label": "no_author_action",
+        "adjudicated_label": adjudicated_label,
+        "run_actions": [],
+        "run_labels": [],
     }
 
 
@@ -89,36 +90,39 @@ class RebuildTest(unittest.TestCase):
     def test_runs_that_agree_are_stable(self) -> None:
         rebuilt = rebuild(payload(case("a")), [{"a": "author_action"}] * 3, "model")
 
+        self.assertEqual("scored", rebuilt["cases"][0]["role"])
         self.assertEqual("stable", rebuilt["cases"][0]["stability"])
-        self.assertEqual("substantive", rebuilt["cases"][0]["baseline"])
+        self.assertEqual("author_action", rebuilt["cases"][0]["recorded_label"])
 
-    def test_runs_that_disagree_are_flaky_without_a_baseline(self) -> None:
+    def test_runs_that_disagree_are_flaky_without_a_recorded_label(self) -> None:
         trials = [{"a": "author_action"}, {"a": "no_author_action"}]
         rebuilt = rebuild(payload(case("a")), trials, "model")
 
+        self.assertEqual("scored", rebuilt["cases"][0]["role"])
         self.assertEqual("flaky", rebuilt["cases"][0]["stability"])
-        self.assertIsNone(rebuilt["cases"][0]["baseline"])
+        self.assertIsNone(rebuilt["cases"][0]["recorded_label"])
 
-    def test_one_unanswered_run_leaves_a_case_unobserved(self) -> None:
+    def test_one_unanswered_run_leaves_a_case_as_context(self) -> None:
         trials = [{"a": "author_action"}, {}, {"a": "author_action"}]
         rebuilt = rebuild(payload(case("a")), trials, "model")
 
         # Agreement among the runs that answered is not evidence the classifier
         # is stable on a case it sometimes drops.
-        self.assertEqual("unobserved", rebuilt["cases"][0]["stability"])
-        self.assertIsNone(rebuilt["cases"][0]["baseline"])
-        self.assertEqual([None], rebuilt["cases"][0]["observed_actions"][1:2])
+        self.assertEqual("context", rebuilt["cases"][0]["role"])
+        self.assertIsNone(rebuilt["cases"][0]["stability"])
+        self.assertIsNone(rebuilt["cases"][0]["recorded_label"])
+        self.assertEqual([None], rebuilt["cases"][0]["run_actions"][1:2])
 
     def test_a_human_decision_survives_a_disagreeing_measurement(self) -> None:
-        cases = payload(case("a", adjudicated="noise"))
+        cases = payload(case("a", adjudicated_label="no_author_action"))
         rebuilt = rebuild(cases, [{"a": "author_action"}] * 3, "model")
 
-        self.assertEqual("noise", rebuilt["cases"][0]["adjudicated"])
-        self.assertEqual("substantive", rebuilt["cases"][0]["baseline"])
+        self.assertEqual("no_author_action", rebuilt["cases"][0]["adjudicated_label"])
+        self.assertEqual("author_action", rebuilt["cases"][0]["recorded_label"])
 
     def test_counts_and_configuration_describe_the_new_measurement(self) -> None:
         cases = payload(
-            case("a", adjudicated="noise"),
+            case("a", adjudicated_label="no_author_action"),
             case("b"),
             case("c"),
         )
@@ -129,7 +133,14 @@ class RebuildTest(unittest.TestCase):
         rebuilt = rebuild(cases, trials, "measured-model")
 
         self.assertEqual(
-            {"cases": 3, "stable": 1, "flaky": 1, "unobserved": 1, "adjudicated": 1},
+            {
+                "cases": 3,
+                "scored": 2,
+                "context": 1,
+                "stable": 1,
+                "flaky": 1,
+                "adjudicated": 1,
+            },
             rebuilt["counts"],
         )
         self.assertEqual("measured-model", rebuilt["baseline_configuration"]["model"])
