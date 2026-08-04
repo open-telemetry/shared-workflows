@@ -10912,13 +10912,13 @@
     },
     "50041": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "MikeGoldsmith",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -10926,6 +10926,7 @@
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
+        "copilot_review_stale": false,
         "created_at": "2026-08-04T13:08:06+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_cleared_ci": false,
@@ -10936,20 +10937,29 @@
         "head_sha": "56d70b6faf1219279ca42a13a616d3539193976c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T13:26:24+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-04T14:46:43+00:00",
+        "last_approver_activity_at": "2026-08-04T14:46:43+00:00",
         "last_author_activity_at": "2026-08-04T13:26:24+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "3ac197d9854a0318abaeb1195579c18517cbd2e3815c95c873ccb4f3004ccadc",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-04T13:08:06+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "iblancasa",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "24ccbc4b2d31b6ad6c4ff688c001ae92df0fe3618dbace15016f7724b3d14153",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-04T13:26:24+00:00"
       },
       "failed": false,
       "pr_number": 50041,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50041",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50042": {
