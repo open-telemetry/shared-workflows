@@ -1776,8 +1776,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "ThomsonTan",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3663#discussion_r3716668900"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "1352d6880207430a88221013556fa908",
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
@@ -1798,15 +1801,24 @@
         "head_sha": "3662791c43d3323f579e7f6856dfaadccb7f3fb6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T22:34:38+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-04T22:38:47+00:00",
+        "last_approver_activity_at": "2026-08-04T22:38:47+00:00",
         "last_author_activity_at": "2026-08-04T22:34:38+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "460c125af6d0c13d2ae90a6363730e606738b0ad594042eac94a1e8edb891366",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-04T22:34:20+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "3d0bf15a7b5df8708f4416b961b8f6c9434ce64078d41a4289a5f24883acac6f",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-04T22:38:47+00:00"
       },
       "failed": false,
       "pr_number": 3663,
