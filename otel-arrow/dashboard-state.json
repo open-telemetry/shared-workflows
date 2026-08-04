@@ -1661,11 +1661,14 @@
     },
     "3628": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "AaronRM",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3628#pullrequestreview-4851529490"
+        ],
+        "author_nudge_episode_id": "607305c5b786492faa29c74239bd8fa6",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1685,20 +1688,29 @@
         "head_sha": "b671cd8da08b978900f513f8ee2da52bb3ba0677",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-02T18:23:50+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-04T07:04:05+00:00",
+        "last_approver_activity_at": "2026-08-04T07:04:05+00:00",
         "last_author_activity_at": "2026-08-02T18:23:50+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lquerel",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "6190a4702436be77258aec5bb56653daeecf7ff0f5d4288474fa07534185dbac",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-01T00:57:00+00:00"
+        "routing_input_fingerprint": "ab0aa9109cad3c47b5972682bef216f86b426951dbcbd4e9fac55ca8d082b5bd",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-04T07:04:05+00:00"
       },
       "failed": false,
       "pr_number": 3628,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3628",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3638": {
