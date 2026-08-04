@@ -393,7 +393,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         save_requests.assert_called_once_with({})
         self.assertIn(
             "discarding Copilot review request for PR #7: Copilot review "
-            "exists=False needed=False for head current-head",
+            "exists=False stale=False for head current-head",
             stderr.getvalue(),
         )
 

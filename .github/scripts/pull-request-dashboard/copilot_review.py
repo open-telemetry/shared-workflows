@@ -29,31 +29,43 @@ def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
     return is_copilot_reviewer_login(actor_login(obj))
 
 
+def open_copilot_finding_count(review_threads: list[dict[str, Any]] | None) -> int:
+    # A review's own comment count never shrinks, so it still counts findings
+    # the author has since addressed. Unresolved threads are the live ones:
+    # GitHub marks a thread outdated once its anchor lines change, which is how
+    # the rest of the dashboard already recognises a pushed fix.
+    count = 0
+    for thread in review_threads or []:
+        if thread.get("isResolved") or thread.get("isOutdated"):
+            continue
+        comments = (thread.get("comments") or {}).get("nodes") or []
+        if comments and is_copilot_reviewer(comments[0].get("author") or {}):
+            count += 1
+    return count
+
+
 def copilot_review_status(
     reviews: list[dict[str, Any]],
     head_sha: str,
-) -> tuple[bool, bool]:
+    review_threads: list[dict[str, Any]],
+) -> tuple[bool, bool, bool]:
+    """Return (review exists, review is stale, review left open findings)."""
     copilot_reviews = [
         review
         for review in reviews
         if is_copilot_reviewer(review.get("user"))
     ]
     if not copilot_reviews:
-        return False, False
+        return False, False, False
     if not head_sha:
-        return True, False
-    current_head_reviews = [
-        review
+        # Without a head to compare against, staleness is unknowable, and
+        # acting on incomplete data would hold the pull request on a guess.
+        return True, False, False
+    stale = not any(
+        (review.get("commit_id") or "") == head_sha
         for review in copilot_reviews
-        if (review.get("commit_id") or "") == head_sha
-    ]
-    if not current_head_reviews:
-        return True, True
-    latest_review = max(
-        current_head_reviews,
-        key=lambda review: review.get("submitted_at") or "",
     )
-    return True, bool(latest_review.get("finding_count"))
+    return True, stale, open_copilot_finding_count(review_threads) > 0
 
 
 def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:
@@ -72,12 +84,14 @@ def set_copilot_review_request_needed(
 ) -> None:
     # Requesting a re-review before the checks report would spend it on code CI
     # is about to reject, and a PR GitHub has never reviewed is already queued
-    # for the automatic first review.
+    # for the automatic first review. Only a stale review is worth re-running:
+    # findings on the current head are unchanged code, so a re-review cannot
+    # clear them and would be requested again on every pass.
     facts["copilot_review_request_needed"] = (
         enabled
         and route in ("approver", "maintainer")
         and bool(facts.get("copilot_review_exists"))
-        and bool(facts.get("copilot_review_needed"))
+        and bool(facts.get("copilot_review_stale"))
         and not facts.get("copilot_review_requested")
         and required_checks_settled(facts)
     )
@@ -198,15 +212,16 @@ def deliver_copilot_review_requests(
                 requests[key] = {**entry, "requested_at": format_ts(now)}
                 continue
             reviews = fetch_pr_reviews(owner, repo_name, pr_number) or []
-            review_exists, review_needed = copilot_review_status(
+            review_exists, review_stale, _review_findings = copilot_review_status(
                 reviews,
                 current_head,
+                raw.get("review_threads") or [],
             )
-            if not review_exists or not review_needed:
+            if not review_exists or not review_stale:
                 print(
                     f"discarding Copilot review request for PR #{pr_number}: "
                     f"Copilot review exists={review_exists} "
-                    f"needed={review_needed} for head {current_head}",
+                    f"stale={review_stale} for head {current_head}",
                     file=sys.stderr,
                 )
                 requests.pop(key, None)
