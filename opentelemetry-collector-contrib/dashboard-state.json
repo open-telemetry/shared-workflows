@@ -10895,10 +10895,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "harshitt13",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50020#discussion_r3709354670"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "066c764e7f0e4a6fbe5e89aca2696bf7",
         "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 5,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -10916,15 +10919,24 @@
         "head_sha": "49dbaf396c32ae417cfb830ab39394facac04a36",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T03:56:15+00:00",
+        "last_activity_at": "2026-08-04T04:01:36+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-04T03:49:48+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "06ee8315683fa05a7d2ae5909a68787aaa66f2072f3650477d94b5df095220d5",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-04T03:56:15+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "chatgpt-codex-connector",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "200c9aa0e01e67a2dcb3ec0782082ccc823a1b50abcc9e142b70dbb7975c24fd",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-04T04:01:36+00:00"
       },
       "failed": false,
       "pr_number": 50020,
