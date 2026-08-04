@@ -1989,11 +1989,14 @@
     },
     "410": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "steverao",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/410#discussion_r3715499988"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "a8b109415c864630b3e31fa99ef0095a",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2014,8 +2017,8 @@
         "head_sha": "fefba19fbad527b9d3cc2653305ad77cce72df58",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T14:55:42+00:00",
-        "last_approver_activity_at": "2026-08-04T14:55:42+00:00",
+        "last_activity_at": "2026-08-04T19:34:09+00:00",
+        "last_approver_activity_at": "2026-08-04T19:34:09+00:00",
         "last_author_activity_at": "2026-08-04T14:38:10+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -2026,17 +2029,25 @@
             "login": "lmolkova",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "bc596b9b77bd5749fa5caba745f16e2d9e402f46ba0b476936ecf58b367b8f5c",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-04T14:38:10+00:00"
+        "routing_input_fingerprint": "d19e2a9c04508a6b82115891e87d58e8ffecf22b32e620e8af0a1a76a07a0626",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-04T19:18:49+00:00"
       },
       "failed": false,
       "pr_number": 410,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/410",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "415": {
