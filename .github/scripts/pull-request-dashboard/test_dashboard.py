@@ -22,6 +22,7 @@ from dashboard import (
     group_review_threads,
     hold_route_until_gates_settle,
     main,
+    merge_dashboard_update_with_latest_state,
     remove_cached_dashboard_prs,
     resolve_pr_route,
     route_pr,
@@ -1226,6 +1227,50 @@ class StatusCommentQueueTest(unittest.TestCase):
             ANY,
             prepare_due=False,
         )
+
+    @patch(
+        "dashboard.load_dashboard_state_cache",
+        return_value={"prs": {"34": {"route": "author"}}},
+    )
+    def test_untracked_closed_pr_reports_no_state_change(
+        self, _load_state: Mock
+    ) -> None:
+        calculation = DashboardUpdate(
+            results={},
+            dashboard_state={"prs": {"34": {"route": "author"}}},
+            trigger_pr_result=None,
+            starting_pr_result=None,
+            used_cached_dashboard_state=True,
+        )
+
+        _merged, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
+            calculation, 12, {34}
+        )
+
+        self.assertTrue(dashboard_state_unchanged)
+
+    @patch(
+        "dashboard.load_dashboard_state_cache",
+        return_value={"prs": {"12": {"route": "author"}}},
+    )
+    def test_tracked_closed_pr_still_reports_a_state_change(
+        self, _load_state: Mock
+    ) -> None:
+        starting_pr_result = {"route": "author"}
+        calculation = DashboardUpdate(
+            results={},
+            dashboard_state={"prs": {"12": starting_pr_result}},
+            trigger_pr_result=None,
+            starting_pr_result=starting_pr_result,
+            used_cached_dashboard_state=True,
+        )
+
+        merged, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
+            calculation, 12, set()
+        )
+
+        self.assertFalse(dashboard_state_unchanged)
+        self.assertEqual({}, merged.dashboard_state["prs"])
 
 
 class RequiredCiRoutingTest(unittest.TestCase):
