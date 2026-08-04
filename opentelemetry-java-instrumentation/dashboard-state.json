@@ -642,7 +642,10 @@
         "assignees": [],
         "author": "royteeuwen",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995#pullrequestreview-4850026586"
+        ],
+        "author_nudge_episode_id": "b70863f8b9a848df9ed23f90b0a481ec",
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
@@ -682,12 +685,12 @@
             "changes_requested": false,
             "login": "trask",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "routing_input_fingerprint": "cb27151e14f4872d28a38fd629054714caea4bb5346b6a2b798e9e1b8d128bde",
-        "waiting_age_basis": "gate_hold",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-08-04T02:22:53+00:00"
       },
       "failed": false,
