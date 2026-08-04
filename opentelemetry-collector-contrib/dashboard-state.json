@@ -10389,8 +10389,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "masterfuzz",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49992#discussion_r3713378465",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49992#discussion_r3713378482"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49992#pullrequestreview-4855539641"
+        ],
         "author_nudge_episode_id": "be63b979c8e8440ab71d1441a062cc85",
         "ci_failing_count": 4,
         "ci_failing_since": "2026-08-01T03:48:10+00:00",
@@ -10414,13 +10419,22 @@
         "head_sha": "1a2609848d79ca1009ffbd20eb34fd2c5ce9a9d7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-01T03:46:01+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-04T20:30:32+00:00",
+        "last_approver_activity_at": "2026-08-04T20:30:32+00:00",
         "last_author_activity_at": "2026-07-31T20:13:38+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "c49fec689d8853ddfee40cd4ef5d689c99907c3f8ed954a31cc4f4513720ad32",
+        "routing_input_fingerprint": "357fac94cbbf1730bc0a070c101d89487988914d4ef417fa105b328c808a5b4c",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-08-01T03:48:10+00:00"
       },
