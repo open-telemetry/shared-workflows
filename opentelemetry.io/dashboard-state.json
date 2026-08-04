@@ -5103,10 +5103,13 @@
         "author": "app/otelbot-docs",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 0,
-        "conflicts": "no",
+        "author_nudge_episode_id": "9cea8c3d7ff442f6bfc7d6a6f30ba8d2",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-04T11:05:17+00:00",
+        "ci_pending_count": 12,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-04T11:05:17+00:00",
+        "conflicts": "yes",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -5119,13 +5122,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "b0a747d331a4647005501828986bd27cd65f151f",
+        "head_sha": "af626cce4af40ea9c7c8591c366ee353e48a0bea",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T01:39:20+00:00",
+        "last_activity_at": "2026-08-04T11:05:07+00:00",
         "last_approver_activity_at": "2026-08-04T01:39:20+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -5137,14 +5140,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "e4bfe618a800e873525d1b254ae702b2acb5e278618100fb6bc37621cec9ae42",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-08-03T20:22:32+00:00"
+        "routing_input_fingerprint": "45aa89c3a5cb3bda084167c6f2b4c3acaec8da84cfe4cd091ee68635a50c7acf",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-04T11:05:17+00:00"
       },
       "failed": false,
       "pr_number": 11167,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11167",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11169": {
