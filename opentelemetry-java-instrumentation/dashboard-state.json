@@ -566,18 +566,15 @@
         "approval_count": 0,
         "assignees": [],
         "author": "shashank-reddy-nr",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#discussion_r3707431332"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "62640e3a19f34be197af32df66422538",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
-        "copilot_review_needed": false,
-        "copilot_review_outstanding": false,
+        "copilot_review_needed": true,
+        "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
         "created_at": "2026-06-12T15:48:18+00:00",
@@ -587,13 +584,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "2026-08-02T20:00:06Z",
-        "head_sha": "e108e1d066d23202984cabc65e3c0ff0dbf71ece",
+        "head_sha": "c61b3146c4b3331e3ece60165c09a3cbc447d22b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T20:29:36+00:00",
+        "last_activity_at": "2026-08-04T06:48:32+00:00",
         "last_approver_activity_at": "2026-08-03T20:29:36+00:00",
-        "last_author_activity_at": "2026-08-03T16:08:40+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-08-04T06:48:32+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -612,9 +609,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "2b6fc238ca4b7b545ec13b023f686d4eab0fc122e784d32c789dc7ab9fae989e",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "20d4a6a96a80880692472a34e155e2c43c70e578dd4ade8ac73dc62fc5d347c7",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-03T20:27:25+00:00"
       },
       "failed": false,
@@ -629,6 +626,12 @@
           "reply_source_id": 5168835074
         },
         "pr-issue-comment-4891309029": {
+          "evidence": {
+            "reply": "2026-08-03T16:08:40Z"
+          },
+          "reply_source_id": 5168835074
+        },
+        "pr-issue-comment-4892333913": {
           "evidence": {
             "reply": "2026-08-03T16:08:40Z"
           },
