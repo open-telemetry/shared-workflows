@@ -1698,6 +1698,14 @@ def merge_dashboard_update_with_latest_state(
                 return replace(calculation, results=results, dashboard_state=dashboard_state), True
         else:
             dashboard_state = calculation.dashboard_state
+            previous_pr_result = calculation.starting_pr_result
+        if previous_pr_result is None:
+            # Nothing is cached for this PR, so there is no routed result to
+            # drop. Reporting a change here would queue a status comment for a
+            # PR the dashboard never tracked, which is how an event on a
+            # long-merged PR ends up posting a first status comment on it.
+            results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
+            return replace(calculation, results=results, dashboard_state=dashboard_state), True
         dashboard_state = update_dashboard_state_for_pr(dashboard_state, pr_number, None)
         results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
         return replace(calculation, results=results, dashboard_state=dashboard_state), False

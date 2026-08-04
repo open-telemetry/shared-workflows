@@ -590,6 +590,63 @@ class UpsertStatusCommentTest(unittest.TestCase):
 
         self.assertEqual(["PATCH", "DELETE"], [command[3] for command in self.commands])
 
+    @patch.object(pr_status_comment, "managed_status_comments", return_value=[])
+    def test_does_not_create_comment_when_creation_is_disabled(
+        self, _comments: object
+    ) -> None:
+        pr_status_comment.upsert_status_comment(
+            "open-telemetry/example", 1, "body", create=False
+        )
+
+        self.assertEqual([], self.commands)
+
+    @patch.object(
+        pr_status_comment,
+        "managed_status_comments",
+        return_value=[{"id": 7, "body": "<!-- pull-request-dashboard-status --> old"}],
+    )
+    def test_still_updates_existing_comment_when_creation_is_disabled(
+        self, _comments: object
+    ) -> None:
+        pr_status_comment.upsert_status_comment(
+            "open-telemetry/example", 1, "body", create=False
+        )
+
+        self.assertEqual(["PATCH"], [command[3] for command in self.commands])
+
+
+class PublishPrStatusTest(unittest.TestCase):
+    @patch.object(pr_status_comment, "upsert_status_comment")
+    @patch.object(pr_status_comment, "gh_api")
+    def test_terminal_pr_never_creates_a_status_comment(
+        self, gh_api: Mock, upsert: Mock
+    ) -> None:
+        for pr in (
+            {"number": 1, "state": "closed", "merged": True},
+            {"number": 1, "state": "closed", "merged": False},
+        ):
+            with self.subTest(merged=pr["merged"]):
+                gh_api.return_value = pr
+
+                pr_status_comment.publish_pr_status(
+                    "open-telemetry/example", 1, {"prs": {}}
+                )
+
+                self.assertFalse(upsert.call_args.kwargs["create"])
+
+    @patch.object(pr_status_comment, "upsert_status_comment")
+    @patch.object(
+        pr_status_comment,
+        "gh_api",
+        return_value={"number": 1, "state": "open", "merged": False},
+    )
+    def test_open_pr_still_creates_a_status_comment(
+        self, _gh_api: Mock, upsert: Mock
+    ) -> None:
+        pr_status_comment.publish_pr_status("open-telemetry/example", 1, {"prs": {}})
+
+        self.assertTrue(upsert.call_args.kwargs["create"])
+
 
 class ManagedStatusCommentsTest(unittest.TestCase):
     @patch.object(

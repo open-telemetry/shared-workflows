@@ -221,6 +221,10 @@ def author_body(
     return [fallback_next_step]
 
 
+def is_terminal_pr(pr: dict[str, Any]) -> bool:
+    return bool(pr.get("merged")) or (pr.get("state") or "").lower() == "closed"
+
+
 def render_status_comment(
     pr: dict[str, Any],
     result: dict[str, Any] | None,
@@ -373,7 +377,13 @@ def managed_status_comments(repo: str, pr_number: int) -> list[dict[str, Any]]:
     ]
 
 
-def upsert_status_comment(repo: str, pr_number: int, body: str) -> None:
+def upsert_status_comment(
+    repo: str,
+    pr_number: int,
+    body: str,
+    *,
+    create: bool = True,
+) -> None:
     comments = managed_status_comments(repo, pr_number)
     if comments:
         comment = comments[0]
@@ -396,6 +406,13 @@ def upsert_status_comment(repo: str, pr_number: int, body: str) -> None:
             ])
         return
 
+    if not create:
+        print(
+            f"PR #{pr_number} has no status comment to update; skipping creation",
+            file=sys.stderr,
+        )
+        return
+
     print(f"creating PR #{pr_number} status comment", file=sys.stderr)
     run_gh([
         "gh", "api", "--method", "POST",
@@ -407,7 +424,15 @@ def upsert_status_comment(repo: str, pr_number: int, body: str) -> None:
 def publish_pr_status(repo: str, pr_number: int, dashboard_state: dict[str, Any]) -> None:
     pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
     result = (dashboard_state.get("prs") or {}).get(str(pr_number))
-    upsert_status_comment(repo, pr_number, render_status_comment(pr, result))
+    # A terminal status only exists to move an already published comment to its
+    # final state. Creating one instead would announce a merge or close on a
+    # pull request the dashboard never commented on.
+    upsert_status_comment(
+        repo,
+        pr_number,
+        render_status_comment(pr, result),
+        create=not is_terminal_pr(pr),
+    )
 
 
 def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list[str]:
