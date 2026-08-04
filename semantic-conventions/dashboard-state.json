@@ -1410,7 +1410,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -1431,7 +1431,7 @@
         "last_activity_at": "2026-08-04T09:41:40+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-04T09:41:40+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1450,15 +1450,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "db70112e9b45f5ca6111842bdc96048b0d131db5131390bd188704cbf103182c",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-04T01:23:00+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "80a56b81a8d2891dfee1eda80310542bc1355b95c600618aa8878d16634d6b3f",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-04T09:41:40+00:00"
       },
       "failed": false,
       "pr_number": 3945,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3945",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "3965": {
