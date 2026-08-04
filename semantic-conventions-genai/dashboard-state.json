@@ -1207,10 +1207,7 @@
         "assignees": [],
         "author": "aabmass",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions-genai/pull/270#issuecomment-4673487686"
-        ],
-        "author_nudge_episode_id": "34b6c706b44b4cb099a56bf971135b77",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1222,12 +1219,20 @@
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "created_at": "2026-06-09T16:27:38+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5182157733,
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "user": "lmolkova"
+          }
+        ],
         "dashboard_override_cleared_ci": false,
-        "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "",
+        "dashboard_override_cleared_count": 1,
+        "dashboard_override_command_id": 5182157733,
+        "dashboard_override_command_user": "lmolkova",
+        "dashboard_override_since": "2026-08-04T16:58:53Z",
         "head_sha": "426084a1d23611fa9fbdf4c585dd66e66b83060d",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -1258,18 +1263,18 @@
             "changes_requested": false,
             "login": "trask",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "28424cc42c5c59ef26052c9491ed386cd4d8a44bfb841bf1ba3e1b3ee0c43895",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-06-17T19:39:48+00:00"
+        "routing_input_fingerprint": "c8210bf12770ba8e19f65366b419cace77df1a31789fb458e6d1057b85b71c7b",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-07-08T02:38:49+00:00"
       },
       "failed": false,
       "pr_number": 270,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/270",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-4701247948": {
           "evidence": {
