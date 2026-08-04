@@ -2226,7 +2226,7 @@
     },
     "19340": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "wl2027",
         "author_action_review_thread_urls": [],
@@ -2236,11 +2236,11 @@
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
-        "copilot_review_needed": true,
-        "copilot_review_outstanding": true,
-        "copilot_review_request_needed": true,
+        "copilot_review_needed": false,
+        "copilot_review_outstanding": false,
+        "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": true,
+        "copilot_review_stale": false,
         "created_at": "2026-07-30T16:04:07+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_cleared_ci": false,
@@ -2251,8 +2251,8 @@
         "head_sha": "e7d17adb90c6011a4ff97ed0c6238bec584581d5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T05:55:22+00:00",
-        "last_approver_activity_at": "2026-08-03T17:25:40+00:00",
+        "last_activity_at": "2026-08-04T19:12:51+00:00",
+        "last_approver_activity_at": "2026-08-04T19:12:51+00:00",
         "last_author_activity_at": "2026-08-04T05:55:22+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -2265,7 +2265,7 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "trask",
@@ -2273,15 +2273,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "f0590a10f2b5635440fceb5a197f4070f4106159480e20fd384314c6a556799e",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-03T17:19:46+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "48e96b5d05d984283308be27547453a1eedb529b1eb55b2dd798546dfd58f267",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-04T05:55:22+00:00"
       },
       "failed": false,
       "pr_number": 19340,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19340",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19344": {
