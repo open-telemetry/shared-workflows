@@ -1491,7 +1491,7 @@
     },
     "3966": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [
@@ -1517,20 +1517,29 @@
         "head_sha": "4238312bc0a72c3b07d5700d345afd42736183a7",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-04T00:34:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-04T00:47:36+00:00",
+        "last_approver_activity_at": "2026-08-04T00:47:36+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "acd7581cf43f4a8cc061419ac789773d01f401c76a60338627f3e5510eb36d92",
+        "routing_input_fingerprint": "467f276231c2ef87b96bf2a8f7c57b406c10982d89452f083fa48657f47ce529",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-04T00:34:43+00:00"
       },
       "failed": false,
       "pr_number": 3966,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3966",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
