@@ -433,9 +433,12 @@
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "f5f5a3460d7f4a10a6eace03b02ad28c",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-04T19:30:31+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-04T19:30:31+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -456,7 +459,7 @@
         "last_activity_at": "2026-08-04T19:03:29+00:00",
         "last_approver_activity_at": "2026-08-04T15:24:47+00:00",
         "last_author_activity_at": "2026-08-04T19:03:29+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -475,10 +478,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "8bb2bb70fa54b74e08380aceddeca94e6c6ef1fe83e2718d75a095e70f0e27cf",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-07-13T06:30:53+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "5a011a72ec53b98147df5929d76fdf455d8d0209661b8b92e73931b32ab1bbf8",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-04T19:30:31+00:00"
       },
       "failed": false,
       "pr_number": 7486,
