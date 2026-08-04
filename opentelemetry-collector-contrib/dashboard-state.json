@@ -10643,7 +10643,7 @@
     },
     "50021": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -10664,14 +10664,22 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "d8d7c5f7ca5630b8717ee0cc10afac6b21b50154",
+        "head_sha": "d1b7e4d654bded2170fa418a69f2fa300db1af38",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-04T10:01:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-04T10:07:45+00:00",
+        "last_approver_activity_at": "2026-08-04T10:07:45+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mx-psi",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -10689,9 +10697,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "d7f56be474246a314e114d0431cd154c4e73b492e0e306d439e564398fdccffc",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "e95c9c50ba86906f0845c8597c315fc78df588124a456588f9b9a3ceac7c8112",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-04T04:59:02+00:00"
       },
       "failed": false,
