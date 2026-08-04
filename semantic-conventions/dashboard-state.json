@@ -1440,13 +1440,13 @@
     },
     "3965": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 10,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -1464,20 +1464,29 @@
         "head_sha": "9cdeb85965d08abd9722e06eae138ac402f91324",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-04T00:34:36+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-04T00:38:45+00:00",
+        "last_approver_activity_at": "2026-08-04T00:38:45+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "7ea7374d0d0983a97a14a37aa315075a519a80cec3e82b54faef3d61b387f476",
+        "routing_input_fingerprint": "88258532d7c60dc1131fb9b3d71b2ed37014f71824b4fd13816cc633e500efa0",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-04T00:34:36+00:00"
       },
       "failed": false,
       "pr_number": 3965,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3965",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3966": {
