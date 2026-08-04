@@ -11086,7 +11086,7 @@
     },
     "50024": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -11110,11 +11110,19 @@
         "head_sha": "5e567763a2d6a596297cfe161aac3ba24e8a2ee7",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-04T05:23:04+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-04T08:11:36+00:00",
+        "last_approver_activity_at": "2026-08-04T08:11:36+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "iblancasa",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -11125,14 +11133,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "211629a044aa6c00df9b9d132009e3425fdda117d447de24cd0e16f910b40c6d",
+        "routing_input_fingerprint": "005c9f307cdc07019a89c899ecd9afa97f7b45219341e0abc5dd40f0f9440e86",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-04T05:09:36+00:00"
       },
       "failed": false,
       "pr_number": 50024,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50024",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50025": {
