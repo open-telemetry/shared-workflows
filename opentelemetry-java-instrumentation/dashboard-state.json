@@ -2695,13 +2695,13 @@
     },
     "19381": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -2719,14 +2719,23 @@
         "head_sha": "e5b937c25daca6c31af02da360de36c92d5c8eed",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-04T02:36:03+00:00",
-        "last_approver_activity_at": "2026-08-04T02:36:03+00:00",
+        "last_activity_at": "2026-08-04T02:42:51+00:00",
+        "last_approver_activity_at": "2026-08-04T02:42:51+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "0c948329564fd1f6b95ab6975226a0ca7fb19b77c4fdc081cdea3c5d0641f4f2",
-        "waiting_age_basis": "created",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "f665ea2fda8ad95c2cbd5d954fb9def5e37e1aed30d96304a310357c58998555",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-04T00:26:19+00:00"
       },
       "failed": false,
