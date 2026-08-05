@@ -799,7 +799,7 @@
     },
     "7594": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -824,14 +824,23 @@
         "head_sha": "b7ad4cb7372a6753dc7a860777a41fc735652294",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-05T09:59:46+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-05T10:03:33+00:00",
+        "last_approver_activity_at": "2026-08-05T10:03:33+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "e95013b61be1fcef37b737e6ea4bbbdf30a29a3596a76d507ed7f3d92dc31e50",
-        "waiting_age_basis": "created",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "086643524fb86ab0dd7cf4d7eac5790be5e6f9f512b6c0288006704a7532fb93",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-05T09:59:46+00:00"
       },
       "failed": false,
