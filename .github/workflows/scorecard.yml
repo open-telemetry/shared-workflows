@@ -12,10 +12,6 @@ on:
 
 permissions: read-all # zizmor: ignore[excessive-permissions] — needed to read repo metadata for Scorecard checks
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   # Scorecard restricts what this job may contain while publish_results is true:
   # every step must be a `uses:` of an allow-listed action, and no other job may
@@ -24,6 +20,11 @@ jobs:
   analysis:
     name: OSSF Scorecard Analysis
     runs-on: ubuntu-latest
+    # Static prefix, not github.workflow, which in a called workflow is the
+    # caller's name and would let this cancel the run that called it.
+    concurrency:
+      group: ossf-scorecard-${{ github.ref }}
+      cancel-in-progress: true
     permissions:
       id-token: write # Needed for GitHub OIDC token since publish_results is true
     steps:
@@ -50,6 +51,9 @@ jobs:
     name: Upload to code scanning
     needs: analysis
     runs-on: ubuntu-latest
+    concurrency:
+      group: ossf-scorecard-${{ github.ref }}
+      cancel-in-progress: true
     permissions:
       contents: read # for actions/checkout, so that upload-sarif can fingerprint results
       security-events: write # Needed for Code scanning upload
