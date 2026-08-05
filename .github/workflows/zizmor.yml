@@ -22,14 +22,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # github.workflow here would be the caller's name, not this workflow's.
+  group: shared-workflow-zizmor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   zizmor:
     name: Zizmor Security Analysis
     runs-on: ubuntu-latest
-    concurrency:
-      # github.workflow here would be the caller's name, not this workflow's.
-      group: shared-workflow-zizmor-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results
