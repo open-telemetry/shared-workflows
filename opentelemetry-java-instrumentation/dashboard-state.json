@@ -2405,7 +2405,7 @@
     },
     "19349": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2430,20 +2430,29 @@
         "head_sha": "9deded01eedfb816cf65e0c7f37a4e6ba60696c5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T16:08:34+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-05T12:52:43+00:00",
+        "last_approver_activity_at": "2026-08-05T12:52:43+00:00",
         "last_author_activity_at": "2026-08-04T16:08:34+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "bfde0fffb6bdc130657077b6737ad36e75f805088c1b28aa01cb1efd884a0e38",
+        "routing_input_fingerprint": "c26d4b65ce3fd34c8f397483e390c13902ffb453729a7af21f2b6a77600a3bb8",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-04T16:08:34+00:00"
       },
       "failed": false,
       "pr_number": 19349,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19349",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19371": {
