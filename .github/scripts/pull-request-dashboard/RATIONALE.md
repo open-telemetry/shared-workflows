@@ -63,6 +63,11 @@ the implementation understandable and operationally cheap.
   branch. The version that each repository runs is then visible in the workflow
   file, a rollback is a revert, and the reference stays hash pinned the way
   every other action reference in this repository is.
+- A rollback stops a bad change rather than restoring delivery. Downgraded code
+  reads newer delivery state as empty, so delivering from it would repeat
+  reminders and re-review requests already sent; the delivery version check
+  makes it skip delivery instead. Rolling forward is the way out, and a paused
+  dashboard is the cheaper failure.
 
 ## Workflow Concurrency
 

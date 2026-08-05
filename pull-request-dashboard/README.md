@@ -263,17 +263,23 @@ its settings, takes effect on the next run in both channels.
 
 ### Rolling back
 
-Reverting the bump to an earlier release commit is the rollback path, and it is
-safe, but it is not always self-healing. Each repository's state branch records
-the delivery versions of the last worker that ran, and a worker behind on any of
-them skips delivery rather than delivering an older shape. Reverting across a
-version bump therefore stops delivery for the rolled-back repositories, and
-state files whose version no longer matches are regenerated.
+Reverting the bump to an earlier release commit stops the fleet from running a
+bad change. What it does not do is resume delivery from newer state, and that is
+deliberate: delivered author reminders and Copilot re-review requests live in
+versioned state files that read as empty when their version does not match, so
+downgraded code would see nothing as delivered and send it all again.
 
+Each repository's state branch therefore records the delivery versions of the
+last worker that ran, and a worker behind on any of them skips delivery instead.
 Reverting a change that bumped no version resumes normally. Reverting one that
-did needs `delivery-versions.json` deleted from the affected repositories' state
-branches, which lets the older code claim the versions it does understand.
-Canary repositories are unaffected either way, since they never run pinned code.
+did leaves the stable repositories not delivering, which is the intended
+outcome: a paused maintainer aid is cheap, and duplicate reminders across the
+fleet are not.
+
+Recovery from that state is to roll forward — fix the change and promote a new
+release — rather than to clear the recorded versions, which would re-enable the
+duplicate delivery the check exists to prevent. Canary repositories are
+unaffected either way, since they never run pinned code.
 
 ### Changing the workflow
 
