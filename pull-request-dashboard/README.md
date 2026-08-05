@@ -261,9 +261,7 @@ its settings, takes effect on the next run in both channels.
    as a comment the way actions are pinned elsewhere in this repository.
    `test_rollout.py` fails if the two disagree.
 
-Rolling back before a promotion means not promoting; after a promotion it means
-reverting the bump. Until the first promotion the stable jobs call the workflow
-at the triggering commit, so both channels run the same code.
+Rolling back means reverting the bump to an earlier release commit.
 
 Running two versions at once adds two rules for changes to this workflow:
 

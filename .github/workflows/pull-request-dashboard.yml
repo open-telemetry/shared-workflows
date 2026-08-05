@@ -188,9 +188,7 @@ jobs:
   # on the canary repositories.
   #
   # `uses` cannot take an expression, so each entry path has one job per
-  # channel. The stable jobs below still call the local workflow, which means
-  # both channels currently run the same code. Promoting for the first time, and
-  # every time after, means cutting a release and opening a pull request that
+  # channel. Promoting means cutting a release and opening a pull request that
   # points every stable job at that release:
   #
   #   uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@<sha> # vX.Y.Z
@@ -230,9 +228,10 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.stable_matrix) }}
-    uses: ./.github/workflows/pull-request-dashboard-repo.yml
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@94425809b433630371efafff2067f2c5b19f3fc2 # v0.5.0
     with:
       repository: ${{ matrix.name }}
+      code_ref: 94425809b433630371efafff2067f2c5b19f3fc2 # v0.5.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -268,10 +267,11 @@ jobs:
     permissions:
       contents: write
       copilot-requests: write
-    uses: ./.github/workflows/pull-request-dashboard-repo.yml
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@94425809b433630371efafff2067f2c5b19f3fc2 # v0.5.0
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ inputs.pr_number }}
+      code_ref: 94425809b433630371efafff2067f2c5b19f3fc2 # v0.5.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -302,10 +302,11 @@ jobs:
     permissions:
       contents: write
       copilot-requests: write
-    uses: ./.github/workflows/pull-request-dashboard-repo.yml
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@94425809b433630371efafff2067f2c5b19f3fc2 # v0.5.0
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ needs.resolve-head-sha.outputs.pr_number }}
+      code_ref: 94425809b433630371efafff2067f2c5b19f3fc2 # v0.5.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

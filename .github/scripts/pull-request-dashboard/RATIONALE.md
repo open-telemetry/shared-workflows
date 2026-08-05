@@ -63,10 +63,10 @@ the implementation understandable and operationally cheap.
   branch. The version that each repository runs is then visible in the workflow
   file, a rollback is a revert, and the reference stays hash pinned the way
   every other action reference in this repository is.
-- Until the first promotion the stable jobs call the local workflow, so both
-  channels run the same code. A cross-repository reference cannot be introduced
-  in the same change that adds the `code_ref` input, because the commit it would
-  have to pin does not exist yet.
+- The first promotion could not land in the change that added the `code_ref`
+  input, because the release commit it had to pin did not exist yet. Until it
+  landed the stable jobs called the local workflow and both channels ran the
+  same code.
 
 ## Workflow Concurrency
 
