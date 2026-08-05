@@ -8,9 +8,12 @@
         "author": "martincostello",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "486896383ba646dfbb4ed932dc619730",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-05T08:06:07+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-05T08:06:07+00:00",
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -31,7 +34,7 @@
         "last_activity_at": "2026-08-05T07:58:49+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-05T07:58:49+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -43,14 +46,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "945357f88596019e9b5c3821e3e185108381e64e8b73c490a90aa3a51db6cab9",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-31T21:27:03+00:00"
+        "routing_input_fingerprint": "8b425075fc70c12c09e1974879f208578e4822dcb31d3e4d720e231c9e85a2d9",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-05T08:06:07+00:00"
       },
       "failed": false,
       "pr_number": 4625,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4625",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "4629": {
