@@ -987,7 +987,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -1009,7 +1009,7 @@
         "last_activity_at": "2026-08-05T23:18:31+00:00",
         "last_approver_activity_at": "2026-08-05T17:47:23+00:00",
         "last_author_activity_at": "2026-08-05T23:18:31+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -1028,15 +1028,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "2627754b0e1e5f7aaf7ebe4655e2dfbac688b2a2832f0f85172e736c87642a72",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-05T17:47:23+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "cd898acbe832b513b4ead7f862e6d64bc1422b4bfa00c6e47a9ff87d49772903",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-05T23:18:31+00:00"
       },
       "failed": false,
       "pr_number": 3562,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3562",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5195282179": {
           "evidence": {
