@@ -2260,9 +2260,12 @@
         "author": "luke6Lh43",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "86eb13cb749e4fde89e64e1ac1a419a0",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-05T11:29:12+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-05T11:29:12+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -2283,7 +2286,7 @@
         "last_activity_at": "2026-08-05T11:26:05+00:00",
         "last_approver_activity_at": "2026-08-04T10:35:23+00:00",
         "last_author_activity_at": "2026-08-05T11:26:05+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2303,14 +2306,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "84e94150634d25401b0d45340aed6f5af960a8421c9129dbe973b5f08600ff9c",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-04T21:37:05+00:00"
+        "routing_input_fingerprint": "0d2f6e9217e009b9f7d93f6a24900bfd3da7b16f3ca1feeb19214b12bf390783",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-05T11:29:12+00:00"
       },
       "failed": false,
       "pr_number": 11001,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11001",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11006": {
