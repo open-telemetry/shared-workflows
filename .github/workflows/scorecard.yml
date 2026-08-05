@@ -69,6 +69,7 @@ jobs:
           # Deliberately narrow. See the issue for what is left out and why.
           # https://github.com/open-telemetry/sig-security/issues/309
           INCLUDED_CHECKS: |
+            BinaryArtifactsID
             DangerousWorkflowID
             PinnedDependenciesID
             TokenPermissionsID

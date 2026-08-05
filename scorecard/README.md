@@ -33,6 +33,7 @@ Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No inputs 
 
 Only these checks are uploaded to code scanning:
 
+- `BinaryArtifactsID`
 - `DangerousWorkflowID`
 - `PinnedDependenciesID`
 - `TokenPermissionsID`
