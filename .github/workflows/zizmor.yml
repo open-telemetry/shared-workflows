@@ -27,7 +27,8 @@ jobs:
     name: Zizmor Security Analysis
     runs-on: ubuntu-latest
     concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      # github.workflow here would be the caller's name, not this workflow's.
+      group: shared-workflow-zizmor-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
     permissions:
       contents: read
