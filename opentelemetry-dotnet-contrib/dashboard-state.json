@@ -614,7 +614,10 @@
     "4935": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
+        "assignees": [
+          "matt-hensley",
+          "martincostello"
+        ],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
@@ -642,9 +645,26 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "matt-hensley",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "e2756b41c3fa0c13e8cfce8b2bd48774f63348032a27cf83826a3b4e8d376c99",
+        "routing_input_fingerprint": "adc758c5401e163920dafa3beda03a07dcc2338966320714f842818cd384d64e",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-05T08:54:26+00:00"
       },
