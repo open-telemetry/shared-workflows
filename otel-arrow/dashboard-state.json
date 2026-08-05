@@ -1475,7 +1475,7 @@
     },
     "3650": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "drewrelmas",
         "author_action_review_thread_urls": [],
@@ -1500,20 +1500,29 @@
         "head_sha": "6f81184883c71e3ef07c739772068589f84cc70c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T15:20:23+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-05T17:45:50+00:00",
+        "last_approver_activity_at": "2026-08-05T17:45:50+00:00",
         "last_author_activity_at": "2026-08-05T15:20:23+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "2122b069bf578844a50141fa19165367ab1f02383c1815d2c34975debdb81565",
+        "routing_input_fingerprint": "3c343613541585b9bb235003fe4c2de00aaf009dd4948fd1e27028d944eb1240",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-03T19:21:53+00:00"
       },
       "failed": false,
       "pr_number": 3650,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3650",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3657": {
