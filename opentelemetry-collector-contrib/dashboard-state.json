@@ -10626,10 +10626,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "MikeGoldsmith",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50053#discussion_r3720163850"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "15c22fea98b44b2ea756401576f75658",
         "ci_failing_count": 0,
-        "ci_pending_count": 7,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -10648,15 +10651,24 @@
         "head_sha": "889e5823bdb245e6dc88c2a4e71da9b14ecff67b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T10:40:52+00:00",
+        "last_activity_at": "2026-08-05T11:28:45+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-05T10:40:52+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "4384dd5ccc578f42b790369147d82c67b50f3d5eb17d3bde2d419bb0a592ca96",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-04T16:24:29+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "VinozzZ",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "7fdf97f5a7d19df9e3b0da822425361c56b2e601493fe52bd7886517b8a4b611",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-05T11:28:24+00:00"
       },
       "failed": false,
       "pr_number": 50053,
