@@ -10798,8 +10798,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "mw-advait",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50064#discussion_r3721872701"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "b23aca9dda404fbdbbda4f74f0406857",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -10820,20 +10823,29 @@
         "head_sha": "174b3532972b3003de5a7c74b936c3287dfad1ba",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T09:15:51+00:00",
+        "last_activity_at": "2026-08-05T15:35:17+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-05T09:15:51+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "thompson-tomo",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "45d7a5a08821ff0aac597c8dc2a2c65a4486d4ad7c406a7493fb38cbafccfde0",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-05T05:53:44+00:00"
+        "routing_input_fingerprint": "a4c01080a6e574b822fd570f491e3149b1a00bd7251e4ca4a66b844dd4033030",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-05T15:30:09+00:00"
       },
       "failed": false,
       "pr_number": 50064,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50064",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "50067": {
