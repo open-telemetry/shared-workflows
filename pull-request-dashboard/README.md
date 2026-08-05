@@ -261,7 +261,21 @@ its settings, takes effect on the next run in both channels.
    as a comment the way actions are pinned elsewhere in this repository.
    `test_rollout.py` fails if the two disagree.
 
-Rolling back means reverting the bump to an earlier release commit.
+### Rolling back
+
+Reverting the bump to an earlier release commit is the rollback path, and it is
+safe, but it is not always self-healing. Each repository's state branch records
+the delivery versions of the last worker that ran, and a worker behind on any of
+them skips delivery rather than delivering an older shape. Reverting across a
+version bump therefore stops delivery for the rolled-back repositories, and
+state files whose version no longer matches are regenerated.
+
+Reverting a change that bumped no version resumes normally. Reverting one that
+did needs `delivery-versions.json` deleted from the affected repositories' state
+branches, which lets the older code claim the versions it does understand.
+Canary repositories are unaffected either way, since they never run pinned code.
+
+### Changing the workflow
 
 Running two versions at once adds two rules for changes to this workflow:
 
