@@ -1760,7 +1760,7 @@
     },
     "3671": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "albertlockett",
         "author_action_review_thread_urls": [],
@@ -1785,20 +1785,29 @@
         "head_sha": "8ca67f58e0ba4ceaecf23b716c9ebfaa6daecad6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T19:05:07+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-05T21:49:53+00:00",
+        "last_approver_activity_at": "2026-08-05T21:49:53+00:00",
         "last_author_activity_at": "2026-08-05T19:05:07+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "42f310f2b6c414161b1cf51199bace2620d68f5e9ee4e7b5ee3bb93234d65d0d",
+        "routing_input_fingerprint": "578c855ad1551a4ed166240f5148a38e5f56a81ddee21dcca7cc338e5bd2be1e",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-05T19:05:07+00:00"
       },
       "failed": false,
       "pr_number": 3671,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3671",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3673": {
