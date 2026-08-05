@@ -1411,7 +1411,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -1433,7 +1433,7 @@
         "last_activity_at": "2026-08-05T03:21:21+00:00",
         "last_approver_activity_at": "2026-08-04T23:43:41+00:00",
         "last_author_activity_at": "2026-08-05T03:21:21+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -1460,15 +1460,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "fd4de38172fbf6c00617d72517c4b931532afbc89fe69e4dc628037ddd560ea7",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-04T21:16:58+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "37d7cf733e15cce7fd4da7a9428260800c594ae1b13988b31ed70d2e848cc226",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-05T03:21:21+00:00"
       },
       "failed": false,
       "pr_number": 341,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/341",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "354": {
