@@ -755,7 +755,7 @@
     },
     "4937": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "matt-hensley"
         ],
@@ -782,11 +782,19 @@
         "head_sha": "1a6b81aa92b4b1031a0d7262a7535d68088e2837",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-05T08:54:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-05T09:00:01+00:00",
+        "last_approver_activity_at": "2026-08-05T09:00:01+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -796,9 +804,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "c2cf07bb51a1bbd49082bafd794d97527b7cd2487ef4b874d2ede5a0a6a1d2c5",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "2ca7e6fcbc4008401c630e83b0536eaa8f2d8109c6acdc37ffc5543d2d547ed4",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-05T08:54:44+00:00"
       },
       "failed": false,
