@@ -983,12 +983,9 @@
         "assignees": [],
         "author": "daviddahl",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/otel-arrow/pull/3562#issuecomment-5195282179"
-        ],
-        "author_nudge_episode_id": "5bbc13c46fdf427d9cbb7ca197ddd9e2",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -1007,9 +1004,9 @@
         "head_sha": "795415c7c60ea3542c17f73c9d18143c8a675133",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T22:49:12+00:00",
+        "last_activity_at": "2026-08-05T22:53:27+00:00",
         "last_approver_activity_at": "2026-08-05T17:47:23+00:00",
-        "last_author_activity_at": "2026-08-05T22:49:12+00:00",
+        "last_author_activity_at": "2026-08-05T22:53:27+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -1018,7 +1015,7 @@
             "changes_requested": false,
             "login": "jmacd",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           },
           {
             "approved": true,
@@ -1029,9 +1026,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "c46c548a1dd1c1a8b16b28144604ce86d92dfda17a016c7db654842fdbfaf20c",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "f316ef2ce69734816918674e036804d547dae2944cf1bcf26cf2cbd727d545f2",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-05T17:47:23+00:00"
       },
       "failed": false,
@@ -1039,6 +1036,12 @@
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3562",
       "route": "author",
       "top_level_history": {
+        "pr-issue-comment-5195282179": {
+          "evidence": {
+            "reply": "2026-08-05T22:53:27Z"
+          },
+          "reply_source_id": 5198309457
+        },
         "pr-review-4776847321": {
           "evidence": {
             "reply": "2026-07-29T20:42:19Z"
