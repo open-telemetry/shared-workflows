@@ -10760,8 +10760,12 @@
         "approval_count": 0,
         "assignees": [],
         "author": "dloucasfx",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50062#discussion_r3722020872",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50062#discussion_r3722112056"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "05dc0e5838064083adf5dd8bb4e3ea9b",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -10782,20 +10786,29 @@
         "head_sha": "4c42543b34c17a5de6086e00a26b8bed71be0b40",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T00:48:56+00:00",
+        "last_activity_at": "2026-08-05T16:06:37+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-05T00:46:05+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jinja2",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "f436a4c7cc899a1428546a2f17a31734fa0db5e1d93fb6de4fa0565dda8afe77",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-05T00:46:05+00:00"
+        "routing_input_fingerprint": "0e0a781b3a676ba8c255a20e72d0cde6e106a9e14955f96efe853821e56b5c9a",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-05T15:50:58+00:00"
       },
       "failed": false,
       "pr_number": 50062,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50062",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "50064": {
