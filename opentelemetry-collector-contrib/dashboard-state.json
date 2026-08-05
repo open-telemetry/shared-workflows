@@ -9119,13 +9119,13 @@
     },
     "49944": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "charanck9",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -9144,11 +9144,19 @@
         "head_sha": "e1e7f6cfb7e35c47ac0363864c50f955bd25fa38",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T08:39:42+00:00",
-        "last_approver_activity_at": "2026-07-29T13:30:22+00:00",
+        "last_activity_at": "2026-08-05T19:50:02+00:00",
+        "last_approver_activity_at": "2026-08-05T19:50:02+00:00",
         "last_author_activity_at": "2026-08-05T08:39:42+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "ArthurSens",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -9158,9 +9166,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "b8fb08236e5ec26c214c2c33343a2d0e56196addb0cbcb7bbb2aea007c8d4786",
-        "waiting_age_basis": "last_author_activity",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "82b22c59970852f605a5d76b233e50445d3910e2dbc3c829ed9c490d03aece7f",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-05T08:39:42+00:00"
       },
       "failed": false,
