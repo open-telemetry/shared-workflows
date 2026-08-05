@@ -263,22 +263,10 @@ its settings, takes effect on the next run in both channels.
 
 ### Rolling back
 
-Reverting the bump to an earlier release commit stops the fleet from running a
-bad change. What it does not do is resume delivery from newer state, and that is
-deliberate: delivered author reminders and Copilot re-review requests live in
-versioned state files that read as empty when their version does not match, so
-downgraded code would see nothing as delivered and send it all again.
-
-Each repository's state branch therefore records the delivery versions of the
-last worker that ran, and a worker behind on any of them skips delivery instead.
-Reverting a change that bumped no version resumes normally. Reverting one that
-did leaves the stable repositories not delivering, which is the intended
-outcome: a paused maintainer aid is cheap, and duplicate reminders across the
-fleet are not.
-
-Recovery from that state is to roll forward — fix the change and promote a new
-release — rather than to clear the recorded versions, which would re-enable the
-duplicate delivery the check exists to prevent. Canary repositories are
+Revert the bump to an earlier release commit. If the reverted change bumped no
+delivery version, the stable channel resumes normally. If it did, those
+repositories stop delivering rather than repeat reminders they can no longer see
+as sent, so recovery is to roll forward with a fix. Canary repositories are
 unaffected either way, since they never run pinned code.
 
 ### Changing the workflow
