@@ -63,10 +63,11 @@ the implementation understandable and operationally cheap.
   branch. The version that each repository runs is then visible in the workflow
   file, a rollback is a revert, and the reference stays hash pinned the way
   every other action reference in this repository is.
-- Until the first promotion the stable jobs call the local workflow, so both
-  channels run the same code. A cross-repository reference cannot be introduced
-  in the same change that adds the `code_ref` input, because the commit it would
-  have to pin does not exist yet.
+- A rollback stops a bad change rather than restoring delivery. Downgraded code
+  reads newer delivery state as empty, so delivering from it would repeat
+  reminders and re-review requests already sent; the delivery version check
+  makes it skip delivery instead. Rolling forward is the way out, and a paused
+  dashboard is the cheaper failure.
 
 ## Workflow Concurrency
 

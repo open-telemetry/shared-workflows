@@ -261,9 +261,15 @@ its settings, takes effect on the next run in both channels.
    as a comment the way actions are pinned elsewhere in this repository.
    `test_rollout.py` fails if the two disagree.
 
-Rolling back before a promotion means not promoting; after a promotion it means
-reverting the bump. Until the first promotion the stable jobs call the workflow
-at the triggering commit, so both channels run the same code.
+### Rolling back
+
+Revert the bump to an earlier release commit. If the reverted change bumped no
+delivery version, the stable channel resumes normally. If it did, those
+repositories stop delivering rather than repeat reminders they can no longer see
+as sent, so recovery is to roll forward with a fix. Canary repositories are
+unaffected either way, since they never run pinned code.
+
+### Changing the workflow
 
 Running two versions at once adds two rules for changes to this workflow:
 
