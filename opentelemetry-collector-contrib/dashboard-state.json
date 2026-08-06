@@ -8823,10 +8823,15 @@
         "assignees": [],
         "author": "blakerouse",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 8,
-        "ci_uncleared_failing_count": 0,
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49928#issuecomment-5205427823"
+        ],
+        "author_nudge_episode_id": "860cb9c97fd54a69bb6e1b58aeaf5979",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-06T13:27:03+00:00",
+        "ci_pending_count": 1,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-06T13:27:03+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -8844,7 +8849,7 @@
         "head_sha": "645c01fc6fe678f96ca7797f6ec3073f8d6d9301",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-06T13:16:52+00:00",
+        "last_activity_at": "2026-08-06T13:42:35+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-06T13:16:52+00:00",
         "required_checks_settled": false,
@@ -8855,13 +8860,13 @@
             "changes_requested": false,
             "login": "carsonip",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "f0832f35d74a4923bf294df5403dec297733d8d27992cef2c0d02b75aaa2e89f",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-07-29T09:55:12+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "d11e9eb174025ad70f2824de2e397d26e4f1a8af02b5c6a77bcca8e89a26ebc0",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-06T13:27:03+00:00"
       },
       "failed": false,
       "pr_number": 49928,
