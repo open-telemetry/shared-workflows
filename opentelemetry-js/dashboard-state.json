@@ -2472,8 +2472,11 @@
         "approval_count": 1,
         "assignees": [],
         "author": "Zuhef",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/6964#discussion_r3725036949"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "141e50207ea5445a93fbfe914e6309ce",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2494,8 +2497,8 @@
         "head_sha": "f338ec76f90f4d7904f8463ef812396dc0a10623",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T02:57:14+00:00",
-        "last_approver_activity_at": "2026-07-30T12:39:22+00:00",
+        "last_activity_at": "2026-08-06T00:26:28+00:00",
+        "last_approver_activity_at": "2026-08-06T00:26:28+00:00",
         "last_author_activity_at": "2026-07-30T07:38:18+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -2506,17 +2509,25 @@
             "login": "david-luna",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "JacksonWeber",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "c9638bd7beba88c6383a295dfd8906c63d047594c8c8c2a993ad0f20b38fb618",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-30T07:38:18+00:00"
+        "routing_input_fingerprint": "0c23df5189a69f77db7c2cd7e8dd2d4f1435210b534a7fbece77879a11082ac7",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-06T00:26:28+00:00"
       },
       "failed": false,
       "pr_number": 6964,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6964",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "6965": {
