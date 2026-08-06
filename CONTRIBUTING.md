@@ -18,7 +18,7 @@ Shared workflows in this repo come in two shapes. Pick the one that fits your us
 - **Reusable workflow** — a workflow that other repos call directly via [`uses:`](https://docs.github.com/en/actions/using-workflows/reusing-workflows). The workflow runs in the *calling* repository's context. Example: [`zizmor.yml`](./.github/workflows/zizmor.yml).
 - **Centrally-executed workflow** — a workflow that runs *from this repo* against an opted-in list of target repositories. The workflow runs in this repository's context and accesses target repos via the GitHub API. Example: [`pull-request-dashboard/`](./pull-request-dashboard/) plus `pull-request-dashboard*.yml`.
 
-> Workflows that this repo runs only for its own checks (such as [`codeql.yml`](./.github/workflows/codeql.yml) and [`scorecard.yml`](./.github/workflows/scorecard.yml)) are **not** shared. They have no companion docs folder.
+> Workflows that this repo runs only for its own checks (such as [`codeql.yml`](./.github/workflows/codeql.yml)) are **not** shared. They have no companion docs folder.
 
 ### Layout
 

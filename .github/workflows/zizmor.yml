@@ -19,16 +19,17 @@ on:
     - cron: '45 9 * * 5' # weekly at 09:45 (UTC) on Friday
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
+
+concurrency:
+  # github.workflow here would be the caller's name, not this workflow's.
+  group: shared-workflow-zizmor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   zizmor:
     name: Zizmor Security Analysis
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results

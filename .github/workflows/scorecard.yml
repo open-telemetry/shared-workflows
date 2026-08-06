@@ -1,6 +1,8 @@
+# Reusable workflow — see /scorecard/README.md for consumer documentation.
 name: OSSF Scorecard
 
 on:
+  workflow_call:
   push:
     branches:
       - main
@@ -8,18 +10,24 @@ on:
     - cron: '25 4 * * 4' # weekly at 04:25 (UTC) on Thursday
   workflow_dispatch:
 
-permissions: read-all # zizmor: ignore[excessive-permissions] — needed to read repo metadata for Scorecard checks
+permissions: {}
+
+concurrency:
+  # github.workflow here would be the caller's name, not this workflow's.
+  group: shared-workflow-scorecard-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # Scorecard restricts what this job may contain while publish_results is true:
+  # every step must be a `uses:` of an allow-listed action, and no other job may
+  # request id-token. Filtering therefore happens in the upload job below.
+  # https://github.com/ossf/scorecard-action#workflow-restrictions
   analysis:
     name: OSSF Scorecard Analysis
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     permissions:
-      security-events: write # Needed for Code scanning upload
-      id-token: write # Needed for GitHub OIDC token if publish_results is true
+      contents: read # for actions/checkout
+      id-token: write # Needed for GitHub OIDC token since publish_results is true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -31,8 +39,7 @@ jobs:
           results_format: sarif
           publish_results: true
 
-      # Upload the results as artifacts (optional). Commenting out will disable
-      # uploads of run results in SARIF format to the repository Actions tab.
+      # Also hands the results to the upload job below.
       # https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: "Upload artifact"
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -41,9 +48,42 @@ jobs:
           path: results.sarif
           retention-days: 5
 
-      # Upload the results to GitHub's code scanning dashboard (optional).
-      # Commenting out will disable upload of results to your repo's Code Scanning dashboard
+  upload:
+    name: Upload to code scanning
+    needs: analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # for actions/checkout, so that upload-sarif can fingerprint results
+      security-events: write # Needed for Code scanning upload
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: SARIF file
+
+      - name: Keep only the checks that report findings
+        env:
+          # Deliberately narrow. See the issue for what is left out and why.
+          # https://github.com/open-telemetry/sig-security/issues/309
+          INCLUDED_CHECKS: |
+            BinaryArtifactsID
+            DangerousWorkflowID
+            PinnedDependenciesID
+            TokenPermissionsID
+        run: |
+          set -euo pipefail
+          # The rule definitions stay in place so that code scanning closes the
+          # alerts already raised for them rather than leaving them stale.
+          jq --arg included "$INCLUDED_CHECKS" '
+            ($included | split("\n") | map(select(length > 0))) as $keep
+            | .runs |= map(.results = ((.results // []) | map(select((.ruleId // "") | IN($keep[])))))
+          ' results.sarif > filtered.sarif
+          echo "kept $(jq '[.runs[] | (.results // [])[]] | length' filtered.sarif) of $(jq '[.runs[] | (.results // [])[]] | length' results.sarif) results"
+
       - name: "Upload to code-scanning"
         uses: github/codeql-action/upload-sarif@d1ba80a13dd99fba24a470575428917156a28b43 # v4.37.5
         with:
-          sarif_file: results.sarif
+          sarif_file: filtered.sarif
