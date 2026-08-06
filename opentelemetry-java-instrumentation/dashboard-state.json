@@ -2552,9 +2552,12 @@
         "author": "trask",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "8cb8080873ca4edb929786e80ed29b79",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-06T15:40:52+00:00",
         "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-06T15:40:52+00:00",
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -2578,14 +2581,14 @@
         "required_checks_settled": true,
         "reviewers": [],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "dc92529109e517c7b4b1d9c027ba892e3b34869c4225e8e2f5668e684c27b14c",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-06T00:28:38+00:00"
+        "routing_input_fingerprint": "7fe09258c8d410e57d335d11f0e85fa8f2463bbcc5b21277645f399269db5be6",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-06T15:40:52+00:00"
       },
       "failed": false,
       "pr_number": 19356,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19356",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "19374": {
