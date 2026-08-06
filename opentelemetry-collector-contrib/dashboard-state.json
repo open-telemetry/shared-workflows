@@ -9105,12 +9105,8 @@
         "approval_count": 0,
         "assignees": [],
         "author": "iypetrov",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49949#discussion_r3710819663"
-        ],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49949#issuecomment-5149762566"
-        ],
+        "author_action_review_thread_urls": [],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "cb845bb8fc174916b2e8b90cfd462afb",
         "ci_failing_count": 1,
         "ci_failing_since": "2026-08-04T10:49:41+00:00",
@@ -9145,27 +9141,34 @@
             "changes_requested": false,
             "login": "atoulme",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           },
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "VihasMakwana",
-            "open_thread": true,
+            "open_thread": false,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "9091e738f8740386fbc26ca7fe1fb05076267069863745a7c747bf0de5dfc573",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-01T07:13:06+00:00"
+        "routing_input_fingerprint": "5e6c77c43730f93d3d5e3bfb7756f87005bf809efbe69b3764df6f1040f7babe",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-04T10:49:41+00:00"
       },
       "failed": false,
       "pr_number": 49949,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49949",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-issue-comment-5149762566": {
+          "evidence": {
+            "reply": "2026-08-01T07:13:06Z"
+          },
+          "reply_source_id": 5150350705
+        }
+      }
     },
     "49958": {
       "facts": {
