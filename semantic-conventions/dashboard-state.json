@@ -1157,8 +1157,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "cijothomas",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3978#discussion_r3725426983"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "559637d58ca944589b7bd404ae615def",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1179,20 +1182,29 @@
         "head_sha": "6344b3f36e6123c730c8195c8281e72426b9a7ac",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-06T02:14:16+00:00",
+        "last_activity_at": "2026-08-06T19:04:38+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-06T02:14:16+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "ceb21dbf04d9e7c581daf20fad5d685723e6b1c0c2445932af0718a6e83c6cd8",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-05T23:28:36+00:00"
+        "routing_input_fingerprint": "9d2eb5228a3f3d282bd8e2cdedfd8d31ab3237f4efc48f6772de5e661eb7f8d9",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-06T19:04:38+00:00"
       },
       "failed": false,
       "pr_number": 3978,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3978",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3979": {
