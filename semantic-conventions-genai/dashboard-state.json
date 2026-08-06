@@ -2028,7 +2028,10 @@
         "assignees": [],
         "author": "jw-ond",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/417#pullrequestreview-4877328638"
+        ],
+        "author_nudge_episode_id": "53953bf9c743433997f499fede181b28",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2049,20 +2052,29 @@
         "head_sha": "2c53ee28df50f09ab5e2e02aaea71f077e0de374",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-02T10:54:31+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-06T18:17:34+00:00",
+        "last_approver_activity_at": "2026-08-06T18:17:34+00:00",
         "last_author_activity_at": "2026-08-02T10:54:31+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "88a6fb0cde3bacbfd948242f164611c44388c37c4ddf012621c783021e564900",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-02T10:54:31+00:00"
+        "routing_input_fingerprint": "c3ae487e682e943ad970f75906cccf52e86a93c37f96de8f585c9ed91e420bbe",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-06T18:17:34+00:00"
       },
       "failed": false,
       "pr_number": 417,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/417",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5157100332": {
           "evidence": {
