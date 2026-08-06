@@ -8413,16 +8413,13 @@
     },
     "49886": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ebrdarSplunk",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49886#discussion_r3724164112"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "70e9c9142e3e440dbbf265f1eb457d93",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 10,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -8438,20 +8435,20 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "afb891fc8a5fcf08390473af4ab927617e39058d",
+        "head_sha": "913b3b3c39a2470d5ad22f37bae76e35ee20a228",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T21:28:43+00:00",
-        "last_approver_activity_at": "2026-08-05T21:28:43+00:00",
-        "last_author_activity_at": "2026-08-05T13:49:18+00:00",
-        "required_checks_settled": true,
+        "last_activity_at": "2026-08-06T21:57:44+00:00",
+        "last_approver_activity_at": "2026-08-06T21:57:44+00:00",
+        "last_author_activity_at": "2026-08-06T19:48:15+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "crobert-1",
-            "open_thread": true,
+            "open_thread": false,
             "top_level_feedback": false
           },
           {
@@ -8463,9 +8460,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "598c0a989e6eb81bb7ba625d56eed3cc5818e661526bd0d967c63fe01f46b4fe",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "fced9e07f06d7d84f08d8b14ee3908013a0e1deec9619ce6b961f0a00936d707",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-05T21:27:58+00:00"
       },
       "failed": false,
