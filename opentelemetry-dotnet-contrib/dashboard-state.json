@@ -440,15 +440,14 @@
     "4943": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
-        "author": "martincostello",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4943#discussion_r3727224839"
+        "assignees": [
+          "Yun-Ting"
         ],
+        "author": "martincostello",
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "90f5d93b148a4a99b7f9739ef6643d50",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -456,7 +455,7 @@
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": false,
+        "copilot_review_stale": true,
         "created_at": "2026-08-06T08:26:08+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_cleared_ci": false,
@@ -464,17 +463,26 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "2215b869ef3dfc860733829c5509de2eeb9774ef",
+        "head_sha": "8e6dfd8cdb7c8d6fdfacc650e3cf5b9f26d70e59",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-06T08:26:08+00:00",
+        "last_activity_at": "2026-08-06T11:02:19+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-06T08:06:12+00:00",
-        "required_checks_settled": true,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "8abdec92131aa44bdab579f16150f87c394f540436de29424981cc93745f3936",
-        "waiting_age_basis": "oldest_pending_thread",
+        "last_author_activity_at": "2026-08-06T11:02:19+00:00",
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Yun-Ting",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "07254a10c994046870370f678ebaf78c7e35f4e62aab7c98cb5a34d5c09b87b1",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-06T08:37:58+00:00"
       },
       "failed": false,
