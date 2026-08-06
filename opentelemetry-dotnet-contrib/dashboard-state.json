@@ -621,13 +621,13 @@
     },
     "4947": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -646,20 +646,29 @@
         "head_sha": "1c0f14af61d66fd33014e060623e5a546a04db8b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-06T09:10:17+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-06T09:16:57+00:00",
+        "last_approver_activity_at": "2026-08-06T09:16:57+00:00",
         "last_author_activity_at": "2026-08-06T09:08:54+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "16ace012559f9b7ee3bdeba05baaae98008ee568d2809901f6dd28063f3babba",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-06T09:10:17+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Kielek",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "8b6f102acf0dd4c7319528a233e929f4c4867fab4f9c718add69464060639c9f",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-06T09:08:54+00:00"
       },
       "failed": false,
       "pr_number": 4947,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4947",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
