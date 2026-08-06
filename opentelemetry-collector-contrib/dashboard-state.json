@@ -2845,8 +2845,13 @@
           "bogdandrutu"
         ],
         "author": "iypetrov",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48704#discussion_r3730025865"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48704#pullrequestreview-4876184485"
+        ],
+        "author_nudge_episode_id": "4dcee1544cad491891ccccad57eb7af0",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2867,7 +2872,7 @@
         "head_sha": "158f1d24f87ab38e69f5fe73f266fdf482f835e3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-06T11:34:43+00:00",
+        "last_activity_at": "2026-08-06T15:15:41+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-06T11:34:43+00:00",
         "required_checks_settled": true,
@@ -2879,17 +2884,25 @@
             "login": "bogdandrutu",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "frzifus",
+            "open_thread": true,
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "974f32c9a21df91dd6e306f421b3aaaf621ace638aa6daff7f20a27d07067303",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-22T06:52:08+00:00"
+        "routing_input_fingerprint": "476c99bda8adba2de7dc8fa25e36b3c564d7d178c9c96ae9efe36a5fd0fc2a5e",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-06T15:15:18+00:00"
       },
       "failed": false,
       "pr_number": 48704,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48704",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "48734": {
