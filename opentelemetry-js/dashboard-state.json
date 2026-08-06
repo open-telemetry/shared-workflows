@@ -2678,7 +2678,7 @@
     },
     "6970": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "vedantchalke36",
         "author_action_review_thread_urls": [],
@@ -2703,20 +2703,29 @@
         "head_sha": "01dae18c93bdc47618ea8b16cf1af4158883b941",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-01T12:30:58+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-06T00:16:34+00:00",
+        "last_approver_activity_at": "2026-08-06T00:16:34+00:00",
         "last_author_activity_at": "2026-08-01T12:30:50+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "JacksonWeber",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "982006a10d5219564c65895cd766bb0249739827e0d2a6b5b6fe5c2f0aa91bde",
+        "routing_input_fingerprint": "3b44131ad9aaf6f2bbff4cc67c236d5667a941edb6902e7080787c2ce93ce6be",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-01T12:30:50+00:00"
       },
       "failed": false,
       "pr_number": 6970,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6970",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "6971": {
