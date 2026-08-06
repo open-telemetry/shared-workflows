@@ -1282,10 +1282,7 @@
         "assignees": [],
         "author": "thebenignhacker",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions-genai/pull/291#issuecomment-4810670986"
-        ],
-        "author_nudge_episode_id": "a9796ec5a40a48f082eefc81cbe3c405",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1297,12 +1294,20 @@
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "created_at": "2026-06-15T18:28:37+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5204817550,
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "user": "thebenignhacker"
+          }
+        ],
         "dashboard_override_cleared_ci": false,
-        "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "",
+        "dashboard_override_cleared_count": 1,
+        "dashboard_override_command_id": 5204817550,
+        "dashboard_override_command_user": "thebenignhacker",
+        "dashboard_override_since": "2026-08-06T12:47:24Z",
         "head_sha": "f082bc40bb706ef652fd090396834aeeb99150e1",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -1314,14 +1319,6 @@
           {
             "approved": false,
             "approved_non_team": false,
-            "changes_requested": false,
-            "login": "giskard09",
-            "open_thread": false,
-            "top_level_feedback": true
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
             "changes_requested": true,
             "login": "lmolkova",
             "open_thread": false,
@@ -1329,14 +1326,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "71523258fe59812554fc730a438eff0148f2af887c2568769cf3d2d22217b806",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-06-26T14:50:50+00:00"
+        "routing_input_fingerprint": "0aa5d84bac6bde5d799e4e7093b571dd2a238b549966bdd5094c6a27e830f4c8",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-06T11:40:22+00:00"
       },
       "failed": false,
       "pr_number": 291,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/291",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-4712557271": {
           "evidence": {
