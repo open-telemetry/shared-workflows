@@ -8566,7 +8566,7 @@
     },
     "49912": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "iblancasa",
         "author_action_review_thread_urls": [],
@@ -8591,20 +8591,29 @@
         "head_sha": "15db7dc1c0a5854241efbd92590a97ce0e447f0d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-03T15:39:01+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-06T23:09:01+00:00",
+        "last_approver_activity_at": "2026-08-06T23:09:01+00:00",
         "last_author_activity_at": "2026-08-03T15:39:01+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "221fb1c3d5efaca9d118df4ecaf2277828e274c21ef9ac41be6f0cc277a431fb",
+        "routing_input_fingerprint": "c5ed340597830ccfdfa7b89d6895015721bce5e49e8c4bb407dbb5b30705f1d6",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-28T13:17:36+00:00"
       },
       "failed": false,
       "pr_number": 49912,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49912",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49923": {
