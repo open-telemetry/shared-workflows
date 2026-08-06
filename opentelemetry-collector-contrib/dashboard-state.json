@@ -10275,7 +10275,7 @@
     },
     "50067": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "spathlavath",
         "author_action_review_thread_urls": [],
@@ -10300,11 +10300,19 @@
         "head_sha": "3c4fedbb2b62ddfdd38aa4ff73efe425898c8d90",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-06T11:21:58+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-06T22:01:19+00:00",
+        "last_approver_activity_at": "2026-08-06T22:01:19+00:00",
         "last_author_activity_at": "2026-08-06T11:21:58+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "crobert-1",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -10315,15 +10323,22 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "ed00a096d282827fb88dc871ae1fad2b34c635aa68a1fecb5601509f1f9559c3",
+        "routing_input_fingerprint": "c48cb915f22dbef71945dca5cf42190a51f842108d8da630ddd6406c05b8ad09",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-06T11:21:58+00:00"
       },
       "failed": false,
       "pr_number": 50067,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50067",
-      "route": "approver",
-      "top_level_history": {}
+      "route": "maintainer",
+      "top_level_history": {
+        "pr-review-4865265034": {
+          "evidence": {
+            "reply": "2026-08-06T11:04:09Z"
+          },
+          "reply_source_id": 5203803535
+        }
+      }
     },
     "50070": {
       "facts": {
