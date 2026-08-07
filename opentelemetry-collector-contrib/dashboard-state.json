@@ -11001,7 +11001,7 @@
     },
     "50105": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "theycallmeloki",
         "author_action_review_thread_urls": [],
@@ -11009,9 +11009,11 @@
           "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50105#issuecomment-5217619411"
         ],
         "author_nudge_episode_id": "1338785902cd4aa2b80310b60298d3b0",
-        "ci_failing_count": 0,
-        "ci_pending_count": 3,
-        "ci_uncleared_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-07T14:07:29+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-07T14:07:29+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -11029,11 +11031,19 @@
         "head_sha": "adef4c20efb0321d37c7e6259a884d2545a74b2c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T14:06:07+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-07T15:45:05+00:00",
+        "last_approver_activity_at": "2026-08-07T15:45:05+00:00",
         "last_author_activity_at": "2026-08-07T14:02:19+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "crobert-1",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -11044,7 +11054,7 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "b7912456a245e668dc2a32d215e9cb1cc546675d4a5545fa464cd21a13a46ca0",
+        "routing_input_fingerprint": "b99c023254ac7e20c44e9391be10eda2a394f9d22c901188b345113cb5a79e8c",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-08-07T13:29:24+00:00"
       },
