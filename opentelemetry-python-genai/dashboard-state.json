@@ -984,13 +984,16 @@
     },
     "366": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Yigtwxx",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/366#discussion_r3739178577"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "8bad2113395f45139bc81543b6aad7db",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -1009,20 +1012,29 @@
         "head_sha": "d04147b86210b89b19e2603fc10da13693100b80",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T16:45:21+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-07T22:37:40+00:00",
+        "last_approver_activity_at": "2026-08-07T22:37:40+00:00",
         "last_author_activity_at": "2026-08-07T16:45:21+00:00",
-        "required_checks_settled": true,
-        "reviewers": [],
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "8dc6e98de58d6531548d19d5782042f97793679025331f64b2ab65164b6f61aa",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-07T16:45:21+00:00"
+        "routing_input_fingerprint": "c6e1a189494c2f5f2241b74315fc9245d3eefcb80de5a754e428e820ab92cf57",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-07T22:37:24+00:00"
       },
       "failed": false,
       "pr_number": 366,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/366",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
