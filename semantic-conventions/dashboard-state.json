@@ -416,7 +416,10 @@
         "assignees": [],
         "author": "thompson-tomo",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3671#pullrequestreview-4881272095"
+        ],
+        "author_nudge_episode_id": "592fab9b69264fdeae772f42a89cc74e",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -437,11 +440,19 @@
         "head_sha": "93a299ebc94f4fcfef5571ef953bc03ba985730a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T04:17:47+00:00",
+        "last_activity_at": "2026-08-07T08:38:43+00:00",
         "last_approver_activity_at": "2026-07-06T07:08:03+00:00",
         "last_author_activity_at": "2026-07-28T09:42:26+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "chalin",
+            "open_thread": false,
+            "top_level_feedback": true
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -460,14 +471,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "6a7041577ee10be58bafb61a7bfcb03c79f9db0d2bd600f769c735c059324033",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-28T09:42:26+00:00"
+        "routing_input_fingerprint": "e80d44d48d8328d47b8b30438a2a35198ac3839bc1e149796ececa40726d96b1",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-07T08:38:43+00:00"
       },
       "failed": false,
       "pr_number": 3671,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3671",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3686": {
