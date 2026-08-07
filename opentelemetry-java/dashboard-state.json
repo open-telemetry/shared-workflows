@@ -1477,8 +1477,12 @@
         "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8700#discussion_r3732958073"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8700#pullrequestreview-4879361113"
+        ],
         "author_nudge_episode_id": "d1a0d691b83e41ee8af72eb31adbedb5",
         "ci_failing_count": 1,
         "ci_failing_since": "2026-08-06T23:27:15+00:00",
@@ -1502,11 +1506,19 @@
         "head_sha": "e655bea4608dcc4b02d64293925c2c3a5084dd16",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-06T18:09:12+00:00",
+        "last_activity_at": "2026-08-07T02:09:49+00:00",
         "last_approver_activity_at": "2026-08-06T18:09:12+00:00",
         "last_author_activity_at": "2026-08-06T16:59:30+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "anuraaga",
+            "open_thread": true,
+            "top_level_feedback": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -1517,7 +1529,7 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "343c7940e10a1fcbde869361fc29b2a68c9f04672426f3a4af72901007756beb",
+        "routing_input_fingerprint": "6a47ea00ba1223eb01e13a74a9b90440dc3abd2165ef4c8959e136f904763467",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-08-06T23:27:15+00:00"
       },
