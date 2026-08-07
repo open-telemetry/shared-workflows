@@ -10675,7 +10675,7 @@
     },
     "50095": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "TylerHelmuth",
         "author_action_review_thread_urls": [],
@@ -10700,11 +10700,19 @@
         "head_sha": "901f8cc5834a21703fcb1b86293c02511fa0c0f8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T08:12:07+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-07T15:00:30+00:00",
+        "last_approver_activity_at": "2026-08-07T15:00:30+00:00",
         "last_author_activity_at": "2026-08-06T22:34:52+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "edmocosta",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -10723,14 +10731,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "b4940481934cdb677db7b9b6570f4a664498c6c160b8d68ae2a4eaee85fe6282",
+        "routing_input_fingerprint": "e0b70f904c2b14dfabea5a742cb4e54a7d95e6c03cfa1c885fd552299871aa3a",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-06T22:34:52+00:00"
       },
       "failed": false,
       "pr_number": 50095,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50095",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50096": {
