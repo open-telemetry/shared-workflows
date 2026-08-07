@@ -569,9 +569,12 @@
         "author": "stevejgordon",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "482b69ce43b04cb99f7649160e043fea",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-07T07:04:58+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-07T07:04:58+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -592,7 +595,7 @@
         "last_activity_at": "2026-08-07T06:49:50+00:00",
         "last_approver_activity_at": "2026-08-06T09:21:05+00:00",
         "last_author_activity_at": "2026-08-07T06:49:50+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -603,10 +606,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "aa4b090d8c5a4430b431988dc7a160184e187ff7e1998e7b9089753c406902a1",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-06T09:20:47+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "0b91bf85bd06fa6440fa5bedbab9f53ceb844d883d5f53fa0221cb568e003f9b",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-07T07:04:58+00:00"
       },
       "failed": false,
       "pr_number": 7597,
