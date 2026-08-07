@@ -875,10 +875,15 @@
         "approval_count": 0,
         "assignees": [],
         "author": "cijothomas",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10559#discussion_r3735105646"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10559#pullrequestreview-4882010822"
+        ],
+        "author_nudge_episode_id": "35a4e074d6de4750ab53417de5878bfe",
         "ci_failing_count": 0,
-        "ci_pending_count": 7,
+        "ci_pending_count": 4,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -897,8 +902,8 @@
         "head_sha": "603e96a4c33896b554705b4057093ecd87da7185",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T18:00:27+00:00",
-        "last_approver_activity_at": "2026-07-23T14:30:42+00:00",
+        "last_activity_at": "2026-08-07T10:28:05+00:00",
+        "last_approver_activity_at": "2026-08-07T10:28:05+00:00",
         "last_author_activity_at": "2026-07-29T22:54:03+00:00",
         "required_checks_settled": false,
         "reviewers": [
@@ -907,8 +912,8 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "chalin",
-            "open_thread": false,
-            "top_level_feedback": false
+            "open_thread": true,
+            "top_level_feedback": true
           },
           {
             "approved": false,
@@ -927,10 +932,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "2b3ba5ca5d895848ccf0cf22338a3a65cd8ae2aa7b186e214a7a770712cb85a9",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-07-23T14:30:42+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "db24113aa6ca51654097de39faed7ff1e0d627e2fd619cd778a48a9cfabcb9fe",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-07T10:26:10+00:00"
       },
       "failed": false,
       "pr_number": 10559,
