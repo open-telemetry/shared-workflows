@@ -10124,10 +10124,7 @@
         "assignees": [],
         "author": "hilmarf",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50080#pullrequestreview-4877476886"
-        ],
-        "author_nudge_episode_id": "e254e0d6ddff4415a8efe02e7055d1e4",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -10148,9 +10145,9 @@
         "head_sha": "c8d4f275210e7c365fe14be8202b15c77b0017b8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T15:02:01+00:00",
+        "last_activity_at": "2026-08-07T15:18:16+00:00",
         "last_approver_activity_at": "2026-08-06T18:44:22+00:00",
-        "last_author_activity_at": "2026-08-07T15:02:01+00:00",
+        "last_author_activity_at": "2026-08-07T15:18:16+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -10159,19 +10156,26 @@
             "changes_requested": true,
             "login": "jmacd",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "9fe3e1b3b363f176fa549dab428dab79b23b28671d4b108f256697e1cdf5152b",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-06T18:44:22+00:00"
+        "routing_input_fingerprint": "e105ad47744d6f1bb9ef54cd955d803272140edabc0071127cdeac7b0c89525f",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-07T15:18:16+00:00"
       },
       "failed": false,
       "pr_number": 50080,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50080",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-review-4877476886": {
+          "evidence": {
+            "reply": "2026-08-07T15:18:16Z"
+          },
+          "reply_source_id": 5218842003
+        }
+      }
     },
     "50081": {
       "facts": {
