@@ -3859,10 +3859,7 @@
         "assignees": [],
         "author": "saurabhmj",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11127#issuecomment-5218316000"
-        ],
-        "author_nudge_episode_id": "5c83e915fe40420eae5f6a8897914b08",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -3883,9 +3880,9 @@
         "head_sha": "866c7d9b8509d61d744083f425e3fb543855c38a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T14:28:36+00:00",
+        "last_activity_at": "2026-08-07T14:37:29+00:00",
         "last_approver_activity_at": "2026-08-07T14:28:36+00:00",
-        "last_author_activity_at": "2026-08-01T02:21:38+00:00",
+        "last_author_activity_at": "2026-08-07T14:37:29+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -3894,19 +3891,26 @@
             "changes_requested": false,
             "login": "chalin",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "c0d85c848cbf989796e25c7135056f9d69ffe83aa3d3583cfe0ac7a52f5067fa",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-07T14:28:36+00:00"
+        "routing_input_fingerprint": "1bb06304327848475b0816a536799402e93f92b2a360d7171b5dc1074cf0efdc",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-07T14:37:29+00:00"
       },
       "failed": false,
       "pr_number": 11127,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11127",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5218316000": {
+          "evidence": {
+            "reply": "2026-08-07T14:37:29Z"
+          },
+          "reply_source_id": 5218411985
+        }
+      }
     },
     "11129": {
       "facts": {
