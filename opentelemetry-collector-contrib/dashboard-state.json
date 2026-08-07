@@ -10368,7 +10368,7 @@
     },
     "50071": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "agarvin-nr",
         "author_action_review_thread_urls": [],
@@ -10393,20 +10393,29 @@
         "head_sha": "d610246431c97a8a82cb7ff145307a9570e733a7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T22:55:07+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-06T18:41:50+00:00",
+        "last_approver_activity_at": "2026-08-06T18:41:50+00:00",
         "last_author_activity_at": "2026-08-05T22:44:36+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "crobert-1",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "69689c814d5edaab4d9db30c0ced70a7b0b3bd66d1dde5a0387c9af323894f13",
+        "routing_input_fingerprint": "735844078a24415b0b0966e8b68b5c74e8a7bf095dad9b36079b712d5453be24",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-05T22:44:36+00:00"
       },
       "failed": false,
       "pr_number": 50071,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50071",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50073": {
