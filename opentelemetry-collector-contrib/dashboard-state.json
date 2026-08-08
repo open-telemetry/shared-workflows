@@ -6006,7 +6006,7 @@
     },
     "49606": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "singhvibhanshu",
         "author_action_review_thread_urls": [],
@@ -6031,20 +6031,29 @@
         "head_sha": "6709f1e8423e137e84678c42dd9eec4c88d53420",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T18:22:49+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-07T23:27:27+00:00",
+        "last_approver_activity_at": "2026-08-07T23:27:27+00:00",
         "last_author_activity_at": "2026-08-07T18:22:49+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "crobert-1",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "8ad4e0be23c6e671b32793afb8725f9f4a48008bb1ab48c314327de94b0ac5b5",
+        "routing_input_fingerprint": "797c21ae543801894f150c3e27046501bdca4683df005af652c56a7206e25ad7",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-07T18:22:49+00:00"
       },
       "failed": false,
       "pr_number": 49606,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49606",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "49612": {
