@@ -1359,8 +1359,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "drewrelmas",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3677#discussion_r3741085380"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "ec60975368dd426683d77a0f43490692",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1381,8 +1384,8 @@
         "head_sha": "06672ef039a432a346a6ddeaaff6153703afbb79",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T22:29:14+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-08T16:31:46+00:00",
+        "last_approver_activity_at": "2026-08-08T16:31:46+00:00",
         "last_author_activity_at": "2026-08-06T14:36:32+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -1393,17 +1396,25 @@
             "login": "gouslu",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lalitb",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "fb3e47f96138032c1048c2b3e2dfd20188bd344be3e1c366ea5eb05a79c8046b",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-06T14:36:32+00:00"
+        "routing_input_fingerprint": "463b660614eb547d811b0bcbce6109675fd42ebccc4724a8698e1211dce00101",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-08T16:31:46+00:00"
       },
       "failed": false,
       "pr_number": 3677,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3677",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3678": {
