@@ -205,19 +205,27 @@ which routes the pull request back to the author on the next refresh.
 ## Author reminder
 
 The dashboard posts one reminder when a pull request remains in *Waiting on
-authors* for one week. The reminder @-mentions the author, links to the
+authors* for one week. The friendly reminder @-mentions the author, links to the
 dashboard-managed status comment containing the remaining items, and notes that
 addressing them (or replying with an update) automatically routes the pull
-request back to reviewers.
-Both the reminder and the live status comment advertise `/dashboard route:reviewers`
-as an explicit handoff when the author believes the pull request is ready for
-review.
+request back to reviewers. An italic footer calls the reminder a snapshot and
+identifies the linked status comment as the live source of truth.
+Both an active reminder and the live status comment advertise
+`/dashboard route:reviewers` as an explicit handoff when the author believes the
+pull request is ready for review.
 
-Leaving *Waiting on authors* resets the one-week clock. If the pull request
-later returns to *Waiting on authors* and remains there for another week, the
-dashboard posts another reminder. Reminders are delivered by hourly runs when
-the pull request is next refreshed, so a due reminder in a large repository
-may wait for a later round-robin run.
+When the dashboard routes the pull request to approvers or maintainers, it
+appends an italic note saying that the pull request is no longer waiting on the
+author, then marks the comment **Outdated** so GitHub collapses it. The original
+reminder remains available when the comment is expanded. If a temporary gate
+hold, episode reset, or removal from the dashboard ends the author-waiting
+episode, the appended note says only that the reminder no longer reflects the
+current dashboard state. Both notes link to the live status without naming the
+next route, which may change again. Leaving *Waiting on authors* also resets the
+one-week clock. If the pull request later returns to *Waiting on authors* and
+remains there for another week, the dashboard posts another reminder. Reminders
+are delivered by hourly runs when the pull request is next refreshed, so a due
+reminder in a large repository may wait for a later round-robin run.
 
 ## Configuration
 
