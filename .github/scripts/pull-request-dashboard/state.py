@@ -341,9 +341,9 @@ def union_merge_author_nudges(
     for key, retry_entry in retry_snapshot_nudges.items():
         nudged_at = (retry_entry or {}).get("nudged_at") or ""
         waiting_since = (retry_entry or {}).get("waiting_since") or ""
-        baseline_waiting_since = (baseline_nudges.get(key) or {}).get("waiting_since") or ""
+        baseline_entry = dict(baseline_nudges.get(key) or {})
+        baseline_waiting_since = baseline_entry.get("waiting_since") or ""
         if nudged_at and waiting_since and waiting_since == baseline_waiting_since:
-            baseline_entry = baseline_nudges.get(key) or {}
             merged[key] = {
                 "waiting_since": waiting_since,
                 "nudged_at": nudged_at,
@@ -358,6 +358,23 @@ def union_merge_author_nudges(
             )
             if episode_id:
                 merged[key]["episode_id"] = episode_id
+        elif nudged_at:
+            episode_id = (
+                (retry_entry or {}).get("episode_id")
+                or f"legacy-nudge:{nudged_at}"
+            )
+            completions = list(baseline_entry.get("completions") or [])
+            if not any(
+                completion.get("episode_id") == episode_id
+                for completion in completions
+            ):
+                completions.append({
+                    "episode_id": episode_id,
+                    "completed_at": nudged_at,
+                    "kind": "routing_changed",
+                })
+            baseline_entry["completions"] = completions
+            merged[key] = baseline_entry
     return merged
 
 

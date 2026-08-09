@@ -303,15 +303,58 @@ class StateTest(unittest.TestCase):
             ),
         )
 
-    def test_retry_snapshot_does_not_suppress_new_author_episode(self) -> None:
+    def test_retry_snapshot_completes_posted_nudge_without_suppressing_new_episode(
+        self,
+    ) -> None:
         self.assertEqual(
-            {"7": {"waiting_since": "2026-07-20T02:00:00Z", "nudged_at": ""}},
+            {
+                "7": {
+                    "waiting_since": "2026-07-20T02:00:00Z",
+                    "nudged_at": "",
+                    "episode_id": "episode-2",
+                    "completions": [{
+                        "episode_id": "episode-1",
+                        "completed_at": "2026-07-17T02:00:00Z",
+                        "kind": "routing_changed",
+                    }],
+                }
+            },
             union_merge_author_nudges(
-                {"7": {"waiting_since": "2026-07-20T02:00:00Z", "nudged_at": ""}},
+                {
+                    "7": {
+                        "waiting_since": "2026-07-20T02:00:00Z",
+                        "nudged_at": "",
+                        "episode_id": "episode-2",
+                    }
+                },
                 {
                     "7": {
                         "waiting_since": "2026-07-10T02:00:00Z",
                         "nudged_at": "2026-07-17T02:00:00Z",
+                        "episode_id": "episode-1",
+                    }
+                },
+            ),
+        )
+
+    def test_retry_snapshot_completes_posted_nudge_removed_from_baseline(self) -> None:
+        self.assertEqual(
+            {
+                "7": {
+                    "completions": [{
+                        "episode_id": "episode-1",
+                        "completed_at": "2026-07-17T02:00:00Z",
+                        "kind": "routing_changed",
+                    }],
+                }
+            },
+            union_merge_author_nudges(
+                {},
+                {
+                    "7": {
+                        "waiting_since": "2026-07-10T02:00:00Z",
+                        "nudged_at": "2026-07-17T02:00:00Z",
+                        "episode_id": "episode-1",
                     }
                 },
             ),
