@@ -32,7 +32,7 @@ from utils import format_ts, parse_ts
 
 
 NUDGE_AFTER = timedelta(weeks=1)
-LEGACY_NUDGE_RECOVERY_WINDOW = timedelta(minutes=10)
+LEGACY_NUDGE_RECOVERY_WINDOW = timedelta(days=1)
 NUDGE_MARKER_PREFIX = "<!-- pull-request-dashboard-author-nudge:"
 COMPLETED_NUDGE_MARKER_PREFIX = (
     "<!-- pull-request-dashboard-author-nudge-completed:"
@@ -555,10 +555,11 @@ def deliver_prepared_author_nudges(
                     }
                     episode_id = recovered_episode_id
                 else:
-                    errors.append(
-                        f"PR #{pr_number}: legacy author nudge comment not found"
+                    print(
+                        f"PR #{pr_number}: legacy author nudge comment not found; "
+                        "discarding completion",
+                        file=sys.stderr,
                     )
-                    remaining_completions.append(completion)
                     continue
             completed_at = parse_ts(completion.get("completed_at") or "")
             kind = completion.get("kind") or "left_author"

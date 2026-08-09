@@ -655,25 +655,26 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         "load_dashboard_state_cache",
         return_value={"prs": {"1": author_result("approver")}},
     )
-    def test_failed_legacy_recovery_remains_queued(
+    def test_missing_legacy_comment_discards_completion(
         self,
         _dashboard_state,
-        load_nudges,
+        _load_nudges,
         save_nudges,
         ensure_completed,
         _recover_episode,
     ) -> None:
-        errors = author_nudge.deliver_prepared_author_nudges(
-            "open-telemetry/example",
-            NOW,
-        )
+        with patch("sys.stderr") as stderr:
+            errors = author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example",
+                NOW,
+            )
 
-        self.assertEqual(
-            ["PR #1: legacy author nudge comment not found"],
-            errors,
+        self.assertEqual([], errors)
+        stderr.write.assert_any_call(
+            "PR #1: legacy author nudge comment not found; discarding completion"
         )
         ensure_completed.assert_not_called()
-        save_nudges.assert_called_once_with(load_nudges.return_value)
+        save_nudges.assert_called_once_with({})
 
     def test_failed_completion_survives_closed_pr_delivery(self) -> None:
         completion = {
@@ -1289,6 +1290,29 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "open-telemetry/example",
                 1,
                 "legacy-nudge:2026-07-17T00:00:00.403635+00:00",
+            ),
+        )
+
+    @patch.object(
+        author_nudge,
+        "gh_api",
+        return_value=[
+            {
+                "performed_via_github_app": {
+                    "slug": "opentelemetry-pr-dashboard",
+                },
+                "created_at": "2026-07-17T12:00:00Z",
+                "body": author_nudge.nudge_marker("recovered-episode"),
+            },
+        ],
+    )
+    def test_recovers_legacy_episode_from_long_delivery_run(self, _gh_api) -> None:
+        self.assertEqual(
+            "recovered-episode",
+            author_nudge.recover_legacy_nudge_episode_id(
+                "open-telemetry/example",
+                1,
+                "legacy-nudge:2026-07-17T00:00:00+00:00",
             ),
         )
 
