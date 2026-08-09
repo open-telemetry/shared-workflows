@@ -6634,13 +6634,13 @@
         "assignees": [],
         "author": "darkknight8670",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49739#issuecomment-5022871742"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "d5b61535998c433cb4a4a111d385c653",
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
-        "ci_uncleared_failing_count": 0,
+        "ci_failing_count": 2,
+        "ci_failing_since": "2026-08-09T04:39:38+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 2,
+        "ci_uncleared_failing_since": "2026-08-09T04:39:38+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -6661,7 +6661,7 @@
         "last_activity_at": "2026-08-09T04:34:38+00:00",
         "last_approver_activity_at": "2026-08-06T15:29:55+00:00",
         "last_author_activity_at": "2026-08-09T04:34:38+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -6677,19 +6677,26 @@
             "changes_requested": false,
             "login": "VihasMakwana",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "00d24121c001f8e8df4808d4e52d1e931a17fa64a676d211632b903f3dc78a23",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-20T13:37:13+00:00"
+        "routing_input_fingerprint": "92fb1badd6b54a9ede985115e26403d10037d499848a6b9906b0adc670bb1d16",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-09T04:39:38+00:00"
       },
       "failed": false,
       "pr_number": 49739,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49739",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-issue-comment-5022871742": {
+          "evidence": {
+            "reply": "2026-08-07T06:32:51Z"
+          },
+          "reply_source_id": 5213419530
+        }
+      }
     },
     "49740": {
       "facts": {
