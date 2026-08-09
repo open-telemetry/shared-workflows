@@ -985,7 +985,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         self.assertNotIn("no longer waiting on you", body)
 
     @patch.object(author_nudge, "minimize_comment")
-    @patch.object(author_nudge, "comment_is_minimized", return_value=False)
+    @patch.object(author_nudge, "comment_minimization_reason", return_value="")
     @patch.object(author_nudge, "run_gh")
     @patch.object(author_nudge, "publish_pr_status")
     @patch.object(
@@ -1012,7 +1012,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         _status_comments,
         publish_status,
         run_gh,
-        is_minimized,
+        minimization_reason,
         minimize_comment,
     ) -> None:
         dashboard_state = {"prs": {"1": author_result("approver")}}
@@ -1035,7 +1035,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             command[-1],
         )
         self.assertIn(author_nudge.completed_nudge_marker("episode-1"), command[-1])
-        is_minimized.assert_called_once_with("IC_17")
+        minimization_reason.assert_called_once_with("IC_17")
         minimize_comment.assert_called_once_with("IC_17")
 
     @patch.object(
@@ -1043,7 +1043,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         "minimize_comment",
         side_effect=RuntimeError("minimize failed"),
     )
-    @patch.object(author_nudge, "comment_is_minimized", return_value=False)
+    @patch.object(author_nudge, "comment_minimization_reason", return_value="")
     @patch.object(author_nudge, "run_gh")
     @patch.object(author_nudge, "publish_pr_status")
     @patch.object(
@@ -1088,7 +1088,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         minimize_comment.assert_called_once_with("IC_17")
 
     @patch.object(author_nudge, "minimize_comment")
-    @patch.object(author_nudge, "comment_is_minimized", return_value=False)
+    @patch.object(author_nudge, "comment_minimization_reason", return_value="")
     @patch.object(author_nudge, "run_gh")
     @patch.object(author_nudge, "publish_pr_status")
     @patch.object(
@@ -1109,7 +1109,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         _existing_nudge,
         publish_status,
         run_gh,
-        is_minimized,
+        minimization_reason,
         minimize_comment,
     ) -> None:
         author_nudge.ensure_nudge_completed(
@@ -1122,11 +1122,15 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
 
         publish_status.assert_not_called()
         run_gh.assert_not_called()
-        is_minimized.assert_called_once_with("IC_17")
+        minimization_reason.assert_called_once_with("IC_17")
         minimize_comment.assert_called_once_with("IC_17")
 
     @patch.object(author_nudge, "minimize_comment")
-    @patch.object(author_nudge, "comment_is_minimized", return_value=True)
+    @patch.object(
+        author_nudge,
+        "comment_minimization_reason",
+        return_value="OUTDATED",
+    )
     @patch.object(author_nudge, "run_gh")
     @patch.object(author_nudge, "publish_pr_status")
     @patch.object(
@@ -1146,7 +1150,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         _existing_nudge,
         publish_status,
         run_gh,
-        is_minimized,
+        minimization_reason,
         minimize_comment,
     ) -> None:
         author_nudge.ensure_nudge_completed(
@@ -1159,19 +1163,92 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
 
         publish_status.assert_not_called()
         run_gh.assert_not_called()
-        is_minimized.assert_called_once_with("IC_17")
+        minimization_reason.assert_called_once_with("IC_17")
         minimize_comment.assert_not_called()
+
+    @patch.object(author_nudge, "minimize_comment")
+    @patch.object(author_nudge, "unminimize_comment")
+    @patch.object(
+        author_nudge,
+        "comment_minimization_reason",
+        return_value="SPAM",
+    )
+    @patch.object(author_nudge, "run_gh")
+    @patch.object(author_nudge, "publish_pr_status")
+    @patch.object(
+        author_nudge,
+        "existing_nudge_comment",
+        return_value={
+            "id": 17,
+            "node_id": "IC_17",
+            "body": "\n".join([
+                author_nudge.nudge_marker("episode-1"),
+                author_nudge.completed_nudge_marker("episode-1"),
+            ]),
+        },
+    )
+    def test_completed_comment_with_other_classifier_is_reclassified(
+        self,
+        _existing_nudge,
+        publish_status,
+        run_gh,
+        minimization_reason,
+        unminimize_comment,
+        minimize_comment,
+    ) -> None:
+        author_nudge.ensure_nudge_completed(
+            "open-telemetry/example",
+            1,
+            "episode-1",
+            {"prs": {}},
+            NOW,
+        )
+
+        publish_status.assert_not_called()
+        run_gh.assert_not_called()
+        minimization_reason.assert_called_once_with("IC_17")
+        unminimize_comment.assert_called_once_with("IC_17")
+        minimize_comment.assert_called_once_with("IC_17")
 
     @patch.object(
         author_nudge,
         "gh_graphql",
-        return_value={"data": {"node": {"isMinimized": True}}},
+        return_value={
+            "data": {
+                "node": {
+                    "isMinimized": True,
+                    "minimizedReason": "outdated",
+                },
+            },
+        },
     )
-    def test_comment_minimization_state_uses_node_id(self, graphql) -> None:
-        self.assertTrue(author_nudge.comment_is_minimized("IC_17"))
+    def test_comment_minimization_reason_uses_node_id(self, graphql) -> None:
+        self.assertEqual(
+            "OUTDATED",
+            author_nudge.comment_minimization_reason("IC_17"),
+        )
 
         query, variables = graphql.call_args.args
         self.assertIn("isMinimized", query)
+        self.assertIn("minimizedReason", query)
+        self.assertEqual({"id": "IC_17"}, variables)
+
+    @patch.object(
+        author_nudge,
+        "gh_graphql",
+        return_value={
+            "data": {
+                "unminimizeComment": {
+                    "unminimizedComment": {"isMinimized": False},
+                },
+            },
+        },
+    )
+    def test_unminimize_comment_uses_node_id(self, graphql) -> None:
+        author_nudge.unminimize_comment("IC_17")
+
+        query, variables = graphql.call_args.args
+        self.assertIn("unminimizeComment", query)
         self.assertEqual({"id": "IC_17"}, variables)
 
     @patch.object(

@@ -46,6 +46,7 @@ query($id: ID!) {
     node(id: $id) {
         ... on IssueComment {
             isMinimized
+            minimizedReason
         }
     }
 }
@@ -54,6 +55,15 @@ MINIMIZE_COMMENT_MUTATION = """
 mutation($id: ID!) {
     minimizeComment(input: {subjectId: $id, classifier: OUTDATED}) {
         minimizedComment {
+            isMinimized
+        }
+    }
+}
+"""
+UNMINIMIZE_COMMENT_MUTATION = """
+mutation($id: ID!) {
+    unminimizeComment(input: {subjectId: $id}) {
+        unminimizedComment {
             isMinimized
         }
     }
@@ -362,12 +372,28 @@ def render_completed_nudge(
     ]) + "\n"
 
 
-def comment_is_minimized(node_id: str) -> bool:
+def comment_minimization_reason(node_id: str) -> str:
     data = gh_graphql(COMMENT_MINIMIZATION_STATE_QUERY, {"id": node_id})
     node = (data.get("data") or {}).get("node")
     if not isinstance(node, dict) or "isMinimized" not in node:
         raise RuntimeError("author nudge minimization state not found")
-    return bool(node["isMinimized"])
+    if not node["isMinimized"]:
+        return ""
+    reason = node.get("minimizedReason")
+    if not isinstance(reason, str) or not reason:
+        raise RuntimeError("author nudge minimization reason not found")
+    return reason.upper().replace("-", "_")
+
+
+def unminimize_comment(node_id: str) -> None:
+    data = gh_graphql(UNMINIMIZE_COMMENT_MUTATION, {"id": node_id})
+    unminimized = (
+        ((data.get("data") or {}).get("unminimizeComment") or {})
+        .get("unminimizedComment")
+        or {}
+    )
+    if unminimized.get("isMinimized") is not False:
+        raise RuntimeError("author nudge was not unminimized")
 
 
 def minimize_comment(node_id: str) -> None:
@@ -459,7 +485,10 @@ def ensure_nudge_completed(
             f"body={body}",
         ])
 
-    if not comment_is_minimized(node_id):
+    minimized_reason = comment_minimization_reason(node_id)
+    if minimized_reason != "OUTDATED":
+        if minimized_reason:
+            unminimize_comment(node_id)
         minimize_comment(node_id)
 
 
