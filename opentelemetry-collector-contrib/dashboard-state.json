@@ -10626,7 +10626,7 @@
     },
     "50115": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "spathlavath",
         "author_action_review_thread_urls": [],
@@ -10651,20 +10651,29 @@
         "head_sha": "00fe902912e2eafd9ed3f437ab45c76c7a2a6d11",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-07T21:30:13+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-09T06:12:12+00:00",
+        "last_approver_activity_at": "2026-08-09T06:12:12+00:00",
         "last_author_activity_at": "2026-08-07T21:30:13+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "07a432e35c2fb987d105461c2396f347534f87723df1113dffcfb375ee428cfa",
+        "routing_input_fingerprint": "c2a29a37ebda78296e625c7aa74e76f36b1b736ca9f1a546c485ea80885cb49f",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-07T21:30:13+00:00"
       },
       "failed": false,
       "pr_number": 50115,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50115",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50116": {
