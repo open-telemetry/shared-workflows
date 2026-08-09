@@ -8370,9 +8370,12 @@
         "author": "iypetrov",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "379143894b2344e391be5f8837ef6315",
+        "ci_failing_count": 2,
+        "ci_failing_since": "2026-08-09T10:08:42+00:00",
+        "ci_pending_count": 3,
+        "ci_uncleared_failing_count": 2,
+        "ci_uncleared_failing_since": "2026-08-09T10:08:42+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -8383,7 +8386,7 @@
         "created_at": "2026-07-29T13:11:42+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_cleared_ci": false,
-        "dashboard_override_cleared_count": 0,
+        "dashboard_override_cleared_count": 1,
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "2026-08-09T07:12:57Z",
@@ -8413,22 +8416,15 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "c72834487e5e546af6347a373edcd8f85a42ca3bc30dbdd5fe1fbc5f0ea70ffd",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-04T10:50:28+00:00"
+        "routing_input_fingerprint": "17f3e8aae643cbc626201e97843a8a2064dbe89e54f2d131678425d2c04b7c96",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-09T10:08:42+00:00"
       },
       "failed": false,
       "pr_number": 49949,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49949",
-      "route": "approver",
-      "top_level_history": {
-        "pr-issue-comment-5149762566": {
-          "evidence": {
-            "reply": "2026-08-01T07:13:06Z"
-          },
-          "reply_source_id": 5150350705
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "49958": {
       "facts": {
