@@ -623,10 +623,18 @@
         "approval_count": 0,
         "assignees": [],
         "author": "jerbly",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/weaver/pull/1684#discussion_r3752276430",
+          "https://github.com/open-telemetry/weaver/pull/1684#discussion_r3752309568",
+          "https://github.com/open-telemetry/weaver/pull/1684#discussion_r3752337010",
+          "https://github.com/open-telemetry/weaver/pull/1684#discussion_r3752360445",
+          "https://github.com/open-telemetry/weaver/pull/1684#discussion_r3754194614",
+          "https://github.com/open-telemetry/weaver/pull/1684#discussion_r3754197677"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "44d4bd02edbd4cf48eb27dedfd353e44",
         "ci_failing_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -645,15 +653,24 @@
         "head_sha": "77537e22ece88198e63edfd96ca0ebff5f2b59fe",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T23:26:09+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-10T23:34:58+00:00",
+        "last_approver_activity_at": "2026-08-10T23:34:58+00:00",
         "last_author_activity_at": "2026-08-10T23:26:09+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "07f0f656f8b4547b67e4d1694c612ef4596d653cb39fca8e5afe3ff49090169b",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-10T01:02:32+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "9a590066b451ad3fa3cf99c9cda1fb4899892fd96228014310381f664b8e830b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-10T18:29:02+00:00"
       },
       "failed": false,
       "pr_number": 1684,
