@@ -3978,9 +3978,12 @@
         "author": "ruchirj",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "476b8b00d15d40f19de35531d50ffdee",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-10T08:29:36+00:00",
         "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-10T08:29:36+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -4021,14 +4024,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "15aae3b79f7f42a539d622a0c540da49111554fa5a77b7ef4202522895a20dcb",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-06T19:17:47+00:00"
+        "routing_input_fingerprint": "9f23dcaae1fa6491ccf52788691dd5be23a646ea113dde3467083d4566ff434b",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-10T08:29:36+00:00"
       },
       "failed": false,
       "pr_number": 11203,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11203",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5190560795": {
           "evidence": {
