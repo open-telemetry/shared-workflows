@@ -11164,7 +11164,7 @@
     },
     "50151": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "TylerHelmuth",
         "author_action_review_thread_urls": [],
@@ -11189,11 +11189,19 @@
         "head_sha": "6ac9949ea75837c462e4acc141c6d23a0ac9da34",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T20:41:46+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-10T21:49:17+00:00",
+        "last_approver_activity_at": "2026-08-10T21:49:17+00:00",
         "last_author_activity_at": "2026-08-10T20:39:14+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "bogdandrutu",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -11204,14 +11212,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "f8740a4677e5c67541f5c04f622b31f5aa34506434eb659bfb12d7a14b2687fd",
+        "routing_input_fingerprint": "633a2076f46977c71fc44a0a4f660ca90682e3ca5922baec667fb6c3eee4f320",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-10T20:39:14+00:00"
       },
       "failed": false,
       "pr_number": 50151,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50151",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
