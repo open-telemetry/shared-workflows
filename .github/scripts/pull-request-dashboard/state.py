@@ -29,7 +29,7 @@ BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
 NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
-AUTHOR_NUDGE_STATE_VERSION = 2
+AUTHOR_NUDGE_STATE_VERSION = 3
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 4
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
@@ -120,6 +120,8 @@ def current_delivery_versions() -> dict[str, int]:
 def load_state_file(
     path: Path,
     current_version: int,
+    *,
+    compatible_versions: tuple[int, ...] = (),
 ) -> dict[str, Any] | None:
     if not path.exists():
         return None
@@ -133,7 +135,7 @@ def load_state_file(
         return None
     if not isinstance(data, dict):
         return None
-    if data.get("version") != current_version:
+    if data.get("version") not in (current_version, *compatible_versions):
         print(
             f"state version changed; regenerating {path}",
             file=sys.stderr,
@@ -321,7 +323,11 @@ def save_notifications(notifications: dict[str, Any]) -> None:
 
 
 def load_author_nudge_state_file(path: Path) -> dict[str, Any]:
-    state = load_state_file(path, AUTHOR_NUDGE_STATE_VERSION)
+    state = load_state_file(
+        path,
+        AUTHOR_NUDGE_STATE_VERSION,
+        compatible_versions=(2,),
+    )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}
     return state["prs"]
@@ -335,12 +341,40 @@ def union_merge_author_nudges(
     for key, retry_entry in retry_snapshot_nudges.items():
         nudged_at = (retry_entry or {}).get("nudged_at") or ""
         waiting_since = (retry_entry or {}).get("waiting_since") or ""
-        baseline_waiting_since = (baseline_nudges.get(key) or {}).get("waiting_since") or ""
+        baseline_entry = dict(baseline_nudges.get(key) or {})
+        baseline_waiting_since = baseline_entry.get("waiting_since") or ""
         if nudged_at and waiting_since and waiting_since == baseline_waiting_since:
             merged[key] = {
                 "waiting_since": waiting_since,
                 "nudged_at": nudged_at,
             }
+            completions = list(baseline_entry.get("completions") or [])
+            if completions:
+                merged[key]["completions"] = completions
+            episode_id = (
+                (retry_entry or {}).get("episode_id")
+                or baseline_entry.get("episode_id")
+                or ""
+            )
+            if episode_id:
+                merged[key]["episode_id"] = episode_id
+        elif nudged_at:
+            episode_id = (
+                (retry_entry or {}).get("episode_id")
+                or f"legacy-nudge:{nudged_at}"
+            )
+            completions = list(baseline_entry.get("completions") or [])
+            if not any(
+                completion.get("episode_id") == episode_id
+                for completion in completions
+            ):
+                completions.append({
+                    "episode_id": episode_id,
+                    "completed_at": nudged_at,
+                    "kind": "routing_changed",
+                })
+            baseline_entry["completions"] = completions
+            merged[key] = baseline_entry
     return merged
 
 

@@ -166,7 +166,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
         self.assertEqual(DASHBOARD_STATE_VERSION, 7)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
-        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 2)
+        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 4)
 
     def test_author_nudge_state_round_trip(self) -> None:
@@ -188,6 +188,33 @@ class StateTest(unittest.TestCase):
                 },
             )
             self.assertTrue(author_nudge_state_path().exists())
+
+    def test_author_nudge_state_loads_version_two_for_migration(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
+            author_nudge_state_path().write_text(
+                json.dumps({
+                    "version": 2,
+                    "prs": {
+                        "123": {
+                            "waiting_since": "2026-07-10T00:00:00Z",
+                            "nudged_at": "2026-07-17T00:00:00Z",
+                            "episode_id": "episode-1",
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                {
+                    "123": {
+                        "waiting_since": "2026-07-10T00:00:00Z",
+                        "nudged_at": "2026-07-17T00:00:00Z",
+                        "episode_id": "episode-1",
+                    },
+                },
+                load_author_nudges(),
+            )
 
     def test_copilot_review_request_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
@@ -219,10 +246,54 @@ class StateTest(unittest.TestCase):
                 "7": {
                     "waiting_since": "2026-07-10T02:00:00Z",
                     "nudged_at": "2026-07-20T02:00:00Z",
+                    "episode_id": "episode-1",
                 }
             },
             union_merge_author_nudges(
-                {"7": {"waiting_since": "2026-07-10T02:00:00Z", "nudged_at": ""}},
+                {
+                    "7": {
+                        "waiting_since": "2026-07-10T02:00:00Z",
+                        "nudged_at": "",
+                        "pending_at": "2026-07-20T01:00:00Z",
+                        "head_sha": "head",
+                        "routing_input_fingerprint": "fingerprint",
+                    },
+                },
+                {
+                    "7": {
+                        "waiting_since": "2026-07-10T02:00:00Z",
+                        "nudged_at": "2026-07-20T02:00:00Z",
+                        "episode_id": "episode-1",
+                    }
+                },
+            ),
+        )
+
+    def test_retry_snapshot_preserves_pending_nudge_completion(self) -> None:
+        self.assertEqual(
+            {
+                "7": {
+                    "waiting_since": "2026-07-10T02:00:00Z",
+                    "nudged_at": "2026-07-20T02:00:00Z",
+                    "episode_id": "episode-1",
+                    "completions": [{
+                        "episode_id": "previous-episode",
+                        "completed_at": "2026-07-21T02:00:00Z",
+                    }],
+                }
+            },
+            union_merge_author_nudges(
+                {
+                    "7": {
+                        "waiting_since": "2026-07-10T02:00:00Z",
+                        "nudged_at": "2026-07-20T02:00:00Z",
+                        "episode_id": "episode-1",
+                        "completions": [{
+                            "episode_id": "previous-episode",
+                            "completed_at": "2026-07-21T02:00:00Z",
+                        }],
+                    }
+                },
                 {
                     "7": {
                         "waiting_since": "2026-07-10T02:00:00Z",
@@ -232,15 +303,58 @@ class StateTest(unittest.TestCase):
             ),
         )
 
-    def test_retry_snapshot_does_not_suppress_new_author_episode(self) -> None:
+    def test_retry_snapshot_completes_posted_nudge_without_suppressing_new_episode(
+        self,
+    ) -> None:
         self.assertEqual(
-            {"7": {"waiting_since": "2026-07-20T02:00:00Z", "nudged_at": ""}},
+            {
+                "7": {
+                    "waiting_since": "2026-07-20T02:00:00Z",
+                    "nudged_at": "",
+                    "episode_id": "episode-2",
+                    "completions": [{
+                        "episode_id": "episode-1",
+                        "completed_at": "2026-07-17T02:00:00Z",
+                        "kind": "routing_changed",
+                    }],
+                }
+            },
             union_merge_author_nudges(
-                {"7": {"waiting_since": "2026-07-20T02:00:00Z", "nudged_at": ""}},
+                {
+                    "7": {
+                        "waiting_since": "2026-07-20T02:00:00Z",
+                        "nudged_at": "",
+                        "episode_id": "episode-2",
+                    }
+                },
                 {
                     "7": {
                         "waiting_since": "2026-07-10T02:00:00Z",
                         "nudged_at": "2026-07-17T02:00:00Z",
+                        "episode_id": "episode-1",
+                    }
+                },
+            ),
+        )
+
+    def test_retry_snapshot_completes_posted_nudge_removed_from_baseline(self) -> None:
+        self.assertEqual(
+            {
+                "7": {
+                    "completions": [{
+                        "episode_id": "episode-1",
+                        "completed_at": "2026-07-17T02:00:00Z",
+                        "kind": "routing_changed",
+                    }],
+                }
+            },
+            union_merge_author_nudges(
+                {},
+                {
+                    "7": {
+                        "waiting_since": "2026-07-10T02:00:00Z",
+                        "nudged_at": "2026-07-17T02:00:00Z",
+                        "episode_id": "episode-1",
                     }
                 },
             ),
