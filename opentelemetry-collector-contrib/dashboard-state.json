@@ -10914,8 +10914,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "paulojmdias",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50129#discussion_r3752969069"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "0a4a0dc548064c0ea472ce88c5aae563",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -10936,11 +10939,19 @@
         "head_sha": "f4842be790caa8850d0cff35f70ec0221fe834c9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T16:56:18+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-10T20:07:20+00:00",
+        "last_approver_activity_at": "2026-08-10T20:07:20+00:00",
         "last_author_activity_at": "2026-08-10T14:52:10+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -10951,14 +10962,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "b73a31d087dfc15735e320eea198cf84bcd95366e036e786aab4f3a2d5eb16d4",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-09T23:45:20+00:00"
+        "routing_input_fingerprint": "13b7ee0be04d6e59bb51b73beea973b4c1099250ede419fe06ed0b5931bb2480",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-10T20:07:20+00:00"
       },
       "failed": false,
       "pr_number": 50129,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50129",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "50131": {
