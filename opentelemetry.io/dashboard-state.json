@@ -5070,12 +5070,20 @@
         "copilot_review_requested": false,
         "copilot_review_stale": false,
         "created_at": "2026-08-10T14:20:40+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5241949129,
+            "held_gates": "",
+            "kind": "already_routed",
+            "route": "approver",
+            "user": "JackChen-me"
+          }
+        ],
         "dashboard_override_cleared_ci": false,
         "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "",
+        "dashboard_override_command_id": 5241949129,
+        "dashboard_override_command_user": "JackChen-me",
+        "dashboard_override_since": "2026-08-10T14:53:16Z",
         "head_sha": "350f4c727262ac586b4ff1f7f2ebd5f0d9a65c46",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -5085,7 +5093,7 @@
         "required_checks_settled": true,
         "reviewers": [],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "5b75232efae64fe5e2406dd754d59714abc9cf7ef8f39fe27ec25af0c0fc2481",
+        "routing_input_fingerprint": "b4526d38e4c5bbfdab692c48a373dc4c90b9017fe941a3e3d592d74c58bdbb72",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-10T14:20:08+00:00"
       },
