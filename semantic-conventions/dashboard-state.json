@@ -1654,8 +1654,14 @@
         "approval_count": 0,
         "assignees": [],
         "author": "Dipanshusinghh",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/3993#discussion_r3746331211",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3993#discussion_r3746344196",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3993#discussion_r3746355032",
+          "https://github.com/open-telemetry/semantic-conventions/pull/3993#discussion_r3746356669"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "5d42b1c83fdd4f7cab9f98d9fee99e31",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1676,20 +1682,29 @@
         "head_sha": "5d900ee9e83a890866a5cb632c22e3b08c357aa4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T02:09:19+00:00",
+        "last_activity_at": "2026-08-10T03:13:52+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-10T02:09:19+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "thompson-tomo",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "641f22e856703558b04da7a7caf77123b2d035c1e952327d48f21bad2c5c1f70",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-10T02:09:19+00:00"
+        "routing_input_fingerprint": "3a2ec014b21ccde6b47d5f0bac30afab83e483e8cc320a9f5d7a827040946392",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-10T03:04:48+00:00"
       },
       "failed": false,
       "pr_number": 3993,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3993",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
