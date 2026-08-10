@@ -10859,7 +10859,7 @@
     },
     "50128": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "paulojmdias",
         "author_action_review_thread_urls": [],
@@ -10884,20 +10884,29 @@
         "head_sha": "1fe028188a77fd9742ab3b88897d83d49b712d34",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-09T22:59:18+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-10T20:05:46+00:00",
+        "last_approver_activity_at": "2026-08-10T20:05:46+00:00",
         "last_author_activity_at": "2026-08-09T22:59:18+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a881983a47809e43b90b79a96157bdaee1b19fee00eeeed27994aa9c6d94336f",
+        "routing_input_fingerprint": "21aa7daa201e7a3d535858f6b5b4fa6bf60f32e7159be3b8d9fbe1a197916b02",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-09T22:59:18+00:00"
       },
       "failed": false,
       "pr_number": 50128,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50128",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50129": {
