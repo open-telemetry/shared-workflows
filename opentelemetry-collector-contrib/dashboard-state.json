@@ -11142,10 +11142,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "tharun0064",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50136#discussion_r3748155428"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "47912eee1d764f959cc287b9f6d0c746",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -11164,15 +11167,24 @@
         "head_sha": "5699170390681da7d1921f5502430c26c85c1d6f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T08:38:24+00:00",
+        "last_activity_at": "2026-08-10T09:17:15+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-06T04:23:15+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "2504461ca02d436706721d8530107838108d2dee095f1296a6c3db34b2ab6f16",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-10T08:38:24+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "cb3043b28bbb09d27ebcfab1e5397e269b72872f77fdc03f12137846ce59f95f",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-10T09:17:09+00:00"
       },
       "failed": false,
       "pr_number": 50136,
