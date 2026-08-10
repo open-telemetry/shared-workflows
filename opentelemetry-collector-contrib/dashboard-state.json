@@ -10807,7 +10807,7 @@
     },
     "50126": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "paulojmdias",
         "author_action_review_thread_urls": [],
@@ -10832,20 +10832,29 @@
         "head_sha": "39eba574e6769bedbbe19ac6ad4980b2f4e1ba2f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-09T14:53:38+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-10T20:04:41+00:00",
+        "last_approver_activity_at": "2026-08-10T20:04:41+00:00",
         "last_author_activity_at": "2026-08-09T14:53:38+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "6b789a205fccc5a648b1108ca47483e8051a8c4409a77367161336596c3d0376",
+        "routing_input_fingerprint": "a8dda6d848f7b053f15939e8e58288f70574338c842b36822add0cd86e94dddd",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-09T14:53:38+00:00"
       },
       "failed": false,
       "pr_number": 50126,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50126",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50128": {
