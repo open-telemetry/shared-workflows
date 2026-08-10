@@ -8604,8 +8604,14 @@
         "approval_count": 0,
         "assignees": [],
         "author": "osullivandonal",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49987#discussion_r3736961137",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49987#discussion_r3748282614",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49987#discussion_r3748295659",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49987#discussion_r3748319335"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "f961d263223342d79ce80d0b490d3c02",
         "ci_failing_count": 0,
         "ci_pending_count": 9,
         "ci_uncleared_failing_count": 0,
@@ -8626,15 +8632,24 @@
         "head_sha": "81f076d32be469bfbbd4bb2bf5bb32a64502316a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T09:40:20+00:00",
+        "last_activity_at": "2026-08-10T09:41:33+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-10T09:40:20+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "55c4ed0d11dc9fbbdae95ed29a42f9e94e808f547d83cf6b82bb5ec9bae237f8",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-07-31T13:09:52+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "rogercoll",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "3d4278625efdad3b20f0a852cae2548bf2bc470ef45a6f9a71c99d38bad378e2",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-07T15:43:34+00:00"
       },
       "failed": false,
       "pr_number": 49987,
