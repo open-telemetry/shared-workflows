@@ -4774,7 +4774,7 @@
     },
     "11259": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ivan-at-paraply",
         "author_action_review_thread_urls": [],
@@ -4782,7 +4782,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
-        "conflicts": "no",
+        "conflicts": "unknown",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4799,20 +4799,29 @@
         "head_sha": "a60a74f18ef01f288cbe2808d7d33edd82408998",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-09T08:15:16+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-10T08:57:04+00:00",
+        "last_approver_activity_at": "2026-08-10T08:57:04+00:00",
         "last_author_activity_at": "2026-08-09T08:15:16+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "theletterf",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "dcc8411630c425432364d9b4455a1159dbcb8b27f88f9268547d47d10daf4ce1",
+        "routing_input_fingerprint": "70739bd9eac915a1fac482f90be8474d4bc9f11fc3505f52e05b7625c22cf7b6",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-08T10:36:47+00:00"
       },
       "failed": false,
       "pr_number": 11259,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11259",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11260": {
