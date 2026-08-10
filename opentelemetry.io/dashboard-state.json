@@ -4628,12 +4628,9 @@
         ],
         "author": "Andygol",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11260#pullrequestreview-4892509373"
-        ],
-        "author_nudge_episode_id": "dbffde16d9384da0a2794f15d2fbfd95",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 8,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -4649,13 +4646,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "37ab7fe2cd5ccaf43b0b8f58c0f5b9900acb8c62",
+        "head_sha": "da739b8cb3f4f18178dfadd6fda122bb7e168097",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-09T20:45:32+00:00",
+        "last_activity_at": "2026-08-10T17:50:49+00:00",
         "last_approver_activity_at": "2026-08-09T20:45:32+00:00",
-        "last_author_activity_at": "2026-08-08T18:48:11+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-08-10T17:50:49+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -4663,19 +4660,26 @@
             "changes_requested": false,
             "login": "chalin",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "901ddbd18ad4e52628a080f7fbaf999de7243f3a3898c8f8005c703f5d1fbf0b",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "f51f317363da16fcd33d72590b7dcd08eaac7fa36f82134df1abccd6da2b17c3",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-09T20:45:32+00:00"
       },
       "failed": false,
       "pr_number": 11260,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11260",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-4892509373": {
+          "evidence": {
+            "reply": "2026-08-10T17:50:49Z"
+          },
+          "reply_source_id": 5243902014
+        }
+      }
     },
     "11264": {
       "facts": {
