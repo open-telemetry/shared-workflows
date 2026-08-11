@@ -60,9 +60,11 @@ the implementation understandable and operationally cheap.
   is that configuration changes must be additive for one promotion cycle,
   because pinned code reads live configuration.
 - Promotion is a pull request that pins the ref, rather than a moving tag or
-  branch. The version that each repository runs is then visible in the workflow
-  file, a rollback is a revert, and the reference stays hash pinned the way
-  every other action reference in this repository is.
+  branch. A manually dispatched workflow prepares that pull request only after
+  an operator names the release that has soaked on canaries. The version that
+  each repository runs is then visible in the workflow file, a rollback is a
+  revert, and the reference stays hash pinned the way every other action
+  reference in this repository is.
 - A rollback stops a bad change rather than restoring delivery. Downgraded code
   reads newer delivery state as empty, so delivering from it would repeat
   reminders and re-review requests already sent; the delivery version check

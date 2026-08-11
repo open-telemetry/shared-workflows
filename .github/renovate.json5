@@ -24,6 +24,14 @@
       "schedule": [
         "before 8am on Tuesday"
       ]
+    },
+    {
+      // This self-reference is the stable PR dashboard rollout control.
+      // Promote it only after the matching release has soaked on canaries.
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["open-telemetry/shared-workflows"],
+      "matchFileNames": [".github/workflows/pull-request-dashboard.yml"],
+      "enabled": false
     }
   ],
   "labels": [

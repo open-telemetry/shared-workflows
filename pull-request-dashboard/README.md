@@ -264,18 +264,27 @@ its settings, takes effect on the next run in both channels.
 1. Merge the change. Canary repositories pick it up on their next run.
 2. Let it soak.
 3. Cut a release with the [Release workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/release.yml).
-4. Open a pull request pointing every stable job at that release's commit, in
-   both the `uses:` ref and the matching `code_ref` input, each carrying the tag
-   as a comment the way actions are pinned elsewhere in this repository.
-   `test_rollout.py` fails if the two disagree.
+4. Run the [Promote pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/promote-pull-request-dashboard.yml)
+   from `main` and enter the release tag. It accepts only a newer, published,
+   non-prerelease version and opens a draft pull request pointing every stable
+   job at that release's commit, in both the `uses:` ref and the matching
+   `code_ref` input.
+5. Review and merge the generated pull request to promote the release.
+
+The stable refs are deliberately excluded from Renovate because advancing them
+is the production rollout. `test_rollout.py` also fails if the workflow and
+script refs disagree. The promotion workflow uses the organization-level
+OTELBOT credentials; the app installation needs `contents`, `pull requests`,
+and `workflows` write permissions because the generated commit changes a file
+under `.github/workflows/`.
 
 ### Rolling back
 
-Revert the bump to an earlier release commit. If the reverted change bumped no
-delivery version, the stable channel resumes normally. If it did, those
-repositories stop delivering rather than repeat reminders they can no longer see
-as sent, so recovery is to roll forward with a fix. Canary repositories are
-unaffected either way, since they never run pinned code.
+Revert the promotion pull request to an earlier release commit. If the reverted
+change bumped no delivery version, the stable channel resumes normally. If it
+did, those repositories stop delivering rather than repeat reminders they can
+no longer see as sent, so recovery is to roll forward with a fix. Canary
+repositories are unaffected either way, since they never run pinned code.
 
 ### Changing the workflow
 

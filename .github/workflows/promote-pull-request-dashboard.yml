@@ -1,0 +1,123 @@
+# Repo-internal: prepares a pull request that promotes the PR dashboard stable
+# channel after a release has soaked on the canary repositories.
+name: Promote pull request dashboard
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Published release tag to promote, for example v0.6.0.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promote-pull-request-dashboard
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Open stable promotion pull request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce main branch
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [[ "$REF" != "refs/heads/main" ]]; then
+            echo "::error::Promotion must run from main. Got: $REF"
+            exit 1
+          fi
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: otelbot-token
+        with:
+          client-id: ${{ vars.OTELBOT_CLIENT_ID }}
+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          # zizmor: ignore[artipacked] Credentials are required by the branch push below.
+          persist-credentials: true
+          token: ${{ steps.otelbot-token.outputs.token }}
+
+      - name: Resolve published release
+        id: release
+        env:
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Release must be a stable semantic version such as v0.6.0. Got: $RELEASE"
+            exit 1
+          fi
+
+          release_json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE")
+          if [[ "$(jq -r '.draft or .prerelease' <<< "$release_json")" != "false" ]]; then
+            echo "::error::$RELEASE must be a published, non-prerelease release"
+            exit 1
+          fi
+
+          sha=$(git rev-parse "$RELEASE^{commit}")
+          if ! git merge-base --is-ancestor "$sha" "$GITHUB_SHA"; then
+            echo "::error::$RELEASE ($sha) is not an ancestor of main at $GITHUB_SHA"
+            exit 1
+          fi
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Resolved $RELEASE to $sha"
+
+      - name: Update stable rollout pins
+        env:
+          RELEASE: ${{ steps.release.outputs.release }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: python3 .github/scripts/pull-request-dashboard/promote_rollout.py "$RELEASE" "$RELEASE_SHA"
+
+      - name: Run pull request dashboard tests
+        run: python3 -m unittest discover -p 'test_*.py'
+
+      - name: Create promotion pull request
+        env:
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          RELEASE: ${{ steps.release.outputs.release }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          title="Promote pull request dashboard to $RELEASE"
+          existing=$(gh pr list --state open --json number,title,url |
+            jq -c --arg title "$title" '.[] | select(.title == $title)' | head -n 1)
+          if [[ -n "$existing" ]]; then
+            pr_number=$(jq -r '.number' <<< "$existing")
+            pr_url=$(jq -r '.url' <<< "$existing")
+            echo "Using existing promotion pull request $pr_url"
+          else
+            branch="otelbot/promote-pull-request-dashboard-${RELEASE#v}-${GITHUB_RUN_ID}"
+            git config user.name otelbot
+            git config user.email 197425009+otelbot@users.noreply.github.com
+            git checkout -b "$branch"
+            git add .github/workflows/pull-request-dashboard.yml
+            git commit -m "$title"
+            git push --set-upstream origin "$branch"
+
+            body="Promote the pull request dashboard stable channel to [$RELEASE](https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE) at \`$RELEASE_SHA\` after validation on the canary repositories."
+            pr_url=$(gh pr create \
+              --draft \
+              --title "$title" \
+              --body "$body" \
+              --base main \
+              --head "$branch")
+            pr_number="${pr_url##*/}"
+          fi
+
+          gh api --method POST \
+            "repos/$GITHUB_REPOSITORY/pulls/$pr_number/requested_reviewers" \
+            -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
+          echo "Promotion pull request is ready: $pr_url"
