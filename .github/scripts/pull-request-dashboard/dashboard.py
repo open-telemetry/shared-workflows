@@ -1163,13 +1163,6 @@ def action_counts(pending_actions: dict[str, dict[str, Any]]) -> dict[str, int]:
     return counts
 
 
-def has_blocking_action(pending_actions: dict[str, dict[str, Any]]) -> bool:
-    for entry in pending_actions.values():
-        if normalize_discussion_action(entry.get("action") or "") == "reviewer":
-            return True
-    return False
-
-
 def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], required_approvals: int) -> str:
     counts = action_counts(pending_actions)
     # Copilot PRs are mapped back to a human author when possible. Maintenance
@@ -1179,15 +1172,15 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     # Precedence:
     #   1. A required status check failure the author has not overridden -> "author".
     #   2. A discussion waiting on the author -> "author".
-    #   3. If there are enough approvals and no inline or top-level feedback is
-    #      still waiting on a reviewer -> "maintainer".
+    #   3. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
+    #      remains visible but does not keep an approved PR out of this route.
     #   4. Otherwise the PR is still waiting on approvers.
     ci_failing = uncleared_ci_failing_count(facts) > 0
     if ci_failing and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:
         return "author"
-    if facts.get("approval_count", 0) >= approval_threshold and not has_blocking_action(pending_actions):
+    if facts.get("approval_count", 0) >= approval_threshold:
         return "maintainer"
     return "approver"
 

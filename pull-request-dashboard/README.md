@@ -97,11 +97,13 @@ GitHub. Top-level feedback means a standalone PR comment or submitted review
 summary that is not attached to an inline review thread.
 
 - An inline thread remains on the dashboard until someone marks the conversation
-  resolved on GitHub or GitHub marks its code anchor outdated. An author reply
-  can hand the dashboard action back to reviewers, but it does not close the
-  thread. After addressing it, authors should reply with the outcome and, when
-  appropriate, resolve the conversation. Author-only inline threads are treated
-  as annotations rather than review feedback unless a non-author joins them.
+  resolved on GitHub or GitHub marks its code anchor outdated. A completed author
+  reply hands the action away from the author but does not close the thread. If
+  the PR has enough approvals, it resumes approval-based routing and can move to
+  maintainers without reviewer confirmation; otherwise it waits on reviewers.
+  A reply that commits to more work keeps the PR with the author. Author-only
+  inline threads are treated as annotations rather than review feedback unless a
+  non-author joins them.
 - Top-level feedback has no resolved state. The dashboard therefore tracks each
   actionable top-level feedback item independently. 📌 means that one or more
   of those items are waiting on the author.
@@ -126,15 +128,16 @@ proof that the reviewer agrees with the outcome.
 
 | Item | Before an author reply | After an author reply | When it clears |
 | ---- | ---------------------- | --------------------- | -------------- |
+| Inline author action | Waiting on the author | A completed reply resumes approval-based routing; a commitment to more work remains with the author | The conversation is resolved or its code anchor becomes outdated |
 | Top-level author action | Waiting on the author; 📌 is visible | Addressed; 📌 disappears and normal approval-based routing resumes | Immediately after an explicit author reply |
 
 GitHub remains responsible for enforcing blocking review states when a
 maintainer attempts to merge.
 
-This can hand a PR back to reviewers before every requested change is actually
-complete. That handoff is deliberate: reviewers can see the reply and respond,
-while the dashboard avoids leaving an active author indefinitely marked as
-blocked.
+This can route an approved PR to maintainers before a reviewer confirms the
+author's response. That handoff is deliberate: the open-thread badge remains
+visible so maintainers can merge or defer to the reviewer, while the dashboard
+avoids leaving an author marked as blocked after completing their part.
 
 ## Live PR status comment
 

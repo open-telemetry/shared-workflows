@@ -82,6 +82,32 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertTrue(facts["route_held_for_gates"])
 
 
+class RoutePrTest(unittest.TestCase):
+    def test_completed_author_reply_does_not_block_an_approved_pr(self) -> None:
+        facts = {"approval_count": 1, "is_maintenance_bot": False}
+        pending_actions = {
+            "thread": {"action": "reviewer", "since": "2026-08-11T13:44:18Z"}
+        }
+
+        self.assertEqual("maintainer", route_pr(facts, pending_actions, 1))
+
+    def test_unfinished_author_work_still_blocks_an_approved_pr(self) -> None:
+        facts = {"approval_count": 1, "is_maintenance_bot": False}
+        pending_actions = {
+            "thread": {"action": "author", "since": "2026-08-11T13:44:18Z"}
+        }
+
+        self.assertEqual("author", route_pr(facts, pending_actions, 1))
+
+    def test_completed_author_reply_without_approval_waits_on_reviewers(self) -> None:
+        facts = {"approval_count": 0, "is_maintenance_bot": False}
+        pending_actions = {
+            "thread": {"action": "reviewer", "since": "2026-08-11T13:44:18Z"}
+        }
+
+        self.assertEqual("approver", route_pr(facts, pending_actions, 1))
+
+
 class GateHoldTest(unittest.TestCase):
     def _hold(
         self,
