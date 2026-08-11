@@ -102,14 +102,9 @@ jobs:
 
           body="Promote the pull request dashboard stable channel to [$RELEASE](https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE) at \`$RELEASE_SHA\` after validation on the canary repositories."
           pr_url=$(gh pr create \
-            --draft \
             --title "$title" \
             --body "$body" \
             --base main \
             --head "$branch")
-          pr_number="${pr_url##*/}"
 
-          gh api --method POST \
-            "repos/$GITHUB_REPOSITORY/pulls/$pr_number/requested_reviewers" \
-            -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
           echo "Promotion pull request is ready: $pr_url"

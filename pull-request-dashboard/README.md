@@ -266,7 +266,7 @@ its settings, takes effect on the next run in both channels.
 3. Cut a release with the [Release workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/release.yml).
 4. Run the [Promote pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/promote-pull-request-dashboard.yml)
    from `main` and enter the release tag. It accepts only a newer, published,
-   non-prerelease version and opens a draft pull request pointing every stable
+   non-prerelease version and opens a pull request pointing every stable
    job at that release's commit, in both the `uses:` ref and the matching
    `code_ref` input.
 5. Review and merge the generated pull request to promote the release.
