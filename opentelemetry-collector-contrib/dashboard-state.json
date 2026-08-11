@@ -2810,12 +2810,9 @@
         ],
         "author": "harshitt13",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48782#pullrequestreview-4544694567"
-        ],
-        "author_nudge_episode_id": "6f297efa73a1445cb5b288611dbb8e84",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -2837,7 +2834,7 @@
         "last_activity_at": "2026-08-11T12:57:14+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-11T12:57:14+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2853,19 +2850,25 @@
             "changes_requested": true,
             "login": "JaredTan95",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "d600f945b1e7d3c07995b931bd29942b711292481fe92ece5ace520c63eb7745",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-06-22T13:53:57+00:00"
+        "routing_input_fingerprint": "bf0a547e4109f867acaa786ad6303604c975a62a5ee2b99d8aa7580730d07ad3",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-11T12:57:14+00:00"
       },
       "failed": false,
       "pr_number": 48782,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48782",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
+        "pr-review-4544694567": {
+          "evidence": {
+            "reply": "2026-07-18T14:53:16Z"
+          },
+          "reply_source_id": 5011698838
+        },
         "pr-review-4544700723": {
           "evidence": {
             "reply": "2026-07-18T14:53:16Z"
