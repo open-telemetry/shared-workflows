@@ -105,7 +105,7 @@ jobs:
             pr_url=$(jq -r '.url' <<< "$existing")
             echo "Using existing promotion pull request $pr_url"
           else
-            branch="${branch_prefix}${GITHUB_RUN_ID}"
+            branch="${branch_prefix}${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
             git config user.name otelbot
             git config user.email 197425009+otelbot@users.noreply.github.com
             git checkout -b "$branch"
