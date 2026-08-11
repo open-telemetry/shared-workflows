@@ -291,6 +291,14 @@ class GithubCliTest(unittest.TestCase):
             )
         )
 
+    def test_tls_certificate_error_is_retryable(self) -> None:
+        self.assertTrue(
+            is_retryable_gh_error(
+                'tls: failed to verify certificate: x509: certificate is not '
+                'valid for any names, but wanted to match api.github.com'
+            )
+        )
+
     @patch("github_cli.gh_api")
     def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:
         gh_api.return_value = [

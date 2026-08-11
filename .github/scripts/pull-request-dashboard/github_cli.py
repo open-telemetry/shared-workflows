@@ -52,6 +52,7 @@ _RETRYABLE_GH_ERROR_FRAGMENTS = (
     "temporarily unavailable",
     "connection reset",
     "connection refused",
+    "tls: failed to verify certificate",
 )
 
 
