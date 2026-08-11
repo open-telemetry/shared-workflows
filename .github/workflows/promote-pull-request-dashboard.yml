@@ -22,9 +22,7 @@ jobs:
     name: Open stable promotion pull request
     runs-on: ubuntu-latest
     permissions:
-      copilot-requests: write
       contents: write # to push the promotion branch
-      pull-requests: write # to request Copilot review
     steps:
       - name: Enforce main branch
         env:
@@ -88,44 +86,25 @@ jobs:
 
       - name: Create promotion pull request
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
           RELEASE: ${{ steps.release.outputs.release }}
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
           title="Promote pull request dashboard to $RELEASE"
-          branch_prefix="otelbot/promote-pull-request-dashboard-${RELEASE#v}-"
-          existing=$(gh pr list --state open --limit 1000 \
-            --json author,baseRefName,headRefName,isCrossRepository,number,title,url |
-            jq -c --arg title "$title" --arg branch_prefix "$branch_prefix" \
-              '.[] | select(.title == $title and .author.login == "otelbot[bot]" and
-                .baseRefName == "main" and .isCrossRepository == false and
-                (.headRefName | startswith($branch_prefix)))' |
-            head -n 1)
-          if [[ -n "$existing" ]]; then
-            pr_number=$(jq -r '.number' <<< "$existing")
-            pr_url=$(jq -r '.url' <<< "$existing")
-            echo "Using existing promotion pull request $pr_url"
-          else
-            branch="${branch_prefix}${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-            git config user.name otelbot
-            git config user.email 197425009+otelbot@users.noreply.github.com
-            git checkout -b "$branch"
-            git add .github/workflows/pull-request-dashboard.yml
-            git commit -m "$title"
-            git push --set-upstream origin "$branch"
+          branch="otelbot/promote-pull-request-dashboard-${RELEASE#v}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name otelbot
+          git config user.email 197425009+otelbot@users.noreply.github.com
+          git checkout -b "$branch"
+          git add .github/workflows/pull-request-dashboard.yml
+          git commit -m "$title"
+          git push --set-upstream origin "$branch"
 
-            body="Promote the pull request dashboard stable channel to [$RELEASE](https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE) at \`$RELEASE_SHA\` after validation on the canary repositories."
-            pr_url=$(gh pr create \
-              --title "$title" \
-              --body "$body" \
-              --base main \
-              --head "$branch")
-            pr_number="${pr_url##*/}"
-          fi
+          body="Promote the pull request dashboard stable channel to [$RELEASE](https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE) at \`$RELEASE_SHA\` after validation on the canary repositories."
+          pr_url=$(gh pr create \
+            --title "$title" \
+            --body "$body" \
+            --base main \
+            --head "$branch")
 
-          GH_TOKEN="$GITHUB_TOKEN" gh api --method POST \
-            "repos/$GITHUB_REPOSITORY/pulls/$pr_number/requested_reviewers" \
-            -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
           echo "Promotion pull request is ready: $pr_url"
