@@ -974,13 +974,16 @@
     },
     "3673": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ragumarimuthu-git",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3673#pullrequestreview-4909728529"
+        ],
+        "author_nudge_episode_id": "f07aaaa9b32c4b7d8bb11e6c6f841836",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 4,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -996,12 +999,12 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "fcb78345ad71391343c38dc3a3558842f4fef5cd",
+        "head_sha": "5a0a7816ffc0b2b7347fe49099688a5fdaaa04b3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-11T17:12:32+00:00",
-        "last_approver_activity_at": "2026-08-11T02:17:44+00:00",
-        "last_author_activity_at": "2026-08-11T17:12:32+00:00",
+        "last_activity_at": "2026-08-11T19:12:02+00:00",
+        "last_approver_activity_at": "2026-08-11T18:58:09+00:00",
+        "last_author_activity_at": "2026-08-11T19:12:02+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -1013,18 +1016,18 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
-            "changes_requested": true,
+            "changes_requested": false,
             "login": "lalitb",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "3235c4be3da2cce1a550f4db87a5c0c787f2a3dc226cc020047af77bc558171d",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-11T02:17:44+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "a25f1f97814387b3820be2cda9eee00930a063f3c434d1172bf4de2f87fee26b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-11T18:55:51+00:00"
       },
       "failed": false,
       "pr_number": 3673,
