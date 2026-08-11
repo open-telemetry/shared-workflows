@@ -40,21 +40,109 @@ class ResolvePrRouteTest(unittest.TestCase):
             "ci_failing_count": 1,
             "ci_pending_count": 0,
             "ci_uncleared_failing_count": 0,
+            "dashboard_override_cleared_ci": True,
         }
         facts.update(overrides)
         return facts
 
-    def test_override_is_still_gated_by_required_copilot_review(self) -> None:
+    def test_override_bypasses_required_copilot_review(self) -> None:
         facts = self._cleared_ci_facts(
             copilot_review_exists=True,
             copilot_review_needed=True,
+            copilot_review_stale=True,
             copilot_review_requested=False,
         )
 
         route = resolve_pr_route(facts, {}, 1, True)
 
+        self.assertEqual("approver", route)
+        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts["copilot_review_outstanding"])
+        self.assertFalse(facts["route_held_for_gates"])
+
+    def test_discussion_override_bypasses_required_copilot_review(self) -> None:
+        facts = self._cleared_ci_facts(
+            ci_failing_count=0,
+            dashboard_override_cleared_ci=False,
+            dashboard_override_cleared_count=1,
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("approver", route)
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_normal_handoff_is_still_gated_by_required_copilot_review(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+            "copilot_review_stale": True,
+            "copilot_review_requested": False,
+        }
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
         self.assertEqual("author", route)
+        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertTrue(facts["copilot_review_outstanding"])
         self.assertTrue(facts["route_held_for_gates"])
+
+    def test_override_bypass_survives_refresh_for_the_same_head(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "head_sha": "current-head",
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+            "copilot_review_stale": True,
+            "copilot_review_requested": False,
+        }
+        previous_result = {
+            "route": "approver",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "head_sha": "current-head",
+                "copilot_review_bypassed_by_override": True,
+            },
+        }
+
+        route = resolve_pr_route(facts, {}, 1, True, previous_result)
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["copilot_review_bypassed_by_override"])
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_override_bypass_ends_after_a_push(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "head_sha": "new-head",
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+            "copilot_review_stale": True,
+            "copilot_review_requested": False,
+        }
+        previous_result = {
+            "route": "approver",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "head_sha": "old-head",
+                "copilot_review_bypassed_by_override": True,
+            },
+        }
+
+        resolve_pr_route(facts, {}, 1, True, previous_result)
+
+        self.assertFalse(facts["copilot_review_bypassed_by_override"])
+        self.assertTrue(facts["copilot_review_request_needed"])
 
     def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
         facts = self._cleared_ci_facts(
