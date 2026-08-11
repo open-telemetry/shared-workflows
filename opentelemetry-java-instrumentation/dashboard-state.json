@@ -3199,12 +3199,20 @@
         "copilot_review_requested": true,
         "copilot_review_stale": true,
         "created_at": "2026-08-10T06:49:23+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5248416713,
+            "held_gates": "the Copilot review",
+            "kind": "already_routed",
+            "route": "author",
+            "user": "lrwh"
+          }
+        ],
         "dashboard_override_cleared_ci": false,
         "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "",
+        "dashboard_override_command_id": 5248416713,
+        "dashboard_override_command_user": "lrwh",
+        "dashboard_override_since": "2026-08-11T02:45:56Z",
         "head_sha": "e10aa70a4cadc17790efd91d6fe8a63dcf0bc956",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -3223,7 +3231,7 @@
           }
         ],
         "route_held_for_gates": true,
-        "routing_input_fingerprint": "0f79aad3cb156cff437658368ea1ec0627a357cfc8f7d801ceeb7a0562542440",
+        "routing_input_fingerprint": "f68d8d9cf9394abcb765342f8f2e0b48bef4aa1658d92e1a56051dd2ab9f3dcc",
         "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-10T13:18:51+00:00"
       },
