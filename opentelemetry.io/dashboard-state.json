@@ -4996,13 +4996,13 @@
     },
     "11286": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "chalin",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 4,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -5021,20 +5021,29 @@
         "head_sha": "6ab4f46d89217341cc3be7020edb113334cad56b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-11T23:37:59+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-11T23:54:31+00:00",
+        "last_approver_activity_at": "2026-08-11T23:54:31+00:00",
         "last_author_activity_at": "2026-08-11T23:37:59+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "ab01757142e2ac3b343358dd5130b17e7047b7dd27fa8bec3eb414e8b7c578f7",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-10T14:38:39+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "didiViking",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "5b7c9f307d0d25fe0d13abed8014bea2999aefd2e31928b87481b118195ae82f",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-11T23:37:59+00:00"
       },
       "failed": false,
       "pr_number": 11286,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11286",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11287": {
