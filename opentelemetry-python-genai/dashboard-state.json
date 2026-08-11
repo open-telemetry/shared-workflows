@@ -285,9 +285,12 @@
         "assignees": [],
         "author": "rads-1996",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296#issuecomment-5136011278"
+        ],
+        "author_nudge_episode_id": "c1a4b4859c5d41d2857c68fd3e04d209",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -309,8 +312,16 @@
         "last_activity_at": "2026-08-10T23:49:25+00:00",
         "last_approver_activity_at": "2026-08-06T22:42:47+00:00",
         "last_author_activity_at": "2026-08-10T23:49:25+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "AgentGymLeader",
+            "open_thread": false,
+            "top_level_feedback": true
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -328,23 +339,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "e90ee2dac09149aa018581bd75146efc00ff999bf65ee2fa22c05ea522facdcf",
-        "waiting_age_basis": "gate_hold",
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "3fc18c679cfd143b92dae67e4908850b85ed9b0cc1ce6b86df5b2f505277662f",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-07-30T23:46:53+00:00"
       },
       "failed": false,
       "pr_number": 296,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/296",
       "route": "author",
-      "top_level_history": {
-        "pr-issue-comment-5136011278": {
-          "evidence": {
-            "reply": "2026-07-30T23:46:53Z"
-          },
-          "reply_source_id": 5137442816
-        }
-      }
+      "top_level_history": {}
     },
     "311": {
       "facts": {
