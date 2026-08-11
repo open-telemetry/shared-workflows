@@ -22,6 +22,7 @@ jobs:
     name: Open stable promotion pull request
     runs-on: ubuntu-latest
     permissions:
+      copilot-requests: write
       contents: write # to push the promotion branch
     steps:
       - name: Enforce main branch
@@ -86,6 +87,7 @@ jobs:
 
       - name: Create promotion pull request
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
           RELEASE: ${{ steps.release.outputs.release }}
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
@@ -122,4 +124,7 @@ jobs:
             pr_number="${pr_url##*/}"
           fi
 
+          GH_TOKEN="$GITHUB_TOKEN" gh api --method POST \
+            "repos/$GITHUB_REPOSITORY/pulls/$pr_number/requested_reviewers" \
+            -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
           echo "Promotion pull request is ready: $pr_url"
