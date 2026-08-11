@@ -10362,13 +10362,9 @@
         "assignees": [],
         "author": "spathlavath",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50114#issuecomment-5251357461",
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50114#pullrequestreview-4908425445"
-        ],
-        "author_nudge_episode_id": "b677f9041ee143e4826ac308ec602438",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 4,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -10387,31 +10383,23 @@
         "head_sha": "ec03d5560231356e6e0dec2bbb4516d7225b63e3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-11T17:27:40+00:00",
+        "last_activity_at": "2026-08-11T17:30:00+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-11T17:27:40+00:00",
+        "last_author_activity_at": "2026-08-11T17:30:00+00:00",
         "required_checks_settled": false,
         "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "kartikgola",
-            "open_thread": false,
-            "top_level_feedback": true
-          },
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": true,
             "login": "XSAM",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "45f63edaab247edee1b40c1bfd0bd879706681e429ec6e8854d966cf112123ee",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "0e2be35145ae7d95e3935eb471bb28b1484cec243bbfc550a7932df7688c1082",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-11T09:26:51+00:00"
       },
       "failed": false,
@@ -10424,6 +10412,18 @@
             "reply": "2026-08-10T18:04:38Z"
           },
           "reply_source_id": 5244040091
+        },
+        "pr-issue-comment-5251357461": {
+          "evidence": {
+            "reply": "2026-08-11T17:30:00Z"
+          },
+          "reply_source_id": 5256616561
+        },
+        "pr-review-4908425445": {
+          "evidence": {
+            "reply": "2026-08-11T17:30:00Z"
+          },
+          "reply_source_id": 5256616561
         }
       }
     },
