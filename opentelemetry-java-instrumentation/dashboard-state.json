@@ -3282,7 +3282,7 @@
     },
     "19512": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "SylvainJuge"
         ],
@@ -3290,14 +3290,14 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": false,
+        "copilot_review_requested": true,
         "copilot_review_stale": true,
         "created_at": "2026-08-11T14:25:33+00:00",
         "dashboard_command_replies": [],
@@ -3309,8 +3309,8 @@
         "head_sha": "0c343b245ea60e4c227ef47cae73d1a92bf9eefd",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-11T15:23:30+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-11T20:24:56+00:00",
+        "last_approver_activity_at": "2026-08-11T20:24:56+00:00",
         "last_author_activity_at": "2026-08-11T15:23:30+00:00",
         "required_checks_settled": false,
         "reviewers": [
@@ -3321,11 +3321,19 @@
             "login": "SylvainJuge",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "b93d56d1389c5168718178ceaa94c9488588f739adbb1ae357184b68566c5301",
-        "waiting_age_basis": "last_author_activity",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "e999b13314eefaca506c08dde70362807318b3a267ec73d1507fe1113858cd85",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-11T15:23:30+00:00"
       },
       "failed": false,
