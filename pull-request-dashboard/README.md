@@ -273,10 +273,9 @@ its settings, takes effect on the next run in both channels.
 
 The stable refs are deliberately excluded from Renovate because advancing them
 is the production rollout. `test_rollout.py` also fails if the workflow and
-script refs disagree. The promotion workflow uses the organization-level
-OTELBOT credentials; the app installation needs `contents`, `pull requests`,
-and `workflows` write permissions because the generated commit changes a file
-under `.github/workflows/`.
+script refs disagree. The promotion workflow uses `GITHUB_TOKEN` to push the
+branch, then uses the organization-level OTELBOT credentials to open the pull
+request so its normal checks run.
 
 ### Rolling back
 
