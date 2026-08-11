@@ -92,14 +92,20 @@ jobs:
         run: |
           set -euo pipefail
           title="Promote pull request dashboard to $RELEASE"
-          existing=$(gh pr list --state open --json number,title,url |
-            jq -c --arg title "$title" '.[] | select(.title == $title)' | head -n 1)
+          branch_prefix="otelbot/promote-pull-request-dashboard-${RELEASE#v}-"
+          existing=$(gh pr list --state open --limit 1000 \
+            --json author,baseRefName,headRefName,isCrossRepository,number,title,url |
+            jq -c --arg title "$title" --arg branch_prefix "$branch_prefix" \
+              '.[] | select(.title == $title and .author.login == "otelbot[bot]" and
+                .baseRefName == "main" and .isCrossRepository == false and
+                (.headRefName | startswith($branch_prefix)))' |
+            head -n 1)
           if [[ -n "$existing" ]]; then
             pr_number=$(jq -r '.number' <<< "$existing")
             pr_url=$(jq -r '.url' <<< "$existing")
             echo "Using existing promotion pull request $pr_url"
           else
-            branch="otelbot/promote-pull-request-dashboard-${RELEASE#v}-${GITHUB_RUN_ID}"
+            branch="${branch_prefix}${GITHUB_RUN_ID}"
             git config user.name otelbot
             git config user.email 197425009+otelbot@users.noreply.github.com
             git checkout -b "$branch"
