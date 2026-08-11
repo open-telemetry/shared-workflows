@@ -74,6 +74,7 @@ jobs:
         run: python3 .github/scripts/pull-request-dashboard/promote_rollout.py "$RELEASE" "$RELEASE_SHA"
 
       - name: Run pull request dashboard tests
+        working-directory: .github/scripts/pull-request-dashboard
         run: python3 -m unittest discover -p 'test_*.py'
 
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
