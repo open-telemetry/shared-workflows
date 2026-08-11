@@ -24,6 +24,7 @@ jobs:
     permissions:
       copilot-requests: write
       contents: write # to push the promotion branch
+      pull-requests: write # to request Copilot review
     steps:
       - name: Enforce main branch
         env:
