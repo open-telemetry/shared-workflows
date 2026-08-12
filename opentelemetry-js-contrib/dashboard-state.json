@@ -2544,6 +2544,8 @@
       "facts": {
         "approval_count": 0,
         "assignees": [
+          "trentm",
+          "david-luna",
           "obecny",
           "dyladan",
           "legendecas",
@@ -2557,7 +2559,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 6,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -2573,19 +2575,27 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "f9d25e5f07f17d8132ef018eb02a99f876f48708",
+        "head_sha": "72bf254e9373b5f5a7fec2fb413335961bfa6bca",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T18:13:20+00:00",
+        "last_activity_at": "2026-08-12T08:26:02+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "blumamir",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "david-luna",
             "open_thread": false,
             "top_level_feedback": false
           },
@@ -2649,13 +2659,21 @@
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
+            "login": "trentm",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
             "login": "yiyuan-he",
             "open_thread": false,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "8ac02208c44ac37078aa1d5c066fea0fb47c6b541c118f18889f18aee7946dac",
+        "routing_input_fingerprint": "86e1fc26609d8cae1f0e1858d7222e21be76e5642db378dc0f9fd43835c00a14",
         "waiting_age_basis": "created",
         "waiting_since": "2026-07-23T16:20:13+00:00"
       },
