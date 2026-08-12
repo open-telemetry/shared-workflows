@@ -1180,7 +1180,7 @@
     },
     "8679": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
         "author_action_review_thread_urls": [],
@@ -1205,20 +1205,29 @@
         "head_sha": "c3a8439a26582d87314a5070229f903b97a428e6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-31T18:16:48+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T13:45:05+00:00",
+        "last_approver_activity_at": "2026-08-12T13:45:05+00:00",
         "last_author_activity_at": "2026-07-31T18:12:49+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "e7527c979078a784388906315900b4d792c4d43f414a6b03af0353e89bd8dad4",
+        "routing_input_fingerprint": "9737386e432d66cb6def4060b3f3f653bb8d94299238243306c7b9a6583cc841",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-07-31T18:12:49+00:00"
       },
       "failed": false,
       "pr_number": 8679,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8679",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "8682": {
