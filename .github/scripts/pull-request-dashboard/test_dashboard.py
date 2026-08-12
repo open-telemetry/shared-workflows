@@ -41,6 +41,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             "ci_pending_count": 0,
             "ci_uncleared_failing_count": 0,
             "dashboard_override_cleared_ci": True,
+            "dashboard_override_command_id": 1,
         }
         facts.update(overrides)
         return facts
@@ -92,6 +93,23 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_request_needed"])
         self.assertTrue(facts["copilot_review_outstanding"])
         self.assertTrue(facts["route_held_for_gates"])
+
+    def test_acknowledged_override_without_cached_state_does_not_bypass(self) -> None:
+        facts = self._cleared_ci_facts(
+            dashboard_override_command_id=0,
+            dashboard_override_since="2026-08-11T12:00:00Z",
+            head_sha="current-head",
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("author", route)
+        self.assertFalse(facts["copilot_review_bypassed_by_override"])
+        self.assertTrue(facts["copilot_review_request_needed"])
 
     def test_override_bypass_survives_refresh_for_the_same_head(self) -> None:
         facts: dict[str, object] = {

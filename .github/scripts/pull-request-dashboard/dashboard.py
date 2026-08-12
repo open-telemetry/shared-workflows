@@ -1438,7 +1438,9 @@ def resolve_pr_route(
         and facts.get("head_sha") == previous_facts.get("head_sha")
     )
     manual_reviewer_handoff = (
-        override_cleared_actions and not same_override_command
+        override_cleared_actions
+        and bool(pending_override_command_id)
+        and not same_override_command
     ) or bool(
         previous_facts.get("copilot_review_bypassed_by_override")
         and same_overridden_head
