@@ -1830,10 +1830,12 @@
     },
     "3727": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "CodeBlanch",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3727#discussion_r3764073226"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "a0d5a84be363488a9e42dda820de31fd",
         "ci_failing_count": 1,
@@ -1858,13 +1860,22 @@
         "head_sha": "a753bf2ede6215629e6d25b8b95bc0c1d340ec4a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T00:17:27+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T06:26:15+00:00",
+        "last_approver_activity_at": "2026-08-12T06:26:15+00:00",
         "last_author_activity_at": "2026-08-12T00:17:27+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "utpilla",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "2ef41b75834aaf212fe53a1842d34bb53a320125d7b12b9ee81500de8fdaae1b",
+        "routing_input_fingerprint": "81f9bf60e7a143e8055c80f1811967392c715009594e137ac5239d4958449739",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-08-12T01:13:22+00:00"
       },
