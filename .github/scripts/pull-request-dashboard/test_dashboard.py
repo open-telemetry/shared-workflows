@@ -145,6 +145,35 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_bypassed_by_override"])
         self.assertTrue(facts["copilot_review_request_needed"])
 
+    def test_same_second_override_restarts_bypass_after_a_push(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_command_id": 7,
+            "dashboard_override_cleared_count": 1,
+            "head_sha": "new-head",
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+            "copilot_review_stale": True,
+            "copilot_review_requested": False,
+        }
+        previous_result = {
+            "route": "author",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "dashboard_override_command_id": 0,
+                "head_sha": "new-head",
+                "copilot_review_bypassed_by_override": False,
+            },
+        }
+
+        route = resolve_pr_route(facts, {}, 1, True, previous_result)
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["copilot_review_bypassed_by_override"])
+        self.assertFalse(facts["copilot_review_request_needed"])
+
     def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
         facts = self._cleared_ci_facts(
             copilot_review_exists=True,

@@ -1422,10 +1422,16 @@ def resolve_pr_route(
         facts.get("dashboard_override_cleared_count")
         or facts.get("dashboard_override_cleared_ci")
     )
+    pending_override_command_id = facts.get("dashboard_override_command_id") or 0
     same_override_command = (
         bool(facts.get("dashboard_override_since"))
         and facts.get("dashboard_override_since")
         == previous_facts.get("dashboard_override_since")
+        and (
+            not pending_override_command_id
+            or pending_override_command_id
+            == (previous_facts.get("dashboard_override_command_id") or 0)
+        )
     )
     same_overridden_head = (
         same_override_command
