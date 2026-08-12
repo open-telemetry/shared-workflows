@@ -4078,16 +4078,20 @@
         "approval_count": 0,
         "assignees": [],
         "author": "slegarraga",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11220#discussion_r3769790844",
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11220#discussion_r3769798323",
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11220#discussion_r3769800819"
+        ],
         "author_action_top_level_feedback_urls": [
           "https://github.com/open-telemetry/opentelemetry.io/pull/11220#issuecomment-5271948979"
         ],
         "author_nudge_episode_id": "b230b510da684a46bbf1d27c4622c4e7",
-        "ci_failing_count": 3,
-        "ci_failing_since": "2026-08-06T22:49:33+00:00",
-        "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 3,
-        "ci_uncleared_failing_since": "2026-08-06T22:49:33+00:00",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-12T20:07:01+00:00",
+        "ci_pending_count": 5,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-12T20:07:01+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -4102,13 +4106,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "ff62e71acb3a0030652bfcc465b9af90eb91d8ee",
+        "head_sha": "4f91c7754bdb49455e478dcf96a5054b2aceee93",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T19:53:33+00:00",
+        "last_activity_at": "2026-08-12T20:05:49+00:00",
         "last_approver_activity_at": "2026-08-07T14:26:24+00:00",
         "last_author_activity_at": "2026-08-07T14:29:54+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -4121,16 +4125,16 @@
           {
             "approved": false,
             "approved_non_team": false,
-            "changes_requested": false,
+            "changes_requested": true,
             "login": "immavalls",
-            "open_thread": false,
+            "open_thread": true,
             "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "bdf3ef7b078a432c34d3d17ebc620d217393dab966f252cfba256fbeaf8266e0",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-08-06T22:49:33+00:00"
+        "routing_input_fingerprint": "4cb8f17808917af894cb821fc4f9876ff013e969f47e495c76d20056153c9eab",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-12T19:39:33+00:00"
       },
       "failed": false,
       "pr_number": 11220,
