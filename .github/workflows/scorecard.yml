@@ -12,11 +12,6 @@ on:
 
 permissions: {}
 
-concurrency:
-  # github.workflow here would be the caller's name, not this workflow's.
-  group: shared-workflow-scorecard-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   # Scorecard restricts what this job may contain while publish_results is true:
   # every step must be a `uses:` of an allow-listed action, and no other job may
