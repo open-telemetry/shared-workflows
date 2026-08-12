@@ -11194,13 +11194,13 @@
     },
     "50166": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "atoulme",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 7,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -11219,11 +11219,19 @@
         "head_sha": "67b3278cb96a440dea6c2ee8d6748dff62fe9283",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T01:38:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T01:41:59+00:00",
+        "last_approver_activity_at": "2026-08-12T01:41:59+00:00",
         "last_author_activity_at": "2026-08-12T01:38:33+00:00",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "MovieStoreGuy",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -11233,9 +11241,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "ad6eafb562bd150da96034a8a8962ac62fe6b01876e521b271ba4e5161811362",
-        "waiting_age_basis": "last_author_activity",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "7615de59af30cf23cc11aa0995d8fbb6b06adbe7ce45fbf8252b99277fca7678",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-12T01:33:42+00:00"
       },
       "failed": false,
