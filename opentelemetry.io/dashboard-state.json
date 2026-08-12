@@ -5195,9 +5195,12 @@
         "author": "vijaysaikia05",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "056713b2b7c34a668bb9acece828b368",
+        "ci_failing_count": 2,
+        "ci_failing_since": "2026-08-12T04:20:45+00:00",
+        "ci_pending_count": 4,
+        "ci_uncleared_failing_count": 2,
+        "ci_uncleared_failing_since": "2026-08-12T04:20:45+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -5215,10 +5218,10 @@
         "head_sha": "a87172d6f6176ef95550bfd44a26e1871500650c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-11T19:47:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T04:20:55+00:00",
+        "last_approver_activity_at": "2026-08-12T04:20:55+00:00",
         "last_author_activity_at": "2026-08-10T17:57:44+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -5227,17 +5230,25 @@
             "login": "MrAlias",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "bd5ea1b619faf9ef284d6ba1bb469d4d85ea2cddc0b898860c37981e5f570547",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-10T17:57:44+00:00"
+        "routing_input_fingerprint": "0492ede9dbb5cae6b7d404407617537d70f4e1018d6d4282aaf84f35c95c18e1",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-12T04:20:45+00:00"
       },
       "failed": false,
       "pr_number": 11298,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11298",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11299": {
