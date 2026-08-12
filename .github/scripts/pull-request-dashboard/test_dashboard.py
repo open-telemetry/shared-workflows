@@ -124,6 +124,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             "ci_failing_count": 0,
             "ci_pending_count": 0,
             "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_cleared_count": 1,
             "head_sha": "new-head",
             "copilot_review_exists": True,
             "copilot_review_needed": True,

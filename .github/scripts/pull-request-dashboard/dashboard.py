@@ -1422,13 +1422,18 @@ def resolve_pr_route(
         facts.get("dashboard_override_cleared_count")
         or facts.get("dashboard_override_cleared_ci")
     )
-    same_overridden_head = (
+    same_override_command = (
         bool(facts.get("dashboard_override_since"))
         and facts.get("dashboard_override_since")
         == previous_facts.get("dashboard_override_since")
+    )
+    same_overridden_head = (
+        same_override_command
         and facts.get("head_sha") == previous_facts.get("head_sha")
     )
-    manual_reviewer_handoff = override_cleared_actions or bool(
+    manual_reviewer_handoff = (
+        override_cleared_actions and not same_override_command
+    ) or bool(
         previous_facts.get("copilot_review_bypassed_by_override")
         and same_overridden_head
     )
