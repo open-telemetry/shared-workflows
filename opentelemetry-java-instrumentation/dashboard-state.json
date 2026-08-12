@@ -561,17 +561,14 @@
         "approval_count": 2,
         "assignees": [],
         "author": "royteeuwen",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995#discussion_r3765649154",
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995#discussion_r3765715226"
-        ],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18995#pullrequestreview-4850026586"
-        ],
+        "author_action_review_thread_urls": [],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "b70863f8b9a848df9ed23f90b0a481ec",
-        "ci_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-12T17:58:09+00:00",
         "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-12T17:58:09+00:00",
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -586,11 +583,11 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "60bd2fd28f41e813bac3529a40f48782b1ffb363",
+        "head_sha": "742cb19723136a307de1ff48d801174306edd264",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T10:59:46+00:00",
-        "last_approver_activity_at": "2026-08-12T10:59:46+00:00",
+        "last_activity_at": "2026-08-12T17:54:34+00:00",
+        "last_approver_activity_at": "2026-08-12T17:54:34+00:00",
         "last_author_activity_at": "2026-08-12T05:50:16+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -599,7 +596,7 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "laurit",
-            "open_thread": true,
+            "open_thread": false,
             "top_level_feedback": false
           },
           {
@@ -608,13 +605,13 @@
             "changes_requested": false,
             "login": "trask",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "80a7f47102c870064aa036b6ba075746ff8b340c64d7fa57858c693eac350799",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-04T02:22:53+00:00"
+        "routing_input_fingerprint": "8673c24c7cc1fa6b264e111b50a9dd891999a5731cc81fb93d06092700ac4232",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-12T17:58:09+00:00"
       },
       "failed": false,
       "pr_number": 18995,
