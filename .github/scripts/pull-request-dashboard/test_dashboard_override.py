@@ -176,7 +176,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
         self.assertIn(dashboard_override.command_reply_marker(4), routed)
         self.assertIn(dashboard_override.override_ack_marker(4), routed)
-        self.assertIn("@author, routed this pull request to reviewers.", routed)
+        self.assertIn("@author, this pull request was routed to reviewers.", routed)
         self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
             "@author, your reviewer-routing request was recorded; the reviewer "

@@ -293,7 +293,7 @@ def render_command_reply(reply: dict[str, Any]) -> str:
                 "the approvals it needs and is now waiting on maintainers."
             )
         else:
-            message = "routed this pull request to reviewers."
+            message = "this pull request was routed to reviewers."
     else:
         subcommand = reply.get("subcommand") or ""
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
