@@ -2222,12 +2222,13 @@
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
+        "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
-        "copilot_review_needed": true,
-        "copilot_review_outstanding": true,
-        "copilot_review_request_needed": true,
+        "copilot_review_needed": false,
+        "copilot_review_outstanding": false,
+        "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": true,
+        "copilot_review_stale": false,
         "created_at": "2026-08-09T15:16:15+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_cleared_ci": false,
@@ -2268,15 +2269,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "82297ff91af0277617016a93629709c4ac195c07f4b634fc966adebdd28443ef",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-12T08:05:30+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "f4a8f097a876338260f86e37b2eb4ea181f083550ec06e690927d61a3c1b58bb",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-11T21:02:39+00:00"
       },
       "failed": false,
       "pr_number": 19451,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19451",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5252941783": {
           "evidence": {
