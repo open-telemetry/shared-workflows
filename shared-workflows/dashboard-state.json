@@ -89,7 +89,7 @@
     },
     "245": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -114,20 +114,29 @@
         "head_sha": "337051e66d61f2aa853a71b7b04474a2aa4c5d80",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T04:21:46+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T13:21:19+00:00",
+        "last_approver_activity_at": "2026-08-12T13:21:19+00:00",
         "last_author_activity_at": "2026-08-12T04:21:20+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "bdfb0062d69b600b2f5cce68305bcbad5a8604cadf4566ef319be14462e9cc76",
+        "routing_input_fingerprint": "50de86966e1ade4bac63826b3d088deff0f2272658a26efe7dee55dd279d4d0c",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-12T04:21:20+00:00"
       },
       "failed": false,
       "pr_number": 245,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/245",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
