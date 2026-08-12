@@ -453,6 +453,15 @@ the implementation understandable and operationally cheap.
   of review state. A `CHANGES_REQUESTED` state affects only the reviewer's
   badge; it does not affect dashboard actions or routing. Empty review summaries
   are ignored; their inline comments, if any, define independent actions.
+- A review summary that only introduces the review — where its comments came
+  from, how much weight to give them, or that the author is free to disagree
+  with them — needs nothing from the author. Those comments are already
+  independent items, so treating the preamble as feedback asks the author to
+  answer a note about comments each tracked on their own, and its invitation to
+  push back would outlive every one of them. The classifier's ambiguity
+  fail-safe otherwise sends these to the author whenever the wording reads as a
+  request, so the prompt names them; a preamble that also asks for something is
+  ordinary feedback.
 - The author reply that closed an item is retained in the cached PR result. It
   is reused only when it is newer than the item's creation time, which an edit
   never moves. Accepted tradeoff: a substantively rewritten request keeps the
