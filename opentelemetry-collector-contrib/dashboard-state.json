@@ -10205,7 +10205,7 @@
     },
     "50106": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "MikeGoldsmith",
         "author_action_review_thread_urls": [],
@@ -10230,20 +10230,29 @@
         "head_sha": "da9337d26cf72e20ea6002eb9defe748557ac0d9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-11T19:41:56+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T15:20:05+00:00",
+        "last_approver_activity_at": "2026-08-12T15:20:05+00:00",
         "last_author_activity_at": "2026-08-11T19:41:56+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a0224e604a0b782dfb6102a3a3cc54d4ff137acf02fa758b551da132437b3ca0",
+        "routing_input_fingerprint": "ddf008ca3c97db776a7a82473bfc288249b345d6b98492228348a4b5debc2b08",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-11T19:41:56+00:00"
       },
       "failed": false,
       "pr_number": 50106,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50106",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50107": {
