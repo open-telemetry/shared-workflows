@@ -72,7 +72,7 @@ Fields:
 | `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
-| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head with no open Copilot review threads is required before routing a PR to reviewers or maintainers. A thread counts as open while it is unresolved and GitHub has not marked it outdated, so a thread whose code the author has since rewritten stops holding the PR even if nobody resolved it. The dashboard re-requests Copilot review when a push has left the previous review stale, and does not duplicate a pending request. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
+| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head with no open Copilot review threads is required before automatically routing a PR to reviewers or maintainers. An effective `/dashboard route:reviewers` override bypasses this gate. A thread counts as open while it is unresolved and GitHub has not marked it outdated, so a thread whose code the author has since rewritten stops holding the PR even if nobody resolved it. The dashboard re-requests Copilot review when a push has left the previous review stale, and does not duplicate a pending request. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
@@ -204,6 +204,10 @@ Anything that happens after the command keeps its author action, so new review
 feedback and new check failures still route the pull request back to the author.
 A reviewer who disagrees that a cleared item was handled says so on that item,
 which routes the pull request back to the author on the next refresh.
+An effective override does not request or wait for a Copilot review of the
+current head, because the command is an explicit manual handoff. Required checks
+must still settle before the route advances. A later push restores the normal
+Copilot review gate.
 
 ## Author reminder
 

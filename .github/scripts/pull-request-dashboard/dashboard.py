@@ -1410,14 +1410,66 @@ def resolve_pr_route(
     previous_result: dict[str, Any] | None = None,
 ) -> str:
     route = route_pr(facts, pending_actions, required_approvals)
+    previous_facts = (previous_result or {}).get("facts") or {}
+    override_cleared_actions = bool(
+        facts.get("dashboard_override_cleared_count")
+        or facts.get("dashboard_override_cleared_ci")
+    )
+    pending_override_command_id = facts.get("dashboard_override_command_id") or 0
+    same_override_command = (
+        bool(facts.get("dashboard_override_since"))
+        and facts.get("dashboard_override_since")
+        == previous_facts.get("dashboard_override_since")
+        and (
+            not pending_override_command_id
+            or pending_override_command_id
+            == (previous_facts.get("dashboard_override_command_id") or 0)
+        )
+    )
+    same_overridden_head = (
+        same_override_command
+        and facts.get("head_sha") == previous_facts.get("head_sha")
+    )
+    manual_reviewer_handoff = (
+        override_cleared_actions
+        and bool(pending_override_command_id)
+        and not same_override_command
+    ) or bool(
+        previous_facts.get("copilot_review_bypassed_by_override")
+        and same_overridden_head
+    )
+    facts["copilot_review_bypassed_by_override"] = manual_reviewer_handoff
+    copilot_review_gate_enabled = (
+        require_clean_copilot_review and not manual_reviewer_handoff
+    )
     set_copilot_review_request_needed(
-        facts, route, enabled=require_clean_copilot_review
+        facts, route, enabled=copilot_review_gate_enabled
     )
     return hold_route_until_gates_settle(
         facts,
         route,
         previous_result,
-        require_clean_copilot_review=require_clean_copilot_review,
+        require_clean_copilot_review=copilot_review_gate_enabled,
+    )
+
+
+def preserve_override_state_after_failure(
+    facts: dict[str, Any],
+    previous_result: dict[str, Any] | None,
+) -> None:
+    previous_facts = (previous_result or {}).get("facts") or {}
+    facts["dashboard_override_command_id"] = (
+        previous_facts.get("dashboard_override_command_id") or 0
+    )
+    same_overridden_head = (
+        bool(facts.get("dashboard_override_since"))
+        and facts.get("dashboard_override_since")
+        == previous_facts.get("dashboard_override_since")
+        and facts.get("head_sha") == previous_facts.get("head_sha")
+    )
+    facts["copilot_review_bypassed_by_override"] = bool(
+        previous_facts.get("copilot_review_bypassed_by_override")
+        and same_overridden_head
     )
 
 
@@ -1524,6 +1576,7 @@ def build_pr_result(
             if classification.get("failed")
         ]
         if failed_classifications:
+            preserve_override_state_after_failure(facts, previous_result)
             return {
                 "pr_number": number,
                 "pr_title": raw["pr"].get("title") or "",

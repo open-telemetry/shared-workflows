@@ -335,11 +335,11 @@ the implementation understandable and operationally cheap.
   stale review is the ordinary state between a push and the next re-review, and
   an icon that is always present says nothing about which PRs are actually
   waiting.
-- An outstanding Copilot review holds the PR where it is the same way an
-  unsettled required check does, including when a reviewer-routing override
-  asked for the handoff. The override says the author is done with the
-  discussion, not that the robots have finished, and a handoff made before they
-  report would only change back.
+- An effective reviewer-routing override bypasses the Copilot gate for the
+  current head. The command is an explicit manual handoff, so requesting another
+  automated review before honoring it adds delay without clarifying the author's
+  intent. A later push restores the gate. Required checks still hold the route
+  because their result can independently return the pull request to the author.
 - The gate withholds the re-review request until the required checks have
   settled. A route computed while checks are still running is provisional: a
   failure that has not completed yet cannot route the PR to its author, so the

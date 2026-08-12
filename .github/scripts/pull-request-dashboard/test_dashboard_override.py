@@ -165,7 +165,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertIn(dashboard_override.command_reply_marker(2), unauthorized)
         self.assertIn(
-            "@outsider only the pull request author or a member of an approving "
+            "@outsider, only the pull request author or a member of an approving "
             "team can use `/dashboard route:reviewers`.",
             unauthorized,
         )
@@ -176,16 +176,16 @@ class DashboardOverrideTest(unittest.TestCase):
         )
         self.assertIn(dashboard_override.command_reply_marker(4), routed)
         self.assertIn(dashboard_override.override_ack_marker(4), routed)
-        self.assertIn("@author routed this pull request to reviewers.", routed)
+        self.assertIn("@author, this pull request was routed to reviewers.", routed)
         self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
-            "@author accepted the reviewer-routing override; the reviewer "
+            "@author, your reviewer-routing request was recorded; the reviewer "
             "handoff is waiting on the required status checks.",
             gate_held,
         )
         self.assertIn(dashboard_override.command_reply_marker(6), maintainer)
         self.assertIn(
-            "@author accepted the reviewer-routing override; this pull request "
+            "@author, your reviewer-routing request was recorded; this pull request "
             "has the approvals it needs and is now waiting on maintainers.",
             maintainer,
         )
@@ -202,7 +202,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 )
                 self.assertIn(dashboard_override.command_reply_marker(7), body)
                 self.assertIn(dashboard_override.override_ack_marker(7), body)
-                self.assertIn(f"@author this pull request is {phrase}, so", body)
+                self.assertIn(f"@author, this pull request is {phrase}, so", body)
                 self.assertIn("`/dashboard route:reviewers` had no effect", body)
 
     def test_renders_already_routed_reply_for_a_command_that_cleared_nothing(
@@ -214,7 +214,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertIn(dashboard_override.override_ack_marker(7), body)
         self.assertIn(
-            "@author everything still open on this pull request arrived after "
+            "@author, everything still open on this pull request arrived after "
             "your `/dashboard route:reviewers` command",
             body,
         )
@@ -657,7 +657,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 call([
                     "gh", "api", "--method", "POST",
                     "repos/open-telemetry/example/issues/7/comments",
-                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author accepted the reviewer-routing override; the reviewer handoff is waiting on the Copilot review.\n",
+                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author, your reviewer-routing request was recorded; the reviewer handoff is waiting on the Copilot review.\n",
                 ]),
             ],
             run_gh.call_args_list,

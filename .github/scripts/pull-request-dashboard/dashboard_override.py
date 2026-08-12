@@ -258,7 +258,7 @@ ROUTE_ALREADY_ROUTED_PHRASE = {
 
 def render_command_reply(reply: dict[str, Any]) -> str:
     user = reply.get("user") or ""
-    mention = f"@{user} " if user else ""
+    mention = f"@{user}, " if user else ""
     kind = reply.get("kind")
     if kind == "unauthorized":
         message = (
@@ -270,7 +270,7 @@ def render_command_reply(reply: dict[str, Any]) -> str:
         held_gates = reply.get("held_gates") or ""
         if held_gates:
             message = (
-                "accepted the reviewer-routing override; the reviewer handoff "
+                "your reviewer-routing request was recorded; the reviewer handoff "
                 f"is waiting on {held_gates}."
             )
         elif route in PRE_REVIEW_ROUTES:
@@ -289,11 +289,11 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             )
         elif route == "maintainer":
             message = (
-                "accepted the reviewer-routing override; this pull request has "
+                "your reviewer-routing request was recorded; this pull request has "
                 "the approvals it needs and is now waiting on maintainers."
             )
         else:
-            message = "routed this pull request to reviewers."
+            message = "this pull request was routed to reviewers."
     else:
         subcommand = reply.get("subcommand") or ""
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")

@@ -23,6 +23,7 @@ from dashboard import (
     hold_route_until_gates_settle,
     main,
     merge_dashboard_update_with_latest_state,
+    preserve_override_state_after_failure,
     remove_cached_dashboard_prs,
     resolve_pr_route,
     route_pr,
@@ -40,21 +41,268 @@ class ResolvePrRouteTest(unittest.TestCase):
             "ci_failing_count": 1,
             "ci_pending_count": 0,
             "ci_uncleared_failing_count": 0,
+            "dashboard_override_cleared_ci": True,
+            "dashboard_override_command_id": 1,
         }
         facts.update(overrides)
         return facts
 
-    def test_override_is_still_gated_by_required_copilot_review(self) -> None:
+    def test_override_bypasses_required_copilot_review(self) -> None:
         facts = self._cleared_ci_facts(
             copilot_review_exists=True,
             copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("approver", route)
+        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts["copilot_review_outstanding"])
+        self.assertFalse(facts["route_held_for_gates"])
+
+    def test_discussion_override_bypasses_required_copilot_review(self) -> None:
+        facts = self._cleared_ci_facts(
+            ci_failing_count=0,
+            dashboard_override_cleared_ci=False,
+            dashboard_override_cleared_count=1,
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("approver", route)
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_normal_handoff_is_still_gated_by_required_copilot_review(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+            "copilot_review_stale": True,
+            "copilot_review_requested": False,
+        }
+
+        route = resolve_pr_route(facts, {}, 1, True)
+
+        self.assertEqual("author", route)
+        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertTrue(facts["copilot_review_outstanding"])
+        self.assertTrue(facts["route_held_for_gates"])
+
+    def test_acknowledged_override_without_cached_state_does_not_bypass(self) -> None:
+        facts = self._cleared_ci_facts(
+            dashboard_override_command_id=0,
+            dashboard_override_since="2026-08-11T12:00:00Z",
+            head_sha="current-head",
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
             copilot_review_requested=False,
         )
 
         route = resolve_pr_route(facts, {}, 1, True)
 
         self.assertEqual("author", route)
-        self.assertTrue(facts["route_held_for_gates"])
+        self.assertFalse(facts["copilot_review_bypassed_by_override"])
+        self.assertTrue(facts["copilot_review_request_needed"])
+
+    def test_override_bypass_survives_refresh_for_the_same_head(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "head_sha": "current-head",
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+            "copilot_review_stale": True,
+            "copilot_review_requested": False,
+        }
+        previous_result = {
+            "route": "approver",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "head_sha": "current-head",
+                "copilot_review_bypassed_by_override": True,
+            },
+        }
+
+        route = resolve_pr_route(facts, {}, 1, True, previous_result)
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["copilot_review_bypassed_by_override"])
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_override_bypass_ends_after_a_push(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_cleared_count": 1,
+            "head_sha": "new-head",
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+            "copilot_review_stale": True,
+            "copilot_review_requested": False,
+        }
+        previous_result = {
+            "route": "approver",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "head_sha": "old-head",
+                "copilot_review_bypassed_by_override": True,
+            },
+        }
+
+        resolve_pr_route(facts, {}, 1, True, previous_result)
+
+        self.assertFalse(facts["copilot_review_bypassed_by_override"])
+        self.assertTrue(facts["copilot_review_request_needed"])
+
+    def test_same_second_override_restarts_bypass_after_a_push(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_command_id": 7,
+            "dashboard_override_cleared_count": 1,
+            "head_sha": "new-head",
+            "copilot_review_exists": True,
+            "copilot_review_needed": True,
+            "copilot_review_stale": True,
+            "copilot_review_requested": False,
+        }
+        previous_result = {
+            "route": "author",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "dashboard_override_command_id": 0,
+                "head_sha": "new-head",
+                "copilot_review_bypassed_by_override": False,
+            },
+        }
+
+        route = resolve_pr_route(facts, {}, 1, True, previous_result)
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["copilot_review_bypassed_by_override"])
+        self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_first_override_handoff_survives_classification_failure(self) -> None:
+        failed_facts: dict[str, object] = {
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_command_id": 7,
+            "head_sha": "current-head",
+        }
+        previous_result = {
+            "route": "author",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "dashboard_override_command_id": 0,
+                "head_sha": "current-head",
+                "copilot_review_bypassed_by_override": False,
+            },
+        }
+        preserve_override_state_after_failure(failed_facts, previous_result)
+        facts = self._cleared_ci_facts(
+            dashboard_override_command_id=7,
+            dashboard_override_since="2026-08-11T12:00:00Z",
+            head_sha="current-head",
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(
+            facts,
+            {},
+            1,
+            True,
+            {"route": "unknown", "facts": failed_facts},
+        )
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["copilot_review_bypassed_by_override"])
+
+    def test_existing_override_handoff_survives_classification_failure(self) -> None:
+        failed_facts: dict[str, object] = {
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_command_id": 0,
+            "head_sha": "current-head",
+        }
+        previous_result = {
+            "route": "approver",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "dashboard_override_command_id": 7,
+                "head_sha": "current-head",
+                "copilot_review_bypassed_by_override": True,
+            },
+        }
+        preserve_override_state_after_failure(failed_facts, previous_result)
+        facts = self._cleared_ci_facts(
+            dashboard_override_command_id=0,
+            dashboard_override_since="2026-08-11T12:00:00Z",
+            head_sha="current-head",
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(
+            facts,
+            {},
+            1,
+            True,
+            {"route": "unknown", "facts": failed_facts},
+        )
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["copilot_review_bypassed_by_override"])
+
+    def test_push_during_classification_failure_ends_override_handoff(self) -> None:
+        failed_facts: dict[str, object] = {
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_command_id": 0,
+            "head_sha": "new-head",
+        }
+        previous_result = {
+            "route": "approver",
+            "facts": {
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "dashboard_override_command_id": 7,
+                "head_sha": "old-head",
+                "copilot_review_bypassed_by_override": True,
+            },
+        }
+        preserve_override_state_after_failure(failed_facts, previous_result)
+        facts = self._cleared_ci_facts(
+            dashboard_override_command_id=0,
+            dashboard_override_since="2026-08-11T12:00:00Z",
+            head_sha="new-head",
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
+
+        route = resolve_pr_route(
+            facts,
+            {},
+            1,
+            True,
+            {"route": "unknown", "facts": failed_facts},
+        )
+
+        self.assertEqual("author", route)
+        self.assertFalse(facts["copilot_review_bypassed_by_override"])
 
     def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
         facts = self._cleared_ci_facts(
