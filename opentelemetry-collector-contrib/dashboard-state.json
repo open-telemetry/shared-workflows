@@ -8332,13 +8332,13 @@
     },
     "49949": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "iypetrov",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -8350,17 +8350,17 @@
         "created_at": "2026-07-29T13:11:42+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_cleared_ci": false,
-        "dashboard_override_cleared_count": 1,
+        "dashboard_override_cleared_count": 0,
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "2026-08-09T07:12:57Z",
         "head_sha": "6ea64c79c03d3def698fff296ece66bdf610522b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-09T10:17:08+00:00",
-        "last_approver_activity_at": "2026-08-06T09:11:29+00:00",
+        "last_activity_at": "2026-08-12T06:50:40+00:00",
+        "last_approver_activity_at": "2026-08-12T06:50:40+00:00",
         "last_author_activity_at": "2026-08-09T10:17:08+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -8371,7 +8371,7 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "VihasMakwana",
@@ -8379,16 +8379,23 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "97b6a0f980ed84ab588c0e5551caf9ca843c8533648f2f01e128dab9c1a19359",
-        "waiting_age_basis": "last_author_activity",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "f6c36b3cb41d9eb8cb6a417acfb1fe8b341e24ed927feb76713394ca8bb59870",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-09T10:17:08+00:00"
       },
       "failed": false,
       "pr_number": 49949,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49949",
       "route": "approver",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-issue-comment-5149762566": {
+          "evidence": {
+            "reply": "2026-08-01T07:13:06Z"
+          },
+          "reply_source_id": 5150350705
+        }
+      }
     },
     "49958": {
       "facts": {
