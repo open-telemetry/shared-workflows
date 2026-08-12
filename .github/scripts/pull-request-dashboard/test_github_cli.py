@@ -299,6 +299,18 @@ class GithubCliTest(unittest.TestCase):
             )
         )
 
+    def test_permanent_tls_certificate_errors_are_not_retryable(self) -> None:
+        errors = (
+            'tls: failed to verify certificate: x509: certificate has expired '
+            'or is not yet valid',
+            'tls: failed to verify certificate: x509: certificate signed by '
+            'unknown authority',
+        )
+
+        for error in errors:
+            with self.subTest(error=error):
+                self.assertFalse(is_retryable_gh_error(error))
+
     @patch("github_cli.gh_api")
     def test_list_open_prs_uses_paginated_rest_api(self, gh_api) -> None:
         gh_api.return_value = [

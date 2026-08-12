@@ -52,7 +52,7 @@ _RETRYABLE_GH_ERROR_FRAGMENTS = (
     "temporarily unavailable",
     "connection reset",
     "connection refused",
-    "tls: failed to verify certificate",
+    "x509: certificate is not valid for any names, but wanted to match api.github.com",
 )
 
 
