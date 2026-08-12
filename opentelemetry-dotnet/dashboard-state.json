@@ -670,11 +670,14 @@
     },
     "7599": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7599#pullrequestreview-4880736491"
+        ],
+        "author_nudge_episode_id": "35ac53ed4a2845479bc32933156527cc",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -695,29 +698,29 @@
         "head_sha": "4b2ebd45c80bfbe212cfbe7737e1002c2edcfd6c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-09T10:30:00+00:00",
-        "last_approver_activity_at": "2026-08-07T07:16:04+00:00",
+        "last_activity_at": "2026-08-12T07:41:52+00:00",
+        "last_approver_activity_at": "2026-08-12T07:41:52+00:00",
         "last_author_activity_at": "2026-08-09T10:30:00+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "Kielek",
             "open_thread": true,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "8f75ff96f18ca0e34465efc1456819ef8ff6d1b35aa554896dc03bfb5a68e4f9",
+        "routing_input_fingerprint": "9184066ba4fb0d8570399c39b43c156b50ad3a7406b3b5bd7238c047fadca559",
         "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-09T10:29:59+00:00"
+        "waiting_since": "2026-08-07T07:16:04+00:00"
       },
       "failed": false,
       "pr_number": 7599,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7599",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "7600": {
