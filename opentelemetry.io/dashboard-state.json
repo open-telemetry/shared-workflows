@@ -3864,13 +3864,13 @@
         "assignees": [],
         "author": "ocelotl",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11193#pullrequestreview-4870611167"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "b81da50bb33f4f4cba3b641de6e9bc6a",
-        "ci_failing_count": 0,
-        "ci_pending_count": 6,
-        "ci_uncleared_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-12T01:29:47+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-12T01:29:47+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -3888,10 +3888,10 @@
         "head_sha": "44856fb06444b7314636921836af60e22197733d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T01:25:21+00:00",
+        "last_activity_at": "2026-08-12T01:34:33+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-12T01:25:21+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-08-12T01:34:33+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -3907,19 +3907,26 @@
             "changes_requested": true,
             "login": "ymotongpoo",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "fb512dabd4d33b802a07765e9bd91468f48923d5f003ba57d2772b30e4209e64",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-06T03:01:10+00:00"
+        "routing_input_fingerprint": "52c4fedba6e4292c6e261f26ae2f6791ee71a5b6ae59db3ffddf7ec5a2797eca",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-12T01:29:47+00:00"
       },
       "failed": false,
       "pr_number": 11193,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11193",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-4870611167": {
+          "evidence": {
+            "reply": "2026-08-12T01:34:33Z"
+          },
+          "reply_source_id": 5261046517
+        }
+      }
     },
     "11203": {
       "facts": {
