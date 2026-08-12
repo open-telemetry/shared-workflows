@@ -1269,10 +1269,7 @@
         "assignees": [],
         "author": "jraleigh",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/10808#issuecomment-5100195981"
-        ],
-        "author_nudge_episode_id": "8dd4ce8c52bd456e9e57087c94624487",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1304,19 +1301,26 @@
             "changes_requested": false,
             "login": "vitorvasc",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "routing_input_fingerprint": "774389674d94dd569130a711c1968f8be64faacb100788f64e3ac5957247390f",
-        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-12T13:11:42+00:00"
       },
       "failed": false,
       "pr_number": 10808,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10808",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5100195981": {
+          "evidence": {
+            "reply": "2026-08-12T13:11:42Z"
+          },
+          "reply_source_id": 5267271020
+        }
+      }
     },
     "10812": {
       "facts": {
