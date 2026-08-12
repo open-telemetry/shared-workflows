@@ -5106,13 +5106,13 @@
     },
     "11312": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "chalin",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 4,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -5131,20 +5131,29 @@
         "head_sha": "0a47d7ea1542ff615634dbaf0d7f5c247231eb91",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T21:39:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T22:16:29+00:00",
+        "last_approver_activity_at": "2026-08-12T22:16:29+00:00",
         "last_author_activity_at": "2026-08-12T21:39:44+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "d90862be5d565c8eff8f8f3338f29d78da3a454f83855450e7df9dfa57b30b08",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-08-12T14:15:30+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "didiViking",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "9e123820f49051cf82a795992d4842b59ab6cc968fa381dcbba62ffb76607ded",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-12T21:39:44+00:00"
       },
       "failed": false,
       "pr_number": 11312,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11312",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5891": {
