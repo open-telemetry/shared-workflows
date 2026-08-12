@@ -3108,7 +3108,7 @@
     },
     "6993": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "thompson-tomo",
         "author_action_review_thread_urls": [],
@@ -3133,20 +3133,29 @@
         "head_sha": "559cb28eea75d47478b6a45a7d5099398e672b96",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T05:09:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T19:57:56+00:00",
+        "last_approver_activity_at": "2026-08-12T19:57:56+00:00",
         "last_author_activity_at": "2026-08-10T05:08:55+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trentm",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "5b32cd03ff4154a04bbf2b5c44f1396dbb07f0577bf3725d49db526ec2a1ade5",
+        "routing_input_fingerprint": "0c3061aa06cbdebe1588dc05987b7496004cc6eaba4075f648a4ec860248c44b",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-10T05:08:55+00:00"
       },
       "failed": false,
       "pr_number": 6993,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6993",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "6994": {
