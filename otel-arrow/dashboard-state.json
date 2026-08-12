@@ -1969,7 +1969,7 @@
     },
     "3739": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
@@ -1991,17 +1991,26 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "13a69266a6baa899b6088e6c781fabba942cdece",
+        "head_sha": "63d64e39822dbd52dbdd3747e99a7aebfc8ab6f1",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T21:27:18+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T23:07:39+00:00",
+        "last_approver_activity_at": "2026-08-12T23:07:39+00:00",
         "last_author_activity_at": "2026-08-12T21:27:18+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "2779927b58e09b47dfc09d9f23e87a11eae02b2f1e10d100e6f1c79125423fe9",
-        "waiting_age_basis": "last_author_activity",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "utpilla",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "79c858276c276177fe31b4ae6d71934b7be69b097b44443e278800d98865d2fa",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-12T21:10:57+00:00"
       },
       "failed": false,
