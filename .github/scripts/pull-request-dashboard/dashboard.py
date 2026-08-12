@@ -1460,6 +1460,26 @@ def resolve_pr_route(
     )
 
 
+def preserve_override_state_after_failure(
+    facts: dict[str, Any],
+    previous_result: dict[str, Any] | None,
+) -> None:
+    previous_facts = (previous_result or {}).get("facts") or {}
+    facts["dashboard_override_command_id"] = (
+        previous_facts.get("dashboard_override_command_id") or 0
+    )
+    same_overridden_head = (
+        bool(facts.get("dashboard_override_since"))
+        and facts.get("dashboard_override_since")
+        == previous_facts.get("dashboard_override_since")
+        and facts.get("head_sha") == previous_facts.get("head_sha")
+    )
+    facts["copilot_review_bypassed_by_override"] = bool(
+        previous_facts.get("copilot_review_bypassed_by_override")
+        and same_overridden_head
+    )
+
+
 def assign_author_nudge_episode(
     facts: dict[str, Any],
     route: str,
@@ -1563,6 +1583,7 @@ def build_pr_result(
             if classification.get("failed")
         ]
         if failed_classifications:
+            preserve_override_state_after_failure(facts, previous_result)
             return {
                 "pr_number": number,
                 "pr_title": raw["pr"].get("title") or "",
