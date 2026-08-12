@@ -1340,7 +1340,7 @@
     },
     "4970": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "matt-hensley"
         ],
@@ -1348,7 +1348,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -1367,11 +1367,19 @@
         "head_sha": "4214c63c85e7a11e225a1c53e15543dd67dc1c31",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-12T11:34:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T11:37:10+00:00",
+        "last_approver_activity_at": "2026-08-12T11:37:10+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -1381,9 +1389,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "959e758e0aa740a5a20cb53586833cae410fa27e8bdd98bd439dabeaace6237d",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "010e026381d6798b6915268555b4ac5310680e4ad3519d8cc2b9b9bfe0895579",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-12T11:34:52+00:00"
       },
       "failed": false,
