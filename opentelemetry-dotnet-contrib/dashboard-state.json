@@ -965,7 +965,7 @@
     },
     "4963": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "matt-hensley"
         ],
@@ -992,11 +992,19 @@
         "head_sha": "8b9ea7f6e204d17f002f301bc8c3a5dcc7bef932",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-12T11:33:04+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-12T11:35:07+00:00",
+        "last_approver_activity_at": "2026-08-12T11:35:07+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -1006,9 +1014,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "d2954ec65a93010d990adb5abeab1a1d7f374433378a16af17490c0b22446382",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "c24728af8b373da6d0ade36dc436a370d87ca014e04f9d02fedba0f08e6f29d7",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-12T11:33:04+00:00"
       },
       "failed": false,
