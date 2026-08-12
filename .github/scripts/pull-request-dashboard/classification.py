@@ -122,8 +122,9 @@ before this pull request can merge?
     the author asked, and a statement that this pull request is blocked on
     another pull request, release, or decision
   - no_author_action: the item needs nothing from the PR author, such as pure
-    approval, thanks, a status summary, or a repository automation command (for
-    example "/workflow-approve", "/rerun", or "/easycla")
+    approval, thanks, a status summary, a preamble that only describes the
+    review it introduces, or a repository automation command (for example
+    "/workflow-approve", "/rerun", or "/easycla")
 
 Read the whole item before deciding. Approval is no_author_action however it is
 phrased ("LGTM", "I'm fine with the API changes", "looks good to me, feel free
@@ -131,6 +132,13 @@ to merge"), and stays no_author_action when it carries a suggestion the reviewer
 explicitly leaves for later ("we can clean this up post submission", "an
 opportunity to refactor after a point fix release", "left one small
 maintainability comment").
+
+A review preamble is no_author_action. It says only where the review's comments
+came from, how much weight to give them, or that the author is free to disagree
+with them ("AI-generated review", "lightly filtered AI-generated feedback, push
+back freely", "some nits below, take them or leave them"), and raises nothing
+itself. An invitation to push back on those comments is not a request. A
+preamble that also asks for something is author_action.
 
 Compare every login and team mentioned in `body` against `pr_author`. An item
 asking a different person or team to review, decide, or weigh in is
