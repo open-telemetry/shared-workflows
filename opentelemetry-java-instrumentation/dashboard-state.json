@@ -444,9 +444,12 @@
         "author": "shashank-reddy-nr",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 2,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "80c3d282661843b18cdc0b497f0d8e4b",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-12T20:45:42+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-12T20:45:42+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -468,7 +471,7 @@
         "last_activity_at": "2026-08-12T19:56:30+00:00",
         "last_approver_activity_at": "2026-08-04T15:51:46+00:00",
         "last_author_activity_at": "2026-08-12T19:56:30+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -488,14 +491,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "44733495b52b8361d2f3b106ee33dbaec09e422fc4951d2fd192311f64a98077",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-04T16:54:26+00:00"
+        "routing_input_fingerprint": "d7311f927d1d0485c77042f8d076115806bf4099ee038b3249342b83df4f482f",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-12T20:45:42+00:00"
       },
       "failed": false,
       "pr_number": 18978,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4890295548": {
           "evidence": {
