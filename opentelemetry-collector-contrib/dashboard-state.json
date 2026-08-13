@@ -11831,9 +11831,12 @@
         "assignees": [],
         "author": "iblancasa",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50228#pullrequestreview-4926429481"
+        ],
+        "author_nudge_episode_id": "e52b6be39372426ebc9d25befecb0c70",
         "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -11852,15 +11855,24 @@
         "head_sha": "284d83d87f7a8a5626f9dfb19646253e67bc2356",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-13T11:04:58+00:00",
+        "last_activity_at": "2026-08-13T11:23:15+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-13T10:44:23+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "a71e201e87540f47999410f7642ae63bac0a77cca8cb4c935ac9554f77c89aee",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-13T11:04:58+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "carsonip",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "329dc458961b84105c734479069d0d0a6ee49047075d21b0f7d387910d88602b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-13T11:23:15+00:00"
       },
       "failed": false,
       "pr_number": 50228,
