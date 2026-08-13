@@ -1844,7 +1844,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 4,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -1860,16 +1860,25 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "7d65241824fdd70f82fa846f6f78d44ff94ab486",
+        "head_sha": "72e40252e2bb598429f85a76a3be940ae3518cb0",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-13T10:56:38+00:00",
-        "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-13T10:56:38+00:00",
-        "required_checks_settled": true,
-        "reviewers": [],
+        "last_activity_at": "2026-08-13T18:51:32+00:00",
+        "last_approver_activity_at": "2026-08-13T14:40:47+00:00",
+        "last_author_activity_at": "2026-08-13T18:51:32+00:00",
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "drewrelmas",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "7a592ad7c4052bdb75de294e824a86652fbee201cfa01239177fe194c968f12e",
+        "routing_input_fingerprint": "01d34b78e506a06699aed1a5f62275dcaaa7314447be1b122f8325daa9f3d7dd",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-13T10:56:38+00:00"
       },
@@ -1877,7 +1886,14 @@
       "pr_number": 3748,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3748",
       "route": "approver",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-4928280059": {
+          "evidence": {
+            "reply": "2026-08-13T18:46:44Z"
+          },
+          "reply_source_id": 5284989128
+        }
+      }
     },
     "3749": {
       "facts": {
