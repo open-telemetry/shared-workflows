@@ -488,9 +488,12 @@
         "author": "shashank-reddy-nr",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "d2c6594fbbc94582ad04b23812d7a8d9",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-13T10:51:42+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-13T10:51:42+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -512,7 +515,7 @@
         "last_activity_at": "2026-08-13T09:41:27+00:00",
         "last_approver_activity_at": "2026-08-04T15:51:46+00:00",
         "last_author_activity_at": "2026-08-13T09:41:27+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -531,10 +534,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "a787b3ecf909dc2c54df2e35f9ad9d49d5d4a2441de905203563d08d0469dc44",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-12T20:45:42+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "6636b1baca37cb1f20abf5e9efb59a7f3674739c9f0f1669898cad7abcbc010b",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-13T10:51:42+00:00"
       },
       "failed": false,
       "pr_number": 18978,
