@@ -1424,8 +1424,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "albertlockett",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3737#discussion_r3779841561"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "393e79bd5e1c49489e99375b216527f2",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1446,20 +1449,29 @@
         "head_sha": "263e4f4c4aeb67d86211fa92b73d2200fdaf68b2",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-13T11:48:41+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-13T23:22:51+00:00",
+        "last_approver_activity_at": "2026-08-13T23:22:51+00:00",
         "last_author_activity_at": "2026-08-13T11:48:41+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lquerel",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "37224a5dcd4fb5aba77c44097bddd4a8197b020727c5fceaabd893fb1803bb21",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-13T11:48:41+00:00"
+        "routing_input_fingerprint": "5dcb70d9ca8e8d459213741d3fa62614a2f758d22d2ec1391af00e4234ddbd0a",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-13T23:22:51+00:00"
       },
       "failed": false,
       "pr_number": 3737,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3737",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3738": {
