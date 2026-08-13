@@ -2041,7 +2041,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -2052,12 +2052,20 @@
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "created_at": "2026-08-07T16:07:46+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5280561395,
+            "held_gates": "the required status checks and the Copilot review",
+            "kind": "already_routed",
+            "route": "author",
+            "user": "akg268"
+          }
+        ],
         "dashboard_override_cleared_ci": false,
         "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "",
+        "dashboard_override_command_id": 5280561395,
+        "dashboard_override_command_user": "akg268",
+        "dashboard_override_since": "2026-08-13T12:43:39Z",
         "head_sha": "c2fda479d70aa5752747805c0736b1a631af0c2f",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -2067,7 +2075,7 @@
         "required_checks_settled": false,
         "reviewers": [],
         "route_held_for_gates": true,
-        "routing_input_fingerprint": "cb1b2900c9e03adb0430458756aee7579ce734932e984a3d8c814df10a8f0825",
+        "routing_input_fingerprint": "adda25d6b7f5dce41239d9efd4cb5550ab7a33493a5e1c81b72e98ba14fe7724",
         "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-11T23:24:50+00:00"
       },
