@@ -8692,8 +8692,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "kartikgola",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50008#discussion_r3774167295"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "6353337dc2fc4a51b96ccb92b750c3c0",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -8714,20 +8717,29 @@
         "head_sha": "9a8e1b95ff44f51537f7a50a6460f131d94c5cd1",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-09T15:36:15+00:00",
+        "last_activity_at": "2026-08-13T09:38:57+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-09T15:36:15+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "splunk-shanu",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "bae6e1919421cc918e305566968a762be9926825038a96b5fd5575ee09091eca",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-09T15:36:15+00:00"
+        "routing_input_fingerprint": "13023cdbdf3844e3a2aded45378665040abf0987eef13829adc735d4de72823b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-13T09:38:57+00:00"
       },
       "failed": false,
       "pr_number": 50008,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50008",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5189896728": {
           "evidence": {
