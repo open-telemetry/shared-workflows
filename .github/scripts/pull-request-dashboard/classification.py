@@ -26,9 +26,12 @@ MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR = 20
 AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 
 # A GitHub login, or an org/team slug, as a comment writes it in a mention.
-_MENTION_PATTERN = r"@([A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?)"
+_MENTION_PATTERN = (
+    r"@([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:/[A-Za-z0-9._-]+)?)"
+    r"(?![A-Za-z0-9-])"
+)
 _MENTION_RE = re.compile(_MENTION_PATTERN)
-_LEADING_MENTIONS_RE = re.compile(rf"\A\s*(?:{_MENTION_PATTERN}[ \t]*,?[ \t]*)+")
+_LEADING_MENTIONS_RE = re.compile(rf"\A\s*(?:{_MENTION_PATTERN}\s*,?\s*)+")
 
 
 TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE = """You are triaging multiple independent pull request author follow-up comments.
@@ -405,7 +408,7 @@ def leading_mentions(body: str) -> list[str]:
     match = _LEADING_MENTIONS_RE.match(body or "")
     if not match:
         return []
-    return _MENTION_RE.findall(match.group(0))
+    return [mention.lower() for mention in _MENTION_RE.findall(match.group(0))]
 
 
 def reviewer_feedback_prompt_item(

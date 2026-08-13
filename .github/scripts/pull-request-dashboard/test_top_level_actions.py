@@ -1336,6 +1336,9 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(leading_mentions("@trask In #19459 @someone did this"), ["trask"])
         self.assertEqual(leading_mentions("Please rebase, @author"), [])
         self.assertEqual(leading_mentions("\n  @first @second\nplease look"), ["first", "second"])
+        self.assertEqual(leading_mentions("@first\n@second\nplease look"), ["first", "second"])
+        self.assertEqual(leading_mentions("@First @Open-Telemetry/Java"), ["first", "open-telemetry/java"])
+        self.assertEqual(leading_mentions("@invalid- please look"), [])
         self.assertEqual(leading_mentions(""), [])
 
     def test_unclear_item_sets_reviewer_wait_age(self) -> None:
