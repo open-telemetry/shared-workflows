@@ -25,6 +25,7 @@ from classification import (
     REVIEWER_FEEDBACK_VERDICTS,
     classify_discussion_domains,
     classify_review_threads,
+    leading_mentions,
     run_llm_for_verdict_batch,
     run_llm_for_top_level_author_comment_batch,
     top_level_reviewer_feedback_prompt_input,
@@ -1314,9 +1315,31 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 "discussion_id": "change-request",
                 "requester": "reviewer",
                 "pr_author": "author",
+                "addressed_to": [],
                 "body": "Please update the implementation.",
             },
         )
+
+    def test_top_level_prompt_input_reports_who_a_comment_addresses(self) -> None:
+        discussion = top_level_item("addressed")
+        discussion["comments"] = [
+            {"body": "@maintainer, @open-telemetry/java-approvers could we reuse #123 here?"}
+        ]
+
+        self.assertEqual(
+            top_level_reviewer_feedback_prompt_input(discussion)["addressed_to"],
+            ["maintainer", "open-telemetry/java-approvers"],
+        )
+
+    def test_leading_mentions_only_reads_the_opening_run(self) -> None:
+        # A mention further in names related work or people, not an addressee.
+        self.assertEqual(leading_mentions("@trask In #19459 @someone did this"), ["trask"])
+        self.assertEqual(leading_mentions("Please rebase, @author"), [])
+        self.assertEqual(leading_mentions("\n  @first @second\nplease look"), ["first", "second"])
+        self.assertEqual(leading_mentions("@first\n@second\nplease look"), ["first", "second"])
+        self.assertEqual(leading_mentions("@First @Open-Telemetry/Java"), ["first", "open-telemetry/java"])
+        self.assertEqual(leading_mentions("@invalid- please look"), [])
+        self.assertEqual(leading_mentions(""), [])
 
     def test_unclear_item_sets_reviewer_wait_age(self) -> None:
         pending_actions = {

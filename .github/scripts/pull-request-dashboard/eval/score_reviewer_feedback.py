@@ -67,12 +67,9 @@ def classify(
 ) -> dict:
     batches = [
         [
-            {
-                "discussion_id": c["id"],
-                "requester": c["requester"],
-                "pr_author": c["pr_author"],
-                "body": c["body"],
-            }
+            classification.reviewer_feedback_prompt_item(
+                c["id"], c["requester"], c["pr_author"], c["body"]
+            )
             for c in group
         ]
         for group in batch_cases(cases)

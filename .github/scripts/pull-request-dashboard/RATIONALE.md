@@ -453,6 +453,15 @@ the implementation understandable and operationally cheap.
   of review state. A `CHANGES_REQUESTED` state affects only the reviewer's
   badge; it does not affect dashboard actions or routing. Empty review summaries
   are ignored; their inline comments, if any, define independent actions.
+- Who a comment opens by addressing is extracted in code and passed to the
+  classifier as `addressed_to`, rather than left for the model to find in the
+  body. A reviewer routinely names other people, pull requests, and prior work
+  while still asking the author for something, so only an opening run of
+  mentions is treated as an addressee. Naming it explicitly is what lets the
+  prompt distinguish a design question put to a maintainer, whose next move is
+  that maintainer's, from feedback that merely mentions one. The item still
+  waits on the author whenever it also requests, suggests, or directs a change,
+  so the addressee never overrides real feedback.
 - A review summary that only introduces the review — where its comments came
   from, how much weight to give them, or that the author is free to disagree
   with them — needs nothing from the author. Those comments are already

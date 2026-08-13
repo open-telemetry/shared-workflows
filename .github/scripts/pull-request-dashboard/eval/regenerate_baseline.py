@@ -42,12 +42,9 @@ _printed = Lock()
 def batch_prompt(batch: list[dict]) -> str:
     """The prompt the dashboard would send for one batch."""
     items = [
-        {
-            "discussion_id": c["id"],
-            "requester": c["requester"],
-            "pr_author": c["pr_author"],
-            "body": c["body"],
-        }
+        classification.reviewer_feedback_prompt_item(
+            c["id"], c["requester"], c["pr_author"], c["body"]
+        )
         for c in batch
     ]
     # The cases already hold the joined comment body the pipeline would build,
