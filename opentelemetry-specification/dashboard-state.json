@@ -1188,13 +1188,16 @@
     },
     "5130": {
       "facts": {
-        "approval_count": 4,
+        "approval_count": 5,
         "assignees": [
           "dashpole"
         ],
         "author": "ArthurSens",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-specification/pull/5130#discussion_r3776525328"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "8d22cd532c044f068ee4f1846905bedb",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1215,11 +1218,19 @@
         "head_sha": "f3fa6cd3ac3f761d8d6b6485a488e2b3aa76b824",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-12T14:34:04+00:00",
-        "last_approver_activity_at": "2026-08-04T20:30:03+00:00",
+        "last_activity_at": "2026-08-13T15:06:41+00:00",
+        "last_approver_activity_at": "2026-08-13T15:06:41+00:00",
         "last_author_activity_at": "2026-08-12T14:34:04+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "arminru",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -1262,14 +1273,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "573218afdf49c0767f2c7f42dc438a5a880d0f57f67a1040180f1d54bf046e89",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-05T13:30:28+00:00"
+        "routing_input_fingerprint": "19ef1896884078c326282eee28f1c9fbf6246508a16666d565ef753aae6acdf2",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-13T15:06:27+00:00"
       },
       "failed": false,
       "pr_number": 5130,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5130",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "5136": {
