@@ -2055,11 +2055,14 @@
         "assignees": [],
         "author": "LarryHu0217",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/6932#issuecomment-5220435041"
+        ],
+        "author_nudge_episode_id": "94d36fe8566d4f95bbc9cc3f3aed9aff",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
-        "conflicts": "yes",
+        "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2073,14 +2076,22 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "58aed53a36cfc745f89e4e9c43b418f320987033",
+        "head_sha": "126ef95ea51fa7302a0c22ed3818c424e7432bac",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-09T21:10:13+00:00",
-        "last_approver_activity_at": "2026-08-04T19:10:01+00:00",
-        "last_author_activity_at": "2026-08-09T21:10:13+00:00",
+        "last_activity_at": "2026-08-13T19:16:38+00:00",
+        "last_approver_activity_at": "2026-08-13T19:16:38+00:00",
+        "last_author_activity_at": "2026-08-13T15:08:40+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "pacocartones",
+            "open_thread": false,
+            "top_level_feedback": true
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -2091,26 +2102,20 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "683e38313f145f7d90d5cbb9f8f42433d68d3bb514cd7f4e946366e02cd8010b",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-09T01:35:13+00:00"
+        "routing_input_fingerprint": "3ea0d82232a31848c086a4f0329a3c7ad1ce5c2f193b79d1e92291fbca76c786",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-07T18:02:18+00:00"
       },
       "failed": false,
       "pr_number": 6932,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6932",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5182643544": {
           "evidence": {
             "reply": "2026-08-04T17:52:52Z"
           },
           "reply_source_id": 5182692680
-        },
-        "pr-issue-comment-5220435041": {
-          "evidence": {
-            "reply": "2026-08-09T01:35:13Z"
-          },
-          "reply_source_id": 5229201563
         },
         "pr-review-4849395887": {
           "evidence": {
