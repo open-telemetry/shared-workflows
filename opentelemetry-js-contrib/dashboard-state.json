@@ -3593,10 +3593,7 @@
         "assignees": [],
         "author": "JacksonWeber",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3671#issuecomment-5286236729"
-        ],
-        "author_nudge_episode_id": "7cd21a16c4f14c0585e187b47017e5e9",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -3617,9 +3614,9 @@
         "head_sha": "14decac5fc5c3ccb51c41a2fdb5bb2f0db4dbdab",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-13T20:50:14+00:00",
+        "last_activity_at": "2026-08-13T21:05:51+00:00",
         "last_approver_activity_at": "2026-08-13T20:50:14+00:00",
-        "last_author_activity_at": "2026-08-13T18:41:49+00:00",
+        "last_author_activity_at": "2026-08-13T21:05:51+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -3628,19 +3625,26 @@
             "changes_requested": false,
             "login": "hectorhdzg",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "06620fe866bbbf6c6f3b4bfbd38b8cdc054919b8d5a80e76d47e402b11cc6af2",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-13T20:50:14+00:00"
+        "routing_input_fingerprint": "24af627668e31eadda0464fca4e79a494a445842bd02f045f4d9eee6f3efe23e",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-13T21:05:51+00:00"
       },
       "failed": false,
       "pr_number": 3671,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3671",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5286236729": {
+          "evidence": {
+            "reply": "2026-08-13T21:05:51Z"
+          },
+          "reply_source_id": 5286386438
+        }
+      }
     }
   },
   "version": 7
