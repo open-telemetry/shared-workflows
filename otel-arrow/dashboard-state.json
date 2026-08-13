@@ -1385,13 +1385,18 @@
     },
     "3717": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "pritishnahar95",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3717#discussion_r3778760483",
+          "https://github.com/open-telemetry/otel-arrow/pull/3717#discussion_r3778829436",
+          "https://github.com/open-telemetry/otel-arrow/pull/3717#discussion_r3778846663"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "18f1fd9ba92d4a40afc3b8a87aca7251",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -1407,27 +1412,35 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "6fe312c1e0ffb6309ca4f57174808a9f82d148fb",
+        "head_sha": "8a9742f65cbc58a87fea18b1300a699a34081c9a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-13T17:52:39+00:00",
-        "last_approver_activity_at": "2026-08-13T16:34:22+00:00",
-        "last_author_activity_at": "2026-08-13T17:52:39+00:00",
-        "required_checks_settled": false,
+        "last_activity_at": "2026-08-13T20:26:06+00:00",
+        "last_approver_activity_at": "2026-08-13T20:26:06+00:00",
+        "last_author_activity_at": "2026-08-13T19:26:46+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "drewrelmas",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lalitb",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "828cb11c8300e2953932e92ce20e74c076d74cc20f384cbb0868f59f04725841",
-        "waiting_age_basis": "last_approver_activity",
-        "waiting_since": "2026-08-13T16:34:22+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "2891f1d4638c82591ed48aaef6a8bb0fdb1332bea6b7a808baea17e2e04ce7f3",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-13T20:13:03+00:00"
       },
       "failed": false,
       "pr_number": 3717,
