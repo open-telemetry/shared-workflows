@@ -5054,13 +5054,13 @@
     },
     "11320": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "chalin",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 4,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -5079,20 +5079,29 @@
         "head_sha": "d510ac5f394529b400576482c62f2228c05d0f13",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-13T23:42:55+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-13T23:45:26+00:00",
+        "last_approver_activity_at": "2026-08-13T23:45:26+00:00",
         "last_author_activity_at": "2026-08-13T23:42:55+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "e0f4ade649ff3ffd7fa4aeddbe56261806c9c30ded5cc4e8d8ec5876f56911d8",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-13T13:10:30+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "9f03a5946a9377e26a911324b4fc401a1ae9ada25c3cf3c03282d93cfdaa49ff",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-13T23:42:55+00:00"
       },
       "failed": false,
       "pr_number": 11320,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11320",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11322": {
