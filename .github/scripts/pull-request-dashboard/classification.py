@@ -25,6 +25,11 @@ MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR = 200
 MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR = 20
 AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 
+# A GitHub login, or an org/team slug, as a comment writes it in a mention.
+_MENTION_PATTERN = r"@([A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?)"
+_MENTION_RE = re.compile(_MENTION_PATTERN)
+_LEADING_MENTIONS_RE = re.compile(rf"\A\s*(?:{_MENTION_PATTERN}[ \t]*,?[ \t]*)+")
+
 
 TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE = """You are triaging multiple independent pull request author follow-up comments.
 
@@ -111,7 +116,9 @@ REVIEWER_FEEDBACK_PROMPT_TEMPLATE = (
 
 Each item contains the reviewer's login in `requester`, the PR author's login in
 `pr_author`, and the comment text in `body`. First-person statements in `body`
-are the reviewer speaking, never the PR author.
+are the reviewer speaking, never the PR author. `addressed_to` lists the logins
+and teams the comment opens by addressing, and is empty when it opens by
+addressing no one.
 
 Question: does this item leave something unresolved that `pr_author` must handle
 before this pull request can merge?
@@ -140,9 +147,20 @@ back freely", "some nits below, take them or leave them"), and raises nothing
 itself. An invitation to push back on those comments is not a request. A
 preamble that also asks for something is author_action.
 
-Compare every login and team mentioned in `body` against `pr_author`. An item
-asking a different person or team to review, decide, or weigh in is
-no_author_action even when it describes a concern with this pull request.
+Compare `addressed_to`, and every other login and team named in `body`, against
+`pr_author`. An item asking a different person or team to review, decide, or
+weigh in is no_author_action even when it describes a concern with this pull
+request.
+
+When `addressed_to` names only people other than the author, the item is put to
+them, so a question or proposal it raises is theirs to answer rather than the
+author's, including one about this pull request's own design, scope, or approach
+("@maintainer do you think the approach in #123 could be used here?",
+"@maintainer should we split this into two pull requests?"). That holds only
+when the item asks the author for nothing else: an item that also requests,
+suggests, or directs any change to this pull request is author_action however it
+opens. An agent or bot account acting for the author, such as `@copilot` on a
+Copilot-authored pull request, counts as the author.
 
 Do not decide whether the author already responded. That is determined later
 from comment timestamps.
@@ -377,14 +395,44 @@ def is_automation_command_comment(body: str) -> bool:
     return bool(lines) and all(_AUTOMATION_COMMAND_RE.match(line) for line in lines)
 
 
+def leading_mentions(body: str) -> list[str]:
+    """Logins and teams a comment opens by addressing, in the order written.
+
+    Only an opening run of mentions counts. A mention further in decides nothing
+    about who a comment is put to: reviewers routinely name other work, other
+    pull requests, and other people while still asking the author for something.
+    """
+    match = _LEADING_MENTIONS_RE.match(body or "")
+    if not match:
+        return []
+    return _MENTION_RE.findall(match.group(0))
+
+
+def reviewer_feedback_prompt_item(
+    discussion_id: str, requester: str, pr_author: str, body: str
+) -> dict[str, Any]:
+    """One item as the reviewer-feedback prompt receives it.
+
+    Shared with the eval scripts so a scored prompt is the prompt production
+    sends, rather than one assembled a second time beside it.
+    """
+    return {
+        "discussion_id": discussion_id,
+        "requester": requester,
+        "pr_author": pr_author,
+        "addressed_to": leading_mentions(body),
+        "body": body,
+    }
+
+
 def top_level_reviewer_feedback_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
     comments = discussion.get("comments") or []
-    return {
-        "discussion_id": discussion["discussion_id"],
-        "requester": discussion.get("requester") or "",
-        "pr_author": discussion.get("pr_author") or "",
-        "body": "\n\n".join(comment.get("body") or "" for comment in comments),
-    }
+    return reviewer_feedback_prompt_item(
+        discussion["discussion_id"],
+        discussion.get("requester") or "",
+        discussion.get("pr_author") or "",
+        "\n\n".join(comment.get("body") or "" for comment in comments),
+    )
 
 
 def top_level_author_comment_prompt_input(discussion: dict[str, Any]) -> dict[str, Any]:
