@@ -123,13 +123,15 @@ Repository permissions:
 - Actions: read and write
 - Contents: read and write
 - Metadata: read-only
+- Pull requests: read and write
 - Workflows: read and write
 
 This app does not need to subscribe to target repository events. It only needs
 access to `open-telemetry/shared-workflows`. Actions permission lets the webhook
 bridge dispatch the central workflow. Contents and Workflows permissions let
 the promotion workflow push its validated rollout update under
-`.github/workflows/`.
+`.github/workflows/`, and Pull requests permission lets it open the promotion
+pull request.
 
 ## 3. Install the app
 

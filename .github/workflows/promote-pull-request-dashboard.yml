@@ -75,24 +75,18 @@ jobs:
         run: python3 -m unittest discover -p 'test_*.py'
 
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: promotion-push-token
+        id: otelbot-token
         with:
           client-id: ${{ vars.OTELBOT_SHARED_WORKFLOWS_CLIENT_ID }}
           private-key: ${{ secrets.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY }}
           permission-contents: write
-          permission-workflows: write
-
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: otelbot-token
-        with:
-          client-id: ${{ vars.OTELBOT_CLIENT_ID }}
-          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           permission-pull-requests: write
+          permission-workflows: write
 
       - name: Push promotion branch
         id: promotion-branch
         env:
-          GH_TOKEN: ${{ steps.promotion-push-token.outputs.token }}
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
           RELEASE: ${{ steps.release.outputs.release }}
         run: |
           set -euo pipefail
