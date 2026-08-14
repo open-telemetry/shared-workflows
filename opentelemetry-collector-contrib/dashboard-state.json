@@ -8531,13 +8531,13 @@
     },
     "49997": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "SSOHEB",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -8556,10 +8556,10 @@
         "head_sha": "c62335d17e1992e8bed46ad974f95b5c46118e36",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T11:36:39+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-14T12:43:36+00:00",
+        "last_approver_activity_at": "2026-08-14T12:43:36+00:00",
         "last_author_activity_at": "2026-08-14T11:21:55+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -8568,17 +8568,25 @@
             "login": "rogercoll",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "VihasMakwana",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "e3b20cb204951dcf68168a24ad2292a150dfa6e5ae9f7330fe6944fd3f4c9424",
+        "routing_input_fingerprint": "8925203351a66598ab9abfcd0d84fb528a701a386149092d7d174124be928faa",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-14T11:21:55+00:00"
       },
       "failed": false,
       "pr_number": 49997,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49997",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5159302169": {
           "evidence": {
