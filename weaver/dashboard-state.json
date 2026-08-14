@@ -627,12 +627,9 @@
         "assignees": [],
         "author": "florianl",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/weaver/pull/1698#pullrequestreview-4932649948"
-        ],
-        "author_nudge_episode_id": "d41ef2403efc420cbc0ddd8406059eeb",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 7,
+        "ci_pending_count": 3,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -651,9 +648,9 @@
         "head_sha": "e357ea99a0340cd63019352be58f64fdf7134663",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T07:02:04+00:00",
+        "last_activity_at": "2026-08-14T07:06:02+00:00",
         "last_approver_activity_at": "2026-08-14T00:13:49+00:00",
-        "last_author_activity_at": "2026-08-14T07:02:04+00:00",
+        "last_author_activity_at": "2026-08-14T07:06:02+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -662,7 +659,7 @@
             "changes_requested": true,
             "login": "jerbly",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           },
           {
             "approved": true,
@@ -673,16 +670,23 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "467d5e800924c5f0609f012f51fb9beba6939708f72b3172554b964a21a8776d",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "6ed8a89788d4a6c7d76b8e340929449e72b99897751533d9bf2144e2af206b28",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-14T00:13:49+00:00"
       },
       "failed": false,
       "pr_number": 1698,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1698",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-4932649948": {
+          "evidence": {
+            "reply": "2026-08-14T07:06:02Z"
+          },
+          "reply_source_id": 5290534698
+        }
+      }
     },
     "1699": {
       "facts": {
