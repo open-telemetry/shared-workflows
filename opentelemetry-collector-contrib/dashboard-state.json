@@ -800,11 +800,15 @@
         ],
         "author": "singhvibhanshu",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/47367#pullrequestreview-4554457646"
+        ],
+        "author_nudge_episode_id": "c691fd86924645baa643bb065df9e9e9",
         "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
+        "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -824,7 +828,7 @@
         "last_activity_at": "2026-08-14T13:36:58+00:00",
         "last_approver_activity_at": "2026-08-13T16:05:38+00:00",
         "last_author_activity_at": "2026-08-14T13:36:58+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -848,7 +852,7 @@
             "changes_requested": false,
             "login": "colelaven",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": false,
@@ -883,9 +887,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "3ffc43729b8057799acb3ccaf97443f4b897b4492a8ec8bb7dd9a4ce48a75c68",
-        "waiting_age_basis": "gate_hold",
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "abea961fc4778613318f1c01f26d78e323220effec0acb62456d313f3ec0fc47",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-06-23T14:57:02+00:00"
       },
       "failed": false,
@@ -901,9 +905,9 @@
         },
         "pr-issue-comment-4728209811": {
           "evidence": {
-            "reply": "2026-06-18T08:05:36Z"
+            "reply": "2026-07-20T05:04:24Z"
           },
-          "reply_source_id": 4739507902
+          "reply_source_id": 5018955029
         },
         "pr-issue-comment-4739806033": {
           "evidence": {
@@ -916,12 +920,6 @@
             "reply": "2026-06-16T14:40:08Z"
           },
           "reply_source_id": 4719982130
-        },
-        "pr-review-4554457646": {
-          "evidence": {
-            "reply": "2026-07-20T05:04:24Z"
-          },
-          "reply_source_id": 5018955029
         }
       }
     },
