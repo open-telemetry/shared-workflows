@@ -2004,7 +2004,7 @@
     },
     "3761": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2030,20 +2030,29 @@
         "head_sha": "949e9885465d84b712ed2d26f0e9077331b573f7",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-14T16:35:58+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-14T19:35:31+00:00",
+        "last_approver_activity_at": "2026-08-14T19:35:31+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "de68f0a2e091021d2b620c292a2132fc78f26f3938bc295608d619d336c8e12f",
+        "routing_input_fingerprint": "bb8491447fa73fc759d54be2c5ba1025d47fcc2e322d09c79213700510c68dd2",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-14T01:09:07+00:00"
       },
       "failed": false,
       "pr_number": 3761,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3761",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3764": {
