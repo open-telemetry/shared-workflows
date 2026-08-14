@@ -130,11 +130,22 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   current head, so a re-review
                                                   would see unreviewed code.
                                                   False when Copilot has never
-                                                  reviewed, because that PR
-                                                  awaits the automatic first
-                                                  review rather than a
-                                                  re-request. Only a stale
-                                                  review is worth re-requesting.
+                                                  reviewed; that PR is tracked
+                                                  by
+                                                  copilot_first_review_missing_since
+                                                  instead.
+    copilot_first_review_missing_since
+                                    str (iso)     When the gate first observed
+                                                  this non-draft PR with no
+                                                  Copilot review at all. Carried
+                                                  forward across passes, and
+                                                  absent once a review exists,
+                                                  the PR is a draft, or the gate
+                                                  does not apply. Once it is
+                                                  older than the grace period,
+                                                  the automatic first review is
+                                                  presumed lost and the
+                                                  dashboard requests one.
     copilot_review_needed           bool          The review is stale or Copilot
                                                   owns open review threads,
                                                   meaning unresolved threads
@@ -238,6 +249,7 @@ from copilot_review import (
     copilot_review_status,
     is_copilot_reviewer,
     record_copilot_review_observation,
+    set_copilot_first_review_missing_since,
     set_copilot_review_request_needed,
 )
 from dashboard_override import (
@@ -1408,7 +1420,9 @@ def resolve_pr_route(
     required_approvals: int,
     require_clean_copilot_review: bool,
     previous_result: dict[str, Any] | None = None,
+    now: datetime | None = None,
 ) -> str:
+    now = now or utc_now()
     route = route_pr(facts, pending_actions, required_approvals)
     previous_facts = (previous_result or {}).get("facts") or {}
     override_cleared_actions = bool(
@@ -1442,8 +1456,14 @@ def resolve_pr_route(
     copilot_review_gate_enabled = (
         require_clean_copilot_review and not manual_reviewer_handoff
     )
+    set_copilot_first_review_missing_since(
+        facts,
+        previous_result,
+        enabled=copilot_review_gate_enabled,
+        now=now,
+    )
     set_copilot_review_request_needed(
-        facts, route, enabled=copilot_review_gate_enabled
+        facts, route, enabled=copilot_review_gate_enabled, now=now
     )
     return hold_route_until_gates_settle(
         facts,
@@ -1471,6 +1491,12 @@ def preserve_override_state_after_failure(
         previous_facts.get("copilot_review_bypassed_by_override")
         and same_overridden_head
     )
+    # A failed pass must not restart the first-review clock, or a repeatedly
+    # failing classification would keep the wait permanently under the grace.
+    if previous_facts.get("copilot_first_review_missing_since"):
+        facts["copilot_first_review_missing_since"] = previous_facts[
+            "copilot_first_review_missing_since"
+        ]
 
 
 def assign_author_nudge_episode(

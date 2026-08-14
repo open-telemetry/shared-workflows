@@ -318,12 +318,40 @@ the implementation understandable and operationally cheap.
   started, not from the comment count on its review. A review's comment count
   never shrinks, so it keeps counting feedback the author has since addressed
   and holds the PR on work that is already done.
-- The gate's re-request path is deliberately narrow: it triggers only when the
-  current head has no Copilot review, because a push is the one change a
-  re-review can respond to. Findings on the current head sit on unchanged code,
-  so asking Copilot to look at it again would reach the same verdict and be
-  requested again on the next pass; those threads clear when the author resolves
-  them or pushes a fix, which is a re-request in its own right.
+- The gate's re-request path covers two states. A stale review means the author
+  pushed, which is the one change a re-review can respond to. Findings on the
+  current head sit on unchanged code, so asking Copilot to look at it again
+  would reach the same verdict and be requested again on the next pass; those
+  threads clear when the author resolves them or pushes a fix, which is a
+  re-request in its own right.
+- The other state is a first review that never arrived. The gate otherwise
+  relies entirely on automatic Copilot code review to produce it, so when GitHub
+  silently never starts one, the pull request waits on its author forever for a
+  review nobody has asked for, and only manual intervention recovers it.
+- That wait is timed from `copilot_first_review_missing_since`, set when the
+  gate first observes a non-draft pull request with no Copilot review and
+  carried forward across passes. Becoming a draft resets it, because GitHub
+  starts the automatic review when a pull request becomes ready rather than when
+  it is opened. A push deliberately does not reset it: GitHub does not
+  automatically review a pull request it has never reviewed, so restarting the
+  wait on every push would leave an actively developed pull request waiting
+  forever — exactly the case the recovery exists for.
+- One hour is the grace period. Observed first reviews normally land within
+  twenty minutes and have been seen as late as forty, so an hour clears the
+  normal spread without waiting through another full review cycle. Nothing
+  signals the expiry itself: a pull request stalled on a missing review produces
+  no activity, so no webhook fires and the hourly backfill is what notices.
+  Recording and delivery share a run, so recovery lands within roughly one to
+  two hours of the pull request becoming ready, against a failure that is
+  otherwise unbounded.
+- A first-review request is reachable only where a re-request already is — the
+  pull request would otherwise route to reviewers or maintainers, Copilot is not
+  already a pending requested reviewer, and the required checks have settled —
+  so the recovery cannot spend a review on code CI is about to reject.
+- Delivery re-validates the review state against live data and discards the
+  request only when a review already covers the current head, which is what
+  happens when one lands between the observation and the delivery. A review that
+  is still missing is a reason to request, not to discard.
 - The reviewers column marks Copilot pending only where the gate applies and a
   review is genuinely in flight — a requested re-review, or the automatic first
   review on a PR the Copilot gate is holding because Copilot has never reviewed

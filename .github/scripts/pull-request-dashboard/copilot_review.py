@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import sys
 from typing import Any
@@ -21,8 +21,17 @@ from utils import (
     actor_login,
     format_ts,
     is_copilot_reviewer_login,
+    parse_ts,
     required_checks_settled,
+    utc_now,
 )
+
+
+# How long the automatic first review is given to arrive before the dashboard
+# requests one itself. Measured against observed first reviews, which normally
+# land within twenty minutes and have been seen as late as forty; an hour
+# clears that without waiting through the whole first review cycle again.
+FIRST_REVIEW_GRACE = timedelta(hours=1)
 
 
 def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
@@ -76,22 +85,64 @@ def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:
     )
 
 
+def set_copilot_first_review_missing_since(
+    facts: dict[str, Any],
+    previous_result: dict[str, Any] | None,
+    *,
+    enabled: bool,
+    now: datetime,
+) -> None:
+    # How long this pull request has been waiting on a first review that GitHub
+    # was expected to start automatically. The clock runs only while the wait is
+    # real: the gate applies, the pull request is out of draft, and Copilot has
+    # never reviewed it. Draft resets it because GitHub starts the automatic
+    # review when a pull request becomes ready, not when it is opened. A push
+    # deliberately does not reset it, because GitHub does not automatically
+    # review a pull request it has never reviewed, so restarting the wait on
+    # every push would leave an actively developed pull request waiting forever.
+    previous_facts = (previous_result or {}).get("facts") or {}
+    if not enabled or facts.get("is_draft") or facts.get("copilot_review_exists"):
+        facts.pop("copilot_first_review_missing_since", None)
+        return
+    facts["copilot_first_review_missing_since"] = str(
+        previous_facts.get("copilot_first_review_missing_since") or format_ts(now)
+    )
+
+
+def copilot_first_review_overdue(facts: dict[str, Any], now: datetime) -> bool:
+    missing_since = parse_ts(facts.get("copilot_first_review_missing_since"))
+    if missing_since is None:
+        return False
+    return now - missing_since >= FIRST_REVIEW_GRACE
+
+
 def set_copilot_review_request_needed(
     facts: dict[str, Any],
     route: str,
     *,
     enabled: bool,
+    now: datetime | None = None,
 ) -> None:
     # Requesting a re-review before the checks report would spend it on code CI
-    # is about to reject, and a PR GitHub has never reviewed is already queued
-    # for the automatic first review. Only a stale review is worth re-running:
-    # findings on the current head are unchanged code, so a re-review cannot
-    # clear them and would be requested again on every pass.
+    # is about to reject. Only two states are worth a request. A stale review
+    # means the author pushed, which is the one change a re-review can respond
+    # to; findings on the current head sit on unchanged code, so re-reviewing
+    # would reach the same verdict and be requested again on every pass. A
+    # review GitHub should have started automatically and never did is the
+    # other: the gate would otherwise hold the pull request on its author
+    # indefinitely, waiting for a review nobody has asked for.
+    now = now or utc_now()
+    review_missing = not facts.get("copilot_review_exists")
     facts["copilot_review_request_needed"] = (
         enabled
         and route in ("approver", "maintainer")
-        and bool(facts.get("copilot_review_exists"))
-        and bool(facts.get("copilot_review_stale"))
+        and (
+            (
+                bool(facts.get("copilot_review_exists"))
+                and bool(facts.get("copilot_review_stale"))
+            )
+            or (review_missing and copilot_first_review_overdue(facts, now))
+        )
         and not facts.get("copilot_review_requested")
         and required_checks_settled(facts)
     )
@@ -217,11 +268,15 @@ def deliver_copilot_review_requests(
                 current_head,
                 raw.get("review_threads") or [],
             )
-            if not review_exists or not review_stale:
+            # A missing review is a reason to request, not to discard: the
+            # request was recorded precisely because the automatic first review
+            # never arrived. Only a review that already covers the current head
+            # makes the request pointless, which is what happens when one lands
+            # between the observation and this delivery.
+            if review_exists and not review_stale:
                 print(
                     f"discarding Copilot review request for PR #{pr_number}: "
-                    f"Copilot review exists={review_exists} "
-                    f"stale={review_stale} for head {current_head}",
+                    f"Copilot review already covers head {current_head}",
                     file=sys.stderr,
                 )
                 requests.pop(key, None)
