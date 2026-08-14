@@ -4781,9 +4781,12 @@
         "author": "tombiddulph",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "4799f59a8dbe4882ac9c9fb6f8ddc468",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-14T06:26:23+00:00",
+        "ci_pending_count": 1,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-14T06:26:23+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -4824,14 +4827,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "b37b462b202eb90e8dbe3878f632b0fa30c069a3c14120b8b98c6806c71592d4",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-14T06:16:43+00:00"
+        "routing_input_fingerprint": "bcdb4c061dd3ff5bbcdb35d651c2193d7821afe435e7b004c6087c1cf4d09ecc",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-14T06:26:23+00:00"
       },
       "failed": false,
       "pr_number": 49399,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49399",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5280846502": {
           "evidence": {
