@@ -768,7 +768,10 @@
         "assignees": [],
         "author": "florianl",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/weaver/pull/1698#pullrequestreview-4932649948"
+        ],
+        "author_nudge_episode_id": "d41ef2403efc420cbc0ddd8406059eeb",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -789,11 +792,19 @@
         "head_sha": "de6ba6732c2d736af49988a92c8255e1fd7cc684",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-13T13:08:55+00:00",
-        "last_approver_activity_at": "2026-08-13T13:08:55+00:00",
+        "last_activity_at": "2026-08-14T00:13:49+00:00",
+        "last_approver_activity_at": "2026-08-14T00:13:49+00:00",
         "last_author_activity_at": "2026-08-13T10:48:05+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "jerbly",
+            "open_thread": false,
+            "top_level_feedback": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -804,14 +815,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "55b96dfba4054e66aff719df48432ea78b454b504901bb4263d2d880e23cfe17",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-13T10:48:05+00:00"
+        "routing_input_fingerprint": "22ec8ff995f09e31e5e91c3b917ff825b87a65b06ca8b75d97d433291b7e1ed9",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-14T00:13:49+00:00"
       },
       "failed": false,
       "pr_number": 1698,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1698",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "1699": {
