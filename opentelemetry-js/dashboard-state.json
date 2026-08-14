@@ -977,10 +977,7 @@
         "assignees": [],
         "author": "macayu17",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-js/pull/6735#pullrequestreview-4930425732"
-        ],
-        "author_nudge_episode_id": "e9fc6d0a7e1e4ab29671c24a69fd2438",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1001,9 +998,9 @@
         "head_sha": "ccff7daad2afba85bcdd4b6f8ab4692f5b794f0d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T05:19:12+00:00",
+        "last_activity_at": "2026-08-14T05:22:58+00:00",
         "last_approver_activity_at": "2026-08-13T18:45:46+00:00",
-        "last_author_activity_at": "2026-08-14T05:19:12+00:00",
+        "last_author_activity_at": "2026-08-14T05:22:58+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -1012,19 +1009,26 @@
             "changes_requested": false,
             "login": "maryliag",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "75b438f7726d01ee8086f8915c66d96c48dcb7bf97287348ba64a7ee897bb343",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-13T18:45:46+00:00"
+        "routing_input_fingerprint": "dba3a93c1ce846c28652193f7197556b2b72ba5f302aaad65978ade7767a9a9d",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-14T05:22:58+00:00"
       },
       "failed": false,
       "pr_number": 6735,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6735",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-review-4930425732": {
+          "evidence": {
+            "reply": "2026-08-14T05:22:58Z"
+          },
+          "reply_source_id": 5289809331
+        }
+      }
     },
     "6751": {
       "facts": {
