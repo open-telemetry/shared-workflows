@@ -11577,6 +11577,7 @@
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
+        "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -11593,13 +11594,22 @@
         "head_sha": "095d70ebebc15026a9fc882ab25dd7424db87880",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T12:19:58+00:00",
+        "last_activity_at": "2026-08-14T17:29:38+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-14T12:19:58+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "mwear",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "098a7d1ac6e2a936b8d6bc651e38d00afb58c720ec04ed53b045ae1607c75b1e",
+        "routing_input_fingerprint": "117f311d2270b900f065e781f0e782fd3c5c1670133eba446419c94f2531369e",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-14T12:19:58+00:00"
       },
