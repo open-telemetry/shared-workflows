@@ -131,11 +131,6 @@ bridge dispatch the central workflow. Contents and Workflows permissions let
 the promotion workflow push its validated rollout update under
 `.github/workflows/`.
 
-Save the app credentials in the `shared-workflows` repository:
-
-- GitHub Actions variable `OTELBOT_SHARED_WORKFLOWS_CLIENT_ID`
-- GitHub Actions secret `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` - private key PEM
-
 ## 3. Install the app
 
 Install the target repository app on every repository listed in
