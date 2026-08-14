@@ -687,7 +687,7 @@
     },
     "1701": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jerbly",
         "author_action_review_thread_urls": [],
@@ -713,20 +713,29 @@
         "head_sha": "75b5ff7fe9fae34eda5d9d2ed7dd9b325adac349",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T15:55:41+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-14T16:15:29+00:00",
+        "last_approver_activity_at": "2026-08-14T16:15:29+00:00",
         "last_author_activity_at": "2026-08-14T15:54:13+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "fdbc4e98a124a40883b9483c78795af29a46b13c52f33e2514e7d38c0fa11f95",
+        "routing_input_fingerprint": "7c902b941dcf6674be896e17f4a419b843c5aaaaa3b35026c919b90b61f5e952",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-14T15:54:13+00:00"
       },
       "failed": false,
       "pr_number": 1701,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1701",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "845": {
