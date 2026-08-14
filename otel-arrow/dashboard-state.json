@@ -1822,7 +1822,7 @@
     },
     "3755": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "drewrelmas",
         "author_action_review_thread_urls": [],
@@ -1831,6 +1831,7 @@
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
+        "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1847,8 +1848,8 @@
         "head_sha": "0bb05b623f8b53ccbb4c64d8cac782247e64ce13",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T01:20:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-14T16:49:32+00:00",
+        "last_approver_activity_at": "2026-08-14T16:49:32+00:00",
         "last_author_activity_at": "2026-08-13T19:27:59+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -1859,17 +1860,25 @@
             "login": "Dipanshusinghh",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "utpilla",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "f385436d0702cbd6e8f5abc29cb971e2880ec8891baeedfbf805b99bd2050e2a",
+        "routing_input_fingerprint": "c886a799710090892582dbd27966c863c628ec978ce41823a858f7781d2015bd",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-13T19:27:59+00:00"
       },
       "failed": false,
       "pr_number": 3755,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3755",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3758": {
