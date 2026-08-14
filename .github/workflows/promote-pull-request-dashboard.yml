@@ -21,8 +21,6 @@ jobs:
   promote:
     name: Open stable promotion pull request
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # to push the promotion branch
     steps:
       - name: Enforce main branch
         env:
@@ -37,8 +35,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          # zizmor: ignore[artipacked] Credentials are required by the branch push below.
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Resolve published release
         id: release
@@ -78,17 +75,25 @@ jobs:
         run: python3 -m unittest discover -p 'test_*.py'
 
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: promotion-push-token
+        with:
+          client-id: ${{ vars.OTELBOT_SHARED_WORKFLOWS_CLIENT_ID }}
+          private-key: ${{ secrets.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: otelbot-token
         with:
           client-id: ${{ vars.OTELBOT_CLIENT_ID }}
           private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
           permission-pull-requests: write
 
-      - name: Create promotion pull request
+      - name: Push promotion branch
+        id: promotion-branch
         env:
-          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          GH_TOKEN: ${{ steps.promotion-push-token.outputs.token }}
           RELEASE: ${{ steps.release.outputs.release }}
-          RELEASE_SHA: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
           title="Promote pull request dashboard to $RELEASE"
@@ -98,13 +103,24 @@ jobs:
           git checkout -b "$branch"
           git add .github/workflows/pull-request-dashboard.yml
           git commit -m "$title"
+          gh auth setup-git
           git push --set-upstream origin "$branch"
+          echo "name=$branch" >> "$GITHUB_OUTPUT"
 
+      - name: Create promotion pull request
+        env:
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+          BRANCH: ${{ steps.promotion-branch.outputs.name }}
+          RELEASE: ${{ steps.release.outputs.release }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          title="Promote pull request dashboard to $RELEASE"
           body="Promote the pull request dashboard stable channel to [$RELEASE](https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE) at \`$RELEASE_SHA\` after validation on the canary repositories."
           pr_url=$(gh pr create \
             --title "$title" \
             --body "$body" \
             --base main \
-            --head "$branch")
+            --head "$BRANCH")
 
           echo "Promotion pull request is ready: $pr_url"

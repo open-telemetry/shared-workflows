@@ -25,11 +25,12 @@ PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->
 
 ## 2. GitHub Apps
 
-Use two GitHub Apps to keep permissions narrow:
+Use two GitHub Apps:
 
 - a target repository app that receives target repository webhooks and grants
   dashboard data access
 - a shared-workflows dispatcher app that can dispatch the central workflow
+  and push validated rollout updates
 
 ### Target repository app
 
@@ -120,16 +121,26 @@ dispatch the central workflow.
 Repository permissions:
 
 - Actions: read and write
+- Contents: read and write
 - Metadata: read-only
+- Workflows: read and write
 
 This app does not need to subscribe to target repository events. It only needs
-access to `open-telemetry/shared-workflows` so the webhook bridge can call the
-workflow dispatch API.
+access to `open-telemetry/shared-workflows`. Actions permission lets the webhook
+bridge dispatch the central workflow. Contents and Workflows permissions let
+the promotion workflow push its validated rollout update under
+`.github/workflows/`.
+
+Save the app credentials in the `shared-workflows` repository:
+
+- GitHub Actions variable `OTELBOT_SHARED_WORKFLOWS_CLIENT_ID`
+- GitHub Actions secret `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` - private key PEM
 
 ## 3. Install the app
 
 Install the target repository app on every repository listed in
-`repositories.json`.
+`repositories.json`. Install the dispatcher app only on
+`open-telemetry/shared-workflows`.
 
 ## 4. Netlify environment variables
 
