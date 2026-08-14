@@ -151,8 +151,8 @@ Secrets:
 The deploy workflow syncs these GitHub Actions values into the Netlify
 Production function environment before deployment:
 
-- GitHub Actions variable `OTELBOT_SHARED_WORKFLOWS_APP_ID` - repo-specific
-  otelbot app ID
+- GitHub Actions variable `OTELBOT_SHARED_WORKFLOWS_CLIENT_ID` - repo-specific
+  otelbot client ID
 - GitHub Actions secret `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` - private key PEM
   for the repo-specific otelbot app that dispatches the central workflow; the
   deploy workflow base64-encodes this secret before storing it in Netlify as

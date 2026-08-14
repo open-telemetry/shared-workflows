@@ -96,7 +96,10 @@ async function handle(request) {
     return response(202, { status: "ignored", reason: "no pull request number or head commit found" });
   }
 
-  const dispatcherJwt = createAppJwt({ appId: config.dispatcherAppId, privateKey: config.dispatcherPrivateKey });
+  const dispatcherJwt = createAppJwt({
+    clientId: config.dispatcherClientId,
+    privateKey: config.dispatcherPrivateKey,
+  });
   const installationId = await findRepositoryInstallationId(dispatcherJwt, `${OWNER}/${WORKFLOW_REPOSITORY}`);
   const installationToken = await createInstallationToken(dispatcherJwt, installationId);
   await dispatchWorkflow(installationToken, {
@@ -164,7 +167,7 @@ export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
 
 function loadConfig() {
   const config = {
-    dispatcherAppId: process.env.OTELBOT_SHARED_WORKFLOWS_APP_ID,
+    dispatcherClientId: process.env.OTELBOT_SHARED_WORKFLOWS_CLIENT_ID,
     dispatcherPrivateKey: normalizePrivateKey(
       process.env.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY,
       process.env.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64,
@@ -384,7 +387,7 @@ function createAppJwt(config) {
   const payload = base64UrlJson({
     iat: now - 60,
     exp: now + 10 * 60,
-    iss: config.appId,
+    iss: config.clientId,
   });
   const unsignedToken = `${header}.${payload}`;
   const signature = crypto.sign("RSA-SHA256", Buffer.from(unsignedToken), config.privateKey);
