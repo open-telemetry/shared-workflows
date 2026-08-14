@@ -620,7 +620,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
@@ -642,7 +642,7 @@
         "last_activity_at": "2026-08-14T00:23:39+00:00",
         "last_approver_activity_at": "2026-08-13T12:20:14+00:00",
         "last_author_activity_at": "2026-08-14T00:23:39+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -653,15 +653,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "34d457424f887d555c7a64a36add4e31c1a64083d8b45dc1446a218b75ba99ee",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-13T12:20:14+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "d20053c3bb45fed27f10f6e3263f609f111f3d020822dadea4937e3361c1f629",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-14T00:23:39+00:00"
       },
       "failed": false,
       "pr_number": 1697,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1697",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "1698": {
