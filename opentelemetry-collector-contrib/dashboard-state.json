@@ -11658,11 +11658,16 @@
         "approval_count": 0,
         "assignees": [],
         "author": "pujitha24",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50250#discussion_r3783599781"
+        ],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "091b9081c8c641bb998d03064b3a1b83",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-14T12:25:46+00:00",
+        "ci_pending_count": 4,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-14T12:25:46+00:00",
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -11680,15 +11685,24 @@
         "head_sha": "6e449925043a5ed37598edd9c1e42e27d25e6310",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T12:23:47+00:00",
+        "last_activity_at": "2026-08-14T12:27:48+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-14T12:23:18+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "0c21105a105ebd6c1a88943c0b7451df922ffe0ba47df27b97fd708adc5eaa08",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-14T12:23:47+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "cd9af47f000182e64f7082e963c19170a236d82d76fefb3b6eac325fe470a451",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-14T12:25:46+00:00"
       },
       "failed": false,
       "pr_number": 50250,
