@@ -4439,8 +4439,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "ymotongpoo",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11280#discussion_r3783894184"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11280#pullrequestreview-4937443619"
+        ],
+        "author_nudge_episode_id": "87c1bd279edb42f7bcec4120440dfd44",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -4461,20 +4466,29 @@
         "head_sha": "18cf2b5dd225598df64c59c6c7ba9bbb02a8d3f2",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T06:22:02+00:00",
+        "last_activity_at": "2026-08-14T13:14:41+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-10T06:21:31+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "kohbis",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "f0f2ec758f8dd6bf9d32f627b965cf58b9f7858d296437c4e2b38844779a9d12",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-10T06:21:31+00:00"
+        "routing_input_fingerprint": "e39a32f607b41436050625cb0ce186fdeb4a694af1c9ab98ba1cf7bca9302c81",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-14T13:14:30+00:00"
       },
       "failed": false,
       "pr_number": 11280,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11280",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11281": {
