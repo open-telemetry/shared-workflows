@@ -2927,7 +2927,10 @@
         "assignees": [],
         "author": "JacksonWeber",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/6988#pullrequestreview-4900960645"
+        ],
+        "author_nudge_episode_id": "07396af54c654d6ea8a531a598f49691",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2949,8 +2952,8 @@
         "head_sha": "cc118edae8e316a955e9cfc72f63e9739af7fd00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T04:08:36+00:00",
-        "last_approver_activity_at": "2026-08-10T23:06:02+00:00",
+        "last_activity_at": "2026-08-15T00:11:49+00:00",
+        "last_approver_activity_at": "2026-08-15T00:11:49+00:00",
         "last_author_activity_at": "2026-08-14T04:08:36+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -2960,26 +2963,19 @@
             "changes_requested": true,
             "login": "trentm",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "af49417c1381aa15a0d1c9f2bbd7f1db3490c0ba2b1bca5e2826d0cbc14af0a3",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-14T04:08:36+00:00"
+        "routing_input_fingerprint": "a805f3b77b4d0f97b0f59e000ac60ed2921fb52b80b93f758912bd75b2395190",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-10T21:39:48+00:00"
       },
       "failed": false,
       "pr_number": 6988,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6988",
-      "route": "approver",
-      "top_level_history": {
-        "pr-review-4900960645": {
-          "evidence": {
-            "reply": "2026-08-10T23:12:28Z"
-          },
-          "reply_source_id": 5247070052
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "6989": {
       "facts": {
