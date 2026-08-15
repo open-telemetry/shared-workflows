@@ -1742,9 +1742,12 @@
         "author": "lquerel",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 2,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "9ec3e7a377414400b9ecc82b2cdf35d4",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-15T00:16:57+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-15T00:16:57+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -1766,7 +1769,7 @@
         "last_activity_at": "2026-08-14T23:33:50+00:00",
         "last_approver_activity_at": "2026-08-14T20:42:20+00:00",
         "last_author_activity_at": "2026-08-14T23:33:50+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -1778,14 +1781,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "6f427e3b569d9d5f3158ecfa7c4e64ac8cdd06a725202c6e04b11e961e6d44d7",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-14T20:59:00+00:00"
+        "routing_input_fingerprint": "62f8354dc2e2126a3a09e335f7599bce9bb779b37367c8053d622b80a4fca05c",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-15T00:16:57+00:00"
       },
       "failed": false,
       "pr_number": 3760,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3760",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "3774": {
