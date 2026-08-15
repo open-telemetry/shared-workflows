@@ -749,7 +749,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -772,17 +772,17 @@
         "last_activity_at": "2026-08-15T15:06:57+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-15T15:06:57+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "8e4e6b01f8169e47545faa729b729936db5598518b620300281964872b7b4b24",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-15T14:58:42+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "dbef4bec082fbb9c6a05d52be4ed82dd1b330d9ea8b9abb8cec233528580bd6e",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-15T15:06:57+00:00"
       },
       "failed": false,
       "pr_number": 7637,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7637",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
