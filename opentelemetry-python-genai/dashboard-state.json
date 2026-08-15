@@ -1334,10 +1334,13 @@
           "copilot-pull-request-reviewer[bot]"
         ],
         "author": "lmolkova",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789819244"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "3c7331203d3644648840ceb9b98decba",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -1360,7 +1363,7 @@
         "last_activity_at": "2026-08-15T17:04:37+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-15T17:02:20+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1372,6 +1375,14 @@
           },
           {
             "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-swe-agent",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
             "approved_non_team": true,
             "changes_requested": false,
             "login": "lmolkova",
@@ -1379,10 +1390,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "a96008ac30e9c732e508b2872c6f1b819fddc55010407a69d7bb5c3f91647708",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-15T17:00:14+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "90abd8c4242af7f293bb6f3cc20c09984e81316159b66d567e8971399156bde6",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-15T17:04:45+00:00"
       },
       "failed": false,
       "pr_number": 393,
