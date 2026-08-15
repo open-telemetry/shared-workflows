@@ -1732,8 +1732,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "om7057",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/4012#discussion_r3789551479"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "8aad8fc4785644f1b5e1b920241eb2ce",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1755,20 +1758,29 @@
         "head_sha": "ac0253af66082f732593cc29c6a76708f9dbf52b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-15T04:59:29+00:00",
+        "last_activity_at": "2026-08-15T14:32:18+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-15T04:59:29+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "thompson-tomo",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "47511fd8f352356c0248e2a93c8a63c578c6329b91b12e57a6c2c016b9a0bf37",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-15T04:55:42+00:00"
+        "routing_input_fingerprint": "432c1e509f140cece0d059ace55472bcb923a24a8d9feb8a49aa8db04f245195",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-15T14:32:13+00:00"
       },
       "failed": false,
       "pr_number": 4012,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4012",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
