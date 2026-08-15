@@ -5038,7 +5038,7 @@
     },
     "11325": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "chalin",
         "author_action_review_thread_urls": [],
@@ -5064,20 +5064,29 @@
         "head_sha": "fd7394b4b0b71207d604aef2b42cc3897a74c49a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T18:06:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-15T02:39:45+00:00",
+        "last_approver_activity_at": "2026-08-15T02:39:45+00:00",
         "last_author_activity_at": "2026-08-14T18:06:06+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "didiViking",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "bc9f033fa1c31f4518e97b498c211fded49f1ab48379c294a670528d9158e6d4",
+        "routing_input_fingerprint": "36851f15fa45faa1e94e8814cc679a7bf749870bf56603ff5cdad21bcda53b7d",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-14T17:43:40+00:00"
       },
       "failed": false,
       "pr_number": 11325,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11325",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11328": {
