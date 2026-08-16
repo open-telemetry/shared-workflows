@@ -3441,7 +3441,10 @@
         "assignees": [],
         "author": "anneheartrecord",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/7002#pullrequestreview-4946523065"
+        ],
+        "author_nudge_episode_id": "3c1c93343d5748eaac6314c2f86b66f6",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -3463,20 +3466,29 @@
         "head_sha": "537f66fd0ce6b478480983e92ea75e1fa97e79d2",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-15T05:02:49+00:00",
+        "last_activity_at": "2026-08-16T15:28:02+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-15T05:02:49+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "overbalance",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "f74bf782bf122833e24251e430ec9ac4fe649d58feaf965b1f851f71e0518d0b",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-15T05:02:49+00:00"
+        "routing_input_fingerprint": "be56e63c8612605aa39427dcd58893657af225a6c4a3c10072578584715700e4",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-16T15:28:02+00:00"
       },
       "failed": false,
       "pr_number": 7002,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7002",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "7003": {
