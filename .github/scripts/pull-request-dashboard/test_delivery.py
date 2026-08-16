@@ -9,6 +9,7 @@ import delivery
 
 
 class DeliveryTest(unittest.TestCase):
+    @patch.object(delivery, "report_stalled_gates", return_value=[])
     @patch.object(delivery, "notify_slack_from_state", return_value=[])
     @patch.object(delivery, "deliver_copilot_review_requests", return_value=[])
     @patch.object(delivery, "deliver_prepared_author_nudges", return_value=[])
@@ -30,6 +31,7 @@ class DeliveryTest(unittest.TestCase):
         author_nudges,
         copilot_reviews,
         slack,
+        stalled_gates,
     ) -> None:
         order = Mock()
 
@@ -42,6 +44,7 @@ class DeliveryTest(unittest.TestCase):
         author_nudges.side_effect = lambda *_args: record("author")
         copilot_reviews.side_effect = lambda *_args: record("copilot")
         slack.side_effect = lambda *_args: record("slack")
+        stalled_gates.side_effect = lambda *_args: record("stalled")
         errors = delivery.deliver_from_state(
             "open-telemetry/example",
             Path("author"),
@@ -52,7 +55,14 @@ class DeliveryTest(unittest.TestCase):
         self.assertEqual([], errors)
         _list_open.assert_called_once_with("open-telemetry/example")
         self.assertEqual(
-            [call("replies"), call("author"), call("status"), call("copilot"), call("slack")],
+            [
+                call("replies"),
+                call("author"),
+                call("status"),
+                call("copilot"),
+                call("slack"),
+                call("stalled"),
+            ],
             order.call_args_list,
         )
         status_comments.assert_called_once_with(
@@ -68,7 +78,9 @@ class DeliveryTest(unittest.TestCase):
             ],
             ANY,
         )
+        stalled_gates.assert_called_once_with({7, 8})
 
+    @patch.object(delivery, "report_stalled_gates", return_value=[])
     @patch.object(delivery, "notify_slack_from_state", return_value=[])
     @patch.object(delivery, "deliver_copilot_review_requests", return_value=[])
     @patch.object(delivery, "deliver_prepared_author_nudges", return_value=[])
@@ -87,6 +99,7 @@ class DeliveryTest(unittest.TestCase):
         author_nudges,
         copilot_reviews,
         slack,
+        stalled_gates,
     ) -> None:
         errors = delivery.deliver_from_state(
             "open-telemetry/example",
@@ -100,6 +113,7 @@ class DeliveryTest(unittest.TestCase):
         author_nudges.assert_called_once()
         copilot_reviews.assert_called_once()
         slack.assert_called_once()
+        stalled_gates.assert_called_once_with({7})
 
     def test_open_pr_list_failure_skips_dependent_stages(self) -> None:
         with (
