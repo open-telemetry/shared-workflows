@@ -1265,16 +1265,11 @@
           "copilot-pull-request-reviewer[bot]"
         ],
         "author": "lmolkova",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/393#discussion_r3789819244"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "3c7331203d3644648840ceb9b98decba",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-08-16T19:11:58+00:00",
-        "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 1,
-        "ci_uncleared_failing_since": "2026-08-16T19:11:58+00:00",
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
+        "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -1290,13 +1285,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "ab49ade24c6b6cb4f3a3792a68031b35e4c1e05b",
+        "head_sha": "e451707d0122387323bca702db8c879503fcabe7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-16T19:09:54+00:00",
+        "last_activity_at": "2026-08-16T19:13:21+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-16T19:09:54+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -1308,14 +1303,6 @@
           },
           {
             "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "copilot-swe-agent",
-            "open_thread": true,
-            "top_level_feedback": false
-          },
-          {
-            "approved": false,
             "approved_non_team": true,
             "changes_requested": false,
             "login": "lmolkova",
@@ -1323,9 +1310,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "98bca7e7671a736367ef44820894bc59bbe1c68f8edd769404eb94d91ff4aae5",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "b8f46c3785adb292c285214138cf4e070f763fda5185e85a84f10823e69ce378",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-15T17:04:45+00:00"
       },
       "failed": false,
