@@ -413,12 +413,19 @@ def union_merge_copilot_review_requests(
     merged = dict(baseline_requests)
     for key, retry_entry in retry_snapshot_requests.items():
         baseline_entry = merged.get(key) or {}
-        if (
-            (retry_entry or {}).get("requested_at")
-            and retry_entry.get("head_sha") == baseline_entry.get("head_sha")
+        retry_entry = retry_entry or {}
+        if not (
+            retry_entry.get("head_sha") == baseline_entry.get("head_sha")
             and retry_entry.get("observed_at")
             and retry_entry.get("observed_at") == baseline_entry.get("observed_at")
         ):
+            continue
+        # A delivered request has to survive so the next attempt does not send
+        # it again, and so does a count of requests GitHub dropped, because
+        # losing it would restart the wait for a request that never lands.
+        if retry_entry.get("requested_at") or int(
+            retry_entry.get("unconfirmed_request_count") or 0
+        ) > int(baseline_entry.get("unconfirmed_request_count") or 0):
             merged[key] = retry_entry
     return merged
 

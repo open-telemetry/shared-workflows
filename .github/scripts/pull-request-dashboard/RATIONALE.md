@@ -352,6 +352,23 @@ the implementation understandable and operationally cheap.
   request only when a review already covers the current head, which is what
   happens when one lands between the observation and the delivery. A review that
   is still missing is a reason to request, not to discard.
+- A request counts as delivered only once GitHub shows Copilot as a pending
+  reviewer. The mutation answers with success even when GitHub records nothing:
+  on one pull request it accepted the same request every hour for nineteen
+  hours and created no review request at all, and the pull request stayed held
+  on its author until a person requested the review by hand. Stamping the
+  request from the mutation's own answer hides that completely, because success
+  is silent and only discards are logged.
+- The read back is retried a few times, because GitHub takes a moment to record
+  a request it did accept. A Copilot review of the current head is accepted as
+  the same proof, since a short review can finish and take Copilot out of the
+  pending requests again before the read.
+- A request GitHub dropped is left undelivered so the next pass sends it again,
+  and the entry counts how many have gone missing on the current head. Three in
+  a row fail the run, which opens the hourly failure issue and closes it again
+  once a request lands. Failing on the first miss would report GitHub's ordinary
+  lag as a breakage; never failing would repeat that nineteen-hour wait with
+  nobody watching.
 - The reviewers column marks Copilot pending only where the gate applies and a
   review is genuinely in flight — a requested re-review, or the automatic first
   review on a PR the Copilot gate is holding because Copilot has never reviewed

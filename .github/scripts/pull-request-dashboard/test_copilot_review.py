@@ -8,6 +8,8 @@ from unittest.mock import patch
 from datetime import datetime, timezone
 
 from copilot_review import (
+    REQUEST_CONFIRMATION_ATTEMPTS,
+    UNCONFIRMED_REQUEST_LIMIT,
     copilot_first_review_overdue,
     deliver_copilot_review_requests,
     record_copilot_review_observation,
@@ -212,13 +214,20 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
                 "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 0,
             },
         })
 
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
         "copilot_review.load_copilot_review_requests",
-        return_value={"7": {"head_sha": "old-head", "requested_at": "old-request"}},
+        return_value={
+            "7": {
+                "head_sha": "old-head",
+                "requested_at": "old-request",
+                "unconfirmed_request_count": 2,
+            }
+        },
     )
     def test_new_head_replaces_previous_request(self, _load_requests, save_requests) -> None:
         record_copilot_review_observation(
@@ -240,6 +249,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
                 "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 0,
             },
         })
 
@@ -277,6 +287,46 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
                 "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 0,
+            },
+        })
+
+    @patch("copilot_review.save_copilot_review_requests")
+    @patch(
+        "copilot_review.load_copilot_review_requests",
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "requested_at": "",
+                "unconfirmed_request_count": 2,
+            }
+        },
+    )
+    def test_same_head_keeps_count_of_dropped_requests(
+        self,
+        _load_requests,
+        save_requests,
+    ) -> None:
+        record_copilot_review_observation(
+            7,
+            {
+                "route": "approver",
+                "facts": {
+                    "head_sha": "current-head",
+                    "copilot_review_request_needed": True,
+                    "routing_input_fingerprint": "accepted-fingerprint",
+                },
+            },
+            NOW,
+        )
+
+        save_requests.assert_called_once_with({
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T02:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 2,
             },
         })
 
@@ -323,6 +373,10 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         save_requests.assert_called_once_with({})
 
     @patch(
+        "copilot_review.fetch_review_requests",
+        return_value=[{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}],
+    )
+    @patch(
         "copilot_review.routing_input_fingerprint",
         return_value="accepted-fingerprint",
     )
@@ -349,6 +403,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         fetch_reviews,
         request_review,
         _fingerprint,
+        fetch_pending_requests,
     ) -> None:
         pr = {
             "state": "OPEN",
@@ -374,12 +429,14 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         fetch_current_state.assert_called_once_with("open-telemetry/example", 7)
         fetch_reviews.assert_called_once_with("open-telemetry", "example", 7)
         request_review.assert_called_once_with("PR_node_id")
+        fetch_pending_requests.assert_called_once_with("open-telemetry", "example", 7)
         save_requests.assert_called_once_with({
             "7": {
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
                 "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 0,
             },
         })
 
@@ -444,6 +501,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
                 "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 0,
             },
         })
 
@@ -575,6 +633,10 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         )
 
     @patch(
+        "copilot_review.fetch_review_requests",
+        return_value=[{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}],
+    )
+    @patch(
         "copilot_review.routing_input_fingerprint",
         return_value="accepted-fingerprint",
     )
@@ -612,6 +674,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         _fetch_reviews,
         request_review,
         _fingerprint,
+        _fetch_pending_requests,
     ) -> None:
         errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
 
@@ -623,6 +686,208 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
                 "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 0,
+            },
+        })
+
+    @patch("copilot_review.sleep_for_retry")
+    @patch("copilot_review.fetch_review_requests", return_value=[])
+    @patch(
+        "copilot_review.routing_input_fingerprint",
+        return_value="accepted-fingerprint",
+    )
+    @patch("copilot_review.request_copilot_review")
+    @patch("copilot_review.fetch_pr_reviews", return_value=[])
+    @patch(
+        "copilot_review.fetch_current_pr_routing_inputs",
+        return_value=(
+            {
+                "id": "PR_node",
+                "state": "OPEN",
+                "isDraft": False,
+                "headRefOid": "current-head",
+            },
+            {"checks": []},
+        ),
+    )
+    @patch("copilot_review.save_copilot_review_requests")
+    @patch(
+        "copilot_review.load_copilot_review_requests",
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
+            }
+        },
+    )
+    def test_dropped_request_is_not_recorded_as_delivered(
+        self,
+        _load_requests,
+        save_requests,
+        _fetch_current_state,
+        _fetch_reviews,
+        _request_review,
+        _fingerprint,
+        fetch_pending_requests,
+        _sleep,
+    ) -> None:
+        stderr = io.StringIO()
+
+        with redirect_stderr(stderr):
+            errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
+
+        self.assertEqual([], errors)
+        self.assertEqual(
+            REQUEST_CONFIRMATION_ATTEMPTS,
+            fetch_pending_requests.call_count,
+        )
+        save_requests.assert_called_once_with({
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 1,
+            },
+        })
+        self.assertIn(
+            "GitHub did not record the Copilot review request for PR #7 on "
+            "head current-head; 1 in a row have gone missing",
+            stderr.getvalue(),
+        )
+
+    @patch("copilot_review.sleep_for_retry")
+    @patch("copilot_review.fetch_review_requests", return_value=[])
+    @patch(
+        "copilot_review.routing_input_fingerprint",
+        return_value="accepted-fingerprint",
+    )
+    @patch("copilot_review.request_copilot_review")
+    @patch("copilot_review.fetch_pr_reviews", return_value=[])
+    @patch(
+        "copilot_review.fetch_current_pr_routing_inputs",
+        return_value=(
+            {
+                "id": "PR_node",
+                "state": "OPEN",
+                "isDraft": False,
+                "headRefOid": "current-head",
+            },
+            {"checks": []},
+        ),
+    )
+    @patch("copilot_review.save_copilot_review_requests")
+    @patch(
+        "copilot_review.load_copilot_review_requests",
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": UNCONFIRMED_REQUEST_LIMIT - 1,
+            }
+        },
+    )
+    def test_repeatedly_dropped_request_fails_the_run(
+        self,
+        _load_requests,
+        save_requests,
+        _fetch_current_state,
+        _fetch_reviews,
+        _request_review,
+        _fingerprint,
+        _fetch_pending_requests,
+        _sleep,
+    ) -> None:
+        errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
+
+        self.assertEqual(
+            [
+                f"PR #7: GitHub did not record the Copilot review request for "
+                f"PR #7 on head current-head; {UNCONFIRMED_REQUEST_LIMIT} in a "
+                f"row have gone missing"
+            ],
+            errors,
+        )
+        save_requests.assert_called_once_with({
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": UNCONFIRMED_REQUEST_LIMIT,
+            },
+        })
+
+    @patch("copilot_review.sleep_for_retry")
+    @patch("copilot_review.fetch_review_requests", return_value=[])
+    @patch(
+        "copilot_review.routing_input_fingerprint",
+        return_value="accepted-fingerprint",
+    )
+    @patch("copilot_review.request_copilot_review")
+    @patch(
+        "copilot_review.fetch_pr_reviews",
+        side_effect=[
+            [],
+            [
+                {
+                    "id": 20,
+                    "commit_id": "current-head",
+                    "user": {"login": "copilot-pull-request-reviewer"},
+                    "submitted_at": "2026-07-20T02:00:00Z",
+                }
+            ],
+        ],
+    )
+    @patch(
+        "copilot_review.fetch_current_pr_routing_inputs",
+        return_value=(
+            {
+                "id": "PR_node",
+                "state": "OPEN",
+                "isDraft": False,
+                "headRefOid": "current-head",
+            },
+            {"checks": []},
+        ),
+    )
+    @patch("copilot_review.save_copilot_review_requests")
+    @patch(
+        "copilot_review.load_copilot_review_requests",
+        return_value={
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": "accepted-fingerprint",
+            }
+        },
+    )
+    def test_review_that_arrives_before_the_read_counts_as_delivered(
+        self,
+        _load_requests,
+        save_requests,
+        _fetch_current_state,
+        _fetch_reviews,
+        _request_review,
+        _fingerprint,
+        _fetch_pending_requests,
+        _sleep,
+    ) -> None:
+        errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
+
+        self.assertEqual([], errors)
+        save_requests.assert_called_once_with({
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "2026-07-20T02:00:00+00:00",
+                "routing_input_fingerprint": "accepted-fingerprint",
+                "unconfirmed_request_count": 0,
             },
         })
 

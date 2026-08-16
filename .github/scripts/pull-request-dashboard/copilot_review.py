@@ -14,7 +14,9 @@ from author_nudge import (
 )
 from github_cli import (
     fetch_pr_reviews,
+    fetch_review_requests,
     request_copilot_review,
+    sleep_for_retry,
 )
 from state import load_copilot_review_requests, save_copilot_review_requests
 from utils import (
@@ -32,6 +34,19 @@ from utils import (
 # land within twenty minutes and have been seen as late as forty; an hour
 # clears that without waiting through the whole first review cycle again.
 FIRST_REVIEW_GRACE = timedelta(hours=1)
+
+
+# How many times the pull request is read back before a request counts as
+# missing. GitHub takes a moment to record a reviewer it did accept, so a
+# single empty read proves nothing.
+REQUEST_CONFIRMATION_ATTEMPTS = 3
+
+
+# How many requests GitHub may drop before the run fails. GitHub has answered
+# the mutation with success and recorded nothing for the same pull request
+# every hour for a day. The pull request stays held on a review nobody is going
+# to run, and only a person can unstick it, so the failure has to reach one.
+UNCONFIRMED_REQUEST_LIMIT = 3
 
 
 def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
@@ -167,11 +182,21 @@ def record_copilot_review_observation(
     ):
         requests.pop(key, None)
     else:
+        # The count of requests GitHub has dropped belongs to the head they
+        # were sent for, so it survives a fresh observation of that same head
+        # and starts over on a new one.
+        previous = requests.get(key) or {}
+        unconfirmed = (
+            int(previous.get("unconfirmed_request_count") or 0)
+            if previous.get("head_sha") == head_sha
+            else 0
+        )
         requests[key] = {
             "head_sha": head_sha,
             "observed_at": format_ts(observed_at),
             "requested_at": "",
             "routing_input_fingerprint": routing_fingerprint,
+            "unconfirmed_request_count": unconfirmed,
         }
     save_copilot_review_requests(requests)
 
@@ -222,6 +247,32 @@ def stale_request_reason(
     return ""
 
 
+def copilot_review_request_landed(
+    owner: str,
+    repo_name: str,
+    pr_number: int,
+    head_sha: str,
+) -> bool:
+    """Report whether GitHub recorded the Copilot review request just sent."""
+    for attempt in range(REQUEST_CONFIRMATION_ATTEMPTS):
+        if attempt:
+            sleep_for_retry(attempt - 1)
+        if any(
+            is_copilot_reviewer(request)
+            for request in fetch_review_requests(owner, repo_name, pr_number) or []
+        ):
+            return True
+    # Copilot can finish a short review before the last read, which takes it
+    # back out of the pending requests. A review of the current head proves the
+    # request landed just as well as a pending one does.
+    review_exists, review_stale, _findings = copilot_review_status(
+        fetch_pr_reviews(owner, repo_name, pr_number) or [],
+        head_sha,
+        [],
+    )
+    return review_exists and not review_stale
+
+
 def deliver_copilot_review_requests(
     repo: str,
     now: datetime,
@@ -260,7 +311,11 @@ def deliver_copilot_review_requests(
                 is_copilot_reviewer(request)
                 for request in (raw.get("review_requests") or [])
             ):
-                requests[key] = {**entry, "requested_at": format_ts(now)}
+                requests[key] = {
+                    **entry,
+                    "requested_at": format_ts(now),
+                    "unconfirmed_request_count": 0,
+                }
                 continue
             reviews = fetch_pr_reviews(owner, repo_name, pr_number) or []
             review_exists, review_stale, _review_findings = copilot_review_status(
@@ -285,9 +340,35 @@ def deliver_copilot_review_requests(
             if not pull_request_id:
                 raise RuntimeError(f"GitHub did not return a node ID for PR #{pr_number}")
             request_copilot_review(pull_request_id)
+            landed = copilot_review_request_landed(
+                owner,
+                repo_name,
+                pr_number,
+                current_head,
+            )
         except Exception as e:
             errors.append(f"PR #{pr_number}: {e}")
             continue
-        requests[key] = {**entry, "requested_at": format_ts(now)}
+        if landed:
+            requests[key] = {
+                **entry,
+                "requested_at": format_ts(now),
+                "unconfirmed_request_count": 0,
+            }
+            continue
+        # Leaving the request undelivered keeps the next pass trying, which is
+        # what recovered the one pull request this was seen on. The count is
+        # what turns an hour of bad luck into a failure someone acts on.
+        unconfirmed = int(entry.get("unconfirmed_request_count") or 0) + 1
+        requests[key] = {**entry, "unconfirmed_request_count": unconfirmed}
+        message = (
+            f"GitHub did not record the Copilot review request for "
+            f"PR #{pr_number} on head {current_head}; "
+            f"{unconfirmed} in a row have gone missing"
+        )
+        if unconfirmed >= UNCONFIRMED_REQUEST_LIMIT:
+            errors.append(f"PR #{pr_number}: {message}")
+        else:
+            print(message, file=sys.stderr)
     save_copilot_review_requests(requests)
     return errors
