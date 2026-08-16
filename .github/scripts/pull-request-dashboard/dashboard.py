@@ -185,7 +185,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   route-appropriate fallback,
                                                   or PR creation time. Carried
                                                   forward while the handoff is
-                                                  held, and never moves
+                                                  held, restarted when a held
+                                                  handoff reaches reviewers,
+                                                  and never moves
                                                   forward while the PR stays on
                                                   a reviewer route.
     waiting_age_basis               str           Which heuristic chose
@@ -1260,6 +1262,7 @@ def add_wait_age_facts(
     route: str,
     pending_actions: dict[str, dict[str, Any]],
     previous_result: dict[str, Any] | None = None,
+    now: datetime | None = None,
 ) -> None:
     previous_facts = (previous_result or {}).get("facts") or {}
     # A held route was not re-evaluated, so its wait continues uninterrupted
@@ -1267,6 +1270,20 @@ def add_wait_age_facts(
     if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
         facts["waiting_since"] = previous_facts["waiting_since"]
         facts["waiting_age_basis"] = "gate_hold"
+        return
+    # Reviewers have been waiting since the gates let the PR reach them, which
+    # is not the push. The fallback below dates a reviewer's wait from the last
+    # author activity, and that was the same moment until the gates started
+    # sitting between the two: now a PR whose checks took an hour would arrive
+    # already an hour old, and one released after a stalled gate would arrive
+    # older still, blaming reviewers for a wait they could not have answered.
+    if (
+        route in REVIEWER_ROUTES
+        and previous_facts.get("route_held_for_gates")
+        and (previous_result or {}).get("route") == "author"
+    ):
+        facts["waiting_since"] = format_ts(now or utc_now())
+        facts["waiting_age_basis"] = "gate_release"
         return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None

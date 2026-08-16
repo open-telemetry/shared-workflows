@@ -307,6 +307,18 @@ the implementation understandable and operationally cheap.
   clock and present a review nobody has done in a week as brand new. A handoff
   from the author route does start a fresh wait, because that push is what put
   the PR in front of reviewers.
+- A handoff the gates held starts its wait when the gates release it, not at the
+  push. The push and the handoff were the same moment before the gates existed,
+  which is why the fallback dates a reviewer's wait from the last author
+  activity. Now the gates sit between the two, so a PR whose checks took an hour
+  would reach reviewers already an hour old, and one released after a stalled
+  gate would arrive older still. Either way the age blames reviewers for a wait
+  they could not have answered, and sorts the PR above ones they really have
+  been sitting on.
+- Only the handoff from the author restarts the wait. A held PR that was already
+  with reviewers and is released to maintainers keeps its wait, because it never
+  left the people who owe it a response, and restarting there would present an
+  approval a week old as a merge request that just arrived.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
   but never route one of these PRs to its author: a bot PR whose handoff is

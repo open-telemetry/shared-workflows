@@ -626,6 +626,75 @@ class GateHoldTest(unittest.TestCase):
         self.assertEqual("2026-07-10T01:00:00+00:00", facts["waiting_since"])
         self.assertEqual("last_approver_activity", facts["waiting_age_basis"])
 
+    def test_reviewers_start_waiting_when_the_gates_release_the_pr(self) -> None:
+        # The push was four hours ago; the reviewers could not have answered
+        # any of it, because the gates held the PR on its author throughout.
+        facts = {
+            "route_held_for_gates": False,
+            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
+        }
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "author",
+                "facts": {
+                    "route_held_for_gates": True,
+                    "waiting_since": "2026-08-16T08:00:00+00:00",
+                },
+            },
+            now=self.START,
+        )
+
+        self.assertEqual("2026-08-16T12:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("gate_release", facts["waiting_age_basis"])
+
+    def test_an_unheld_handoff_still_dates_from_the_push(self) -> None:
+        facts = {
+            "route_held_for_gates": False,
+            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
+        }
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "author",
+                "facts": {"waiting_since": "2026-08-10T01:00:00+00:00"},
+            },
+            now=self.START,
+        )
+
+        self.assertEqual("2026-08-16T08:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
+
+    def test_a_release_to_maintainers_keeps_the_reviewer_wait(self) -> None:
+        # This PR never left the people who owe it a response, so the merge
+        # request is as old as the review that produced it.
+        facts = {
+            "route_held_for_gates": False,
+            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
+        }
+
+        add_wait_age_facts(
+            facts,
+            "maintainer",
+            {},
+            {
+                "route": "approver",
+                "facts": {
+                    "route_held_for_gates": True,
+                    "waiting_since": "2026-08-10T01:00:00+00:00",
+                },
+            },
+            now=self.START,
+        )
+
+        self.assertEqual("2026-08-10T01:00:00+00:00", facts["waiting_since"])
+
 
 class ReviewerWaitTest(unittest.TestCase):
     def test_author_push_does_not_restart_the_reviewer_wait(self) -> None:
