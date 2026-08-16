@@ -172,6 +172,15 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   reported on the current head,
                                                   so the computed route is not
                                                   provisional.
+    route_held_since                str (iso)     When the gates first kept this
+                                                  PR off its reviewers on this
+                                                  head. Cleared once the gates
+                                                  clear or the author pushes.
+    route_hold_expired              bool          The gates have been
+                                                  outstanding past
+                                                  GATE_HOLD_LIMIT, so the PR
+                                                  routes anyway and the stall
+                                                  is reported.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
                                                   or PR creation time. Carried
@@ -222,7 +231,7 @@ import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -1222,6 +1231,12 @@ REVIEWER_ROUTES = ("approver", "maintainer")
 # advancing, but never from moving back toward its author.
 ROUTE_PROGRESSION = ("author", "approver", "maintainer")
 
+# How long a gate may keep a pull request off its reviewers. Long enough that a
+# slow check suite or a queued Copilot review finishes first, short enough that
+# a gate which is never going to report costs the pull request part of a day
+# rather than the rest of its life.
+GATE_HOLD_LIMIT = timedelta(hours=4)
+
 
 def route_progress(route: str) -> int:
     return ROUTE_PROGRESSION.index(route) if route in ROUTE_PROGRESSION else 0
@@ -1385,12 +1400,54 @@ def add_reviewers(
     ]
 
 
+def gate_hold_expired(facts: dict[str, Any], now: datetime) -> bool:
+    held_since = parse_ts(facts.get("route_held_since"))
+    if held_since is None:
+        return False
+    return now - held_since >= GATE_HOLD_LIMIT
+
+
+def set_gate_hold_clock(
+    facts: dict[str, Any],
+    previous_result: dict[str, Any] | None,
+    route: str,
+    *,
+    gates_outstanding: bool,
+    would_hold: bool,
+    now: datetime,
+) -> None:
+    # How long the gates have been keeping this pull request off the reviewers
+    # it would otherwise be with. It starts when a gate first holds the pull
+    # request back, and then runs on its own for as long as the same head still
+    # has an outstanding gate. Carrying it that way is what lets the hold give
+    # up without the stall looking resolved a moment later. Starting it only on
+    # a real hold is what keeps a slow check suite on a pull request that was
+    # already with its reviewers from looking like one. A push clears it,
+    # because new code means new checks and a review that has to run again.
+    previous_facts = (previous_result or {}).get("facts") or {}
+    head_sha = str(facts.get("head_sha") or "")
+    carried = (
+        str(previous_facts.get("route_held_since") or "")
+        if head_sha and head_sha == previous_facts.get("head_sha")
+        else ""
+    )
+    if not (
+        gates_outstanding
+        and route in REVIEWER_ROUTES
+        and (carried or would_hold)
+    ):
+        facts.pop("route_held_since", None)
+        return
+    facts["route_held_since"] = carried or format_ts(now)
+
+
 def hold_route_until_gates_settle(
     facts: dict[str, Any],
     route: str,
     previous_result: dict[str, Any] | None,
     *,
     require_clean_copilot_review: bool,
+    now: datetime,
 ) -> str:
     # The required checks and the Copilot review are the author's to clear, so
     # a PR does not advance while one is outstanding. Moving back toward the
@@ -1403,13 +1460,26 @@ def hold_route_until_gates_settle(
         facts, enabled=require_clean_copilot_review
     )
     facts["required_checks_settled"] = required_checks_settled(facts)
-    held = (
-        route_progress(route) > route_progress(previous_route)
-        and (
-            not facts["required_checks_settled"]
-            or facts["copilot_review_outstanding"]
-        )
+    gates_outstanding = (
+        not facts["required_checks_settled"] or facts["copilot_review_outstanding"]
     )
+    would_hold = route_progress(route) > route_progress(previous_route)
+    set_gate_hold_clock(
+        facts,
+        previous_result,
+        route,
+        gates_outstanding=gates_outstanding,
+        would_hold=would_hold,
+        now=now,
+    )
+    # A gate can stay outstanding forever: a required check that never reports,
+    # a review GitHub never runs. The dashboard cannot block a merge, so an
+    # endless hold protects nobody and only keeps the pull request away from
+    # the people who could move it. Past the limit it routes the pull request
+    # anyway and says which gate it stopped waiting for.
+    expired = gate_hold_expired(facts, now)
+    facts["route_hold_expired"] = expired
+    held = would_hold and gates_outstanding and not expired
     facts["route_held_for_gates"] = held
     return previous_route if held else route
 
@@ -1470,6 +1540,7 @@ def resolve_pr_route(
         route,
         previous_result,
         require_clean_copilot_review=copilot_review_gate_enabled,
+        now=now,
     )
 
 
@@ -1889,6 +1960,32 @@ class BackfillSelection:
     cached_pr_numbers_to_remove: set[int]
 
 
+# How much of a pass the unfinished waits may take. They go first because the
+# rotation alone can leave one waiting for hours, but a repository where every
+# pull request is waiting must not stop the rotation from reaching the rest.
+BACKFILL_PRIORITY_SHARE = 0.5
+
+
+def backfill_priority_pr_numbers(dashboard_state: dict[str, Any]) -> set[int]:
+    # A pull request whose stored facts show it waiting on something is the one
+    # the dashboard is most likely to be wrong about: the event that ends the
+    # wait may never arrive, and until someone looks again nothing moves.
+    numbers: set[int] = set()
+    for key, result in (dashboard_state.get("prs") or {}).items():
+        facts = (result or {}).get("facts") or {}
+        if not (
+            facts.get("route_held_for_gates")
+            or facts.get("route_hold_expired")
+            or facts.get("copilot_review_request_needed")
+        ):
+            continue
+        try:
+            numbers.add(int(key))
+        except ValueError:
+            continue
+    return numbers
+
+
 def select_backfill_prs(
     prs: list[dict[str, Any]],
     dashboard_state: dict[str, Any],
@@ -1900,7 +1997,20 @@ def select_backfill_prs(
     open_number_set = set(open_numbers)
     cached_numbers = dashboard_state_pr_numbers(dashboard_state)
     cached_pr_numbers_to_remove = cached_numbers - open_number_set
-    selected_numbers = round_robin_numbers(open_numbers, backfill_cursor_pr_number(backfill_state))[:max_prs]
+    rotation = round_robin_numbers(
+        open_numbers, backfill_cursor_pr_number(backfill_state)
+    )
+    priority_budget = int(max_prs * BACKFILL_PRIORITY_SHARE)
+    priority_numbers = backfill_priority_pr_numbers(dashboard_state) & open_number_set
+    # Taking them in rotation order spreads the ones that do not fit across
+    # later passes instead of always cutting off the same tail. The rotation
+    # itself follows, so the cursor lands on a rotation pull request and the
+    # next pass carries on from there.
+    priority = [number for number in rotation if number in priority_numbers][
+        :priority_budget
+    ]
+    remaining = [number for number in rotation if number not in set(priority)]
+    selected_numbers = (priority + remaining)[:max_prs]
     return BackfillSelection(
         [open_prs_by_number[number] for number in selected_numbers],
         cached_pr_numbers_to_remove,

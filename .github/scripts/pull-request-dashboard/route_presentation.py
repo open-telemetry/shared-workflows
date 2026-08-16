@@ -64,3 +64,15 @@ def outstanding_gate_phrase(facts: dict[str, Any]) -> str:
     if facts.get("copilot_review_outstanding"):
         gates.append("the Copilot review")
     return " and ".join(gates)
+
+
+def abandoned_gate_note(facts: dict[str, Any]) -> str:
+    # Said once the dashboard has stopped waiting, so the reader knows the
+    # missing gate is not something they are supposed to sit and wait for.
+    gates = outstanding_gate_phrase(facts)
+    if not gates:
+        return ""
+    return (
+        f"The dashboard stopped waiting for {gates} to report, "
+        "and routed this pull request anyway."
+    )

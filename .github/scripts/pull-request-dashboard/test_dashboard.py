@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from argparse import Namespace
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ from unittest.mock import ANY, Mock, call, patch
 from copilot_review import set_copilot_review_request_needed
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
+    GATE_HOLD_LIMIT,
     DashboardUpdate,
     add_wait_age_facts,
     apply_targeted_dashboard_update,
@@ -27,6 +29,7 @@ from dashboard import (
     remove_cached_dashboard_prs,
     resolve_pr_route,
     route_pr,
+    select_backfill_prs,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
@@ -357,18 +360,22 @@ class RoutePrTest(unittest.TestCase):
 
 
 class GateHoldTest(unittest.TestCase):
+    START = datetime(2026, 8, 16, 12, 0, tzinfo=timezone.utc)
+
     def _hold(
         self,
         facts: dict[str, object],
         route: str,
         previous_result: dict[str, object] | None,
         require_clean_copilot_review: bool = False,
+        now: datetime | None = None,
     ) -> str:
         return hold_route_until_gates_settle(
             facts,
             route,
             previous_result,
             require_clean_copilot_review=require_clean_copilot_review,
+            now=now or self.START,
         )
 
     def test_author_keeps_the_pr_while_replacement_checks_run(self) -> None:
@@ -435,6 +442,146 @@ class GateHoldTest(unittest.TestCase):
         )
 
         self.assertEqual("approver", route)
+
+    def test_a_held_pr_starts_the_hold_clock(self) -> None:
+        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
+
+        self._hold(facts, "approver", None, now=self.START)
+
+        self.assertEqual("2026-08-16T12:00:00+00:00", facts["route_held_since"])
+        self.assertFalse(facts["route_hold_expired"])
+
+    def test_the_hold_clock_keeps_running_on_the_same_head(self) -> None:
+        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
+
+        self._hold(
+            facts,
+            "approver",
+            {
+                "route": "author",
+                "facts": {"head_sha": "abc", "route_held_since": "2026-08-16T09:00:00+00:00"},
+            },
+            now=self.START,
+        )
+
+        self.assertEqual("2026-08-16T09:00:00+00:00", facts["route_held_since"])
+
+    def test_a_push_restarts_the_hold_clock(self) -> None:
+        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "def"}
+
+        self._hold(
+            facts,
+            "approver",
+            {
+                "route": "author",
+                "facts": {"head_sha": "abc", "route_held_since": "2026-08-16T09:00:00+00:00"},
+            },
+            now=self.START,
+        )
+
+        self.assertEqual("2026-08-16T12:00:00+00:00", facts["route_held_since"])
+
+    def test_settled_gates_clear_the_hold_clock(self) -> None:
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "head_sha": "abc",
+        }
+
+        self._hold(
+            facts,
+            "approver",
+            {
+                "route": "author",
+                "facts": {"head_sha": "abc", "route_held_since": "2026-08-16T09:00:00+00:00"},
+            },
+            now=self.START,
+        )
+
+        self.assertNotIn("route_held_since", facts)
+        self.assertFalse(facts["route_hold_expired"])
+
+    def test_a_gate_that_never_reports_stops_holding_the_pr(self) -> None:
+        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
+        held_since = self.START - GATE_HOLD_LIMIT
+
+        route = self._hold(
+            facts,
+            "approver",
+            {
+                "route": "author",
+                "facts": {
+                    "head_sha": "abc",
+                    "route_held_since": held_since.isoformat(),
+                },
+            },
+            now=self.START,
+        )
+
+        self.assertEqual("approver", route)
+        self.assertFalse(facts["route_held_for_gates"])
+        self.assertTrue(facts["route_hold_expired"])
+
+    def test_a_gate_still_missing_after_release_stays_reported(self) -> None:
+        # Releasing the pull request does not make the stall look resolved: the
+        # clock carries on while the same head has an outstanding gate.
+        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
+        held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
+
+        route = self._hold(
+            facts,
+            "approver",
+            {
+                "route": "approver",
+                "facts": {
+                    "head_sha": "abc",
+                    "route_held_since": held_since.isoformat(),
+                },
+            },
+            now=self.START,
+        )
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["route_hold_expired"])
+
+    def test_checks_that_never_held_the_pr_do_not_start_the_clock(self) -> None:
+        # An approved pull request whose author pushes is already with its
+        # reviewers, so a slow check suite is not a stalled handoff.
+        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
+
+        self._hold(
+            facts,
+            "maintainer",
+            {"route": "maintainer", "facts": {"head_sha": "abc"}},
+            now=self.START,
+        )
+
+        self.assertNotIn("route_held_since", facts)
+        self.assertFalse(facts["route_hold_expired"])
+
+    def test_a_pr_sent_back_to_its_author_stops_the_clock(self) -> None:
+        facts: dict[str, object] = {
+            "ci_pending_count": 1,
+            "ci_failing_count": 1,
+            "head_sha": "abc",
+        }
+        held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
+
+        self._hold(
+            facts,
+            "author",
+            {
+                "route": "approver",
+                "facts": {
+                    "head_sha": "abc",
+                    "route_held_since": held_since.isoformat(),
+                },
+            },
+            now=self.START,
+        )
+
+        self.assertNotIn("route_held_since", facts)
+        self.assertFalse(facts["route_hold_expired"])
 
     def test_held_route_carries_the_previous_wait_forward(self) -> None:
         facts = {
@@ -1358,6 +1505,62 @@ class HeadShaSourceTest(unittest.TestCase):
         self.assertEqual(facts["head_sha"], "real-head")
         self.assertTrue(facts["copilot_review_exists"])
         self.assertFalse(facts["copilot_review_needed"])
+
+
+class BackfillSelectionTest(unittest.TestCase):
+    def _prs(self, count: int) -> list[dict[str, object]]:
+        return [{"number": number} for number in range(1, count + 1)]
+
+    def _numbers(
+        self,
+        selection_state: dict[str, object],
+        cursor: int | None = None,
+        max_prs: int = 4,
+        count: int = 10,
+    ) -> list[int]:
+        backfill_state = {"cursor": {"last_pr_number": cursor}} if cursor else {}
+        selection = select_backfill_prs(
+            self._prs(count),
+            selection_state,
+            backfill_state,
+            max_prs,
+        )
+        return [pr["number"] for pr in selection.selected_prs]
+
+    def _held(self, *numbers: int) -> dict[str, object]:
+        return {
+            "prs": {
+                str(number): {"facts": {"route_held_for_gates": True}}
+                for number in numbers
+            }
+        }
+
+    def test_rotation_alone_when_nothing_is_waiting(self) -> None:
+        self.assertEqual([5, 6, 7, 8], self._numbers({"prs": {}}, cursor=4))
+
+    def test_a_waiting_pr_is_refreshed_before_its_turn(self) -> None:
+        # The one the rotation would not have reached for several passes.
+        self.assertEqual([2, 5, 6, 7], self._numbers(self._held(2), cursor=4))
+
+    def test_waiting_prs_cannot_take_the_whole_pass(self) -> None:
+        numbers = self._numbers(self._held(1, 2, 3, 4, 9, 10), cursor=4)
+
+        self.assertEqual([9, 10, 5, 6], numbers)
+
+    def test_a_needed_copilot_review_request_also_earns_a_refresh(self) -> None:
+        state = {"prs": {"2": {"facts": {"copilot_review_request_needed": True}}}}
+
+        self.assertEqual([2, 5, 6, 7], self._numbers(state, cursor=4))
+
+    def test_an_expired_hold_keeps_earning_a_refresh(self) -> None:
+        state = {"prs": {"2": {"facts": {"route_hold_expired": True}}}}
+
+        self.assertEqual([2, 5, 6, 7], self._numbers(state, cursor=4))
+
+    def test_a_closed_waiting_pr_is_not_selected(self) -> None:
+        numbers = self._numbers(self._held(2, 99), cursor=4)
+
+        self.assertEqual([2, 5, 6, 7], numbers)
 
 
 class InitialBackfillCompletionTest(unittest.TestCase):
