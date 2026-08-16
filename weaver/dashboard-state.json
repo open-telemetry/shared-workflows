@@ -255,11 +255,16 @@
         "approval_count": 0,
         "assignees": [],
         "author": "fabiovincenzi",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/weaver/pull/1612#discussion_r3791862803"
+        ],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "736c45e734544dc2a440de8b997073d0",
+        "ci_failing_count": 3,
+        "ci_failing_since": "2026-08-16T13:33:33+00:00",
+        "ci_pending_count": 1,
+        "ci_uncleared_failing_count": 3,
+        "ci_uncleared_failing_since": "2026-08-16T13:33:33+00:00",
         "conflicts": "yes",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": false,
@@ -281,17 +286,26 @@
         "last_activity_at": "2026-08-10T10:02:30+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-10T10:02:30+00:00",
-        "required_checks_settled": true,
-        "reviewers": [],
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "github-advanced-security",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "3670fdd4c244609a211ab59a4dcb37884d180944636ddd976fb61c066527faac",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-23T10:35:54+00:00"
+        "routing_input_fingerprint": "2e3a4906a64497ed9e1c7569524c611d375d54aba35afe7f5a69a7e0fb4803c1",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-16T13:33:33+00:00"
       },
       "failed": false,
       "pr_number": 1612,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1612",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "1643": {
