@@ -29,7 +29,6 @@ from dashboard import (
     remove_cached_dashboard_prs,
     resolve_pr_route,
     route_pr,
-    select_backfill_prs,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
@@ -1574,62 +1573,6 @@ class HeadShaSourceTest(unittest.TestCase):
         self.assertEqual(facts["head_sha"], "real-head")
         self.assertTrue(facts["copilot_review_exists"])
         self.assertFalse(facts["copilot_review_needed"])
-
-
-class BackfillSelectionTest(unittest.TestCase):
-    def _prs(self, count: int) -> list[dict[str, object]]:
-        return [{"number": number} for number in range(1, count + 1)]
-
-    def _numbers(
-        self,
-        selection_state: dict[str, object],
-        cursor: int | None = None,
-        max_prs: int = 4,
-        count: int = 10,
-    ) -> list[int]:
-        backfill_state = {"cursor": {"last_pr_number": cursor}} if cursor else {}
-        selection = select_backfill_prs(
-            self._prs(count),
-            selection_state,
-            backfill_state,
-            max_prs,
-        )
-        return [pr["number"] for pr in selection.selected_prs]
-
-    def _held(self, *numbers: int) -> dict[str, object]:
-        return {
-            "prs": {
-                str(number): {"facts": {"route_held_for_gates": True}}
-                for number in numbers
-            }
-        }
-
-    def test_rotation_alone_when_nothing_is_waiting(self) -> None:
-        self.assertEqual([5, 6, 7, 8], self._numbers({"prs": {}}, cursor=4))
-
-    def test_a_waiting_pr_is_refreshed_before_its_turn(self) -> None:
-        # The one the rotation would not have reached for several passes.
-        self.assertEqual([2, 5, 6, 7], self._numbers(self._held(2), cursor=4))
-
-    def test_waiting_prs_cannot_take_the_whole_pass(self) -> None:
-        numbers = self._numbers(self._held(1, 2, 3, 4, 9, 10), cursor=4)
-
-        self.assertEqual([9, 10, 5, 6], numbers)
-
-    def test_a_needed_copilot_review_request_also_earns_a_refresh(self) -> None:
-        state = {"prs": {"2": {"facts": {"copilot_review_request_needed": True}}}}
-
-        self.assertEqual([2, 5, 6, 7], self._numbers(state, cursor=4))
-
-    def test_an_expired_hold_keeps_earning_a_refresh(self) -> None:
-        state = {"prs": {"2": {"facts": {"route_hold_expired": True}}}}
-
-        self.assertEqual([2, 5, 6, 7], self._numbers(state, cursor=4))
-
-    def test_a_closed_waiting_pr_is_not_selected(self) -> None:
-        numbers = self._numbers(self._held(2, 99), cursor=4)
-
-        self.assertEqual([2, 5, 6, 7], numbers)
 
 
 class InitialBackfillCompletionTest(unittest.TestCase):

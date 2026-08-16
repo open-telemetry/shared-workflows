@@ -1977,32 +1977,6 @@ class BackfillSelection:
     cached_pr_numbers_to_remove: set[int]
 
 
-# How much of a pass the unfinished waits may take. They go first because the
-# rotation alone can leave one waiting for hours, but a repository where every
-# pull request is waiting must not stop the rotation from reaching the rest.
-BACKFILL_PRIORITY_SHARE = 0.5
-
-
-def backfill_priority_pr_numbers(dashboard_state: dict[str, Any]) -> set[int]:
-    # A pull request whose stored facts show it waiting on something is the one
-    # the dashboard is most likely to be wrong about: the event that ends the
-    # wait may never arrive, and until someone looks again nothing moves.
-    numbers: set[int] = set()
-    for key, result in (dashboard_state.get("prs") or {}).items():
-        facts = (result or {}).get("facts") or {}
-        if not (
-            facts.get("route_held_for_gates")
-            or facts.get("route_hold_expired")
-            or facts.get("copilot_review_request_needed")
-        ):
-            continue
-        try:
-            numbers.add(int(key))
-        except ValueError:
-            continue
-    return numbers
-
-
 def select_backfill_prs(
     prs: list[dict[str, Any]],
     dashboard_state: dict[str, Any],
@@ -2014,20 +1988,7 @@ def select_backfill_prs(
     open_number_set = set(open_numbers)
     cached_numbers = dashboard_state_pr_numbers(dashboard_state)
     cached_pr_numbers_to_remove = cached_numbers - open_number_set
-    rotation = round_robin_numbers(
-        open_numbers, backfill_cursor_pr_number(backfill_state)
-    )
-    priority_budget = int(max_prs * BACKFILL_PRIORITY_SHARE)
-    priority_numbers = backfill_priority_pr_numbers(dashboard_state) & open_number_set
-    # Taking them in rotation order spreads the ones that do not fit across
-    # later passes instead of always cutting off the same tail. The rotation
-    # itself follows, so the cursor lands on a rotation pull request and the
-    # next pass carries on from there.
-    priority = [number for number in rotation if number in priority_numbers][
-        :priority_budget
-    ]
-    remaining = [number for number in rotation if number not in set(priority)]
-    selected_numbers = (priority + remaining)[:max_prs]
+    selected_numbers = round_robin_numbers(open_numbers, backfill_cursor_pr_number(backfill_state))[:max_prs]
     return BackfillSelection(
         [open_prs_by_number[number] for number in selected_numbers],
         cached_pr_numbers_to_remove,

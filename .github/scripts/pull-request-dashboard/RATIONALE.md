@@ -156,20 +156,13 @@ the implementation understandable and operationally cheap.
   next run continues after it in sorted PR-number order, wrapping when needed.
   Failed PR numbers are stored beside the cursor and are removed after a later
   successful refresh.
-- A PR whose stored facts show it waiting on something — a held route, a hold
-  that expired, a Copilot review request still to send — is refreshed first,
-  before the rotation spends the rest of the budget. The rotation exists because
-  webhooks handle everything that has just changed, but a wait ends with nothing
-  changing on the PR at all: a check completes, a review is filed, and if that
-  event is missed nothing else will bring the dashboard back. On a repository
-  with more open PRs than one pass can hold, the rotation alone leaves such a PR
-  waiting for hours, which is how one sat with every check green and no review
-  requested from one evening to the next.
-- The waiting PRs take at most half a pass, so a repository where many are
-  waiting cannot stop the rotation from reaching the rest. They are taken in
-  rotation order, which spreads the ones that do not fit across later passes
-  instead of cutting off the same tail every time, and leaves the cursor on a
-  rotation PR so the next pass carries on from there.
+- The rotation is not reordered to favor PRs that are waiting on something. A
+  wait ends with nothing changing on the PR — a check completes, a review is
+  filed — so a missed event is only noticed when the rotation comes round again.
+  But a full sweep takes two passes on most repositories and four on the largest,
+  which is no longer than the gate hold that bounds the wait anyway, so
+  refreshing waiting PRs first would buy about an hour on one repository and
+  nothing on the rest.
 - Initial-backfill completion is stored in dashboard state and becomes true in
   the same accepted state commit that attempts the final missing open non-draft
   PR. Failed PR data is not accepted into dashboard state, but a recorded failed
