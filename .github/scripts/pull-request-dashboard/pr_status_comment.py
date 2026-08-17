@@ -14,6 +14,7 @@ from github_cli import (
 )
 from dashboard_override import PRE_REVIEW_ROUTES, uncleared_ci_failing_count
 from route_presentation import (
+    abandoned_gate_note,
     outstanding_gate_phrase,
     route_status_summary,
     status_headline,
@@ -277,6 +278,13 @@ def render_status_comment(
         else:
             _, next_step = route_status_summary(route)
             body = [next_step]
+            abandoned_gates = (
+                abandoned_gate_note(facts)
+                if facts.get("route_hold_expired")
+                else ""
+            )
+            if abandoned_gates:
+                body.extend(["", abandoned_gates])
             if failing_count:
                 check_summary = (
                     "1 required status check is failing."

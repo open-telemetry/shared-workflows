@@ -14,7 +14,9 @@ from author_nudge import (
 )
 from github_cli import (
     fetch_pr_reviews,
+    fetch_review_requests,
     request_copilot_review,
+    sleep_for_retry,
 )
 from state import load_copilot_review_requests, save_copilot_review_requests
 from utils import (
@@ -32,6 +34,12 @@ from utils import (
 # land within twenty minutes and have been seen as late as forty; an hour
 # clears that without waiting through the whole first review cycle again.
 FIRST_REVIEW_GRACE = timedelta(hours=1)
+
+
+# How many times the pull request is read back before a request counts as
+# missing. GitHub takes a moment to record a reviewer it did accept, so a
+# single empty read proves nothing.
+REQUEST_CONFIRMATION_ATTEMPTS = 3
 
 
 def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
@@ -82,6 +90,19 @@ def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:
         return False
     return not facts.get("copilot_review_exists") or bool(
         facts.get("copilot_review_needed")
+    )
+
+
+def copilot_review_unreported(facts: dict[str, Any], *, enabled: bool) -> bool:
+    # Whether the gate is still waiting for Copilot to say anything about the
+    # current head. Findings are an answer, not a silence: the threads they
+    # leave are the author's to clear, and the dashboard already routes the
+    # pull request to the author for them. Only a review that is missing or
+    # that covers older code is a report that has not arrived.
+    if not enabled:
+        return False
+    return not facts.get("copilot_review_exists") or bool(
+        facts.get("copilot_review_stale")
     )
 
 
@@ -222,6 +243,32 @@ def stale_request_reason(
     return ""
 
 
+def copilot_review_request_landed(
+    owner: str,
+    repo_name: str,
+    pr_number: int,
+    head_sha: str,
+) -> bool:
+    """Report whether GitHub recorded the Copilot review request just sent."""
+    for attempt in range(REQUEST_CONFIRMATION_ATTEMPTS):
+        if attempt:
+            sleep_for_retry(attempt - 1)
+        if any(
+            is_copilot_reviewer(request)
+            for request in fetch_review_requests(owner, repo_name, pr_number) or []
+        ):
+            return True
+    # Copilot can finish a short review before the last read, which takes it
+    # back out of the pending requests. A review of the current head proves the
+    # request landed just as well as a pending one does.
+    review_exists, review_stale, _findings = copilot_review_status(
+        fetch_pr_reviews(owner, repo_name, pr_number) or [],
+        head_sha,
+        [],
+    )
+    return review_exists and not review_stale
+
+
 def deliver_copilot_review_requests(
     repo: str,
     now: datetime,
@@ -285,9 +332,25 @@ def deliver_copilot_review_requests(
             if not pull_request_id:
                 raise RuntimeError(f"GitHub did not return a node ID for PR #{pr_number}")
             request_copilot_review(pull_request_id)
+            landed = copilot_review_request_landed(
+                owner,
+                repo_name,
+                pr_number,
+                current_head,
+            )
         except Exception as e:
             errors.append(f"PR #{pr_number}: {e}")
             continue
-        requests[key] = {**entry, "requested_at": format_ts(now)}
+        if landed:
+            requests[key] = {**entry, "requested_at": format_ts(now)}
+            continue
+        # Leaving the request undelivered keeps the next pass trying. Nothing
+        # escalates from here: a request that keeps going missing leaves the
+        # pull request held, and the hold is what reports the stall.
+        print(
+            f"GitHub did not record the Copilot review request for "
+            f"PR #{pr_number} on head {current_head}",
+            file=sys.stderr,
+        )
     save_copilot_review_requests(requests)
     return errors

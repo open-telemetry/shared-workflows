@@ -118,6 +118,9 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
 
 
 def request_copilot_review(pull_request_id: str) -> None:
+    # Success here only means GitHub accepted the mutation. It does not mean
+    # GitHub recorded the reviewer, so callers have to read the pull request
+    # back to find out whether the request landed.
     gh_graphql(
         REQUEST_COPILOT_REVIEW_MUTATION,
         {

@@ -258,6 +258,28 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("Wait for the Copilot review to report;", body)
 
+    def test_a_pr_released_from_a_stalled_gate_says_so(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "approver",
+                "facts": {
+                    "author": "alice",
+                    "route_held_for_gates": False,
+                    "route_hold_expired": True,
+                    "required_checks_settled": True,
+                    "copilot_review_outstanding": True,
+                    "copilot_review_unreported": True,
+                },
+            },
+        )
+
+        self.assertIn(
+            "The dashboard stopped waiting for the Copilot review to report, "
+            "and routed this pull request anyway.",
+            body,
+        )
+
     def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

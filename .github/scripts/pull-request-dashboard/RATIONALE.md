@@ -156,6 +156,13 @@ the implementation understandable and operationally cheap.
   next run continues after it in sorted PR-number order, wrapping when needed.
   Failed PR numbers are stored beside the cursor and are removed after a later
   successful refresh.
+- The rotation is not reordered to favor PRs that are waiting on something. A
+  wait ends with nothing changing on the PR — a check completes, a review is
+  filed — so a missed event is only noticed when the rotation comes round again.
+  But a full sweep takes two passes on most repositories and four on the largest,
+  which is no longer than the gate hold that bounds the wait anyway, so
+  refreshing waiting PRs first would buy about an hour on one repository and
+  nothing on the rest.
 - Initial-backfill completion is stored in dashboard state and becomes true in
   the same accepted state commit that attempts the final missing open non-draft
   PR. Failed PR data is not accepted into dashboard state, but a recorded failed
@@ -293,10 +300,60 @@ the implementation understandable and operationally cheap.
   clock and present a review nobody has done in a week as brand new. A handoff
   from the author route does start a fresh wait, because that push is what put
   the PR in front of reviewers.
+- A handoff the gates held starts its wait when the gates release it, not at the
+  push. The push and the handoff were the same moment before the gates existed,
+  which is why the fallback dates a reviewer's wait from the last author
+  activity. Now the gates sit between the two, so a PR whose checks took an hour
+  would reach reviewers already an hour old, and one released after a stalled
+  gate would arrive older still. Either way the age blames reviewers for a wait
+  they could not have answered, and sorts the PR above ones they really have
+  been sitting on.
+- Only the handoff from the author restarts the wait. A held PR that was already
+  with reviewers and is released to maintainers keeps its wait, because it never
+  left the people who owe it a response, and restarting there would present an
+  approval a week old as a merge request that just arrived.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
   but never route one of these PRs to its author: a bot PR whose handoff is
   held waits on reviewers instead.
+- A hold has a time limit, and past it the PR routes anyway. Every gate waits on
+  something outside the dashboard, and each one has been seen never to arrive: a
+  required check with no check run on the head, a Copilot review GitHub never
+  started, a review request GitHub accepted and dropped. The dashboard does not
+  decide whether a PR may merge, branch protection does, so a hold that never
+  ends protects nobody. It only keeps the PR away from the people who could look
+  at the missing gate, and it hides the failure, because a held PR looks exactly
+  like a PR that is waiting normally.
+- The limit is four hours: longer than a slow check suite or a queued Copilot
+  review, short enough that a gate which is never going to report costs the PR
+  part of a day rather than the rest of its life.
+- The clock starts when a gate first holds the PR back, and then runs on its own
+  for as long as the same head still has an outstanding gate. Carrying it that
+  way is what lets the hold give up without the stall looking resolved a moment
+  later, and it keeps the status comment able to say which gate the dashboard
+  stopped waiting for. Starting it only on a real hold is what keeps a slow
+  check suite on a PR that was already with its reviewers from looking like a
+  stalled handoff. A push clears the clock, because new code means new checks
+  and a review that has to run again.
+- Only a gate that has reported nothing on the current head runs the clock. A
+  Copilot review that covers the head but left open findings holds the PR, yet
+  it is not missing: it answered, and the threads it left are the author's to
+  clear. Because the clock is carried across a trip back to the author, counting
+  those findings would make every author who takes more than four hours over
+  review comments look like a gate GitHub lost, and the report would say a
+  review never arrived when it is sitting on the PR. A review that is missing or
+  that only covers older code still counts, because Copilot has said nothing
+  about the code being reviewed.
+- An expired hold is reported as a delivery failure on whole-repository passes,
+  which opens the same tracking issue as any other dashboard failure. This is
+  the only alarm the gates raise. Each way a gate can go missing has its own
+  cause and none of them can be told apart from the dashboard's side, so
+  reporting them separately would mean a new alarm for every new way GitHub
+  finds to lose something. The hold expiring is the one symptom they all share.
+- The report stays active while the stall does, the same way a PR that keeps
+  failing to refresh keeps the hourly failure active. A gate that will never
+  report is usually a repository misconfiguration — a required check with no
+  workflow to produce it — and it needs a person, not a reminder that stops.
 
 ## Copilot Review Gate
 
@@ -352,6 +409,20 @@ the implementation understandable and operationally cheap.
   request only when a review already covers the current head, which is what
   happens when one lands between the observation and the delivery. A review that
   is still missing is a reason to request, not to discard.
+- A request counts as delivered only once GitHub shows Copilot as a pending
+  reviewer. The mutation answers with success even when GitHub records nothing:
+  on one pull request it accepted the same request every hour for nineteen
+  hours and created no review request at all, and the pull request stayed held
+  on its author until a person requested the review by hand. Stamping the
+  request from the mutation's own answer hides that completely, because success
+  is silent and only discards are logged.
+- The read back is retried a few times, because GitHub takes a moment to record
+  a request it did accept. A Copilot review of the current head is accepted as
+  the same proof, since a short review can finish and take Copilot out of the
+  pending requests again before the read.
+- A request GitHub dropped is left undelivered, so the next pass sends it again
+  and logs the miss. It needs no alarm of its own: the pull request stays held
+  while the review is missing, and the hold expiring is what reports it.
 - The reviewers column marks Copilot pending only where the gate applies and a
   review is genuinely in flight — a requested re-review, or the automatic first
   review on a PR the Copilot gate is holding because Copilot has never reviewed

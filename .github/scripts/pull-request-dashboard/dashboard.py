@@ -163,6 +163,15 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   to this PR and its review is
                                                   missing or stale, so the route
                                                   is held.
+    copilot_review_unreported       bool          The Copilot review gate applies
+                                                  and Copilot has said nothing
+                                                  about the current head, so the
+                                                  gate is still waiting to
+                                                  report. False once a review
+                                                  covers this head, even when it
+                                                  left open findings, because
+                                                  those are the author's to
+                                                  clear.
     route_held_for_gates            bool          The PR did not advance to the
                                                   route it computed, because
                                                   the required checks or the
@@ -172,11 +181,23 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   reported on the current head,
                                                   so the computed route is not
                                                   provisional.
+    route_held_since                str (iso)     When the gates first kept this
+                                                  PR off its reviewers on this
+                                                  head. Cleared once every gate
+                                                  has reported or the author
+                                                  pushes.
+    route_hold_expired              bool          A gate has reported nothing on
+                                                  this head for longer than
+                                                  GATE_HOLD_LIMIT, so the PR
+                                                  routes anyway and the stall
+                                                  is reported.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
                                                   or PR creation time. Carried
                                                   forward while the handoff is
-                                                  held, and never moves
+                                                  held, restarted when a held
+                                                  handoff reaches reviewers,
+                                                  and never moves
                                                   forward while the PR stays on
                                                   a reviewer route.
     waiting_age_basis               str           Which heuristic chose
@@ -222,7 +243,7 @@ import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -247,6 +268,7 @@ from author_nudge import record_author_nudge_observation, routing_input_fingerpr
 from copilot_review import (
     copilot_review_outstanding,
     copilot_review_status,
+    copilot_review_unreported,
     is_copilot_reviewer,
     record_copilot_review_observation,
     set_copilot_first_review_missing_since,
@@ -1222,6 +1244,12 @@ REVIEWER_ROUTES = ("approver", "maintainer")
 # advancing, but never from moving back toward its author.
 ROUTE_PROGRESSION = ("author", "approver", "maintainer")
 
+# How long a gate may keep a pull request off its reviewers. Long enough that a
+# slow check suite or a queued Copilot review finishes first, short enough that
+# a gate which is never going to report costs the pull request part of a day
+# rather than the rest of its life.
+GATE_HOLD_LIMIT = timedelta(hours=4)
+
 
 def route_progress(route: str) -> int:
     return ROUTE_PROGRESSION.index(route) if route in ROUTE_PROGRESSION else 0
@@ -1245,6 +1273,7 @@ def add_wait_age_facts(
     route: str,
     pending_actions: dict[str, dict[str, Any]],
     previous_result: dict[str, Any] | None = None,
+    now: datetime | None = None,
 ) -> None:
     previous_facts = (previous_result or {}).get("facts") or {}
     # A held route was not re-evaluated, so its wait continues uninterrupted
@@ -1252,6 +1281,35 @@ def add_wait_age_facts(
     if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
         facts["waiting_since"] = previous_facts["waiting_since"]
         facts["waiting_age_basis"] = "gate_hold"
+        return
+    # Reviewers have been waiting since the gates let the PR reach them, which
+    # is not the push. The fallback below dates a reviewer's wait from the last
+    # author activity, and that was the same moment until the gates started
+    # sitting between the two: now a PR whose checks took an hour would arrive
+    # already an hour old, and one released after a stalled gate would arrive
+    # older still, blaming reviewers for a wait they could not have answered.
+    if (
+        route in REVIEWER_ROUTES
+        and previous_facts.get("route_held_for_gates")
+        and (previous_result or {}).get("route") == "author"
+    ):
+        facts["waiting_since"] = format_ts(now or utc_now())
+        facts["waiting_age_basis"] = "gate_release"
+        return
+    # The release above only happens on the pass that hands the PR over, so
+    # without carrying it the next pass falls back to the author's push and
+    # presents the very wait the release exists to discard. The guard below
+    # cannot catch that, because it only stops the wait moving forward.
+    if (
+        route in REVIEWER_ROUTES
+        and (previous_result or {}).get("route") in REVIEWER_ROUTES
+        and previous_facts.get("waiting_age_basis") == "gate_release"
+        and previous_facts.get("waiting_since")
+        and facts.get("head_sha")
+        and facts.get("head_sha") == previous_facts.get("head_sha")
+    ):
+        facts["waiting_since"] = previous_facts["waiting_since"]
+        facts["waiting_age_basis"] = "gate_release"
         return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
@@ -1385,12 +1443,57 @@ def add_reviewers(
     ]
 
 
+def gate_hold_expired(facts: dict[str, Any], now: datetime) -> bool:
+    held_since = parse_ts(facts.get("route_held_since"))
+    if held_since is None:
+        return False
+    return now - held_since >= GATE_HOLD_LIMIT
+
+
+def set_gate_hold_clock(
+    facts: dict[str, Any],
+    previous_result: dict[str, Any] | None,
+    route: str,
+    *,
+    unreported_gates: bool,
+    would_hold: bool,
+    now: datetime,
+) -> None:
+    # How long the gates have been keeping this pull request off the reviewers
+    # it would otherwise be with. It starts when a gate first holds the pull
+    # request back, and then runs on its own for as long as the same head still
+    # has a gate that has not reported. Carrying it that way is what lets the
+    # hold give up without the stall looking resolved a moment later, and it is
+    # why a trip back to the author does not stop it: the author owes the pull
+    # request something, but the gate is still missing on the same code, so
+    # letting the round trip clear the clock would hand that gate four more
+    # hours the moment the author answers. Starting it only on a real hold is
+    # what keeps a slow check suite on a pull request that was already with its
+    # reviewers from looking like one. A push clears it, because new code means
+    # new checks and a review that has to run again.
+    previous_facts = (previous_result or {}).get("facts") or {}
+    head_sha = str(facts.get("head_sha") or "")
+    carried = (
+        str(previous_facts.get("route_held_since") or "")
+        if head_sha and head_sha == previous_facts.get("head_sha")
+        else ""
+    )
+    if not (
+        unreported_gates
+        and (carried or (route in REVIEWER_ROUTES and would_hold))
+    ):
+        facts.pop("route_held_since", None)
+        return
+    facts["route_held_since"] = carried or format_ts(now)
+
+
 def hold_route_until_gates_settle(
     facts: dict[str, Any],
     route: str,
     previous_result: dict[str, Any] | None,
     *,
     require_clean_copilot_review: bool,
+    now: datetime,
 ) -> str:
     # The required checks and the Copilot review are the author's to clear, so
     # a PR does not advance while one is outstanding. Moving back toward the
@@ -1402,14 +1505,37 @@ def hold_route_until_gates_settle(
     facts["copilot_review_outstanding"] = copilot_review_outstanding(
         facts, enabled=require_clean_copilot_review
     )
-    facts["required_checks_settled"] = required_checks_settled(facts)
-    held = (
-        route_progress(route) > route_progress(previous_route)
-        and (
-            not facts["required_checks_settled"]
-            or facts["copilot_review_outstanding"]
-        )
+    facts["copilot_review_unreported"] = copilot_review_unreported(
+        facts, enabled=require_clean_copilot_review
     )
+    facts["required_checks_settled"] = required_checks_settled(facts)
+    gates_outstanding = (
+        not facts["required_checks_settled"] or facts["copilot_review_outstanding"]
+    )
+    # Only a gate that has reported nothing on this head can stall. A Copilot
+    # review that left findings did report, and clearing those findings is the
+    # author's own work, so counting it would turn every author who takes more
+    # than four hours over review comments into a missing gate.
+    unreported_gates = (
+        not facts["required_checks_settled"] or facts["copilot_review_unreported"]
+    )
+    would_hold = route_progress(route) > route_progress(previous_route)
+    set_gate_hold_clock(
+        facts,
+        previous_result,
+        route,
+        unreported_gates=unreported_gates,
+        would_hold=would_hold,
+        now=now,
+    )
+    # A gate can stay outstanding forever: a required check that never reports,
+    # a review GitHub never runs. The dashboard cannot block a merge, so an
+    # endless hold protects nobody and only keeps the pull request away from
+    # the people who could move it. Past the limit it routes the pull request
+    # anyway and says which gate it stopped waiting for.
+    expired = gate_hold_expired(facts, now)
+    facts["route_hold_expired"] = expired
+    held = would_hold and gates_outstanding and not expired
     facts["route_held_for_gates"] = held
     return previous_route if held else route
 
@@ -1470,6 +1596,7 @@ def resolve_pr_route(
         route,
         previous_result,
         require_clean_copilot_review=copilot_review_gate_enabled,
+        now=now,
     )
 
 
