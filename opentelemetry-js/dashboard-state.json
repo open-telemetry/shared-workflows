@@ -3633,13 +3633,13 @@
     },
     "7006": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "rajanpanth",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 6,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -3659,14 +3659,23 @@
         "head_sha": "e13a7a332174560a6e6da433d36b4d69d06e29be",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-15T15:40:21+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T09:05:50+00:00",
+        "last_approver_activity_at": "2026-08-17T09:05:50+00:00",
         "last_author_activity_at": "2026-08-15T15:40:16+00:00",
-        "required_checks_settled": true,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "62d8e7e03c470390bfe233861fc0fe50a4cfd366b8f4a031466e090225d5ded3",
-        "waiting_age_basis": "last_author_activity",
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "pichlermarc",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "3d1410b54547ce4e1fb8dca614a27a737e2b4f188da92442a9eab1ac6803de13",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-15T15:40:16+00:00"
       },
       "failed": false,
