@@ -2209,13 +2209,13 @@
     },
     "3790": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ragumarimuthu-git",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -2235,20 +2235,29 @@
         "head_sha": "41b1ad7270abb7f56e79b395b875905e4e15f657",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T18:46:34+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T20:05:57+00:00",
+        "last_approver_activity_at": "2026-08-17T20:05:57+00:00",
         "last_author_activity_at": "2026-08-17T18:45:29+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "7703184be2868bd61bb69d4ca780942df28038879f4687a7cd9afab61aa1c936",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-17T18:46:34+00:00"
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lalitb",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "aeae0444aa2551eff55a9457e7b216997288db972207ac010984dbdfe0528d7f",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-17T18:45:29+00:00"
       },
       "failed": false,
       "pr_number": 3790,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3790",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3792": {
