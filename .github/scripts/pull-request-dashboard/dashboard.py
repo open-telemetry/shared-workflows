@@ -220,15 +220,16 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   "open_thread": bool,
                                                   "top_level_feedback": bool}; approved
                                                   means an approver-team member
-                                                  is in the APPROVED state,
+                                                  has an active APPROVED state,
                                                   approved_non_team means someone
-                                                  outside the team approved,
+                                                  outside the team has an active
+                                                  APPROVED state,
                                                   pending_review means a human who
                                                   previously reviewed has a pending
                                                   re-review request,
                                                   changes_requested means a
-                                                  reviewer's latest review is
-                                                  CHANGES_REQUESTED,
+                                                  reviewer has an active
+                                                  CHANGES_REQUESTED state,
                                                   open_thread means they own an
                                                   unresolved discussion,
                                                   and top_level_feedback means
