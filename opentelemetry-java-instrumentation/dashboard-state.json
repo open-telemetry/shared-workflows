@@ -2125,7 +2125,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -2136,18 +2136,26 @@
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "created_at": "2026-08-11T09:08:12+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5314631341,
+            "held_gates": "the required status checks and the Copilot review",
+            "kind": "already_routed",
+            "route": "author",
+            "user": "Rourf-Qiu"
+          }
+        ],
         "dashboard_override_cleared_ci": false,
         "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "2026-08-17T07:56:15Z",
+        "dashboard_override_command_id": 5314631341,
+        "dashboard_override_command_user": "Rourf-Qiu",
+        "dashboard_override_since": "2026-08-17T10:03:54Z",
         "head_sha": "12b1b1c2fb2abd38efea414bd03a1125280c051a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T10:02:06+00:00",
+        "last_activity_at": "2026-08-17T10:03:42+00:00",
         "last_approver_activity_at": "2026-08-13T15:32:43+00:00",
-        "last_author_activity_at": "2026-08-17T10:02:06+00:00",
+        "last_author_activity_at": "2026-08-17T10:03:42+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -2160,7 +2168,7 @@
           }
         ],
         "route_held_for_gates": true,
-        "routing_input_fingerprint": "5734fb312c9d97301f9c97d276b5cfae53342e3a06889d5109ba96132ac267fc",
+        "routing_input_fingerprint": "ac03a2588a4f69858f641494cbb567cc86284172de0cd56b758638acdcb33d01",
         "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-17T09:28:31+00:00"
       },
