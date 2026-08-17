@@ -15,7 +15,7 @@ from copilot_review import deliver_copilot_review_requests
 from dashboard_override import deliver_dashboard_command_replies
 from github_cli import detect_repo, gh_api, list_open_prs, normalize_repo, repo_state_key
 from notify_slack import notify_slack_from_state
-from route_presentation import outstanding_gate_phrase
+from route_presentation import unreported_gate_phrase
 from pr_status_comment import (
     update_status_comments_from_state,
     update_targeted_status_comment_from_state,
@@ -71,7 +71,9 @@ def report_stalled_gates(open_pr_numbers: set[int]) -> list[str]:
             continue
         if number not in open_pr_numbers:
             continue
-        gates = outstanding_gate_phrase(facts) or "a gate"
+        gates = unreported_gate_phrase(facts)
+        if not gates:
+            continue
         stalled.append(f"PR #{number}: {gates} never reported on head {facts.get('head_sha') or 'unknown'}")
     return sorted(stalled)
 

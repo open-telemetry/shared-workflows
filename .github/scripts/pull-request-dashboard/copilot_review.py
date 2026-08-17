@@ -93,6 +93,19 @@ def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:
     )
 
 
+def copilot_review_unreported(facts: dict[str, Any], *, enabled: bool) -> bool:
+    # Whether the gate is still waiting for Copilot to say anything about the
+    # current head. Findings are an answer, not a silence: the threads they
+    # leave are the author's to clear, and the dashboard already routes the
+    # pull request to the author for them. Only a review that is missing or
+    # that covers older code is a report that has not arrived.
+    if not enabled:
+        return False
+    return not facts.get("copilot_review_exists") or bool(
+        facts.get("copilot_review_stale")
+    )
+
+
 def set_copilot_first_review_missing_since(
     facts: dict[str, Any],
     previous_result: dict[str, Any] | None,

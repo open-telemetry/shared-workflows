@@ -66,10 +66,23 @@ def outstanding_gate_phrase(facts: dict[str, Any]) -> str:
     return " and ".join(gates)
 
 
+def unreported_gate_phrase(facts: dict[str, Any]) -> str:
+    # Which gate has said nothing at all about the current head. This is not
+    # the same as the gate that is holding the PR: a Copilot review that left
+    # findings holds it but has reported, so naming it would send the reader
+    # after a gate that arrived.
+    gates = []
+    if not facts.get("required_checks_settled"):
+        gates.append("the required status checks")
+    if facts.get("copilot_review_unreported"):
+        gates.append("the Copilot review")
+    return " and ".join(gates)
+
+
 def abandoned_gate_note(facts: dict[str, Any]) -> str:
     # Said once the dashboard has stopped waiting, so the reader knows the
     # missing gate is not something they are supposed to sit and wait for.
-    gates = outstanding_gate_phrase(facts)
+    gates = unreported_gate_phrase(facts)
     if not gates:
         return ""
     return (

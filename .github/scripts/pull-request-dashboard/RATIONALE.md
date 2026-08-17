@@ -335,6 +335,15 @@ the implementation understandable and operationally cheap.
   check suite on a PR that was already with its reviewers from looking like a
   stalled handoff. A push clears the clock, because new code means new checks
   and a review that has to run again.
+- Only a gate that has reported nothing on the current head runs the clock. A
+  Copilot review that covers the head but left open findings holds the PR, yet
+  it is not missing: it answered, and the threads it left are the author's to
+  clear. Because the clock is carried across a trip back to the author, counting
+  those findings would make every author who takes more than four hours over
+  review comments look like a gate GitHub lost, and the report would say a
+  review never arrived when it is sitting on the PR. A review that is missing or
+  that only covers older code still counts, because Copilot has said nothing
+  about the code being reviewed.
 - An expired hold is reported as a delivery failure on whole-repository passes,
   which opens the same tracking issue as any other dashboard failure. This is
   the only alarm the gates raise. Each way a gate can go missing has its own

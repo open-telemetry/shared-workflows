@@ -185,6 +185,7 @@ class DeliveryTest(unittest.TestCase):
                     "facts": {
                         "route_hold_expired": True,
                         "copilot_review_outstanding": True,
+                        "copilot_review_unreported": True,
                         "required_checks_settled": True,
                         "head_sha": "abc",
                     }
@@ -200,6 +201,50 @@ class DeliveryTest(unittest.TestCase):
             ["PR #7: the Copilot review never reported on head abc"],
             errors,
         )
+
+    def test_a_copilot_review_that_reported_is_not_named_as_the_stall(self) -> None:
+        # The checks are what went missing. Copilot answered on this head, so
+        # naming it would send the reader after a gate that is not missing.
+        state = {
+            "prs": {
+                "7": {
+                    "facts": {
+                        "route_hold_expired": True,
+                        "copilot_review_outstanding": True,
+                        "copilot_review_unreported": False,
+                        "required_checks_settled": False,
+                        "head_sha": "abc",
+                    }
+                }
+            }
+        }
+
+        with patch.object(delivery, "load_dashboard_state_cache", return_value=state):
+            errors = delivery.report_stalled_gates({7})
+
+        self.assertEqual(
+            ["PR #7: the required status checks never reported on head abc"],
+            errors,
+        )
+
+    def test_an_expired_hold_with_every_gate_reported_is_not_reported(self) -> None:
+        state = {
+            "prs": {
+                "7": {
+                    "facts": {
+                        "route_hold_expired": True,
+                        "copilot_review_unreported": False,
+                        "required_checks_settled": True,
+                        "head_sha": "abc",
+                    }
+                }
+            }
+        }
+
+        with patch.object(delivery, "load_dashboard_state_cache", return_value=state):
+            errors = delivery.report_stalled_gates({7})
+
+        self.assertEqual([], errors)
 
     def test_a_stalled_gate_on_a_closed_pr_is_not_reported(self) -> None:
         state = {"prs": {"7": {"facts": {"route_hold_expired": True}}}}

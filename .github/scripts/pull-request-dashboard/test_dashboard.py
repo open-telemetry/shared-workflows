@@ -609,6 +609,70 @@ class GateHoldTest(unittest.TestCase):
         self.assertEqual(held_since.isoformat(), facts["route_held_since"])
         self.assertTrue(facts["route_hold_expired"])
 
+    def test_copilot_findings_on_the_current_head_do_not_stall(self) -> None:
+        # Copilot reported on this head and left findings, so the PR is with
+        # its author over review comments, not waiting on a gate GitHub lost.
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "head_sha": "abc",
+            "copilot_review_exists": True,
+            "copilot_review_stale": False,
+            "copilot_review_needed": True,
+        }
+        held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
+
+        route = self._hold(
+            facts,
+            "author",
+            {
+                "route": "approver",
+                "facts": {
+                    "head_sha": "abc",
+                    "route_held_since": held_since.isoformat(),
+                },
+            },
+            require_clean_copilot_review=True,
+            now=self.START,
+        )
+
+        self.assertEqual("author", route)
+        self.assertTrue(facts["copilot_review_outstanding"])
+        self.assertFalse(facts["copilot_review_unreported"])
+        self.assertNotIn("route_held_since", facts)
+        self.assertFalse(facts["route_hold_expired"])
+
+    def test_a_review_that_only_covers_older_code_still_stalls(self) -> None:
+        # Copilot has said nothing about this head, so the wait for it is real
+        # even though an older review exists.
+        facts: dict[str, object] = {
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "head_sha": "abc",
+            "copilot_review_exists": True,
+            "copilot_review_stale": True,
+            "copilot_review_needed": True,
+        }
+        held_since = self.START - GATE_HOLD_LIMIT
+
+        route = self._hold(
+            facts,
+            "approver",
+            {
+                "route": "author",
+                "facts": {
+                    "head_sha": "abc",
+                    "route_held_since": held_since.isoformat(),
+                },
+            },
+            require_clean_copilot_review=True,
+            now=self.START,
+        )
+
+        self.assertEqual("approver", route)
+        self.assertTrue(facts["copilot_review_unreported"])
+        self.assertTrue(facts["route_hold_expired"])
+
     def test_held_route_carries_the_previous_wait_forward(self) -> None:
         facts = {
             "route_held_for_gates": True,

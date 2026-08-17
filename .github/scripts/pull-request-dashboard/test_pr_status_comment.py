@@ -269,6 +269,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                     "route_hold_expired": True,
                     "required_checks_settled": True,
                     "copilot_review_outstanding": True,
+                    "copilot_review_unreported": True,
                 },
             },
         )

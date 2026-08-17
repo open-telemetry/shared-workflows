@@ -163,6 +163,15 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   to this PR and its review is
                                                   missing or stale, so the route
                                                   is held.
+    copilot_review_unreported       bool          The Copilot review gate applies
+                                                  and Copilot has said nothing
+                                                  about the current head, so the
+                                                  gate is still waiting to
+                                                  report. False once a review
+                                                  covers this head, even when it
+                                                  left open findings, because
+                                                  those are the author's to
+                                                  clear.
     route_held_for_gates            bool          The PR did not advance to the
                                                   route it computed, because
                                                   the required checks or the
@@ -174,10 +183,11 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   provisional.
     route_held_since                str (iso)     When the gates first kept this
                                                   PR off its reviewers on this
-                                                  head. Cleared once the gates
-                                                  clear or the author pushes.
-    route_hold_expired              bool          The gates have been
-                                                  outstanding past
+                                                  head. Cleared once every gate
+                                                  has reported or the author
+                                                  pushes.
+    route_hold_expired              bool          A gate has reported nothing on
+                                                  this head for longer than
                                                   GATE_HOLD_LIMIT, so the PR
                                                   routes anyway and the stall
                                                   is reported.
@@ -258,6 +268,7 @@ from author_nudge import record_author_nudge_observation, routing_input_fingerpr
 from copilot_review import (
     copilot_review_outstanding,
     copilot_review_status,
+    copilot_review_unreported,
     is_copilot_reviewer,
     record_copilot_review_observation,
     set_copilot_first_review_missing_since,
@@ -1444,22 +1455,22 @@ def set_gate_hold_clock(
     previous_result: dict[str, Any] | None,
     route: str,
     *,
-    gates_outstanding: bool,
+    unreported_gates: bool,
     would_hold: bool,
     now: datetime,
 ) -> None:
     # How long the gates have been keeping this pull request off the reviewers
     # it would otherwise be with. It starts when a gate first holds the pull
     # request back, and then runs on its own for as long as the same head still
-    # has an outstanding gate. Carrying it that way is what lets the hold give
-    # up without the stall looking resolved a moment later, and it is why a trip
-    # back to the author does not stop it: the author owes the pull request
-    # something, but the gate is still missing on the same code, so letting the
-    # round trip clear the clock would hand that gate four more hours the moment
-    # the author answers. Starting it only on a real hold is what keeps a slow
-    # check suite on a pull request that was already with its reviewers from
-    # looking like one. A push clears it, because new code means new checks and
-    # a review that has to run again.
+    # has a gate that has not reported. Carrying it that way is what lets the
+    # hold give up without the stall looking resolved a moment later, and it is
+    # why a trip back to the author does not stop it: the author owes the pull
+    # request something, but the gate is still missing on the same code, so
+    # letting the round trip clear the clock would hand that gate four more
+    # hours the moment the author answers. Starting it only on a real hold is
+    # what keeps a slow check suite on a pull request that was already with its
+    # reviewers from looking like one. A push clears it, because new code means
+    # new checks and a review that has to run again.
     previous_facts = (previous_result or {}).get("facts") or {}
     head_sha = str(facts.get("head_sha") or "")
     carried = (
@@ -1468,7 +1479,7 @@ def set_gate_hold_clock(
         else ""
     )
     if not (
-        gates_outstanding
+        unreported_gates
         and (carried or (route in REVIEWER_ROUTES and would_hold))
     ):
         facts.pop("route_held_since", None)
@@ -1494,16 +1505,26 @@ def hold_route_until_gates_settle(
     facts["copilot_review_outstanding"] = copilot_review_outstanding(
         facts, enabled=require_clean_copilot_review
     )
+    facts["copilot_review_unreported"] = copilot_review_unreported(
+        facts, enabled=require_clean_copilot_review
+    )
     facts["required_checks_settled"] = required_checks_settled(facts)
     gates_outstanding = (
         not facts["required_checks_settled"] or facts["copilot_review_outstanding"]
+    )
+    # Only a gate that has reported nothing on this head can stall. A Copilot
+    # review that left findings did report, and clearing those findings is the
+    # author's own work, so counting it would turn every author who takes more
+    # than four hours over review comments into a missing gate.
+    unreported_gates = (
+        not facts["required_checks_settled"] or facts["copilot_review_unreported"]
     )
     would_hold = route_progress(route) > route_progress(previous_route)
     set_gate_hold_clock(
         facts,
         previous_result,
         route,
-        gates_outstanding=gates_outstanding,
+        unreported_gates=unreported_gates,
         would_hold=would_hold,
         now=now,
     )
