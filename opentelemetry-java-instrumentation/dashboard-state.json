@@ -3587,9 +3587,11 @@
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-17T23:58:43+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-17T23:58:43+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -3612,7 +3614,7 @@
         "last_activity_at": "2026-08-17T22:24:26+00:00",
         "last_approver_activity_at": "2026-08-17T22:24:26+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -3623,17 +3625,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-17T22:25:04.172854+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "09b48f85571ec3241f12ce62f64f491b413a2ab223ec1365d52bd0c7846f6c0f",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "d0e4b4313bc61be542bede26bca8b6399cd70c0f272c9511e365d67a4db7b052",
+        "waiting_age_basis": "created",
         "waiting_since": "2026-08-17T16:47:37+00:00"
       },
       "failed": false,
       "pr_number": 19661,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19661",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19663": {
