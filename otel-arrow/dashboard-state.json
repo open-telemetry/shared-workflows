@@ -1706,13 +1706,13 @@
     },
     "3758": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "CodeBlanch",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 6,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -1729,13 +1729,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "5eb32dea4dbaf0a0e02d2a5747756296c6ae18da",
+        "head_sha": "a84ad6779c3c891b491a13a34d28e8e82ef0afff",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T21:54:32+00:00",
-        "last_approver_activity_at": "2026-08-17T21:54:32+00:00",
+        "last_activity_at": "2026-08-17T22:38:56+00:00",
+        "last_approver_activity_at": "2026-08-17T22:38:56+00:00",
         "last_author_activity_at": "2026-08-17T16:51:52+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -1746,7 +1746,7 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "utpilla",
@@ -1754,9 +1754,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "990fe21c25a43e2caf9c2f5ac6bf18b9dc91f418220c2e564a56175aa03f4f0b",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "afc3ac7d6f10c9b76d577b78db3698e4c889ee58fb472c305b9f0e666d98fd3c",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-14T16:52:46+00:00"
       },
       "failed": false,
