@@ -8473,6 +8473,9 @@
         "author": "dloucasfx",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
+        "ci_failing_count": 0,
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": false,
@@ -8488,13 +8491,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "2d507d8ee471165be7573f4024a2419fdfd7e7e3",
+        "head_sha": "13b77f353e3e19f85a981485e59a551bd5bb5679",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T15:50:31+00:00",
+        "last_activity_at": "2026-08-17T20:17:15+00:00",
         "last_approver_activity_at": "2026-08-14T22:10:35+00:00",
-        "last_author_activity_at": "2026-08-17T15:50:31+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-08-17T20:17:15+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -8521,15 +8524,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "5a993f11d9c3c828d28a2859fa3d6b521cf07db5e21a303fcf560e4e8e958c15",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-14T22:10:33+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "dec66729c38f4edfee0a601f869cd9654a78f18c96fcf8c2f1db68d894b0856a",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-06T18:50:51+00:00"
       },
       "failed": false,
       "pr_number": 50011,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50011",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "50020": {
