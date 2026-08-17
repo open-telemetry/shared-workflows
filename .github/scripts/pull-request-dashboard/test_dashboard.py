@@ -650,7 +650,34 @@ class GateHoldTest(unittest.TestCase):
         self.assertEqual("2026-08-16T12:00:00+00:00", facts["waiting_since"])
         self.assertEqual("gate_release", facts["waiting_age_basis"])
 
-    def test_an_unheld_handoff_still_dates_from_the_push(self) -> None:
+    def test_the_gate_release_wait_survives_the_next_refresh(self) -> None:
+        # The release only happens once, so the wait it started has to be
+        # carried, or the very next refresh dates the PR from the push again.
+        facts = {
+            "route_held_for_gates": False,
+            "head_sha": "abc",
+            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
+        }
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "approver",
+                "facts": {
+                    "head_sha": "abc",
+                    "waiting_since": "2026-08-16T12:00:00+00:00",
+                    "waiting_age_basis": "gate_release",
+                },
+            },
+            now=self.START + timedelta(hours=1),
+        )
+
+        self.assertEqual("2026-08-16T12:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("gate_release", facts["waiting_age_basis"])
+
+
         facts = {
             "route_held_for_gates": False,
             "last_author_activity_at": "2026-08-16T08:00:00+00:00",

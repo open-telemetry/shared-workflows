@@ -1285,6 +1285,21 @@ def add_wait_age_facts(
         facts["waiting_since"] = format_ts(now or utc_now())
         facts["waiting_age_basis"] = "gate_release"
         return
+    # The release above only happens on the pass that hands the PR over, so
+    # without carrying it the next pass falls back to the author's push and
+    # presents the very wait the release exists to discard. The guard below
+    # cannot catch that, because it only stops the wait moving forward.
+    if (
+        route in REVIEWER_ROUTES
+        and (previous_result or {}).get("route") in REVIEWER_ROUTES
+        and previous_facts.get("waiting_age_basis") == "gate_release"
+        and previous_facts.get("waiting_since")
+        and facts.get("head_sha")
+        and facts.get("head_sha") == previous_facts.get("head_sha")
+    ):
+        facts["waiting_since"] = previous_facts["waiting_since"]
+        facts["waiting_age_basis"] = "gate_release"
+        return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
