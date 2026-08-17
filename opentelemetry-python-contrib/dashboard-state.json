@@ -4386,7 +4386,7 @@
     },
     "4969": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "rads-1996",
         "author_action_review_thread_urls": [],
@@ -4412,20 +4412,29 @@
         "head_sha": "1097caec9db5d10d30745e4c57b486fc6d2df339",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T21:40:36+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T22:07:20+00:00",
+        "last_approver_activity_at": "2026-08-17T22:07:20+00:00",
         "last_author_activity_at": "2026-08-17T21:40:36+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "hectorhdzg",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "1ff522ba5f1925ef59042e7293ea887749dcca8502c6a3c0cccaf54b08623d56",
+        "routing_input_fingerprint": "d6efdd879e36966cae45324a1293368b5713bf177d2ffe883190307c3a2f6e90",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-17T21:40:36+00:00"
       },
       "failed": false,
       "pr_number": 4969,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4969",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
