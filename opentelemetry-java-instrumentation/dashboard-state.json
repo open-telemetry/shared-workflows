@@ -2669,7 +2669,7 @@
     },
     "19598": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2695,14 +2695,23 @@
         "head_sha": "c67a8d98c4b37c8829ea624cd3a2ece8c55e3387",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-16T19:28:30+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T13:24:20+00:00",
+        "last_approver_activity_at": "2026-08-17T13:24:20+00:00",
         "last_author_activity_at": "2026-08-16T19:28:30+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "bd114975e3f16f1900c07464889c2e97210f36cccf5e0acd882811593b0b3e19",
-        "waiting_age_basis": "last_author_activity",
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "65e67f60ac0cbc23aa4071cbfeeac89914de3e34de1fbef6ed9ecb48936b5ddc",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-16T19:28:30+00:00"
       },
       "failed": false,
