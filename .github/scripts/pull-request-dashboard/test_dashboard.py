@@ -1199,12 +1199,13 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_exists"])
         self.assertFalse(facts["copilot_review_needed"])
 
-    def test_initial_automatic_review_needs_no_request(self) -> None:
+    def test_pending_first_review_request_is_not_duplicated(self) -> None:
         facts = {
             "ci_pending_count": 0,
             "copilot_review_requested": True,
             "copilot_review_exists": False,
             "copilot_review_stale": False,
+            "copilot_first_review_missing_since": "2020-01-01T00:00:00+00:00",
         }
 
         set_copilot_review_request_needed(facts, "approver", enabled=True)

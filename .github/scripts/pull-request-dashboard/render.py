@@ -154,9 +154,9 @@ def copilot_review_pending(facts: dict[str, Any]) -> bool:
     # Copilot earns a place only where its review holds the pull request. That
     # scope comes first, and within it a requested review qualifies, as does a
     # pull request Copilot has never reviewed, because the automatic first
-    # review is never requested and the hold it causes would otherwise have
-    # nothing on the row to explain it. A hold is not enough on its own:
-    # unsettled checks hold a route too.
+    # review is not requested through the dashboard and the hold it causes
+    # would otherwise have nothing on the row to explain it. A hold is not
+    # enough on its own: unsettled checks hold a route too.
     if not facts.get("copilot_review_outstanding"):
         return False
     if facts.get("copilot_review_requested"):
