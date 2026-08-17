@@ -572,8 +572,12 @@
         "approval_count": 0,
         "assignees": [],
         "author": "martincostello",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4981#discussion_r3794253571",
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4981#discussion_r3794258475"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "fe5344cfc7944332b3970cd3665b0327",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -595,20 +599,29 @@
         "head_sha": "590e8f32475c9f1dfe64398e257497ff77bdd016",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-15T15:44:53+00:00",
+        "last_activity_at": "2026-08-17T06:40:26+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-15T15:44:05+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "stevejgordon",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "84ac815deca896335e3339bff1c8d5585d46050f120fb13593ed031eb34d441d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-15T15:44:05+00:00"
+        "routing_input_fingerprint": "2d95865d25a1b0ea0b00abb0eb82d21018c8d1f4f07e42b9a4153407b41e9913",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-17T06:36:20+00:00"
       },
       "failed": false,
       "pr_number": 4981,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4981",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "4982": {
