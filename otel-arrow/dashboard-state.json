@@ -2259,8 +2259,11 @@
         "approval_count": 2,
         "assignees": [],
         "author": "albertlockett",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3792#discussion_r3798387393"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "d20d95da1ff9417ca03f351fd3d7eda4",
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
@@ -2282,11 +2285,19 @@
         "head_sha": "e16a4e71197fd9d418e6d0a3ff806f8eb8d6776d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T19:56:57+00:00",
-        "last_approver_activity_at": "2026-08-17T19:56:57+00:00",
+        "last_activity_at": "2026-08-17T19:57:53+00:00",
+        "last_approver_activity_at": "2026-08-17T19:57:53+00:00",
         "last_author_activity_at": "2026-08-17T19:24:18+00:00",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -2304,10 +2315,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "c90f7b1ca0aed885ff3a9b675f90943c51b9a88e9aa1fa0f4dff6d7d48f31571",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-17T18:57:14+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "4aeaab2c53d0907f6c86b7a1efe46b33c556d13e5828b991bee22a29ec4431f3",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-17T19:57:53+00:00"
       },
       "failed": false,
       "pr_number": 3792,
