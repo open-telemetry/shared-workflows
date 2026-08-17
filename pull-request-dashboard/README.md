@@ -119,8 +119,9 @@ summary that is not attached to an inline review thread.
   waits on reviewers unless its other active approvals meet the threshold. This
   is intentionally stricter than GitHub, which can continue to accept the old
   approval when the repository does not dismiss stale approvals. 🔴 stays
-  alongside ⏳, because a changes-requested review keeps blocking the merge
-  until that reviewer reviews again.
+  alongside ⏳ while the changes-requested review blocks the merge. A later
+  approval or dismissal clears 🔴, but ⏳ remains until the requested re-review
+  arrives.
 
 ### Closing top-level feedback
 
