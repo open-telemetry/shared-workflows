@@ -704,7 +704,7 @@ class GateHoldTest(unittest.TestCase):
         self.assertEqual("2026-08-16T12:00:00+00:00", facts["waiting_since"])
         self.assertEqual("gate_release", facts["waiting_age_basis"])
 
-
+    def test_an_unheld_handoff_still_dates_from_the_push(self) -> None:
         facts = {
             "route_held_for_gates": False,
             "last_author_activity_at": "2026-08-16T08:00:00+00:00",
