@@ -558,7 +558,9 @@ class GateHoldTest(unittest.TestCase):
         self.assertNotIn("route_held_since", facts)
         self.assertFalse(facts["route_hold_expired"])
 
-    def test_a_pr_sent_back_to_its_author_stops_the_clock(self) -> None:
+    def test_a_pr_sent_back_to_its_author_keeps_the_clock(self) -> None:
+        # The author owes this PR something, but the gate is still missing on
+        # the same code, so the round trip must not buy it a fresh four hours.
         facts: dict[str, object] = {
             "ci_pending_count": 1,
             "ci_failing_count": 1,
@@ -566,7 +568,7 @@ class GateHoldTest(unittest.TestCase):
         }
         held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
 
-        self._hold(
+        route = self._hold(
             facts,
             "author",
             {
@@ -579,8 +581,33 @@ class GateHoldTest(unittest.TestCase):
             now=self.START,
         )
 
-        self.assertNotIn("route_held_since", facts)
-        self.assertFalse(facts["route_hold_expired"])
+        self.assertEqual("author", route)
+        self.assertEqual(held_since.isoformat(), facts["route_held_since"])
+        self.assertTrue(facts["route_hold_expired"])
+        self.assertFalse(facts["route_held_for_gates"])
+
+    def test_an_author_round_trip_does_not_restart_an_expired_hold(self) -> None:
+        # The author replies without pushing, so the same never-reporting gate
+        # would otherwise hold the PR for another four hours.
+        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
+        held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
+
+        route = self._hold(
+            facts,
+            "approver",
+            {
+                "route": "author",
+                "facts": {
+                    "head_sha": "abc",
+                    "route_held_since": held_since.isoformat(),
+                },
+            },
+            now=self.START + timedelta(minutes=20),
+        )
+
+        self.assertEqual("approver", route)
+        self.assertEqual(held_since.isoformat(), facts["route_held_since"])
+        self.assertTrue(facts["route_hold_expired"])
 
     def test_held_route_carries_the_previous_wait_forward(self) -> None:
         facts = {

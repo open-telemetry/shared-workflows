@@ -1452,10 +1452,14 @@ def set_gate_hold_clock(
     # it would otherwise be with. It starts when a gate first holds the pull
     # request back, and then runs on its own for as long as the same head still
     # has an outstanding gate. Carrying it that way is what lets the hold give
-    # up without the stall looking resolved a moment later. Starting it only on
-    # a real hold is what keeps a slow check suite on a pull request that was
-    # already with its reviewers from looking like one. A push clears it,
-    # because new code means new checks and a review that has to run again.
+    # up without the stall looking resolved a moment later, and it is why a trip
+    # back to the author does not stop it: the author owes the pull request
+    # something, but the gate is still missing on the same code, so letting the
+    # round trip clear the clock would hand that gate four more hours the moment
+    # the author answers. Starting it only on a real hold is what keeps a slow
+    # check suite on a pull request that was already with its reviewers from
+    # looking like one. A push clears it, because new code means new checks and
+    # a review that has to run again.
     previous_facts = (previous_result or {}).get("facts") or {}
     head_sha = str(facts.get("head_sha") or "")
     carried = (
@@ -1465,8 +1469,7 @@ def set_gate_hold_clock(
     )
     if not (
         gates_outstanding
-        and route in REVIEWER_ROUTES
-        and (carried or would_hold)
+        and (carried or (route in REVIEWER_ROUTES and would_hold))
     ):
         facts.pop("route_held_since", None)
         return
