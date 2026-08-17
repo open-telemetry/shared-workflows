@@ -823,9 +823,12 @@
         "author": "Nik-Reddy",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "4a277a30d1194d638deee097645a8334",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-17T07:44:01+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-17T07:44:01+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -847,7 +850,7 @@
         "last_activity_at": "2026-08-17T07:42:46+00:00",
         "last_approver_activity_at": "2026-06-24T06:18:47+00:00",
         "last_author_activity_at": "2026-08-17T07:42:46+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -882,10 +885,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "d982ebd8fbb9892878ca0e889f78a19a3b23df7dd983f02c64e325da9ebbbc48",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-17T06:02:17+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "630b2db9107a80d8b549c48c3e74f64b367f1f4bc32fadd9d563bc1317a796af",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-17T07:44:01+00:00"
       },
       "failed": false,
       "pr_number": 238,
