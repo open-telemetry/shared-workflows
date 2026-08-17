@@ -1383,8 +1383,8 @@ def add_wait_age_facts(
         facts["waiting_age_basis"] = "gate_release"
         return
     if (
-        route == "approver"
-        and previous_route == "approver"
+        route in REVIEWER_ROUTES
+        and previous_route in REVIEWER_ROUTES
         and previous_facts.get("waiting_age_basis") == "review_rerequest"
         and previous_facts.get("waiting_since")
         and current_pending_reviewers & previous_pending_reviewers
