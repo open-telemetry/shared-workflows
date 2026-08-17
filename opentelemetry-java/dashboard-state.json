@@ -1185,7 +1185,7 @@
     },
     "8694": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "thswlsqls",
         "author_action_review_thread_urls": [],
@@ -1211,20 +1211,29 @@
         "head_sha": "4148ccf30358a8b87e256fb8e9f21244db178c00",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-05T03:52:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T23:41:23+00:00",
+        "last_approver_activity_at": "2026-08-17T23:41:23+00:00",
         "last_author_activity_at": "2026-08-05T01:19:47+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "breedx-splk",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "89d7b00364b1268bc55d4ac8392463e2040b2a83dca079150fff36c9d1f14754",
+        "routing_input_fingerprint": "01f7c69046ea7f5f2ef93ee7b7a44d58badee617cd1f37797c3dc74b952042b8",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-05T01:19:47+00:00"
       },
       "failed": false,
       "pr_number": 8694,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8694",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "8697": {
