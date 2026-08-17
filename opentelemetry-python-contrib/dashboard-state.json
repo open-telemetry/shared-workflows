@@ -3776,7 +3776,7 @@
     },
     "4952": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "opentelemetrybot",
         "author_action_review_thread_urls": [],
@@ -3802,20 +3802,29 @@
         "head_sha": "3253d388d3eee9331451e18bb8d0ebb185481c04",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T20:35:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T08:37:12+00:00",
+        "last_approver_activity_at": "2026-08-17T08:37:12+00:00",
         "last_author_activity_at": "2026-08-14T20:35:53+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "xrmx",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "d2c74775c07bb4e3190d3f2613b392b101a654649dbbe2f4429088d91bd490c5",
+        "routing_input_fingerprint": "68555b51ccba142580947c8d27f01750581193c3bedc5a6f00757576ff528f8e",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-14T20:35:53+00:00"
       },
       "failed": false,
       "pr_number": 4952,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4952",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4954": {
