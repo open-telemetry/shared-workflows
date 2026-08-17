@@ -3524,8 +3524,11 @@
         "approval_count": 1,
         "assignees": [],
         "author": "amdadulbari",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python/pull/5543#discussion_r3796671818"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "dc0c275912634d01a4080393b8cb3ced",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -3547,11 +3550,19 @@
         "head_sha": "2b297ae02a92e9ee442110ba0b85b44d9322fe6d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T08:44:33+00:00",
-        "last_approver_activity_at": "2026-08-17T08:44:33+00:00",
+        "last_activity_at": "2026-08-17T13:25:12+00:00",
+        "last_approver_activity_at": "2026-08-17T13:25:12+00:00",
         "last_author_activity_at": "2026-08-14T18:32:23+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lzchen",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -3562,14 +3573,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "3b901271e8cb881dc038a3990bb9652ecf6a1724ba8a036d7cd6cbb621053137",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-14T18:32:23+00:00"
+        "routing_input_fingerprint": "d15dc33de6a2d8a1d767a6d02a76e9a5bda1a47f5fe4f2bdc7497e1771d8088c",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-17T13:16:25+00:00"
       },
       "failed": false,
       "pr_number": 5543,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5543",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-review-4937218156": {
           "evidence": {
