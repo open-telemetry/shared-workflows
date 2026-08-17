@@ -9867,13 +9867,9 @@
         "assignees": [],
         "author": "niharikag09",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50152#issuecomment-5281045397",
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50152#issuecomment-5308163248"
-        ],
-        "author_nudge_episode_id": "63344faa90684702a5c335636d06ed4a",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 9,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -9893,10 +9889,10 @@
         "head_sha": "fe410b6f2d52ccee62f8340e59ac4ad3b10eeafc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-16T21:00:03+00:00",
+        "last_activity_at": "2026-08-17T10:45:41+00:00",
         "last_approver_activity_at": "2026-08-16T20:47:40+00:00",
         "last_author_activity_at": "2026-08-16T21:00:03+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -9912,19 +9908,38 @@
             "changes_requested": false,
             "login": "singhvibhanshu",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "8e26083fbc9a534466afbca0390cb60ca1950f6ec4f25c68efd8f8a86b1b1178",
-        "waiting_age_basis": "oldest_pending_thread",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "64e6502debbac594a0250d667350af467346b63fc633447bce5b2c720099b5c1",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-16T21:00:03+00:00"
       },
       "failed": false,
       "pr_number": 50152,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50152",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-issue-comment-5281045397": {
+          "evidence": {
+            "reply": "2026-08-16T14:02:54Z"
+          },
+          "reply_source_id": 5307816483
+        },
+        "pr-issue-comment-5308163248": {
+          "evidence": {
+            "reply": "2026-08-16T21:00:03Z"
+          },
+          "reply_source_id": 5309642841
+        },
+        "pr-issue-comment-5308851584": {
+          "evidence": {
+            "reply": "2026-08-16T17:58:21Z"
+          },
+          "reply_source_id": 5308862688
+        }
+      }
     },
     "50154": {
       "facts": {
