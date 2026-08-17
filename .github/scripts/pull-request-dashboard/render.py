@@ -114,18 +114,19 @@ WORD_JOINER = "\u2060"
 
 def reviewer_icon(reviewer: dict[str, Any]) -> str:
     discussion_icons = []
-    if reviewer.get("pending_review"):
+    pending_review = bool(reviewer.get("pending_review"))
+    if pending_review:
         discussion_icons.append("⏳")
     if reviewer.get("open_thread"):
         discussion_icons.append("💬")
     if reviewer.get("top_level_feedback"):
         discussion_icons.append("📌")
-    if reviewer.get("changes_requested"):
+    if not pending_review and reviewer.get("changes_requested"):
         discussion_icons.append("🔴")
         return WORD_JOINER.join(discussion_icons)
-    if reviewer.get("approved"):
+    if not pending_review and reviewer.get("approved"):
         discussion_icons.append("✅")
-    elif reviewer.get("approved_non_team"):
+    elif not pending_review and reviewer.get("approved_non_team"):
         # A black/gray check distinguishes a non-code-owner approval from a
         # code-owner approval; only code-owner approvals count toward merge.
         discussion_icons.append("✔️")
@@ -149,14 +150,15 @@ COPILOT_REVIEWER_LOGIN = "copilot-pull-request-reviewer"
 def copilot_review_pending(facts: dict[str, Any]) -> bool:
     # "Pending" has to mean a review is genuinely in flight, or the icon shows
     # on nearly every row and stops carrying information. It also has to mean
-    # the wait is someone's turn, which is what the gate decides: a requested
-    # human reviewer who has not responded is left off the row entirely, so
-    # Copilot earns a place only where its review holds the pull request. That
-    # scope comes first, and within it a requested review qualifies, as does a
-    # pull request Copilot has never reviewed, because the automatic first
-    # review is not requested through the dashboard and the hold it causes
-    # would otherwise have nothing on the row to explain it. A hold is not
-    # enough on its own: unsettled checks hold a route too.
+    # the wait is someone's turn, which is what the gate decides. First-time
+    # human review requests are left off the row; human re-reviews are already
+    # marked pending in the stored reviewer facts. Copilot earns a place only
+    # where its review holds the pull request. That scope comes first, and
+    # within it a requested review qualifies, as does a pull request Copilot
+    # has never reviewed, because the automatic first review is not requested
+    # through the dashboard and the hold it causes would otherwise have nothing
+    # on the row to explain it. A hold is not enough on its own: unsettled
+    # checks hold a route too.
     if not facts.get("copilot_review_outstanding"):
         return False
     if facts.get("copilot_review_requested"):
@@ -305,7 +307,7 @@ def render_pr_tables(
         f"partly performed by an LLM ([source]({source_url})) and could contain mistakes."
     )
     reviewers_note = (
-        "Reviewers column: ✅ approved · ✔️ approved (non-code-owner) · "
+        "Reviewers column: ✅ active approval · ✔️ active approval (non-code-owner) · "
         "⏳ review pending · 💬 open review thread · 📌 top-level feedback needs author action · "
         "🔴 changes requested."
     )

@@ -15,12 +15,12 @@ The dashboard groups open non-draft pull requests by who is expected to act next
 - **PR** — Pull request number and title, followed by any configured matching labels. The number autolinks to the PR on GitHub. Configured labels are rendered inline for both active and draft PRs.
 - **Author** — GitHub login of the PR author.
 - **Reviewers** — Reviewers who have engaged with the PR, each annotated with one or more icons:
-  - ✅ approved
-  - ✔️ approved (non-code-owner — does **not** count toward merge requirements)
+  - ✅ active approval
+  - ✔️ active approval (non-code-owner — does **not** count toward `required_approvals`)
   - 💬 has an open (unresolved) review thread on the PR
   - 📌 has tracked top-level feedback that still needs author action
   - 🔴 requested changes
-  - ⏳ a review is in flight (only used for Copilot: a requested review, or a first review that has not arrived yet while it holds the PR)
+  - ⏳ a review is in flight (a human reviewer was requested again after reviewing, or a Copilot review is pending while it holds the PR)
   - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has both an unresolved inline thread and tracked top-level feedback; ✅ may accompany either or both.
 - **CI** — Aggregate check status across the PR's required status checks. Optional checks do not affect this column:
   - ✅ all required checks passing
@@ -69,7 +69,7 @@ Fields:
 | ----- | -------- | ----------- |
 | `name` | yes | Name of the repository under `open-telemetry`. |
 | `approver_teams` | yes | GitHub team slugs whose members count as approvers. |
-| `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
+| `required_approvals` | no | Number of active approvals required for an open PR to be marked ready to merge. An approval stops counting while that reviewer has a pending re-review request. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
 | `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head with no open Copilot review threads is required before automatically routing a PR to reviewers or maintainers. An effective `/dashboard route:reviewers` override bypasses this gate. A thread counts as open while it is unresolved and GitHub has not marked it outdated, so a thread whose code the author has since rewritten stops holding the PR even if nobody resolved it. The dashboard re-requests Copilot review when a push has left the previous review stale, and requests the first review itself if automatic Copilot code review has not produced one within an hour of the PR becoming ready. It does not duplicate a pending request. A request counts as delivered only once GitHub confirms Copilot is a pending reviewer or finds a completed Copilot review of the current head, so one that GitHub accepts but does not record in either form is sent again on the next pass. A gate that never reports holds the PR for at most four hours; after that the PR routes anyway, its status comment says which gate the dashboard stopped waiting for, and the run reports the stall. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
@@ -114,6 +114,11 @@ summary that is not attached to an inline review thread.
   classification or routing. 🔴 remains until a later approval or dismissal
   clears that state. Empty review summaries are ignored; any inline comments
   are tracked through their own threads.
+- When a human reviewer is requested again, ⏳ replaces their previous review
+  badge and their previous approval stops counting toward `required_approvals`.
+  The PR waits on reviewers unless its other active approvals meet the
+  threshold. This is intentionally stricter than GitHub, which can continue to
+  accept the old approval when the repository does not dismiss stale approvals.
 
 ### Closing top-level feedback
 

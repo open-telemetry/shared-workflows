@@ -13,6 +13,7 @@ from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     GATE_HOLD_LIMIT,
     DashboardUpdate,
+    add_reviewers,
     add_wait_age_facts,
     apply_targeted_dashboard_update,
     assign_author_nudge_episode,
@@ -20,6 +21,7 @@ from dashboard import (
     backfill_failed_pr_numbers,
     complete_initial_backfill_if_ready,
     compute_facts,
+    current_approval_count,
     fetch_pr_raw,
     group_review_threads,
     hold_route_until_gates_settle,
@@ -356,6 +358,80 @@ class RoutePrTest(unittest.TestCase):
         }
 
         self.assertEqual("approver", route_pr(facts, pending_actions, 1))
+
+
+class RerequestedReviewTest(unittest.TestCase):
+    @staticmethod
+    def approval(login: str) -> dict[str, object]:
+        return {
+            "kind": "review-state",
+            "timestamp": "2026-08-01T00:00:00Z",
+            "actor": login,
+            "actor_role": "approver",
+            "state": "APPROVED",
+        }
+
+    def test_rerequested_approval_becomes_pending_and_routes_to_reviewers(self) -> None:
+        events = [self.approval("reviewer")]
+        review_requests = [{"__typename": "User", "login": "reviewer"}]
+        facts = {
+            "approval_count": current_approval_count(events, review_requests),
+            "assignees": [],
+            "is_maintenance_bot": False,
+        }
+
+        add_reviewers(facts, events, [], [], {}, review_requests)
+
+        self.assertEqual(0, facts["approval_count"])
+        self.assertEqual("approver", route_pr(facts, {}, 1))
+        self.assertEqual(
+            {
+                "login": "reviewer",
+                "approved": False,
+                "approved_non_team": False,
+                "pending_review": True,
+                "changes_requested": False,
+                "open_thread": False,
+                "top_level_feedback": False,
+            },
+            facts["reviewers"][0],
+        )
+
+    def test_other_active_approvals_still_count(self) -> None:
+        events = [self.approval("active"), self.approval("rerequested")]
+        review_requests = [{"__typename": "User", "login": "rerequested"}]
+        facts = {
+            "approval_count": current_approval_count(events, review_requests),
+            "assignees": [],
+            "is_maintenance_bot": False,
+        }
+
+        add_reviewers(facts, events, [], [], {}, review_requests)
+
+        self.assertEqual(1, facts["approval_count"])
+        self.assertEqual("maintainer", route_pr(facts, {}, 1))
+        self.assertTrue(facts["reviewers"][0]["approved"])
+        self.assertTrue(facts["reviewers"][1]["pending_review"])
+
+    def test_first_review_request_is_not_shown_as_a_rereview(self) -> None:
+        facts = {"assignees": []}
+
+        add_reviewers(
+            facts,
+            [],
+            [],
+            [],
+            {},
+            [{"__typename": "User", "login": "new-reviewer"}],
+        )
+
+        self.assertEqual([], facts["reviewers"])
+
+    def test_team_request_does_not_clear_individual_approvals(self) -> None:
+        events = [self.approval("reviewer")]
+        review_requests = [{"__typename": "Team", "slug": "example-approvers"}]
+
+        self.assertEqual(1, current_approval_count(events, review_requests))
 
 
 class GateHoldTest(unittest.TestCase):
