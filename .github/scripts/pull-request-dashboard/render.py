@@ -121,7 +121,7 @@ def reviewer_icon(reviewer: dict[str, Any]) -> str:
         discussion_icons.append("💬")
     if reviewer.get("top_level_feedback"):
         discussion_icons.append("📌")
-    if not pending_review and reviewer.get("changes_requested"):
+    if reviewer.get("changes_requested"):
         discussion_icons.append("🔴")
         return WORD_JOINER.join(discussion_icons)
     if not pending_review and reviewer.get("approved"):

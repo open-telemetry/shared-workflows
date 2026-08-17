@@ -229,8 +229,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   previously reviewed has a pending
                                                   re-review request,
                                                   changes_requested means a
-                                                  reviewer has an active
-                                                  CHANGES_REQUESTED state,
+                                                  reviewer's latest review is
+                                                  CHANGES_REQUESTED, which a
+                                                  re-review request does not
+                                                  clear,
                                                   open_thread means they own an
                                                   unresolved discussion,
                                                   and top_level_feedback means
@@ -613,11 +615,15 @@ def active_review_states(
     events: list[dict[str, Any]],
     review_requests: list[dict[str, Any]] | None = None,
 ) -> dict[str, str]:
+    # Only an approval goes stale when its reviewer is asked to look again.
+    # GitHub keeps a CHANGES_REQUESTED review blocking the merge until that
+    # reviewer submits a new one, so dropping it here would hide a live
+    # blocker rather than report a wait.
     requested = requested_human_reviewer_logins(review_requests)
     return {
         reviewer: state
         for reviewer, state in latest_review_states(events).items()
-        if reviewer not in requested
+        if state != "APPROVED" or reviewer not in requested
     }
 
 

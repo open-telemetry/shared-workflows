@@ -114,11 +114,13 @@ summary that is not attached to an inline review thread.
   classification or routing. 🔴 remains until a later approval or dismissal
   clears that state. Empty review summaries are ignored; any inline comments
   are tracked through their own threads.
-- When a human reviewer is requested again, ⏳ replaces their previous review
-  badge and their previous approval stops counting toward `required_approvals`.
-  The PR waits on reviewers unless its other active approvals meet the
-  threshold. This is intentionally stricter than GitHub, which can continue to
-  accept the old approval when the repository does not dismiss stale approvals.
+- When a human reviewer is requested again, ⏳ replaces their previous approval
+  badge and that approval stops counting toward `required_approvals`. The PR
+  waits on reviewers unless its other active approvals meet the threshold. This
+  is intentionally stricter than GitHub, which can continue to accept the old
+  approval when the repository does not dismiss stale approvals. 🔴 stays
+  alongside ⏳, because a changes-requested review keeps blocking the merge
+  until that reviewer reviews again.
 
 ### Closing top-level feedback
 

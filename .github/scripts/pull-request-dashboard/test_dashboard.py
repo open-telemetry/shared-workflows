@@ -371,6 +371,16 @@ class RerequestedReviewTest(unittest.TestCase):
             "state": "APPROVED",
         }
 
+    @staticmethod
+    def changes_requested(login: str) -> dict[str, object]:
+        return {
+            "kind": "review-state",
+            "timestamp": "2026-08-01T00:00:00Z",
+            "actor": login,
+            "actor_role": "approver",
+            "state": "CHANGES_REQUESTED",
+        }
+
     def test_rerequested_approval_becomes_pending_and_routes_to_reviewers(self) -> None:
         events = [self.approval("reviewer")]
         review_requests = [{"__typename": "User", "login": "reviewer"}]
@@ -432,6 +442,19 @@ class RerequestedReviewTest(unittest.TestCase):
         review_requests = [{"__typename": "Team", "slug": "example-approvers"}]
 
         self.assertEqual(1, current_approval_count(events, review_requests))
+
+    def test_rerequest_keeps_a_blocking_changes_requested_state(self) -> None:
+        # GitHub keeps the review blocking the merge until the reviewer
+        # submits a new one, so the request adds a wait rather than clearing
+        # the block.
+        events = [self.changes_requested("reviewer")]
+        review_requests = [{"__typename": "User", "login": "reviewer"}]
+        facts = {"assignees": []}
+
+        add_reviewers(facts, events, [], [], {}, review_requests)
+
+        self.assertTrue(facts["reviewers"][0]["pending_review"])
+        self.assertTrue(facts["reviewers"][0]["changes_requested"])
 
 
 class GateHoldTest(unittest.TestCase):
