@@ -1812,14 +1812,17 @@
     },
     "3776": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lquerel",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "5056341400954216862a99eba2b34883",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-17T23:42:01+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-17T23:42:01+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -1838,11 +1841,19 @@
         "head_sha": "481edc9e31ba4a5fc29dd320a7f3c700a70b540c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T23:03:36+00:00",
-        "last_approver_activity_at": "2026-08-17T22:19:10+00:00",
+        "last_activity_at": "2026-08-17T23:50:01+00:00",
+        "last_approver_activity_at": "2026-08-17T23:50:01+00:00",
         "last_author_activity_at": "2026-08-17T23:03:36+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -1852,10 +1863,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "27820f41192904cbcf27b65b8df80da0e0efc26acc7649cede2515846da00065",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-17T22:13:54+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "7b4d089fd2d968a546f8172131184a785966f5e8ee8b28d0d2a526a18cd170d6",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-17T23:42:01+00:00"
       },
       "failed": false,
       "pr_number": 3776,
