@@ -1332,11 +1332,14 @@
     },
     "4637": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "mznet",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4637#pullrequestreview-4955245044"
+        ],
+        "author_nudge_episode_id": "3f139564dd2b4620851c9bedc717f2dc",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1358,20 +1361,29 @@
         "head_sha": "cbcd20d530100f47c643840f7b0a58841d944837",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-28T03:31:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T22:56:08+00:00",
+        "last_approver_activity_at": "2026-08-17T22:56:08+00:00",
         "last_author_activity_at": "2026-07-28T03:31:43+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "tammy-baylis-swi",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a8f813c3e3c6c15056198465a662b75ee3cc868e11bcc648b5948c1b3f5c8629",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-28T03:31:43+00:00"
+        "routing_input_fingerprint": "f6252036c5d6edf213ffeb93c2d6b19d9c98731df7338f06fea244449171f537",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-17T22:56:08+00:00"
       },
       "failed": false,
       "pr_number": 4637,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4637",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "4648": {
