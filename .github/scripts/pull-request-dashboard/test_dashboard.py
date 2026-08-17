@@ -890,6 +890,60 @@ class GateHoldTest(unittest.TestCase):
 
 
 class ReviewerWaitTest(unittest.TestCase):
+    def test_rereview_handoff_restarts_the_reviewer_wait(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
+        now = datetime(2026, 8, 17, 20, 0, tzinfo=timezone.utc)
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "maintainer",
+                "facts": {
+                    "waiting_since": "2026-07-30T01:00:00+00:00",
+                    "reviewers": [
+                        {
+                            "login": "reviewer",
+                            "pending_review": False,
+                        }
+                    ],
+                },
+            },
+            now=now,
+            pending_reviewers={"reviewer"},
+        )
+
+        self.assertEqual("2026-08-17T20:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("review_rerequest", facts["waiting_age_basis"])
+
+    def test_rereview_handoff_wait_survives_the_next_refresh(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "approver",
+                "facts": {
+                    "waiting_since": "2026-08-17T20:00:00+00:00",
+                    "waiting_age_basis": "review_rerequest",
+                    "reviewers": [
+                        {
+                            "login": "reviewer",
+                            "pending_review": True,
+                        }
+                    ],
+                },
+            },
+            now=datetime(2026, 8, 17, 21, 0, tzinfo=timezone.utc),
+            pending_reviewers={"reviewer"},
+        )
+
+        self.assertEqual("2026-08-17T20:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("review_rerequest", facts["waiting_age_basis"])
+
     def test_author_push_does_not_restart_the_reviewer_wait(self) -> None:
         facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
 

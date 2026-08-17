@@ -199,9 +199,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   forward while the handoff is
                                                   held, restarted when a held
                                                   handoff reaches reviewers,
-                                                  and never moves
-                                                  forward while the PR stays on
-                                                  a reviewer route.
+                                                  restarted when a re-review
+                                                  returns the PR to approvers,
+                                                  and otherwise never moves
+                                                  forward on a reviewer route.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
     author_action_review_thread_urls
@@ -599,6 +600,13 @@ def requested_human_reviewer_logins(
         if request.get("__typename") == "User"
         and (login := reviewer_actor_login(request))
     }
+
+
+def pending_review_logins(
+    events: list[dict[str, Any]],
+    review_requests: list[dict[str, Any]] | None,
+) -> set[str]:
+    return requested_human_reviewer_logins(review_requests) & reviewing_logins(events)
 
 
 def active_review_states(
@@ -1318,8 +1326,16 @@ def add_wait_age_facts(
     pending_actions: dict[str, dict[str, Any]],
     previous_result: dict[str, Any] | None = None,
     now: datetime | None = None,
+    pending_reviewers: set[str] | None = None,
 ) -> None:
     previous_facts = (previous_result or {}).get("facts") or {}
+    previous_route = (previous_result or {}).get("route")
+    previous_pending_reviewers = {
+        reviewer.get("login") or ""
+        for reviewer in previous_facts.get("reviewers") or []
+        if reviewer.get("pending_review")
+    }
+    current_pending_reviewers = pending_reviewers or set()
     # A held route was not re-evaluated, so its wait continues uninterrupted
     # rather than restarting from whatever the incomplete facts now imply.
     if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
@@ -1340,6 +1356,17 @@ def add_wait_age_facts(
         facts["waiting_since"] = format_ts(now or utc_now())
         facts["waiting_age_basis"] = "gate_release"
         return
+    # Re-requesting a review can remove an approval and hand the PR from
+    # maintainers back to approvers without any author activity to date the
+    # handoff. Start the reviewer wait when the dashboard first sees it.
+    if (
+        route == "approver"
+        and previous_route == "maintainer"
+        and current_pending_reviewers - previous_pending_reviewers
+    ):
+        facts["waiting_since"] = format_ts(now or utc_now())
+        facts["waiting_age_basis"] = "review_rerequest"
+        return
     # The release above only happens on the pass that hands the PR over, so
     # without carrying it the next pass falls back to the author's push and
     # presents the very wait the release exists to discard. The guard below
@@ -1354,6 +1381,16 @@ def add_wait_age_facts(
     ):
         facts["waiting_since"] = previous_facts["waiting_since"]
         facts["waiting_age_basis"] = "gate_release"
+        return
+    if (
+        route == "approver"
+        and previous_route == "approver"
+        and previous_facts.get("waiting_age_basis") == "review_rerequest"
+        and previous_facts.get("waiting_since")
+        and current_pending_reviewers & previous_pending_reviewers
+    ):
+        facts["waiting_since"] = previous_facts["waiting_since"]
+        facts["waiting_age_basis"] = "review_rerequest"
         return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
@@ -1459,8 +1496,7 @@ def add_reviewers(
     # still needs author action). The renderer turns these into icons.
     # Reviewers are everyone who reviewed, owns an open discussion, otherwise
     # commented, or is a PR assignee, sorted alphabetically (case-insensitive).
-    requested = requested_human_reviewer_logins(review_requests)
-    pending_reviews = requested & reviewing_logins(events)
+    pending_reviews = pending_review_logins(events, review_requests)
     states = active_review_states(events, review_requests)
     approvers = approver_logins(events)
     approved = {r for r, s in states.items() if s == "APPROVED" and r in approvers}
@@ -1814,7 +1850,15 @@ def build_pr_result(
             raw.get("issue_comments") or [],
         )
         append_command_ack_reply(raw, facts, route)
-        add_wait_age_facts(facts, route, pending_actions, previous_result)
+        add_wait_age_facts(
+            facts,
+            route,
+            pending_actions,
+            previous_result,
+            pending_reviewers=pending_review_logins(
+                events, raw.get("review_requests") or []
+            ),
+        )
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
         )
