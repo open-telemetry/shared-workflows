@@ -3095,11 +3095,14 @@
     },
     "7002": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "anneheartrecord",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/7002#pullrequestreview-4954100005"
+        ],
+        "author_nudge_episode_id": "54f516e25d364b5b8a58e6a72a83b403",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -3121,20 +3124,29 @@
         "head_sha": "d8084442a106e29af2a66301326fef9753db8bac",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T12:28:20+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T19:58:50+00:00",
+        "last_approver_activity_at": "2026-08-17T19:58:50+00:00",
         "last_author_activity_at": "2026-08-17T12:28:20+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "JacksonWeber",
+            "open_thread": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "4a1eed3fab489365f813b09f1a8fe48d0b1ca64a8c0253c072b55e215a94bf35",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-17T12:28:20+00:00"
+        "routing_input_fingerprint": "e66a4c7336d6c1a3f14c554c9f783a0aef8000a027c2314a70960a4f8420eef6",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-17T19:58:50+00:00"
       },
       "failed": false,
       "pr_number": 7002,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7002",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4946523065": {
           "evidence": {
