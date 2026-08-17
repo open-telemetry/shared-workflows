@@ -10798,7 +10798,7 @@
     },
     "50239": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "akhileshsingh85",
         "author_action_review_thread_urls": [],
@@ -10824,20 +10824,29 @@
         "head_sha": "10d94b6d9db58dc528c3c71a81f02a7e576056c5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T15:53:57+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T19:24:05+00:00",
+        "last_approver_activity_at": "2026-08-17T19:24:05+00:00",
         "last_author_activity_at": "2026-08-14T15:53:57+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "pjanotti",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "29286945b0d17010fb0969e9044fa002908136aacbe2ad92b0770a229414af58",
+        "routing_input_fingerprint": "cde698f10a2dff1c1ac441368c010b5c7d0fdd37332a54afbef6abd01d1c9b5f",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-14T01:19:52+00:00"
       },
       "failed": false,
       "pr_number": 50239,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50239",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50241": {
