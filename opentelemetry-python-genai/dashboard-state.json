@@ -1298,7 +1298,7 @@
     },
     "398": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -1324,20 +1324,29 @@
         "head_sha": "3ddfa3dfaf95c22cc8757dd95d64995876dd292c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-16T19:00:49+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-17T02:06:24+00:00",
+        "last_approver_activity_at": "2026-08-17T02:06:24+00:00",
         "last_author_activity_at": "2026-08-16T19:00:49+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "8a474b905b206b38b05e9e02f2790d4324f236b659ea2970e72bdbb75be6b83d",
+        "routing_input_fingerprint": "556c6b775410e111d79aabf6b8d70a56bc8e478670d2c09f86efaa328a3aa221",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-16T19:00:49+00:00"
       },
       "failed": false,
       "pr_number": 398,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/398",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "399": {
