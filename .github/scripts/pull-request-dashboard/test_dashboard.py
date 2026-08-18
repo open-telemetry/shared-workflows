@@ -399,6 +399,19 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertFalse(active)
         self.assertIsNone(facts["dashboard_override_command_targets_head"])
 
+    def test_same_second_head_push_leaves_override_pending(self) -> None:
+        facts = {
+            "dashboard_override_command_id": 7,
+            "dashboard_override_since": "2026-08-11T14:00:00Z",
+            "head_sha": "current-head",
+            "head_push_at": "2026-08-11T14:00:00Z",
+        }
+
+        active = reviewer_handoff_active(facts)
+
+        self.assertFalse(active)
+        self.assertIsNone(facts["dashboard_override_command_targets_head"])
+
     def test_unknown_head_push_time_stays_pending_on_refresh(self) -> None:
         facts = {
             "dashboard_override_command_id": 7,
@@ -420,6 +433,28 @@ class ResolvePrRouteTest(unittest.TestCase):
 
         self.assertFalse(active)
         self.assertIsNone(facts["dashboard_override_command_targets_head"])
+
+    def test_deleted_command_does_not_reactivate_previous_target(self) -> None:
+        facts = {
+            "dashboard_override_command_id": 0,
+            "dashboard_override_since": "",
+            "head_sha": "current-head",
+        }
+        previous_result = {
+            "route": "author",
+            "facts": {
+                "dashboard_override_command_id": 7,
+                "dashboard_override_since": "2026-08-11T14:00:00Z",
+                "dashboard_override_command_targets_head": True,
+                "head_sha": "current-head",
+                "copilot_review_bypassed_by_override": True,
+            },
+        }
+
+        active = reviewer_handoff_active(facts, previous_result)
+
+        self.assertFalse(active)
+        self.assertFalse(facts["dashboard_override_command_targets_head"])
 
     def test_stale_override_stays_inactive_after_classification_failure(self) -> None:
         facts = {

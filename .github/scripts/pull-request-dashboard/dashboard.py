@@ -1566,23 +1566,26 @@ def reviewer_handoff_active(
     previous_targets_head = previous_facts.get(
         "dashboard_override_command_targets_head"
     )
+    ordered_target = (
+        command_at > head_push_at
+        if command_at and head_push_at and command_at != head_push_at
+        else None
+    )
     if new_command:
         if same_observed_head:
             command_targets_head = True
-        elif command_at and head_push_at:
-            command_targets_head = command_at > head_push_at
         else:
-            command_targets_head = None
+            command_targets_head = ordered_target
     elif command_id and previous_targets_head is None:
-        command_targets_head = (
-            command_at > head_push_at if command_at and head_push_at else None
-        )
-    elif "dashboard_override_command_targets_head" in facts:
+        command_targets_head = ordered_target
+    elif command_id and "dashboard_override_command_targets_head" in facts:
         command_targets_head = facts["dashboard_override_command_targets_head"]
-    else:
+    elif command_id:
         command_targets_head = previous_targets_head or False
+    else:
+        command_targets_head = False
     facts["dashboard_override_command_targets_head"] = command_targets_head
-    active = bool(command_targets_head) or bool(
+    active = bool(command_id and command_targets_head) or bool(
         previous_facts.get("copilot_review_bypassed_by_override") and same_head
     )
     facts["copilot_review_bypassed_by_override"] = active
