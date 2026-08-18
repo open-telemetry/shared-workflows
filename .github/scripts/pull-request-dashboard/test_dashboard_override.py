@@ -151,9 +151,6 @@ class DashboardOverrideTest(unittest.TestCase):
         routed = dashboard_override.render_command_reply(
             {"comment_id": 4, "kind": "routed", "user": "author"}
         )
-        stale = dashboard_override.render_command_reply(
-            {"comment_id": 7, "kind": "stale_head", "user": "author"}
-        )
         gate_held = dashboard_override.render_command_reply({
             "comment_id": 5,
             "kind": "routed",
@@ -181,12 +178,6 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertIn(dashboard_override.command_reply_marker(4), routed)
         self.assertIn(dashboard_override.override_ack_marker(4), routed)
         self.assertIn("@author, this pull request was routed to reviewers.", routed)
-        self.assertIn(dashboard_override.override_ack_marker(7), stale)
-        self.assertIn(
-            "@author, the dashboard could not safely bind your "
-            "`/dashboard route:reviewers` command to the current head",
-            stale,
-        )
         self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
             "@author, your reviewer-routing request was recorded; the reviewer "
@@ -236,8 +227,8 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertIn(dashboard_override.override_ack_marker(7), body)
         self.assertIn(
-            "@author, the dashboard observed a new head and could not bind your "
-            "`/dashboard route:reviewers` command to it",
+            "@author, the dashboard could not safely bind your "
+            "`/dashboard route:reviewers` command to the current head",
             body,
         )
         self.assertIn("Run the command again", body)
