@@ -2493,7 +2493,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -2516,7 +2516,7 @@
         "last_activity_at": "2026-08-18T03:06:45+00:00",
         "last_approver_activity_at": "2026-06-17T15:31:18+00:00",
         "last_author_activity_at": "2026-08-18T03:06:45+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2543,15 +2543,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "6a97c0b82ae401b44f3725a346cc2ddf02612f7f95bae9f80b34df65bf874b36",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-06-10T19:02:12+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "31aacc49d3c440db4c3c2a290c683e6b86ba6ce78c4d55daaabbe519dcda8c65",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-18T03:06:45+00:00"
       },
       "failed": false,
       "pr_number": 98,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/98",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-4403857362": {
           "evidence": {
@@ -2567,9 +2567,9 @@
         },
         "pr-issue-comment-4729151864": {
           "evidence": {
-            "reply": "2026-06-25T18:53:39Z"
+            "reply": "2026-07-20T19:02:25Z"
           },
-          "reply_source_id": 4803166777
+          "reply_source_id": 5026071731
         },
         "pr-issue-comment-5005388975": {
           "evidence": {
