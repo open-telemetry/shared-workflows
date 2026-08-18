@@ -9710,8 +9710,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "RealAnna",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50137#discussion_r3799873414"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50137#pullrequestreview-4955804114"
+        ],
+        "author_nudge_episode_id": "87cf59da712748d2a5b0e04b0b0dd13b",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -9733,20 +9738,29 @@
         "head_sha": "b8504763f971971c1530091909e4e413d7882a28",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-11T05:14:41+00:00",
+        "last_activity_at": "2026-08-18T00:22:40+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-11T05:14:41+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kylehounslow",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "f3cb22d8595e509b5ea33e7be443c6da5bbf97d55f2f88ba2aecd93046977910",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-11T05:14:41+00:00"
+        "routing_input_fingerprint": "64286d10bf6905e5b9ac87ddcfeca3e40855cef92e758ce0265506d1dd422b58",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-18T00:20:24+00:00"
       },
       "failed": false,
       "pr_number": 50137,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50137",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "50148": {
