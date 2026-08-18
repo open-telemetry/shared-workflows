@@ -268,9 +268,9 @@ def render_command_reply(reply: dict[str, Any]) -> str:
         )
     elif kind == "stale_head":
         message = (
-            "the dashboard observed a new head and could not bind your "
-            "`/dashboard route:reviewers` command to it, so normal routing "
-            "applies. Run the command again if you still need reviewer help."
+            "the dashboard could not safely bind your "
+            "`/dashboard route:reviewers` command to the current head, so normal "
+            "routing applies. Run the command again if you still need reviewer help."
         )
     elif kind in ("routed", "already_routed"):
         route = reply.get("route") or ""
