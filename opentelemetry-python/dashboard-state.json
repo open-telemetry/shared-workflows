@@ -985,8 +985,13 @@
         "approval_count": 1,
         "assignees": [],
         "author": "RKest",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python/pull/5323#discussion_r3806439190",
+          "https://github.com/open-telemetry/opentelemetry-python/pull/5323#discussion_r3806566093",
+          "https://github.com/open-telemetry/opentelemetry-python/pull/5323#discussion_r3806595766"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "8b06ca9b5c9d42de90620596f19873d9",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1008,8 +1013,8 @@
         "head_sha": "9c7aafcae2627f29a91e11e96721deed004754ed",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T20:19:05+00:00",
-        "last_approver_activity_at": "2026-08-04T20:19:05+00:00",
+        "last_activity_at": "2026-08-18T17:56:34+00:00",
+        "last_approver_activity_at": "2026-08-18T17:56:34+00:00",
         "last_author_activity_at": "2026-08-04T17:52:42+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -1020,17 +1025,25 @@
             "login": "DylanRussell",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lzchen",
+            "open_thread": true,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a85443add0c74cc404eb7a1b3ecd11ad1c79098b2f6515f0c9015ed515a34284",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-04T17:52:42+00:00"
+        "routing_input_fingerprint": "3b42348c4bdd72dc2a68526bb43b58ff25bd746d8b977ab9244f47e556eb2861",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-18T17:33:14+00:00"
       },
       "failed": false,
       "pr_number": 5323,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5323",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "5332": {
