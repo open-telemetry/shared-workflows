@@ -265,6 +265,12 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             "only the pull request author or a member of an approving team can "
             "use `/dashboard route:reviewers`."
         )
+    elif kind == "stale_head":
+        message = (
+            "the dashboard observed a new head and could not bind your "
+            "`/dashboard route:reviewers` command to it, so normal routing "
+            "applies. Run the command again if you still need reviewer help."
+        )
     elif kind in ("routed", "already_routed"):
         route = reply.get("route") or ""
         held_gates = reply.get("held_gates") or ""
@@ -305,7 +311,7 @@ def render_command_reply(reply: dict[str, Any]) -> str:
         )
     comment_id = int(reply["comment_id"])
     markers = [command_reply_marker(comment_id)]
-    if kind in ("routed", "already_routed"):
+    if kind in ("routed", "already_routed", "stale_head"):
         markers.append(override_ack_marker(comment_id))
     return "\n".join([
         *markers,
@@ -387,9 +393,14 @@ def append_command_ack_reply(
     if any(reply.get("comment_id") == command_id for reply in replies):
         return
     handoff = bool(facts.get("copilot_review_bypassed_by_override"))
+    targets_head = facts.get("dashboard_override_command_targets_head") is not False
     replies.append({
         "comment_id": command_id,
-        "kind": "routed" if handoff else "already_routed",
+        "kind": (
+            "routed"
+            if handoff
+            else "already_routed" if targets_head else "stale_head"
+        ),
         "user": facts.get("dashboard_override_command_user") or facts.get("author") or "",
         "route": route,
         "held_gates": (

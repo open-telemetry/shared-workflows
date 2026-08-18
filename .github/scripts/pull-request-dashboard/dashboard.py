@@ -117,6 +117,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched, and excludes required
                                                   contexts whose app has already
                                                   finished reporting.
+    head_commit_at                  str (iso)     Current head commit time when the
+                                                  commit list includes the head.
     conflicts                       str           "yes" | "no" | "unknown".
     copilot_review_requested        bool          Copilot is a pending requested
                                                   reviewer, so a review is in
@@ -622,6 +624,17 @@ def compute_facts(
     # raw["commits"] is wrong for PRs with more than 250 commits, where the
     # commits REST endpoint truncates and the last entry is not the real head.
     head_sha = pr.get("headRefOid") or ""
+    head_commit_at = ""
+    for commit in raw.get("commits") or []:
+        if commit.get("sha") != head_sha:
+            continue
+        commit_obj = commit.get("commit") or {}
+        head_commit_at = (
+            (commit_obj.get("committer") or {}).get("date")
+            or (commit_obj.get("author") or {}).get("date")
+            or ""
+        )
+        break
     copilot_review_exists, copilot_review_stale, copilot_review_findings = copilot_review_status(
         raw.get("reviews") or [],
         head_sha,
@@ -631,6 +644,7 @@ def compute_facts(
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
+        "head_commit_at": head_commit_at,
         "routing_input_fingerprint": routing_input_fingerprint(raw),
         **dashboard_override_facts(raw, author, reviewers or set()),
         "copilot_review_requested": any(
@@ -1554,7 +1568,17 @@ def reviewer_handoff_active(
         )
     )
     same_head = same_command and facts.get("head_sha") == previous_facts.get("head_sha")
-    active = (bool(command_id) and not same_command) or bool(
+    new_command = bool(command_id) and not same_command
+    previous_head = previous_facts.get("head_sha") or ""
+    head_changed = bool(previous_head) and facts.get("head_sha") != previous_head
+    command_at = parse_ts(facts.get("dashboard_override_since") or "")
+    head_commit_at = parse_ts(facts.get("head_commit_at") or "")
+    command_targets_head = new_command and (
+        not head_changed
+        or bool(command_at and head_commit_at and command_at >= head_commit_at)
+    )
+    facts["dashboard_override_command_targets_head"] = command_targets_head
+    active = command_targets_head or bool(
         previous_facts.get("copilot_review_bypassed_by_override") and same_head
     )
     facts["copilot_review_bypassed_by_override"] = active
@@ -1605,9 +1629,14 @@ def preserve_override_state_after_failure(
     previous_result: dict[str, Any] | None,
 ) -> None:
     previous_facts = (previous_result or {}).get("facts") or {}
-    facts["dashboard_override_command_id"] = (
-        previous_facts.get("dashboard_override_command_id") or 0
+    stale_command = (
+        facts.get("dashboard_override_command_id")
+        and facts.get("dashboard_override_command_targets_head") is False
     )
+    if not stale_command:
+        facts["dashboard_override_command_id"] = (
+            previous_facts.get("dashboard_override_command_id") or 0
+        )
     same_overridden_head = (
         bool(facts.get("dashboard_override_since"))
         and facts.get("dashboard_override_since")

@@ -27,6 +27,7 @@ from dashboard import (
     main,
     merge_dashboard_update_with_latest_state,
     preserve_override_state_after_failure,
+    reviewer_handoff_active,
     remove_cached_dashboard_prs,
     resolve_pr_route,
     route_pr,
@@ -324,6 +325,68 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertEqual("approver", route)
         self.assertTrue(facts["copilot_review_bypassed_by_override"])
         self.assertFalse(facts["copilot_review_request_needed"])
+
+    def test_unprocessed_override_before_push_does_not_target_new_head(self) -> None:
+        previous_result = {
+            "route": "author",
+            "facts": {
+                "dashboard_override_command_id": 0,
+                "head_sha": "old-head",
+            },
+        }
+        facts = {
+            "dashboard_override_command_id": 7,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "head_sha": "new-head",
+            "head_commit_at": "2026-08-11T13:00:00Z",
+        }
+
+        active = reviewer_handoff_active(facts, previous_result)
+
+        self.assertFalse(active)
+        self.assertFalse(facts["dashboard_override_command_targets_head"])
+
+    def test_unprocessed_override_after_push_targets_new_head(self) -> None:
+        previous_result = {
+            "route": "author",
+            "facts": {
+                "dashboard_override_command_id": 0,
+                "head_sha": "old-head",
+            },
+        }
+        facts = {
+            "dashboard_override_command_id": 7,
+            "dashboard_override_since": "2026-08-11T14:00:00Z",
+            "head_sha": "new-head",
+            "head_commit_at": "2026-08-11T13:00:00Z",
+        }
+
+        active = reviewer_handoff_active(facts, previous_result)
+
+        self.assertTrue(active)
+        self.assertTrue(facts["dashboard_override_command_targets_head"])
+
+    def test_stale_override_stays_inactive_after_classification_failure(self) -> None:
+        facts = {
+            "dashboard_override_command_id": 7,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_command_targets_head": False,
+            "head_sha": "new-head",
+        }
+
+        preserve_override_state_after_failure(
+            facts,
+            {
+                "route": "author",
+                "facts": {
+                    "dashboard_override_command_id": 0,
+                    "head_sha": "old-head",
+                },
+            },
+        )
+
+        self.assertEqual(7, facts["dashboard_override_command_id"])
+        self.assertFalse(facts["copilot_review_bypassed_by_override"])
 
     def test_first_override_handoff_survives_classification_failure(self) -> None:
         failed_facts: dict[str, object] = {

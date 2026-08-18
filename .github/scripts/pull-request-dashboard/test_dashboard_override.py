@@ -219,6 +219,19 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
 
+    def test_renders_stale_head_reply(self) -> None:
+        body = dashboard_override.render_command_reply(
+            {"comment_id": 7, "kind": "stale_head", "user": "author"}
+        )
+
+        self.assertIn(dashboard_override.override_ack_marker(7), body)
+        self.assertIn(
+            "@author, the dashboard observed a new head and could not bind your "
+            "`/dashboard route:reviewers` command to it",
+            body,
+        )
+        self.assertIn("Run the command again", body)
+
     def test_appends_routed_reply_for_break_glass_command_that_cleared_nothing(self) -> None:
         facts = {
             "author": "author",
@@ -245,6 +258,20 @@ class DashboardOverrideTest(unittest.TestCase):
         dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "author")
 
         self.assertNotIn("dashboard_command_replies", facts)
+
+    def test_appends_stale_head_reply_when_push_follows_command(self) -> None:
+        facts = {
+            "author": "author",
+            "dashboard_override_command_id": 12,
+            "dashboard_override_command_targets_head": False,
+            "copilot_review_bypassed_by_override": False,
+        }
+
+        dashboard_override.append_command_ack_reply(
+            {"issue_comments": []}, facts, "author"
+        )
+
+        self.assertEqual("stale_head", facts["dashboard_command_replies"][0]["kind"])
 
     def test_already_routed_reply_deduped_by_existing_marker(self) -> None:
         facts = {
