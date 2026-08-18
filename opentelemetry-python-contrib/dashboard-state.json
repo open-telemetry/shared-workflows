@@ -3420,7 +3420,7 @@
     },
     "4935": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Yigtwxx",
         "author_action_review_thread_urls": [],
@@ -3446,11 +3446,19 @@
         "head_sha": "e29fb8e50b83dd1a296d4562189cf525ee48427e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T19:21:16+00:00",
-        "last_approver_activity_at": "2026-08-17T08:42:36+00:00",
+        "last_activity_at": "2026-08-18T00:24:55+00:00",
+        "last_approver_activity_at": "2026-08-18T00:24:55+00:00",
         "last_author_activity_at": "2026-08-17T19:21:16+00:00",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "emdneto",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -3468,9 +3476,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "7f5840b5590d976941420fdb043e3ed4e59836438e4675fe215eb0d9e5ab38a0",
-        "waiting_age_basis": "last_author_activity",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "14a0a3078dd035426b8b7e6b1fc7117f03cba49696c7d8c3511ae0b9bf2f556a",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-17T19:19:45+00:00"
       },
       "failed": false,
