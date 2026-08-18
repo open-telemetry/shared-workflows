@@ -1323,7 +1323,9 @@ def add_wait_age_facts(
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
     fallback_ts, fallback_basis = fallback_wait_ts(route, facts)
-    if wait_ts is None or (
+    if facts.get("conflicts") == "yes":
+        wait_ts, basis = fallback_ts, fallback_basis
+    elif wait_ts is None or (
         fallback_basis == "ci_failure"
         and fallback_ts is not None
         and fallback_ts < wait_ts
@@ -1700,37 +1702,44 @@ def build_pr_result(
         top_level_author_comment_items = derive_top_level_author_comment_items(
             events, top_level_items, facts
         )
-        (
-            review_thread_classifications,
-            top_level_classifications,
-            top_level_author_comment_classifications,
-        ) = classify_discussion_domains(
-            number,
-            review_threads,
-            top_level_items,
-            top_level_author_comment_items,
-            model,
-        )
-        author_comment_outcomes = top_level_author_comment_outcomes(
-            top_level_author_comment_items,
-            top_level_author_comment_classifications,
-        )
-        author_comment_source_state = top_level_author_comment_source_state(
-            top_level_author_comment_items,
-            top_level_author_comment_classifications,
-        )
-        review_thread_pending_actions = build_review_thread_pending_actions(
-            review_threads, review_thread_classifications
-        )
-        top_level_pending_actions, top_level_history = advance_top_level_actions(
-            top_level_items,
-            top_level_classifications,
-            previous_top_level_history,
-            author_comment_outcomes,
-            author_comment_source_state,
-        )
-        pending_actions = review_thread_pending_actions | top_level_pending_actions
-        pending_actions = clear_overridden_actions(facts, pending_actions)
+        if facts.get("conflicts") == "yes":
+            review_thread_classifications = []
+            top_level_classifications = []
+            top_level_author_comment_classifications = []
+            pending_actions = {}
+            top_level_history = previous_top_level_history or {}
+        else:
+            (
+                review_thread_classifications,
+                top_level_classifications,
+                top_level_author_comment_classifications,
+            ) = classify_discussion_domains(
+                number,
+                review_threads,
+                top_level_items,
+                top_level_author_comment_items,
+                model,
+            )
+            author_comment_outcomes = top_level_author_comment_outcomes(
+                top_level_author_comment_items,
+                top_level_author_comment_classifications,
+            )
+            author_comment_source_state = top_level_author_comment_source_state(
+                top_level_author_comment_items,
+                top_level_author_comment_classifications,
+            )
+            review_thread_pending_actions = build_review_thread_pending_actions(
+                review_threads, review_thread_classifications
+            )
+            top_level_pending_actions, top_level_history = advance_top_level_actions(
+                top_level_items,
+                top_level_classifications,
+                previous_top_level_history,
+                author_comment_outcomes,
+                author_comment_source_state,
+            )
+            pending_actions = review_thread_pending_actions | top_level_pending_actions
+            pending_actions = clear_overridden_actions(facts, pending_actions)
         failed_classifications = [
             classification
             for classification in (

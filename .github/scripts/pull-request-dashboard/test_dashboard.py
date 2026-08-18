@@ -18,6 +18,7 @@ from dashboard import (
     assign_author_nudge_episode,
     author_action_discussion_urls,
     backfill_failed_pr_numbers,
+    build_pr_result,
     complete_initial_backfill_if_ready,
     compute_facts,
     fetch_pr_raw,
@@ -774,6 +775,23 @@ class GateHoldTest(unittest.TestCase):
         self.assertEqual("2026-08-16T08:00:00+00:00", facts["waiting_since"])
         self.assertEqual("last_author_activity", facts["waiting_age_basis"])
 
+    def test_conflict_wait_ignores_an_older_pending_author_discussion(self) -> None:
+        facts = {
+            "conflicts": "yes",
+            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
+        }
+        pending_actions = {
+            "thread": {
+                "action": "author",
+                "since": "2026-08-10T08:00:00+00:00",
+            }
+        }
+
+        add_wait_age_facts(facts, "author", pending_actions)
+
+        self.assertEqual("2026-08-16T08:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
+
     def test_reviewers_start_waiting_when_the_gates_release_the_pr(self) -> None:
         # The push was four hours ago; the reviewers could not have answered
         # any of it, because the gates held the PR on its author throughout.
@@ -1066,6 +1084,80 @@ class FetchPrRawTest(unittest.TestCase):
             },
             set(rest_payloads),
         )
+
+
+class BuildPrResultTest(unittest.TestCase):
+    @patch(
+        "dashboard.classify_discussion_domains",
+        side_effect=AssertionError("conflicted PR must not be classified"),
+    )
+    @patch("dashboard.fetch_pr_raw")
+    def test_conflict_bypasses_discussion_classification(
+        self, fetch_raw: Mock, classify: Mock
+    ) -> None:
+        fetch_raw.return_value = {
+            "summary": {"author": {"login": "author"}},
+            "pr": {
+                "state": "OPEN",
+                "isDraft": False,
+                "title": "Conflicted PR",
+                "url": "https://example.test/pull/7",
+                "author": {"login": "author"},
+                "assignees": [],
+                "mergeStateStatus": "DIRTY",
+                "mergeable": "CONFLICTING",
+                "createdAt": "2026-08-16T07:00:00Z",
+                "updatedAt": "2026-08-16T08:00:00Z",
+                "headRefOid": "abcdef123456",
+                "baseRefName": "main",
+            },
+            "commits": [
+                {
+                    "sha": "abcdef123456",
+                    "author": {"login": "author"},
+                    "committer": {"login": "author"},
+                    "commit": {
+                        "author": {"date": "2026-08-16T08:00:00Z"},
+                        "committer": {"date": "2026-08-16T08:00:00Z"},
+                        "message": "Update branch",
+                    },
+                    "parents": [{"sha": "parent"}],
+                }
+            ],
+            "issue_comments": [
+                {
+                    "id": 101,
+                    "body": "Please update this.",
+                    "created_at": "2026-08-15T08:00:00Z",
+                    "user": {"login": "reviewer"},
+                }
+            ],
+            "review_comments": [],
+            "reviews": [],
+            "review_threads": [],
+            "review_requests": [],
+            "checks": [],
+            "non_blocking_check_failures": [],
+        }
+
+        result = build_pr_result(
+            "owner/repo",
+            "owner",
+            "repo",
+            {"number": 7},
+            {"reviewer"},
+            "model",
+            1,
+            [],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertFalse(result["failed"])
+        self.assertEqual("author", result["route"])
+        self.assertEqual({}, result["pending_actions"])
+        self.assertEqual("last_author_activity", result["facts"]["waiting_age_basis"])
+        classify.assert_not_called()
 
 
 class ReviewThreadOrderTest(unittest.TestCase):
