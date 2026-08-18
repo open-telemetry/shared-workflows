@@ -1509,8 +1509,11 @@ def hold_route_until_gates_settle(
     # a PR does not advance while one is outstanding. Moving back toward the
     # author is always allowed, because those are decisions a gate cannot undo.
     previous_route = (previous_result or {}).get("route") or ""
-    if previous_route not in ROUTE_PROGRESSION:
-        # A maintenance bot has no author route to fall back to.
+    if previous_route not in ROUTE_PROGRESSION or (
+        facts.get("is_maintenance_bot") and previous_route == "author"
+    ):
+        # A maintenance bot has no author route to fall back to. This includes
+        # the author route used temporarily while its PR was conflicted.
         previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
     gates_enabled = facts.get("conflicts") != "yes"
     copilot_review_gate_enabled = require_clean_copilot_review and gates_enabled

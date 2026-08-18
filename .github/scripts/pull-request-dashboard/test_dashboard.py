@@ -489,6 +489,15 @@ class GateHoldTest(unittest.TestCase):
 
         self.assertEqual("approver", route)
 
+    def test_maintenance_bot_returns_to_approvers_after_conflict_clears(self) -> None:
+        route = self._hold(
+            {"ci_pending_count": 1, "is_maintenance_bot": True},
+            "maintainer",
+            {"route": "author", "facts": {"conflicts": "yes"}},
+        )
+
+        self.assertEqual("approver", route)
+
     def test_a_held_pr_starts_the_hold_clock(self) -> None:
         facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
 
