@@ -395,14 +395,9 @@ def append_command_ack_reply(
     replies = facts.setdefault("dashboard_command_replies", [])
     if any(reply.get("comment_id") == command_id for reply in replies):
         return
-    handoff = bool(facts.get("copilot_review_bypassed_by_override"))
     replies.append({
         "comment_id": command_id,
-        "kind": (
-            "routed"
-            if handoff
-            else "already_routed" if targets_head else "stale_head"
-        ),
+        "kind": "routed" if targets_head else "stale_head",
         "user": facts.get("dashboard_override_command_user") or facts.get("author") or "",
         "route": route,
         "held_gates": (

@@ -340,7 +340,7 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(
             [{
                 "comment_id": 12,
-                "kind": "already_routed",
+                "kind": "routed",
                 "user": "author",
                 "route": "approver",
                 "held_gates": "",
@@ -473,7 +473,7 @@ class DashboardOverrideTest(unittest.TestCase):
             self.assertEqual(
                 [{
                     "comment_id": 5,
-                    "kind": "already_routed",
+                    "kind": "routed",
                     "user": "author",
                     "route": "approver",
                     "held_gates": "",
@@ -591,7 +591,7 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(
             [{
                 "comment_id": 5,
-                "kind": "already_routed",
+                "kind": "routed",
                 "user": "author",
                 "route": "author",
                 "held_gates": "",

@@ -1600,10 +1600,12 @@ def resolve_pr_route(
     require_clean_copilot_review: bool,
     previous_result: dict[str, Any] | None = None,
     now: datetime | None = None,
+    manual_reviewer_handoff: bool | None = None,
 ) -> str:
     now = now or utc_now()
     route = route_pr(facts, pending_actions, required_approvals)
-    manual_reviewer_handoff = reviewer_handoff_active(facts, previous_result)
+    if manual_reviewer_handoff is None:
+        manual_reviewer_handoff = reviewer_handoff_active(facts, previous_result)
     if manual_reviewer_handoff:
         route = "approver"
     copilot_review_gate_enabled = (
@@ -1816,6 +1818,7 @@ def build_pr_result(
             required_approvals,
             require_clean_copilot_review,
             previous_result,
+            manual_reviewer_handoff=manual_reviewer_handoff,
         )
         assign_author_nudge_episode(
             facts,
