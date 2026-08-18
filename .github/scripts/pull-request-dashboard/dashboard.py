@@ -1560,11 +1560,11 @@ def reviewer_handoff_active(
     same_head = same_command and facts.get("head_sha") == previous_facts.get("head_sha")
     new_command = bool(command_id) and not same_command
     previous_head = previous_facts.get("head_sha") or ""
-    head_changed = bool(previous_head) and facts.get("head_sha") != previous_head
+    same_observed_head = bool(previous_head) and facts.get("head_sha") == previous_head
     command_at = parse_ts(facts.get("dashboard_override_since") or "")
     head_push_at = parse_ts(facts.get("head_push_at") or "")
     command_targets_head = new_command and (
-        not head_changed
+        same_observed_head
         or bool(command_at and head_push_at and command_at > head_push_at)
     )
     facts["dashboard_override_command_targets_head"] = command_targets_head
@@ -1705,8 +1705,7 @@ def build_pr_result(
         current_head = facts.get("head_sha") or ""
         if (
             facts.get("dashboard_override_command_id")
-            and previous_head
-            and current_head != previous_head
+            and (not previous_head or current_head != previous_head)
         ):
             head_repository = raw["pr"].get("headRepository") or {}
             head_repo = head_repository.get("nameWithOwner") or ""

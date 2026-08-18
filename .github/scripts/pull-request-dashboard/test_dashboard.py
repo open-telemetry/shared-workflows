@@ -44,6 +44,9 @@ class ResolvePrRouteTest(unittest.TestCase):
             "ci_pending_count": 0,
             "ci_uncleared_failing_count": 1,
             "dashboard_override_command_id": 1,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "head_push_at": "2026-08-11T11:00:00Z",
+            "head_sha": "current-head",
         }
         facts.update(overrides)
         return facts
@@ -64,15 +67,16 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertFalse(facts["route_held_for_gates"])
 
     def test_override_bypasses_conflict_running_checks_and_missing_review(self) -> None:
-        facts: dict[str, object] = {
-            "approval_count": 0,
-            "conflicts": "yes",
-            "is_maintenance_bot": False,
-            "ci_pending_count": 1,
-            "copilot_review_exists": False,
-            "copilot_review_requested": False,
-            "dashboard_override_command_id": 1,
-        }
+        facts = self._override_facts(
+            approval_count=0,
+            conflicts="yes",
+            is_maintenance_bot=False,
+            ci_failing_count=0,
+            ci_uncleared_failing_count=0,
+            ci_pending_count=1,
+            copilot_review_exists=False,
+            copilot_review_requested=False,
+        )
 
         route = resolve_pr_route(facts, {}, 1, True)
 
@@ -84,14 +88,10 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertFalse(facts["route_hold_expired"])
 
     def test_override_bypasses_a_required_check_failure(self) -> None:
-        facts: dict[str, object] = {
-            "approval_count": 0,
-            "is_maintenance_bot": False,
-            "ci_failing_count": 1,
-            "ci_pending_count": 0,
-            "ci_uncleared_failing_count": 1,
-            "dashboard_override_command_id": 1,
-        }
+        facts = self._override_facts(
+            approval_count=0,
+            is_maintenance_bot=False,
+        )
 
         route = resolve_pr_route(facts, {}, 1, False)
 
@@ -365,6 +365,26 @@ class ResolvePrRouteTest(unittest.TestCase):
 
         self.assertTrue(active)
         self.assertTrue(facts["dashboard_override_command_targets_head"])
+
+    def test_first_observation_orders_override_against_head_push(self) -> None:
+        for command_at, expected in (
+            ("2026-08-11T12:00:00Z", False),
+            ("2026-08-11T14:00:00Z", True),
+        ):
+            with self.subTest(command_at=command_at):
+                facts = {
+                    "dashboard_override_command_id": 7,
+                    "dashboard_override_since": command_at,
+                    "head_sha": "current-head",
+                    "head_push_at": "2026-08-11T13:00:00Z",
+                }
+
+                active = reviewer_handoff_active(facts)
+
+                self.assertEqual(expected, active)
+                self.assertEqual(
+                    expected, facts["dashboard_override_command_targets_head"]
+                )
 
     def test_stale_override_stays_inactive_after_classification_failure(self) -> None:
         facts = {
@@ -1335,13 +1355,6 @@ class BuildPrResultTest(unittest.TestCase):
             1,
             [],
             require_clean_copilot_review_branches=["main"],
-            previous_result={
-                "route": "author",
-                "facts": {
-                    "dashboard_override_command_id": 0,
-                    "head_sha": "old-head",
-                },
-            },
         )
 
         self.assertIsNotNone(result)
