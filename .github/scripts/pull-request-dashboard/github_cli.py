@@ -118,6 +118,9 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
 
 
 def fetch_head_push_at(repo: str, head_ref: str, head_sha: str) -> str:
+    # Activity is newest-first and scoped to this ref. A later push would change
+    # head_sha, so the current head update cannot age behind 100 newer pushes.
+    # Keep one page to bound API work on busy repositories.
     activities = gh_api(
         f"repos/{repo}/activity?ref={quote(head_ref, safe='')}"
         "&time_period=year&per_page=100"
