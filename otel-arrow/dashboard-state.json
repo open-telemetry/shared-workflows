@@ -1647,19 +1647,16 @@
     },
     "3799": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "utpilla"
         ],
         "author": "lalitb",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "bd489c9568c94035a7111c760321d72d",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-08-18T18:46:27+00:00",
-        "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 1,
-        "ci_uncleared_failing_since": "2026-08-18T18:46:27+00:00",
+        "ci_failing_count": 0,
+        "ci_pending_count": 5,
+        "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -1675,16 +1672,16 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "9947ed5b89fbb6002dc064ee741568b914120715",
+        "head_sha": "29f91c54445f81c419f615466727062b6d483dea",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T17:59:50+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-18T23:57:14+00:00",
+        "last_approver_activity_at": "2026-08-18T23:57:14+00:00",
         "last_author_activity_at": "2026-08-18T17:59:50+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "utpilla",
@@ -1692,9 +1689,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "a0108e2c6feec7796b75555bae417bfa82815e074f96e9e53ef5b7302641d761",
-        "waiting_age_basis": "ci_failure",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "18493db558b714bdbdeb19e6a10574add7d0a5b1c2fc8dac79d12460f1f6e8db",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-18T18:46:27+00:00"
       },
       "failed": false,
