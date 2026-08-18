@@ -181,8 +181,9 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             body,
         )
         self.assertIn(
-            "comment `/dashboard route:reviewers` to route this pull request "
-            "immediately from waiting on the author to waiting on reviewers",
+            "comment `/dashboard route:reviewers` to request routing from waiting "
+            "on the author to waiting on reviewers. The dashboard applies the "
+            "request once it can confirm that it targets the current head",
             body,
         )
         self.assertIn(
