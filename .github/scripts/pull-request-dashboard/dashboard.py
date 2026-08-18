@@ -1563,12 +1563,16 @@ def reviewer_handoff_active(
     same_observed_head = bool(previous_head) and facts.get("head_sha") == previous_head
     command_at = parse_ts(facts.get("dashboard_override_since") or "")
     head_push_at = parse_ts(facts.get("head_push_at") or "")
-    command_targets_head = new_command and (
-        same_observed_head
-        or bool(command_at and head_push_at and command_at > head_push_at)
-    )
+    command_targets_head: bool | None = False
+    if new_command:
+        if same_observed_head:
+            command_targets_head = True
+        elif command_at and head_push_at:
+            command_targets_head = command_at > head_push_at
+        else:
+            command_targets_head = None
     facts["dashboard_override_command_targets_head"] = command_targets_head
-    active = command_targets_head or bool(
+    active = bool(command_targets_head) or bool(
         previous_facts.get("copilot_review_bypassed_by_override") and same_head
     )
     facts["copilot_review_bypassed_by_override"] = active

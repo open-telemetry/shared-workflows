@@ -387,6 +387,11 @@ def append_command_ack_reply(
     command_id = int(facts.get("dashboard_override_command_id") or 0)
     if not command_id:
         return
+    if (
+        "dashboard_override_command_targets_head" in facts
+        and facts["dashboard_override_command_targets_head"] is None
+    ):
+        return
     if command_id in _replied_command_ids(raw.get("issue_comments") or []):
         return
     replies = facts.setdefault("dashboard_command_replies", [])

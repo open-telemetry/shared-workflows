@@ -273,6 +273,20 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual("stale_head", facts["dashboard_command_replies"][0]["kind"])
 
+    def test_does_not_acknowledge_command_when_head_push_time_is_unknown(self) -> None:
+        facts = {
+            "author": "author",
+            "dashboard_override_command_id": 12,
+            "dashboard_override_command_targets_head": None,
+            "copilot_review_bypassed_by_override": False,
+        }
+
+        dashboard_override.append_command_ack_reply(
+            {"issue_comments": []}, facts, "author"
+        )
+
+        self.assertNotIn("dashboard_command_replies", facts)
+
     def test_already_routed_reply_deduped_by_existing_marker(self) -> None:
         facts = {
             "author": "author",

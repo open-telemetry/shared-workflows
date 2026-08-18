@@ -386,6 +386,19 @@ class ResolvePrRouteTest(unittest.TestCase):
                     expected, facts["dashboard_override_command_targets_head"]
                 )
 
+    def test_unknown_head_push_time_leaves_override_pending(self) -> None:
+        facts = {
+            "dashboard_override_command_id": 7,
+            "dashboard_override_since": "2026-08-11T14:00:00Z",
+            "head_sha": "current-head",
+            "head_push_at": "",
+        }
+
+        active = reviewer_handoff_active(facts)
+
+        self.assertFalse(active)
+        self.assertIsNone(facts["dashboard_override_command_targets_head"])
+
     def test_stale_override_stays_inactive_after_classification_failure(self) -> None:
         facts = {
             "dashboard_override_command_id": 7,
