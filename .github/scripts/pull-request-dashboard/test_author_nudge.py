@@ -185,6 +185,15 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             },
         )
 
+    def test_conflict_does_not_start_nudge_clock(self) -> None:
+        result = author_result()
+        result["facts"]["conflicts"] = "yes"
+
+        due, entry = author_nudge.plan_nudge(result, None, NOW)
+
+        self.assertFalse(due)
+        self.assertIsNone(entry)
+
     def test_nudge_is_due_after_one_week(self) -> None:
         due, _entry = author_nudge.plan_nudge(
             author_result(),
@@ -232,6 +241,32 @@ class AuthorNudgePolicyTest(unittest.TestCase):
                     "episode_id": "episode-1",
                     "completed_at": "2026-07-17T00:00:00+00:00",
                     "kind": "left_author",
+                }],
+            },
+        )
+
+    def test_conflict_prepares_posted_nudge_for_completion(self) -> None:
+        result = author_result()
+        result["facts"]["conflicts"] = "yes"
+
+        due, entry = author_nudge.plan_nudge(
+            result,
+            {
+                "waiting_since": "2026-07-10T00:00:00+00:00",
+                "nudged_at": "2026-07-17T00:00:00+00:00",
+                "episode_id": "episode-1",
+            },
+            NOW,
+        )
+
+        self.assertFalse(due)
+        self.assertEqual(
+            entry,
+            {
+                "completions": [{
+                    "episode_id": "episode-1",
+                    "completed_at": "2026-07-17T00:00:00+00:00",
+                    "kind": "routing_changed",
                 }],
             },
         )

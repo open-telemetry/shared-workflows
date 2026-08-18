@@ -1646,9 +1646,13 @@ def assign_author_nudge_episode(
     previous_result: dict[str, Any] | None,
     issue_comments: list[dict[str, Any]],
 ) -> None:
-    # A held PR only shows the author route because a gate has not reported,
-    # so the author's waiting episode ended when the route was computed.
-    if route != "author" or facts.get("route_held_for_gates"):
+    # A held or conflicted PR shows the author route for work that a reminder
+    # cannot resolve through a reply or a manual reviewer handoff.
+    if (
+        route != "author"
+        or facts.get("route_held_for_gates")
+        or facts.get("conflicts") == "yes"
+    ):
         facts.pop("author_nudge_episode_id", None)
         return
     previous_facts = (previous_result or {}).get("facts") or {}

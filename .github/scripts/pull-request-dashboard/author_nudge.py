@@ -167,12 +167,13 @@ def fetch_current_pr_routing_inputs(
 
 
 def waiting_on_author(result: dict[str, Any] | None) -> bool:
-    # A held PR shows the author route only because a robot gate has not
-    # reported yet, and the author has nothing to answer while it runs.
+    # A held or conflicted PR shows the author route for work that this reminder
+    # cannot resolve through a reply or a manual reviewer handoff.
     facts = (result or {}).get("facts") or {}
     return (
         (result or {}).get("route") == "author"
         and not facts.get("route_held_for_gates")
+        and facts.get("conflicts") != "yes"
     )
 
 
@@ -209,7 +210,9 @@ def plan_nudge(
         route = result.get("route") or ""
         if route in ("approver", "maintainer"):
             completion_kind = "left_author"
-        elif route == "author" and facts.get("route_held_for_gates"):
+        elif route == "author" and (
+            facts.get("route_held_for_gates") or facts.get("conflicts") == "yes"
+        ):
             completion_kind = "routing_changed"
         else:
             return False, completion_only(entry)
