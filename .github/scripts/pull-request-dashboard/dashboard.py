@@ -1198,23 +1198,17 @@ def action_counts(pending_actions: dict[str, dict[str, Any]]) -> dict[str, int]:
 
 
 def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], required_approvals: int) -> str:
-    # A conflicted PR cannot advance, regardless of its checks, discussions, or
-    # approvals. This also applies to maintenance bots: maintainers cannot merge
-    # the PR until the conflict is resolved on the author side.
-    if facts.get("conflicts") == "yes":
-        return "author"
     counts = action_counts(pending_actions)
     # Copilot PRs are mapped back to a human author when possible. Maintenance
     # bot PRs have no useful author route and need only one approval.
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
-    #   1. Merge conflicts -> "author".
-    #   2. A required status check failure the author has not overridden -> "author".
-    #   3. A discussion waiting on the author -> "author".
-    #   4. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
+    #   1. A required status check failure the author has not overridden -> "author".
+    #   2. A discussion waiting on the author -> "author".
+    #   3. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
     #      remains visible but does not keep an approved PR out of this route.
-    #   5. Otherwise the PR is still waiting on approvers.
+    #   4. Otherwise the PR is still waiting on approvers.
     ci_failing = uncleared_ci_failing_count(facts) > 0
     if ci_failing and not is_maintenance_bot:
         return "author"
@@ -1323,9 +1317,7 @@ def add_wait_age_facts(
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
     basis = "oldest_pending_thread" if wait_ts else ""
     fallback_ts, fallback_basis = fallback_wait_ts(route, facts)
-    if facts.get("conflicts") == "yes":
-        wait_ts, basis = fallback_ts, fallback_basis
-    elif wait_ts is None or (
+    if wait_ts is None or (
         fallback_basis == "ci_failure"
         and fallback_ts is not None
         and fallback_ts < wait_ts
@@ -1504,6 +1496,7 @@ def hold_route_until_gates_settle(
     *,
     require_clean_copilot_review: bool,
     now: datetime,
+    bypass_gates: bool = False,
 ) -> str:
     # The required checks and the Copilot review are the author's to clear, so
     # a PR does not advance while one is outstanding. Moving back toward the
@@ -1515,7 +1508,7 @@ def hold_route_until_gates_settle(
         # A maintenance bot has no author route to fall back to. This includes
         # the author route used temporarily while its PR was conflicted.
         previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
-    gates_enabled = facts.get("conflicts") != "yes"
+    gates_enabled = not bypass_gates
     copilot_review_gate_enabled = require_clean_copilot_review and gates_enabled
     facts["copilot_review_outstanding"] = copilot_review_outstanding(
         facts, enabled=copilot_review_gate_enabled
@@ -1539,7 +1532,9 @@ def hold_route_until_gates_settle(
         facts,
         previous_result,
         route,
-        unreported_gates=unreported_gates,
+        # GitHub may not start checks or reviews while a PR is conflicted. Do not
+        # let that expected absence consume the four-hour missing-gate budget.
+        unreported_gates=unreported_gates and facts.get("conflicts") != "yes",
         would_hold=would_hold,
         now=now,
     )
@@ -1566,10 +1561,6 @@ def resolve_pr_route(
     now = now or utc_now()
     route = route_pr(facts, pending_actions, required_approvals)
     previous_facts = (previous_result or {}).get("facts") or {}
-    override_cleared_actions = bool(
-        facts.get("dashboard_override_cleared_count")
-        or facts.get("dashboard_override_cleared_ci")
-    )
     pending_override_command_id = facts.get("dashboard_override_command_id") or 0
     same_override_command = (
         bool(facts.get("dashboard_override_since"))
@@ -1586,33 +1577,36 @@ def resolve_pr_route(
         and facts.get("head_sha") == previous_facts.get("head_sha")
     )
     manual_reviewer_handoff = (
-        override_cleared_actions
-        and bool(pending_override_command_id)
-        and not same_override_command
+        bool(pending_override_command_id) and not same_override_command
     ) or bool(
         previous_facts.get("copilot_review_bypassed_by_override")
         and same_overridden_head
     )
     facts["copilot_review_bypassed_by_override"] = manual_reviewer_handoff
+    if manual_reviewer_handoff:
+        route = "approver"
     copilot_review_gate_enabled = (
         require_clean_copilot_review
         and not manual_reviewer_handoff
-        and facts.get("conflicts") != "yes"
+    )
+    copilot_review_request_enabled = (
+        copilot_review_gate_enabled and facts.get("conflicts") != "yes"
     )
     set_copilot_first_review_missing_since(
         facts,
         previous_result,
-        enabled=copilot_review_gate_enabled,
+        enabled=copilot_review_request_enabled,
         now=now,
     )
     set_copilot_review_request_needed(
-        facts, route, enabled=copilot_review_gate_enabled, now=now
+        facts, route, enabled=copilot_review_request_enabled, now=now
     )
     return hold_route_until_gates_settle(
         facts,
         route,
         previous_result,
         require_clean_copilot_review=copilot_review_gate_enabled,
+        bypass_gates=manual_reviewer_handoff,
         now=now,
     )
 
@@ -1649,13 +1643,7 @@ def assign_author_nudge_episode(
     previous_result: dict[str, Any] | None,
     issue_comments: list[dict[str, Any]],
 ) -> None:
-    # A held or conflicted PR shows the author route for work that a reminder
-    # cannot resolve through a reply or a manual reviewer handoff.
-    if (
-        route != "author"
-        or facts.get("route_held_for_gates")
-        or facts.get("conflicts") == "yes"
-    ):
+    if route != "author":
         facts.pop("author_nudge_episode_id", None)
         return
     previous_facts = (previous_result or {}).get("facts") or {}
@@ -1709,44 +1697,37 @@ def build_pr_result(
         top_level_author_comment_items = derive_top_level_author_comment_items(
             events, top_level_items, facts
         )
-        if facts.get("conflicts") == "yes":
-            review_thread_classifications = []
-            top_level_classifications = []
-            top_level_author_comment_classifications = []
-            pending_actions = {}
-            top_level_history = previous_top_level_history or {}
-        else:
-            (
-                review_thread_classifications,
-                top_level_classifications,
-                top_level_author_comment_classifications,
-            ) = classify_discussion_domains(
-                number,
-                review_threads,
-                top_level_items,
-                top_level_author_comment_items,
-                model,
-            )
-            author_comment_outcomes = top_level_author_comment_outcomes(
-                top_level_author_comment_items,
-                top_level_author_comment_classifications,
-            )
-            author_comment_source_state = top_level_author_comment_source_state(
-                top_level_author_comment_items,
-                top_level_author_comment_classifications,
-            )
-            review_thread_pending_actions = build_review_thread_pending_actions(
-                review_threads, review_thread_classifications
-            )
-            top_level_pending_actions, top_level_history = advance_top_level_actions(
-                top_level_items,
-                top_level_classifications,
-                previous_top_level_history,
-                author_comment_outcomes,
-                author_comment_source_state,
-            )
-            pending_actions = review_thread_pending_actions | top_level_pending_actions
-            pending_actions = clear_overridden_actions(facts, pending_actions)
+        (
+            review_thread_classifications,
+            top_level_classifications,
+            top_level_author_comment_classifications,
+        ) = classify_discussion_domains(
+            number,
+            review_threads,
+            top_level_items,
+            top_level_author_comment_items,
+            model,
+        )
+        author_comment_outcomes = top_level_author_comment_outcomes(
+            top_level_author_comment_items,
+            top_level_author_comment_classifications,
+        )
+        author_comment_source_state = top_level_author_comment_source_state(
+            top_level_author_comment_items,
+            top_level_author_comment_classifications,
+        )
+        review_thread_pending_actions = build_review_thread_pending_actions(
+            review_threads, review_thread_classifications
+        )
+        top_level_pending_actions, top_level_history = advance_top_level_actions(
+            top_level_items,
+            top_level_classifications,
+            previous_top_level_history,
+            author_comment_outcomes,
+            author_comment_source_state,
+        )
+        pending_actions = review_thread_pending_actions | top_level_pending_actions
+        pending_actions = clear_overridden_actions(facts, pending_actions)
         failed_classifications = [
             classification
             for classification in (

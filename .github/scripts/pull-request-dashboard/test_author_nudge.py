@@ -181,8 +181,13 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             body,
         )
         self.assertIn(
-            "comment `/dashboard route:reviewers` to route it from waiting on the "
-            "author to waiting on reviewers",
+            "comment `/dashboard route:reviewers` to route this pull request "
+            "immediately from waiting on the author to waiting on reviewers",
+            body,
+        )
+        self.assertIn(
+            "works even when required checks, Copilot review, or merge conflicts "
+            "are still outstanding",
             body,
         )
 
@@ -199,14 +204,33 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             },
         )
 
-    def test_conflict_does_not_start_nudge_clock(self) -> None:
+    def test_conflict_starts_standard_nudge_clock(self) -> None:
         result = author_result()
         result["facts"]["conflicts"] = "yes"
 
         due, entry = author_nudge.plan_nudge(result, None, NOW)
 
         self.assertFalse(due)
-        self.assertIsNone(entry)
+        self.assertEqual(
+            {
+                "waiting_since": "2026-07-17T00:00:00+00:00",
+                "nudged_at": "",
+                "episode_id": "episode-1",
+            },
+            entry,
+        )
+
+    def test_conflict_nudge_is_due_after_standard_week(self) -> None:
+        result = author_result()
+        result["facts"]["conflicts"] = "yes"
+
+        due, _entry = author_nudge.plan_nudge(
+            result,
+            {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""},
+            NOW,
+        )
+
+        self.assertTrue(due)
 
     def test_nudge_is_due_after_one_week(self) -> None:
         due, _entry = author_nudge.plan_nudge(
@@ -259,7 +283,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             },
         )
 
-    def test_conflict_prepares_posted_nudge_for_completion(self) -> None:
+    def test_conflict_keeps_posted_nudge_active(self) -> None:
         result = author_result()
         result["facts"]["conflicts"] = "yes"
 
@@ -275,14 +299,12 @@ class AuthorNudgePolicyTest(unittest.TestCase):
 
         self.assertFalse(due)
         self.assertEqual(
-            entry,
             {
-                "completions": [{
-                    "episode_id": "episode-1",
-                    "completed_at": "2026-07-17T00:00:00+00:00",
-                    "kind": "routing_changed",
-                }],
+                "waiting_since": "2026-07-10T00:00:00+00:00",
+                "nudged_at": "2026-07-17T00:00:00+00:00",
+                "episode_id": "episode-1",
             },
+            entry,
         )
 
     def test_legacy_posted_nudge_queues_marker_recovery(self) -> None:
@@ -330,7 +352,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             author_nudge.plan_nudge(None, previous, NOW),
         )
 
-    def test_gate_hold_closes_posted_reminder_without_claiming_handoff(self) -> None:
+    def test_gate_hold_keeps_posted_reminder_active(self) -> None:
         previous = {
             "waiting_since": "2026-07-10T00:00:00+00:00",
             "nudged_at": "2026-07-17T00:00:00+00:00",
@@ -342,23 +364,9 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         due, entry = author_nudge.plan_nudge(held, previous, NOW)
 
         self.assertFalse(due)
-        self.assertEqual(
-            {
-                "completions": [{
-                    "episode_id": "episode-1",
-                    "completed_at": "2026-07-17T00:00:00+00:00",
-                    "kind": "routing_changed",
-                }],
-            },
-            entry,
-        )
+        self.assertEqual(previous, entry)
 
-        self.assertEqual(
-            (False, entry),
-            author_nudge.plan_nudge(author_result("approver"), entry, NOW),
-        )
-
-    def test_gate_held_route_resets_clock_and_does_not_nudge(self) -> None:
+    def test_gate_held_route_uses_standard_nudge_deadline(self) -> None:
         held = author_result()
         held["facts"]["route_held_for_gates"] = True
 
@@ -368,8 +376,15 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             NOW,
         )
 
-        self.assertFalse(due)
-        self.assertIsNone(entry)
+        self.assertTrue(due)
+        self.assertEqual(
+            {
+                "waiting_since": "2026-07-10T00:00:00+00:00",
+                "nudged_at": "",
+                "episode_id": "episode-1",
+            },
+            entry,
+        )
 
     def test_returning_to_author_route_starts_new_episode(self) -> None:
         previous = {

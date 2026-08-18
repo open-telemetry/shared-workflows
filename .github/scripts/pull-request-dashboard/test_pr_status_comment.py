@@ -241,8 +241,20 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("**Waiting on the author** · refreshed ", body)
         self.assertIn("Resolve merge conflicts.", body)
-        self.assertNotIn("Investigate required status check failures.", body)
-        self.assertNotIn("Should this be with reviewers?", body)
+        self.assertIn("Investigate required status check failures.", body)
+        self.assertIn("Should this be with reviewers?", body)
+
+    def test_waiting_on_maintainers_keeps_route_and_names_merge_conflicts(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "maintainer",
+                "facts": {"author": "alice", "conflicts": "yes"},
+            },
+        )
+
+        self.assertIn("**Waiting on maintainers** · refreshed ", body)
+        self.assertIn("Resolve merge conflicts, then merge when ready.", body)
 
     def test_held_pr_names_only_the_outstanding_check_gate(self) -> None:
         body = pr_status_comment.render_status_comment(

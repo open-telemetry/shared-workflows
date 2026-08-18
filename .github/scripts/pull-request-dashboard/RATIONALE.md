@@ -267,14 +267,16 @@ the implementation understandable and operationally cheap.
   Repository-configured `non_blocking_check_patterns` identify failed optional
   checks in a note alongside this action, without changing required-check facts
   or routing.
-- A merge conflict routes every PR to its author before CI, discussion, or
-  approval routing. The conflict is author-side work, and telling maintainers to
-  merge an unmergeable PR would be wrong.
-- Required-check and Copilot review gates pause while a conflict exists. GitHub
-  may not start either automation on an unmergeable head, so a missing result is
-  expected rather than a dashboard delivery failure. Entering the conflicted
-  state clears any same-head hold clock, and normal gates resume after the
-  conflict is resolved.
+- A merge conflict does not decide who should act. Discussion, CI, and approval
+  routing still identify the owner, while the conflict remains visible as a
+  separate merge blocker. This lets maintainers handle routine conflicts, such
+  as a changelog conflict, without first sending the PR back to its author.
+- Required-check and Copilot review gates still hold a handoff while a conflict
+  exists, but their missing-result clock is paused. GitHub may not start either
+  automation on an unmergeable head, so a missing result is expected rather than
+  a dashboard delivery failure. Entering the conflicted state clears any
+  same-head hold clock. A fresh four-hour clock starts if a gate is still missing
+  after the conflict is resolved.
 - A PR does not advance toward merge while the required checks are unsettled:
   an author waiting on CI keeps the PR, and a PR already with approvers is not
   handed to maintainers to merge. Clearing the checks is the author's job, so
@@ -297,11 +299,11 @@ the implementation understandable and operationally cheap.
   the end of the CI failure and fall back to the last approver activity, which
   is usually far older, so a PR the author had just pushed to would sort to the
   top of the waiting-on-authors section as the stalest item on the board.
-- A held PR sends no reminder in either direction. The author nudge and the
-  reviewer Slack notification both ask a person to respond, and while the hold
-  lasts the response is owed by a robot that is already working. The author's
-  waiting episode ends when the hold begins, so a later handoff back to the
-  author starts a fresh one instead of resuming a wait the author has answered.
+- A held PR remains in the author reminder flow. Most holds clear quickly, but a
+  hold can also mean that automation never started or that the author is stuck.
+  After the standard seven-day wait, the reminder links to the live status and
+  offers the reviewer-routing command as a break-glass handoff. Reviewer Slack
+  notification still waits until the route actually reaches reviewers.
 - While a PR stays on a route where someone other than the author owes it a
   response, its wait age only moves back, never forward. The fallback for those
   routes is the last author activity, so a push would otherwise restart the
@@ -323,8 +325,8 @@ the implementation understandable and operationally cheap.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
   but never route one of these PRs to its author: a bot PR whose handoff is
-  held waits on reviewers instead. A merge conflict is the exception because
-  maintainers still cannot merge the PR.
+  held waits on reviewers instead. Merge conflicts remain visible without
+  overriding that routing.
 - A hold has a time limit, and past it the PR routes anyway. Every gate waits on
   something outside the dashboard, and each one has been seen never to arrive: a
   required check with no check run on the head, a Copilot review GitHub never
@@ -353,13 +355,14 @@ the implementation understandable and operationally cheap.
   review never arrived when it is sitting on the PR. A review that is missing or
   that only covers older code still counts, because Copilot has said nothing
   about the code being reviewed.
-- An expired hold on a non-conflicted PR is reported as a delivery failure on
+- An expired hold is reported as a delivery failure on
   whole-repository passes, which opens the same tracking issue as any other
   dashboard failure. This is the only alarm the gates raise. Each way a gate can
   go missing has its own cause and none of them can be told apart from the
   dashboard's side, so reporting them separately would mean a new alarm for
   every new way GitHub finds to lose something. The hold expiring is the one
-  symptom they all share.
+  symptom they all share. A conflicted PR cannot expire its hold because its
+  missing automation is expected.
 - The report stays active while the stall does, the same way a PR that keeps
   failing to refresh keeps the hourly failure active. A gate that will never
   report is usually a repository misconfiguration — a required check with no
@@ -444,11 +447,12 @@ the implementation understandable and operationally cheap.
   stale review is the ordinary state between a push and the next re-review, and
   an icon that is always present says nothing about which PRs are actually
   waiting.
-- An effective reviewer-routing override bypasses the Copilot gate for the
-  current head. The command is an explicit manual handoff, so requesting another
-  automated review before honoring it adds delay without clarifying the author's
-  intent. A later push restores the gate. Required checks still hold the route
-  because their result can independently return the pull request to the author.
+- An effective reviewer-routing override is a break-glass handoff for the
+  current head. It forces the reviewer route and bypasses required checks,
+  Copilot review, merge conflicts, discussion actions, and approval routing. The
+  author may be stuck or may need a person to explain a basic problem, so no
+  automated blocker can prevent the handoff. A later push restores normal
+  routing and gates.
 - The gate withholds the re-review request until the required checks have
   settled. A route computed while checks are still running is provisional: a
   failure that has not completed yet cannot route the PR to its author, so the
@@ -518,11 +522,10 @@ the implementation understandable and operationally cheap.
   Commits, PR title edits, and PR description edits are not tied to the item
   they would close, so any push after the feedback arrived would close every
   open item at once and hide feedback nobody had answered. The status comment
-  lists the exact open discussions and the nudge says that a reply is what hands
-  the PR back, which makes an explicit reply both cheap and unambiguous. An
-  author's explicit commitment to future work in the current PR is a
-  self-deferral, not a completed reply, so the item continues waiting on the
-  author.
+  lists the exact open discussions and explains how to give each one an outcome,
+  which makes an explicit reply both cheap and unambiguous. An author's explicit
+  commitment to future work in the current PR is a self-deferral, not a
+  completed reply, so the item continues waiting on the author.
 - Each model call classifies up to ten uncached top-level feedback items
   independently, while retaining a separate cache entry for every item. A
   refresh processes at most 200 such items per PR. Exceeding that cap means the

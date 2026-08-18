@@ -30,9 +30,9 @@ PRE_REVIEW_ROUTES = ("author",)
 
 def author_override_guidance(staleness_note: str = "") -> str:
     guidance = (
-        "If you believe this pull request is incorrectly routed as waiting on "
-        "the author, comment `/dashboard route:reviewers` to route it from "
-        "waiting on the author to waiting on reviewers."
+        "If you need reviewer or maintainer help, comment "
+        "`/dashboard route:reviewers` to route this pull request immediately "
+        "from waiting on the author to waiting on reviewers."
     )
     if staleness_note:
         guidance = f"{guidance} {staleness_note}"
@@ -411,14 +411,10 @@ def append_command_ack_reply(
     """Queue the reply that acknowledges an override command.
 
     The reply carries the acknowledgement marker that stops the command from
-    being processed again. A merge conflict defers the reply because it prevents
-    the command from taking effect. Otherwise every command gets one, whether or
-    not it cleared anything. `route` is already what the cleared items produced,
-    so a command that cleared nothing is answered with where the pull request is
-    routed.
+    being processed again. Every authorized command gets a reply because the
+    command forces the reviewer route even when no discussion or failing check
+    was cleared.
     """
-    if facts.get("conflicts") == "yes":
-        return
     command_id = int(facts.get("dashboard_override_command_id") or 0)
     if not command_id:
         return
@@ -427,12 +423,10 @@ def append_command_ack_reply(
     replies = facts.setdefault("dashboard_command_replies", [])
     if any(reply.get("comment_id") == command_id for reply in replies):
         return
-    cleared = bool(facts.get("dashboard_override_cleared_count")) or bool(
-        facts.get("dashboard_override_cleared_ci")
-    )
+    handoff = bool(facts.get("copilot_review_bypassed_by_override"))
     replies.append({
         "comment_id": command_id,
-        "kind": "routed" if cleared else "already_routed",
+        "kind": "routed" if handoff else "already_routed",
         "user": facts.get("dashboard_override_command_user") or facts.get("author") or "",
         "route": route,
         "held_gates": (

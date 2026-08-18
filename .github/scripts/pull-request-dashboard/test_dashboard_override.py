@@ -219,10 +219,11 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
 
-    def test_appends_already_routed_reply_for_a_command_that_cleared_nothing(self) -> None:
+    def test_appends_routed_reply_for_break_glass_command_that_cleared_nothing(self) -> None:
         facts = {
             "author": "author",
             "dashboard_override_command_id": 12,
+            "copilot_review_bypassed_by_override": True,
         }
 
         dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
@@ -230,7 +231,7 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(
             [{
                 "comment_id": 12,
-                "kind": "already_routed",
+                "kind": "routed",
                 "user": "author",
                 "route": "approver",
                 "held_gates": "",
@@ -243,6 +244,7 @@ class DashboardOverrideTest(unittest.TestCase):
             "author": "author",
             "dashboard_override_command_id": 12,
             "dashboard_override_cleared_count": 1,
+            "copilot_review_bypassed_by_override": True,
         }
 
         dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
@@ -623,7 +625,7 @@ class DashboardOverrideTest(unittest.TestCase):
             facts["dashboard_command_replies"],
         )
 
-    def test_conflict_defers_override_acknowledgement(self) -> None:
+    def test_conflict_does_not_defer_override_acknowledgement(self) -> None:
         raw = {
             "issue_comments": [
                 {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
@@ -631,13 +633,19 @@ class DashboardOverrideTest(unittest.TestCase):
         }
         facts = dashboard_override.dashboard_override_facts(raw, "author")
         facts["conflicts"] = "yes"
+        facts["copilot_review_bypassed_by_override"] = True
 
-        dashboard_override.append_command_ack_reply(raw, facts, "author")
+        dashboard_override.append_command_ack_reply(raw, facts, "approver")
 
-        self.assertEqual([], facts["dashboard_command_replies"])
         self.assertEqual(
-            (5, "author"),
-            dashboard_override.latest_authorized_command(raw, "author", set()),
+            [{
+                "comment_id": 5,
+                "kind": "routed",
+                "user": "author",
+                "route": "approver",
+                "held_gates": "",
+            }],
+            facts["dashboard_command_replies"],
         )
 
     @patch.object(dashboard_override, "run_gh")

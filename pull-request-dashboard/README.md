@@ -39,11 +39,13 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   to recent PR activity or PR creation time. Format: `<1m`, `Xm`, `Xh`, or
   `Xd`.
 
-When GitHub reports merge conflicts, the dashboard routes the PR to its author
-before it considers CI, discussion, or approval state. It pauses required-check
-and Copilot review gates until the conflicts are resolved. Checks and reviews
-that do not start on a conflicted head therefore neither hold the route nor fail
-dashboard delivery.
+Merge conflicts remain visible without overriding normal CI, discussion, and
+approval routing. A conflicted PR can therefore stay with reviewers or
+maintainers when they can resolve it themselves. If missing required checks or a
+missing Copilot review hold the PR with its author, the live status names the
+conflict and the standard seven-day author reminder still applies. Missing
+automation does not expire into a dashboard delivery failure while the PR is
+conflicted.
 
 ## How to opt in
 
@@ -78,7 +80,7 @@ Fields:
 | `required_approvals` | no | Number of approvals required for an open PR to be marked ready to merge. Defaults to `1`. |
 | `labels_to_display` | no | Case-sensitive shell-style label name patterns to display inline after PR titles. Exact names such as `breaking change` and wildcard patterns such as `size/*` are supported. Defaults to `[]`, which displays no labels. |
 | `non_blocking_check_patterns` | no | Check-name globs for non-required checks whose failures should be identified in the live PR status comment. When the PR is waiting on the author, matching failures are reported only when at least one required check is failing and are noted alongside those failures. On other routes, matching failures are shown separately. Matching checks remain informational and do not affect routing or the dashboard CI column. |
-| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head with no open Copilot review threads is required before automatically routing a PR to reviewers or maintainers. An effective `/dashboard route:reviewers` override bypasses this gate. A thread counts as open while it is unresolved and GitHub has not marked it outdated, so a thread whose code the author has since rewritten stops holding the PR even if nobody resolved it. The dashboard re-requests Copilot review when a push has left the previous review stale, and requests the first review itself if automatic Copilot code review has not produced one within an hour of the PR becoming ready. It does not duplicate a pending request. A request counts as delivered only once GitHub confirms Copilot is a pending reviewer or finds a completed Copilot review of the current head, so one that GitHub accepts but does not record in either form is sent again on the next pass. A gate that never reports holds the PR for at most four hours; after that the PR routes anyway, its status comment says which gate the dashboard stopped waiting for, and the run reports the stall. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
+| `require_clean_copilot_review_branches` | no | List of base branch names for which a Copilot review of the current head with no open Copilot review threads is required before automatically routing a PR to reviewers or maintainers. An effective `/dashboard route:reviewers` break-glass override bypasses this gate and every other routing blocker for the current head. A thread counts as open while it is unresolved and GitHub has not marked it outdated, so a thread whose code the author has since rewritten stops holding the PR even if nobody resolved it. The dashboard re-requests Copilot review when a push has left the previous review stale, and requests the first review itself if automatic Copilot code review has not produced one within an hour of the PR becoming ready. It does not duplicate a pending request. A request counts as delivered only once GitHub confirms Copilot is a pending reviewer or finds a completed Copilot review of the current head, so one that GitHub accepts but does not record in either form is sent again on the next pass. A gate that never reports holds the PR for at most four hours; after that the PR routes anyway, its status comment says which gate the dashboard stopped waiting for, and the run reports the stall. This clock pauses while the PR is conflicted. List only branches where automatic Copilot code review is enabled (typically `["main"]`); PRs targeting any other branch are never gated, so they cannot stall waiting for a review that never runs. Defaults to `[]` (no branches gated). |
 | `slack_channel` | no | Slack channel for notifications. Omit to skip Slack processing for this repository. |
 | `slack_user_mapping` | no | Map of GitHub login to Slack user ID for at-mentions. |
 | `large_repo` | no | If `true`, apply rendering presets that keep the dashboard body under GitHub's 65,536-character issue-body limit: cap each section (each *Waiting on …* table, the *Draft pull requests* table, and the *Diagnostics* block) at 100 rows, and omit the *Draft pull requests* section entirely. Truncated sections get a `_More X PRs not shown_` footer. Defaults to `false` (no cap, drafts shown). Enable this for very large repos with hundreds of PRs. |
@@ -193,41 +195,28 @@ Targeted updates received before the first full dashboard run are ignored.
 
 ## Reviewer routing override
 
-When the dashboard says a pull request is waiting on its author but the author
-believes it is ready for another review, the author can comment
-`/dashboard route:reviewers`. The command clears every review item and required
-check failure that was already open when it was posted, so the pull request
-leaves *Waiting on authors* and routing continues from there instead of falling
-back to the author on the next refresh. Where it lands is whatever routing
-decides next, which for an already-approved pull request is *Waiting on
-maintainers*. Members of the repository's `approver_teams` can use the same
-command. A `/dashboard route:reviewers` command from anyone else, or a command
-that clears nothing, has no routing effect. The dashboard replies to a
-`/dashboard route:reviewers` from an unauthorized user explaining that only the
-author or an approver can use it, replies to an author or approver command that
-cleared nothing noting where it is currently routed, and replies to any
-unrecognized `/dashboard` command.
+When the dashboard says a pull request is waiting on its author, the author can
+comment `/dashboard route:reviewers` to request human help. The command is a
+break-glass handoff: it immediately forces *Waiting on reviewers* for the current
+head regardless of review feedback, approvals, required checks, Copilot review,
+or merge conflicts. It is useful when the author is stuck or needs a reviewer or
+maintainer to explain what to do next. Members of the repository's
+`approver_teams` can use the same command.
 
-Anything that happens after the command keeps its author action, so new review
-feedback and new check failures still route the pull request back to the author.
-A reviewer who disagrees that a cleared item was handled says so on that item,
-which routes the pull request back to the author on the next refresh.
-An effective override does not request or wait for a Copilot review of the
-current head, because the command is an explicit manual handoff. Required checks
-must still settle before the route advances. A later push restores the normal
-Copilot review gate.
+The dashboard acknowledges every authorized handoff. It replies to an
+unauthorized command explaining that only the author or an approver can use it,
+and replies to any unrecognized `/dashboard` command. A later push restores
+normal routing and gates.
 
 ## Author reminder
 
 The dashboard posts one reminder when a pull request remains in *Waiting on
 authors* for one week. The friendly reminder @-mentions the author, links to the
-dashboard-managed status comment containing the remaining items, and notes that
-addressing them (or replying with an update) automatically routes the pull
-request back to reviewers. An italic footer calls the reminder a snapshot and
-identifies the linked status comment as the live source of truth.
-Both an active reminder and the live status comment advertise
-`/dashboard route:reviewers` as an explicit handoff when the author believes the
-pull request is ready for review.
+dashboard-managed status comment containing the current blockers, and advertises
+`/dashboard route:reviewers` as a break-glass handoff when the author needs human
+help. The same one-week clock applies while the author route is held on required
+checks, Copilot review, or merge conflicts. An italic footer calls the reminder
+a snapshot and identifies the linked status comment as the live source of truth.
 
 When the dashboard routes the pull request to approvers or maintainers, it
 appends an italic note saying that the pull request is no longer waiting on the

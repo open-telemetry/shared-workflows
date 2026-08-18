@@ -258,29 +258,36 @@ def render_status_comment(
     else:
         route = result.get("route") or "unknown"
         conflicted = facts.get("conflicts") == "yes"
-        if route in PRE_REVIEW_ROUTES and not conflicted:
+        if route in PRE_REVIEW_ROUTES:
             override_route = route
         headline = status_headline(route)
-        if conflicted:
-            body = ["Resolve merge conflicts."]
-        elif route == "author":
-            body = author_body(
-                feedback_count=feedback_count,
-                failing_count=failing_count,
-                non_blocking_failure_note=non_blocking_failure_summary(
-                    non_blocking_check_failures
-                ),
-                review_thread_urls=review_thread_urls,
-                top_level_feedback_urls=top_level_feedback_urls,
-                held_gates=(
-                    outstanding_gate_phrase(facts)
-                    if facts.get("route_held_for_gates")
-                    else ""
-                ),
-            )
+        if route == "author":
+            body = ["Resolve merge conflicts."] if conflicted else []
+            if not conflicted or feedback_count or failing_count:
+                author_actions = author_body(
+                    feedback_count=feedback_count,
+                    failing_count=failing_count,
+                    non_blocking_failure_note=non_blocking_failure_summary(
+                        non_blocking_check_failures
+                    ),
+                    review_thread_urls=review_thread_urls,
+                    top_level_feedback_urls=top_level_feedback_urls,
+                    held_gates=(
+                        outstanding_gate_phrase(facts)
+                        if facts.get("route_held_for_gates")
+                        else ""
+                    ),
+                )
+                if body:
+                    body.append("")
+                body.extend(author_actions)
         else:
             _, next_step = route_status_summary(route)
-            body = [next_step]
+            body = (
+                ["Resolve merge conflicts, then merge when ready."]
+                if conflicted and route == "maintainer"
+                else [next_step]
+            )
             abandoned_gates = (
                 abandoned_gate_note(facts)
                 if facts.get("route_hold_expired")
@@ -305,6 +312,8 @@ def render_status_comment(
                     non_blocking_check_failures, names_only=True
                 )
                 body.extend(["", f"**{label}:** {names}"])
+            if conflicted and route != "maintainer":
+                body.extend(["", "**Also blocked by:** Merge conflicts."])
 
     lines = [
         STATUS_MARKER,
