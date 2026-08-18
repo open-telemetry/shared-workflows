@@ -1775,7 +1775,7 @@
     },
     "4018": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 2,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1801,20 +1801,37 @@
         "head_sha": "9e79e6d0f3f0d4257db99e5bb3202f404629c25e",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-18T04:26:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-18T16:19:44+00:00",
+        "last_approver_activity_at": "2026-08-18T16:19:44+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "arminru",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "joaopgrassi",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "0ac1a999139228ac77731b0ec653745e014c69259270ed0ea5b7ea7a9c1a18a3",
+        "routing_input_fingerprint": "5ef19de5a23e38716296c61880f0a1ad3ec87af552d22d55832f6e09f183b2c3",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-18T04:26:33+00:00"
       },
       "failed": false,
       "pr_number": 4018,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4018",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4019": {
