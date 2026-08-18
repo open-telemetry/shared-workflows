@@ -12228,13 +12228,13 @@
     },
     "50301": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 7,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -12254,11 +12254,19 @@
         "head_sha": "13bf0688dc5bcdd99ced1c76b67e0aafda235da7",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-18T04:51:14+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-18T08:13:07+00:00",
+        "last_approver_activity_at": "2026-08-18T08:13:07+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "iblancasa",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -12268,9 +12276,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "1081144bf986436ded3bd601ae40ba327d98f06b7872cd3b3ab6130c8cd040e0",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "3af6e2c152191a95dabe78e72cf22d832201a0d6c2454f78efaf450c631831be",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-18T04:48:01+00:00"
       },
       "failed": false,
