@@ -88,6 +88,20 @@ class AuthorNudgePolicyTest(unittest.TestCase):
 
         self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
 
+    def test_routing_fingerprint_tracks_conflict_state(self) -> None:
+        raw = {
+            "pr": {
+                "mergeable": "MERGEABLE",
+                "mergeStateStatus": "CLEAN",
+            }
+        }
+        baseline = author_nudge.routing_input_fingerprint(raw)
+
+        raw["pr"]["mergeable"] = "CONFLICTING"
+        raw["pr"]["mergeStateStatus"] = "DIRTY"
+
+        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
     @patch("github_cli.gh_branch_rules", return_value=[])
     @patch(
         "github_cli.gh_pr_check_rollup",
@@ -911,6 +925,66 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             "open-telemetry/example",
             NOW,
         )
+
+        self.assertEqual([], errors)
+        ensure_nudge.assert_not_called()
+        save_nudges.assert_called_once_with({
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "nudged_at": "",
+            },
+        })
+
+    def test_delivery_discards_nudge_when_pr_becomes_conflicted(self) -> None:
+        clean_raw = {
+            "pr": {
+                "mergeable": "MERGEABLE",
+                "mergeStateStatus": "CLEAN",
+            }
+        }
+        conflicted_raw = {
+            "pr": {
+                "mergeable": "CONFLICTING",
+                "mergeStateStatus": "DIRTY",
+            }
+        }
+        pending = {
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "nudged_at": "",
+                "pending_at": "2026-07-17T00:00:00+00:00",
+                "head_sha": "current-head",
+                "routing_input_fingerprint": (
+                    author_nudge.routing_input_fingerprint(clean_raw)
+                ),
+            }
+        }
+        with (
+            patch.object(author_nudge, "load_author_nudges", return_value=pending),
+            patch.object(author_nudge, "save_author_nudges") as save_nudges,
+            patch.object(
+                author_nudge,
+                "load_dashboard_state_cache",
+                return_value={"prs": {"1": author_result()}},
+            ),
+            patch.object(
+                author_nudge,
+                "fetch_current_pr_routing_state",
+                return_value=(
+                    {
+                        "state": "OPEN",
+                        "isDraft": False,
+                        "headRefOid": "current-head",
+                    },
+                    author_nudge.routing_input_fingerprint(conflicted_raw),
+                ),
+            ),
+            patch.object(author_nudge, "ensure_nudge") as ensure_nudge,
+        ):
+            errors = author_nudge.deliver_prepared_author_nudges(
+                "open-telemetry/example",
+                NOW,
+            )
 
         self.assertEqual([], errors)
         ensure_nudge.assert_not_called()

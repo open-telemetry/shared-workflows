@@ -118,6 +118,10 @@ def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
         "base_branch": str(pr.get("baseRefName") or ""),
         "checks": raw.get("checks"),
         "issue_comments": issue_comments,
+        "mergeability": {
+            "mergeable": str(pr.get("mergeable") or ""),
+            "merge_state_status": str(pr.get("mergeStateStatus") or ""),
+        },
         "pr_text": {
             "body": str(pr.get("body") or "").replace("\r\n", "\n"),
             "title": str(pr.get("title") or ""),
