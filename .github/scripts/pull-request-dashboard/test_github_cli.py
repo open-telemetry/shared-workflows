@@ -50,6 +50,11 @@ class HeadPushActivityTest(unittest.TestCase):
             "&time_period=year&per_page=100"
         )
 
+    @patch("github_cli.gh_api", return_value={"message": "unexpected"})
+    def test_rejects_non_list_response(self, gh_api) -> None:
+        with self.assertRaisesRegex(RuntimeError, "non-list response"):
+            fetch_head_push_at("owner/repo", "feature/branch", "new-head")
+
 
 def _review_requests_page(nodes, has_next=False, cursor=""):
     return {

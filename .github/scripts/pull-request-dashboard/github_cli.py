@@ -125,7 +125,9 @@ def fetch_head_push_at(repo: str, head_ref: str, head_sha: str) -> str:
         f"repos/{repo}/activity?ref={quote(head_ref, safe='')}"
         "&time_period=year&per_page=100"
     )
-    for activity in activities if isinstance(activities, list) else []:
+    if not isinstance(activities, list):
+        raise RuntimeError("repository activity API returned a non-list response")
+    for activity in activities:
         if activity.get("after") == head_sha:
             return activity.get("timestamp") or ""
     return ""
