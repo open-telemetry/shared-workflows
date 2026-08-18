@@ -8,7 +8,7 @@ from typing import Any
 from github_cli import gh_api, run_gh
 from route_presentation import outstanding_gate_phrase
 from state import load_dashboard_state_cache
-from utils import actor_login, parse_ts
+from utils import actor_login
 
 
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
@@ -361,45 +361,8 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
     return errors
 
 
-def clear_overridden_actions(
-    facts: dict[str, Any],
-    pending_actions: dict[str, dict[str, Any]],
-) -> dict[str, dict[str, Any]]:
-    """Drop the author actions an override command already answered.
-
-    `/dashboard route:reviewers` is the author saying everything open at that
-    moment is handled. Clearing those actions keeps them from routing the pull
-    request back to the author on every later refresh, which would make the
-    author repeat the command each time review comes back around. Anything that
-    happens after the command keeps its author action, so new feedback still
-    reaches the author, including a reviewer reopening something the command
-    cleared.
-    """
-    # Timestamps reach here in both GitHub's `...Z` form and `format_ts`'s
-    # `...+00:00` form, so they have to be parsed rather than compared as text.
-    override_since = parse_ts(facts.get("dashboard_override_since"))
-    facts["dashboard_override_cleared_count"] = 0
-    facts["dashboard_override_cleared_ci"] = False
-    if override_since is None:
-        return pending_actions
-    remaining: dict[str, dict[str, Any]] = {}
-    cleared = 0
-    for discussion_id, entry in pending_actions.items():
-        since = parse_ts(entry.get("since"))
-        # GitHub timestamps are second-granularity, so an item sharing the
-        # command's second is left open rather than risking masking it.
-        if entry.get("action") == "author" and since and since < override_since:
-            cleared += 1
-            continue
-        remaining[discussion_id] = entry
-    ci_failing_count = facts.get("ci_failing_count") or 0
-    facts["dashboard_override_cleared_count"] = cleared
-    facts["dashboard_override_cleared_ci"] = uncleared_ci_failing_count(facts) < ci_failing_count
-    return remaining
-
-
 def uncleared_ci_failing_count(facts: dict[str, Any]) -> int:
-    """Failing required checks that an override command has not cleared."""
+    """Failing required checks used by normal routing."""
     return facts.get("ci_uncleared_failing_count") or 0
 
 

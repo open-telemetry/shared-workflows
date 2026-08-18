@@ -239,27 +239,6 @@ class DashboardOverrideTest(unittest.TestCase):
             facts["dashboard_command_replies"],
         )
 
-    def test_appends_routed_reply_when_the_command_cleared_something(self) -> None:
-        facts = {
-            "author": "author",
-            "dashboard_override_command_id": 12,
-            "dashboard_override_cleared_count": 1,
-            "copilot_review_bypassed_by_override": True,
-        }
-
-        dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
-
-        self.assertEqual(
-            [{
-                "comment_id": 12,
-                "kind": "routed",
-                "user": "author",
-                "route": "approver",
-                "held_gates": "",
-            }],
-            facts["dashboard_command_replies"],
-        )
-
     def test_no_ack_reply_without_a_pending_command(self) -> None:
         facts = {"author": "author", "dashboard_override_command_id": 0}
 
@@ -539,70 +518,6 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = dashboard_override.dashboard_override_facts(raw, "author", set())
 
         self.assertEqual("", facts["dashboard_override_since"])
-
-        facts = {"dashboard_override_since": "2026-07-30T12:00:00Z"}
-        pending_actions = {
-            "old": {"action": "author", "since": "2026-07-30T11:00:00Z"},
-            "new": {"action": "author", "since": "2026-07-30T13:00:00Z"},
-            "reviewer": {"action": "reviewer", "since": "2026-07-30T11:00:00Z"},
-        }
-
-        remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
-
-        self.assertEqual(["new", "reviewer"], sorted(remaining))
-        self.assertEqual(1, facts["dashboard_override_cleared_count"])
-
-    def test_clears_check_failures_that_predate_the_command(self) -> None:
-        for uncleared, expected in ((0, True), (1, False)):
-            with self.subTest(uncleared=uncleared):
-                facts = {
-                    "dashboard_override_since": "2026-07-30T12:00:00Z",
-                    "ci_failing_count": 1,
-                    "ci_uncleared_failing_count": uncleared,
-                }
-
-                dashboard_override.clear_overridden_actions(facts, {})
-
-                self.assertEqual(expected, facts["dashboard_override_cleared_ci"])
-
-    def test_keeps_a_check_that_fails_after_the_command(self) -> None:
-        facts = {
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-            "ci_failing_count": 2,
-            "ci_uncleared_failing_count": 1,
-        }
-
-        dashboard_override.clear_overridden_actions(facts, {})
-
-        self.assertTrue(facts["dashboard_override_cleared_ci"])
-        self.assertEqual(1, dashboard_override.uncleared_ci_failing_count(facts))
-
-    def test_keeps_items_that_share_the_command_timestamp(self) -> None:
-        # The command's own `...Z` timestamp is compared against `format_ts`
-        # output, so the same instant reaches here written two different ways.
-        facts = {
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-            "ci_failing_count": 1,
-        }
-        pending_actions = {
-            "earlier": {"action": "author", "since": "2026-07-30T11:59:59+00:00"},
-            "same": {"action": "author", "since": "2026-07-30T12:00:00+00:00"},
-            "later": {"action": "author", "since": "2026-07-30T12:00:00.500000+00:00"},
-        }
-
-        remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
-
-        self.assertEqual(["later", "same"], sorted(remaining))
-        self.assertEqual(1, facts["dashboard_override_cleared_count"])
-
-    def test_clears_nothing_without_a_command(self) -> None:
-        facts = {"dashboard_override_since": ""}
-        pending_actions = {"old": {"action": "author", "since": "2026-07-30T11:00:00Z"}}
-
-        remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
-
-        self.assertEqual(pending_actions, remaining)
-        self.assertEqual(0, facts["dashboard_override_cleared_count"])
 
     def test_command_that_cleared_nothing_is_acknowledged_where_it_is_routed(self) -> None:
         raw = {

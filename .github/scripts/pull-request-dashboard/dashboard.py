@@ -109,10 +109,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
-    ci_uncleared_failing_count      int           Required failures an override
-                                                  command has not cleared.
-    ci_uncleared_failing_since      str (iso)     Earliest completion time among
-                                                  those uncleared failures.
+    ci_uncleared_failing_count      int           Required failures used by routing.
+    ci_uncleared_failing_since      str (iso)     Earliest required failure used
+                                                  by routing.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
                                                   fetched, and excludes required
@@ -276,7 +275,6 @@ from copilot_review import (
 )
 from dashboard_override import (
     append_command_ack_reply,
-    clear_overridden_actions,
     dashboard_command_body_remainder,
     dashboard_override_facts,
     uncleared_ci_failing_count,
@@ -655,19 +653,9 @@ def compute_facts(
         facts["ci_failing_count"] = len(failing)
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
-        # A failure with no completion time cannot be shown to predate the
-        # override command, so it counts as uncleared. So does one that shares
-        # the command's second, since GitHub timestamps cannot order them.
-        untimed = len(failing) - len(failing_timestamps)
-        override_since = parse_ts(facts.get("dashboard_override_since") or "")
-        uncleared = [
-            ts
-            for ts in failing_timestamps
-            if override_since is None or ts >= override_since
-        ]
-        facts["ci_uncleared_failing_count"] = untimed + len(uncleared)
-        if uncleared:
-            facts["ci_uncleared_failing_since"] = format_ts(min(uncleared))
+        facts["ci_uncleared_failing_count"] = len(failing)
+        if failing_timestamps:
+            facts["ci_uncleared_failing_since"] = format_ts(min(failing_timestamps))
         facts["ci_pending_count"] = len(pending)
     non_blocking_check_failures = sorted({
         check.get("name") or ""
@@ -1550,6 +1538,29 @@ def hold_route_until_gates_settle(
     return previous_route if held else route
 
 
+def reviewer_handoff_active(
+    facts: dict[str, Any],
+    previous_result: dict[str, Any] | None = None,
+) -> bool:
+    previous_facts = (previous_result or {}).get("facts") or {}
+    command_id = facts.get("dashboard_override_command_id") or 0
+    same_command = (
+        bool(facts.get("dashboard_override_since"))
+        and facts.get("dashboard_override_since")
+        == previous_facts.get("dashboard_override_since")
+        and (
+            not command_id
+            or command_id == (previous_facts.get("dashboard_override_command_id") or 0)
+        )
+    )
+    same_head = same_command and facts.get("head_sha") == previous_facts.get("head_sha")
+    active = (bool(command_id) and not same_command) or bool(
+        previous_facts.get("copilot_review_bypassed_by_override") and same_head
+    )
+    facts["copilot_review_bypassed_by_override"] = active
+    return active
+
+
 def resolve_pr_route(
     facts: dict[str, Any],
     pending_actions: dict[str, dict[str, Any]],
@@ -1560,29 +1571,7 @@ def resolve_pr_route(
 ) -> str:
     now = now or utc_now()
     route = route_pr(facts, pending_actions, required_approvals)
-    previous_facts = (previous_result or {}).get("facts") or {}
-    pending_override_command_id = facts.get("dashboard_override_command_id") or 0
-    same_override_command = (
-        bool(facts.get("dashboard_override_since"))
-        and facts.get("dashboard_override_since")
-        == previous_facts.get("dashboard_override_since")
-        and (
-            not pending_override_command_id
-            or pending_override_command_id
-            == (previous_facts.get("dashboard_override_command_id") or 0)
-        )
-    )
-    same_overridden_head = (
-        same_override_command
-        and facts.get("head_sha") == previous_facts.get("head_sha")
-    )
-    manual_reviewer_handoff = (
-        bool(pending_override_command_id) and not same_override_command
-    ) or bool(
-        previous_facts.get("copilot_review_bypassed_by_override")
-        and same_overridden_head
-    )
-    facts["copilot_review_bypassed_by_override"] = manual_reviewer_handoff
+    manual_reviewer_handoff = reviewer_handoff_active(facts, previous_result)
     if manual_reviewer_handoff:
         route = "approver"
     copilot_review_gate_enabled = (
@@ -1692,42 +1681,49 @@ def build_pr_result(
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events, reviewers)
+        manual_reviewer_handoff = reviewer_handoff_active(facts, previous_result)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         top_level_author_comment_items = derive_top_level_author_comment_items(
             events, top_level_items, facts
         )
-        (
-            review_thread_classifications,
-            top_level_classifications,
-            top_level_author_comment_classifications,
-        ) = classify_discussion_domains(
-            number,
-            review_threads,
-            top_level_items,
-            top_level_author_comment_items,
-            model,
-        )
-        author_comment_outcomes = top_level_author_comment_outcomes(
-            top_level_author_comment_items,
-            top_level_author_comment_classifications,
-        )
-        author_comment_source_state = top_level_author_comment_source_state(
-            top_level_author_comment_items,
-            top_level_author_comment_classifications,
-        )
-        review_thread_pending_actions = build_review_thread_pending_actions(
-            review_threads, review_thread_classifications
-        )
-        top_level_pending_actions, top_level_history = advance_top_level_actions(
-            top_level_items,
-            top_level_classifications,
-            previous_top_level_history,
-            author_comment_outcomes,
-            author_comment_source_state,
-        )
-        pending_actions = review_thread_pending_actions | top_level_pending_actions
-        pending_actions = clear_overridden_actions(facts, pending_actions)
+        if manual_reviewer_handoff:
+            review_thread_classifications = []
+            top_level_classifications = []
+            top_level_author_comment_classifications = []
+            pending_actions = {}
+            top_level_history = previous_top_level_history or {}
+        else:
+            (
+                review_thread_classifications,
+                top_level_classifications,
+                top_level_author_comment_classifications,
+            ) = classify_discussion_domains(
+                number,
+                review_threads,
+                top_level_items,
+                top_level_author_comment_items,
+                model,
+            )
+            author_comment_outcomes = top_level_author_comment_outcomes(
+                top_level_author_comment_items,
+                top_level_author_comment_classifications,
+            )
+            author_comment_source_state = top_level_author_comment_source_state(
+                top_level_author_comment_items,
+                top_level_author_comment_classifications,
+            )
+            review_thread_pending_actions = build_review_thread_pending_actions(
+                review_threads, review_thread_classifications
+            )
+            top_level_pending_actions, top_level_history = advance_top_level_actions(
+                top_level_items,
+                top_level_classifications,
+                previous_top_level_history,
+                author_comment_outcomes,
+                author_comment_source_state,
+            )
+            pending_actions = review_thread_pending_actions | top_level_pending_actions
         failed_classifications = [
             classification
             for classification in (

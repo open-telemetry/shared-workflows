@@ -37,21 +37,18 @@ from dashboard import (
 
 
 class ResolvePrRouteTest(unittest.TestCase):
-    def _cleared_ci_facts(self, **overrides: object) -> dict[str, object]:
-        # A failing required check that an override already cleared, which
-        # would otherwise route a human-authored pull request to the author.
+    def _override_facts(self, **overrides: object) -> dict[str, object]:
         facts: dict[str, object] = {
             "ci_failing_count": 1,
             "ci_pending_count": 0,
-            "ci_uncleared_failing_count": 0,
-            "dashboard_override_cleared_ci": True,
+            "ci_uncleared_failing_count": 1,
             "dashboard_override_command_id": 1,
         }
         facts.update(overrides)
         return facts
 
     def test_override_bypasses_required_copilot_review(self) -> None:
-        facts = self._cleared_ci_facts(
+        facts = self._override_facts(
             copilot_review_exists=True,
             copilot_review_needed=True,
             copilot_review_stale=True,
@@ -190,10 +187,8 @@ class ResolvePrRouteTest(unittest.TestCase):
                 self.assertNotIn("route_held_since", facts)
 
     def test_discussion_override_bypasses_required_copilot_review(self) -> None:
-        facts = self._cleared_ci_facts(
+        facts = self._override_facts(
             ci_failing_count=0,
-            dashboard_override_cleared_ci=False,
-            dashboard_override_cleared_count=1,
             copilot_review_exists=True,
             copilot_review_needed=True,
             copilot_review_stale=True,
@@ -223,7 +218,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertTrue(facts["route_held_for_gates"])
 
     def test_acknowledged_override_without_cached_state_does_not_bypass(self) -> None:
-        facts = self._cleared_ci_facts(
+        facts = self._override_facts(
             dashboard_override_command_id=0,
             dashboard_override_since="2026-08-11T12:00:00Z",
             head_sha="current-head",
@@ -237,7 +232,7 @@ class ResolvePrRouteTest(unittest.TestCase):
 
         self.assertEqual("author", route)
         self.assertFalse(facts["copilot_review_bypassed_by_override"])
-        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertFalse(facts["copilot_review_request_needed"])
 
     def test_override_bypass_survives_refresh_for_the_same_head(self) -> None:
         facts: dict[str, object] = {
@@ -265,12 +260,11 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_bypassed_by_override"])
         self.assertFalse(facts["copilot_review_request_needed"])
 
-    def test_override_bypass_ends_after_a_push(self) -> None:
+    def test_push_restores_old_author_actions_after_override(self) -> None:
         facts: dict[str, object] = {
             "ci_failing_count": 0,
             "ci_pending_count": 0,
             "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "dashboard_override_cleared_count": 1,
             "head_sha": "new-head",
             "copilot_review_exists": True,
             "copilot_review_needed": True,
@@ -286,10 +280,22 @@ class ResolvePrRouteTest(unittest.TestCase):
             },
         }
 
-        resolve_pr_route(facts, {}, 1, True, previous_result)
+        route = resolve_pr_route(
+            facts,
+            {
+                "old-feedback": {
+                    "action": "author",
+                    "since": "2026-08-11T11:00:00Z",
+                }
+            },
+            1,
+            True,
+            previous_result,
+        )
 
+        self.assertEqual("author", route)
         self.assertFalse(facts["copilot_review_bypassed_by_override"])
-        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertFalse(facts["copilot_review_request_needed"])
 
     def test_same_second_override_restarts_bypass_after_a_push(self) -> None:
         facts: dict[str, object] = {
@@ -297,7 +303,6 @@ class ResolvePrRouteTest(unittest.TestCase):
             "ci_pending_count": 0,
             "dashboard_override_since": "2026-08-11T12:00:00Z",
             "dashboard_override_command_id": 7,
-            "dashboard_override_cleared_count": 1,
             "head_sha": "new-head",
             "copilot_review_exists": True,
             "copilot_review_needed": True,
@@ -336,7 +341,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             },
         }
         preserve_override_state_after_failure(failed_facts, previous_result)
-        facts = self._cleared_ci_facts(
+        facts = self._override_facts(
             dashboard_override_command_id=7,
             dashboard_override_since="2026-08-11T12:00:00Z",
             head_sha="current-head",
@@ -373,7 +378,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             },
         }
         preserve_override_state_after_failure(failed_facts, previous_result)
-        facts = self._cleared_ci_facts(
+        facts = self._override_facts(
             dashboard_override_command_id=0,
             dashboard_override_since="2026-08-11T12:00:00Z",
             head_sha="current-head",
@@ -410,7 +415,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             },
         }
         preserve_override_state_after_failure(failed_facts, previous_result)
-        facts = self._cleared_ci_facts(
+        facts = self._override_facts(
             dashboard_override_command_id=0,
             dashboard_override_since="2026-08-11T12:00:00Z",
             head_sha="new-head",
@@ -432,7 +437,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_bypassed_by_override"])
 
     def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
-        facts = self._cleared_ci_facts(
+        facts = self._override_facts(
             copilot_review_exists=True,
             copilot_review_needed=False,
         )
@@ -442,14 +447,17 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertEqual("approver", route)
 
     def test_override_reaches_reviewers_when_gate_disabled(self) -> None:
-        facts = self._cleared_ci_facts()
+        facts = self._override_facts()
 
         route = resolve_pr_route(facts, {}, 1, False)
 
         self.assertEqual("approver", route)
 
     def test_override_bypasses_running_checks(self) -> None:
-        facts = self._cleared_ci_facts(ci_failing_count=0, ci_pending_count=1)
+        facts = self._override_facts(
+            ci_failing_count=0,
+            ci_pending_count=1,
+        )
 
         route = resolve_pr_route(facts, {}, 1, False, {"route": "author"})
 
@@ -1198,6 +1206,90 @@ class FetchPrRawTest(unittest.TestCase):
 
 
 class BuildPrResultTest(unittest.TestCase):
+    @patch(
+        "dashboard.classify_discussion_domains",
+        side_effect=AssertionError("classification must be bypassed"),
+    )
+    @patch("dashboard.fetch_pr_raw")
+    def test_override_routes_and_acknowledges_before_classification(
+        self, fetch_raw: Mock, classify: Mock
+    ) -> None:
+        fetch_raw.return_value = {
+            "summary": {"author": {"login": "author"}},
+            "pr": {
+                "state": "OPEN",
+                "isDraft": False,
+                "title": "Needs operator help",
+                "url": "https://example.test/pull/7",
+                "author": {"login": "author"},
+                "assignees": [],
+                "mergeStateStatus": "CLEAN",
+                "mergeable": "MERGEABLE",
+                "createdAt": "2026-08-16T07:00:00Z",
+                "updatedAt": "2026-08-16T08:00:00Z",
+                "headRefOid": "abcdef123456",
+                "baseRefName": "main",
+            },
+            "commits": [],
+            "issue_comments": [
+                {
+                    "id": 101,
+                    "body": "Please update this.",
+                    "created_at": "2026-08-15T08:00:00Z",
+                    "user": {"login": "reviewer"},
+                },
+                {
+                    "id": 102,
+                    "body": "/dashboard route:reviewers",
+                    "created_at": "2026-08-16T08:00:00Z",
+                    "user": {"login": "author"},
+                },
+            ],
+            "review_comments": [],
+            "reviews": [],
+            "review_threads": [],
+            "review_requests": [],
+            "checks": [
+                {
+                    "name": "required",
+                    "bucket": "fail",
+                    "completed_at": "2026-08-16T07:30:00Z",
+                }
+            ],
+            "non_blocking_check_failures": [],
+        }
+
+        result = build_pr_result(
+            "owner/repo",
+            "owner",
+            "repo",
+            {"number": 7},
+            {"reviewer"},
+            "model",
+            1,
+            [],
+            require_clean_copilot_review_branches=["main"],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertFalse(result["failed"])
+        self.assertEqual("approver", result["route"])
+        self.assertEqual({}, result["pending_actions"])
+        self.assertEqual(
+            [
+                {
+                    "comment_id": 102,
+                    "kind": "routed",
+                    "user": "author",
+                    "route": "approver",
+                    "held_gates": "",
+                }
+            ],
+            result["facts"]["dashboard_command_replies"],
+        )
+        classify.assert_not_called()
+
     @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
     @patch("dashboard.fetch_pr_raw")
     def test_conflict_uses_normal_discussion_and_approval_routing(
@@ -2214,16 +2306,6 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
         self.assertEqual("author", route_pr(facts, {}, 1))
 
-    def test_override_cleared_ci_failure_does_not_route_to_author(self) -> None:
-        facts = {
-            "approval_count": 0,
-            "ci_failing_count": 1,
-            "ci_uncleared_failing_count": 0,
-            "is_maintenance_bot": False,
-        }
-
-        self.assertEqual("approver", route_pr(facts, {}, 1))
-
     def test_required_ci_failure_preserves_maintenance_bot_routing(self) -> None:
         for approval_count, expected_route in ((0, "approver"), (1, "maintainer")):
             with self.subTest(approval_count=approval_count):
@@ -2284,7 +2366,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
                 self.assertEqual(waiting_since, current_facts["waiting_since"])
                 self.assertEqual(basis, current_facts["waiting_age_basis"])
 
-    def test_override_command_clears_only_the_failures_that_predate_it(self) -> None:
+    def test_override_command_does_not_clear_required_check_failures(self) -> None:
         facts = compute_facts(
             {
                 "pr": {
@@ -2314,13 +2396,13 @@ class RequiredCiRoutingTest(unittest.TestCase):
         )
 
         self.assertEqual(3, facts["ci_failing_count"])
-        self.assertEqual(2, facts["ci_uncleared_failing_count"])
-        self.assertEqual("2026-07-17T02:00:00+00:00", facts["ci_uncleared_failing_since"])
+        self.assertEqual(3, facts["ci_uncleared_failing_count"])
+        self.assertEqual("2026-07-17T01:00:00+00:00", facts["ci_uncleared_failing_since"])
         self.assertEqual("author", route_pr(facts, {}, 1))
 
         add_wait_age_facts(facts, "author", {})
 
-        self.assertEqual("2026-07-17T02:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("2026-07-17T01:00:00+00:00", facts["waiting_since"])
         self.assertEqual("ci_failure", facts["waiting_age_basis"])
 
 
