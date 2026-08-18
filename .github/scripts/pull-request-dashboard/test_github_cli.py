@@ -47,7 +47,8 @@ class HeadPushActivityTest(unittest.TestCase):
         self.assertEqual("2026-08-11T13:00:00Z", pushed_at)
         gh_api.assert_called_once_with(
             "repos/owner/repo/activity?ref=feature%2Fbranch"
-            "&time_period=year&per_page=100"
+            "&time_period=year&per_page=100",
+            paginate=True,
         )
 
 

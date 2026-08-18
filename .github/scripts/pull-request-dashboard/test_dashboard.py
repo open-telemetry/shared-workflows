@@ -399,6 +399,28 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertFalse(active)
         self.assertIsNone(facts["dashboard_override_command_targets_head"])
 
+    def test_unknown_head_push_time_stays_pending_on_refresh(self) -> None:
+        facts = {
+            "dashboard_override_command_id": 7,
+            "dashboard_override_since": "2026-08-11T14:00:00Z",
+            "head_sha": "current-head",
+            "head_push_at": "",
+        }
+        previous_result = {
+            "route": "author",
+            "facts": {
+                "dashboard_override_command_id": 7,
+                "dashboard_override_since": "2026-08-11T14:00:00Z",
+                "dashboard_override_command_targets_head": None,
+                "head_sha": "current-head",
+            },
+        }
+
+        active = reviewer_handoff_active(facts, previous_result)
+
+        self.assertFalse(active)
+        self.assertIsNone(facts["dashboard_override_command_targets_head"])
+
     def test_stale_override_stays_inactive_after_classification_failure(self) -> None:
         facts = {
             "dashboard_override_command_id": 7,
@@ -1308,7 +1330,7 @@ class BuildPrResultTest(unittest.TestCase):
     )
     @patch("dashboard.fetch_head_push_at", return_value="2026-08-16T07:30:00Z")
     @patch("dashboard.fetch_pr_raw")
-    def test_override_routes_and_acknowledges_before_classification(
+    def test_override_retries_unknown_push_time_before_classification(
         self, fetch_raw: Mock, fetch_push_at: Mock, classify: Mock
     ) -> None:
         fetch_raw.return_value = {
@@ -1368,6 +1390,15 @@ class BuildPrResultTest(unittest.TestCase):
             1,
             [],
             require_clean_copilot_review_branches=["main"],
+            previous_result={
+                "route": "author",
+                "facts": {
+                    "dashboard_override_command_id": 102,
+                    "dashboard_override_since": "2026-08-16T08:00:00Z",
+                    "dashboard_override_command_targets_head": None,
+                    "head_sha": "abcdef123456",
+                },
+            },
         )
 
         self.assertIsNotNone(result)

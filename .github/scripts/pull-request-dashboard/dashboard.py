@@ -1563,7 +1563,9 @@ def reviewer_handoff_active(
     same_observed_head = bool(previous_head) and facts.get("head_sha") == previous_head
     command_at = parse_ts(facts.get("dashboard_override_since") or "")
     head_push_at = parse_ts(facts.get("head_push_at") or "")
-    command_targets_head: bool | None = False
+    previous_targets_head = previous_facts.get(
+        "dashboard_override_command_targets_head"
+    )
     if new_command:
         if same_observed_head:
             command_targets_head = True
@@ -1571,6 +1573,14 @@ def reviewer_handoff_active(
             command_targets_head = command_at > head_push_at
         else:
             command_targets_head = None
+    elif command_id and previous_targets_head is None:
+        command_targets_head = (
+            command_at > head_push_at if command_at and head_push_at else None
+        )
+    elif "dashboard_override_command_targets_head" in facts:
+        command_targets_head = facts["dashboard_override_command_targets_head"]
+    else:
+        command_targets_head = previous_targets_head or False
     facts["dashboard_override_command_targets_head"] = command_targets_head
     active = bool(command_targets_head) or bool(
         previous_facts.get("copilot_review_bypassed_by_override") and same_head
@@ -1709,7 +1719,11 @@ def build_pr_result(
         current_head = facts.get("head_sha") or ""
         if (
             facts.get("dashboard_override_command_id")
-            and (not previous_head or current_head != previous_head)
+            and (
+                not previous_head
+                or current_head != previous_head
+                or previous_facts.get("dashboard_override_command_targets_head") is None
+            )
         ):
             head_repository = raw["pr"].get("headRepository") or {}
             head_repo = head_repository.get("nameWithOwner") or ""
