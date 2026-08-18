@@ -244,6 +244,24 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("Investigate required status check failures.", body)
         self.assertIn("Should this be with reviewers?", body)
 
+    def test_conflicted_held_pr_names_the_outstanding_gate(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "author": "alice",
+                    "conflicts": "yes",
+                    "route_held_for_gates": True,
+                    "required_checks_settled": False,
+                    "copilot_review_outstanding": False,
+                },
+            },
+        )
+
+        self.assertIn("Resolve merge conflicts.", body)
+        self.assertIn("Wait for the required status checks to report;", body)
+
     def test_waiting_on_maintainers_keeps_route_and_names_merge_conflicts(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

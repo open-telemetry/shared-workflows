@@ -263,7 +263,12 @@ def render_status_comment(
         headline = status_headline(route)
         if route == "author":
             body = ["Resolve merge conflicts."] if conflicted else []
-            if not conflicted or feedback_count or failing_count:
+            if (
+                not conflicted
+                or feedback_count
+                or failing_count
+                or facts.get("route_held_for_gates")
+            ):
                 author_actions = author_body(
                     feedback_count=feedback_count,
                     failing_count=failing_count,
