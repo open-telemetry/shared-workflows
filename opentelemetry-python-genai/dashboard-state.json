@@ -1699,7 +1699,7 @@
     },
     "406": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [
@@ -1737,20 +1737,29 @@
         "head_sha": "6a1b1f0c55a6a7c79ce67b42b2aa863485cb38a5",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-18T00:32:48+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-18T14:15:27+00:00",
+        "last_approver_activity_at": "2026-08-18T14:15:27+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "6f1314b61a1e953783ec5cd5c0d409cb7974f3c09f919682c74c9a491262271b",
+        "routing_input_fingerprint": "5cb3a028ac21d42b6045b0f98e5fa8e65ac17dfe9300b920bb2a45d404f571a2",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-18T00:32:48+00:00"
       },
       "failed": false,
       "pr_number": 406,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/406",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
