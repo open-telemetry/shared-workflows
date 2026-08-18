@@ -10002,7 +10002,11 @@
         "assignees": [],
         "author": "niharikag09",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50152#issuecomment-5281045397",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50152#issuecomment-5308163248"
+        ],
+        "author_nudge_episode_id": "729843471dfd4e9c8aed357317b9f04f",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -10043,7 +10047,7 @@
             "changes_requested": false,
             "login": "singhvibhanshu",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": true,
@@ -10056,33 +10060,14 @@
         ],
         "route_held_for_gates": false,
         "routing_input_fingerprint": "bb7f8237b872a1a7c15216d956ccb7cb639181bb150c89e418388f0d27937b17",
-        "waiting_age_basis": "last_author_activity",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-08-16T21:00:03+00:00"
       },
       "failed": false,
       "pr_number": 50152,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50152",
-      "route": "maintainer",
-      "top_level_history": {
-        "pr-issue-comment-5281045397": {
-          "evidence": {
-            "reply": "2026-08-16T14:02:54Z"
-          },
-          "reply_source_id": 5307816483
-        },
-        "pr-issue-comment-5308163248": {
-          "evidence": {
-            "reply": "2026-08-16T21:00:03Z"
-          },
-          "reply_source_id": 5309642841
-        },
-        "pr-issue-comment-5308851584": {
-          "evidence": {
-            "reply": "2026-08-16T17:58:21Z"
-          },
-          "reply_source_id": 5308862688
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "50172": {
       "facts": {
