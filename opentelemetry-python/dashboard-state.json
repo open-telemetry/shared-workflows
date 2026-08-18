@@ -746,15 +746,12 @@
         "assignees": [],
         "author": "DylanRussell",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-python/pull/5266#pullrequestreview-4453114422"
-        ],
-        "author_nudge_episode_id": "1e452b546bef48fdb3f73d0f837caa8b",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
-        "copilot_review_bypassed_by_override": false,
+        "copilot_review_bypassed_by_override": true,
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -762,12 +759,20 @@
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "created_at": "2026-06-01T20:00:27+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5332250396,
+            "held_gates": "",
+            "kind": "routed",
+            "route": "maintainer",
+            "user": "emdneto"
+          }
+        ],
         "dashboard_override_cleared_ci": false,
-        "dashboard_override_cleared_count": 0,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_since": "",
+        "dashboard_override_cleared_count": 1,
+        "dashboard_override_command_id": 5332250396,
+        "dashboard_override_command_user": "emdneto",
+        "dashboard_override_since": "2026-08-18T18:15:58Z",
         "head_sha": "0f2dc903915f644585864e38a8e73eb599fdc23a",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -814,18 +819,18 @@
             "changes_requested": false,
             "login": "MikeGoldsmith",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "901b9561ea0823014f262dd19c61d50e14d78cabccdd2d7d774d19f05d3800bb",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-06-08T20:34:07+00:00"
+        "routing_input_fingerprint": "eef1a42197e527638f6a0bf73fea161baa3540e6f25af05fde6a303e8be58367",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-17T20:37:25+00:00"
       },
       "failed": false,
       "pr_number": 5266,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5266",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-review-4472527016": {
           "evidence": {
