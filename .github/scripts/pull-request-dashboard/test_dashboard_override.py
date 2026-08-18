@@ -8,10 +8,11 @@ import dashboard_override
 
 class DashboardOverrideTest(unittest.TestCase):
     def test_override_guidance_matches_pre_review_route(self) -> None:
-        self.assertIn(
-            "waiting on the author to waiting on reviewers",
-            dashboard_override.author_override_guidance(),
-        )
+        guidance = dashboard_override.author_override_guidance()
+
+        self.assertIn("waiting on the author to waiting on reviewers", guidance)
+        self.assertIn("once it can confirm that it targets the current head", guidance)
+        self.assertNotIn("immediately", guidance)
 
     def test_dashboard_command_body_remainder(self) -> None:
         self.assertIsNone(

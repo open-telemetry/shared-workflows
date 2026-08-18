@@ -31,8 +31,9 @@ PRE_REVIEW_ROUTES = ("author",)
 def author_override_guidance(staleness_note: str = "") -> str:
     guidance = (
         "If you need reviewer or maintainer help, comment "
-        "`/dashboard route:reviewers` to route this pull request immediately "
-        "from waiting on the author to waiting on reviewers."
+        "`/dashboard route:reviewers` to request routing from waiting on the "
+        "author to waiting on reviewers. The dashboard applies the request "
+        "once it can confirm that it targets the current head."
     )
     if staleness_note:
         guidance = f"{guidance} {staleness_note}"

@@ -197,11 +197,11 @@ Targeted updates received before the first full dashboard run are ignored.
 
 When the dashboard says a pull request is waiting on its author, the author can
 comment `/dashboard route:reviewers` to request human help. The command is a
-break-glass handoff: it immediately forces *Waiting on reviewers* for the current
-head regardless of review feedback, approvals, required checks, Copilot review,
-or merge conflicts. It is useful when the author is stuck or needs a reviewer or
-maintainer to explain what to do next. Members of the repository's
-`approver_teams` can use the same command.
+break-glass handoff. Once the dashboard confirms that the command targets the
+current head, it forces *Waiting on reviewers* regardless of review feedback,
+approvals, required checks, Copilot review, or merge conflicts. It is useful
+when the author is stuck or needs a reviewer or maintainer to explain what to do
+next. Members of the repository's `approver_teams` can use the same command.
 
 The dashboard acknowledges an authorized handoff once it can confirm which head
 the command targets. It leaves the command pending when GitHub cannot provide
