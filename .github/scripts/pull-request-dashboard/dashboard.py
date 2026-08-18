@@ -1567,10 +1567,11 @@ def reviewer_handoff_active(
     previous_targets_head = previous_facts.get(
         "dashboard_override_command_targets_head"
     )
+    # Equal second-granularity timestamps cannot prove that the command followed
+    # the push. Treat the command as stale so a later push cannot inherit it; the
+    # acknowledgement asks the author to run it again on the observed head.
     ordered_target = (
-        command_at > head_push_at
-        if command_at and head_push_at and command_at != head_push_at
-        else None
+        command_at > head_push_at if command_at and head_push_at else None
     )
     if new_command:
         if same_observed_head:

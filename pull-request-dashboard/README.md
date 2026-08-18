@@ -205,10 +205,11 @@ next. Members of the repository's `approver_teams` can use the same command.
 
 The dashboard acknowledges an authorized handoff once it can confirm which head
 the command targets. It leaves the command pending when GitHub cannot provide
-enough timing information to order the command and head push. It replies to an
-unauthorized command explaining that only the author or an approver can use it,
-and replies to any unrecognized `/dashboard` command. A later push restores
-normal routing and gates.
+the head push time. If the command and push share the same second, the dashboard
+cannot safely bind the command and asks the author to run it again. It replies
+to an unauthorized command explaining that only the author or an approver can
+use it, and replies to any unrecognized `/dashboard` command. A later push
+restores normal routing and gates.
 
 ## Author reminder
 

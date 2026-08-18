@@ -399,7 +399,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertFalse(active)
         self.assertIsNone(facts["dashboard_override_command_targets_head"])
 
-    def test_same_second_head_push_leaves_override_pending(self) -> None:
+    def test_same_second_head_push_does_not_target_override(self) -> None:
         facts = {
             "dashboard_override_command_id": 7,
             "dashboard_override_since": "2026-08-11T14:00:00Z",
@@ -410,7 +410,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         active = reviewer_handoff_active(facts)
 
         self.assertFalse(active)
-        self.assertIsNone(facts["dashboard_override_command_targets_head"])
+        self.assertFalse(facts["dashboard_override_command_targets_head"])
 
     def test_unknown_head_push_time_stays_pending_on_refresh(self) -> None:
         facts = {
