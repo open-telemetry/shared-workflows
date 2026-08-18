@@ -33,7 +33,7 @@ class HeadPushActivityTest(unittest.TestCase):
             {
                 "after": "new-head",
                 "timestamp": "2026-08-11T13:00:00Z",
-                "activity_type": "push",
+                "activity_type": "force_push",
             },
             {
                 "after": "old-head",
@@ -46,8 +46,7 @@ class HeadPushActivityTest(unittest.TestCase):
 
         self.assertEqual("2026-08-11T13:00:00Z", pushed_at)
         gh_api.assert_called_once_with(
-            "repos/owner/repo/activity?ref=feature%2Fbranch"
-            "&activity_type=push&per_page=100"
+            "repos/owner/repo/activity?ref=feature%2Fbranch&per_page=100"
         )
 
 

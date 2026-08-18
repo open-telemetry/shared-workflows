@@ -120,7 +120,7 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
 def fetch_head_push_at(repo: str, head_ref: str, head_sha: str) -> str:
     activities = gh_api(
         f"repos/{repo}/activity?ref={quote(head_ref, safe='')}"
-        "&activity_type=push&per_page=100"
+        "&per_page=100"
     )
     for activity in activities if isinstance(activities, list) else []:
         if activity.get("after") == head_sha:
