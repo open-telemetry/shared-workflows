@@ -26,7 +26,7 @@ from dashboard import (
     hold_route_until_gates_settle,
     main,
     merge_dashboard_update_with_latest_state,
-    preserve_override_state_after_failure,
+    preserve_gate_state_after_failure,
     reviewer_handoff_active,
     remove_cached_dashboard_prs,
     resolve_pr_route,
@@ -45,7 +45,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             "ci_uncleared_failing_count": 1,
             "dashboard_override_command_id": 1,
             "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "head_push_at": "2026-08-11T11:00:00Z",
+            "dashboard_override_head_sha": "current-head",
             "head_sha": "current-head",
         }
         facts.update(overrides)
@@ -81,7 +81,6 @@ class ResolvePrRouteTest(unittest.TestCase):
         route = resolve_pr_route(facts, {}, 1, True)
 
         self.assertEqual("approver", route)
-        self.assertTrue(facts["copilot_review_bypassed_by_override"])
         self.assertFalse(facts["copilot_review_request_needed"])
         self.assertFalse(facts["copilot_review_outstanding"])
         self.assertFalse(facts["route_held_for_gates"])
@@ -96,7 +95,6 @@ class ResolvePrRouteTest(unittest.TestCase):
         route = resolve_pr_route(facts, {}, 1, False)
 
         self.assertEqual("approver", route)
-        self.assertTrue(facts["copilot_review_bypassed_by_override"])
         self.assertFalse(facts["route_held_for_gates"])
 
     def test_conflict_pauses_hold_expiry_without_changing_the_existing_route(self) -> None:
@@ -218,11 +216,12 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_outstanding"])
         self.assertTrue(facts["route_held_for_gates"])
 
-    def test_acknowledged_override_without_cached_state_does_not_bypass(self) -> None:
+    def test_override_without_a_bound_head_does_not_bypass(self) -> None:
+        # An acknowledgement written before the dashboard recorded a head leaves
+        # the bound head unknown, which ends the handoff rather than guessing.
         facts = self._override_facts(
             dashboard_override_command_id=0,
-            dashboard_override_since="2026-08-11T12:00:00Z",
-            head_sha="current-head",
+            dashboard_override_head_sha="",
             copilot_review_exists=True,
             copilot_review_needed=True,
             copilot_review_stale=True,
@@ -232,54 +231,38 @@ class ResolvePrRouteTest(unittest.TestCase):
         route = resolve_pr_route(facts, {}, 1, True)
 
         self.assertEqual("author", route)
-        self.assertFalse(facts["copilot_review_bypassed_by_override"])
         self.assertFalse(facts["copilot_review_request_needed"])
 
-    def test_override_bypass_survives_refresh_for_the_same_head(self) -> None:
-        facts: dict[str, object] = {
-            "ci_failing_count": 0,
-            "ci_pending_count": 0,
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "head_sha": "current-head",
-            "copilot_review_exists": True,
-            "copilot_review_needed": True,
-            "copilot_review_stale": True,
-            "copilot_review_requested": False,
-        }
-        previous_result = {
-            "route": "approver",
-            "facts": {
-                "dashboard_override_since": "2026-08-11T12:00:00Z",
-                "head_sha": "current-head",
-                "copilot_review_bypassed_by_override": True,
-            },
-        }
+    def test_acknowledged_override_bypasses_without_cached_state(self) -> None:
+        # The bound head is read back from the acknowledgement comment, so the
+        # handoff holds across a refresh with no previous result to carry it.
+        facts = self._override_facts(
+            ci_failing_count=0,
+            ci_uncleared_failing_count=0,
+            dashboard_override_command_id=0,
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
 
-        route = resolve_pr_route(facts, {}, 1, True, previous_result)
+        route = resolve_pr_route(facts, {}, 1, True)
 
         self.assertEqual("approver", route)
-        self.assertTrue(facts["copilot_review_bypassed_by_override"])
         self.assertFalse(facts["copilot_review_request_needed"])
 
     def test_push_restores_old_author_actions_after_override(self) -> None:
-        facts: dict[str, object] = {
-            "ci_failing_count": 0,
-            "ci_pending_count": 0,
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "head_sha": "new-head",
-            "copilot_review_exists": True,
-            "copilot_review_needed": True,
-            "copilot_review_stale": True,
-            "copilot_review_requested": False,
-        }
-        previous_result = {
-            "route": "approver",
-            "facts": {
-                "dashboard_override_since": "2026-08-11T12:00:00Z",
-                "head_sha": "old-head",
-                "copilot_review_bypassed_by_override": True,
-            },
-        }
+        facts = self._override_facts(
+            ci_failing_count=0,
+            ci_uncleared_failing_count=0,
+            dashboard_override_command_id=0,
+            dashboard_override_head_sha="old-head",
+            head_sha="new-head",
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+            copilot_review_stale=True,
+            copilot_review_requested=False,
+        )
 
         route = resolve_pr_route(
             facts,
@@ -291,328 +274,87 @@ class ResolvePrRouteTest(unittest.TestCase):
             },
             1,
             True,
-            previous_result,
         )
 
         self.assertEqual("author", route)
-        self.assertFalse(facts["copilot_review_bypassed_by_override"])
         self.assertFalse(facts["copilot_review_request_needed"])
 
-    def test_same_second_override_restarts_bypass_after_a_push(self) -> None:
-        facts: dict[str, object] = {
-            "ci_failing_count": 0,
-            "ci_pending_count": 0,
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "dashboard_override_command_id": 7,
-            "head_sha": "new-head",
-            "copilot_review_exists": True,
-            "copilot_review_needed": True,
-            "copilot_review_stale": True,
-            "copilot_review_requested": False,
-        }
-        previous_result = {
-            "route": "author",
-            "facts": {
-                "dashboard_override_since": "2026-08-11T12:00:00Z",
-                "dashboard_override_command_id": 0,
-                "head_sha": "new-head",
-                "copilot_review_bypassed_by_override": False,
-            },
-        }
-
-        route = resolve_pr_route(facts, {}, 1, True, previous_result)
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["copilot_review_bypassed_by_override"])
-        self.assertFalse(facts["copilot_review_request_needed"])
-
-    def test_push_ends_active_override_when_command_remains(self) -> None:
-        previous_result = {
-            "route": "approver",
-            "facts": {
-                "dashboard_override_command_id": 7,
-                "dashboard_override_since": "2026-08-11T12:00:00Z",
-                "dashboard_override_command_targets_head": True,
-                "head_sha": "old-head",
-                "copilot_review_bypassed_by_override": True,
-            },
-        }
+    def test_handoff_is_active_while_the_bound_head_is_current(self) -> None:
         facts = {
-            "dashboard_override_command_id": 7,
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "head_sha": "new-head",
-            "head_push_at": "2026-08-11T13:00:00Z",
+            "dashboard_override_head_sha": "current-head",
+            "head_sha": "current-head",
         }
 
-        active = reviewer_handoff_active(facts, previous_result)
+        self.assertTrue(reviewer_handoff_active(facts))
 
-        self.assertFalse(active)
-        self.assertFalse(facts["dashboard_override_command_targets_head"])
-
-    def test_unprocessed_override_before_push_does_not_target_new_head(self) -> None:
-        previous_result = {
-            "route": "author",
-            "facts": {
-                "dashboard_override_command_id": 0,
-                "head_sha": "old-head",
-            },
-        }
+    def test_push_ends_the_handoff(self) -> None:
         facts = {
-            "dashboard_override_command_id": 7,
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "dashboard_override_head_sha": "old-head",
             "head_sha": "new-head",
-            "head_push_at": "2026-08-11T13:00:00Z",
         }
 
-        active = reviewer_handoff_active(facts, previous_result)
+        self.assertFalse(reviewer_handoff_active(facts))
 
-        self.assertFalse(active)
-        self.assertFalse(facts["dashboard_override_command_targets_head"])
-
-    def test_unprocessed_override_after_push_targets_new_head(self) -> None:
-        previous_result = {
-            "route": "author",
-            "facts": {
-                "dashboard_override_command_id": 0,
-                "head_sha": "old-head",
-            },
-        }
-        facts = {
-            "dashboard_override_command_id": 7,
-            "dashboard_override_since": "2026-08-11T14:00:00Z",
-            "head_sha": "new-head",
-            "head_push_at": "2026-08-11T13:00:00Z",
-        }
-
-        active = reviewer_handoff_active(facts, previous_result)
-
-        self.assertTrue(active)
-        self.assertTrue(facts["dashboard_override_command_targets_head"])
-
-    def test_first_observation_orders_override_against_head_push(self) -> None:
-        for command_at, expected in (
-            ("2026-08-11T12:00:00Z", False),
-            ("2026-08-11T14:00:00Z", True),
+    def test_handoff_is_inactive_without_a_bound_head(self) -> None:
+        for facts in (
+            {"dashboard_override_head_sha": "", "head_sha": "current-head"},
+            {"head_sha": "current-head"},
+            {"dashboard_override_head_sha": "current-head", "head_sha": ""},
         ):
-            with self.subTest(command_at=command_at):
-                facts = {
-                    "dashboard_override_command_id": 7,
-                    "dashboard_override_since": command_at,
-                    "head_sha": "current-head",
-                    "head_push_at": "2026-08-11T13:00:00Z",
-                }
+            with self.subTest(facts=facts):
+                self.assertFalse(reviewer_handoff_active(facts))
 
-                active = reviewer_handoff_active(facts)
-
-                self.assertEqual(expected, active)
-                self.assertEqual(
-                    expected, facts["dashboard_override_command_targets_head"]
-                )
-
-    def test_unknown_head_push_time_leaves_override_pending(self) -> None:
-        facts = {
-            "dashboard_override_command_id": 7,
-            "dashboard_override_since": "2026-08-11T14:00:00Z",
-            "head_sha": "current-head",
-            "head_push_at": "",
-        }
-
-        active = reviewer_handoff_active(facts)
-
-        self.assertFalse(active)
-        self.assertIsNone(facts["dashboard_override_command_targets_head"])
-
-    def test_same_second_head_push_does_not_target_override(self) -> None:
-        facts = {
-            "dashboard_override_command_id": 7,
-            "dashboard_override_since": "2026-08-11T14:00:00Z",
-            "head_sha": "current-head",
-            "head_push_at": "2026-08-11T14:00:00Z",
-        }
-
-        active = reviewer_handoff_active(facts)
-
-        self.assertFalse(active)
-        self.assertFalse(facts["dashboard_override_command_targets_head"])
-
-    def test_unknown_head_push_time_stays_pending_on_refresh(self) -> None:
-        facts = {
-            "dashboard_override_command_id": 7,
-            "dashboard_override_since": "2026-08-11T14:00:00Z",
-            "head_sha": "current-head",
-            "head_push_at": "",
-        }
-        previous_result = {
-            "route": "author",
-            "facts": {
-                "dashboard_override_command_id": 7,
-                "dashboard_override_since": "2026-08-11T14:00:00Z",
-                "dashboard_override_command_targets_head": None,
-                "head_sha": "current-head",
-            },
-        }
-
-        active = reviewer_handoff_active(facts, previous_result)
-
-        self.assertFalse(active)
-        self.assertIsNone(facts["dashboard_override_command_targets_head"])
-
-    def test_deleted_command_does_not_reactivate_previous_target(self) -> None:
-        facts = {
-            "dashboard_override_command_id": 0,
-            "dashboard_override_since": "",
+    def test_classification_failure_keeps_the_handoff_on_the_bound_head(self) -> None:
+        # Override state is re-read from the command and its acknowledgement on
+        # every pass, so a failed pass has nothing to preserve and nothing to lose.
+        failed_facts: dict[str, object] = {
+            "dashboard_override_head_sha": "current-head",
             "head_sha": "current-head",
         }
-        previous_result = {
-            "route": "author",
-            "facts": {
-                "dashboard_override_command_id": 7,
-                "dashboard_override_since": "2026-08-11T14:00:00Z",
-                "dashboard_override_command_targets_head": True,
-                "head_sha": "current-head",
-                "copilot_review_bypassed_by_override": True,
-            },
-        }
 
-        active = reviewer_handoff_active(facts, previous_result)
+        preserve_gate_state_after_failure(
+            failed_facts,
+            {"route": "author", "facts": {"head_sha": "old-head"}},
+        )
 
-        self.assertFalse(active)
-        self.assertFalse(facts["dashboard_override_command_targets_head"])
+        self.assertTrue(reviewer_handoff_active(failed_facts))
 
-    def test_stale_override_stays_inactive_after_classification_failure(self) -> None:
-        facts = {
-            "dashboard_override_command_id": 7,
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "dashboard_override_command_targets_head": False,
+    def test_push_during_classification_failure_ends_the_handoff(self) -> None:
+        failed_facts: dict[str, object] = {
+            "dashboard_override_head_sha": "old-head",
             "head_sha": "new-head",
         }
 
-        preserve_override_state_after_failure(
-            facts,
+        preserve_gate_state_after_failure(
+            failed_facts,
             {
-                "route": "author",
+                "route": "approver",
                 "facts": {
-                    "dashboard_override_command_id": 0,
+                    "dashboard_override_head_sha": "old-head",
                     "head_sha": "old-head",
                 },
             },
         )
 
-        self.assertEqual(7, facts["dashboard_override_command_id"])
-        self.assertFalse(facts["copilot_review_bypassed_by_override"])
+        self.assertFalse(reviewer_handoff_active(failed_facts))
 
-    def test_first_override_handoff_survives_classification_failure(self) -> None:
-        failed_facts: dict[str, object] = {
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "dashboard_override_command_id": 7,
-            "dashboard_override_command_targets_head": None,
-            "head_sha": "current-head",
-        }
-        previous_result = {
-            "route": "author",
-            "facts": {
-                "dashboard_override_since": "2026-08-11T12:00:00Z",
-                "dashboard_override_command_id": 0,
-                "head_sha": "current-head",
-                "copilot_review_bypassed_by_override": False,
-            },
-        }
-        preserve_override_state_after_failure(failed_facts, previous_result)
-        self.assertEqual(7, failed_facts["dashboard_override_command_id"])
-        facts = self._override_facts(
-            dashboard_override_command_id=7,
-            dashboard_override_since="2026-08-11T12:00:00Z",
-            head_sha="current-head",
-            copilot_review_exists=True,
-            copilot_review_needed=True,
-            copilot_review_stale=True,
-            copilot_review_requested=False,
-        )
+    def test_classification_failure_does_not_restart_first_review_clock(self) -> None:
+        facts: dict[str, object] = {"head_sha": "current-head"}
 
-        route = resolve_pr_route(
+        preserve_gate_state_after_failure(
             facts,
-            {},
-            1,
-            True,
-            {"route": "unknown", "facts": failed_facts},
-        )
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["copilot_review_bypassed_by_override"])
-
-    def test_existing_override_handoff_survives_classification_failure(self) -> None:
-        failed_facts: dict[str, object] = {
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "dashboard_override_command_id": 0,
-            "head_sha": "current-head",
-        }
-        previous_result = {
-            "route": "approver",
-            "facts": {
-                "dashboard_override_since": "2026-08-11T12:00:00Z",
-                "dashboard_override_command_id": 7,
-                "head_sha": "current-head",
-                "copilot_review_bypassed_by_override": True,
+            {
+                "route": "author",
+                "facts": {
+                    "copilot_first_review_missing_since": "2026-08-11T12:00:00Z",
+                },
             },
-        }
-        preserve_override_state_after_failure(failed_facts, previous_result)
-        facts = self._override_facts(
-            dashboard_override_command_id=0,
-            dashboard_override_since="2026-08-11T12:00:00Z",
-            head_sha="current-head",
-            copilot_review_exists=True,
-            copilot_review_needed=True,
-            copilot_review_stale=True,
-            copilot_review_requested=False,
         )
 
-        route = resolve_pr_route(
-            facts,
-            {},
-            1,
-            True,
-            {"route": "unknown", "facts": failed_facts},
+        self.assertEqual(
+            "2026-08-11T12:00:00Z",
+            facts["copilot_first_review_missing_since"],
         )
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["copilot_review_bypassed_by_override"])
-
-    def test_push_during_classification_failure_ends_override_handoff(self) -> None:
-        failed_facts: dict[str, object] = {
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
-            "dashboard_override_command_id": 0,
-            "head_sha": "new-head",
-        }
-        previous_result = {
-            "route": "approver",
-            "facts": {
-                "dashboard_override_since": "2026-08-11T12:00:00Z",
-                "dashboard_override_command_id": 7,
-                "head_sha": "old-head",
-                "copilot_review_bypassed_by_override": True,
-            },
-        }
-        preserve_override_state_after_failure(failed_facts, previous_result)
-        facts = self._override_facts(
-            dashboard_override_command_id=0,
-            dashboard_override_since="2026-08-11T12:00:00Z",
-            head_sha="new-head",
-            copilot_review_exists=True,
-            copilot_review_needed=True,
-            copilot_review_stale=True,
-            copilot_review_requested=False,
-        )
-
-        route = resolve_pr_route(
-            facts,
-            {},
-            1,
-            True,
-            {"route": "unknown", "facts": failed_facts},
-        )
-
-        self.assertEqual("author", route)
-        self.assertFalse(facts["copilot_review_bypassed_by_override"])
 
     def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
         facts = self._override_facts(
@@ -1388,10 +1130,9 @@ class BuildPrResultTest(unittest.TestCase):
         "dashboard.classify_discussion_domains",
         side_effect=AssertionError("classification must be bypassed"),
     )
-    @patch("dashboard.fetch_head_push_at", return_value="2026-08-16T07:30:00Z")
     @patch("dashboard.fetch_pr_raw")
-    def test_override_retries_unknown_push_time_before_classification(
-        self, fetch_raw: Mock, fetch_push_at: Mock, classify: Mock
+    def test_override_binds_to_the_observed_head_before_classification(
+        self, fetch_raw: Mock, classify: Mock
     ) -> None:
         fetch_raw.return_value = {
             "summary": {"author": {"login": "author"}},
@@ -1450,15 +1191,6 @@ class BuildPrResultTest(unittest.TestCase):
             1,
             [],
             require_clean_copilot_review_branches=["main"],
-            previous_result={
-                "route": "author",
-                "facts": {
-                    "dashboard_override_command_id": 102,
-                    "dashboard_override_since": "2026-08-16T08:00:00Z",
-                    "dashboard_override_command_targets_head": None,
-                    "head_sha": "abcdef123456",
-                },
-            },
         )
 
         self.assertIsNotNone(result)
@@ -1467,10 +1199,14 @@ class BuildPrResultTest(unittest.TestCase):
         self.assertEqual("approver", result["route"])
         self.assertEqual({}, result["pending_actions"])
         self.assertEqual(
+            "abcdef123456", result["facts"]["dashboard_override_head_sha"]
+        )
+        self.assertEqual(
             [
                 {
                     "comment_id": 102,
                     "kind": "routed",
+                    "head_sha": "abcdef123456",
                     "user": "author",
                     "route": "approver",
                     "held_gates": "",
@@ -1479,9 +1215,6 @@ class BuildPrResultTest(unittest.TestCase):
             result["facts"]["dashboard_command_replies"],
         )
         classify.assert_not_called()
-        fetch_push_at.assert_called_once_with(
-            "owner/repo", "feature", "abcdef123456"
-        )
 
     @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
     @patch("dashboard.fetch_pr_raw")

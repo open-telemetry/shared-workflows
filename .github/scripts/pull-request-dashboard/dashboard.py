@@ -117,8 +117,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched, and excludes required
                                                   contexts whose app has already
                                                   finished reporting.
-    head_push_at                    str (iso)     Current head-ref push time when
-                                                  needed to order an override.
+    dashboard_override_head_sha     str           Head an override is bound to;
+                                                  the handoff is active while it
+                                                  equals head_sha.
     conflicts                       str           "yes" | "no" | "unknown".
     copilot_review_requested        bool          Copilot is a pending requested
                                                   reviewer, so a review is in
@@ -251,7 +252,6 @@ from typing import Any, TypedDict
 from github_cli import (
     TransientGhError,
     detect_repo,
-    fetch_head_push_at,
     fetch_pr_routing_raw,
     gh_api,
     list_open_prs,
@@ -634,9 +634,8 @@ def compute_facts(
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
-        "head_push_at": "",
         "routing_input_fingerprint": routing_input_fingerprint(raw),
-        **dashboard_override_facts(raw, author, reviewers or set()),
+        **dashboard_override_facts(raw, author, reviewers or set(), head_sha),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (raw.get("review_requests") or [])
@@ -1542,58 +1541,15 @@ def hold_route_until_gates_settle(
     return previous_route if held else route
 
 
-def reviewer_handoff_active(
-    facts: dict[str, Any],
-    previous_result: dict[str, Any] | None = None,
-) -> bool:
-    """Classify the handoff and store its target and active state in facts."""
-    previous_facts = (previous_result or {}).get("facts") or {}
-    command_id = facts.get("dashboard_override_command_id") or 0
-    same_command = (
-        bool(facts.get("dashboard_override_since"))
-        and facts.get("dashboard_override_since")
-        == previous_facts.get("dashboard_override_since")
-        and (
-            not command_id
-            or command_id == (previous_facts.get("dashboard_override_command_id") or 0)
-        )
-    )
-    same_head = same_command and facts.get("head_sha") == previous_facts.get("head_sha")
-    new_command = bool(command_id) and not same_command
-    previous_head = previous_facts.get("head_sha") or ""
-    same_observed_head = bool(previous_head) and facts.get("head_sha") == previous_head
-    command_at = parse_ts(facts.get("dashboard_override_since") or "")
-    head_push_at = parse_ts(facts.get("head_push_at") or "")
-    previous_targets_head = previous_facts.get(
-        "dashboard_override_command_targets_head"
-    )
-    # Equal second-granularity timestamps cannot prove that the command followed
-    # the push. Treat the command as stale so a later push cannot inherit it; the
-    # acknowledgement asks the author to run it again on the observed head.
-    ordered_target = (
-        command_at > head_push_at if command_at and head_push_at else None
-    )
-    if new_command:
-        if same_observed_head:
-            command_targets_head = True
-        else:
-            command_targets_head = ordered_target
-    elif command_id and same_command and previous_head and not same_observed_head:
-        command_targets_head = False
-    elif command_id and previous_targets_head is None:
-        command_targets_head = ordered_target
-    elif command_id and "dashboard_override_command_targets_head" in facts:
-        command_targets_head = facts["dashboard_override_command_targets_head"]
-    elif command_id:
-        command_targets_head = previous_targets_head or False
-    else:
-        command_targets_head = False
-    facts["dashboard_override_command_targets_head"] = command_targets_head
-    active = bool(command_id and command_targets_head) or bool(
-        previous_facts.get("copilot_review_bypassed_by_override") and same_head
-    )
-    facts["copilot_review_bypassed_by_override"] = active
-    return active
+def reviewer_handoff_active(facts: dict[str, Any]) -> bool:
+    """Whether an override command binds the head this pass observed.
+
+    The bound head is recorded in the command's acknowledgement comment, so the
+    handoff survives a dropped cache and a failed pass, and a later push ends it
+    without any code path having to remember that the push happened.
+    """
+    bound_head = facts.get("dashboard_override_head_sha") or ""
+    return bool(bound_head) and bound_head == (facts.get("head_sha") or "")
 
 
 def resolve_pr_route(
@@ -1608,7 +1564,7 @@ def resolve_pr_route(
     now = now or utc_now()
     route = route_pr(facts, pending_actions, required_approvals)
     if manual_reviewer_handoff is None:
-        manual_reviewer_handoff = reviewer_handoff_active(facts, previous_result)
+        manual_reviewer_handoff = reviewer_handoff_active(facts)
     if manual_reviewer_handoff:
         route = "approver"
     copilot_review_gate_enabled = (
@@ -1637,25 +1593,17 @@ def resolve_pr_route(
     )
 
 
-def preserve_override_state_after_failure(
+def preserve_gate_state_after_failure(
     facts: dict[str, Any],
     previous_result: dict[str, Any] | None,
 ) -> None:
+    """Carry gate state that a failed classification would otherwise reset.
+
+    Override state needs nothing here. It is read from the command and its
+    acknowledgement comment on every pass, so a failed pass recomputes it
+    instead of losing it.
+    """
     previous_facts = (previous_result or {}).get("facts") or {}
-    if not facts.get("dashboard_override_command_id"):
-        facts["dashboard_override_command_id"] = (
-            previous_facts.get("dashboard_override_command_id") or 0
-        )
-    same_overridden_head = (
-        bool(facts.get("dashboard_override_since"))
-        and facts.get("dashboard_override_since")
-        == previous_facts.get("dashboard_override_since")
-        and facts.get("head_sha") == previous_facts.get("head_sha")
-    )
-    facts["copilot_review_bypassed_by_override"] = bool(
-        previous_facts.get("copilot_review_bypassed_by_override")
-        and same_overridden_head
-    )
     # A failed pass must not restart the first-review clock, or a repeatedly
     # failing classification would keep the wait permanently under the grace.
     if previous_facts.get("copilot_first_review_missing_since"):
@@ -1719,28 +1667,7 @@ def build_pr_result(
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events, reviewers)
-        previous_facts = (previous_result or {}).get("facts") or {}
-        previous_head = previous_facts.get("head_sha") or ""
-        current_head = facts.get("head_sha") or ""
-        if (
-            facts.get("dashboard_override_command_id")
-            and (
-                not previous_head
-                or current_head != previous_head
-                or previous_facts.get("dashboard_override_command_targets_head") is None
-            )
-        ):
-            head_repository = raw["pr"].get("headRepository") or {}
-            head_repo = head_repository.get("nameWithOwner") or ""
-            head_ref = raw["pr"].get("headRefName") or ""
-            if head_repo and head_ref:
-                # Empty means a successful lookup found no matching activity.
-                # Let request failures reach the PR boundary below so operators
-                # see a failed result instead of a silently pending command.
-                facts["head_push_at"] = fetch_head_push_at(
-                    head_repo, head_ref, str(current_head)
-                )
-        manual_reviewer_handoff = reviewer_handoff_active(facts, previous_result)
+        manual_reviewer_handoff = reviewer_handoff_active(facts)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         top_level_author_comment_items = derive_top_level_author_comment_items(
@@ -1793,7 +1720,7 @@ def build_pr_result(
             if classification.get("failed")
         ]
         if failed_classifications:
-            preserve_override_state_after_failure(facts, previous_result)
+            preserve_gate_state_after_failure(facts, previous_result)
             return {
                 "pr_number": number,
                 "pr_title": raw["pr"].get("title") or "",

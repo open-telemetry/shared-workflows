@@ -117,22 +117,6 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
     return data
 
 
-def fetch_head_push_at(repo: str, head_ref: str, head_sha: str) -> str:
-    # Activity is newest-first and scoped to this ref. A later push would change
-    # head_sha, so the current head update cannot age behind 100 newer pushes.
-    # Keep one page to bound API work on busy repositories.
-    activities = gh_api(
-        f"repos/{repo}/activity?ref={quote(head_ref, safe='')}"
-        "&time_period=year&per_page=100"
-    )
-    if not isinstance(activities, list):
-        raise RuntimeError("repository activity API returned a non-list response")
-    for activity in activities:
-        if activity.get("after") == head_sha:
-            return activity.get("timestamp") or ""
-    return ""
-
-
 def request_copilot_review(pull_request_id: str) -> None:
     # Success here only means GitHub accepted the mutation. It does not mean
     # GitHub recorded the reviewer, so callers have to read the pull request

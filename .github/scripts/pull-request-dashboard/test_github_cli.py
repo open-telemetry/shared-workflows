@@ -6,7 +6,6 @@ from unittest.mock import ANY, patch
 from github_cli import (
     TransientGhError,
     code_scanning_tools,
-    fetch_head_push_at,
     fetch_pr_issue_comments,
     fetch_pr_reviews,
     fetch_pr_routing_raw,
@@ -24,36 +23,6 @@ from github_cli import (
     required_code_scanning_checks,
     settled_check_suite_app_ids,
 )
-
-
-class HeadPushActivityTest(unittest.TestCase):
-    @patch("github_cli.gh_api")
-    def test_returns_push_time_for_exact_head(self, gh_api) -> None:
-        gh_api.return_value = [
-            {
-                "after": "new-head",
-                "timestamp": "2026-08-11T13:00:00Z",
-                "activity_type": "force_push",
-            },
-            {
-                "after": "old-head",
-                "timestamp": "2026-08-11T12:00:00Z",
-                "activity_type": "push",
-            },
-        ]
-
-        pushed_at = fetch_head_push_at("owner/repo", "feature/branch", "new-head")
-
-        self.assertEqual("2026-08-11T13:00:00Z", pushed_at)
-        gh_api.assert_called_once_with(
-            "repos/owner/repo/activity?ref=feature%2Fbranch"
-            "&time_period=year&per_page=100"
-        )
-
-    @patch("github_cli.gh_api", return_value={"message": "unexpected"})
-    def test_rejects_non_list_response(self, gh_api) -> None:
-        with self.assertRaisesRegex(RuntimeError, "non-list response"):
-            fetch_head_push_at("owner/repo", "feature/branch", "new-head")
 
 
 def _review_requests_page(nodes, has_next=False, cursor=""):

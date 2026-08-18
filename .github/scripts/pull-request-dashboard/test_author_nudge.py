@@ -182,8 +182,8 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         )
         self.assertIn(
             "comment `/dashboard route:reviewers` to request routing from waiting "
-            "on the author to waiting on reviewers. The dashboard applies the "
-            "request once it can confirm that it targets the current head",
+            "on the author to waiting on reviewers. The dashboard binds the "
+            "request to the head it sees when it reads the command",
             body,
         )
         self.assertIn(

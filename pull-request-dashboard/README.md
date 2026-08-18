@@ -197,19 +197,21 @@ Targeted updates received before the first full dashboard run are ignored.
 
 When the dashboard says a pull request is waiting on its author, the author can
 comment `/dashboard route:reviewers` to request human help. The command is a
-break-glass handoff. Once the dashboard confirms that the command targets the
-current head, it forces *Waiting on reviewers* regardless of review feedback,
-approvals, required checks, Copilot review, or merge conflicts. It is useful
-when the author is stuck or needs a reviewer or maintainer to explain what to do
-next. Members of the repository's `approver_teams` can use the same command.
+break-glass handoff. It forces *Waiting on reviewers* regardless of review
+feedback, approvals, required checks, Copilot review, or merge conflicts. It is
+useful when the author is stuck or needs a reviewer or maintainer to explain
+what to do next. Members of the repository's `approver_teams` can use the same
+command.
 
-The dashboard acknowledges an authorized handoff once it can confirm which head
-the command targets. It leaves the command pending when GitHub cannot provide
-the head push time. If the command and push share the same second, the dashboard
-cannot safely bind the command and asks the author to run it again. It replies
-to an unauthorized command explaining that only the author or an approver can
-use it, and replies to any unrecognized `/dashboard` command. A later push
-restores normal routing and gates.
+The dashboard binds an authorized command to the head it sees when it first
+reads that command, and records that head in its acknowledgement reply. The
+handoff stays active while the pull request head matches the recorded one, so a
+later push restores normal routing and gates. A push between the command and the
+pass that reads it is part of the same handoff, because the dashboard binds to
+the head it can actually see.
+
+The dashboard replies to an unauthorized command explaining that only the author
+or an approver can use it, and replies to any unrecognized `/dashboard` command.
 
 ## Author reminder
 

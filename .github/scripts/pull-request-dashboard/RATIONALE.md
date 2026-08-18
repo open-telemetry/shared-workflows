@@ -453,6 +453,22 @@ the implementation understandable and operationally cheap.
   author may be stuck or may need a person to explain a basic problem, so no
   automated blocker can prevent the handoff. A later push restores normal
   routing and gates.
+- The dashboard binds a command to the head it sees when it first reads that
+  command, and records that head in the acknowledgement comment. The handoff is
+  then a comparison of two strings: the recorded head and the current one. The
+  earlier design instead ordered the command against the push by comparing the
+  comment timestamp with the head push time from `GET /repos/{repo}/activity`.
+  Do not reintroduce that. Both timestamps have one-second resolution and come
+  from different APIs, so the ordering is sometimes unknowable, which forces a
+  third "cannot tell" state that every later pass has to carry forward and every
+  failure path has to preserve by hand. It also fails unsafely in the case the
+  handoff exists for: when the activity lookup returns nothing, the command
+  hangs unacknowledged. Binding to the observed head removes the extra API call
+  and keeps the answer in GitHub rather than in `dashboard-state.json`, so a
+  failed pass or a dropped cache cannot corrupt it. The cost is that a push
+  between the command and the pass that reads it belongs to the handoff instead
+  of ending it, which is the safer direction: the author asked for help, and the
+  worst case is one extra handoff the author can end with another push.
 - The gate withholds the re-review request until the required checks have
   settled. A route computed while checks are still running is provisional: a
   failure that has not completed yet cannot route the PR to its author, so the
