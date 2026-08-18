@@ -4538,12 +4538,14 @@
     "4973": {
       "facts": {
         "approval_count": 1,
-        "assignees": [],
+        "assignees": [
+          "JacksonWeber"
+        ],
         "author": "JacksonWeber",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -4560,14 +4562,22 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "17816eff33130aa2a34b1e340bcfef00a11c34ec",
+        "head_sha": "c9e30b9ba092317536422084c565331d9345ec37",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T21:09:29+00:00",
+        "last_activity_at": "2026-08-18T22:39:02+00:00",
         "last_approver_activity_at": "2026-08-18T19:09:36+00:00",
-        "last_author_activity_at": "2026-08-18T20:31:22+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-08-18T22:39:02+00:00",
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "JacksonWeber",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -4586,7 +4596,7 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "59a1bc4ce5790c7a2b3439ad966d5cb166042e10245e8bd0992e5d024f6aefde",
+        "routing_input_fingerprint": "bd0e3f8f605ec311d388ec0cde35f6cf05b8995f3570df06cb59667e18acb77a",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-18T20:31:22+00:00"
       },
