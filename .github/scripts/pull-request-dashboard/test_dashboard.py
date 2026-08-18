@@ -338,7 +338,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             "dashboard_override_command_id": 7,
             "dashboard_override_since": "2026-08-11T12:00:00Z",
             "head_sha": "new-head",
-            "head_commit_at": "2026-08-11T13:00:00Z",
+            "head_push_at": "2026-08-11T13:00:00Z",
         }
 
         active = reviewer_handoff_active(facts, previous_result)
@@ -358,7 +358,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             "dashboard_override_command_id": 7,
             "dashboard_override_since": "2026-08-11T14:00:00Z",
             "head_sha": "new-head",
-            "head_commit_at": "2026-08-11T13:00:00Z",
+            "head_push_at": "2026-08-11T13:00:00Z",
         }
 
         active = reviewer_handoff_active(facts, previous_result)
@@ -1273,9 +1273,10 @@ class BuildPrResultTest(unittest.TestCase):
         "dashboard.classify_discussion_domains",
         side_effect=AssertionError("classification must be bypassed"),
     )
+    @patch("dashboard.fetch_head_push_at", return_value="2026-08-16T07:30:00Z")
     @patch("dashboard.fetch_pr_raw")
     def test_override_routes_and_acknowledges_before_classification(
-        self, fetch_raw: Mock, classify: Mock
+        self, fetch_raw: Mock, fetch_push_at: Mock, classify: Mock
     ) -> None:
         fetch_raw.return_value = {
             "summary": {"author": {"login": "author"}},
@@ -1291,6 +1292,8 @@ class BuildPrResultTest(unittest.TestCase):
                 "createdAt": "2026-08-16T07:00:00Z",
                 "updatedAt": "2026-08-16T08:00:00Z",
                 "headRefOid": "abcdef123456",
+                "headRefName": "feature",
+                "headRepository": {"nameWithOwner": "owner/repo"},
                 "baseRefName": "main",
             },
             "commits": [],
@@ -1332,6 +1335,13 @@ class BuildPrResultTest(unittest.TestCase):
             1,
             [],
             require_clean_copilot_review_branches=["main"],
+            previous_result={
+                "route": "author",
+                "facts": {
+                    "dashboard_override_command_id": 0,
+                    "head_sha": "old-head",
+                },
+            },
         )
 
         self.assertIsNotNone(result)
@@ -1352,6 +1362,9 @@ class BuildPrResultTest(unittest.TestCase):
             result["facts"]["dashboard_command_replies"],
         )
         classify.assert_not_called()
+        fetch_push_at.assert_called_once_with(
+            "owner/repo", "feature", "abcdef123456"
+        )
 
     @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
     @patch("dashboard.fetch_pr_raw")

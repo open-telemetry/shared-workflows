@@ -117,8 +117,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched, and excludes required
                                                   contexts whose app has already
                                                   finished reporting.
-    head_commit_at                  str (iso)     Current head commit time when the
-                                                  commit list includes the head.
+    head_push_at                    str (iso)     Current head-ref push time when
+                                                  needed to order an override.
     conflicts                       str           "yes" | "no" | "unknown".
     copilot_review_requested        bool          Copilot is a pending requested
                                                   reviewer, so a review is in
@@ -251,6 +251,7 @@ from typing import Any, TypedDict
 from github_cli import (
     TransientGhError,
     detect_repo,
+    fetch_head_push_at,
     fetch_pr_routing_raw,
     gh_api,
     list_open_prs,
@@ -624,17 +625,6 @@ def compute_facts(
     # raw["commits"] is wrong for PRs with more than 250 commits, where the
     # commits REST endpoint truncates and the last entry is not the real head.
     head_sha = pr.get("headRefOid") or ""
-    head_commit_at = ""
-    for commit in raw.get("commits") or []:
-        if commit.get("sha") != head_sha:
-            continue
-        commit_obj = commit.get("commit") or {}
-        head_commit_at = (
-            (commit_obj.get("committer") or {}).get("date")
-            or (commit_obj.get("author") or {}).get("date")
-            or ""
-        )
-        break
     copilot_review_exists, copilot_review_stale, copilot_review_findings = copilot_review_status(
         raw.get("reviews") or [],
         head_sha,
@@ -644,7 +634,7 @@ def compute_facts(
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
-        "head_commit_at": head_commit_at,
+        "head_push_at": "",
         "routing_input_fingerprint": routing_input_fingerprint(raw),
         **dashboard_override_facts(raw, author, reviewers or set()),
         "copilot_review_requested": any(
@@ -1572,10 +1562,10 @@ def reviewer_handoff_active(
     previous_head = previous_facts.get("head_sha") or ""
     head_changed = bool(previous_head) and facts.get("head_sha") != previous_head
     command_at = parse_ts(facts.get("dashboard_override_since") or "")
-    head_commit_at = parse_ts(facts.get("head_commit_at") or "")
+    head_push_at = parse_ts(facts.get("head_push_at") or "")
     command_targets_head = new_command and (
         not head_changed
-        or bool(command_at and head_commit_at and command_at >= head_commit_at)
+        or bool(command_at and head_push_at and command_at > head_push_at)
     )
     facts["dashboard_override_command_targets_head"] = command_targets_head
     active = command_targets_head or bool(
@@ -1710,6 +1700,21 @@ def build_pr_result(
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
         facts = compute_facts(raw, author, events, reviewers)
+        previous_facts = (previous_result or {}).get("facts") or {}
+        previous_head = previous_facts.get("head_sha") or ""
+        current_head = facts.get("head_sha") or ""
+        if (
+            facts.get("dashboard_override_command_id")
+            and previous_head
+            and current_head != previous_head
+        ):
+            head_repository = raw["pr"].get("headRepository") or {}
+            head_repo = head_repository.get("nameWithOwner") or ""
+            head_ref = raw["pr"].get("headRefName") or ""
+            if head_repo and head_ref:
+                facts["head_push_at"] = fetch_head_push_at(
+                    head_repo, head_ref, str(current_head)
+                )
         manual_reviewer_handoff = reviewer_handoff_active(facts, previous_result)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)

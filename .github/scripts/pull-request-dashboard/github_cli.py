@@ -117,6 +117,17 @@ def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:
     return data
 
 
+def fetch_head_push_at(repo: str, head_ref: str, head_sha: str) -> str:
+    activities = gh_api(
+        f"repos/{repo}/activity?ref={quote(head_ref, safe='')}"
+        "&activity_type=push&per_page=100"
+    )
+    for activity in activities if isinstance(activities, list) else []:
+        if activity.get("after") == head_sha:
+            return activity.get("timestamp") or ""
+    return ""
+
+
 def request_copilot_review(pull_request_id: str) -> None:
     # Success here only means GitHub accepted the mutation. It does not mean
     # GitHub recorded the reviewer, so callers have to read the pull request
@@ -143,7 +154,8 @@ def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
     fields = ",".join([
         "id", "number", "title", "body", "url", "author", "state", "isDraft",
         "mergeable", "mergeStateStatus", "createdAt", "updatedAt", "headRefOid",
-        "reviewDecision", "assignees", "baseRefName", "labels",
+        "headRefName", "headRepository", "reviewDecision", "assignees", "baseRefName",
+        "labels",
     ])
     cmd = ["gh", "pr", "view", str(number), "--repo", repo, "--json", fields]
     last: dict[str, Any] = {}
