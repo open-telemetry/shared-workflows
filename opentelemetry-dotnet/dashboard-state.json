@@ -583,9 +583,12 @@
         "author": "matt-hensley",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "7da9016d90de47409906c23226436d6e",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-18T20:26:10+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-18T20:26:10+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": false,
@@ -607,7 +610,7 @@
         "last_activity_at": "2026-08-18T20:04:58+00:00",
         "last_approver_activity_at": "2026-08-18T18:50:31+00:00",
         "last_author_activity_at": "2026-08-18T20:04:58+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -618,10 +621,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "eb347870d1b1b7644325a796c262daaa70c5f189d3de0d32a5cd2b32d0be3b7a",
-        "waiting_age_basis": "last_approver_activity",
-        "waiting_since": "2026-08-18T18:50:31+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "bd518300ac9f8d3a1dc8c5b6f72757f3721a6a9c4c4ef332e5f62f4026236ebf",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-18T20:26:10+00:00"
       },
       "failed": false,
       "pr_number": 7647,
