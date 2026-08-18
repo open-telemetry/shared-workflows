@@ -1561,11 +1561,15 @@
     },
     "3795": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "drewrelmas",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3795#discussion_r3808248174",
+          "https://github.com/open-telemetry/otel-arrow/pull/3795#discussion_r3808259354"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "9d1d1f4797c84b0d89ec95c1e0b4f879",
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
@@ -1587,8 +1591,8 @@
         "head_sha": "61d84158f4624a946aed18034fcd1138649f387a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T21:29:40+00:00",
-        "last_approver_activity_at": "2026-08-18T20:23:16+00:00",
+        "last_activity_at": "2026-08-18T22:01:17+00:00",
+        "last_approver_activity_at": "2026-08-18T22:01:17+00:00",
         "last_author_activity_at": "2026-08-18T21:29:40+00:00",
         "required_checks_settled": false,
         "reviewers": [
@@ -1601,11 +1605,11 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "cijothomas",
-            "open_thread": false,
+            "open_thread": true,
             "top_level_feedback": false
           },
           {
@@ -1617,10 +1621,10 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "289eb3fb22fb839731eb3236e50d82c4c548902b268271f54578f5d42fa512c5",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-18T20:19:55+00:00"
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "4bc5dc87d5163535e30c65e1987a31dd840509b665d74325607e674f76dc102d",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-18T21:59:36+00:00"
       },
       "failed": false,
       "pr_number": 3795,
