@@ -12094,13 +12094,13 @@
     },
     "50302": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 9,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -12117,13 +12117,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "fb7aefeea59d718c0847563df5fd1ead5446a172",
+        "head_sha": "4262f9573612d48b512d2a9ccf1a96e3190349ff",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-18T04:50:58+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-18T12:14:06+00:00",
+        "last_approver_activity_at": "2026-08-18T12:14:06+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -12132,11 +12132,19 @@
             "login": "singhvibhanshu",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "429ad9d32f0571753c678953f0be7b5d5338aa5a9fc0f7fb9a7935d474c5283e",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "fdcb1583633c25321fc51f0bbfd614cdf46f4b27ab5e7bd11175281220da1165",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-18T04:50:21+00:00"
       },
       "failed": false,
