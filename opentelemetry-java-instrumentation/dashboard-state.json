@@ -2610,8 +2610,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "trask",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19602#discussion_r3803475443"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "f06bf6850ff54a26afd8fd097e726cdc",
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
@@ -2634,21 +2637,30 @@
         "head_sha": "9e8ceab4a8080aa35730fb6fb5b7af21363363fe",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-16T06:52:13+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-18T11:08:19+00:00",
+        "last_approver_activity_at": "2026-08-18T11:08:19+00:00",
         "last_author_activity_at": "2026-08-16T06:52:13+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5a7ae34d78523ac9e469c2b7d79a6f1c619452dbc7cd5ae3697f003c9200776f",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-16T06:52:13+00:00"
+        "routing_input_fingerprint": "1bec847c39e285e303560b2f9ede8b7fc3621adbeee908e8a125bcb18599721e",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-18T11:08:19+00:00"
       },
       "failed": false,
       "pr_number": 19602,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19602",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "19603": {
