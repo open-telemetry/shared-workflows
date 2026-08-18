@@ -623,6 +623,23 @@ class DashboardOverrideTest(unittest.TestCase):
             facts["dashboard_command_replies"],
         )
 
+    def test_conflict_defers_override_acknowledgement(self) -> None:
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+        facts = dashboard_override.dashboard_override_facts(raw, "author")
+        facts["conflicts"] = "yes"
+
+        dashboard_override.append_command_ack_reply(raw, facts, "author")
+
+        self.assertEqual([], facts["dashboard_command_replies"])
+        self.assertEqual(
+            (5, "author"),
+            dashboard_override.latest_authorized_command(raw, "author", set()),
+        )
+
     @patch.object(dashboard_override, "run_gh")
     @patch.object(dashboard_override, "gh_api", return_value=[])
     @patch.object(

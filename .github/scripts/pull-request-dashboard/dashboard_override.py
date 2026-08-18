@@ -411,10 +411,14 @@ def append_command_ack_reply(
     """Queue the reply that acknowledges an override command.
 
     The reply carries the acknowledgement marker that stops the command from
-    being processed again, so every command gets one, whether or not it cleared
-    anything. `route` is already what the cleared items produced, so a command
-    that cleared nothing is answered with where the pull request is routed.
+    being processed again. A merge conflict defers the reply because it prevents
+    the command from taking effect. Otherwise every command gets one, whether or
+    not it cleared anything. `route` is already what the cleared items produced,
+    so a command that cleared nothing is answered with where the pull request is
+    routed.
     """
+    if facts.get("conflicts") == "yes":
+        return
     command_id = int(facts.get("dashboard_override_command_id") or 0)
     if not command_id:
         return
