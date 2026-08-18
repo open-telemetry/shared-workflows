@@ -2567,8 +2567,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "sansynx",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/6982#discussion_r3799808402"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/6982#pullrequestreview-4955725827"
+        ],
+        "author_nudge_episode_id": "6d01d40e68784f2397aaef53b9e4beaf",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2590,20 +2595,29 @@
         "head_sha": "05b7b76f5cf8d344de73ab73a60949df7ce7eb23",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T09:34:07+00:00",
+        "last_activity_at": "2026-08-18T00:12:06+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-17T09:34:07+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "overbalance",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "9f60d9d98da84d8965d786bad40d37099568b48b5ffe7891e6a6bb70c656c35a",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-17T09:34:07+00:00"
+        "routing_input_fingerprint": "e8d01761a0f6f0134fddb5cc8cea7c2c0963be3bd7f098b4a826618171a03d62",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-18T00:11:36+00:00"
       },
       "failed": false,
       "pr_number": 6982,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6982",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5314283520": {
           "evidence": {
