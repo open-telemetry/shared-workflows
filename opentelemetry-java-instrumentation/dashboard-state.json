@@ -3394,7 +3394,7 @@
     },
     "19634": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "YaoYingLong",
         "author_action_review_thread_urls": [],
@@ -3421,21 +3421,30 @@
         "head_sha": "dfe1d6d9d00b3fc87bb40cc3ffce6af99ba3d522",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-17T08:51:00+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-18T04:04:52+00:00",
+        "last_approver_activity_at": "2026-08-18T04:04:52+00:00",
         "last_author_activity_at": "2026-08-17T08:51:00+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "406c737bae21f4be063698dd4b283956dd8d453f607595b902e369c893c3a54e",
+        "routing_input_fingerprint": "7b11dace73e1a0426e9f40603165a57ff4d13c2fe62a5d870c16a5f8a126c581",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-17T08:51:00+00:00"
       },
       "failed": false,
       "pr_number": 19634,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19634",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19639": {
