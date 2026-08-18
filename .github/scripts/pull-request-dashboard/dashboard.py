@@ -103,7 +103,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   maintenance bot.
     is_draft                        bool
     approval_count                  int           Current unique APPROVED reviews
-                                                  from approver-team members.
+                                                  from approver-team members,
+                                                  excluding reviewers whose review
+                                                  has been requested again.
     ci_failing_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
                                                   fetched.
@@ -197,9 +199,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   forward while the handoff is
                                                   held, restarted when a held
                                                   handoff reaches reviewers,
-                                                  and never moves
-                                                  forward while the PR stays on
-                                                  a reviewer route.
+                                                  restarted when a re-review
+                                                  returns the PR to approvers,
+                                                  and otherwise never moves
+                                                  forward on a reviewer route.
     waiting_age_basis               str           Which heuristic chose
                                                   waiting_since.
     author_action_review_thread_urls
@@ -213,16 +216,23 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   add_reviewers). Each entry is
                                                   {"login": str, "approved": bool,
                                                   "approved_non_team": bool,
+                                                  "pending_review": bool,
                                                   "changes_requested": bool,
                                                   "open_thread": bool,
                                                   "top_level_feedback": bool}; approved
                                                   means an approver-team member
-                                                  is in the APPROVED state,
+                                                  has an active APPROVED state,
                                                   approved_non_team means someone
-                                                  outside the team approved,
-                                                  changes_requested means an
+                                                  outside the team has an active
+                                                  APPROVED state,
+                                                  pending_review means a human who
+                                                  previously reviewed has a pending
+                                                  re-review request,
+                                                  changes_requested means a
                                                   reviewer's latest review is
-                                                  CHANGES_REQUESTED,
+                                                  CHANGES_REQUESTED, which a
+                                                  re-review request does not
+                                                  clear,
                                                   open_thread means they own an
                                                   unresolved discussion,
                                                   and top_level_feedback means
@@ -547,11 +557,14 @@ def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[s
     return max(timestamps) if timestamps else None
 
 
-def current_approval_count(events: list[dict[str, Any]]) -> int:
+def current_approval_count(
+    events: list[dict[str, Any]],
+    review_requests: list[dict[str, Any]] | None = None,
+) -> int:
     approvers = approver_logins(events)
     return sum(
         1
-        for reviewer, state in latest_review_states(events).items()
+        for reviewer, state in active_review_states(events, review_requests).items()
         if state == "APPROVED" and reviewer in approvers
     )
 
@@ -578,6 +591,48 @@ def latest_review_states(events: list[dict[str, Any]]) -> dict[str, str]:
         if previous is None or submitted_at >= previous[0]:
             latest_by_reviewer[reviewer] = (submitted_at, state)
     return {reviewer: state for reviewer, (_, state) in latest_by_reviewer.items()}
+
+
+def requested_human_reviewer_logins(
+    review_requests: list[dict[str, Any]] | None,
+) -> set[str]:
+    return {
+        login
+        for request in (review_requests or [])
+        if request.get("__typename") == "User"
+        and (login := reviewer_actor_login(request))
+    }
+
+
+def pending_review_logins(
+    events: list[dict[str, Any]],
+    review_requests: list[dict[str, Any]] | None,
+) -> set[str]:
+    return requested_human_reviewer_logins(review_requests) & reviewing_logins(events)
+
+
+def active_review_states(
+    events: list[dict[str, Any]],
+    review_requests: list[dict[str, Any]] | None = None,
+) -> dict[str, str]:
+    # Only an approval goes stale when its reviewer is asked to look again.
+    # GitHub keeps a CHANGES_REQUESTED review blocking the merge until that
+    # reviewer submits a new one, so dropping it here would hide a live
+    # blocker rather than report a wait.
+    requested = requested_human_reviewer_logins(review_requests)
+    return {
+        reviewer: state
+        for reviewer, state in latest_review_states(events).items()
+        if state != "APPROVED" or reviewer not in requested
+    }
+
+
+def reviewing_logins(events: list[dict[str, Any]]) -> set[str]:
+    return {
+        event["actor"]
+        for event in events
+        if event.get("kind") == "review-state" and event.get("actor")
+    }
 
 
 def commenting_reviewers(events: list[dict[str, Any]]) -> set[str]:
@@ -644,7 +699,10 @@ def compute_facts(
         "copilot_review_needed": copilot_review_stale or copilot_review_findings,
         "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
         "is_draft": bool(pr.get("isDraft")),
-        "approval_count": current_approval_count(events),
+        "approval_count": current_approval_count(
+            events,
+            raw.get("review_requests") or [],
+        ),
         "conflicts": compute_conflicts(pr),
         "created_at": format_ts(created_ts),
         "last_activity_at": format_ts(last_activity_ts),
@@ -1274,8 +1332,16 @@ def add_wait_age_facts(
     pending_actions: dict[str, dict[str, Any]],
     previous_result: dict[str, Any] | None = None,
     now: datetime | None = None,
+    pending_reviewers: set[str] | None = None,
 ) -> None:
     previous_facts = (previous_result or {}).get("facts") or {}
+    previous_route = (previous_result or {}).get("route")
+    previous_pending_reviewers = {
+        reviewer.get("login") or ""
+        for reviewer in previous_facts.get("reviewers") or []
+        if reviewer.get("pending_review")
+    }
+    current_pending_reviewers = pending_reviewers or set()
     # A held route was not re-evaluated, so its wait continues uninterrupted
     # rather than restarting from whatever the incomplete facts now imply.
     if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
@@ -1296,6 +1362,17 @@ def add_wait_age_facts(
         facts["waiting_since"] = format_ts(now or utc_now())
         facts["waiting_age_basis"] = "gate_release"
         return
+    # Re-requesting a review can remove an approval and hand the PR from
+    # maintainers back to approvers without any author activity to date the
+    # handoff. Start the reviewer wait when the dashboard first sees it.
+    if (
+        route == "approver"
+        and previous_route == "maintainer"
+        and current_pending_reviewers - previous_pending_reviewers
+    ):
+        facts["waiting_since"] = format_ts(now or utc_now())
+        facts["waiting_age_basis"] = "review_rerequest"
+        return
     # The release above only happens on the pass that hands the PR over, so
     # without carrying it the next pass falls back to the author's push and
     # presents the very wait the release exists to discard. The guard below
@@ -1310,6 +1387,16 @@ def add_wait_age_facts(
     ):
         facts["waiting_since"] = previous_facts["waiting_since"]
         facts["waiting_age_basis"] = "gate_release"
+        return
+    if (
+        route in REVIEWER_ROUTES
+        and previous_route in REVIEWER_ROUTES
+        and previous_facts.get("waiting_age_basis") == "review_rerequest"
+        and previous_facts.get("waiting_since")
+        and current_pending_reviewers & previous_pending_reviewers
+    ):
+        facts["waiting_since"] = previous_facts["waiting_since"]
+        facts["waiting_age_basis"] = "review_rerequest"
         return
     actions = ROUTE_DISCUSSION_ACTIONS.get(route)
     wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
@@ -1404,16 +1491,19 @@ def add_reviewers(
     review_threads: list[dict[str, Any]],
     top_level_items: list[dict[str, Any]],
     pending_actions: dict[str, dict[str, Any]],
+    review_requests: list[dict[str, Any]] | None = None,
 ) -> None:
     # Reviewers to display in the dashboard, each flagged with their review
     # stance: approved (by an approver-team member), approved_non_team (an
-    # approval from someone outside the team), changes_requested (their latest
-    # review blocks), open_thread (they own an
+    # approval from someone outside the team), pending_review (a human review
+    # was requested again), changes_requested (their latest review blocks),
+    # open_thread (they own an
     # unresolved discussion), and top_level_feedback (their top-level feedback
     # still needs author action). The renderer turns these into icons.
     # Reviewers are everyone who reviewed, owns an open discussion, otherwise
     # commented, or is a PR assignee, sorted alphabetically (case-insensitive).
-    states = latest_review_states(events)
+    pending_reviews = pending_review_logins(events, review_requests)
+    states = active_review_states(events, review_requests)
     approvers = approver_logins(events)
     approved = {r for r, s in states.items() if s == "APPROVED" and r in approvers}
     approved_non_team = {r for r, s in states.items() if s == "APPROVED" and r not in approvers}
@@ -1423,6 +1513,7 @@ def add_reviewers(
     candidates = (
         approved
         | approved_non_team
+        | pending_reviews
         | changes_requested
         | with_open
         | with_top_level
@@ -1435,6 +1526,7 @@ def add_reviewers(
             "login": login,
             "approved": login in approved,
             "approved_non_team": login in approved_non_team,
+            "pending_review": login in pending_reviews,
             "changes_requested": login in changes_requested,
             "open_thread": login in with_open,
             "top_level_feedback": login in with_top_level,
@@ -1764,7 +1856,15 @@ def build_pr_result(
             raw.get("issue_comments") or [],
         )
         append_command_ack_reply(raw, facts, route)
-        add_wait_age_facts(facts, route, pending_actions, previous_result)
+        add_wait_age_facts(
+            facts,
+            route,
+            pending_actions,
+            previous_result,
+            pending_reviewers=pending_review_logins(
+                events, raw.get("review_requests") or []
+            ),
+        )
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
         )
@@ -1772,7 +1872,12 @@ def build_pr_result(
             top_level_items, pending_actions
         )
         add_reviewers(
-            facts, events, review_threads, top_level_items, pending_actions
+            facts,
+            events,
+            review_threads,
+            top_level_items,
+            pending_actions,
+            raw.get("review_requests") or [],
         )
         return {
             "pr_number": number,

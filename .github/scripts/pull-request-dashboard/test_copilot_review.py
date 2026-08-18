@@ -526,6 +526,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "issue_comments",
             "pr_text",
             "review_comments",
+            "review_requests",
             "reviews",
             "review_threads",
         ):
@@ -893,6 +894,7 @@ class StaleRequestReasonTest(unittest.TestCase):
             "issue_comments",
             "pr_text",
             "review_comments",
+            "review_requests",
             "reviews",
             "review_threads",
         ):

@@ -13,6 +13,7 @@ from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     GATE_HOLD_LIMIT,
     DashboardUpdate,
+    add_reviewers,
     add_wait_age_facts,
     apply_targeted_dashboard_update,
     assign_author_nudge_episode,
@@ -20,6 +21,7 @@ from dashboard import (
     backfill_failed_pr_numbers,
     complete_initial_backfill_if_ready,
     compute_facts,
+    current_approval_count,
     fetch_pr_raw,
     group_review_threads,
     hold_route_until_gates_settle,
@@ -356,6 +358,103 @@ class RoutePrTest(unittest.TestCase):
         }
 
         self.assertEqual("approver", route_pr(facts, pending_actions, 1))
+
+
+class RerequestedReviewTest(unittest.TestCase):
+    @staticmethod
+    def approval(login: str) -> dict[str, object]:
+        return {
+            "kind": "review-state",
+            "timestamp": "2026-08-01T00:00:00Z",
+            "actor": login,
+            "actor_role": "approver",
+            "state": "APPROVED",
+        }
+
+    @staticmethod
+    def changes_requested(login: str) -> dict[str, object]:
+        return {
+            "kind": "review-state",
+            "timestamp": "2026-08-01T00:00:00Z",
+            "actor": login,
+            "actor_role": "approver",
+            "state": "CHANGES_REQUESTED",
+        }
+
+    def test_rerequested_approval_becomes_pending_and_routes_to_reviewers(self) -> None:
+        events = [self.approval("reviewer")]
+        review_requests = [{"__typename": "User", "login": "reviewer"}]
+        facts = {
+            "approval_count": current_approval_count(events, review_requests),
+            "assignees": [],
+            "is_maintenance_bot": False,
+        }
+
+        add_reviewers(facts, events, [], [], {}, review_requests)
+
+        self.assertEqual(0, facts["approval_count"])
+        self.assertEqual("approver", route_pr(facts, {}, 1))
+        self.assertEqual(
+            {
+                "login": "reviewer",
+                "approved": False,
+                "approved_non_team": False,
+                "pending_review": True,
+                "changes_requested": False,
+                "open_thread": False,
+                "top_level_feedback": False,
+            },
+            facts["reviewers"][0],
+        )
+
+    def test_other_active_approvals_still_count(self) -> None:
+        events = [self.approval("active"), self.approval("rerequested")]
+        review_requests = [{"__typename": "User", "login": "rerequested"}]
+        facts = {
+            "approval_count": current_approval_count(events, review_requests),
+            "assignees": [],
+            "is_maintenance_bot": False,
+        }
+
+        add_reviewers(facts, events, [], [], {}, review_requests)
+
+        self.assertEqual(1, facts["approval_count"])
+        self.assertEqual("maintainer", route_pr(facts, {}, 1))
+        self.assertTrue(facts["reviewers"][0]["approved"])
+        self.assertTrue(facts["reviewers"][1]["pending_review"])
+
+    def test_first_review_request_is_not_shown_as_a_rereview(self) -> None:
+        facts = {"assignees": []}
+
+        add_reviewers(
+            facts,
+            [],
+            [],
+            [],
+            {},
+            [{"__typename": "User", "login": "new-reviewer"}],
+        )
+
+        self.assertEqual([], facts["reviewers"])
+
+    def test_team_request_does_not_clear_individual_approvals(self) -> None:
+        events = [self.approval("reviewer")]
+        review_requests = [{"__typename": "Team", "slug": "example-approvers"}]
+
+        self.assertEqual(1, current_approval_count(events, review_requests))
+
+    def test_rerequest_keeps_a_blocking_changes_requested_state(self) -> None:
+        # GitHub keeps the review blocking the merge until the reviewer
+        # submits a new one, so the request adds a wait rather than clearing
+        # the block.
+        events = [self.changes_requested("reviewer")]
+        review_requests = [{"__typename": "User", "login": "reviewer"}]
+        facts = {"assignees": []}
+
+        add_reviewers(facts, events, [], [], {}, review_requests)
+
+        self.assertTrue(facts["reviewers"][0]["pending_review"])
+        self.assertTrue(facts["reviewers"][0]["changes_requested"])
 
 
 class GateHoldTest(unittest.TestCase):
@@ -814,6 +913,66 @@ class GateHoldTest(unittest.TestCase):
 
 
 class ReviewerWaitTest(unittest.TestCase):
+    def test_rereview_handoff_restarts_the_reviewer_wait(self) -> None:
+        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
+        now = datetime(2026, 8, 17, 20, 0, tzinfo=timezone.utc)
+
+        add_wait_age_facts(
+            facts,
+            "approver",
+            {},
+            {
+                "route": "maintainer",
+                "facts": {
+                    "waiting_since": "2026-07-30T01:00:00+00:00",
+                    "reviewers": [
+                        {
+                            "login": "reviewer",
+                            "pending_review": False,
+                        }
+                    ],
+                },
+            },
+            now=now,
+            pending_reviewers={"reviewer"},
+        )
+
+        self.assertEqual("2026-08-17T20:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("review_rerequest", facts["waiting_age_basis"])
+
+    def test_rereview_handoff_wait_survives_reviewer_route_changes(self) -> None:
+        for route in ("approver", "maintainer"):
+            with self.subTest(route=route):
+                facts = {
+                    "last_author_activity_at": "2026-07-30T01:00:00+00:00"
+                }
+
+                add_wait_age_facts(
+                    facts,
+                    route,
+                    {},
+                    {
+                        "route": "approver",
+                        "facts": {
+                            "waiting_since": "2026-08-17T20:00:00+00:00",
+                            "waiting_age_basis": "review_rerequest",
+                            "reviewers": [
+                                {
+                                    "login": "reviewer",
+                                    "pending_review": True,
+                                }
+                            ],
+                        },
+                    },
+                    now=datetime(2026, 8, 17, 21, 0, tzinfo=timezone.utc),
+                    pending_reviewers={"reviewer"},
+                )
+
+                self.assertEqual(
+                    "2026-08-17T20:00:00+00:00", facts["waiting_since"]
+                )
+                self.assertEqual("review_rerequest", facts["waiting_age_basis"])
+
     def test_author_push_does_not_restart_the_reviewer_wait(self) -> None:
         facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
 

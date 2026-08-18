@@ -123,6 +123,7 @@ def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
             "title": str(pr.get("title") or ""),
         },
         "review_comments": raw.get("review_comments") or [],
+        "review_requests": raw.get("review_requests") or [],
         "reviews": raw.get("reviews") or [],
         "review_threads": raw.get("review_threads") or [],
     }

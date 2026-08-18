@@ -61,6 +61,17 @@ class AuthorNudgePolicyTest(unittest.TestCase):
 
         self.assertNotEqual(failing, author_nudge.routing_input_fingerprint(raw))
 
+    def test_routing_fingerprint_tracks_review_requests(self) -> None:
+        raw = {"review_requests": []}
+        baseline = author_nudge.routing_input_fingerprint(raw)
+
+        raw["review_requests"].append({
+            "__typename": "User",
+            "login": "reviewer",
+        })
+
+        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
+
     def test_routing_fingerprint_tracks_pr_title_and_body(self) -> None:
         raw = {
             "checks": [],

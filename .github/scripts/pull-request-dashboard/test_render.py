@@ -127,6 +127,28 @@ class RenderTest(unittest.TestCase):
             markdown,
         )
 
+    def test_human_rereview_replaces_the_previous_approval_badge(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{
+                "login": "reviewer",
+                "approved": True,
+                "pending_review": True,
+            }],
+        })
+
+        self.assertEqual("reviewer&nbsp;⏳", cell)
+
+    def test_human_rereview_keeps_the_changes_requested_badge(self) -> None:
+        cell = reviewers_cell_text({
+            "reviewers": [{
+                "login": "reviewer",
+                "changes_requested": True,
+                "pending_review": True,
+            }],
+        })
+
+        self.assertEqual("reviewer&nbsp;⏳\u2060🔴", cell)
+
     def test_requested_copilot_review_is_listed_as_pending(self) -> None:
         cell = reviewers_cell_text({
             "reviewers": [{"login": "reviewer", "approved": True}],
