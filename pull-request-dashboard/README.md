@@ -39,6 +39,12 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   to recent PR activity or PR creation time. Format: `<1m`, `Xm`, `Xh`, or
   `Xd`.
 
+When GitHub reports merge conflicts, the dashboard routes the PR to its author
+before it considers CI, discussion, or approval state. It pauses required-check
+and Copilot review gates until the conflicts are resolved. Checks and reviews
+that do not start on a conflicted head therefore neither hold the route nor fail
+dashboard delivery.
+
 ## How to opt in
 
 Open a pull request that adds your repository to [`.github/scripts/pull-request-dashboard/repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json):

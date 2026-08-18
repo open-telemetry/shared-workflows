@@ -1198,17 +1198,23 @@ def action_counts(pending_actions: dict[str, dict[str, Any]]) -> dict[str, int]:
 
 
 def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], required_approvals: int) -> str:
+    # A conflicted PR cannot advance, regardless of its checks, discussions, or
+    # approvals. This also applies to maintenance bots: maintainers cannot merge
+    # the PR until the conflict is resolved on the author side.
+    if facts.get("conflicts") == "yes":
+        return "author"
     counts = action_counts(pending_actions)
     # Copilot PRs are mapped back to a human author when possible. Maintenance
     # bot PRs have no useful author route and need only one approval.
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
     # Precedence:
-    #   1. A required status check failure the author has not overridden -> "author".
-    #   2. A discussion waiting on the author -> "author".
-    #   3. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
+    #   1. Merge conflicts -> "author".
+    #   2. A required status check failure the author has not overridden -> "author".
+    #   3. A discussion waiting on the author -> "author".
+    #   4. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
     #      remains visible but does not keep an approved PR out of this route.
-    #   4. Otherwise the PR is still waiting on approvers.
+    #   5. Otherwise the PR is still waiting on approvers.
     ci_failing = uncleared_ci_failing_count(facts) > 0
     if ci_failing and not is_maintenance_bot:
         return "author"
@@ -1259,6 +1265,8 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
     if route in REVIEWER_ROUTES:
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
+        if facts.get("conflicts") == "yes":
+            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
         if uncleared_ci_failing_count(facts) > 0:
             ci_failing_since = parse_ts(facts.get("ci_uncleared_failing_since") or "")
             if ci_failing_since is not None:
@@ -1502,21 +1510,23 @@ def hold_route_until_gates_settle(
     if previous_route not in ROUTE_PROGRESSION:
         # A maintenance bot has no author route to fall back to.
         previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
+    gates_enabled = facts.get("conflicts") != "yes"
+    copilot_review_gate_enabled = require_clean_copilot_review and gates_enabled
     facts["copilot_review_outstanding"] = copilot_review_outstanding(
-        facts, enabled=require_clean_copilot_review
+        facts, enabled=copilot_review_gate_enabled
     )
     facts["copilot_review_unreported"] = copilot_review_unreported(
-        facts, enabled=require_clean_copilot_review
+        facts, enabled=copilot_review_gate_enabled
     )
     facts["required_checks_settled"] = required_checks_settled(facts)
-    gates_outstanding = (
+    gates_outstanding = gates_enabled and (
         not facts["required_checks_settled"] or facts["copilot_review_outstanding"]
     )
     # Only a gate that has reported nothing on this head can stall. A Copilot
     # review that left findings did report, and clearing those findings is the
     # author's own work, so counting it would turn every author who takes more
     # than four hours over review comments into a missing gate.
-    unreported_gates = (
+    unreported_gates = gates_enabled and (
         not facts["required_checks_settled"] or facts["copilot_review_unreported"]
     )
     would_hold = route_progress(route) > route_progress(previous_route)
@@ -1580,7 +1590,9 @@ def resolve_pr_route(
     )
     facts["copilot_review_bypassed_by_override"] = manual_reviewer_handoff
     copilot_review_gate_enabled = (
-        require_clean_copilot_review and not manual_reviewer_handoff
+        require_clean_copilot_review
+        and not manual_reviewer_handoff
+        and facts.get("conflicts") != "yes"
     )
     set_copilot_first_review_missing_since(
         facts,

@@ -257,10 +257,13 @@ def render_status_comment(
         body = ["Finish refreshing this pull request."]
     else:
         route = result.get("route") or "unknown"
-        if route in PRE_REVIEW_ROUTES:
+        conflicted = facts.get("conflicts") == "yes"
+        if route in PRE_REVIEW_ROUTES and not conflicted:
             override_route = route
         headline = status_headline(route)
-        if route == "author":
+        if conflicted:
+            body = ["Resolve merge conflicts."]
+        elif route == "author":
             body = author_body(
                 feedback_count=feedback_count,
                 failing_count=failing_count,

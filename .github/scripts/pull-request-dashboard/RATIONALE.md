@@ -267,6 +267,14 @@ the implementation understandable and operationally cheap.
   Repository-configured `non_blocking_check_patterns` identify failed optional
   checks in a note alongside this action, without changing required-check facts
   or routing.
+- A merge conflict routes every PR to its author before CI, discussion, or
+  approval routing. The conflict is author-side work, and telling maintainers to
+  merge an unmergeable PR would be wrong.
+- Required-check and Copilot review gates pause while a conflict exists. GitHub
+  may not start either automation on an unmergeable head, so a missing result is
+  expected rather than a dashboard delivery failure. Entering the conflicted
+  state clears any same-head hold clock, and normal gates resume after the
+  conflict is resolved.
 - A PR does not advance toward merge while the required checks are unsettled:
   an author waiting on CI keeps the PR, and a PR already with approvers is not
   handed to maintainers to merge. Clearing the checks is the author's job, so
@@ -315,7 +323,8 @@ the implementation understandable and operationally cheap.
 - Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
   respond to a dashboard action. Pending required checks affect the CI column
   but never route one of these PRs to its author: a bot PR whose handoff is
-  held waits on reviewers instead.
+  held waits on reviewers instead. A merge conflict is the exception because
+  maintainers still cannot merge the PR.
 - A hold has a time limit, and past it the PR routes anyway. Every gate waits on
   something outside the dashboard, and each one has been seen never to arrive: a
   required check with no check run on the head, a Copilot review GitHub never
@@ -344,12 +353,13 @@ the implementation understandable and operationally cheap.
   review never arrived when it is sitting on the PR. A review that is missing or
   that only covers older code still counts, because Copilot has said nothing
   about the code being reviewed.
-- An expired hold is reported as a delivery failure on whole-repository passes,
-  which opens the same tracking issue as any other dashboard failure. This is
-  the only alarm the gates raise. Each way a gate can go missing has its own
-  cause and none of them can be told apart from the dashboard's side, so
-  reporting them separately would mean a new alarm for every new way GitHub
-  finds to lose something. The hold expiring is the one symptom they all share.
+- An expired hold on a non-conflicted PR is reported as a delivery failure on
+  whole-repository passes, which opens the same tracking issue as any other
+  dashboard failure. This is the only alarm the gates raise. Each way a gate can
+  go missing has its own cause and none of them can be told apart from the
+  dashboard's side, so reporting them separately would mean a new alarm for
+  every new way GitHub finds to lose something. The hold expiring is the one
+  symptom they all share.
 - The report stays active while the stall does, the same way a PR that keeps
   failing to refresh keeps the hourly failure active. A gate that will never
   report is usually a repository misconfiguration — a required check with no

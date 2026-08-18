@@ -64,6 +64,43 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_outstanding"])
         self.assertFalse(facts["route_held_for_gates"])
 
+    def test_conflict_pauses_gates_and_clears_an_expired_hold(self) -> None:
+        facts: dict[str, object] = {
+            "approval_count": 1,
+            "conflicts": "yes",
+            "is_maintenance_bot": False,
+            "head_sha": "abc",
+            "ci_pending_count": 1,
+            "copilot_review_exists": False,
+            "copilot_review_requested": False,
+            "copilot_first_review_missing_since": "2026-08-16T08:00:00+00:00",
+        }
+        previous_result = {
+            "route": "approver",
+            "facts": {
+                "head_sha": "abc",
+                "route_held_since": "2026-08-16T08:00:00+00:00",
+            },
+        }
+
+        route = resolve_pr_route(
+            facts,
+            {},
+            1,
+            True,
+            previous_result,
+            now=datetime(2026, 8, 16, 13, 0, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual("author", route)
+        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts["copilot_review_outstanding"])
+        self.assertFalse(facts["copilot_review_unreported"])
+        self.assertFalse(facts["route_held_for_gates"])
+        self.assertFalse(facts["route_hold_expired"])
+        self.assertNotIn("copilot_first_review_missing_since", facts)
+        self.assertNotIn("route_held_since", facts)
+
     def test_discussion_override_bypasses_required_copilot_review(self) -> None:
         facts = self._cleared_ci_facts(
             ci_failing_count=0,
@@ -356,6 +393,15 @@ class RoutePrTest(unittest.TestCase):
         }
 
         self.assertEqual("approver", route_pr(facts, pending_actions, 1))
+
+    def test_conflict_routes_a_maintenance_bot_pr_to_its_author(self) -> None:
+        facts = {
+            "approval_count": 1,
+            "conflicts": "yes",
+            "is_maintenance_bot": True,
+        }
+
+        self.assertEqual("author", route_pr(facts, {}, 1))
 
 
 class GateHoldTest(unittest.TestCase):
@@ -715,6 +761,18 @@ class GateHoldTest(unittest.TestCase):
 
         self.assertEqual("2026-07-10T01:00:00+00:00", facts["waiting_since"])
         self.assertEqual("last_approver_activity", facts["waiting_age_basis"])
+
+    def test_conflict_wait_dates_from_the_last_author_activity(self) -> None:
+        facts = {
+            "conflicts": "yes",
+            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
+            "last_approver_activity_at": "2026-08-10T08:00:00+00:00",
+        }
+
+        add_wait_age_facts(facts, "author", {})
+
+        self.assertEqual("2026-08-16T08:00:00+00:00", facts["waiting_since"])
+        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
 
     def test_reviewers_start_waiting_when_the_gates_release_the_pr(self) -> None:
         # The push was four hours ago; the reviewers could not have answered
