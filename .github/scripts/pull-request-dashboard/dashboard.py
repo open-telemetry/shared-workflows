@@ -1546,6 +1546,7 @@ def reviewer_handoff_active(
     facts: dict[str, Any],
     previous_result: dict[str, Any] | None = None,
 ) -> bool:
+    """Classify the handoff and store its target and active state in facts."""
     previous_facts = (previous_result or {}).get("facts") or {}
     command_id = facts.get("dashboard_override_command_id") or 0
     same_command = (

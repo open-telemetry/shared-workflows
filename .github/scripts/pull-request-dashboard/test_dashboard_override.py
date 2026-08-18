@@ -236,6 +236,7 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = {
             "author": "author",
             "dashboard_override_command_id": 12,
+            "dashboard_override_command_targets_head": True,
             "copilot_review_bypassed_by_override": True,
         }
 
@@ -287,10 +288,24 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertNotIn("dashboard_command_replies", facts)
 
+    def test_does_not_acknowledge_command_without_a_head_target_decision(self) -> None:
+        facts = {
+            "author": "author",
+            "dashboard_override_command_id": 12,
+            "copilot_review_bypassed_by_override": False,
+        }
+
+        dashboard_override.append_command_ack_reply(
+            {"issue_comments": []}, facts, "author"
+        )
+
+        self.assertNotIn("dashboard_command_replies", facts)
+
     def test_already_routed_reply_deduped_by_existing_marker(self) -> None:
         facts = {
             "author": "author",
             "dashboard_override_command_id": 12,
+            "dashboard_override_command_targets_head": True,
         }
         raw = {
             "issue_comments": [
@@ -309,6 +324,7 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = {
             "author": "author",
             "dashboard_override_command_id": 12,
+            "dashboard_override_command_targets_head": True,
         }
         raw = {
             "issue_comments": [
@@ -451,6 +467,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         for _ in range(2):
             facts = dashboard_override.dashboard_override_facts(raw, "author")
+            facts["dashboard_override_command_targets_head"] = True
             dashboard_override.append_command_ack_reply(raw, facts, "approver")
 
             self.assertEqual(
@@ -567,6 +584,7 @@ class DashboardOverrideTest(unittest.TestCase):
             ]
         }
         facts = dashboard_override.dashboard_override_facts(raw, "author")
+        facts["dashboard_override_command_targets_head"] = True
 
         dashboard_override.append_command_ack_reply(raw, facts, "author")
 
@@ -589,6 +607,7 @@ class DashboardOverrideTest(unittest.TestCase):
         }
         facts = dashboard_override.dashboard_override_facts(raw, "author")
         facts["conflicts"] = "yes"
+        facts["dashboard_override_command_targets_head"] = True
         facts["copilot_review_bypassed_by_override"] = True
 
         dashboard_override.append_command_ack_reply(raw, facts, "approver")
