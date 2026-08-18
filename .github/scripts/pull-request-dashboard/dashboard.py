@@ -1738,6 +1738,9 @@ def build_pr_result(
             head_repo = head_repository.get("nameWithOwner") or ""
             head_ref = raw["pr"].get("headRefName") or ""
             if head_repo and head_ref:
+                # Empty means a successful lookup found no matching activity.
+                # Let request failures reach the PR boundary below so operators
+                # see a failed result instead of a silently pending command.
                 facts["head_push_at"] = fetch_head_push_at(
                     head_repo, head_ref, str(current_head)
                 )
