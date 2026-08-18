@@ -12085,16 +12085,14 @@
     },
     "50312": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-08-18T11:50:30+00:00",
-        "ci_pending_count": 0,
-        "ci_uncleared_failing_count": 1,
-        "ci_uncleared_failing_since": "2026-08-18T11:50:30+00:00",
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
+        "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": false,
@@ -12110,13 +12108,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "b7056cc15bc15b736bffb7d9592e57e4c40e7d3f",
+        "head_sha": "dc17df9128a0ca18a315b1d7d315346257694d8c",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-18T11:13:31+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-18T16:48:03+00:00",
+        "last_approver_activity_at": "2026-08-18T16:48:03+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -12133,11 +12131,19 @@
             "login": "singhvibhanshu",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "197c2586f6fe576870d246b0adc9176806dc9a216b49f27366437ca37aca76bb",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "65b271173439e586205004eb652ad32d9baf34cbacc64b969c997bc6b36fd558",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-18T11:03:21+00:00"
       },
       "failed": false,
