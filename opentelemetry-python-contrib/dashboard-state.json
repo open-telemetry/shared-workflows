@@ -321,9 +321,12 @@
         ],
         "author": "zmievsa",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4102#issuecomment-4435602329"
+        ],
+        "author_nudge_episode_id": "30f00929dfb44da2a566f04a8b271768",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -340,13 +343,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "f64c44f782ff6be0588979aa8dd81aa40ec3f99c",
+        "head_sha": "38fd2070c0cd65d0cf6c836ac0e4ac0235e31476",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T10:01:09+00:00",
-        "last_approver_activity_at": "2026-08-17T22:04:53+00:00",
-        "last_author_activity_at": "2026-08-18T10:01:09+00:00",
-        "required_checks_settled": true,
+        "last_activity_at": "2026-08-18T17:52:59+00:00",
+        "last_approver_activity_at": "2026-08-18T17:50:47+00:00",
+        "last_author_activity_at": "2026-08-18T17:52:59+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -362,7 +365,7 @@
             "changes_requested": false,
             "login": "emdneto",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": false,
@@ -414,32 +417,20 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "75f461b00858cd47cf15d1cb3f57678dfbbf64a57c833d1263eebab110915d95",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-18T10:01:09+00:00"
+        "routing_input_fingerprint": "ca9e96e226b3f23128bdc3725c2343c29ffa50937e9f6a363c4030d70c56a176",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-05-12T23:15:56+00:00"
       },
       "failed": false,
       "pr_number": 4102,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4102",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-3753822973": {
           "evidence": {
             "reply": "2026-01-15T10:22:13Z"
           },
           "reply_source_id": 3754033444
-        },
-        "pr-issue-comment-4435602329": {
-          "evidence": {
-            "reply": "2026-08-18T10:01:09Z"
-          },
-          "reply_source_id": 5326620191
-        },
-        "pr-issue-comment-5320800634": {
-          "evidence": {
-            "reply": "2026-08-18T10:01:09Z"
-          },
-          "reply_source_id": 5326620191
         }
       }
     },
