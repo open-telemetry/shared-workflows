@@ -1578,6 +1578,8 @@ def reviewer_handoff_active(
             command_targets_head = True
         else:
             command_targets_head = ordered_target
+    elif command_id and same_command and previous_head and not same_observed_head:
+        command_targets_head = False
     elif command_id and previous_targets_head is None:
         command_targets_head = ordered_target
     elif command_id and "dashboard_override_command_targets_head" in facts:

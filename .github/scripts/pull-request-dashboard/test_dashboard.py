@@ -326,6 +326,29 @@ class ResolvePrRouteTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_bypassed_by_override"])
         self.assertFalse(facts["copilot_review_request_needed"])
 
+    def test_push_ends_active_override_when_command_remains(self) -> None:
+        previous_result = {
+            "route": "approver",
+            "facts": {
+                "dashboard_override_command_id": 7,
+                "dashboard_override_since": "2026-08-11T12:00:00Z",
+                "dashboard_override_command_targets_head": True,
+                "head_sha": "old-head",
+                "copilot_review_bypassed_by_override": True,
+            },
+        }
+        facts = {
+            "dashboard_override_command_id": 7,
+            "dashboard_override_since": "2026-08-11T12:00:00Z",
+            "head_sha": "new-head",
+            "head_push_at": "2026-08-11T13:00:00Z",
+        }
+
+        active = reviewer_handoff_active(facts, previous_result)
+
+        self.assertFalse(active)
+        self.assertFalse(facts["dashboard_override_command_targets_head"])
+
     def test_unprocessed_override_before_push_does_not_target_new_head(self) -> None:
         previous_result = {
             "route": "author",
