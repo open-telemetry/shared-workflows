@@ -505,6 +505,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         failed_facts: dict[str, object] = {
             "dashboard_override_since": "2026-08-11T12:00:00Z",
             "dashboard_override_command_id": 7,
+            "dashboard_override_command_targets_head": None,
             "head_sha": "current-head",
         }
         previous_result = {
@@ -517,6 +518,7 @@ class ResolvePrRouteTest(unittest.TestCase):
             },
         }
         preserve_override_state_after_failure(failed_facts, previous_result)
+        self.assertEqual(7, failed_facts["dashboard_override_command_id"])
         facts = self._override_facts(
             dashboard_override_command_id=7,
             dashboard_override_since="2026-08-11T12:00:00Z",

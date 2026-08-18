@@ -1642,11 +1642,7 @@ def preserve_override_state_after_failure(
     previous_result: dict[str, Any] | None,
 ) -> None:
     previous_facts = (previous_result or {}).get("facts") or {}
-    stale_command = (
-        facts.get("dashboard_override_command_id")
-        and facts.get("dashboard_override_command_targets_head") is False
-    )
-    if not stale_command:
+    if not facts.get("dashboard_override_command_id"):
         facts["dashboard_override_command_id"] = (
             previous_facts.get("dashboard_override_command_id") or 0
         )
