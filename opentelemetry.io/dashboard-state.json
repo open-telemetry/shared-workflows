@@ -1416,9 +1416,12 @@
         "author": "intuibase",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "bf1a97eeefe241919e5fd37c5069234a",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-18T10:38:52+00:00",
+        "ci_pending_count": 4,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-18T10:38:52+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": false,
@@ -1484,14 +1487,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "2be8af249b774802b9c042be8aaae5a2b850a4560c570ea9a35f4bc273e3100b",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-28T09:36:05+00:00"
+        "routing_input_fingerprint": "1dff3df48794d6c0c3deee22ab8dd4c787f2e173bd8536f063814fb563c39d2b",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-18T10:38:52+00:00"
       },
       "failed": false,
       "pr_number": 10957,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10957",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "10976": {
