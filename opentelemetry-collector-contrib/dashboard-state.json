@@ -12073,7 +12073,7 @@
     },
     "50347": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/dependabot",
         "author_action_review_thread_urls": [],
@@ -12099,20 +12099,29 @@
         "head_sha": "4ad88dac6615fdb1ba579de4dacb1d612aa6b0ad",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T01:50:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T03:52:06+00:00",
+        "last_approver_activity_at": "2026-08-19T03:52:06+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "iblancasa",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "e2b33e584e223641dabfddd9ab291835d9dda12a7b0608019cb0a7eb07bdb1e0",
+        "routing_input_fingerprint": "c6d41c1b0cdd1a5ab10a8789bffe195a94908ea837ecdda10425c34c90fff653",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-19T01:50:42+00:00"
       },
       "failed": false,
       "pr_number": 50347,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50347",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50349": {
