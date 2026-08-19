@@ -2505,8 +2505,11 @@
           "jack-berg"
         ],
         "author": "mmanciop",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-specification/pull/5280#discussion_r3814678185"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "3e57eff8ecef4b4d801cb1677dd0233b",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2528,11 +2531,19 @@
         "head_sha": "516f21f2163f662366f770c431d05819d2377fbb",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T09:29:22+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T16:07:01+00:00",
+        "last_approver_activity_at": "2026-08-19T16:07:01+00:00",
         "last_author_activity_at": "2026-08-19T09:23:19+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -2543,14 +2554,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "c6eb553f2168f093d82fcde84f2a5e6955b1412114bd77e832bfa08232d2e8cd",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-19T09:23:19+00:00"
+        "routing_input_fingerprint": "d937cd06ec1e5e6ddccd76577169b36f9def1004e0916331946360d03c5aae50",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-19T16:07:01+00:00"
       },
       "failed": false,
       "pr_number": 5280,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5280",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
