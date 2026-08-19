@@ -440,23 +440,24 @@
     "5011": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
+        "assignees": [
+          "stevejgordon"
+        ],
         "author": "stevejgordon",
         "author_action_review_thread_urls": [
           "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814195242",
           "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814228282",
           "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814236692",
-          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814246462",
           "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814250417",
           "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814252693",
           "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814261302",
           "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814271113",
-          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814201845"
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5011#discussion_r3814213317"
         ],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "517d71904b43432b94489e762c765b68",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -473,13 +474,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "0be5287d4967e3ceda11dc5a1fb840f0f501d190",
+        "head_sha": "b6b7c728ca0f5e262819ec99f6681e4ce000335e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T16:05:43+00:00",
+        "last_activity_at": "2026-08-19T17:40:05+00:00",
         "last_approver_activity_at": "2026-08-19T16:02:05+00:00",
-        "last_author_activity_at": "2026-08-19T16:05:43+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-08-19T17:40:05+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -488,10 +489,18 @@
             "login": "martincostello",
             "open_thread": true,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "stevejgordon",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "d8c1b25ab06eb1039362e3d6362b7ab894426391049fbff8a453672fac62cb7c",
+        "routing_input_fingerprint": "e1a2d9cb700b96909562039c236536886b5828e65cd8db4ffc41b6aca20f6c83",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-08-19T15:06:20+00:00"
       },
