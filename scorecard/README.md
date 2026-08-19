@@ -25,9 +25,13 @@ jobs:
       id-token: write # for Scorecard to publish results
       security-events: write # for the SARIF upload to code scanning
     uses: open-telemetry/shared-workflows/.github/workflows/scorecard.yml@<sha-or-tag>
+    with:
+      use-cncf-hosted-runner: true
 ```
 
-Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No inputs or secrets are required.
+Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets are required.
+
+The optional Boolean `use-cncf-hosted-runner` input defaults to `false`. When it is `true`, both Scorecard jobs run on `cncf-ubuntu-2-8-x86`. When it is `false` or omitted, both jobs run on `ubuntu-latest`. The mapping is fixed; callers cannot provide another runner label.
 
 ## What gets filtered
 

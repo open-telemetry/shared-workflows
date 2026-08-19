@@ -3,12 +3,24 @@ name: OSSF Scorecard
 
 on:
   workflow_call:
+    inputs:
+      use-cncf-hosted-runner:
+        description: 'Run Linux jobs on the standard CNCF-hosted x86 runner.'
+        required: false
+        default: false
+        type: boolean
   push:
     branches:
       - main
   schedule:
     - cron: '25 4 * * 4' # weekly at 04:25 (UTC) on Thursday
   workflow_dispatch:
+    inputs:
+      use-cncf-hosted-runner:
+        description: 'Run Linux jobs on the standard CNCF-hosted x86 runner.'
+        required: false
+        default: false
+        type: boolean
 
 permissions: {}
 
@@ -19,7 +31,7 @@ jobs:
   # https://github.com/ossf/scorecard-action#workflow-restrictions
   analysis:
     name: OSSF Scorecard Analysis
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
     permissions:
       contents: read # for actions/checkout
       id-token: write # Needed for GitHub OIDC token since publish_results is true
@@ -46,7 +58,7 @@ jobs:
   upload:
     name: Upload to code scanning
     needs: analysis
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
     permissions:
       contents: read # for actions/checkout, so that upload-sarif can fingerprint results
       security-events: write # Needed for Code scanning upload
