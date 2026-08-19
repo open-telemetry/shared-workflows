@@ -597,7 +597,7 @@
     },
     "5001": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "matt-hensley",
         "author_action_review_thread_urls": [],
@@ -623,20 +623,29 @@
         "head_sha": "533fefb32dcfc7d1e85327048ed3014baaa4019c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T01:20:41+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T06:05:26+00:00",
+        "last_approver_activity_at": "2026-08-19T06:05:26+00:00",
         "last_author_activity_at": "2026-08-19T01:20:41+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "ab50ce77c8ea99119ec76467617e9a32d09b901b8cbf7820d1c4a90fcc5272b9",
+        "routing_input_fingerprint": "85de2ce28292b92e76860499696620b923f779c6563ba039fe7a7bdeaba90e93",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-19T01:20:41+00:00"
       },
       "failed": false,
       "pr_number": 5001,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5001",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
