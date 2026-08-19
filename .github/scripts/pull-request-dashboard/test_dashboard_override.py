@@ -74,6 +74,29 @@ class DashboardOverrideTest(unittest.TestCase):
             dashboard_override.latest_authorized_command(raw, "author", set()),
         )
 
+    def test_latest_authorized_command_ignores_previously_rejected_command(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 3,
+                    "user": {"login": "new-approver"},
+                    "body": "/dashboard route:reviewers",
+                },
+                {
+                    "id": 4,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": dashboard_override.command_reply_marker(3),
+                },
+            ]
+        }
+
+        self.assertEqual(
+            (0, ""),
+            dashboard_override.latest_authorized_command(
+                raw, "author", {"new-approver"}
+            ),
+        )
+
     def test_is_authorized_commander_matches_author_or_approver(self) -> None:
         self.assertTrue(
             dashboard_override.is_authorized_commander("Author", "author", set())

@@ -87,10 +87,12 @@ def latest_authorized_command(
     author: str,
     reviewers: set[str] | None,
 ) -> tuple[int, str]:
-    acknowledged_id = _acknowledged_override_command_id(raw.get("issue_comments"))
+    comments = raw.get("issue_comments") or []
+    acknowledged_id = _acknowledged_override_command_id(comments)
+    replied_ids = _replied_command_ids(comments)
     best_id = 0
     best_user = ""
-    for comment in raw.get("issue_comments") or []:
+    for comment in comments:
         if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
             continue
         commenter = actor_login(comment.get("user") or {})
@@ -100,7 +102,7 @@ def latest_authorized_command(
             comment_id = int(comment.get("id"))
         except (TypeError, ValueError):
             continue
-        if comment_id <= acknowledged_id:
+        if comment_id <= acknowledged_id or comment_id in replied_ids:
             continue
         if comment_id > best_id:
             best_id, best_user = comment_id, commenter
