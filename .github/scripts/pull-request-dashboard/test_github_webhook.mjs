@@ -229,10 +229,10 @@ test("canary mode queues only configured canary repositories", async () => {
   );
 });
 
-test("queued mode replaces an unsafe dispatcher owner", async () => {
+test("queued mode uses an internal dispatcher owner", async () => {
   const calls = [];
   await withQueueMode("all", () => handleWebhookRequest(
-    webhookRequest("example", 123, "x".repeat(201)),
+    webhookRequest("example", 123),
     {
       queue: queueMock(calls),
       dispatchDrain: async (generation) => calls.push(["drain", generation]),
@@ -260,9 +260,10 @@ test("queue dispatch failure releases the dispatcher lease", async () => {
     )),
     /dispatch failed/,
   );
+  const requestOwner = calls.find(([name]) => name === "request")[1];
   assert.deepEqual(calls.at(-1), [
     "release",
-    { generation: 7, requestOwner: "delivery-1" },
+    { generation: 7, requestOwner },
   ]);
 });
 
