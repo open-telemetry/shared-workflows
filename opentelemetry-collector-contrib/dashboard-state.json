@@ -11572,7 +11572,7 @@
     },
     "50317": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "stelizhenets",
         "author_action_review_thread_urls": [],
@@ -11598,20 +11598,29 @@
         "head_sha": "810ec0beff3838a8495f9f45b6f3a6af3b189ba7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T12:21:14+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T22:27:02+00:00",
+        "last_approver_activity_at": "2026-08-19T22:27:02+00:00",
         "last_author_activity_at": "2026-08-18T12:07:24+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "1127ba39fc41ad379287361e85c723cebb74da0956fdc5e5d8c7df82547c8585",
+        "routing_input_fingerprint": "17e9a22b135c3bd02d0be072c67bd7196e864e9ce7ddd52a6b8fa64b026e0c0c",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-18T12:07:24+00:00"
       },
       "failed": false,
       "pr_number": 50317,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50317",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50320": {
