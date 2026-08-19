@@ -2979,8 +2979,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "YaoYingLong",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19712#discussion_r3813724500"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "02469bd7e40248c781b4cad3df3f0776",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -3003,21 +3006,31 @@
         "head_sha": "7f37933a526d4b11132d9af6c29f30d8f4f11bc3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T10:30:25+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T14:09:27+00:00",
+        "last_approver_activity_at": "2026-08-19T14:09:27+00:00",
         "last_author_activity_at": "2026-08-19T10:29:24+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "82ad3ba01c863735c6b3a8315718b97e873c803ac634006097a1977de4851d66",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-08-19T11:06:28.686129+00:00"
+        "routing_input_fingerprint": "adb3f4024422434441dae694c332c1e7bf8e45e76f3513309433b062c810029d",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-19T14:09:27+00:00"
       },
       "failed": false,
       "pr_number": 19712,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19712",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "19714": {
