@@ -8496,8 +8496,11 @@
         "approval_count": 1,
         "assignees": [],
         "author": "harshitt13",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50020#discussion_r3811353383"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "e41a4db8420e49cca48b7c16b4eb7330",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -8519,11 +8522,19 @@
         "head_sha": "deafb667ee31621b76a944fecb7451a479044fc8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T12:01:59+00:00",
-        "last_approver_activity_at": "2026-08-11T20:31:44+00:00",
+        "last_activity_at": "2026-08-19T09:48:32+00:00",
+        "last_approver_activity_at": "2026-08-19T09:48:32+00:00",
         "last_author_activity_at": "2026-08-11T19:49:02+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "edmocosta",
+            "open_thread": true,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -8542,14 +8553,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "adc198f0ea3eaca6d4772f6afb4439e4fe9088494a05e88a69a9a994aa4f8ab8",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-11T19:49:02+00:00"
+        "routing_input_fingerprint": "36568bf8fd85f8539d022e2f358b3006f218da40d754944fea4d1101756b0542",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-19T08:32:19+00:00"
       },
       "failed": false,
       "pr_number": 50020,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50020",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "50033": {
