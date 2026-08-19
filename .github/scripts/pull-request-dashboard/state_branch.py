@@ -150,6 +150,11 @@ def configure_git() -> None:
     set_git_config("user.name", "otelbot")
 
 
+def is_config_lock_contention(stderr: str) -> bool:
+    message = stderr.lower()
+    return "could not lock config file" in message and "file exists" in message
+
+
 def set_git_config(name: str, value: str) -> None:
     """Set one repository config value, tolerating a contended config lock.
 
@@ -157,11 +162,21 @@ def set_git_config(name: str, value: str) -> None:
     checkout, so two writers can reach `.git/config.lock` at the same time.
     """
     for attempt in range(1, CONFIG_LOCK_ATTEMPTS + 1):
-        proc = run(["git", "config", name, value], check=False)
+        proc = subprocess.run(
+            ["git", "config", name, value],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
         if proc.returncode == 0:
             return
-        if attempt == CONFIG_LOCK_ATTEMPTS:
-            raise subprocess.CalledProcessError(proc.returncode, proc.args)
+        if not is_config_lock_contention(proc.stderr) or attempt == CONFIG_LOCK_ATTEMPTS:
+            raise subprocess.CalledProcessError(
+                proc.returncode,
+                proc.args,
+                output=proc.stdout,
+                stderr=proc.stderr,
+            )
         time.sleep(retry_delay_seconds(attempt))
 
 

@@ -120,5 +120,53 @@ class RemoteIsBehindLocalTest(unittest.TestCase):
         self.assertFalse(state_branch.remote_is_behind_local("state-branch"))
 
 
+class SetGitConfigTest(unittest.TestCase):
+    @patch.object(state_branch.time, "sleep")
+    @patch.object(state_branch, "retry_delay_seconds", return_value=0.1)
+    @patch.object(subprocess, "run")
+    def test_retries_config_lock_contention(
+        self,
+        run: object,
+        _retry_delay_seconds: object,
+        sleep: object,
+    ) -> None:
+        run.side_effect = [
+            subprocess.CompletedProcess(
+                args=["git", "config"],
+                returncode=255,
+                stdout="",
+                stderr="error: could not lock config file .git/config: File exists\n",
+            ),
+            subprocess.CompletedProcess(args=["git", "config"], returncode=0),
+        ]
+
+        state_branch.set_git_config("user.name", "otelbot")
+
+        self.assertEqual(2, run.call_count)
+        sleep.assert_called_once_with(0.1)
+
+    @patch.object(state_branch.time, "sleep")
+    @patch.object(subprocess, "run")
+    def test_surfaces_non_lock_error_without_retry(
+        self,
+        run: object,
+        sleep: object,
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            args=["git", "config"],
+            returncode=1,
+            stdout="details",
+            stderr="error: invalid key: bad key\n",
+        )
+
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            state_branch.set_git_config("bad key", "value")
+
+        self.assertEqual("details", raised.exception.stdout)
+        self.assertEqual("error: invalid key: bad key\n", raised.exception.stderr)
+        run.assert_called_once()
+        sleep.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
