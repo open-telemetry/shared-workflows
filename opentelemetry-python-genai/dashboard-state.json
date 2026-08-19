@@ -760,9 +760,12 @@
         "author": "DylanRussell",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "6db0380ac2604a6682cf9b66bb87c445",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-19T18:19:43+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-19T18:19:43+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -784,7 +787,7 @@
         "last_activity_at": "2026-08-19T15:48:13+00:00",
         "last_approver_activity_at": "2026-08-06T23:15:46+00:00",
         "last_author_activity_at": "2026-08-19T15:48:13+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -804,14 +807,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "effc70aac32655ed6363ade2c30c78dabd9feacf6d621d0570a3264d4c542fc4",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-18T14:01:49+00:00"
+        "routing_input_fingerprint": "7d03949bbafe882eb057804fa84aa85e495bb3c55fe665b773e4fb1d3d490ae7",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-19T18:19:43+00:00"
       },
       "failed": false,
       "pr_number": 359,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/359",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5324981335": {
           "evidence": {
