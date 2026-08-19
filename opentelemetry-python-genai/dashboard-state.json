@@ -1951,7 +1951,7 @@
     },
     "410": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "aabmass",
         "author_action_review_thread_urls": [],
@@ -1961,11 +1961,11 @@
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
-        "copilot_review_exists": false,
+        "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "created_at": "2026-08-19T03:55:53+00:00",
         "dashboard_command_replies": [],
@@ -1977,14 +1977,23 @@
         "head_sha": "189004b52fdc17325c75c6a3a63081434687b80d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T03:55:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T03:56:49+00:00",
+        "last_approver_activity_at": "2026-08-19T03:56:49+00:00",
         "last_author_activity_at": "2026-08-19T03:50:10+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": true,
-        "routing_input_fingerprint": "30ae2860ef96b1b29627f9a1225f4b50f438153af523648aea34c6dfa11bb3a2",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "025f6805116dbe9c5691b0e90adfbaea1903f1e4d4571d617fb44d359698c205",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-19T03:55:53+00:00"
       },
       "failed": false,
