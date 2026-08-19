@@ -3941,9 +3941,13 @@
         ],
         "author": "vishalmore90",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49227#pullrequestreview-4553276919",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49227#issuecomment-5340979946"
+        ],
+        "author_nudge_episode_id": "82fa5a1597df48cda1bcb521bb6cdfb5",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -3963,10 +3967,10 @@
         "head_sha": "3cc86bf785f8740459884173e0e7b00e19dfd91c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-14T18:38:55+00:00",
+        "last_activity_at": "2026-08-19T10:41:09+00:00",
         "last_approver_activity_at": "2026-07-14T07:22:07+00:00",
         "last_author_activity_at": "2026-08-14T18:38:55+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -3974,7 +3978,7 @@
             "changes_requested": false,
             "login": "carsonip",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": false,
@@ -3991,29 +3995,31 @@
             "login": "MovieStoreGuy",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": false,
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "7fe88122b9cfcd898fc37781d35a2237e69c94e9ff3fcfc25eabe32294d0462c",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-14T18:38:55+00:00"
+        "routing_input_fingerprint": "62f6c174fcdc0e5d7a2deb85cadfb7ef8844bf0e6cf131d319fba64780b4b012",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-17T15:28:19+00:00"
       },
       "failed": false,
       "pr_number": 49227,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49227",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5276412769": {
           "evidence": {
             "reply": "2026-08-14T18:38:55Z"
           },
           "reply_source_id": 5296892115
-        },
-        "pr-review-4553276919": {
-          "evidence": {
-            "reply": "2026-07-26T19:11:24Z"
-          },
-          "reply_source_id": 5084974590
         }
       }
     },
