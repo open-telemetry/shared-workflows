@@ -3,7 +3,7 @@
   "prs": {
     "265": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -30,21 +30,31 @@
         "head_sha": "8fec78598a37293a48f34f1a8cb8408e749cda43",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T04:28:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T13:27:38+00:00",
+        "last_approver_activity_at": "2026-08-19T13:27:38+00:00",
         "last_author_activity_at": "2026-08-19T04:28:42+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "fc6ffc0e6b3110e9f9cbf1874b84ff0d96fd3abfeea9af0d5d5c4fa9d471c7fc",
+        "routing_input_fingerprint": "809f835f45933abb8725f1ade767b076213e416a739b8ccc222aa8b9a71d4b16",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-19T04:28:42+00:00"
       },
       "failed": false,
       "pr_number": 265,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/265",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
