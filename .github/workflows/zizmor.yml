@@ -23,12 +23,6 @@ on:
   schedule:
     - cron: '45 9 * * 5' # weekly at 09:45 (UTC) on Friday
   workflow_dispatch:
-    inputs:
-      use-cncf-hosted-runner:
-        description: 'Run Linux jobs on the standard CNCF-hosted x86 runner.'
-        required: false
-        default: false
-        type: boolean
 
 permissions: {}
 
@@ -40,7 +34,7 @@ concurrency:
 jobs:
   zizmor:
     name: Zizmor Security Analysis
-    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
+    runs-on: ${{ (github.repository == 'open-telemetry/shared-workflows' || inputs['use-cncf-hosted-runner']) && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results

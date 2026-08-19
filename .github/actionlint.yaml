@@ -1,0 +1,8 @@
+self-hosted-runner:
+  labels:
+    - cncf-ubuntu-2-8-x86
+
+paths:
+  .github/workflows/*.{yml,yaml}:
+    ignore:
+      - 'unknown permission scope "copilot-requests"'
