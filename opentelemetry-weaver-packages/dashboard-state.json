@@ -47,11 +47,16 @@
     },
     "55": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "joaopgrassi",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/55#discussion_r3814391101"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/55#pullrequestreview-4973882566"
+        ],
+        "author_nudge_episode_id": "9dac7b773e5b43fca2d827ed5784e66d",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -73,20 +78,29 @@
         "head_sha": "67deb0b5488dab0bb09f5215768a249520b0c57e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-06T07:46:37+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T15:32:15+00:00",
+        "last_approver_activity_at": "2026-08-19T15:32:15+00:00",
         "last_author_activity_at": "2026-08-06T07:45:40+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jsuereth",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "74c11c42b5026eef0567a7e895f2f6590dff0c9985a02ed6c0dd4614e1ff09fa",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-06T07:45:40+00:00"
+        "routing_input_fingerprint": "3f5a051ca38936d3efa481be48b1a179b0cbcdca81166a752a82d14b83ababf8",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-19T15:30:49+00:00"
       },
       "failed": false,
       "pr_number": 55,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-weaver-packages/pull/55",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
