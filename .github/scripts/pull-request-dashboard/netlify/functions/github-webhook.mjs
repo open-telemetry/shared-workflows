@@ -169,49 +169,34 @@ export async function handleWebhookRequest(
     });
   }
 
-  let queued;
-  try {
-    queued = await targetQueue.enqueue({
-      repository: repository.name,
-      prNumber: dispatchPrNumber ? Number.parseInt(dispatchPrNumber, 10) : null,
-      headSha: dispatchHeadSha,
-      triggerEvent: eventName,
-    });
-    const requestOwner = dispatcherRequestOwner(request);
-    const dispatcher = await targetQueue.requestDispatcher(requestOwner);
-    if (dispatcher.acquired) {
-      try {
-        await dispatchDrain(dispatcher.generation);
-      } catch (error) {
-        await targetQueue.releaseRequestedDispatcher({
-          generation: dispatcher.generation,
-          requestOwner,
-        });
-        throw error;
-      }
+  const queued = await targetQueue.enqueue({
+    repository: repository.name,
+    prNumber: dispatchPrNumber ? Number.parseInt(dispatchPrNumber, 10) : null,
+    headSha: dispatchHeadSha,
+    triggerEvent: eventName,
+  });
+  const requestOwner = dispatcherRequestOwner(request);
+  const dispatcher = await targetQueue.requestDispatcher(requestOwner);
+  if (dispatcher.acquired) {
+    try {
+      await dispatchDrain(dispatcher.generation);
+    } catch (error) {
+      await targetQueue.releaseRequestedDispatcher({
+        generation: dispatcher.generation,
+        requestOwner,
+      });
+      throw error;
     }
-
-    return response(202, {
-      status: dispatcher.acquired ? "queued_and_dispatched" : queued.status,
-      repository: repository.fullName,
-      pr_number: dispatchPrNumber,
-      head_sha: dispatchHeadSha,
-      trigger_event: eventName,
-      queue_mode: config.queueMode,
-    });
-  } catch (error) {
-    console.error("queue dispatch failed; falling back to direct dispatch", error);
-    await dispatchRefresh(inputs);
-    return response(202, {
-      status: "dispatched_fallback",
-      queue_status: queued?.status || "error",
-      repository: repository.fullName,
-      pr_number: dispatchPrNumber,
-      head_sha: dispatchHeadSha,
-      trigger_event: eventName,
-      queue_mode: config.queueMode,
-    });
   }
+
+  return response(202, {
+    status: dispatcher.acquired ? "queued_and_dispatched" : queued.status,
+    repository: repository.fullName,
+    pr_number: dispatchPrNumber,
+    head_sha: dispatchHeadSha,
+    trigger_event: eventName,
+    queue_mode: config.queueMode,
+  });
 }
 
 function dispatcherRequestOwner(request) {

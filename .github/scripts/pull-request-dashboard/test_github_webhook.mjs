@@ -229,26 +229,6 @@ test("canary mode queues only configured canary repositories", async () => {
   );
 });
 
-test("queued mode falls back to direct dispatch when enqueue fails", async () => {
-  const calls = [];
-  const response = await withQueueMode("all", () => handleWebhookRequest(
-    webhookRequest("example", 123),
-    {
-      queue: {
-        async enqueue() {
-          throw new Error("Blob store unavailable");
-        },
-      },
-      dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
-    },
-  ));
-
-  const body = await response.json();
-  assert.equal(body.status, "dispatched_fallback");
-  assert.equal(body.queue_status, "error");
-  assert.deepEqual(calls.map(([name]) => name), ["refresh"]);
-});
-
 test("queued mode replaces an unsafe dispatcher owner", async () => {
   const calls = [];
   await withQueueMode("all", () => handleWebhookRequest(
@@ -266,25 +246,24 @@ test("queued mode replaces an unsafe dispatcher owner", async () => {
   );
 });
 
-test("queue dispatch failure releases the lease and falls back", async () => {
+test("queue dispatch failure releases the dispatcher lease", async () => {
   const calls = [];
-  const response = await withQueueMode("all", () => handleWebhookRequest(
-    webhookRequest("example", 123),
-    {
-      queue: queueMock(calls),
-      dispatchDrain: async () => {
-        throw new Error("dispatch failed");
+  await assert.rejects(
+    withQueueMode("all", () => handleWebhookRequest(
+      webhookRequest("example", 123),
+      {
+        queue: queueMock(calls),
+        dispatchDrain: async () => {
+          throw new Error("dispatch failed");
+        },
       },
-      dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
-    },
-  ));
-
-  assert.equal((await response.json()).status, "dispatched_fallback");
-  assert.deepEqual(calls.at(-2), [
+    )),
+    /dispatch failed/,
+  );
+  assert.deepEqual(calls.at(-1), [
     "release",
     { generation: 7, requestOwner: "delivery-1" },
   ]);
-  assert.equal(calls.at(-1)[0], "refresh");
 });
 
 function webhookRequest(repository, prNumber, delivery = "delivery-1") {

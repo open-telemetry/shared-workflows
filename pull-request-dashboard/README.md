@@ -18,7 +18,10 @@ processed marks that item dirty and schedules one follow-up pass.
 
 Manual targeted runs and hourly backfills bypass the queue. Queue leases recover
 work after interrupted drain runs, and the hourly backfill remains the final
-correctness backstop.
+correctness backstop. Canary and all-mode webhooks do not fall back to direct
+workflow dispatch when queue dependencies fail, because that would recreate the
+runner burst the queue is designed to prevent. The next hourly backfill repairs
+any refresh that could not be persisted.
 
 ## Dashboard columns
 
