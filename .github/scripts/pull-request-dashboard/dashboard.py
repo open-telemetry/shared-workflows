@@ -109,9 +109,6 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
-    ci_uncleared_failing_count      int           Required failures used by routing.
-    ci_uncleared_failing_since      str (iso)     Earliest required failure used
-                                                  by routing.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
                                                   fetched, and excludes required
@@ -280,7 +277,6 @@ from dashboard_override import (
     append_command_ack_reply,
     dashboard_command_body_remainder,
     dashboard_override_facts,
-    uncleared_ci_failing_count,
 )
 from pr_status_comment import status_author_nudge_episode_id
 from state import (
@@ -663,9 +659,6 @@ def compute_facts(
         facts["ci_failing_count"] = len(failing)
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
-        facts["ci_uncleared_failing_count"] = len(failing)
-        if failing_timestamps:
-            facts["ci_uncleared_failing_since"] = format_ts(min(failing_timestamps))
         facts["ci_pending_count"] = len(pending)
     non_blocking_check_failures = sorted({
         check.get("name") or ""
@@ -1207,7 +1200,7 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     #   3. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
     #      remains visible but does not keep an approved PR out of this route.
     #   4. Otherwise the PR is still waiting on approvers.
-    ci_failing = uncleared_ci_failing_count(facts) > 0
+    ci_failing = (facts.get("ci_failing_count") or 0) > 0
     if ci_failing and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:
@@ -1259,8 +1252,8 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
     if route == "author":
         if facts.get("conflicts") == "yes":
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
-        if uncleared_ci_failing_count(facts) > 0:
-            ci_failing_since = parse_ts(facts.get("ci_uncleared_failing_since") or "")
+        if (facts.get("ci_failing_count") or 0) > 0:
+            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
             if ci_failing_since is not None:
                 return ci_failing_since, "ci_failure"
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"

@@ -596,67 +596,6 @@ class DashboardOverrideTest(unittest.TestCase):
             dashboard_override.latest_authorized_command(raw, "author", set()),
         )
 
-    def test_watermark_survives_acknowledgement(self) -> None:
-        raw = {
-            "issue_comments": [
-                {
-                    "id": 3,
-                    "user": {"login": "author"},
-                    "created_at": "2026-07-30T12:00:00Z",
-                    "body": "/dashboard route:reviewers",
-                },
-                {
-                    "id": 4,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "created_at": "2026-07-30T12:05:00Z",
-                    "body": dashboard_override.override_ack_marker(3),
-                },
-            ]
-        }
-
-        facts = dashboard_override.dashboard_override_facts(raw, "author")
-
-        self.assertEqual(0, facts["dashboard_override_command_id"])
-        self.assertEqual("2026-07-30T12:00:00Z", facts["dashboard_override_since"])
-
-    def test_watermark_survives_the_commander_leaving_the_approver_team(self) -> None:
-        raw = {
-            "issue_comments": [
-                {
-                    "id": 3,
-                    "user": {"login": "former-approver"},
-                    "created_at": "2026-07-30T12:00:00Z",
-                    "body": "/dashboard route:reviewers",
-                },
-                {
-                    "id": 4,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "created_at": "2026-07-30T12:05:00Z",
-                    "body": dashboard_override.override_ack_marker(3),
-                },
-            ]
-        }
-
-        facts = dashboard_override.dashboard_override_facts(raw, "author", set())
-
-        self.assertEqual("2026-07-30T12:00:00Z", facts["dashboard_override_since"])
-
-    def test_unacknowledged_command_needs_current_authorization(self) -> None:
-        raw = {
-            "issue_comments": [
-                {
-                    "id": 3,
-                    "user": {"login": "former-approver"},
-                    "created_at": "2026-07-30T12:00:00Z",
-                    "body": "/dashboard route:reviewers",
-                },
-            ]
-        }
-
-        facts = dashboard_override.dashboard_override_facts(raw, "author", set())
-
-        self.assertEqual("", facts["dashboard_override_since"])
-
     def test_command_that_cleared_nothing_is_acknowledged_where_it_is_routed(self) -> None:
         raw = {
             "issue_comments": [

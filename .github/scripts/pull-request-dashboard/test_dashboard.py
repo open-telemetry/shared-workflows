@@ -42,9 +42,7 @@ class ResolvePrRouteTest(unittest.TestCase):
         facts: dict[str, object] = {
             "ci_failing_count": 1,
             "ci_pending_count": 0,
-            "ci_uncleared_failing_count": 1,
             "dashboard_override_command_id": 1,
-            "dashboard_override_since": "2026-08-11T12:00:00Z",
             "dashboard_override_head_sha": "current-head",
             "head_sha": "current-head",
         }
@@ -72,7 +70,6 @@ class ResolvePrRouteTest(unittest.TestCase):
             conflicts="yes",
             is_maintenance_bot=False,
             ci_failing_count=0,
-            ci_uncleared_failing_count=0,
             ci_pending_count=1,
             copilot_review_exists=False,
             copilot_review_requested=False,
@@ -143,7 +140,6 @@ class ResolvePrRouteTest(unittest.TestCase):
                 {
                     "ci_failing_count": 1,
                     "ci_pending_count": 0,
-                    "ci_uncleared_failing_count": 1,
                 },
                 "author",
                 False,
@@ -238,7 +234,6 @@ class ResolvePrRouteTest(unittest.TestCase):
         # handoff holds across a refresh with no previous result to carry it.
         facts = self._override_facts(
             ci_failing_count=0,
-            ci_uncleared_failing_count=0,
             dashboard_override_command_id=0,
             copilot_review_exists=True,
             copilot_review_needed=True,
@@ -254,7 +249,6 @@ class ResolvePrRouteTest(unittest.TestCase):
     def test_push_restores_old_author_actions_after_override(self) -> None:
         facts = self._override_facts(
             ci_failing_count=0,
-            ci_uncleared_failing_count=0,
             dashboard_override_command_id=0,
             dashboard_override_head_sha="old-head",
             head_sha="new-head",
@@ -2226,7 +2220,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
     def test_required_ci_failure_routes_to_author_before_approval_state(self) -> None:
         facts = {
             "approval_count": 1,
-            "ci_uncleared_failing_count": 1,
+            "ci_failing_count": 1,
             "is_maintenance_bot": False,
         }
 
@@ -2237,7 +2231,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
             with self.subTest(approval_count=approval_count):
                 facts = {
                     "approval_count": approval_count,
-                    "ci_uncleared_failing_count": 1,
+                    "ci_failing_count": 1,
                     "is_maintenance_bot": True,
                 }
 
@@ -2322,8 +2316,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
         )
 
         self.assertEqual(3, facts["ci_failing_count"])
-        self.assertEqual(3, facts["ci_uncleared_failing_count"])
-        self.assertEqual("2026-07-17T01:00:00+00:00", facts["ci_uncleared_failing_since"])
+        self.assertEqual("2026-07-17T01:00:00+00:00", facts["ci_failing_since"])
         self.assertEqual("author", route_pr(facts, {}, 1))
 
         add_wait_age_facts(facts, "author", {})

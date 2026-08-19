@@ -107,38 +107,6 @@ def latest_authorized_command(
     return best_id, best_user
 
 
-def latest_authorized_command_at(
-    raw: dict[str, Any],
-    author: str,
-    reviewers: set[str] | None,
-) -> str:
-    """Timestamp of the newest authorized override command, acknowledged or not.
-
-    Unlike `latest_authorized_command`, acknowledged commands still count: the
-    watermark has to outlive the acknowledgement, or the discussions a command
-    cleared would come back on the next refresh. An acknowledgement is also
-    treated as durable proof of authorization, since approver-team membership is
-    resolved live and an approver can leave the team after commanding.
-    """
-    acknowledged_ids = _acknowledged_override_command_ids(raw.get("issue_comments"))
-    latest = ""
-    for comment in raw.get("issue_comments") or []:
-        if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
-            continue
-        try:
-            comment_id = int(comment.get("id"))
-        except (TypeError, ValueError):
-            comment_id = 0
-        if comment_id not in acknowledged_ids and not is_authorized_commander(
-            actor_login(comment.get("user") or {}), author, reviewers
-        ):
-            continue
-        created_at = comment.get("created_at") or ""
-        if created_at > latest:
-            latest = created_at
-    return latest
-
-
 def dashboard_override_facts(
     raw: dict[str, Any],
     author: str,
@@ -162,9 +130,6 @@ def dashboard_override_facts(
         # records it in the acknowledgement. An acknowledged command keeps the
         # binding from that acknowledgement.
         "dashboard_override_head_sha": bound_head,
-        "dashboard_override_since": latest_authorized_command_at(
-            raw, author, reviewers
-        ),
         "dashboard_command_replies": pending_command_replies(raw, author, reviewers),
     }
 
@@ -385,11 +350,6 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
             except Exception as e:
                 errors.append(f"PR #{pr_number}: {e}")
     return errors
-
-
-def uncleared_ci_failing_count(facts: dict[str, Any]) -> int:
-    """Failing required checks used by normal routing."""
-    return facts.get("ci_uncleared_failing_count") or 0
 
 
 def append_command_ack_reply(
