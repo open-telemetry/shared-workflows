@@ -2480,7 +2480,7 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -2503,7 +2503,7 @@
         "last_activity_at": "2026-08-19T16:37:44+00:00",
         "last_approver_activity_at": "2026-08-19T16:37:44+00:00",
         "last_author_activity_at": "2026-08-10T02:41:23+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -2514,15 +2514,15 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "f65c7f747782b54abfdb2d637ba62c207f520dcc07cf7300e09be39efc7b4742",
-        "waiting_age_basis": "gate_hold",
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "2044b807141e196808395df97441d0a8de68eb8a4c9d314e014d838743b80ef8",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-10T02:41:23+00:00"
       },
       "failed": false,
       "pr_number": 11107,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11107",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5218298654": {
           "evidence": {
