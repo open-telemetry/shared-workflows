@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from pathlib import Path
 
 
@@ -58,44 +59,62 @@ def is_missing_remote_ref(stderr: str) -> bool:
     return "couldn't find remote ref" in stderr.lower()
 
 
-def is_non_fast_forward(stderr: str) -> bool:
-    return "non-fast-forward" in stderr.lower()
+def temporary_fetch_ref() -> str:
+    return f"refs/pull-request-dashboard-fetch/{uuid.uuid4()}"
 
 
-def remote_is_behind_local(state_branch: str) -> bool:
-    if not has_state_branch(state_branch):
-        return False
-    fetched = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", "FETCH_HEAD", remote_ref(state_branch)],
+def ref_is_ancestor(ancestor: str, descendant: str) -> bool:
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
         capture_output=True,
         text=True,
         check=False,
     )
-    return fetched.returncode == 0
+    return result.returncode == 0
+
+
+def remote_is_behind_local(state_branch: str, fetched_ref: str) -> bool:
+    if not has_state_branch(state_branch):
+        return False
+    return ref_is_ancestor(fetched_ref, remote_ref(state_branch))
 
 
 def fetch_state_branch(state_branch: str, required: bool) -> bool:
-    refspec = f"{state_branch}:{remote_ref(state_branch)}"
-    proc = subprocess.run(
-        ["git", "fetch", "origin", refspec],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode == 0:
-        return True
-    if not required and is_missing_remote_ref(proc.stderr):
-        return False
-    if is_non_fast_forward(proc.stderr) and remote_is_behind_local(state_branch):
-        # GitHub answers fetches from server copies that lag slightly behind the copy
-        # that accepted the push, so a fetch right after a push can hand back the
-        # pre-push commit, which the local ref already contains
-        print(f"remote {state_branch} is behind the local ref; keeping the local ref", file=sys.stderr)
-        return True
-    message = proc.stderr.strip() or proc.stdout.strip() or f"exit code {proc.returncode}"
-    if required:
-        raise RuntimeError(f"failed to fetch required state branch {state_branch}: {message}")
-    raise RuntimeError(f"failed to fetch optional state branch {state_branch}: {message}")
+    fetched_ref = temporary_fetch_ref()
+    try:
+        proc = subprocess.run(
+            [
+                "git",
+                "fetch",
+                "--no-write-fetch-head",
+                "origin",
+                f"{state_branch}:{fetched_ref}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            if not required and is_missing_remote_ref(proc.stderr):
+                return False
+            message = proc.stderr.strip() or proc.stdout.strip() or f"exit code {proc.returncode}"
+            kind = "required" if required else "optional"
+            raise RuntimeError(f"failed to fetch {kind} state branch {state_branch}: {message}")
+
+        destination = remote_ref(state_branch)
+        if not has_state_branch(state_branch) or ref_is_ancestor(destination, fetched_ref):
+            run(["git", "update-ref", destination, fetched_ref])
+            return True
+        if remote_is_behind_local(state_branch, fetched_ref):
+            # GitHub fetches can briefly lag the copy that accepted the push.
+            print(
+                f"remote {state_branch} is behind the local ref; keeping the local ref",
+                file=sys.stderr,
+            )
+            return True
+        raise RuntimeError(f"fetched state branch {state_branch} diverged from the local ref")
+    finally:
+        run(["git", "update-ref", "-d", fetched_ref], check=False)
 
 
 def has_state_branch(state_branch: str) -> bool:

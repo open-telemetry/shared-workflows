@@ -56,27 +56,68 @@ class FetchStateBranchTest(unittest.TestCase):
             ),
         )
 
+    @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
     @patch.object(state_branch, "remote_is_behind_local", return_value=True)
+    @patch.object(state_branch, "ref_is_ancestor", return_value=False)
+    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(state_branch, "run")
     @patch.object(subprocess, "run")
     def test_keeps_local_ref_when_remote_is_behind(
         self,
+        subprocess_run: object,
         run: object,
+        _has_state_branch: object,
+        _ref_is_ancestor: object,
         _remote_is_behind_local: object,
+        _temporary_fetch_ref: object,
     ) -> None:
-        run.return_value = self.rejected_fetch()
+        subprocess_run.return_value = subprocess.CompletedProcess(
+            args=["git", "fetch"],
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
 
         self.assertTrue(state_branch.fetch_state_branch("state-branch", required=True))
 
+        self.assertEqual(
+            [
+                "git",
+                "fetch",
+                "--no-write-fetch-head",
+                "origin",
+                "state-branch:refs/temp/fetch",
+            ],
+            subprocess_run.call_args.args[0],
+        )
+        run.assert_called_once_with(
+            ["git", "update-ref", "-d", "refs/temp/fetch"],
+            check=False,
+        )
+
+    @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
     @patch.object(state_branch, "remote_is_behind_local", return_value=False)
+    @patch.object(state_branch, "ref_is_ancestor", return_value=False)
+    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(state_branch, "run")
     @patch.object(subprocess, "run")
     def test_raises_when_remote_diverged(
         self,
-        run: object,
+        subprocess_run: object,
+        _run: object,
+        _has_state_branch: object,
+        _ref_is_ancestor: object,
         _remote_is_behind_local: object,
+        _temporary_fetch_ref: object,
     ) -> None:
-        run.return_value = self.rejected_fetch()
+        subprocess_run.return_value = subprocess.CompletedProcess(
+            args=["git", "fetch"],
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaisesRegex(RuntimeError, "diverged"):
             state_branch.fetch_state_branch("state-branch", required=True)
 
 
@@ -88,7 +129,7 @@ class RemoteIsBehindLocalTest(unittest.TestCase):
         run: object,
         _has_state_branch: object,
     ) -> None:
-        self.assertFalse(state_branch.remote_is_behind_local("state-branch"))
+        self.assertFalse(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
 
         run.assert_not_called()
 
@@ -101,10 +142,16 @@ class RemoteIsBehindLocalTest(unittest.TestCase):
     ) -> None:
         run.return_value = subprocess.CompletedProcess(args=["git"], returncode=0)
 
-        self.assertTrue(state_branch.remote_is_behind_local("state-branch"))
+        self.assertTrue(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
 
         self.assertEqual(
-            ["git", "merge-base", "--is-ancestor", "FETCH_HEAD", "refs/remotes/origin/state-branch"],
+            [
+                "git",
+                "merge-base",
+                "--is-ancestor",
+                "refs/temp/fetch",
+                "refs/remotes/origin/state-branch",
+            ],
             run.call_args.args[0],
         )
 
@@ -117,7 +164,7 @@ class RemoteIsBehindLocalTest(unittest.TestCase):
     ) -> None:
         run.return_value = subprocess.CompletedProcess(args=["git"], returncode=1)
 
-        self.assertFalse(state_branch.remote_is_behind_local("state-branch"))
+        self.assertFalse(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
 
 
 class SetGitConfigTest(unittest.TestCase):

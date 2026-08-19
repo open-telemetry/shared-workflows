@@ -221,9 +221,12 @@ class DashboardBatchProcessor:
                 for claim in item.claims
             ]
         cache_dir = self.script_dir / ".cache" / "classifications" / repository
+        worker_temp = self.script_dir / ".cache" / "queue-workers" / repository
+        worker_temp.mkdir(parents=True, exist_ok=True)
         env = {
             **self.base_env,
             "PR_DASHBOARD_CLASSIFICATION_CACHE_DIR": str(cache_dir),
+            "RUNNER_TEMP": str(worker_temp),
             "REPO_NAME": repository,
             "REQUIRED_APPROVALS": str(config.get("required_approvals", 1)),
             "APPROVER_TEAMS_JSON": json.dumps(config.get("approver_teams", [])),

@@ -142,6 +142,44 @@ class QueueBatchTest(unittest.TestCase):
         process_batch(items, process, max_repositories=4)
         self.assertEqual(maximum, 4)
 
+    def test_repository_workers_use_private_runner_temp_directories(self) -> None:
+        runner_temps: dict[str, str] = {}
+
+        def initial_backfill(
+            repository: str,
+            _state_branch: str,
+            env: dict[str, str],
+        ) -> bool:
+            runner_temps[repository] = env["RUNNER_TEMP"]
+            return False
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config_path = root / "repositories.json"
+            config_path.write_text(
+                json.dumps([{"name": "a"}, {"name": "b"}]),
+                encoding="utf-8",
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path,
+                script_dir=root / "scripts",
+            )
+            with mock.patch.object(
+                processor,
+                "_initial_backfill_complete",
+                side_effect=initial_backfill,
+            ):
+                processor.process_repository(
+                    "a",
+                    [WorkItem("a", 1, (claim("a#pr:1", "a", pr_number=1),))],
+                )
+                processor.process_repository(
+                    "b",
+                    [WorkItem("b", 1, (claim("b#pr:1", "b", pr_number=1),))],
+                )
+
+        self.assertNotEqual(runner_temps["a"], runner_temps["b"])
+
     def test_repository_failure_does_not_suppress_other_results(self) -> None:
         items = [
             WorkItem("bad", 1, (claim("bad#pr:1", "bad", pr_number=1),)),
