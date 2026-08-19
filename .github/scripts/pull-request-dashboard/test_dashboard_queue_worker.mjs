@@ -141,7 +141,7 @@ test("rejects an unverified caller before reading the body", async () => {
       if (property === "text") {
         bodyRead = true;
       }
-      return Reflect.get(target, property, receiver);
+      return Reflect.get(target, property, target);
     },
   });
 
