@@ -229,24 +229,45 @@ test("canary mode queues only configured canary repositories", async () => {
   );
 });
 
-test("queue dispatch failure releases the dispatcher lease", async () => {
+test("queued mode falls back to direct dispatch when enqueue fails", async () => {
   const calls = [];
-  await assert.rejects(
-    withQueueMode("all", () => handleWebhookRequest(
-      webhookRequest("example", 123),
-      {
-        queue: queueMock(calls),
-        dispatchDrain: async () => {
-          throw new Error("dispatch failed");
+  const response = await withQueueMode("all", () => handleWebhookRequest(
+    webhookRequest("example", 123),
+    {
+      queue: {
+        async enqueue() {
+          throw new Error("Blob store unavailable");
         },
       },
-    )),
-    /dispatch failed/,
-  );
-  assert.deepEqual(calls.at(-1), [
+      dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
+    },
+  ));
+
+  const body = await response.json();
+  assert.equal(body.status, "dispatched_fallback");
+  assert.equal(body.queue_status, "error");
+  assert.deepEqual(calls.map(([name]) => name), ["refresh"]);
+});
+
+test("queue dispatch failure releases the lease and falls back", async () => {
+  const calls = [];
+  const response = await withQueueMode("all", () => handleWebhookRequest(
+    webhookRequest("example", 123),
+    {
+      queue: queueMock(calls),
+      dispatchDrain: async () => {
+        throw new Error("dispatch failed");
+      },
+      dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
+    },
+  ));
+
+  assert.equal((await response.json()).status, "dispatched_fallback");
+  assert.deepEqual(calls.at(-2), [
     "release",
     { generation: 7, requestOwner: "delivery-1" },
   ]);
+  assert.equal(calls.at(-1)[0], "refresh");
 });
 
 function webhookRequest(repository, prNumber) {
