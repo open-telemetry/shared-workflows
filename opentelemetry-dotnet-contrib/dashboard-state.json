@@ -549,7 +549,7 @@
     },
     "5005": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "normj",
           "muhammad-othman",
@@ -579,11 +579,19 @@
         "head_sha": "aa605e60a3c69805c0af5e7b2db62f01f86498a6",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-19T08:23:03+00:00",
-        "last_approver_activity_at": "2026-08-19T08:23:03+00:00",
+        "last_activity_at": "2026-08-19T08:38:28+00:00",
+        "last_approver_activity_at": "2026-08-19T08:38:28+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -609,9 +617,9 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "d03b243b96650347f8459ea6f611caea21f04ea4289685526c15fa5a0233929f",
-        "waiting_age_basis": "created",
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "5f79c4ba59932bb6a068806675e9ce4a567f2468c18f79f9f1c6fea0116b6c1c",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-19T08:14:15+00:00"
       },
       "failed": false,
