@@ -132,6 +132,25 @@ test("rejects malformed actions before touching the queue", async () => {
   assert.equal(calls.length, 0);
 });
 
+test("rejects unsupported acknowledgment outcomes as client errors", async () => {
+  const { calls, queue } = fixture();
+  await assert.rejects(
+    handleQueueWorkerRequest(request({
+      action: "acknowledge",
+      itemKey: "example#pr:1",
+      claimGeneration: 1,
+      workerId: "worker",
+      outcome: "ignored",
+    }), { queue, verifyRequest }),
+    (error) => {
+      assert.equal(error.statusCode, 400);
+      assert.match(error.message, /success, retry, dead/);
+      return true;
+    },
+  );
+  assert.equal(calls.length, 0);
+});
+
 test("rejects an unverified caller before reading the body", async () => {
   const { calls, queue } = fixture();
   let bodyRead = false;

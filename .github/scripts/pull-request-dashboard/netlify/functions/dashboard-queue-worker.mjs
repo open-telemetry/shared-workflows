@@ -3,6 +3,7 @@ import { dispatchQueueDrain } from "../lib/github-dispatch.mjs";
 import { verifyGitHubOidcRequest } from "../lib/github-oidc.mjs";
 
 const MAX_REQUEST_BYTES = 64 * 1024;
+const ACKNOWLEDGMENT_OUTCOMES = new Set(["success", "retry", "dead"]);
 
 export default async (request) => {
   try {
@@ -59,7 +60,7 @@ export async function handleQueueWorkerRequest(
           "claimGeneration",
         ),
         workerId: workerId(body.workerId),
-        outcome: nonEmptyString(body.outcome, "outcome", 20),
+        outcome: acknowledgmentOutcome(body.outcome),
         error: typeof body.error === "string" ? body.error : "",
         retryAfterMs: optionalNonNegativeInteger(
           body.retryAfterMs,
@@ -112,6 +113,13 @@ async function readJsonBody(request) {
 
 function workerId(value) {
   return nonEmptyString(value, "workerId", 200);
+}
+
+function acknowledgmentOutcome(value) {
+  if (!ACKNOWLEDGMENT_OUTCOMES.has(value)) {
+    throw requestError(400, "outcome must be one of: success, retry, dead");
+  }
+  return value;
 }
 
 function positiveInteger(value, name) {
