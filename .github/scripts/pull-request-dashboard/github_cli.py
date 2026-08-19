@@ -688,6 +688,55 @@ def _list_open_pulls(repo: str) -> list[dict[str, Any]]:
     ) or []
 
 
+_DRAFT_TRANSITION_BATCH_SIZE = 50
+
+
+def fetch_latest_draft_transitions(
+    repo: str,
+    pr_numbers: list[int],
+) -> dict[int, str]:
+    if any(
+        not isinstance(number, int) or isinstance(number, bool) or number <= 0
+        for number in pr_numbers
+    ):
+        raise ValueError("pull request numbers must be positive integers")
+
+    owner, repo_name = repo.split("/", 1)
+    numbers = sorted(set(pr_numbers))
+    transitions: dict[int, str] = {}
+    for start in range(0, len(numbers), _DRAFT_TRANSITION_BATCH_SIZE):
+        batch = numbers[start:start + _DRAFT_TRANSITION_BATCH_SIZE]
+        selections = "\n".join(
+            f"""
+            pr_{number}: pullRequest(number: {number}) {{
+                timelineItems(last: 1, itemTypes: [CONVERT_TO_DRAFT_EVENT]) {{
+                    nodes {{
+                        ... on ConvertToDraftEvent {{
+                            createdAt
+                        }}
+                    }}
+                }}
+            }}
+            """
+            for number in batch
+        )
+        query = f"""
+        query($owner: String!, $name: String!) {{
+            repository(owner: $owner, name: $name) {{
+                {selections}
+            }}
+        }}
+        """
+        data = gh_graphql(query, {"owner": owner, "name": repo_name})
+        repository = ((data.get("data") or {}).get("repository") or {})
+        for number in batch:
+            pull_request = repository.get(f"pr_{number}") or {}
+            nodes = ((pull_request.get("timelineItems") or {}).get("nodes") or [])
+            if nodes and nodes[0].get("createdAt"):
+                transitions[number] = nodes[0]["createdAt"]
+    return transitions
+
+
 def list_open_prs(repo: str) -> list[dict[str, Any]]:
     return [
         {
@@ -695,7 +744,7 @@ def list_open_prs(repo: str) -> list[dict[str, Any]]:
             "title": pull["title"],
             "author": pull.get("user"),
             "isDraft": pull.get("draft", False),
-            "updatedAt": pull.get("updated_at"),
+            "createdAt": pull.get("created_at"),
             "url": pull.get("html_url"),
             "labels": [
                 label["name"]

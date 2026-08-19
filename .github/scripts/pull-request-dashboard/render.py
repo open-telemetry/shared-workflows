@@ -60,17 +60,21 @@ def render_draft_pr_section(
     drafts = [p for p in prs if p.get("isDraft")]
     if not drafts:
         return []
-    drafts.sort(key=lambda p: p.get("updatedAt") or "")
+    drafts.sort(key=lambda p: p.get("draftSince") or p.get("createdAt") or "")
     drafts, truncated = _limit_rows(drafts, max_rows_per_section)
     lines = ["## Draft pull requests", ""]
-    lines.append("| PR | Author | Updated |")
+    lines.append("| PR | Author | Draft age |")
     lines.append("|---|---|:---:|")
     for pr in drafts:
         author = actor_login(pr.get("author") or {})
-        updated = activity_age(parse_ts(pr.get("updatedAt") or ""))
+        draft_age = activity_age(
+            parse_ts(pr.get("draftSince") or pr.get("createdAt") or "")
+        )
         # GitHub autolinks same-repo PR numbers; avoid full URLs so large
         # dashboards can show more PRs before hitting the issue body limit.
-        lines.append(f"| {_pr_cell_text(pr, labels_to_display)} | {author} | {updated} |")
+        lines.append(
+            f"| {_pr_cell_text(pr, labels_to_display)} | {author} | {draft_age} |"
+        )
     lines.append("")
     if truncated:
         lines.append(_truncation_note(truncated))

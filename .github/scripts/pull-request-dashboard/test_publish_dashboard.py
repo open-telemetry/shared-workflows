@@ -43,6 +43,28 @@ class PublishablePrsTest(unittest.TestCase):
             [prs[0], prs[2]],
         )
 
+    @patch.object(publish_dashboard, "fetch_latest_draft_transitions")
+    def test_adds_latest_draft_transition_with_creation_fallback(
+        self,
+        fetch_transitions: object,
+    ) -> None:
+        fetch_transitions.return_value = {2: "2026-07-17T00:00:00Z"}
+        prs = [
+            {"number": 1, "isDraft": False, "createdAt": "2026-07-01T00:00:00Z"},
+            {"number": 2, "isDraft": True, "createdAt": "2026-07-02T00:00:00Z"},
+            {"number": 3, "isDraft": True, "createdAt": "2026-07-03T00:00:00Z"},
+        ]
+
+        publish_dashboard.add_draft_since("open-telemetry/example", prs)
+
+        self.assertNotIn("draftSince", prs[0])
+        self.assertEqual("2026-07-17T00:00:00Z", prs[1]["draftSince"])
+        self.assertEqual("2026-07-03T00:00:00Z", prs[2]["draftSince"])
+        fetch_transitions.assert_called_once_with(
+            "open-telemetry/example",
+            [2, 3],
+        )
+
     @patch.object(publish_dashboard, "publish_dashboard")
     @patch.object(publish_dashboard, "render_dashboard_markdown", return_value=Path("dashboard.md"))
     @patch.object(publish_dashboard, "set_state_dir")
