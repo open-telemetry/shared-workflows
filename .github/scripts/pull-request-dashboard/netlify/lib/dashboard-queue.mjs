@@ -402,7 +402,11 @@ export class DashboardQueue {
         delete shard.items[itemKey];
         return { changed: true, result: { status: "removed" } };
       }
-      if (outcome === "dead") {
+      if (
+        outcome === "dead" &&
+        !item.dirty &&
+        item.generation === claimGeneration
+      ) {
         const deadKey = `${itemKey}@${item.generation}`;
         shard.deadLetters[deadKey] = {
           ...publicItem(item),
@@ -494,8 +498,12 @@ export class DashboardQueue {
           ) {
             continue;
           }
-          item.attempts += 1;
-          if (item.attempts >= this.maxRecoveryAttempts) {
+          if (item.dirty) {
+            item.attempts = 0;
+          } else {
+            item.attempts += 1;
+          }
+          if (!item.dirty && item.attempts >= this.maxRecoveryAttempts) {
             shard.deadLetters[`${itemKey}@${item.generation}`] = {
               ...publicItem(item),
               error: `queue item lease expired ${item.attempts} times without an acknowledgment`,

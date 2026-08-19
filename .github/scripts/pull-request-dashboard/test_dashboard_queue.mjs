@@ -382,6 +382,92 @@ test("dead letters remove active work and retain bounded diagnostics", async () 
   assert.equal(stats.inflight, 0);
 });
 
+test("a dead acknowledgment preserves a dirty follow-up generation", async () => {
+  const { queue } = fixture();
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  const [claim] = await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "status",
+  });
+
+  const result = await queue.acknowledge({
+    itemKey: claim.itemKey,
+    claimGeneration: claim.claimGeneration,
+    workerId: "worker",
+    outcome: "dead",
+    error: "final attempt failed",
+  });
+
+  assert.deepEqual(result, { status: "follow_up", attempts: 0 });
+  const stats = await queue.stats();
+  assert.equal(stats.queued, 1);
+  assert.equal(stats.deadLetters, 0);
+});
+
+test("expired recovery preserves a dirty generation at the attempt ceiling", async () => {
+  const { queue, advance } = fixture();
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+
+  for (let round = 0; round < 4; round += 1) {
+    const request = await queue.requestDispatcher(`request-${round}`);
+    await queue.activateDispatcher({
+      generation: request.generation,
+      workerId: `worker-${round}`,
+    });
+    await queue.claimWave({
+      generation: request.generation,
+      workerId: `worker-${round}`,
+    });
+    advance(1_001);
+    await queue.recoverExpiredLeases();
+  }
+
+  const request = await queue.requestDispatcher("request-final");
+  await queue.activateDispatcher({
+    generation: request.generation,
+    workerId: "worker-final",
+  });
+  await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker-final",
+  });
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "status",
+  });
+  advance(1_001);
+
+  const recovery = await queue.recoverExpiredLeases();
+  assert.equal(recovery.recoveredItems, 1);
+  assert.equal(recovery.abandonedItems, 0);
+  const stats = await queue.stats();
+  assert.equal(stats.queued, 1);
+  assert.equal(stats.deadLetters, 0);
+});
+
 test("a stored entry without an ETag never becomes a blind overwrite", async () => {
   const { queue, store } = fixture();
   const request = await queue.requestDispatcher("request");
