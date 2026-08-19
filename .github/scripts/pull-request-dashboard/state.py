@@ -23,7 +23,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 8
+DASHBOARD_STATE_VERSION = 10
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -36,7 +36,7 @@ COPILOT_REVIEW_REQUEST_STATE_VERSION = 5
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 15
+STATUS_COMMENT_REVISION = 16
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 

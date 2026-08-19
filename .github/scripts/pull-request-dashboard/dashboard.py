@@ -111,15 +111,14 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
-    ci_uncleared_failing_count      int           Required failures an override
-                                                  command has not cleared.
-    ci_uncleared_failing_since      str (iso)     Earliest completion time among
-                                                  those uncleared failures.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
                                                   fetched, and excludes required
                                                   contexts whose app has already
                                                   finished reporting.
+    dashboard_override_head_sha     str           Head an override is bound to;
+                                                  the handoff is active while it
+                                                  equals head_sha.
     conflicts                       str           "yes" | "no" | "unknown".
     copilot_review_requested        bool          Copilot is a pending requested
                                                   reviewer, so a review is in
@@ -286,10 +285,8 @@ from copilot_review import (
 )
 from dashboard_override import (
     append_command_ack_reply,
-    clear_overridden_actions,
     dashboard_command_body_remainder,
     dashboard_override_facts,
-    uncleared_ci_failing_count,
 )
 from pr_status_comment import status_author_nudge_episode_id
 from state import (
@@ -309,6 +306,7 @@ from state import (
 import state_branch
 from utils import (
     actor_login,
+    compute_conflicts,
     format_ts,
     parse_ts,
     required_checks_settled,
@@ -537,16 +535,6 @@ def is_substantive_activity(event: dict[str, Any]) -> bool:
     return bool((event.get("body") or "").strip())
 
 
-def compute_conflicts(pr: dict[str, Any]) -> str:
-    merge_state = pr.get("mergeStateStatus")
-    mergeable = pr.get("mergeable")
-    if mergeable == "CONFLICTING" or merge_state == "DIRTY":
-        return "yes"
-    if mergeable in (None, "", "UNKNOWN"):
-        return "unknown"
-    return "no"
-
-
 def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[str]) -> datetime | None:
     timestamps = [
         parse_ts(e["timestamp"])
@@ -654,6 +642,7 @@ def compute_facts(
     author: str,
     events: list[dict[str, Any]],
     reviewers: set[str] | None = None,
+    previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pr = raw["pr"]
     checks = raw["checks"]
@@ -689,7 +678,13 @@ def compute_facts(
         "assignees": assignees,
         "head_sha": head_sha,
         "routing_input_fingerprint": routing_input_fingerprint(raw),
-        **dashboard_override_facts(raw, author, reviewers or set()),
+        **dashboard_override_facts(
+            raw,
+            author,
+            reviewers or set(),
+            head_sha,
+            previous_facts,
+        ),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (raw.get("review_requests") or [])
@@ -713,19 +708,6 @@ def compute_facts(
         facts["ci_failing_count"] = len(failing)
         if failing_timestamps:
             facts["ci_failing_since"] = format_ts(min(failing_timestamps))
-        # A failure with no completion time cannot be shown to predate the
-        # override command, so it counts as uncleared. So does one that shares
-        # the command's second, since GitHub timestamps cannot order them.
-        untimed = len(failing) - len(failing_timestamps)
-        override_since = parse_ts(facts.get("dashboard_override_since") or "")
-        uncleared = [
-            ts
-            for ts in failing_timestamps
-            if override_since is None or ts >= override_since
-        ]
-        facts["ci_uncleared_failing_count"] = untimed + len(uncleared)
-        if uncleared:
-            facts["ci_uncleared_failing_since"] = format_ts(min(uncleared))
         facts["ci_pending_count"] = len(pending)
     non_blocking_check_failures = sorted({
         check.get("name") or ""
@@ -1261,13 +1243,14 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     # bot PRs have no useful author route and need only one approval.
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
-    # Precedence:
-    #   1. A required status check failure the author has not overridden -> "author".
+    # Default precedence, which an active reviewer handoff overrides later in
+    # resolve_pr_route:
+    #   1. A required status check failure -> "author".
     #   2. A discussion waiting on the author -> "author".
     #   3. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
     #      remains visible but does not keep an approved PR out of this route.
     #   4. Otherwise the PR is still waiting on approvers.
-    ci_failing = uncleared_ci_failing_count(facts) > 0
+    ci_failing = (facts.get("ci_failing_count") or 0) > 0
     if ci_failing and not is_maintenance_bot:
         return "author"
     if counts["author"] and not is_maintenance_bot:
@@ -1317,8 +1300,10 @@ def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None
     if route in REVIEWER_ROUTES:
         return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
     if route == "author":
-        if uncleared_ci_failing_count(facts) > 0:
-            ci_failing_since = parse_ts(facts.get("ci_uncleared_failing_since") or "")
+        if facts.get("conflicts") == "yes":
+            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
+        if (facts.get("ci_failing_count") or 0) > 0:
+            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
             if ci_failing_since is not None:
                 return ci_failing_since, "ci_failure"
             return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
@@ -1586,29 +1571,36 @@ def hold_route_until_gates_settle(
     *,
     require_clean_copilot_review: bool,
     now: datetime,
+    bypass_gates: bool = False,
 ) -> str:
     # The required checks and the Copilot review are the author's to clear, so
     # a PR does not advance while one is outstanding. Moving back toward the
     # author is always allowed, because those are decisions a gate cannot undo.
     previous_route = (previous_result or {}).get("route") or ""
-    if previous_route not in ROUTE_PROGRESSION:
-        # A maintenance bot has no author route to fall back to.
+    if previous_route not in ROUTE_PROGRESSION or (
+        facts.get("is_maintenance_bot") and previous_route == "author"
+    ):
+        # A maintenance bot has no author route to fall back to. A cached result
+        # can still say "author" if the pull request author only became
+        # classified as a maintenance bot after that result was stored.
         previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
+    gates_enabled = not bypass_gates
+    copilot_review_gate_enabled = require_clean_copilot_review and gates_enabled
     facts["copilot_review_outstanding"] = copilot_review_outstanding(
-        facts, enabled=require_clean_copilot_review
+        facts, enabled=copilot_review_gate_enabled
     )
     facts["copilot_review_unreported"] = copilot_review_unreported(
-        facts, enabled=require_clean_copilot_review
+        facts, enabled=copilot_review_gate_enabled
     )
     facts["required_checks_settled"] = required_checks_settled(facts)
-    gates_outstanding = (
+    gates_outstanding = gates_enabled and (
         not facts["required_checks_settled"] or facts["copilot_review_outstanding"]
     )
     # Only a gate that has reported nothing on this head can stall. A Copilot
     # review that left findings did report, and clearing those findings is the
     # author's own work, so counting it would turn every author who takes more
     # than four hours over review comments into a missing gate.
-    unreported_gates = (
+    unreported_gates = gates_enabled and (
         not facts["required_checks_settled"] or facts["copilot_review_unreported"]
     )
     would_hold = route_progress(route) > route_progress(previous_route)
@@ -1616,7 +1608,9 @@ def hold_route_until_gates_settle(
         facts,
         previous_result,
         route,
-        unreported_gates=unreported_gates,
+        # GitHub may not start checks or reviews while a PR is conflicted. Do not
+        # let that expected absence consume the four-hour missing-gate budget.
+        unreported_gates=unreported_gates and facts.get("conflicts") != "yes",
         would_hold=would_hold,
         now=now,
     )
@@ -1632,6 +1626,17 @@ def hold_route_until_gates_settle(
     return previous_route if held else route
 
 
+def reviewer_handoff_active(facts: dict[str, Any]) -> bool:
+    """Whether an override command binds the head this pass observed.
+
+    The bound head is recorded in the command's acknowledgement comment, so the
+    handoff survives a dropped cache and a failed pass, and a later push ends it
+    without any code path having to remember that the push happened.
+    """
+    bound_head = facts.get("dashboard_override_head_sha") or ""
+    return bool(bound_head) and bound_head == (facts.get("head_sha") or "")
+
+
 def resolve_pr_route(
     facts: dict[str, Any],
     pending_actions: dict[str, dict[str, Any]],
@@ -1639,77 +1644,51 @@ def resolve_pr_route(
     require_clean_copilot_review: bool,
     previous_result: dict[str, Any] | None = None,
     now: datetime | None = None,
+    manual_reviewer_handoff: bool | None = None,
 ) -> str:
     now = now or utc_now()
     route = route_pr(facts, pending_actions, required_approvals)
-    previous_facts = (previous_result or {}).get("facts") or {}
-    override_cleared_actions = bool(
-        facts.get("dashboard_override_cleared_count")
-        or facts.get("dashboard_override_cleared_ci")
-    )
-    pending_override_command_id = facts.get("dashboard_override_command_id") or 0
-    same_override_command = (
-        bool(facts.get("dashboard_override_since"))
-        and facts.get("dashboard_override_since")
-        == previous_facts.get("dashboard_override_since")
-        and (
-            not pending_override_command_id
-            or pending_override_command_id
-            == (previous_facts.get("dashboard_override_command_id") or 0)
-        )
-    )
-    same_overridden_head = (
-        same_override_command
-        and facts.get("head_sha") == previous_facts.get("head_sha")
-    )
-    manual_reviewer_handoff = (
-        override_cleared_actions
-        and bool(pending_override_command_id)
-        and not same_override_command
-    ) or bool(
-        previous_facts.get("copilot_review_bypassed_by_override")
-        and same_overridden_head
-    )
-    facts["copilot_review_bypassed_by_override"] = manual_reviewer_handoff
+    if manual_reviewer_handoff is None:
+        manual_reviewer_handoff = reviewer_handoff_active(facts)
+    if manual_reviewer_handoff:
+        route = "approver"
     copilot_review_gate_enabled = (
-        require_clean_copilot_review and not manual_reviewer_handoff
+        require_clean_copilot_review
+        and not manual_reviewer_handoff
+    )
+    copilot_review_request_enabled = (
+        copilot_review_gate_enabled and facts.get("conflicts") != "yes"
     )
     set_copilot_first_review_missing_since(
         facts,
         previous_result,
-        enabled=copilot_review_gate_enabled,
+        enabled=copilot_review_request_enabled,
         now=now,
     )
     set_copilot_review_request_needed(
-        facts, route, enabled=copilot_review_gate_enabled, now=now
+        facts, route, enabled=copilot_review_request_enabled, now=now
     )
     return hold_route_until_gates_settle(
         facts,
         route,
         previous_result,
         require_clean_copilot_review=copilot_review_gate_enabled,
+        bypass_gates=manual_reviewer_handoff,
         now=now,
     )
 
 
-def preserve_override_state_after_failure(
+def preserve_gate_state_after_failure(
     facts: dict[str, Any],
     previous_result: dict[str, Any] | None,
 ) -> None:
+    """Carry gate state that a failed classification would otherwise reset.
+
+    Override state needs nothing here. It is read from the command and its
+    acknowledgement comment on every pass, so a failed pass recomputes it
+    instead of losing it.
+    """
     previous_facts = (previous_result or {}).get("facts") or {}
-    facts["dashboard_override_command_id"] = (
-        previous_facts.get("dashboard_override_command_id") or 0
-    )
-    same_overridden_head = (
-        bool(facts.get("dashboard_override_since"))
-        and facts.get("dashboard_override_since")
-        == previous_facts.get("dashboard_override_since")
-        and facts.get("head_sha") == previous_facts.get("head_sha")
-    )
-    facts["copilot_review_bypassed_by_override"] = bool(
-        previous_facts.get("copilot_review_bypassed_by_override")
-        and same_overridden_head
-    )
     # A failed pass must not restart the first-review clock, or a repeatedly
     # failing classification would keep the wait permanently under the grace.
     if previous_facts.get("copilot_first_review_missing_since"):
@@ -1724,9 +1703,7 @@ def assign_author_nudge_episode(
     previous_result: dict[str, Any] | None,
     issue_comments: list[dict[str, Any]],
 ) -> None:
-    # A held PR only shows the author route because a gate has not reported,
-    # so the author's waiting episode ended when the route was computed.
-    if route != "author" or facts.get("route_held_for_gates"):
+    if route != "author":
         facts.pop("author_nudge_episode_id", None)
         return
     previous_facts = (previous_result or {}).get("facts") or {}
@@ -1774,43 +1751,51 @@ def build_pr_result(
             return None
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
-        facts = compute_facts(raw, author, events, reviewers)
+        previous_facts = (previous_result or {}).get("facts") or {}
+        facts = compute_facts(raw, author, events, reviewers, previous_facts)
+        manual_reviewer_handoff = reviewer_handoff_active(facts)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)
         top_level_author_comment_items = derive_top_level_author_comment_items(
             events, top_level_items, facts
         )
-        (
-            review_thread_classifications,
-            top_level_classifications,
-            top_level_author_comment_classifications,
-        ) = classify_discussion_domains(
-            number,
-            review_threads,
-            top_level_items,
-            top_level_author_comment_items,
-            model,
-        )
-        author_comment_outcomes = top_level_author_comment_outcomes(
-            top_level_author_comment_items,
-            top_level_author_comment_classifications,
-        )
-        author_comment_source_state = top_level_author_comment_source_state(
-            top_level_author_comment_items,
-            top_level_author_comment_classifications,
-        )
-        review_thread_pending_actions = build_review_thread_pending_actions(
-            review_threads, review_thread_classifications
-        )
-        top_level_pending_actions, top_level_history = advance_top_level_actions(
-            top_level_items,
-            top_level_classifications,
-            previous_top_level_history,
-            author_comment_outcomes,
-            author_comment_source_state,
-        )
-        pending_actions = review_thread_pending_actions | top_level_pending_actions
-        pending_actions = clear_overridden_actions(facts, pending_actions)
+        if manual_reviewer_handoff:
+            review_thread_classifications = []
+            top_level_classifications = []
+            top_level_author_comment_classifications = []
+            pending_actions = {}
+            top_level_history = previous_top_level_history or {}
+        else:
+            (
+                review_thread_classifications,
+                top_level_classifications,
+                top_level_author_comment_classifications,
+            ) = classify_discussion_domains(
+                number,
+                review_threads,
+                top_level_items,
+                top_level_author_comment_items,
+                model,
+            )
+            author_comment_outcomes = top_level_author_comment_outcomes(
+                top_level_author_comment_items,
+                top_level_author_comment_classifications,
+            )
+            author_comment_source_state = top_level_author_comment_source_state(
+                top_level_author_comment_items,
+                top_level_author_comment_classifications,
+            )
+            review_thread_pending_actions = build_review_thread_pending_actions(
+                review_threads, review_thread_classifications
+            )
+            top_level_pending_actions, top_level_history = advance_top_level_actions(
+                top_level_items,
+                top_level_classifications,
+                previous_top_level_history,
+                author_comment_outcomes,
+                author_comment_source_state,
+            )
+            pending_actions = review_thread_pending_actions | top_level_pending_actions
         failed_classifications = [
             classification
             for classification in (
@@ -1821,7 +1806,7 @@ def build_pr_result(
             if classification.get("failed")
         ]
         if failed_classifications:
-            preserve_override_state_after_failure(facts, previous_result)
+            preserve_gate_state_after_failure(facts, previous_result)
             return {
                 "pr_number": number,
                 "pr_title": raw["pr"].get("title") or "",
@@ -1848,6 +1833,7 @@ def build_pr_result(
             required_approvals,
             require_clean_copilot_review,
             previous_result,
+            manual_reviewer_handoff=manual_reviewer_handoff,
         )
         assign_author_nudge_episode(
             facts,

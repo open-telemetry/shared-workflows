@@ -12,7 +12,7 @@ from github_cli import (
     gh_api,
     run_gh,
 )
-from dashboard_override import PRE_REVIEW_ROUTES, uncleared_ci_failing_count
+from dashboard_override import PRE_REVIEW_ROUTES
 from route_presentation import (
     abandoned_gate_note,
     outstanding_gate_phrase,
@@ -236,7 +236,7 @@ def render_status_comment(
     review_thread_urls = facts.get("author_action_review_thread_urls") or []
     top_level_feedback_urls = facts.get("author_action_top_level_feedback_urls") or []
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
-    failing_count = uncleared_ci_failing_count(facts)
+    failing_count = facts.get("ci_failing_count") or 0
     non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
 
     override_route = ""
@@ -257,27 +257,42 @@ def render_status_comment(
         body = ["Finish refreshing this pull request."]
     else:
         route = result.get("route") or "unknown"
+        conflicted = facts.get("conflicts") == "yes"
         if route in PRE_REVIEW_ROUTES:
             override_route = route
         headline = status_headline(route)
         if route == "author":
-            body = author_body(
-                feedback_count=feedback_count,
-                failing_count=failing_count,
-                non_blocking_failure_note=non_blocking_failure_summary(
-                    non_blocking_check_failures
-                ),
-                review_thread_urls=review_thread_urls,
-                top_level_feedback_urls=top_level_feedback_urls,
-                held_gates=(
-                    outstanding_gate_phrase(facts)
-                    if facts.get("route_held_for_gates")
-                    else ""
-                ),
-            )
+            body = ["Resolve merge conflicts."] if conflicted else []
+            if (
+                not conflicted
+                or feedback_count
+                or failing_count
+                or facts.get("route_held_for_gates")
+            ):
+                author_actions = author_body(
+                    feedback_count=feedback_count,
+                    failing_count=failing_count,
+                    non_blocking_failure_note=non_blocking_failure_summary(
+                        non_blocking_check_failures
+                    ),
+                    review_thread_urls=review_thread_urls,
+                    top_level_feedback_urls=top_level_feedback_urls,
+                    held_gates=(
+                        outstanding_gate_phrase(facts)
+                        if facts.get("route_held_for_gates")
+                        else ""
+                    ),
+                )
+                if body:
+                    body.append("")
+                body.extend(author_actions)
         else:
             _, next_step = route_status_summary(route)
-            body = [next_step]
+            body = (
+                ["Resolve merge conflicts, then merge when ready."]
+                if conflicted and route == "maintainer"
+                else [next_step]
+            )
             abandoned_gates = (
                 abandoned_gate_note(facts)
                 if facts.get("route_hold_expired")
@@ -302,6 +317,8 @@ def render_status_comment(
                     non_blocking_check_failures, names_only=True
                 )
                 body.extend(["", f"**{label}:** {names}"])
+            if conflicted and route != "maintainer":
+                body.extend(["", "**Also blocked by:** Merge conflicts."])
 
     lines = [
         STATUS_MARKER,

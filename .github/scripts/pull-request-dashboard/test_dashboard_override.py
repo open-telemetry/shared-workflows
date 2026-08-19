@@ -8,10 +8,11 @@ import dashboard_override
 
 class DashboardOverrideTest(unittest.TestCase):
     def test_override_guidance_matches_pre_review_route(self) -> None:
-        self.assertIn(
-            "waiting on the author to waiting on reviewers",
-            dashboard_override.author_override_guidance(),
-        )
+        guidance = dashboard_override.author_override_guidance()
+
+        self.assertIn("waiting on the author to waiting on reviewers", guidance)
+        self.assertIn("the head it sees when it reads the command", guidance)
+        self.assertNotIn("immediately", guidance)
 
     def test_dashboard_command_body_remainder(self) -> None:
         self.assertIsNone(
@@ -71,6 +72,29 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(
             (0, ""),
             dashboard_override.latest_authorized_command(raw, "author", set()),
+        )
+
+    def test_latest_authorized_command_ignores_previously_rejected_command(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 3,
+                    "user": {"login": "new-approver"},
+                    "body": "/dashboard route:reviewers",
+                },
+                {
+                    "id": 4,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": dashboard_override.command_reply_marker(3),
+                },
+            ]
+        }
+
+        self.assertEqual(
+            (0, ""),
+            dashboard_override.latest_authorized_command(
+                raw, "author", {"new-approver"}
+            ),
         )
 
     def test_is_authorized_commander_matches_author_or_approver(self) -> None:
@@ -190,59 +214,156 @@ class DashboardOverrideTest(unittest.TestCase):
             maintainer,
         )
 
-    def test_renders_already_routed_replies_per_route(self) -> None:
-        cases = {
-            "approver": "already waiting on reviewers",
-            "maintainer": "already past review and waiting on maintainers",
-        }
-        for route, phrase in cases.items():
-            with self.subTest(route=route):
-                body = dashboard_override.render_command_reply(
-                    {"comment_id": 7, "kind": "already_routed", "user": "author", "route": route}
-                )
-                self.assertIn(dashboard_override.command_reply_marker(7), body)
+    def test_renders_routed_reply_for_a_command_bound_to_an_earlier_head(self) -> None:
+        for held_gates in ("", "the Copilot review"):
+            with self.subTest(held_gates=held_gates):
+                body = dashboard_override.render_command_reply({
+                    "comment_id": 7,
+                    "kind": "routed",
+                    "user": "author",
+                    "route": "author",
+                    "held_gates": held_gates,
+                })
+
                 self.assertIn(dashboard_override.override_ack_marker(7), body)
-                self.assertIn(f"@author, this pull request is {phrase}, so", body)
-                self.assertIn("`/dashboard route:reviewers` had no effect", body)
+                self.assertIn(
+                    "@author, your reviewer-routing request is not active for the "
+                    "current pull request head; comment `/dashboard route:reviewers` "
+                    "again to hand the current head to reviewers.",
+                    body,
+                )
 
-    def test_renders_already_routed_reply_for_a_command_that_cleared_nothing(
-        self,
-    ) -> None:
-        body = dashboard_override.render_command_reply(
-            {"comment_id": 7, "kind": "already_routed", "user": "author", "route": "author"}
-        )
+    def test_ack_marker_records_the_bound_head(self) -> None:
+        body = dashboard_override.render_command_reply({
+            "comment_id": 7,
+            "kind": "routed",
+            "head_sha": "abcdef123456",
+            "user": "author",
+            "route": "approver",
+        })
 
-        self.assertIn(dashboard_override.override_ack_marker(7), body)
         self.assertIn(
-            "@author, everything still open on this pull request arrived after "
-            "your `/dashboard route:reviewers` command",
-            body,
+            "<!-- pull-request-dashboard-override-ack:7:abcdef123456 -->", body
         )
 
-    def test_appends_already_routed_reply_for_a_command_that_cleared_nothing(self) -> None:
-        facts = {
-            "author": "author",
-            "dashboard_override_command_id": 12,
+    def test_pending_command_binds_to_the_head_this_pass_observed(self) -> None:
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
         }
 
-        dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
-
-        self.assertEqual(
-            [{
-                "comment_id": 12,
-                "kind": "already_routed",
-                "user": "author",
-                "route": "approver",
-                "held_gates": "",
-            }],
-            facts["dashboard_command_replies"],
+        facts = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "current-head"
         )
 
-    def test_appends_routed_reply_when_the_command_cleared_something(self) -> None:
+        self.assertEqual(5, facts["dashboard_override_command_id"])
+        self.assertEqual("current-head", facts["dashboard_override_head_sha"])
+
+    def test_pending_command_keeps_its_first_observed_head(self) -> None:
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+        first = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "first-head"
+        )
+
+        retry = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "later-head", first
+        )
+
+        self.assertEqual(5, retry["dashboard_override_command_id"])
+        self.assertEqual("first-head", retry["dashboard_override_head_sha"])
+
+    def test_new_pending_command_binds_to_the_newly_observed_head(self) -> None:
+        previous_raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+        previous_facts = dashboard_override.dashboard_override_facts(
+            previous_raw, "author", None, "first-head"
+        )
+        raw = {
+            "issue_comments": [
+                *previous_raw["issue_comments"],
+                {"id": 6, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "later-head", previous_facts
+        )
+
+        self.assertEqual(6, facts["dashboard_override_command_id"])
+        self.assertEqual("later-head", facts["dashboard_override_head_sha"])
+
+    def test_acknowledged_command_keeps_its_bound_head(self) -> None:
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+                {
+                    "id": 9,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": dashboard_override.override_ack_marker(5, "bound-head"),
+                },
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "current-head"
+        )
+
+        self.assertEqual(0, facts["dashboard_override_command_id"])
+        self.assertEqual("bound-head", facts["dashboard_override_head_sha"])
+
+    def test_marker_without_a_head_still_retires_its_command(self) -> None:
+        # Acknowledgements written before the dashboard recorded a head have to
+        # keep retiring their command, or an old command would run again.
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+                {
+                    "id": 9,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": dashboard_override.override_ack_marker(5),
+                },
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "current-head"
+        )
+
+        self.assertEqual(0, facts["dashboard_override_command_id"])
+        self.assertEqual("", facts["dashboard_override_head_sha"])
+
+    def test_forged_acknowledgement_does_not_bind_a_head(self) -> None:
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+                {
+                    "id": 9,
+                    "user": {"login": "outsider"},
+                    "body": dashboard_override.override_ack_marker(5, "forged-head"),
+                },
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "current-head"
+        )
+
+        self.assertEqual(5, facts["dashboard_override_command_id"])
+        self.assertEqual("current-head", facts["dashboard_override_head_sha"])
+
+    def test_appends_routed_reply_for_break_glass_command_that_cleared_nothing(self) -> None:
         facts = {
             "author": "author",
             "dashboard_override_command_id": 12,
-            "dashboard_override_cleared_count": 1,
+            "dashboard_override_head_sha": "bound-head",
         }
 
         dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
@@ -251,6 +372,7 @@ class DashboardOverrideTest(unittest.TestCase):
             [{
                 "comment_id": 12,
                 "kind": "routed",
+                "head_sha": "bound-head",
                 "user": "author",
                 "route": "approver",
                 "held_gates": "",
@@ -265,10 +387,32 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertNotIn("dashboard_command_replies", facts)
 
-    def test_already_routed_reply_deduped_by_existing_marker(self) -> None:
+    def test_acknowledges_a_command_even_without_a_bound_head(self) -> None:
+        # An unbound head only leaves the handoff inactive. Withholding the
+        # acknowledgement would leave the command pending forever instead.
+        facts = {"author": "author", "dashboard_override_command_id": 12}
+
+        dashboard_override.append_command_ack_reply(
+            {"issue_comments": []}, facts, "author"
+        )
+
+        self.assertEqual(
+            [{
+                "comment_id": 12,
+                "kind": "routed",
+                "head_sha": "",
+                "user": "author",
+                "route": "author",
+                "held_gates": "",
+            }],
+            facts["dashboard_command_replies"],
+        )
+
+    def test_ack_reply_deduped_by_existing_marker(self) -> None:
         facts = {
             "author": "author",
             "dashboard_override_command_id": 12,
+            "dashboard_override_head_sha": "bound-head",
         }
         raw = {
             "issue_comments": [
@@ -283,10 +427,11 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertNotIn("dashboard_command_replies", facts)
 
-    def test_forged_marker_does_not_dedupe_already_routed_reply(self) -> None:
+    def test_forged_marker_does_not_dedupe_ack_reply(self) -> None:
         facts = {
             "author": "author",
             "dashboard_override_command_id": 12,
+            "dashboard_override_head_sha": "bound-head",
         }
         raw = {
             "issue_comments": [
@@ -302,7 +447,8 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(
             [{
                 "comment_id": 12,
-                "kind": "already_routed",
+                "kind": "routed",
+                "head_sha": "bound-head",
                 "user": "author",
                 "route": "approver",
                 "held_gates": "",
@@ -420,7 +566,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual(5, facts["dashboard_override_command_id"])
 
-    def test_rebuilds_unacknowledged_already_routed_reply_across_refreshes(self) -> None:
+    def test_rebuilds_unacknowledged_reply_across_refreshes(self) -> None:
         raw = {
             "issue_comments": [
                 {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
@@ -428,13 +574,16 @@ class DashboardOverrideTest(unittest.TestCase):
         }
 
         for _ in range(2):
-            facts = dashboard_override.dashboard_override_facts(raw, "author")
+            facts = dashboard_override.dashboard_override_facts(
+                raw, "author", None, "current-head"
+            )
             dashboard_override.append_command_ack_reply(raw, facts, "approver")
 
             self.assertEqual(
                 [{
                     "comment_id": 5,
-                    "kind": "already_routed",
+                    "kind": "routed",
+                    "head_sha": "current-head",
                     "user": "author",
                     "route": "approver",
                     "held_gates": "",
@@ -477,147 +626,50 @@ class DashboardOverrideTest(unittest.TestCase):
             dashboard_override.latest_authorized_command(raw, "author", set()),
         )
 
-    def test_watermark_survives_acknowledgement(self) -> None:
-        raw = {
-            "issue_comments": [
-                {
-                    "id": 3,
-                    "user": {"login": "author"},
-                    "created_at": "2026-07-30T12:00:00Z",
-                    "body": "/dashboard route:reviewers",
-                },
-                {
-                    "id": 4,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "created_at": "2026-07-30T12:05:00Z",
-                    "body": dashboard_override.override_ack_marker(3),
-                },
-            ]
-        }
-
-        facts = dashboard_override.dashboard_override_facts(raw, "author")
-
-        self.assertEqual(0, facts["dashboard_override_command_id"])
-        self.assertEqual("2026-07-30T12:00:00Z", facts["dashboard_override_since"])
-
-    def test_watermark_survives_the_commander_leaving_the_approver_team(self) -> None:
-        raw = {
-            "issue_comments": [
-                {
-                    "id": 3,
-                    "user": {"login": "former-approver"},
-                    "created_at": "2026-07-30T12:00:00Z",
-                    "body": "/dashboard route:reviewers",
-                },
-                {
-                    "id": 4,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "created_at": "2026-07-30T12:05:00Z",
-                    "body": dashboard_override.override_ack_marker(3),
-                },
-            ]
-        }
-
-        facts = dashboard_override.dashboard_override_facts(raw, "author", set())
-
-        self.assertEqual("2026-07-30T12:00:00Z", facts["dashboard_override_since"])
-
-    def test_unacknowledged_command_needs_current_authorization(self) -> None:
-        raw = {
-            "issue_comments": [
-                {
-                    "id": 3,
-                    "user": {"login": "former-approver"},
-                    "created_at": "2026-07-30T12:00:00Z",
-                    "body": "/dashboard route:reviewers",
-                },
-            ]
-        }
-
-        facts = dashboard_override.dashboard_override_facts(raw, "author", set())
-
-        self.assertEqual("", facts["dashboard_override_since"])
-
-        facts = {"dashboard_override_since": "2026-07-30T12:00:00Z"}
-        pending_actions = {
-            "old": {"action": "author", "since": "2026-07-30T11:00:00Z"},
-            "new": {"action": "author", "since": "2026-07-30T13:00:00Z"},
-            "reviewer": {"action": "reviewer", "since": "2026-07-30T11:00:00Z"},
-        }
-
-        remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
-
-        self.assertEqual(["new", "reviewer"], sorted(remaining))
-        self.assertEqual(1, facts["dashboard_override_cleared_count"])
-
-    def test_clears_check_failures_that_predate_the_command(self) -> None:
-        for uncleared, expected in ((0, True), (1, False)):
-            with self.subTest(uncleared=uncleared):
-                facts = {
-                    "dashboard_override_since": "2026-07-30T12:00:00Z",
-                    "ci_failing_count": 1,
-                    "ci_uncleared_failing_count": uncleared,
-                }
-
-                dashboard_override.clear_overridden_actions(facts, {})
-
-                self.assertEqual(expected, facts["dashboard_override_cleared_ci"])
-
-    def test_keeps_a_check_that_fails_after_the_command(self) -> None:
-        facts = {
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-            "ci_failing_count": 2,
-            "ci_uncleared_failing_count": 1,
-        }
-
-        dashboard_override.clear_overridden_actions(facts, {})
-
-        self.assertTrue(facts["dashboard_override_cleared_ci"])
-        self.assertEqual(1, dashboard_override.uncleared_ci_failing_count(facts))
-
-    def test_keeps_items_that_share_the_command_timestamp(self) -> None:
-        # The command's own `...Z` timestamp is compared against `format_ts`
-        # output, so the same instant reaches here written two different ways.
-        facts = {
-            "dashboard_override_since": "2026-07-30T12:00:00Z",
-            "ci_failing_count": 1,
-        }
-        pending_actions = {
-            "earlier": {"action": "author", "since": "2026-07-30T11:59:59+00:00"},
-            "same": {"action": "author", "since": "2026-07-30T12:00:00+00:00"},
-            "later": {"action": "author", "since": "2026-07-30T12:00:00.500000+00:00"},
-        }
-
-        remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
-
-        self.assertEqual(["later", "same"], sorted(remaining))
-        self.assertEqual(1, facts["dashboard_override_cleared_count"])
-
-    def test_clears_nothing_without_a_command(self) -> None:
-        facts = {"dashboard_override_since": ""}
-        pending_actions = {"old": {"action": "author", "since": "2026-07-30T11:00:00Z"}}
-
-        remaining = dashboard_override.clear_overridden_actions(facts, pending_actions)
-
-        self.assertEqual(pending_actions, remaining)
-        self.assertEqual(0, facts["dashboard_override_cleared_count"])
-
     def test_command_that_cleared_nothing_is_acknowledged_where_it_is_routed(self) -> None:
         raw = {
             "issue_comments": [
                 {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
             ]
         }
-        facts = dashboard_override.dashboard_override_facts(raw, "author")
+        facts = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "current-head"
+        )
 
         dashboard_override.append_command_ack_reply(raw, facts, "author")
 
         self.assertEqual(
             [{
                 "comment_id": 5,
-                "kind": "already_routed",
+                "kind": "routed",
+                "head_sha": "current-head",
                 "user": "author",
                 "route": "author",
+                "held_gates": "",
+            }],
+            facts["dashboard_command_replies"],
+        )
+
+    def test_conflict_does_not_defer_override_acknowledgement(self) -> None:
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+        facts = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "current-head"
+        )
+        facts["conflicts"] = "yes"
+
+        dashboard_override.append_command_ack_reply(raw, facts, "approver")
+
+        self.assertEqual(
+            [{
+                "comment_id": 5,
+                "kind": "routed",
+                "head_sha": "current-head",
+                "user": "author",
+                "route": "approver",
                 "held_gates": "",
             }],
             facts["dashboard_command_replies"],
@@ -636,7 +688,7 @@ class DashboardOverrideTest(unittest.TestCase):
                             {
                                 "comment_id": 3,
                                 "kind": "routed",
-                                "route": "author",
+                                "route": "approver",
                                 "held_gates": "the Copilot review",
                                 "user": "author",
                             },

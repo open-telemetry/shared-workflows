@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from contextlib import redirect_stderr
+from datetime import datetime, timezone
 import io
 import unittest
 from unittest.mock import patch
 
-from datetime import datetime, timezone
+from author_nudge import routing_input_fingerprint
 
 from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
@@ -523,6 +524,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         for component in (
             "base_branch",
             "checks",
+            "conflicts",
             "issue_comments",
             "pr_text",
             "review_comments",
@@ -531,6 +533,54 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "review_threads",
         ):
             self.assertIn(component, discarded)
+
+    def test_drops_request_when_pr_becomes_conflicted(self) -> None:
+        clean_raw = {
+            "checks": [],
+            "pr": {
+                "mergeable": "MERGEABLE",
+                "mergeStateStatus": "CLEAN",
+            },
+        }
+        conflicted_pr = {
+            "id": "PR_node",
+            "state": "OPEN",
+            "isDraft": False,
+            "headRefOid": "current-head",
+            "mergeable": "CONFLICTING",
+            "mergeStateStatus": "DIRTY",
+        }
+        conflicted_raw = {"checks": [], "pr": conflicted_pr}
+        requests = {
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "routing_input_fingerprint": routing_input_fingerprint(clean_raw),
+            }
+        }
+        with (
+            patch(
+                "copilot_review.load_copilot_review_requests",
+                return_value=requests,
+            ),
+            patch("copilot_review.save_copilot_review_requests") as save_requests,
+            patch(
+                "copilot_review.fetch_current_pr_routing_inputs",
+                return_value=(conflicted_pr, conflicted_raw),
+            ),
+            patch("copilot_review.fetch_pr_reviews") as fetch_reviews,
+            patch("copilot_review.request_copilot_review") as request_review,
+        ):
+            errors = deliver_copilot_review_requests(
+                "open-telemetry/example",
+                NOW,
+            )
+
+        self.assertEqual([], errors)
+        fetch_reviews.assert_not_called()
+        request_review.assert_not_called()
+        save_requests.assert_called_once_with({})
 
     @patch(
         "copilot_review.routing_input_fingerprint",

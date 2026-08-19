@@ -8,7 +8,7 @@ from typing import Any
 from github_cli import gh_api, run_gh
 from route_presentation import outstanding_gate_phrase
 from state import load_dashboard_state_cache
-from utils import actor_login, parse_ts
+from utils import actor_login
 
 
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
@@ -22,17 +22,23 @@ _COMMAND_REPLY_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-command-reply:(\d+) -->"
 )
 OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
+# The acknowledgement records which head the command bound to, so the handoff is
+# a comparison against the current head rather than an inference from timestamps.
+# The head is optional because acknowledgements written before the dashboard
+# recorded it still have to retire their command.
 _OVERRIDE_ACK_MARKER_RE = re.compile(
-    r"<!-- pull-request-dashboard-override-ack:(\d+) -->"
+    r"<!-- pull-request-dashboard-override-ack:(\d+)(?::([^\s>]+))? -->"
 )
 PRE_REVIEW_ROUTES = ("author",)
 
 
 def author_override_guidance(staleness_note: str = "") -> str:
     guidance = (
-        "If you believe this pull request is incorrectly routed as waiting on "
-        "the author, comment `/dashboard route:reviewers` to route it from "
-        "waiting on the author to waiting on reviewers."
+        "If you need reviewer or maintainer help, comment "
+        "`/dashboard route:reviewers` to request routing from waiting on the "
+        "author to waiting on reviewers. The dashboard binds the request to "
+        "the head it sees when it reads the command, and a later push restores "
+        "normal routing."
     )
     if staleness_note:
         guidance = f"{guidance} {staleness_note}"
@@ -81,10 +87,12 @@ def latest_authorized_command(
     author: str,
     reviewers: set[str] | None,
 ) -> tuple[int, str]:
-    acknowledged_id = _acknowledged_override_command_id(raw.get("issue_comments"))
+    comments = raw.get("issue_comments") or []
+    acknowledged_id = _acknowledged_override_command_id(comments)
+    replied_ids = _replied_command_ids(comments)
     best_id = 0
     best_user = ""
-    for comment in raw.get("issue_comments") or []:
+    for comment in comments:
         if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
             continue
         commenter = actor_login(comment.get("user") or {})
@@ -94,57 +102,36 @@ def latest_authorized_command(
             comment_id = int(comment.get("id"))
         except (TypeError, ValueError):
             continue
-        if comment_id <= acknowledged_id:
+        if comment_id <= acknowledged_id or comment_id in replied_ids:
             continue
         if comment_id > best_id:
             best_id, best_user = comment_id, commenter
     return best_id, best_user
 
 
-def latest_authorized_command_at(
-    raw: dict[str, Any],
-    author: str,
-    reviewers: set[str] | None,
-) -> str:
-    """Timestamp of the newest authorized override command, acknowledged or not.
-
-    Unlike `latest_authorized_command`, acknowledged commands still count: the
-    watermark has to outlive the acknowledgement, or the discussions a command
-    cleared would come back on the next refresh. An acknowledgement is also
-    treated as durable proof of authorization, since approver-team membership is
-    resolved live and an approver can leave the team after commanding.
-    """
-    acknowledged_ids = _acknowledged_override_command_ids(raw.get("issue_comments"))
-    latest = ""
-    for comment in raw.get("issue_comments") or []:
-        if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
-            continue
-        try:
-            comment_id = int(comment.get("id"))
-        except (TypeError, ValueError):
-            comment_id = 0
-        if comment_id not in acknowledged_ids and not is_authorized_commander(
-            actor_login(comment.get("user") or {}), author, reviewers
-        ):
-            continue
-        created_at = comment.get("created_at") or ""
-        if created_at > latest:
-            latest = created_at
-    return latest
-
-
 def dashboard_override_facts(
     raw: dict[str, Any],
     author: str,
     reviewers: set[str] | None = None,
+    head_sha: str = "",
+    previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     command_id, command_user = latest_authorized_command(raw, author, reviewers)
+    previous_facts = previous_facts or {}
+    if command_id:
+        if command_id == previous_facts.get("dashboard_override_command_id"):
+            bound_head = previous_facts.get("dashboard_override_head_sha") or ""
+        else:
+            bound_head = head_sha
+    else:
+        bound_head = acknowledged_override_head(raw.get("issue_comments"))
     return {
         "dashboard_override_command_id": command_id,
         "dashboard_override_command_user": command_user,
-        "dashboard_override_since": latest_authorized_command_at(
-            raw, author, reviewers
-        ),
+        # A pending command keeps its first observed binding until delivery
+        # records it in the acknowledgement. An acknowledged command keeps the
+        # binding from that acknowledgement.
+        "dashboard_override_head_sha": bound_head,
         "dashboard_command_replies": pending_command_replies(raw, author, reviewers),
     }
 
@@ -188,9 +175,28 @@ def _acknowledged_override_command_ids(
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
-        for match in _OVERRIDE_ACK_MARKER_RE.findall(comment.get("body") or ""):
-            acknowledged_ids.add(int(match))
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.get("body") or ""):
+            acknowledged_ids.add(int(match.group(1)))
     return acknowledged_ids
+
+
+def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
+    """Head SHA the newest acknowledged override command bound to.
+
+    Empty when no command has been acknowledged, and also when the newest
+    acknowledgement predates the dashboard recording a head. An unknown head ends
+    the handoff instead of guessing at one, so the author runs the command again.
+    """
+    best_id = 0
+    best_head = ""
+    for comment in comments or []:
+        if not _is_dashboard_app_comment(comment):
+            continue
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.get("body") or ""):
+            comment_id = int(match.group(1))
+            if comment_id > best_id or (comment_id == best_id and not best_head):
+                best_id, best_head = comment_id, match.group(2) or ""
+    return best_head
 
 
 def _acknowledged_override_command_id(
@@ -246,14 +252,9 @@ def command_reply_marker(comment_id: int) -> str:
     return f"{COMMAND_REPLY_MARKER_PREFIX}{comment_id} -->"
 
 
-def override_ack_marker(comment_id: int) -> str:
-    return f"{OVERRIDE_ACK_MARKER_PREFIX}{comment_id} -->"
-
-
-ROUTE_ALREADY_ROUTED_PHRASE = {
-    "approver": "already waiting on reviewers",
-    "maintainer": "already past review and waiting on maintainers",
-}
+def override_ack_marker(comment_id: int, head_sha: str = "") -> str:
+    head = f":{head_sha}" if head_sha else ""
+    return f"{OVERRIDE_ACK_MARKER_PREFIX}{comment_id}{head} -->"
 
 
 def render_command_reply(reply: dict[str, Any]) -> str:
@@ -265,27 +266,22 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             "only the pull request author or a member of an approving team can "
             "use `/dashboard route:reviewers`."
         )
-    elif kind in ("routed", "already_routed"):
+    elif kind == "routed":
         route = reply.get("route") or ""
         held_gates = reply.get("held_gates") or ""
-        if held_gates:
+        if route in PRE_REVIEW_ROUTES:
+            # An active handoff always routes to approvers, so a pre-review
+            # route means the command is bound to a head that has been pushed
+            # over.
+            message = (
+                "your reviewer-routing request is not active for the current "
+                "pull request head; comment `/dashboard route:reviewers` again "
+                "to hand the current head to reviewers."
+            )
+        elif held_gates:
             message = (
                 "your reviewer-routing request was recorded; the reviewer handoff "
                 f"is waiting on {held_gates}."
-            )
-        elif route in PRE_REVIEW_ROUTES:
-            message = (
-                "everything still open on this pull request arrived after your "
-                "`/dashboard route:reviewers` command, so it is still waiting "
-                "on you."
-            )
-        elif kind == "already_routed":
-            where = ROUTE_ALREADY_ROUTED_PHRASE.get(
-                route, "not currently waiting on you"
-            )
-            message = (
-                f"this pull request is {where}, so `/dashboard route:reviewers` had "
-                "no effect."
             )
         elif route == "maintainer":
             message = (
@@ -305,8 +301,8 @@ def render_command_reply(reply: dict[str, Any]) -> str:
         )
     comment_id = int(reply["comment_id"])
     markers = [command_reply_marker(comment_id)]
-    if kind in ("routed", "already_routed"):
-        markers.append(override_ack_marker(comment_id))
+    if kind == "routed":
+        markers.append(override_ack_marker(comment_id, reply.get("head_sha") or ""))
     return "\n".join([
         *markers,
         f"{mention}{message}",
@@ -361,48 +357,6 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
     return errors
 
 
-def clear_overridden_actions(
-    facts: dict[str, Any],
-    pending_actions: dict[str, dict[str, Any]],
-) -> dict[str, dict[str, Any]]:
-    """Drop the author actions an override command already answered.
-
-    `/dashboard route:reviewers` is the author saying everything open at that
-    moment is handled. Clearing those actions keeps them from routing the pull
-    request back to the author on every later refresh, which would make the
-    author repeat the command each time review comes back around. Anything that
-    happens after the command keeps its author action, so new feedback still
-    reaches the author, including a reviewer reopening something the command
-    cleared.
-    """
-    # Timestamps reach here in both GitHub's `...Z` form and `format_ts`'s
-    # `...+00:00` form, so they have to be parsed rather than compared as text.
-    override_since = parse_ts(facts.get("dashboard_override_since"))
-    facts["dashboard_override_cleared_count"] = 0
-    facts["dashboard_override_cleared_ci"] = False
-    if override_since is None:
-        return pending_actions
-    remaining: dict[str, dict[str, Any]] = {}
-    cleared = 0
-    for discussion_id, entry in pending_actions.items():
-        since = parse_ts(entry.get("since"))
-        # GitHub timestamps are second-granularity, so an item sharing the
-        # command's second is left open rather than risking masking it.
-        if entry.get("action") == "author" and since and since < override_since:
-            cleared += 1
-            continue
-        remaining[discussion_id] = entry
-    ci_failing_count = facts.get("ci_failing_count") or 0
-    facts["dashboard_override_cleared_count"] = cleared
-    facts["dashboard_override_cleared_ci"] = uncleared_ci_failing_count(facts) < ci_failing_count
-    return remaining
-
-
-def uncleared_ci_failing_count(facts: dict[str, Any]) -> int:
-    """Failing required checks that an override command has not cleared."""
-    return facts.get("ci_uncleared_failing_count") or 0
-
-
 def append_command_ack_reply(
     raw: dict[str, Any],
     facts: dict[str, Any],
@@ -410,10 +364,10 @@ def append_command_ack_reply(
 ) -> None:
     """Queue the reply that acknowledges an override command.
 
-    The reply carries the acknowledgement marker that stops the command from
-    being processed again, so every command gets one, whether or not it cleared
-    anything. `route` is already what the cleared items produced, so a command
-    that cleared nothing is answered with where the pull request is routed.
+    The reply carries the acknowledgement marker, which records the head the
+    command bound to and stops the command from being processed again. Every
+    authorized command gets a reply because the command forces the reviewer
+    route even when no discussion or failing check was cleared.
     """
     command_id = int(facts.get("dashboard_override_command_id") or 0)
     if not command_id:
@@ -423,12 +377,10 @@ def append_command_ack_reply(
     replies = facts.setdefault("dashboard_command_replies", [])
     if any(reply.get("comment_id") == command_id for reply in replies):
         return
-    cleared = bool(facts.get("dashboard_override_cleared_count")) or bool(
-        facts.get("dashboard_override_cleared_ci")
-    )
     replies.append({
         "comment_id": command_id,
-        "kind": "routed" if cleared else "already_routed",
+        "kind": "routed",
+        "head_sha": facts.get("dashboard_override_head_sha") or "",
         "user": facts.get("dashboard_override_command_user") or facts.get("author") or "",
         "route": route,
         "held_gates": (

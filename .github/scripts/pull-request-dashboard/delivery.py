@@ -63,6 +63,10 @@ def report_stalled_gates(open_pr_numbers: set[int]) -> list[str]:
     stalled: list[str] = []
     for key, result in (state.get("prs") or {}).items():
         facts = (result or {}).get("facts") or {}
+        # GitHub may not start checks or reviews for an unmergeable head, so a
+        # conflict is not evidence that dashboard delivery stalled.
+        if facts.get("conflicts") == "yes":
+            continue
         if not facts.get("route_hold_expired"):
             continue
         try:

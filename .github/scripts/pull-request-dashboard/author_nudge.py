@@ -28,7 +28,7 @@ from state import (
     load_dashboard_state_cache,
     save_author_nudges,
 )
-from utils import format_ts, parse_ts
+from utils import compute_conflicts, format_ts, parse_ts
 
 
 NUDGE_AFTER = timedelta(weeks=1)
@@ -117,6 +117,10 @@ def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
     routing_inputs = {
         "base_branch": str(pr.get("baseRefName") or ""),
         "checks": raw.get("checks"),
+        # The derived conflict state, not the raw fields it comes from. A
+        # mergeability status that moves between values routing reads the same
+        # way must not invalidate a prepared delivery.
+        "conflicts": compute_conflicts(pr),
         "issue_comments": issue_comments,
         "pr_text": {
             "body": str(pr.get("body") or "").replace("\r\n", "\n"),
@@ -168,13 +172,7 @@ def fetch_current_pr_routing_inputs(
 
 
 def waiting_on_author(result: dict[str, Any] | None) -> bool:
-    # A held PR shows the author route only because a robot gate has not
-    # reported yet, and the author has nothing to answer while it runs.
-    facts = (result or {}).get("facts") or {}
-    return (
-        (result or {}).get("route") == "author"
-        and not facts.get("route_held_for_gates")
-    )
+    return (result or {}).get("route") == "author"
 
 
 def plan_nudge(
@@ -210,8 +208,6 @@ def plan_nudge(
         route = result.get("route") or ""
         if route in ("approver", "maintainer"):
             completion_kind = "left_author"
-        elif route == "author" and facts.get("route_held_for_gates"):
-            completion_kind = "routing_changed"
         else:
             return False, completion_only(entry)
         if nudged_at:
@@ -327,17 +323,13 @@ def render_nudge(
         f"Hi @{author} — just a friendly reminder that this pull request is "
         "waiting on you.",
         "",
-        f"There are still items that need your attention. See the "
+        f"This pull request still needs your attention. See the "
         f"[dashboard status comment]({status_url}) for the full list and current "
-        "routing; that comment is kept current. "
-        "You don't need to push a code change to hand it back — replying to move "
-        "each discussion forward is enough, whether that's answering a question, "
-        "explaining why no change is needed, or asking a follow-up. The dashboard "
-        "then automatically routes it back to reviewers.",
+        "routing; that comment is kept current.",
         "",
         author_override_guidance(
-            "Use this command only while the live dashboard status still says the "
-            "pull request is waiting on the author."
+            "This break-glass handoff works even when required checks, Copilot "
+            "review, or merge conflicts are still outstanding."
         ),
         "",
         "_This reminder is a snapshot; the linked dashboard status is the current "

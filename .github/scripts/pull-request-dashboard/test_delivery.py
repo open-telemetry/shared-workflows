@@ -202,6 +202,27 @@ class DeliveryTest(unittest.TestCase):
             errors,
         )
 
+    def test_a_stalled_gate_on_a_conflicted_pr_is_not_reported(self) -> None:
+        state = {
+            "prs": {
+                "7": {
+                    "facts": {
+                        "conflicts": "yes",
+                        "route_hold_expired": True,
+                        "copilot_review_outstanding": True,
+                        "copilot_review_unreported": True,
+                        "required_checks_settled": False,
+                        "head_sha": "abc",
+                    }
+                }
+            }
+        }
+
+        with patch.object(delivery, "load_dashboard_state_cache", return_value=state):
+            errors = delivery.report_stalled_gates({7})
+
+        self.assertEqual([], errors)
+
     def test_a_copilot_review_that_reported_is_not_named_as_the_stall(self) -> None:
         # The checks are what went missing. Copilot answered on this head, so
         # naming it would send the reader after a gate that is not missing.
