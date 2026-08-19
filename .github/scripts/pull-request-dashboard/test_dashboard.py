@@ -498,11 +498,11 @@ class GateHoldTest(unittest.TestCase):
 
         self.assertEqual("approver", route)
 
-    def test_maintenance_bot_returns_to_approvers_after_conflict_clears(self) -> None:
+    def test_a_newly_classified_maintenance_bot_falls_back_to_approvers(self) -> None:
         route = self._hold(
             {"ci_pending_count": 1, "is_maintenance_bot": True},
             "maintainer",
-            {"route": "author", "facts": {"conflicts": "yes"}},
+            {"route": "author", "facts": {}},
         )
 
         self.assertEqual("approver", route)

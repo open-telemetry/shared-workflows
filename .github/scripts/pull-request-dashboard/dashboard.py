@@ -1496,8 +1496,9 @@ def hold_route_until_gates_settle(
     if previous_route not in ROUTE_PROGRESSION or (
         facts.get("is_maintenance_bot") and previous_route == "author"
     ):
-        # A maintenance bot has no author route to fall back to. This includes
-        # the author route used temporarily while its PR was conflicted.
+        # A maintenance bot has no author route to fall back to. A cached result
+        # can still say "author" if the pull request author only became
+        # classified as a maintenance bot after that result was stored.
         previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
     gates_enabled = not bypass_gates
     copilot_review_gate_enabled = require_clean_copilot_review and gates_enabled
