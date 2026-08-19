@@ -524,8 +524,8 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         for component in (
             "base_branch",
             "checks",
+            "conflicts",
             "issue_comments",
-            "mergeability",
             "pr_text",
             "review_comments",
             "reviews",

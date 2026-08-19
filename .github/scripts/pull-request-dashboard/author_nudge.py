@@ -28,7 +28,7 @@ from state import (
     load_dashboard_state_cache,
     save_author_nudges,
 )
-from utils import format_ts, parse_ts
+from utils import compute_conflicts, format_ts, parse_ts
 
 
 NUDGE_AFTER = timedelta(weeks=1)
@@ -117,11 +117,11 @@ def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
     routing_inputs = {
         "base_branch": str(pr.get("baseRefName") or ""),
         "checks": raw.get("checks"),
+        # The derived conflict state, not the raw fields it comes from. A
+        # mergeability status that moves between values routing reads the same
+        # way must not invalidate a prepared delivery.
+        "conflicts": compute_conflicts(pr),
         "issue_comments": issue_comments,
-        "mergeability": {
-            "mergeable": str(pr.get("mergeable") or ""),
-            "merge_state_status": str(pr.get("mergeStateStatus") or ""),
-        },
         "pr_text": {
             "body": str(pr.get("body") or "").replace("\r\n", "\n"),
             "title": str(pr.get("title") or ""),

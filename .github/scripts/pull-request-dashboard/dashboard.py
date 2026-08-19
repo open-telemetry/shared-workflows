@@ -296,6 +296,7 @@ from state import (
 import state_branch
 from utils import (
     actor_login,
+    compute_conflicts,
     format_ts,
     parse_ts,
     required_checks_settled,
@@ -522,16 +523,6 @@ def is_substantive_activity(event: dict[str, Any]) -> bool:
     if event["kind"] == "review-state" and event.get("state") != "COMMENTED":
         return True
     return bool((event.get("body") or "").strip())
-
-
-def compute_conflicts(pr: dict[str, Any]) -> str:
-    merge_state = pr.get("mergeStateStatus")
-    mergeable = pr.get("mergeable")
-    if mergeable == "CONFLICTING" or merge_state == "DIRTY":
-        return "yes"
-    if mergeable in (None, "", "UNKNOWN"):
-        return "unknown"
-    return "no"
 
 
 def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[str]) -> datetime | None:
