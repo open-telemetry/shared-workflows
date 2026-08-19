@@ -1763,7 +1763,9 @@
     "5213": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
+        "assignees": [
+          "dashpole"
+        ],
         "author": "dashpole",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [
@@ -1771,9 +1773,9 @@
         ],
         "author_nudge_episode_id": "217e0c7b3e0f469a9849eab9908c6e80",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 3,
         "ci_uncleared_failing_count": 0,
-        "conflicts": "yes",
+        "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -1788,13 +1790,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "5fb00f5c4be550e0698e310450f40be2e6e02597",
+        "head_sha": "2648e5ba71b129d4154534a4d535a3d4ee161887",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-13T15:40:16+00:00",
+        "last_activity_at": "2026-08-19T20:27:22+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-13T15:40:16+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-08-19T20:27:22+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -1803,10 +1805,18 @@
             "login": "ArthurSens",
             "open_thread": false,
             "top_level_feedback": true
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "62cb36e2470ad71fa8ae7ef2728a14ade8abfbf297f0641d40a4bcd159fea26f",
+        "routing_input_fingerprint": "5f776993cd9442455e10439632f1b4411c16db06f935ca3ed2770e5853f00000",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-08-05T13:41:01+00:00"
       },
