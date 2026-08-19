@@ -230,6 +230,46 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(5, facts["dashboard_override_command_id"])
         self.assertEqual("current-head", facts["dashboard_override_head_sha"])
 
+    def test_pending_command_keeps_its_first_observed_head(self) -> None:
+        raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+        first = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "first-head"
+        )
+
+        retry = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "later-head", first
+        )
+
+        self.assertEqual(5, retry["dashboard_override_command_id"])
+        self.assertEqual("first-head", retry["dashboard_override_head_sha"])
+
+    def test_new_pending_command_binds_to_the_newly_observed_head(self) -> None:
+        previous_raw = {
+            "issue_comments": [
+                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+        previous_facts = dashboard_override.dashboard_override_facts(
+            previous_raw, "author", None, "first-head"
+        )
+        raw = {
+            "issue_comments": [
+                *previous_raw["issue_comments"],
+                {"id": 6, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "later-head", previous_facts
+        )
+
+        self.assertEqual(6, facts["dashboard_override_command_id"])
+        self.assertEqual("later-head", facts["dashboard_override_head_sha"])
+
     def test_acknowledged_command_keeps_its_bound_head(self) -> None:
         raw = {
             "issue_comments": [

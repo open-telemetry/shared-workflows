@@ -600,6 +600,7 @@ def compute_facts(
     author: str,
     events: list[dict[str, Any]],
     reviewers: set[str] | None = None,
+    previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pr = raw["pr"]
     checks = raw["checks"]
@@ -635,7 +636,13 @@ def compute_facts(
         "assignees": assignees,
         "head_sha": head_sha,
         "routing_input_fingerprint": routing_input_fingerprint(raw),
-        **dashboard_override_facts(raw, author, reviewers or set(), head_sha),
+        **dashboard_override_facts(
+            raw,
+            author,
+            reviewers or set(),
+            head_sha,
+            previous_facts,
+        ),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
             for request in (raw.get("review_requests") or [])
@@ -1666,7 +1673,8 @@ def build_pr_result(
             return None
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
-        facts = compute_facts(raw, author, events, reviewers)
+        previous_facts = (previous_result or {}).get("facts") or {}
+        facts = compute_facts(raw, author, events, reviewers, previous_facts)
         manual_reviewer_handoff = reviewer_handoff_active(facts)
         review_threads = group_review_threads(raw, author, reviewers, facts)
         top_level_items = derive_top_level_items(events, facts)

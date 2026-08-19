@@ -144,20 +144,24 @@ def dashboard_override_facts(
     author: str,
     reviewers: set[str] | None = None,
     head_sha: str = "",
+    previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     command_id, command_user = latest_authorized_command(raw, author, reviewers)
+    previous_facts = previous_facts or {}
+    if command_id:
+        if command_id == previous_facts.get("dashboard_override_command_id"):
+            bound_head = previous_facts.get("dashboard_override_head_sha") or ""
+        else:
+            bound_head = head_sha
+    else:
+        bound_head = acknowledged_override_head(raw.get("issue_comments"))
     return {
         "dashboard_override_command_id": command_id,
         "dashboard_override_command_user": command_user,
-        # An unacknowledged command binds to the head this pass observed, which
-        # is the head the author asked about. An acknowledged one keeps the head
-        # its acknowledgement recorded. Binding on sight is what makes the
-        # handoff a comparison of two SHAs rather than an ordering of two clocks.
-        "dashboard_override_head_sha": (
-            head_sha
-            if command_id
-            else acknowledged_override_head(raw.get("issue_comments"))
-        ),
+        # A pending command keeps its first observed binding until delivery
+        # records it in the acknowledgement. An acknowledged command keeps the
+        # binding from that acknowledgement.
+        "dashboard_override_head_sha": bound_head,
         "dashboard_override_since": latest_authorized_command_at(
             raw, author, reviewers
         ),
