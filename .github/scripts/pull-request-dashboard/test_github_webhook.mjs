@@ -249,6 +249,23 @@ test("queued mode falls back to direct dispatch when enqueue fails", async () =>
   assert.deepEqual(calls.map(([name]) => name), ["refresh"]);
 });
 
+test("queued mode replaces an unsafe dispatcher owner", async () => {
+  const calls = [];
+  await withQueueMode("all", () => handleWebhookRequest(
+    webhookRequest("example", 123, "x".repeat(201)),
+    {
+      queue: queueMock(calls),
+      dispatchDrain: async (generation) => calls.push(["drain", generation]),
+    },
+  ));
+
+  const requestOwner = calls.find(([name]) => name === "request")[1];
+  assert.match(
+    requestOwner,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  );
+});
+
 test("queue dispatch failure releases the lease and falls back", async () => {
   const calls = [];
   const response = await withQueueMode("all", () => handleWebhookRequest(
@@ -270,7 +287,7 @@ test("queue dispatch failure releases the lease and falls back", async () => {
   assert.equal(calls.at(-1)[0], "refresh");
 });
 
-function webhookRequest(repository, prNumber) {
+function webhookRequest(repository, prNumber, delivery = "delivery-1") {
   const body = JSON.stringify({
     action: "opened",
     repository: {
@@ -289,7 +306,7 @@ function webhookRequest(repository, prNumber) {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-github-delivery": "delivery-1",
+        "x-github-delivery": delivery,
         "x-github-event": "pull_request",
         "x-hub-signature-256": `sha256=${signature}`,
       },

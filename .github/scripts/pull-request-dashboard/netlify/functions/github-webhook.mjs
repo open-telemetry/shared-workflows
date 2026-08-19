@@ -13,6 +13,7 @@ const MAX_WEBHOOK_BYTES = 1024 * 1024;
 const OWNER = "open-telemetry";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
 const QUEUE_MODES = new Set(["off", "shadow", "canary", "all"]);
+const DISPATCHER_OWNER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
 const QUEUE_CANARY_REPOSITORIES = new Set([
   "opentelemetry-java-instrumentation",
   "shared-workflows",
@@ -176,8 +177,7 @@ export async function handleWebhookRequest(
       headSha: dispatchHeadSha,
       triggerEvent: eventName,
     });
-    const requestOwner = request.headers.get("x-github-delivery") ||
-      crypto.randomUUID();
+    const requestOwner = dispatcherRequestOwner(request);
     const dispatcher = await targetQueue.requestDispatcher(requestOwner);
     if (dispatcher.acquired) {
       try {
@@ -212,6 +212,13 @@ export async function handleWebhookRequest(
       queue_mode: config.queueMode,
     });
   }
+}
+
+function dispatcherRequestOwner(request) {
+  const delivery = request.headers.get("x-github-delivery");
+  return delivery && DISPATCHER_OWNER_PATTERN.test(delivery)
+    ? delivery
+    : crypto.randomUUID();
 }
 
 export function isAllowedAction(eventName, action) {
