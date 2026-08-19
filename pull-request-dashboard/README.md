@@ -8,6 +8,18 @@ Webhook-triggered incremental runs keep active dashboards close to real time. Ho
 
 The classification cache reuses prior results for unchanged review threads, minimizing Copilot token usage.
 
+## Webhook queue
+
+Webhook events are coalesced by repository and pull request before they start
+GitHub Actions. One drain workflow claims a bounded batch and processes up to
+four repositories concurrently on one runner; pull requests from the same
+repository remain sequential. An event received while its pull request is being
+processed marks that item dirty and schedules one follow-up pass.
+
+Manual targeted runs and hourly backfills bypass the queue. Queue leases recover
+work after interrupted drain runs, and the hourly backfill remains the final
+correctness backstop.
+
 ## Dashboard columns
 
 The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:

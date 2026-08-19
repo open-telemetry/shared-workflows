@@ -3,3 +3,6 @@ publish = "public"
 
 [functions]
 directory = "netlify/functions"
+
+[functions."dashboard-queue-recover"]
+schedule = "@hourly"

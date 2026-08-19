@@ -19,6 +19,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard.yml"
 REPO_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-repo.yml"
+DRAIN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-drain.yml"
+WEBHOOK = SCRIPT_DIR / "netlify" / "functions" / "github-webhook.mjs"
 CONFIG = SCRIPT_DIR / "repositories.json"
 
 REPO_WORKFLOW_PATH = ".github/workflows/pull-request-dashboard-repo.yml"
@@ -122,6 +124,23 @@ class RolloutWiringTest(unittest.TestCase):
         body = REPO_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("code_ref:", body)
         self.assertIn("ref: ${{ inputs.code_ref }}", body)
+
+    def test_queue_mode_canary_list_matches_the_rollout_canary_list(self) -> None:
+        webhook = WEBHOOK.read_text(encoding="utf-8")
+        match = re.search(
+            r"const QUEUE_CANARY_REPOSITORIES = new Set\(\[(.*?)\]\);",
+            webhook,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match, "webhook queue canary list is missing")
+        webhook_canary = re.findall(r'"([^"]+)"', match.group(1))
+        self.assertEqual(webhook_canary, self.canary)
+
+    def test_queue_drain_uses_one_current_checkout(self) -> None:
+        body = DRAIN_WORKFLOW.read_text(encoding="utf-8")
+        self.assertEqual(body.count("actions/checkout@"), 1)
+        self.assertNotIn("code_ref:", body)
+        self.assertNotRegex(body, STABLE_USES)
 
 
 if __name__ == "__main__":

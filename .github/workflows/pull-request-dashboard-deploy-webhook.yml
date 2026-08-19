@@ -7,6 +7,8 @@ on:
     paths:
       - .github/scripts/pull-request-dashboard/netlify.toml
       - .github/scripts/pull-request-dashboard/netlify/**
+      - .github/scripts/pull-request-dashboard/package-lock.json
+      - .github/scripts/pull-request-dashboard/package.json
       - .github/scripts/pull-request-dashboard/public/**
       - .github/workflows/pull-request-dashboard-deploy-webhook.yml
   workflow_dispatch:
@@ -40,6 +42,7 @@ jobs:
           NETLIFY_SITE_ID: ${{ vars.NETLIFY_PR_DASHBOARD_PROJECT_ID }}
           OTELBOT_SHARED_WORKFLOWS_CLIENT_ID: ${{ vars.OTELBOT_SHARED_WORKFLOWS_CLIENT_ID }}
           OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY: ${{ secrets.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY }}
+          PR_DASHBOARD_QUEUE_MODE: ${{ vars.PR_DASHBOARD_QUEUE_MODE || 'off' }}
         run: |
           set -euo pipefail
           dispatcher_private_key_base64=$(printf '%s' "$OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY" | base64 -w0)
@@ -70,6 +73,18 @@ jobs:
             --auth "$NETLIFY_AUTH_TOKEN" \
             --secret \
             --force
+          npx --yes netlify-cli@26.0.2 env:set PR_DASHBOARD_QUEUE_MODE "$PR_DASHBOARD_QUEUE_MODE" \
+            --context production \
+            --scope functions \
+            --site "$NETLIFY_SITE_ID" \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --force
+
+      - name: Install function dependencies
+        working-directory: .github/scripts/pull-request-dashboard
+        # The functions import @netlify/blobs and jose, which the Netlify
+        # bundler resolves from node_modules while packaging the deploy.
+        run: npm ci
 
       - name: Deploy Netlify function
         working-directory: .github/scripts/pull-request-dashboard

@@ -1,12 +1,22 @@
 import crypto from "node:crypto";
 
-const GITHUB_API_VERSION = "2022-11-28";
+import {
+  DashboardQueue,
+  openQueueStore,
+} from "../lib/dashboard-queue.mjs";
+import {
+  dispatchDashboardRefresh,
+  dispatchQueueDrain,
+} from "../lib/github-dispatch.mjs";
+
 const MAX_WEBHOOK_BYTES = 1024 * 1024;
 const OWNER = "open-telemetry";
-const WORKFLOW_REPOSITORY = "shared-workflows";
-const WORKFLOW_ID = "pull-request-dashboard.yml";
-const WORKFLOW_REF = "main";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
+const QUEUE_MODES = new Set(["off", "shadow", "canary", "all"]);
+const QUEUE_CANARY_REPOSITORIES = new Set([
+  "opentelemetry-java-instrumentation",
+  "shared-workflows",
+]);
 
 const ALLOWED_ACTIONS = {
   // GitHub only delivers `requested` and `rerequested` to apps with write-level
@@ -37,14 +47,22 @@ const ALLOWED_ACTIONS = {
 
 export default async (request) => {
   try {
-    return await handle(request);
+    return await handleWebhookRequest(request);
   } catch (error) {
     console.error(error);
     return response(error.statusCode || 500, { error: error.publicMessage || "internal server error" });
   }
 };
 
-async function handle(request) {
+export async function handleWebhookRequest(
+  request,
+  {
+    queue,
+    shadowQueue,
+    dispatchRefresh = dispatchDashboardRefresh,
+    dispatchDrain = dispatchQueueDrain,
+  } = {},
+) {
   if (request.method !== "POST") {
     return response(405, { error: "method not allowed" });
   }
@@ -96,25 +114,88 @@ async function handle(request) {
     return response(202, { status: "ignored", reason: "no pull request number or head commit found" });
   }
 
-  const dispatcherJwt = createAppJwt({
-    clientId: config.dispatcherClientId,
-    privateKey: config.dispatcherPrivateKey,
-  });
-  const installationId = await findRepositoryInstallationId(dispatcherJwt, `${OWNER}/${WORKFLOW_REPOSITORY}`);
-  const installationToken = await createInstallationToken(dispatcherJwt, installationId);
-  await dispatchWorkflow(installationToken, {
+  const inputs = {
     repository: repository.name,
     pr_number: dispatchPrNumber,
     head_sha: dispatchHeadSha,
     trigger_event: eventName,
+  };
+  if (
+    config.queueMode === "off" ||
+    (
+      config.queueMode === "canary" &&
+      !QUEUE_CANARY_REPOSITORIES.has(repository.name)
+    )
+  ) {
+    await dispatchRefresh(inputs);
+    return response(202, {
+      status: "dispatched",
+      repository: repository.fullName,
+      pr_number: dispatchPrNumber,
+      head_sha: dispatchHeadSha,
+      trigger_event: eventName,
+      queue_mode: config.queueMode,
+    });
+  }
+
+  const targetQueue = config.queueMode === "shadow"
+    ? shadowQueue || new DashboardQueue({
+      store: openQueueStore("pr-dashboard-queue-shadow"),
+    })
+    : queue || new DashboardQueue();
+  if (config.queueMode === "shadow") {
+    let queueStatus = "error";
+    try {
+      const queued = await targetQueue.enqueue({
+        repository: repository.name,
+        prNumber: dispatchPrNumber ? Number.parseInt(dispatchPrNumber, 10) : null,
+        headSha: dispatchHeadSha,
+        triggerEvent: eventName,
+      });
+      queueStatus = queued.status;
+    } catch (error) {
+      console.error("shadow queue observation failed", error);
+    }
+    await dispatchRefresh(inputs);
+    return response(202, {
+      status: "shadow_queued",
+      queue_status: queueStatus,
+      repository: repository.fullName,
+      pr_number: dispatchPrNumber,
+      head_sha: dispatchHeadSha,
+      trigger_event: eventName,
+      queue_mode: config.queueMode,
+    });
+  }
+
+  const queued = await targetQueue.enqueue({
+    repository: repository.name,
+    prNumber: dispatchPrNumber ? Number.parseInt(dispatchPrNumber, 10) : null,
+    headSha: dispatchHeadSha,
+    triggerEvent: eventName,
   });
+  const requestOwner = request.headers.get("x-github-delivery") ||
+    crypto.randomUUID();
+  const dispatcher = await targetQueue.requestDispatcher(requestOwner);
+  if (dispatcher.acquired) {
+    try {
+      await dispatchDrain(dispatcher.generation);
+    } catch (error) {
+      await targetQueue.releaseRequestedDispatcher({
+        generation: dispatcher.generation,
+        requestOwner,
+      });
+      throw error;
+    }
+  }
 
   return response(202, {
-    status: "dispatched",
+    status: dispatcher.acquired ? "queued_and_dispatched" : queued.status,
     repository: repository.fullName,
     pr_number: dispatchPrNumber,
     head_sha: dispatchHeadSha,
     trigger_event: eventName,
+    queue_mode: config.queueMode,
   });
 }
 
@@ -167,11 +248,7 @@ export function isDashboardSelfTriggeredCommentEvent(eventName, payload) {
 
 function loadConfig() {
   const config = {
-    dispatcherClientId: process.env.OTELBOT_SHARED_WORKFLOWS_CLIENT_ID,
-    dispatcherPrivateKey: normalizePrivateKey(
-      process.env.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY,
-      process.env.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64,
-    ),
+    queueMode: process.env.PR_DASHBOARD_QUEUE_MODE || "off",
     webhookSecret: process.env.GITHUB_WEBHOOK_SECRET,
   };
 
@@ -180,6 +257,13 @@ function loadConfig() {
     .map(([key]) => key);
   if (missing.length > 0) {
     throw httpError(500, "missing required configuration", `missing required configuration: ${missing.join(", ")}`);
+  }
+  if (!QUEUE_MODES.has(config.queueMode)) {
+    throw httpError(
+      500,
+      "invalid queue mode",
+      `unsupported PR_DASHBOARD_QUEUE_MODE: ${config.queueMode}`,
+    );
   }
 
   return config;
@@ -304,112 +388,6 @@ function extractPullRequestNumberFromUrls(urls) {
     }
   }
   return undefined;
-}
-
-async function findRepositoryInstallationId(jwt, repository) {
-  const body = await githubJson(
-    `https://api.github.com/repos/${encodeRepository(repository)}/installation`,
-    jwt,
-  );
-  if (!body || !body.id) {
-    throw httpError(502, "GitHub installation lookup failed", `GitHub installation response did not include id for ${repository}`);
-  }
-  return body.id;
-}
-
-async function createInstallationToken(jwt, installationId) {
-  const body = await githubJson(
-    `https://api.github.com/app/installations/${installationId}/access_tokens`,
-    jwt,
-    { method: "POST" },
-  );
-  if (!body || !body.token) {
-    throw httpError(502, "GitHub token request failed", "GitHub installation token response did not include a token");
-  }
-  return body.token;
-}
-
-async function dispatchWorkflow(token, inputs) {
-  const encodedWorkflowId = encodeURIComponent(WORKFLOW_ID);
-  await githubFetch(
-    `https://api.github.com/repos/${OWNER}/${WORKFLOW_REPOSITORY}/actions/workflows/${encodedWorkflowId}/dispatches`,
-    token,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        ref: WORKFLOW_REF,
-        inputs,
-      }),
-    },
-  );
-}
-
-function encodeRepository(repository) {
-  return repository.split("/").map(encodeURIComponent).join("/");
-}
-
-async function githubJson(url, token, options = {}) {
-  const response = await githubFetch(url, token, options);
-  if (response.status === 204) {
-    return null;
-  }
-  return response.json();
-}
-
-async function githubFetch(url, token, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      accept: "application/vnd.github+json",
-      "content-type": "application/json",
-      "user-agent": "pull-request-dashboard-webhook",
-      "x-github-api-version": GITHUB_API_VERSION,
-      authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw httpError(
-      502,
-      "GitHub API request failed",
-      `GitHub API request failed: ${response.status} ${response.statusText}: ${body}`,
-    );
-  }
-
-  return response;
-}
-
-function createAppJwt(config) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64UrlJson({ alg: "RS256", typ: "JWT" });
-  const payload = base64UrlJson({
-    iat: now - 60,
-    exp: now + 10 * 60,
-    iss: config.clientId,
-  });
-  const unsignedToken = `${header}.${payload}`;
-  const signature = crypto.sign("RSA-SHA256", Buffer.from(unsignedToken), config.privateKey);
-
-  return `${unsignedToken}.${base64Url(signature)}`;
-}
-
-function base64UrlJson(value) {
-  return base64Url(Buffer.from(JSON.stringify(value)));
-}
-
-function base64Url(buffer) {
-  return buffer
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-}
-
-function normalizePrivateKey(value, base64Value) {
-  const rawValue = base64Value ? Buffer.from(base64Value, "base64").toString("utf8") : value;
-  return rawValue && rawValue.trim().replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n");
 }
 
 function response(status, body) {

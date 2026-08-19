@@ -21,6 +21,7 @@ from pathlib import Path
 DEFAULT_MAX_ATTEMPTS = 8
 RETRY_BACKOFF_BASE_SECONDS = 0.5
 RETRY_BACKOFF_MAX_SECONDS = 8.0
+CONFIG_LOCK_ATTEMPTS = 5
 
 
 @contextmanager
@@ -145,8 +146,23 @@ def push_state(state_dir: Path, state_branch: str) -> bool:
 
 
 def configure_git() -> None:
-    run(["git", "config", "user.email", "otelbot@users.noreply.github.com"])
-    run(["git", "config", "user.name", "otelbot"])
+    set_git_config("user.email", "otelbot@users.noreply.github.com")
+    set_git_config("user.name", "otelbot")
+
+
+def set_git_config(name: str, value: str) -> None:
+    """Set one repository config value, tolerating a contended config lock.
+
+    A queue drain processes several repositories concurrently against a single
+    checkout, so two writers can reach `.git/config.lock` at the same time.
+    """
+    for attempt in range(1, CONFIG_LOCK_ATTEMPTS + 1):
+        proc = run(["git", "config", name, value], check=False)
+        if proc.returncode == 0:
+            return
+        if attempt == CONFIG_LOCK_ATTEMPTS:
+            raise subprocess.CalledProcessError(proc.returncode, proc.args)
+        time.sleep(retry_delay_seconds(attempt))
 
 
 def copy_snapshots(snapshots: list[tuple[Path, Path]]) -> None:

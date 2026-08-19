@@ -8,15 +8,60 @@ Create a Netlify project for the webhook bridge:
 - Project name: `otel-pull-request-dashboard`
 - Base directory: `.github/scripts/pull-request-dashboard`
 
-The Netlify project only receives GitHub App webhooks and dispatches the central
-GitHub Actions workflow. It does not run dashboard backfills and does not own
-dashboard state.
+The Netlify project receives GitHub App webhooks, coalesces targeted refreshes
+in a site-wide Netlify Blobs store, and dispatches the queue drain workflow.
+It does not run dashboard backfills or own dashboard state.
 
 Save the Netlify project ID as a GitHub Actions variable named
 `NETLIFY_PR_DASHBOARD_PROJECT_ID` in the `shared-workflows` repository.
 
 Save a Netlify personal access token as a GitHub Actions secret named
 `NETLIFY_AUTH_TOKEN` in the `shared-workflows` repository.
+
+Create a GitHub Actions variable named `PR_DASHBOARD_QUEUE_MODE`. Supported
+values are:
+
+- `off`: dispatch every accepted webhook directly.
+- `shadow`: record queue decisions in the shadow Blob store while continuing
+  direct dispatch.
+- `canary`: queue only `opentelemetry-java-instrumentation` and
+  `shared-workflows`.
+- `all`: queue every accepted targeted webhook refresh.
+
+The deployment workflow defaults a missing value to `off` and writes the mode
+to the production Netlify Functions environment. Manually dispatch
+`Deploy pull request dashboard webhook` after changing the variable.
+
+The drain workflow runs the dashboard scripts from the commit it was dispatched
+at, so a queued repository always runs the canary code path instead of the
+promoted rollout ref that `pull-request-dashboard.yml` pins for stable
+repositories. Keep the mode at `canary` until a change is meant to reach every
+repository without soaking.
+
+The queue uses the site-wide `pr-dashboard-queue` store with strong reads and
+ETag-conditional writes. Netlify creates the store on its first write. The drain
+workflow authenticates claim, heartbeat, acknowledgment, and finish calls with
+a short-lived GitHub OIDC token restricted to:
+
+- `open-telemetry/shared-workflows`
+- `.github/workflows/pull-request-dashboard-drain.yml`
+- `refs/heads/main`
+- the `protected` environment
+- audience `otel-pr-dashboard-queue`
+
+No Netlify runtime token is shared with the drain workflow. The existing
+`NETLIFY_AUTH_TOKEN` remains limited to deployment and environment
+configuration.
+
+The `dashboard-queue-recover` scheduled function reclaims expired worker and
+dispatcher leases. A new event normally starts the singleton drain immediately;
+scheduled recovery is only a failure backstop. An item whose lease expires
+repeatedly without an acknowledgment is moved to the shard's dead letters
+instead of being requeued forever.
+
+Shadow observations use the separate `pr-dashboard-queue-shadow` store and are
+never drained. Delete that store from the Netlify Blobs UI before a new shadow
+observation window and after queue behavior has been accepted.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
 PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->

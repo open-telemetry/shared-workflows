@@ -1,0 +1,157 @@
+name: Pull request dashboard queue drain
+
+on:
+  workflow_dispatch:
+    inputs:
+      dispatcher_generation:
+        description: Netlify queue dispatcher generation.
+        required: true
+        type: string
+
+permissions: {}
+
+# One checkout serves every claimed repository, so the drain always runs the
+# dashboard scripts from this repository's default branch. Queued repositories
+# therefore skip the staged rollout that pull-request-dashboard.yml applies to
+# stable repositories.
+concurrency:
+  group: pull-request-dashboard-queue-drain
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    if: github.repository == 'open-telemetry/shared-workflows'
+    permissions:
+      contents: write
+      copilot-requests: write
+      id-token: write
+    environment: protected
+    runs-on: cncf-ubuntu-2-8-x86
+    env:
+      DISPATCHER_GENERATION: ${{ inputs.dispatcher_generation }}
+      PR_DASHBOARD_QUEUE_ENDPOINT: https://otel-pull-request-dashboard.netlify.app/.netlify/functions/dashboard-queue-worker
+      WORKER_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Activate queue dispatcher
+        id: activate
+        run: |
+          set -euo pipefail
+          [[ "$DISPATCHER_GENERATION" =~ ^[1-9][0-9]*$ ]] || { echo "bad dispatcher generation"; exit 1; }
+          python3 .github/scripts/pull-request-dashboard/queue_worker_client.py \
+            --generation "$DISPATCHER_GENERATION" \
+            --worker-id "$WORKER_ID" \
+            activate
+
+      - name: Claim queue batch
+        id: claim
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/pull-request-dashboard/queue_worker_client.py \
+            --generation "$DISPATCHER_GENERATION" \
+            --worker-id "$WORKER_ID" \
+            claim \
+            --limit 16 \
+            --output "$RUNNER_TEMP/dashboard-claims.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
+        id: dashboard-token
+        with:
+          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ steps.claim.outputs.repositories }}
+          permission-checks: read
+          permission-contents: read
+          permission-issues: write
+          permission-members: read
+          permission-pull-requests: write
+          permission-statuses: read
+
+      - name: Install Copilot CLI
+        if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
+        run: |
+          npm ci --prefix .github/scripts/pull-request-dashboard
+          echo "$GITHUB_WORKSPACE/.github/scripts/pull-request-dashboard/node_modules/.bin" >> "$GITHUB_PATH"
+          # A batch that classifies nothing still has to leave the cache path
+          # in place, because saving a missing path fails the job.
+          mkdir -p .github/scripts/pull-request-dashboard/.cache/classifications
+
+      - name: Restore classification cache
+        if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          key: pull-request-dashboard-classifications-queue-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: pull-request-dashboard-classifications-queue-
+
+      - name: Process queue batch
+        if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
+        id: process
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/pull-request-dashboard/process_queue_batch.py \
+            --claims "$RUNNER_TEMP/dashboard-claims.json" \
+            --results "$RUNNER_TEMP/dashboard-results.json" \
+            --max-repositories 4 \
+            --queue-endpoint "$PR_DASHBOARD_QUEUE_ENDPOINT" \
+            --dispatcher-generation "$DISPATCHER_GENERATION" \
+            --worker-id "$WORKER_ID"
+
+      - name: Acknowledge queue batch
+        if: always() && steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$RUNNER_TEMP/dashboard-results.json" ]]; then
+            echo "Queue processor did not produce acknowledgments; leases will recover."
+            exit 0
+          fi
+          python3 .github/scripts/pull-request-dashboard/queue_worker_client.py \
+            --generation "$DISPATCHER_GENERATION" \
+            --worker-id "$WORKER_ID" \
+            acknowledge \
+            --results "$RUNNER_TEMP/dashboard-results.json"
+
+      - name: Save classification cache
+        if: always() && steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          key: pull-request-dashboard-classifications-queue-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Report GitHub App rate limits
+        if: always() && steps.dashboard-token.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
+
+      - name: Finish queue drain
+        if: always() && steps.activate.outcome == 'success'
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/pull-request-dashboard/queue_worker_client.py \
+            --generation "$DISPATCHER_GENERATION" \
+            --worker-id "$WORKER_ID" \
+            finish
+
+      - name: Check queue batch
+        if: always() && steps.process.outcome == 'failure'
+        run: exit 1

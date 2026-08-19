@@ -28,6 +28,10 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
+      - name: Install JavaScript dependencies
+        working-directory: .github/scripts/pull-request-dashboard
+        run: npm ci
+
       - name: Run Python tests
         working-directory: .github/scripts/pull-request-dashboard
         run: python3 -m unittest discover -p 'test_*.py'
