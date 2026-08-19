@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 import tempfile
 import threading
@@ -161,6 +162,46 @@ class QueueBatchTest(unittest.TestCase):
         results = process_batch(items, process)
         outcomes = {result["itemKey"]: result["outcome"] for result in results}
         self.assertEqual(outcomes, {"bad#pr:1": "retry", "good#pr:1": "success"})
+
+    def test_delivery_error_still_publishes_committed_active_state(self) -> None:
+        commands: list[str] = []
+
+        def run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            script = Path(command[1]).name
+            commands.append(script)
+            if script == "state.py":
+                return subprocess.CompletedProcess(command, 0, stdout="true\n", stderr="")
+            if script == "delivery.py":
+                output_path = Path(command[command.index("--github-output") + 1])
+                output_path.write_text("active=true\n", encoding="utf-8")
+                return subprocess.CompletedProcess(
+                    command,
+                    1,
+                    stdout="",
+                    stderr="status comments failed\n",
+                )
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(
+                json.dumps([{"name": "example"}]),
+                encoding="utf-8",
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path,
+                run=run,
+            )
+            item = WorkItem(
+                "example",
+                1,
+                (claim("example#pr:1", "example", pr_number=1),),
+            )
+
+            results = processor.process_repository("example", [item])
+
+        self.assertEqual(results[0]["outcome"], "retry")
+        self.assertIn("publish_dashboard.py", commands)
 
     def test_an_aborted_batch_still_records_decided_acknowledgments(self) -> None:
         class Client:

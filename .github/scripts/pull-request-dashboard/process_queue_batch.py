@@ -252,15 +252,18 @@ class DashboardBatchProcessor:
                     )
                     continue
                 self._update_dashboard(repository, item.pr_number, state_branch, config, env)
-                publish_active = (
-                    self._deliver(repository, item.pr_number, state_branch, env)
-                    or publish_active
+                delivery_active, delivery_error = self._deliver(
+                    repository, item.pr_number, state_branch, env
                 )
+                publish_active = delivery_active or publish_active
+                if delivery_error is not None:
+                    results.extend(failure_acknowledgments(item.claims, delivery_error))
+                    continue
                 successful.append(item)
             except Exception as error:
                 results.extend(failure_acknowledgments(item.claims, error))
 
-        if successful and publish_active:
+        if publish_active:
             try:
                 self._publish(repository, state_branch, config, env)
             except Exception as error:
@@ -331,25 +334,33 @@ class DashboardBatchProcessor:
         pr_number: int,
         state_branch: str,
         env: dict[str, str],
-    ) -> bool:
-        with tempfile.NamedTemporaryFile() as github_output:
-            self._run(
-                [
-                    sys.executable,
-                    str(self.script_dir / "delivery.py"),
-                    "--state-branch",
-                    state_branch,
-                    "--repo",
-                    repository,
-                    "--pr-number",
-                    str(pr_number),
-                    "--github-output",
-                    github_output.name,
-                ],
-                env=env,
-            )
-            output = Path(github_output.name).read_text(encoding="utf-8")
-        return "active=true" in output.splitlines()
+    ) -> tuple[bool, Exception | None]:
+        with tempfile.NamedTemporaryFile(delete=False) as github_output:
+            output_path = Path(github_output.name)
+        try:
+            error = None
+            try:
+                self._run(
+                    [
+                        sys.executable,
+                        str(self.script_dir / "delivery.py"),
+                        "--state-branch",
+                        state_branch,
+                        "--repo",
+                        repository,
+                        "--pr-number",
+                        str(pr_number),
+                        "--github-output",
+                        str(output_path),
+                    ],
+                    env=env,
+                )
+            except Exception as caught:
+                error = caught
+            output = output_path.read_text(encoding="utf-8")
+            return "active=true" in output.splitlines(), error
+        finally:
+            output_path.unlink(missing_ok=True)
 
     def _publish(
         self,
