@@ -1185,8 +1185,9 @@ def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], 
     # bot PRs have no useful author route and need only one approval.
     is_maintenance_bot = facts.get("is_maintenance_bot")
     approval_threshold = 1 if is_maintenance_bot else required_approvals
-    # Precedence:
-    #   1. A required status check failure the author has not overridden -> "author".
+    # Default precedence, which an active reviewer handoff overrides later in
+    # resolve_pr_route:
+    #   1. A required status check failure -> "author".
     #   2. A discussion waiting on the author -> "author".
     #   3. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
     #      remains visible but does not keep an approved PR out of this route.
