@@ -578,9 +578,12 @@
         "author": "ogulcanaydogan",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "411ee9ff82d948f0b14651527ddc6d8a",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-19T13:57:58+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-19T13:57:58+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -602,7 +605,7 @@
         "last_activity_at": "2026-08-19T13:26:20+00:00",
         "last_approver_activity_at": "2026-08-19T13:26:20+00:00",
         "last_author_activity_at": "2026-08-18T10:13:39+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -646,14 +649,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a465455fec4c83813f4d1d2da2a440352de42775ab7a6c03b977322836b68850",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-18T10:13:39+00:00"
+        "routing_input_fingerprint": "6b73660be10ddafea408380b7cf474d2423ce6b215cb72d340df85674a774b2f",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-19T13:57:58+00:00"
       },
       "failed": false,
       "pr_number": 5150,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5150",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4435396034": {
           "evidence": {
