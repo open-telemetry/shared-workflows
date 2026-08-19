@@ -374,7 +374,7 @@
     },
     "4982": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "PetarJerinic",
         "author_action_review_thread_urls": [],
@@ -400,20 +400,29 @@
         "head_sha": "8f676525fd66583621e7897b30d54e5c0df17fb5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-16T12:16:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-19T08:13:47+00:00",
+        "last_approver_activity_at": "2026-08-19T08:13:47+00:00",
         "last_author_activity_at": "2026-08-16T12:16:52+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "5f93599a652a08bf28f4f211d9334a0440617ccf88c794ae7513604408156d23",
+        "routing_input_fingerprint": "177dc50137281deaa9a69564b6fd5c90ac016bf5eeef2baa12f298f501787ea9",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-16T12:16:52+00:00"
       },
       "failed": false,
       "pr_number": 4982,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4982",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4986": {
