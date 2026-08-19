@@ -6220,13 +6220,13 @@
     },
     "11378": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "mmanciop",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 12,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -6243,12 +6243,12 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_since": "",
-        "head_sha": "d44ed87cf75db2649fe63f8eb427fca20d01fd2f",
+        "head_sha": "8d6f6c1d82fbc282a33177d327caea8a4533c60e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T16:20:00+00:00",
-        "last_approver_activity_at": "2026-08-19T16:20:00+00:00",
-        "last_author_activity_at": "2026-08-19T16:05:49+00:00",
+        "last_activity_at": "2026-08-19T17:48:32+00:00",
+        "last_approver_activity_at": "2026-08-19T16:52:55+00:00",
+        "last_author_activity_at": "2026-08-19T17:48:32+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -6258,18 +6258,33 @@
             "login": "maryliag",
             "open_thread": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "svrnm",
+            "open_thread": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": true,
-        "routing_input_fingerprint": "cb8800a1077900bfe38709cdd356fdeddc97db1ab1a225e523d7f664dd910a65",
-        "waiting_age_basis": "last_approver_activity",
+        "routing_input_fingerprint": "80ed720d0f258dff0ac0e2f010d12d2810b17cfd6dd6b852a123f2e4314f5887",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-19T16:20:00+00:00"
       },
       "failed": false,
       "pr_number": 11378,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11378",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-issue-comment-5345299920": {
+          "evidence": {
+            "reply": "2026-08-19T17:41:06Z"
+          },
+          "reply_source_id": 5345834051
+        }
+      }
     },
     "11379": {
       "facts": {
