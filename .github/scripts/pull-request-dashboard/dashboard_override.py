@@ -267,16 +267,19 @@ def render_command_reply(reply: dict[str, Any]) -> str:
     elif kind == "routed":
         route = reply.get("route") or ""
         held_gates = reply.get("held_gates") or ""
-        if held_gates:
+        if route in PRE_REVIEW_ROUTES:
+            # An active handoff always routes to approvers, so a pre-review
+            # route means the command is bound to a head that has been pushed
+            # over.
+            message = (
+                "your reviewer-routing request is not active for the current "
+                "pull request head; comment `/dashboard route:reviewers` again "
+                "to hand the current head to reviewers."
+            )
+        elif held_gates:
             message = (
                 "your reviewer-routing request was recorded; the reviewer handoff "
                 f"is waiting on {held_gates}."
-            )
-        elif route in PRE_REVIEW_ROUTES:
-            message = (
-                "everything still open on this pull request arrived after your "
-                "`/dashboard route:reviewers` command, so it is still waiting "
-                "on you."
             )
         elif route == "maintainer":
             message = (

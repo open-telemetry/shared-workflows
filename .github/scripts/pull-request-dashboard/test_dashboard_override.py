@@ -191,17 +191,24 @@ class DashboardOverrideTest(unittest.TestCase):
             maintainer,
         )
 
-    def test_renders_routed_reply_for_a_command_that_cleared_nothing(self) -> None:
-        body = dashboard_override.render_command_reply(
-            {"comment_id": 7, "kind": "routed", "user": "author", "route": "author"}
-        )
+    def test_renders_routed_reply_for_a_command_bound_to_an_earlier_head(self) -> None:
+        for held_gates in ("", "the Copilot review"):
+            with self.subTest(held_gates=held_gates):
+                body = dashboard_override.render_command_reply({
+                    "comment_id": 7,
+                    "kind": "routed",
+                    "user": "author",
+                    "route": "author",
+                    "held_gates": held_gates,
+                })
 
-        self.assertIn(dashboard_override.override_ack_marker(7), body)
-        self.assertIn(
-            "@author, everything still open on this pull request arrived after "
-            "your `/dashboard route:reviewers` command",
-            body,
-        )
+                self.assertIn(dashboard_override.override_ack_marker(7), body)
+                self.assertIn(
+                    "@author, your reviewer-routing request is not active for the "
+                    "current pull request head; comment `/dashboard route:reviewers` "
+                    "again to hand the current head to reviewers.",
+                    body,
+                )
 
     def test_ack_marker_records_the_bound_head(self) -> None:
         body = dashboard_override.render_command_reply({
@@ -658,7 +665,7 @@ class DashboardOverrideTest(unittest.TestCase):
                             {
                                 "comment_id": 3,
                                 "kind": "routed",
-                                "route": "author",
+                                "route": "approver",
                                 "held_gates": "the Copilot review",
                                 "user": "author",
                             },
