@@ -374,7 +374,7 @@
     },
     "67": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -400,20 +400,29 @@
         "head_sha": "8b76ce5b965de9d415fa1eb43ddf0cf64ba5e950",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T16:17:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T00:13:49+00:00",
+        "last_approver_activity_at": "2026-08-20T00:13:49+00:00",
         "last_author_activity_at": "2026-08-19T16:17:06+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "b105424d48364ae10561ee8400a3c26359815a8d2d7cd6277592a5deef4b2156",
+        "routing_input_fingerprint": "a528b1abf55ca5fa0c708efc5af403dbb157ad932cc48091a1bd2f00f9006557",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-19T16:17:06+00:00"
       },
       "failed": false,
       "pr_number": 67,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/67",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
