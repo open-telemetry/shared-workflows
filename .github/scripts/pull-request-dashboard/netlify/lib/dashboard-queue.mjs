@@ -595,7 +595,8 @@ export class DashboardQueue {
         receipt.dispatchState !== "pending" ||
         dispatcher.phase !== "requested" ||
         dispatcher.generation !== receipt.result.generation ||
-        dispatcher.leaseOwner !== receipt.result.requestOwner
+        dispatcher.leaseOwner !== receipt.result.requestOwner ||
+        isExpired(dispatcher.leaseExpiresAt, this.now())
       ) {
         return { changed: false, result: "unavailable" };
       }
