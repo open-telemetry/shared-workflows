@@ -11680,7 +11680,7 @@
     },
     "50342": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "agarvin-nr",
         "author_action_review_thread_urls": [],
@@ -11706,11 +11706,19 @@
         "head_sha": "a1b3def93bd6d63d91cdd36bc2db05e35b64be06",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T20:40:49+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T13:12:47+00:00",
+        "last_approver_activity_at": "2026-08-20T13:12:47+00:00",
         "last_author_activity_at": "2026-08-18T19:57:42+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -11721,14 +11729,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "982763d37d28b159435059ad87976c1b5a67718451c659590bd22cef6b5b4ddc",
+        "routing_input_fingerprint": "2b34a9e618e435f9729feb6a5d77d747385ceaebd9c031845208d52751ebd2e5",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-18T19:57:42+00:00"
       },
       "failed": false,
       "pr_number": 50342,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50342",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50349": {
