@@ -148,11 +148,13 @@ def process_batch(
     process_repository: Callable[[str, list[WorkItem]], list[dict[str, Any]]],
     *,
     max_repositories: int = 4,
+    on_results: Callable[[list[dict[str, Any]]], None] | None = None,
 ) -> list[dict[str, Any]]:
     if max_repositories < 1:
         raise ValueError("max_repositories must be positive")
     repositories = group_by_repository(work_items)
     results: list[dict[str, Any]] = []
+    callback_errors: list[Exception] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_repositories) as executor:
         futures = {
             executor.submit(process_repository, repository, items): repository
@@ -161,10 +163,22 @@ def process_batch(
         for future in concurrent.futures.as_completed(futures):
             repository = futures[future]
             try:
-                results.extend(future.result())
+                repository_results = future.result()
             except Exception as error:
+                repository_results = []
                 for item in repositories[repository]:
-                    results.extend(failure_acknowledgments(item.claims, error))
+                    repository_results.extend(failure_acknowledgments(item.claims, error))
+            results.extend(repository_results)
+            if on_results is not None:
+                try:
+                    on_results(repository_results)
+                except Exception as error:
+                    callback_errors.append(error)
+    if callback_errors:
+        raise RuntimeError(
+            f"{len(callback_errors)} incremental acknowledgment(s) failed: "
+            + "; ".join(str(error) for error in callback_errors)
+        )
     return sorted(results, key=lambda result: result["itemKey"])
 
 
@@ -520,34 +534,32 @@ def main() -> int:
     )
     work_items: list[WorkItem] = []
     results: list[dict[str, Any]] = []
+    common = {
+        "generation": args.dispatcher_generation,
+        "workerId": args.worker_id,
+    }
+
+    def record_and_acknowledge(completed: list[dict[str, Any]]) -> None:
+        if not completed:
+            return
+        results.extend(completed)
+        args.results.write_text(json.dumps(completed, indent=2) + "\n", encoding="utf-8")
+        acknowledge_all(client, args.results, common)
+
     try:
         monitor.start()
         processor = DashboardBatchProcessor(args.config, lease_check=monitor.assert_valid)
         work_items, resolved = resolve_work_items(claims, processor.resolve_head)
-        results.extend(resolved)
-        results.extend(
-            process_batch(
-                work_items,
-                processor.process_repository,
-                max_repositories=args.max_repositories,
-            )
+        record_and_acknowledge(resolved)
+        process_batch(
+            work_items,
+            processor.process_repository,
+            max_repositories=args.max_repositories,
+            on_results=record_and_acknowledge,
         )
     finally:
-        # Whatever was decided before an abort still has to be acknowledged, or
-        # those items stay leased until recovery reclaims them.
         args.results.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
-        try:
-            if results:
-                acknowledge_all(
-                    client,
-                    args.results,
-                    {
-                        "generation": args.dispatcher_generation,
-                        "workerId": args.worker_id,
-                    },
-                )
-        finally:
-            monitor.close()
+        monitor.close()
     dead_letters = sum(result["outcome"] == "dead" for result in results)
     retries = sum(result["outcome"] == "retry" for result in results)
     print(

@@ -201,6 +201,36 @@ class QueueBatchTest(unittest.TestCase):
         outcomes = {result["itemKey"]: result["outcome"] for result in results}
         self.assertEqual(outcomes, {"bad#pr:1": "retry", "good#pr:1": "success"})
 
+    def test_completed_repository_results_are_reported_before_slow_repositories_finish(
+        self,
+    ) -> None:
+        good_reported = threading.Event()
+        slow_observed_report = False
+        items = [
+            WorkItem("good", 1, (claim("good#pr:1", "good", pr_number=1),)),
+            WorkItem("slow", 1, (claim("slow#pr:1", "slow", pr_number=1),)),
+        ]
+
+        def process(repository: str, work: list[WorkItem]) -> list[dict[str, object]]:
+            nonlocal slow_observed_report
+            if repository == "slow":
+                slow_observed_report = good_reported.wait(timeout=1)
+            return [
+                {
+                    "itemKey": work[0].claims[0].item_key,
+                    "claimGeneration": 1,
+                    "outcome": "success",
+                }
+            ]
+
+        def report(results: list[dict[str, object]]) -> None:
+            if results[0]["itemKey"] == "good#pr:1":
+                good_reported.set()
+
+        process_batch(items, process, max_repositories=2, on_results=report)
+
+        self.assertTrue(slow_observed_report)
+
     def test_delivery_error_still_publishes_committed_active_state(self) -> None:
         commands: list[str] = []
 
