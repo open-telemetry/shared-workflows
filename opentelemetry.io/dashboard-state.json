@@ -3578,7 +3578,10 @@
         "assignees": [],
         "author": "thompson-tomo",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11226#pullrequestreview-4982303347"
+        ],
+        "author_nudge_episode_id": "23e4c0b3c9324e549a9baf7608f667c4",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -3600,11 +3603,19 @@
         "head_sha": "dc72df6edf006ed3796b2fa80b99cc73fca4fb08",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-10T10:34:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T11:48:25+00:00",
+        "last_approver_activity_at": "2026-08-20T11:48:25+00:00",
         "last_author_activity_at": "2026-08-10T10:34:52+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "chalin",
+            "open_thread": false,
+            "top_level_feedback": true
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -3615,14 +3626,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a7523eefd82ffb5b08c7e1ffc8775d88f56868548d0bec665239044fdebb22c1",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-10T10:24:54+00:00"
+        "routing_input_fingerprint": "3b80ef0197c1f40733323cf77fab0f2d47c6ef53e1ae203eb85c9f66df1a9e96",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-20T11:48:25+00:00"
       },
       "failed": false,
       "pr_number": 11226,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11226",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11232": {
