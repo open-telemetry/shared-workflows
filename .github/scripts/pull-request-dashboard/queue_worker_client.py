@@ -117,9 +117,7 @@ def is_transient_error(error: BaseException) -> bool:
         (
             TimeoutError,
             socket.timeout,
-            ConnectionResetError,
-            ConnectionAbortedError,
-            BrokenPipeError,
+            ConnectionError,
             http.client.RemoteDisconnected,
             http.client.IncompleteRead,
         ),

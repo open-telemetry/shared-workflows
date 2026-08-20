@@ -103,11 +103,18 @@ class QueueWorkerClientTest(unittest.TestCase):
                         )
                     )
                 )
-        self.assertTrue(
-            is_transient_error(
-                urllib.error.URLError(ConnectionResetError("connection reset"))
-            )
-        )
+        for exc_type in (
+            ConnectionResetError,
+            ConnectionAbortedError,
+            ConnectionRefusedError,
+            BrokenPipeError,
+        ):
+            with self.subTest(exc_type=exc_type.__name__):
+                self.assertTrue(
+                    is_transient_error(
+                        urllib.error.URLError(exc_type("transient"))
+                    )
+                )
         self.assertFalse(is_transient_error(urllib.error.URLError("name resolution failed")))
 
     def test_retries_transient_worker_failures_with_capped_jittered_backoff(self) -> None:
