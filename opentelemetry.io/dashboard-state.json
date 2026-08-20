@@ -6000,13 +6000,13 @@
     },
     "11383": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "chalin",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 12,
+        "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -6026,14 +6026,23 @@
         "head_sha": "42c372a375e456473350afcf17fc28b6ad1ecee9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-20T13:01:21+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T13:07:12+00:00",
+        "last_approver_activity_at": "2026-08-20T13:07:12+00:00",
         "last_author_activity_at": "2026-08-20T13:01:21+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": true,
-        "routing_input_fingerprint": "35a3c7a11e76c2b75d51d4fb9c0cb6066c47c2e70b711c3d696911ec27ed9426",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "67d7e0e8b01407bf1f57e841726d250364b35f5fbad42f532345bbfa7e750302",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-20T12:37:33+00:00"
       },
       "failed": false,
