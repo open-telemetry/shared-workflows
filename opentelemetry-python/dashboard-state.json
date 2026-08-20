@@ -2015,8 +2015,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "ocelotl",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python/pull/5418#discussion_r3820496755"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python/pull/5418#pullrequestreview-4981423458"
+        ],
+        "author_nudge_episode_id": "f4ecd78fe35349b098196634d9a736fd",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -2038,20 +2043,29 @@
         "head_sha": "59659ba5e9348c1e51db41cc31e8aa645eeebc56",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-04T21:43:49+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T09:59:58+00:00",
+        "last_approver_activity_at": "2026-08-20T09:59:58+00:00",
         "last_author_activity_at": "2026-08-04T21:43:49+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "xrmx",
+            "open_thread": true,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "a1c83e0d97285d5b32179eeb5913569cde58989f76baa81ab00f5f13c4ec6db6",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-04T21:43:49+00:00"
+        "routing_input_fingerprint": "339e58ff0a8bab29596e727f398da8b3e6fec840ac4d07bde92cae4f80aa957d",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-20T09:57:23+00:00"
       },
       "failed": false,
       "pr_number": 5418,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5418",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "5419": {
