@@ -71,7 +71,6 @@ jobs:
           client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
           private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           owner: open-telemetry
-          repositories: ${{ steps.claim.outputs.repositories }}
           permission-checks: read
           permission-contents: read
           permission-issues: write
