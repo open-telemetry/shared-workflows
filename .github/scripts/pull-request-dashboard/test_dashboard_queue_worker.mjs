@@ -51,8 +51,8 @@ function fixture() {
       calls.push(["complete-finish-dispatch", input]);
       return true;
     },
-    async failFinishDispatch(input) {
-      calls.push(["fail-finish-dispatch", input]);
+    async failFinishDispatchWithRelease(finish, lease) {
+      calls.push(["fail-finish-dispatch-with-release", finish, lease]);
       return true;
     },
     async releaseRequestedDispatcher(input) {
@@ -117,6 +117,7 @@ test("dispatches a successor when finish leaves runnable work", async () => {
 
 test("releases a successor lease when dispatch fails", async () => {
   const { calls, queue } = fixture();
+  const dispatchError = Object.assign(new Error("dispatch failed"), { statusCode: 503 });
   await assert.rejects(
     handleQueueWorkerRequest(request({
       action: "finish",
@@ -126,18 +127,15 @@ test("releases a successor lease when dispatch fails", async () => {
       queue,
       verifyRequest,
       dispatchDrain: async () => {
-        throw new Error("dispatch failed");
+        throw dispatchError;
       },
     }),
     /dispatch failed/,
   );
-  assert.deepEqual(calls.at(-2), [
-    "release",
-    { generation: 8, requestOwner: "successor" },
-  ]);
   assert.deepEqual(calls.at(-1), [
-    "fail-finish-dispatch",
+    "fail-finish-dispatch-with-release",
     { generation: 7, workerId: "worker" },
+    { generation: 8, requestOwner: "successor" },
   ]);
 });
 
