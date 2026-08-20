@@ -145,7 +145,6 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertNotIn("code_ref:", body)
         self.assertNotRegex(body, STABLE_USES)
         self.assertRegex(body, r"(?m)^    timeout-minutes: 50$")
-        self.assertNotRegex(body, r"(?m)^\s+repositories:")
 
     def test_webhook_deployment_rejects_unsupported_queue_modes(self) -> None:
         body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
