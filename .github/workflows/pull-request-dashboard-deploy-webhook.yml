@@ -45,6 +45,13 @@ jobs:
           PR_DASHBOARD_QUEUE_MODE: ${{ vars.PR_DASHBOARD_QUEUE_MODE || 'off' }}
         run: |
           set -euo pipefail
+          case "$PR_DASHBOARD_QUEUE_MODE" in
+            off|shadow|canary|all) ;;
+            *)
+              echo "::error::Unsupported PR_DASHBOARD_QUEUE_MODE: $PR_DASHBOARD_QUEUE_MODE"
+              exit 1
+              ;;
+          esac
           dispatcher_private_key_base64=$(printf '%s' "$OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY" | base64 -w0)
           echo "::add-mask::$dispatcher_private_key_base64"
           # Remove the deprecated variable left by App ID deployments.

@@ -20,6 +20,9 @@ REPO_ROOT = SCRIPT_DIR.parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard.yml"
 REPO_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-repo.yml"
 DRAIN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-drain.yml"
+DEPLOY_WORKFLOW = (
+    REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-deploy-webhook.yml"
+)
 WEBHOOK = SCRIPT_DIR / "netlify" / "functions" / "github-webhook.mjs"
 CONFIG = SCRIPT_DIR / "repositories.json"
 
@@ -143,6 +146,14 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertNotRegex(body, STABLE_USES)
         self.assertRegex(body, r"(?m)^    timeout-minutes: 50$")
         self.assertNotRegex(body, r"(?m)^\s+repositories:")
+
+    def test_webhook_deployment_rejects_unsupported_queue_modes(self) -> None:
+        body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn('case "$PR_DASHBOARD_QUEUE_MODE" in', body)
+        self.assertIn("off|shadow|canary|all)", body)
+        validation = body.index('case "$PR_DASHBOARD_QUEUE_MODE" in')
+        environment_write = body.index("env:set PR_DASHBOARD_QUEUE_MODE")
+        self.assertLess(validation, environment_write)
 
 
 if __name__ == "__main__":
