@@ -28,7 +28,11 @@ CONFIG_LOCK_ATTEMPTS = 5
 @contextmanager
 def temporary_state_dir() -> Iterator[Path]:
     with tempfile.TemporaryDirectory(prefix="pull-request-dashboard-") as temp_root:
-        yield Path(temp_root) / "state"
+        state_dir = Path(temp_root) / "state"
+        try:
+            yield state_dir
+        finally:
+            remove_existing_state_dir(state_dir)
 
 
 @contextmanager

@@ -8,6 +8,18 @@ from unittest.mock import patch
 import state_branch
 
 
+class TemporaryStateDirTest(unittest.TestCase):
+    @patch.object(state_branch, "remove_existing_state_dir")
+    def test_removes_registered_worktree_before_temporary_directory(
+        self,
+        remove_existing_state_dir: object,
+    ) -> None:
+        with state_branch.temporary_state_dir() as state_dir:
+            state_dir.mkdir()
+
+        remove_existing_state_dir.assert_called_once_with(state_dir)
+
+
 class AcceptedStateDirTest(unittest.TestCase):
     @patch.object(state_branch, "fetch_state_branch", return_value=True)
     @patch.object(state_branch, "run")
