@@ -706,27 +706,16 @@ def fetch_latest_draft_transitions(
     transitions: dict[int, str] = {}
     for start in range(0, len(numbers), _DRAFT_TRANSITION_BATCH_SIZE):
         batch = numbers[start:start + _DRAFT_TRANSITION_BATCH_SIZE]
-        selections = "\n".join(
-            f"""
-            pr_{number}: pullRequest(number: {number}) {{
-                timelineItems(last: 1, itemTypes: [CONVERT_TO_DRAFT_EVENT]) {{
-                    nodes {{
-                        ... on ConvertToDraftEvent {{
-                            createdAt
-                        }}
-                    }}
-                }}
-            }}
-            """
-            for number in batch
+        selections = " ".join(
+            f"pr_{n}: pullRequest(number: {n})"
+            f" {{timelineItems(last: 1, itemTypes: [CONVERT_TO_DRAFT_EVENT])"
+            f" {{nodes {{... on ConvertToDraftEvent {{createdAt}}}}}}}}"
+            for n in batch
         )
-        query = f"""
-        query($owner: String!, $name: String!) {{
-            repository(owner: $owner, name: $name) {{
-                {selections}
-            }}
-        }}
-        """
+        query = (
+            f"query($owner: String!, $name: String!)"
+            f" {{repository(owner: $owner, name: $name) {{{selections}}}}}"
+        )
         data = gh_graphql(query, {"owner": owner, "name": repo_name})
         repository = ((data.get("data") or {}).get("repository") or {})
         for number in batch:
