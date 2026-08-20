@@ -192,9 +192,9 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             body,
         )
         self.assertIn(
-            "- Replying is enough to hand it back — answer, explain why no change "
-            "is needed, or ask a follow-up. The dashboard routes it back to "
-            "reviewers automatically.",
+            "- Replying is enough to hand it off — answer, explain why no change "
+            "is needed, or ask a follow-up. The dashboard routes it onward "
+            "automatically.",
             body,
         )
         self.assertIn(

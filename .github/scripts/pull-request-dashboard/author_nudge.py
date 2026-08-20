@@ -324,8 +324,8 @@ def render_nudge(
         f"waiting on you. The [dashboard status comment]({status_url}) has the "
         "open items and is kept current.",
         "",
-        "- Replying is enough to hand it back — answer, explain why no change is "
-        "needed, or ask a follow-up. The dashboard routes it back to reviewers "
+        "- Replying is enough to hand it off — answer, explain why no change is "
+        "needed, or ask a follow-up. The dashboard routes it onward "
         "automatically.",
         "- To hand it back for any other reason, including the dashboard getting "
         f"this wrong, comment `{DASHBOARD_COMMAND_PREFIX} route:reviewers`.",
