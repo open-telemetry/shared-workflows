@@ -6,9 +6,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "trask",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/shared-workflows/pull/271#discussion_r3817725820"
+        ],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "53b76e2fdcde4772bb428740a34e2167",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-20T00:21:31+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
@@ -30,17 +34,27 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-20T00:19:25+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "github-advanced-security",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "fee969bc1e9a8b0f7d9f1dbf5aee30fec661be8f6cf75afed13969cc3fb15c31",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-20T00:13:07+00:00"
+        "routing_input_fingerprint": "a1f96b9f1de1e6c03db5055c1427cca5fee04c4ccb5452a62d0dc61069ab0751",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-20T00:21:30+00:00"
       },
       "failed": false,
       "pr_number": 271,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/271",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
