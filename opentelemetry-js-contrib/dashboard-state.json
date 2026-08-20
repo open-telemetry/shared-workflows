@@ -4050,13 +4050,13 @@
     },
     "3685": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "bielcarpi",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 6,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -4076,14 +4076,23 @@
         "head_sha": "566eaf4584abb26a46f6db4b3f2853c0c7362ea9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-20T06:44:37+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T13:29:53+00:00",
+        "last_approver_activity_at": "2026-08-20T13:29:53+00:00",
         "last_author_activity_at": "2026-08-20T06:44:13+00:00",
-        "required_checks_settled": true,
-        "reviewers": [],
-        "route_held_for_gates": false,
-        "routing_input_fingerprint": "e9b495528acd4d758fc33f7c1ab4cb94692b3b447106728c32e5a997b8e9fd39",
-        "waiting_age_basis": "last_author_activity",
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "pichlermarc",
+            "open_thread": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "routing_input_fingerprint": "d03dcf3124aac8a541064fd94e3b2efa9acc112882b3e224b2c25c40eed670e8",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-20T06:44:13+00:00"
       },
       "failed": false,
