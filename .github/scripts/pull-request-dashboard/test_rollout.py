@@ -163,9 +163,16 @@ class RolloutWiringTest(unittest.TestCase):
         body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('case "$PR_DASHBOARD_QUEUE_MODE" in', body)
         self.assertIn("off|shadow|canary|all)", body)
+        self.assertIn(
+            'if [[ "$PR_DASHBOARD_QUEUE_MODE" == "all" ]]',
+            body,
+        )
+        self.assertIn("acquire-publisher-lock release-publisher-lock", body)
         validation = body.index('case "$PR_DASHBOARD_QUEUE_MODE" in')
+        stable_guard = body.index('if [[ "$PR_DASHBOARD_QUEUE_MODE" == "all" ]]')
         environment_write = body.index("env:set PR_DASHBOARD_QUEUE_MODE")
         self.assertLess(validation, environment_write)
+        self.assertLess(stable_guard, environment_write)
 
 
 if __name__ == "__main__":

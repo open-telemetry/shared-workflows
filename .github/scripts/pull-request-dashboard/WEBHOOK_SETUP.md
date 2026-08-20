@@ -31,7 +31,10 @@ values are:
 
 The deployment workflow defaults a missing value to `off` and writes the mode
 to the production Netlify Functions environment. Manually dispatch
-`Deploy pull request dashboard webhook` after changing the variable.
+`Deploy pull request dashboard webhook` after changing the variable. An `all`
+deployment also verifies that the stable pinned repository workflow has the
+shared publisher lock and its timeout. The deployment fails until that code has
+been promoted from canary.
 
 The drain workflow runs the dashboard scripts from the commit it was dispatched
 at, so a queued repository always runs the canary code path instead of the
