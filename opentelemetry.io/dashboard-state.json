@@ -1136,7 +1136,10 @@
         "assignees": [],
         "author": "jraleigh",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/10808#issuecomment-5100195981"
+        ],
+        "author_nudge_episode_id": "a52f585681cd4c32a495db4f75d56406",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1158,37 +1161,38 @@
         "head_sha": "b7c965f2ce7bd03720d891644f1a5f980e39447d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T12:28:43+00:00",
-        "last_approver_activity_at": "2026-07-28T05:07:22+00:00",
+        "last_activity_at": "2026-08-20T11:47:50+00:00",
+        "last_approver_activity_at": "2026-08-20T11:47:50+00:00",
         "last_author_activity_at": "2026-08-18T12:28:43+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": false,
+            "changes_requested": true,
+            "login": "chalin",
+            "open_thread": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
             "changes_requested": false,
             "login": "vitorvasc",
             "open_thread": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "aeeea0e663c0a4d4290ec917d3878a89c38f73eeb4d94aa3c86aa34cafdf30ec",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-18T12:28:43+00:00"
+        "routing_input_fingerprint": "909c9b3f4125f2056a66476fa4ddeba6186b5b175861ef5ef215b98b127e7570",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-12T13:11:42+00:00"
       },
       "failed": false,
       "pr_number": 10808,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/10808",
-      "route": "approver",
-      "top_level_history": {
-        "pr-issue-comment-5100195981": {
-          "evidence": {
-            "reply": "2026-08-12T13:11:42Z"
-          },
-          "reply_source_id": 5267271020
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "10812": {
       "facts": {
