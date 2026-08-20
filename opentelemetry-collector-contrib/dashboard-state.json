@@ -11519,9 +11519,8 @@
         "author": "gdivya-nr",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "1fb6ae3a4525482b98d15b4b1d0ec592",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
@@ -11538,22 +11537,31 @@
         "head_sha": "39c41dac17d49ad7c915d905e204dcd1a0263951",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-20T15:26:50+00:00",
+        "last_activity_at": "2026-08-20T19:33:48+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-20T15:26:50+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-20T16:21:21.932482+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "sv-splunk",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5d17e4a58bb11c88400d1a809dd54d1c71e85a642a915627baba5e11adcc6af5",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-08-20T10:59:57+00:00"
+        "routing_input_fingerprint": "064dff44e1f818ff02635b926ce444574cf88cd847e7472dff5859f04ea2dcda",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-20T20:07:51.392089+00:00"
       },
       "failed": false,
       "pr_number": 50385,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50385",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-5355794251": {
           "evidence": {
