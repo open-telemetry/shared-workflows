@@ -8,6 +8,7 @@ import base64
 from collections.abc import Callable
 from collections.abc import Iterator
 from contextlib import contextmanager
+import json
 import os
 import random
 import shutil
@@ -15,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from typing import TypedDict
 import uuid
 from pathlib import Path
 
@@ -23,6 +25,15 @@ DEFAULT_MAX_ATTEMPTS = 8
 RETRY_BACKOFF_BASE_SECONDS = 0.5
 RETRY_BACKOFF_MAX_SECONDS = 8.0
 CONFIG_LOCK_ATTEMPTS = 5
+PUBLISHER_LOCK_PATH = Path(".publisher-lock.json")
+DEFAULT_PUBLISHER_LOCK_LEASE_SECONDS = 60 * 60
+DEFAULT_PUBLISHER_LOCK_WAIT_SECONDS = 60 * 60
+PUBLISHER_LOCK_POLL_SECONDS = 5
+
+
+class PublisherLock(TypedDict):
+    owner: str
+    expiresAt: float
 
 
 @contextmanager
@@ -224,6 +235,122 @@ def copy_snapshots(snapshots: list[tuple[Path, Path]]) -> None:
             shutil.copyfile(source, destination)
 
 
+def load_publisher_lock(state_dir: Path) -> PublisherLock | None:
+    path = state_dir / PUBLISHER_LOCK_PATH
+    if not path.exists():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"publisher lock is not valid JSON: {error}") from error
+    if not isinstance(value, dict):
+        raise RuntimeError("publisher lock has an invalid shape")
+    owner = value.get("owner")
+    expires_at = value.get("expiresAt")
+    if (
+        not isinstance(owner, str)
+        or not owner
+        or isinstance(expires_at, bool)
+        or not isinstance(expires_at, (int, float))
+    ):
+        raise RuntimeError("publisher lock has an invalid shape")
+    return {"owner": owner, "expiresAt": float(expires_at)}
+
+
+def commit_publisher_lock(
+    state_dir: Path,
+    state_branch: str,
+    message: str,
+) -> bool:
+    run(["git", "add", "--all", "--", str(PUBLISHER_LOCK_PATH)], cwd=state_dir)
+    run(["git", "commit", "-m", message], cwd=state_dir)
+    return push_state(state_dir, state_branch)
+
+
+def acquire_publisher_lock(
+    state_branch: str,
+    owner: str,
+    *,
+    lease_seconds: int = DEFAULT_PUBLISHER_LOCK_LEASE_SECONDS,
+    wait_seconds: int = DEFAULT_PUBLISHER_LOCK_WAIT_SECONDS,
+    now: Callable[[], float] = time.time,
+    sleep: Callable[[float], None] = time.sleep,
+) -> None:
+    if not owner:
+        raise ValueError("publisher lock owner must not be empty")
+    if lease_seconds < 1 or wait_seconds < 0:
+        raise ValueError("publisher lock lease must be positive and wait must be non-negative")
+    deadline = now() + wait_seconds
+    while True:
+        current_time = now()
+        with temporary_state_dir() as state_dir:
+            configure_git()
+            checkout_state(state_dir, state_branch, require_existing=True)
+            lock = load_publisher_lock(state_dir)
+            if (
+                lock is not None
+                and lock["owner"] == owner
+                and lock["expiresAt"] > current_time
+            ):
+                return
+            if lock is None or lock["expiresAt"] <= current_time:
+                (state_dir / PUBLISHER_LOCK_PATH).write_text(
+                    json.dumps(
+                        {
+                            "owner": owner,
+                            "expiresAt": current_time + lease_seconds,
+                        },
+                        sort_keys=True,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+                if commit_publisher_lock(
+                    state_dir,
+                    state_branch,
+                    f"Acquire dashboard publisher lock for {owner}",
+                ):
+                    return
+        remaining = deadline - now()
+        if remaining <= 0:
+            raise TimeoutError(f"timed out waiting for dashboard publisher lock {state_branch}")
+        sleep(min(PUBLISHER_LOCK_POLL_SECONDS, remaining))
+
+
+def release_publisher_lock(state_branch: str, owner: str) -> None:
+    for attempt in range(1, DEFAULT_MAX_ATTEMPTS + 1):
+        with temporary_state_dir() as state_dir:
+            configure_git()
+            checkout_state(state_dir, state_branch, require_existing=True)
+            lock = load_publisher_lock(state_dir)
+            if lock is None:
+                return
+            if lock["owner"] != owner:
+                raise RuntimeError(
+                    f"dashboard publisher lock {state_branch} is owned by {lock['owner']}"
+                )
+            (state_dir / PUBLISHER_LOCK_PATH).unlink()
+            if commit_publisher_lock(
+                state_dir,
+                state_branch,
+                f"Release dashboard publisher lock for {owner}",
+            ):
+                return
+        if attempt == DEFAULT_MAX_ATTEMPTS:
+            break
+        time.sleep(retry_delay_seconds(attempt))
+    raise RuntimeError(f"failed to release dashboard publisher lock {state_branch}")
+
+
+@contextmanager
+def publisher_lock(state_branch: str, owner: str) -> Iterator[None]:
+    acquire_publisher_lock(state_branch, owner)
+    try:
+        yield
+    finally:
+        release_publisher_lock(state_branch, owner)
+
+
 def retry_delay_seconds(attempt: int) -> float:
     # Full jitter so concurrent writers de-synchronize instead of colliding again.
     ceiling = min(RETRY_BACKOFF_BASE_SECONDS * (2 ** (attempt - 1)), RETRY_BACKOFF_MAX_SECONDS)
@@ -283,11 +410,29 @@ def main() -> int:
     checkout = subparsers.add_parser("checkout", help="check out the accepted state branch")
     checkout.add_argument("--state-branch", required=True)
     checkout.add_argument("--state-dir", type=Path, required=True)
+    acquire_lock = subparsers.add_parser(
+        "acquire-publisher-lock",
+        help="acquire the repository publisher lock",
+    )
+    acquire_lock.add_argument("--state-branch", required=True)
+    acquire_lock.add_argument("--owner", required=True)
+    release_lock = subparsers.add_parser(
+        "release-publisher-lock",
+        help="release the repository publisher lock",
+    )
+    release_lock.add_argument("--state-branch", required=True)
+    release_lock.add_argument("--owner", required=True)
     args = parser.parse_args()
 
     if args.command == "checkout":
         configure_git()
         checkout_state(args.state_dir, args.state_branch, require_existing=True)
+        return 0
+    if args.command == "acquire-publisher-lock":
+        acquire_publisher_lock(args.state_branch, args.owner)
+        return 0
+    if args.command == "release-publisher-lock":
+        release_publisher_lock(args.state_branch, args.owner)
         return 0
     parser.error(f"unknown command: {args.command}")
     return 2

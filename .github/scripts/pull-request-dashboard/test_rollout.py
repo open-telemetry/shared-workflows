@@ -128,6 +128,17 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("code_ref:", body)
         self.assertIn("ref: ${{ inputs.code_ref }}", body)
 
+    def test_direct_publisher_uses_the_shared_repository_lock(self) -> None:
+        body = REPO_WORKFLOW.read_text(encoding="utf-8")
+        self.assertEqual(body.count("acquire-publisher-lock"), 1)
+        self.assertEqual(body.count("release-publisher-lock"), 1)
+        self.assertIn(
+            "if: always() && steps.publisher-lock.outcome == 'success'",
+            body,
+        )
+        self.assertLess(body.index("acquire-publisher-lock"), body.index("delivery.py"))
+        self.assertLess(body.index("publish_dashboard.py"), body.index("release-publisher-lock"))
+
     def test_queue_mode_canary_list_matches_the_rollout_canary_list(self) -> None:
         webhook = WEBHOOK.read_text(encoding="utf-8")
         match = re.search(

@@ -95,13 +95,17 @@ the implementation understandable and operationally cheap.
   repositories by coalescing events in Netlify first.
 - Publishers use one concurrency group per target repository. GitHub preserves
   the running publisher but may replace an older pending publisher with a newer
-  one even when `cancel-in-progress` is false. Accepted work lives on the state
-  branch: a targeted publisher limits status-comment and Slack delivery to its
-  triggering PR. Webhook runs can arrive concurrently for many PRs, so allowing
-  each publisher to fan out into repository-wide delivery would create long
-  jobs and put pressure on the GitHub Actions job queue, especially when a new
-  status-comment revision queues every open PR. The hourly untargeted publisher
-  is the bounded repository-wide rollout and recovery path.
+  one even when `cancel-in-progress` is false. Direct and queued publishers also
+  acquire a lease stored on the repository's state branch. This shared lock
+  prevents the drain from overlapping the direct concurrency group while either
+  path performs external delivery or publishes the issue. Accepted work lives
+  on the state branch: a targeted publisher limits status-comment and Slack
+  delivery to its triggering PR. Webhook runs can arrive concurrently for many
+  PRs, so allowing each publisher to fan out into repository-wide delivery
+  would create long jobs and put pressure on the GitHub Actions job queue,
+  especially when a new status-comment revision queues every open PR. The
+  hourly untargeted publisher is the bounded repository-wide rollout and
+  recovery path.
 - The top-level hourly health check treats a replaced pending publisher as
   successful. Matrix failures take precedence over cancellation, so genuine
   update or delivery failures still open the failure issue.

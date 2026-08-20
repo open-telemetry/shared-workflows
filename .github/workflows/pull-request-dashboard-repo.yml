@@ -228,6 +228,8 @@ jobs:
       contents: write
     environment: protected
     runs-on: cncf-ubuntu-2-8-x86
+    env:
+      PUBLISHER_LOCK_OWNER: ${{ github.run_id }}-${{ github.run_attempt }}-publish
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -282,6 +284,18 @@ jobs:
           permission-members: read
           permission-pull-requests: write
 
+      - name: Acquire repository publisher lock
+        id: publisher-lock
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ steps.config.outputs.name }}
+        run: |
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          python3 .github/scripts/pull-request-dashboard/state_branch.py \
+            acquire-publisher-lock \
+            --state-branch "$state_branch" \
+            --owner "$PUBLISHER_LOCK_OWNER"
+
       - name: Deliver dashboard updates
         id: delivery
         continue-on-error: true
@@ -328,6 +342,18 @@ jobs:
             publish_args+=(--large-repo)
           fi
           python3 .github/scripts/pull-request-dashboard/publish_dashboard.py "${publish_args[@]}"
+
+      - name: Release repository publisher lock
+        if: always() && steps.publisher-lock.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ steps.config.outputs.name }}
+        run: |
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          python3 .github/scripts/pull-request-dashboard/state_branch.py \
+            release-publisher-lock \
+            --state-branch "$state_branch" \
+            --owner "$PUBLISHER_LOCK_OWNER"
 
       - name: Report GitHub App rate limits
         if: always() && steps.dashboard-token.outcome == 'success'

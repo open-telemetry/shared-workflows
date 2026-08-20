@@ -10,11 +10,13 @@ import tempfile
 import threading
 from collections import defaultdict
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from queue_worker_client import QueueWorkerClient, acknowledge_all
+import state_branch
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OWNER = "open-telemetry"
@@ -191,11 +193,17 @@ class DashboardBatchProcessor:
         env: dict[str, str] | None = None,
         run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
         lease_check: Callable[[], None] | None = None,
+        publisher_lock: Callable[[str, str], AbstractContextManager[None]] = (
+            state_branch.publisher_lock
+        ),
+        publisher_lock_owner: str = "queue-worker",
     ) -> None:
         self.script_dir = script_dir
         self.base_env = dict(env or os.environ)
         self.run = run
         self.lease_check = lease_check
+        self.publisher_lock = publisher_lock
+        self.publisher_lock_owner = publisher_lock_owner
         config = json.loads(config_path.read_text(encoding="utf-8"))
         self.config = {
             entry["name"]: entry
@@ -254,9 +262,8 @@ class DashboardBatchProcessor:
             "SLACK_USER_MAP_JSON": json.dumps(config.get("slack_user_mapping", {})),
         }
         state_branch = f"{STATE_BRANCH_PREFIX}/{repository}"
-        successful: list[WorkItem] = []
         results: list[dict[str, Any]] = []
-        publish_active = False
+        ready: list[WorkItem] = []
 
         for item in items:
             try:
@@ -269,27 +276,47 @@ class DashboardBatchProcessor:
                     )
                     continue
                 self._update_dashboard(repository, item.pr_number, state_branch, config, env)
-                delivery_active, delivery_error = self._deliver(
-                    repository, item.pr_number, state_branch, env
-                )
-                publish_active = delivery_active or publish_active
-                if delivery_error is not None:
-                    results.extend(failure_acknowledgments(item.claims, delivery_error))
-                    continue
-                successful.append(item)
+                ready.append(item)
             except Exception as error:
                 results.extend(failure_acknowledgments(item.claims, error))
 
-        if publish_active:
-            try:
-                self._publish(repository, state_branch, config, env)
-            except Exception as error:
-                for item in successful:
-                    results.extend(failure_acknowledgments(item.claims, error))
-                successful = []
+        if not ready:
+            return results
 
-        for item in successful:
-            results.extend(acknowledgment(claim, "success") for claim in item.claims)
+        locked_results: list[dict[str, Any]] = []
+        successful: list[WorkItem] = []
+        publish_active = False
+        try:
+            with self.publisher_lock(state_branch, self.publisher_lock_owner):
+                for item in ready:
+                    delivery_active, delivery_error = self._deliver(
+                        repository, item.pr_number, state_branch, env
+                    )
+                    publish_active = delivery_active or publish_active
+                    if delivery_error is not None:
+                        locked_results.extend(
+                            failure_acknowledgments(item.claims, delivery_error)
+                        )
+                        continue
+                    successful.append(item)
+
+                if publish_active:
+                    try:
+                        self._publish(repository, state_branch, config, env)
+                    except Exception as error:
+                        for item in successful:
+                            locked_results.extend(failure_acknowledgments(item.claims, error))
+                        successful = []
+
+                for item in successful:
+                    locked_results.extend(
+                        acknowledgment(claim, "success") for claim in item.claims
+                    )
+        except Exception as error:
+            for item in ready:
+                results.extend(failure_acknowledgments(item.claims, error))
+        else:
+            results.extend(locked_results)
         return results
 
     def _initial_backfill_complete(
@@ -548,7 +575,11 @@ def main() -> int:
 
     try:
         monitor.start()
-        processor = DashboardBatchProcessor(args.config, lease_check=monitor.assert_valid)
+        processor = DashboardBatchProcessor(
+            args.config,
+            lease_check=monitor.assert_valid,
+            publisher_lock_owner=args.worker_id,
+        )
         work_items, resolved = resolve_work_items(claims, processor.resolve_head)
         record_and_acknowledge(resolved)
         process_batch(

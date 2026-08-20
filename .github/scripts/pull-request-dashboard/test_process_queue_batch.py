@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager, nullcontext
 import json
 import subprocess
 import sys
@@ -259,6 +260,7 @@ class QueueBatchTest(unittest.TestCase):
             processor = process_queue_batch.DashboardBatchProcessor(
                 config_path,
                 run=run,
+                publisher_lock=lambda _branch, _owner: nullcontext(),
             )
             item = WorkItem(
                 "example",
@@ -270,6 +272,78 @@ class QueueBatchTest(unittest.TestCase):
 
         self.assertEqual(results[0]["outcome"], "retry")
         self.assertIn("publish_dashboard.py", commands)
+
+    def test_repository_delivery_and_publication_share_one_publisher_lock(self) -> None:
+        lifecycle: list[str] = []
+
+        @contextmanager
+        def publisher_lock(_branch: str, _owner: str):
+            lifecycle.append("acquire")
+            try:
+                yield
+            finally:
+                lifecycle.append("release")
+
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(
+                json.dumps([{"name": "example"}]),
+                encoding="utf-8",
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path,
+                publisher_lock=publisher_lock,
+                publisher_lock_owner="worker",
+            )
+            items = [
+                WorkItem(
+                    "example",
+                    number,
+                    (claim(f"example#pr:{number}", "example", pr_number=number),),
+                )
+                for number in (1, 2)
+            ]
+            with (
+                mock.patch.object(
+                    processor,
+                    "_initial_backfill_complete",
+                    return_value=True,
+                ),
+                mock.patch.object(
+                    processor,
+                    "_update_dashboard",
+                    side_effect=lambda _repo, number, *_args: lifecycle.append(
+                        f"update-{number}"
+                    ),
+                ),
+                mock.patch.object(
+                    processor,
+                    "_deliver",
+                    side_effect=lambda _repo, number, *_args: (
+                        lifecycle.append(f"deliver-{number}") or (True, None)
+                    ),
+                ),
+                mock.patch.object(
+                    processor,
+                    "_publish",
+                    side_effect=lambda *_args: lifecycle.append("publish"),
+                ),
+            ):
+                results = processor.process_repository("example", items)
+
+        self.assertEqual(
+            lifecycle,
+            [
+                "update-1",
+                "update-2",
+                "acquire",
+                "deliver-1",
+                "deliver-2",
+                "publish",
+                "release",
+            ],
+        )
+        self.assertEqual([result["outcome"] for result in results], ["success", "success"])
 
     def test_an_aborted_batch_still_records_decided_acknowledgments(self) -> None:
         lifecycle: list[str] = []
