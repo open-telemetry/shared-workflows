@@ -8,9 +8,12 @@
         "author": "martincostello",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "ci_uncleared_failing_count": 0,
+        "author_nudge_episode_id": "d68d547d15744bf3b2b3b92317d41c35",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-20T08:11:11+00:00",
+        "ci_pending_count": 0,
+        "ci_uncleared_failing_count": 1,
+        "ci_uncleared_failing_since": "2026-08-20T08:11:11+00:00",
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
         "copilot_review_exists": true,
@@ -32,7 +35,7 @@
         "last_activity_at": "2026-08-20T08:03:56+00:00",
         "last_approver_activity_at": "2026-08-06T22:40:31+00:00",
         "last_author_activity_at": "2026-08-20T08:03:56+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -52,14 +55,14 @@
           }
         ],
         "route_held_for_gates": false,
-        "routing_input_fingerprint": "64b28cdbc94f8f96e8776538e6a4ae9d1a38a94327ef06f09a5bb89eb34b2003",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-10T13:07:24+00:00"
+        "routing_input_fingerprint": "c898a51b418fb66cfaf376602f8e181a01b50fe96aaf3daed591be947b3a1cc7",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-20T08:11:11+00:00"
       },
       "failed": false,
       "pr_number": 4625,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/4625",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "4635": {
