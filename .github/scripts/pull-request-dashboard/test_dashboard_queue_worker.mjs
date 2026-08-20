@@ -115,7 +115,7 @@ test("dispatches a successor when finish leaves runnable work", async () => {
   ]]);
 });
 
-test("releases a successor lease when dispatch fails", async () => {
+test("atomically releases a successor lease after a rejected dispatch", async () => {
   const { calls, queue } = fixture();
   const dispatchError = Object.assign(new Error("dispatch failed"), { statusCode: 503 });
   await assert.rejects(
@@ -132,11 +132,42 @@ test("releases a successor lease when dispatch fails", async () => {
     }),
     /dispatch failed/,
   );
-  assert.deepEqual(calls.at(-1), [
+  assert.deepEqual(calls, [[
+    "finish",
+    { generation: 7, workerId: "worker" },
+  ], [
+    "claim-finish-dispatch",
+    { generation: 7, workerId: "worker" },
+  ], [
     "fail-finish-dispatch-with-release",
     { generation: 7, workerId: "worker" },
     { generation: 8, requestOwner: "successor" },
-  ]);
+  ]]);
+});
+
+test("preserves the successor lease after an ambiguous transport failure", async () => {
+  const { calls, queue } = fixture();
+  await assert.rejects(
+    handleQueueWorkerRequest(request({
+      action: "finish",
+      generation: 7,
+      workerId: "worker",
+    }), {
+      queue,
+      verifyRequest,
+      dispatchDrain: async () => {
+        throw new Error("connection reset");
+      },
+    }),
+    /connection reset/,
+  );
+  assert.deepEqual(calls, [[
+    "finish",
+    { generation: 7, workerId: "worker" },
+  ], [
+    "claim-finish-dispatch",
+    { generation: 7, workerId: "worker" },
+  ]]);
 });
 
 test("does not release a dispatched successor when recording completion fails", async () => {
