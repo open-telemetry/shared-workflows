@@ -325,8 +325,8 @@ def render_nudge(
         "open items and is kept current.",
         "",
         "- Replying is enough to hand it off — answer, explain why no change is "
-        "needed, or ask a follow-up. The dashboard routes it onward "
-        "automatically.",
+        "needed, or ask a follow-up. The dashboard routes it onward once nothing "
+        "on the list is waiting on you.",
         "- To hand it back for any other reason, including the dashboard getting "
         f"this wrong, comment `{DASHBOARD_COMMAND_PREFIX} route:reviewers`.",
         "",
