@@ -1,0 +1,112 @@
+name: Pull request dashboard author reminder sweep
+
+# The dashboard collapses an author reminder from its own state, so a reminder
+# whose state entry was lost stays visible forever. This sweep reads the pull
+# request instead of the state, collapsing reminders the dashboard can no longer
+# reach and rewriting live ones whose wording has since changed. It is run by
+# hand; nothing schedules it.
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Target repository. Empty means all configured repositories.
+        required: false
+        type: string
+      dry_run:
+        description: Report what would change without writing to GitHub.
+        required: false
+        default: true
+        type: boolean
+
+permissions: {}
+
+concurrency:
+  group: pull-request-dashboard-author-reminder-sweep-${{ inputs.repository || 'all-repositories' }}
+  cancel-in-progress: false
+
+env:
+  DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
+
+jobs:
+  resolve-targets:
+    if: github.repository == 'open-telemetry/shared-workflows'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve target repositories
+        id: targets
+        env:
+          TARGET_REPOSITORY: ${{ inputs.repository }}
+        run: |
+          set -euo pipefail
+          selected=$(jq -c --arg repo "$TARGET_REPOSITORY" '
+            if $repo == "" then
+              .
+            else
+              [ .[] | select(.name == $repo) ]
+            end
+            | [ .[] | {name} ]
+          ' "$DASHBOARD_CONFIG")
+          if [[ "$selected" == "[]" ]]; then
+            echo "no configured repository matched: ${TARGET_REPOSITORY:-<all>}" >&2
+            exit 1
+          fi
+          echo "matrix={\"include\":${selected}}" >> "$GITHUB_OUTPUT"
+          jq '[ .[].name ]' <<< "$selected"
+
+  sweep:
+    needs: resolve-targets
+    strategy:
+      fail-fast: false
+      # Every reminder the sweep touches is a write against one repository's
+      # comments, so it walks a few repositories at a time to stay well inside
+      # the app's secondary rate limits.
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
+    permissions:
+      contents: read
+    environment: protected
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: dashboard-token
+        with:
+          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
+          owner: open-telemetry
+          repositories: ${{ matrix.name }}
+          permission-issues: write
+          permission-pull-requests: read
+
+      - name: Refresh author reminders
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          TARGET_REPOSITORY: ${{ matrix.name }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        working-directory: .github/scripts/pull-request-dashboard
+        run: |
+          set -euo pipefail
+          args=(--repo "$TARGET_REPOSITORY")
+          if [[ "$DRY_RUN" != "false" ]]; then
+            args+=(--dry-run)
+          fi
+          python3 refresh_author_nudges.py "${args[@]}"
+
+      - name: Report GitHub App rate limits
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
