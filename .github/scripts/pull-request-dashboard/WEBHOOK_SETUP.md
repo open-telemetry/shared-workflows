@@ -8,9 +8,10 @@ Create a Netlify project for the webhook bridge:
 - Project name: `otel-pull-request-dashboard`
 - Base directory: `.github/scripts/pull-request-dashboard`
 
-The Netlify project receives GitHub App webhooks, coalesces targeted refreshes
-in a site-wide Netlify Blobs store, and dispatches the queue drain workflow.
-It does not run dashboard backfills or own dashboard state.
+The Netlify project receives GitHub App webhooks and either dispatches a direct
+targeted refresh or coalesces the refresh in a site-wide Netlify Blobs store for
+the queue drain workflow. It does not run dashboard backfills or own dashboard
+state.
 
 Save the Netlify project ID as a GitHub Actions variable named
 `NETLIFY_PR_DASHBOARD_PROJECT_ID` in the `shared-workflows` repository.
@@ -212,7 +213,10 @@ Deploy contexts:
 
 ## 5. Workflow dispatch contract
 
-The webhook bridge should dispatch `pull-request-dashboard.yml` in
+The queue mode selects one of two dispatch contracts.
+
+In `off` and `shadow` modes, and for non-canary repositories in `canary` mode,
+the webhook bridge dispatches `pull-request-dashboard.yml` in
 `open-telemetry/shared-workflows` with these inputs:
 
 ```json
@@ -224,7 +228,22 @@ The webhook bridge should dispatch `pull-request-dashboard.yml` in
 }
 ```
 
-Notes:
+In `all` mode, and for canary repositories in `canary` mode, the bridge writes
+the repository and PR or head SHA to the Blob queue. Only the webhook request
+that acquires the singleton dispatcher lease dispatches
+`pull-request-dashboard-drain.yml`, with this input:
+
+```json
+{
+  "dispatcher_generation": "12"
+}
+```
+
+The generation identifies the dispatcher lease that the drain must activate.
+The drain claims repository and PR or head-SHA work from Netlify, so those
+values are not workflow inputs.
+
+Direct dispatch notes:
 
 - `repository` is the short repository name under `open-telemetry`, and must
   match a `repositories.json` entry exactly. An owner-prefixed name is rejected.
