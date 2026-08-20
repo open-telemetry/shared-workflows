@@ -2578,7 +2578,7 @@
     },
     "19725": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "colamong",
         "author_action_review_thread_urls": [],
@@ -2601,21 +2601,31 @@
         "head_sha": "dd43a864485af5df4e8807cd22d685eb832aa8e9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-20T13:44:26+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T17:59:37+00:00",
+        "last_approver_activity_at": "2026-08-20T17:59:37+00:00",
         "last_author_activity_at": "2026-08-20T13:44:26+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b91c88b74eed14e1e651799263d4f2494a6cc7b22ab1cbe96a377db654ad4320",
+        "routing_input_fingerprint": "e2a1c47636330328b1b90f4968fdc2443cd1f54e5a87ad9a65d9a4d27dd18054",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-20T15:18:05.873576+00:00"
       },
       "failed": false,
       "pr_number": 19725,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19725",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
