@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import test from "node:test";
 
 import {
   extractHeadSha,
   extractPullRequestNumber,
+  handleWebhookRequest,
   isAllowedAction,
   isDashboardSelfTriggeredCommentEvent,
   isDefaultBranchEvent,
@@ -12,6 +14,7 @@ import {
 const dashboardApp = { slug: "opentelemetry-pr-dashboard" };
 const dashboardActor = { id: 1 };
 const headSha = "65325a64c9b2e4b8a1d0f3c7e5a9b1d2c3e4f5a6";
+const webhookSecret = "test-webhook-secret";
 
 test("refreshes when the dashboard override label changes", () => {
   assert.equal(isAllowedAction("pull_request", "labeled"), true);
@@ -143,3 +146,158 @@ test("allows dashboard comment events triggered by another actor", () => {
     sender: { id: 2 },
   }), false);
 });
+
+test("off mode retains direct workflow dispatch", async () => {
+  const calls = [];
+  const response = await withQueueMode("off", () => handleWebhookRequest(
+    webhookRequest("example", 123),
+    {
+      queue: queueMock(calls),
+      dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
+      dispatchDrain: async (generation) => calls.push(["drain", generation]),
+    },
+  ));
+
+  assert.equal(response.status, 202);
+  assert.equal((await response.json()).status, "dispatched");
+  assert.equal(calls[0][0], "refresh");
+  assert.equal(calls.some(([name]) => name === "enqueue"), false);
+});
+
+test("rejects the retired shadow mode", async () => {
+  await assert.rejects(
+    withQueueMode("shadow", () => handleWebhookRequest(webhookRequest("example", 123))),
+    /unsupported PR_DASHBOARD_QUEUE_MODE: shadow/,
+  );
+});
+
+test("canary mode queues only configured canary repositories", async () => {
+  const stableCalls = [];
+  await withQueueMode("canary", () => handleWebhookRequest(
+    webhookRequest("example", 123),
+    {
+      queue: queueMock(stableCalls),
+      dispatchRefresh: async (inputs) => stableCalls.push(["refresh", inputs]),
+    },
+  ));
+  assert.deepEqual(stableCalls.map(([name]) => name), ["refresh"]);
+
+  const canaryCalls = [];
+  const response = await withQueueMode("canary", () => handleWebhookRequest(
+    webhookRequest("shared-workflows", 456),
+    {
+      queue: queueMock(canaryCalls),
+      dispatchRefresh: async (inputs) => canaryCalls.push(["refresh", inputs]),
+      dispatchDrain: async (generation) => canaryCalls.push(["drain", generation]),
+    },
+  ));
+  assert.equal((await response.json()).status, "queued_and_dispatched");
+  assert.deepEqual(
+    canaryCalls.map(([name]) => name),
+    ["enqueue:live", "request", "drain"],
+  );
+});
+
+test("queued mode uses an internal dispatcher owner", async () => {
+  const calls = [];
+  await withQueueMode("all", () => handleWebhookRequest(
+    webhookRequest("example", 123),
+    {
+      queue: queueMock(calls),
+      dispatchDrain: async (generation) => calls.push(["drain", generation]),
+    },
+  ));
+
+  const requestOwner = calls.find(([name]) => name === "request")[1];
+  assert.match(
+    requestOwner,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  );
+});
+
+test("queue dispatch failure releases the dispatcher lease", async () => {
+  const calls = [];
+  await assert.rejects(
+    withQueueMode("all", () => handleWebhookRequest(
+      webhookRequest("example", 123),
+      {
+        queue: queueMock(calls),
+        dispatchDrain: async () => {
+          throw new Error("dispatch failed");
+        },
+      },
+    )),
+    /dispatch failed/,
+  );
+  const requestOwner = calls.find(([name]) => name === "request")[1];
+  assert.deepEqual(calls.at(-1), [
+    "release",
+    { generation: 7, requestOwner },
+  ]);
+});
+
+function webhookRequest(repository, prNumber, delivery = "delivery-1") {
+  const body = JSON.stringify({
+    action: "opened",
+    repository: {
+      full_name: `open-telemetry/${repository}`,
+      owner: { login: "open-telemetry" },
+    },
+    pull_request: { number: prNumber },
+  });
+  const signature = crypto
+    .createHmac("sha256", webhookSecret)
+    .update(body)
+    .digest("hex");
+  return new Request(
+    "https://example.test/.netlify/functions/github-webhook",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-github-delivery": delivery,
+        "x-github-event": "pull_request",
+        "x-hub-signature-256": `sha256=${signature}`,
+      },
+      body,
+    },
+  );
+}
+
+function queueMock(calls, name = "live") {
+  return {
+    async enqueue(item) {
+      calls.push([`enqueue:${name}`, item]);
+      return { status: "queued" };
+    },
+    async requestDispatcher(owner) {
+      calls.push(["request", owner]);
+      return { acquired: true, generation: 7, requestOwner: owner };
+    },
+    async releaseRequestedDispatcher(input) {
+      calls.push(["release", input]);
+      return true;
+    },
+  };
+}
+
+async function withQueueMode(queueMode, callback) {
+  const previousSecret = process.env.GITHUB_WEBHOOK_SECRET;
+  const previousMode = process.env.PR_DASHBOARD_QUEUE_MODE;
+  process.env.GITHUB_WEBHOOK_SECRET = webhookSecret;
+  process.env.PR_DASHBOARD_QUEUE_MODE = queueMode;
+  try {
+    return await callback();
+  } finally {
+    restoreEnvironment("GITHUB_WEBHOOK_SECRET", previousSecret);
+    restoreEnvironment("PR_DASHBOARD_QUEUE_MODE", previousMode);
+  }
+}
+
+function restoreEnvironment(name, value) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}

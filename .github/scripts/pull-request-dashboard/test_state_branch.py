@@ -1,11 +1,25 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
 import state_branch
+
+
+class TemporaryStateDirTest(unittest.TestCase):
+    @patch.object(state_branch, "remove_existing_state_dir")
+    def test_removes_registered_worktree_before_temporary_directory(
+        self,
+        remove_existing_state_dir: object,
+    ) -> None:
+        with state_branch.temporary_state_dir() as state_dir:
+            state_dir.mkdir()
+
+        remove_existing_state_dir.assert_called_once_with(state_dir)
 
 
 class AcceptedStateDirTest(unittest.TestCase):
@@ -44,6 +58,67 @@ class AcceptedStateDirTest(unittest.TestCase):
         run.assert_not_called()
 
 
+class PublisherLockTest(unittest.TestCase):
+    @patch.object(state_branch, "commit_publisher_lock", return_value=True)
+    @patch.object(state_branch, "checkout_state")
+    @patch.object(state_branch, "configure_git")
+    def test_acquires_and_releases_publisher_lock(
+        self,
+        _configure_git: object,
+        _checkout_state: object,
+        commit_publisher_lock: object,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            with patch.object(
+                state_branch,
+                "temporary_state_dir",
+                return_value=nullcontext(state_dir),
+            ):
+                state_branch.acquire_publisher_lock(
+                    "state-branch",
+                    "worker",
+                    now=lambda: 100,
+                )
+                lock = state_branch.load_publisher_lock(state_dir)
+                self.assertEqual(lock, {"owner": "worker", "expiresAt": 3700})
+
+                state_branch.release_publisher_lock("state-branch", "worker")
+                self.assertFalse(
+                    (state_dir / state_branch.PUBLISHER_LOCK_PATH).exists()
+                )
+
+        self.assertEqual(commit_publisher_lock.call_count, 2)
+
+    @patch.object(state_branch, "checkout_state")
+    @patch.object(state_branch, "configure_git")
+    def test_active_publisher_lock_times_out(
+        self,
+        _configure_git: object,
+        _checkout_state: object,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            (state_dir / state_branch.PUBLISHER_LOCK_PATH).write_text(
+                '{"expiresAt": 200, "owner": "other"}\n',
+                encoding="utf-8",
+            )
+            with (
+                patch.object(
+                    state_branch,
+                    "temporary_state_dir",
+                    return_value=nullcontext(state_dir),
+                ),
+                self.assertRaisesRegex(TimeoutError, "timed out waiting"),
+            ):
+                state_branch.acquire_publisher_lock(
+                    "state-branch",
+                    "worker",
+                    wait_seconds=0,
+                    now=lambda: 100,
+                )
+
+
 class FetchStateBranchTest(unittest.TestCase):
     @staticmethod
     def rejected_fetch() -> subprocess.CompletedProcess[str]:
@@ -56,27 +131,68 @@ class FetchStateBranchTest(unittest.TestCase):
             ),
         )
 
+    @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
     @patch.object(state_branch, "remote_is_behind_local", return_value=True)
+    @patch.object(state_branch, "ref_is_ancestor", return_value=False)
+    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(state_branch, "run")
     @patch.object(subprocess, "run")
     def test_keeps_local_ref_when_remote_is_behind(
         self,
+        subprocess_run: object,
         run: object,
+        _has_state_branch: object,
+        _ref_is_ancestor: object,
         _remote_is_behind_local: object,
+        _temporary_fetch_ref: object,
     ) -> None:
-        run.return_value = self.rejected_fetch()
+        subprocess_run.return_value = subprocess.CompletedProcess(
+            args=["git", "fetch"],
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
 
         self.assertTrue(state_branch.fetch_state_branch("state-branch", required=True))
 
+        self.assertEqual(
+            [
+                "git",
+                "fetch",
+                "--no-write-fetch-head",
+                "origin",
+                "state-branch:refs/temp/fetch",
+            ],
+            subprocess_run.call_args.args[0],
+        )
+        run.assert_called_once_with(
+            ["git", "update-ref", "-d", "refs/temp/fetch"],
+            check=False,
+        )
+
+    @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
     @patch.object(state_branch, "remote_is_behind_local", return_value=False)
+    @patch.object(state_branch, "ref_is_ancestor", return_value=False)
+    @patch.object(state_branch, "has_state_branch", return_value=True)
+    @patch.object(state_branch, "run")
     @patch.object(subprocess, "run")
     def test_raises_when_remote_diverged(
         self,
-        run: object,
+        subprocess_run: object,
+        _run: object,
+        _has_state_branch: object,
+        _ref_is_ancestor: object,
         _remote_is_behind_local: object,
+        _temporary_fetch_ref: object,
     ) -> None:
-        run.return_value = self.rejected_fetch()
+        subprocess_run.return_value = subprocess.CompletedProcess(
+            args=["git", "fetch"],
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaisesRegex(RuntimeError, "diverged"):
             state_branch.fetch_state_branch("state-branch", required=True)
 
 
@@ -88,7 +204,7 @@ class RemoteIsBehindLocalTest(unittest.TestCase):
         run: object,
         _has_state_branch: object,
     ) -> None:
-        self.assertFalse(state_branch.remote_is_behind_local("state-branch"))
+        self.assertFalse(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
 
         run.assert_not_called()
 
@@ -101,10 +217,16 @@ class RemoteIsBehindLocalTest(unittest.TestCase):
     ) -> None:
         run.return_value = subprocess.CompletedProcess(args=["git"], returncode=0)
 
-        self.assertTrue(state_branch.remote_is_behind_local("state-branch"))
+        self.assertTrue(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
 
         self.assertEqual(
-            ["git", "merge-base", "--is-ancestor", "FETCH_HEAD", "refs/remotes/origin/state-branch"],
+            [
+                "git",
+                "merge-base",
+                "--is-ancestor",
+                "refs/temp/fetch",
+                "refs/remotes/origin/state-branch",
+            ],
             run.call_args.args[0],
         )
 
@@ -117,7 +239,55 @@ class RemoteIsBehindLocalTest(unittest.TestCase):
     ) -> None:
         run.return_value = subprocess.CompletedProcess(args=["git"], returncode=1)
 
-        self.assertFalse(state_branch.remote_is_behind_local("state-branch"))
+        self.assertFalse(state_branch.remote_is_behind_local("state-branch", "refs/temp/fetch"))
+
+
+class SetGitConfigTest(unittest.TestCase):
+    @patch.object(state_branch.time, "sleep")
+    @patch.object(state_branch, "retry_delay_seconds", return_value=0.1)
+    @patch.object(subprocess, "run")
+    def test_retries_config_lock_contention(
+        self,
+        run: object,
+        _retry_delay_seconds: object,
+        sleep: object,
+    ) -> None:
+        run.side_effect = [
+            subprocess.CompletedProcess(
+                args=["git", "config"],
+                returncode=255,
+                stdout="",
+                stderr="error: could not lock config file .git/config: File exists\n",
+            ),
+            subprocess.CompletedProcess(args=["git", "config"], returncode=0),
+        ]
+
+        state_branch.set_git_config("user.name", "otelbot")
+
+        self.assertEqual(2, run.call_count)
+        sleep.assert_called_once_with(0.1)
+
+    @patch.object(state_branch.time, "sleep")
+    @patch.object(subprocess, "run")
+    def test_surfaces_non_lock_error_without_retry(
+        self,
+        run: object,
+        sleep: object,
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            args=["git", "config"],
+            returncode=1,
+            stdout="details",
+            stderr="error: invalid key: bad key\n",
+        )
+
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            state_branch.set_git_config("bad key", "value")
+
+        self.assertEqual("details", raised.exception.stdout)
+        self.assertEqual("error: invalid key: bad key\n", raised.exception.stderr)
+        run.assert_called_once()
+        sleep.assert_not_called()
 
 
 if __name__ == "__main__":

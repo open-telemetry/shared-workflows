@@ -26,6 +26,7 @@ DASHBOARD_LABEL_COLOR = "cfd3d7"
 DASHBOARD_LABEL_DESCRIPTION = "Pull request dashboard"
 ISSUE_BODY_MAX_CHARS = 65536
 LARGE_REPO_MAX_ROWS_PER_SECTION = 100
+MAX_PUBLISH_ATTEMPTS = 3
 
 
 def parse_labels_to_display_json(raw: str) -> list[str]:
@@ -208,14 +209,28 @@ def publish_accepted_dashboard(
     large_repo: bool,
     labels_to_display: list[str] | None = None,
 ) -> None:
-    with state_branch.accepted_state_dir(state_branch_name, required=True) as state_dir:
-        if state_dir is None:
-            raise RuntimeError(f"required state branch not found: {state_branch_name}")
-        set_state_dir(state_dir / repo_state_key(repo))
-        publish_dashboard(
-            repo,
-            render_dashboard_markdown(repo, large_repo, labels_to_display),
+    for attempt in range(1, MAX_PUBLISH_ATTEMPTS + 1):
+        with state_branch.accepted_state_dir(state_branch_name, required=True) as state_dir:
+            if state_dir is None:
+                raise RuntimeError(f"required state branch not found: {state_branch_name}")
+            accepted_revision = state_branch.ref_oid("HEAD", cwd=state_dir)
+            set_state_dir(state_dir / repo_state_key(repo))
+            publish_dashboard(
+                repo,
+                render_dashboard_markdown(repo, large_repo, labels_to_display),
+            )
+
+        state_branch.fetch_state_branch(state_branch_name, required=True)
+        current_revision = state_branch.ref_oid(state_branch.remote_ref(state_branch_name))
+        if current_revision == accepted_revision:
+            return
+        print(
+            f"accepted state advanced during publish attempt {attempt}; rendering again",
+            file=sys.stderr,
         )
+    raise RuntimeError(
+        f"accepted state changed during all {MAX_PUBLISH_ATTEMPTS} publish attempts"
+    )
 
 
 def main() -> int:

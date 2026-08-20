@@ -71,12 +71,17 @@ the implementation understandable and operationally cheap.
   makes it skip delivery instead. Rolling forward is the way out, and a paused
   dashboard is the cheaper failure.
 
-## Workflow Concurrency
+## Queue and Workflow Concurrency
 
-- Webhook refreshes are grouped by target repository and PR before the first
-  job starts. GitHub Actions keeps at most one running and one pending run in
-  each group; a newer pending run replaces the older pending run without
-  canceling the run already in progress.
+- In `canary` and `all` queue modes, the Netlify bridge coalesces webhook
+  refreshes by target repository and PR before it starts GitHub Actions. One
+  singleton drain claims a bounded batch. An event that arrives during
+  processing marks the item dirty and schedules one follow-up pass.
+- Direct refreshes in `off` mode, and non-canary refreshes in `canary` mode, use
+  GitHub Actions concurrency groups by target repository and PR. GitHub Actions
+  keeps at most one running and one pending run in each group; a newer pending
+  run replaces the older pending run without canceling the run already in
+  progress.
 - Coalescing is safe because each refresh loads current PR state from GitHub.
   Intermediate states can go unobserved, but the surviving run reflects the
   state that exists when it executes.
@@ -84,18 +89,23 @@ the implementation understandable and operationally cheap.
   status comment is rendered from current accepted dashboard state rather than
   a review-specific event. Manual runs remain separate because they can refresh
   large repositories that webhook-driven runs intentionally skip.
-- Concurrency bounds pending jobs per target; it does not debounce webhook
-  delivery or workflow dispatch. Different repositories and PRs can still run
-  independently, and every accepted webhook still creates a workflow run.
+- Actions concurrency bounds pending direct jobs per target; it does not
+  debounce direct workflow dispatch. Every accepted direct webhook still
+  creates a workflow run. Queue modes avoid that dispatch pressure for queued
+  repositories by coalescing events in Netlify first.
 - Publishers use one concurrency group per target repository. GitHub preserves
   the running publisher but may replace an older pending publisher with a newer
-  one even when `cancel-in-progress` is false. Accepted work lives on the state
-  branch: a targeted publisher limits status-comment and Slack delivery to its
-  triggering PR. Webhook runs can arrive concurrently for many PRs, so allowing
-  each publisher to fan out into repository-wide delivery would create long
-  jobs and put pressure on the GitHub Actions job queue, especially when a new
-  status-comment revision queues every open PR. The hourly untargeted publisher
-  is the bounded repository-wide rollout and recovery path.
+  one even when `cancel-in-progress` is false. Direct and queued publishers also
+  acquire a lease stored on the repository's state branch. This shared lock
+  prevents the drain from overlapping the direct concurrency group while either
+  path performs external delivery or publishes the issue. Accepted work lives
+  on the state branch: a targeted publisher limits status-comment and Slack
+  delivery to its triggering PR. Webhook runs can arrive concurrently for many
+  PRs, so allowing each publisher to fan out into repository-wide delivery
+  would create long jobs and put pressure on the GitHub Actions job queue,
+  especially when a new status-comment revision queues every open PR. The
+  hourly untargeted publisher is the bounded repository-wide rollout and
+  recovery path.
 - The top-level hourly health check treats a replaced pending publisher as
   successful. Matrix failures take precedence over cancellation, so genuine
   update or delivery failures still open the failure issue.

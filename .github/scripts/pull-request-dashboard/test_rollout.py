@@ -19,6 +19,11 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard.yml"
 REPO_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-repo.yml"
+DRAIN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-drain.yml"
+DEPLOY_WORKFLOW = (
+    REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-deploy-webhook.yml"
+)
+WEBHOOK = SCRIPT_DIR / "netlify" / "functions" / "github-webhook.mjs"
 CONFIG = SCRIPT_DIR / "repositories.json"
 
 REPO_WORKFLOW_PATH = ".github/workflows/pull-request-dashboard-repo.yml"
@@ -122,6 +127,54 @@ class RolloutWiringTest(unittest.TestCase):
         body = REPO_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("code_ref:", body)
         self.assertIn("ref: ${{ inputs.code_ref }}", body)
+
+    def test_direct_publisher_uses_the_shared_repository_lock(self) -> None:
+        body = REPO_WORKFLOW.read_text(encoding="utf-8")
+        publish_job = job_blocks(body)["publish-dashboard"]
+        self.assertEqual(body.count("acquire-publisher-lock"), 1)
+        self.assertEqual(body.count("release-publisher-lock"), 1)
+        self.assertIn("    timeout-minutes: 50", publish_job)
+        self.assertIn(
+            "if: always() && steps.publisher-lock.outcome == 'success'",
+            body,
+        )
+        self.assertLess(body.index("acquire-publisher-lock"), body.index("delivery.py"))
+        self.assertLess(body.index("publish_dashboard.py"), body.index("release-publisher-lock"))
+
+    def test_queue_mode_canary_list_matches_the_rollout_canary_list(self) -> None:
+        webhook = WEBHOOK.read_text(encoding="utf-8")
+        match = re.search(
+            r"const QUEUE_CANARY_REPOSITORIES = new Set\(\[(.*?)\]\);",
+            webhook,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match, "webhook queue canary list is missing")
+        webhook_canary = re.findall(r'"([^"]+)"', match.group(1))
+        self.assertEqual(webhook_canary, self.canary)
+
+    def test_queue_drain_uses_one_current_checkout(self) -> None:
+        body = DRAIN_WORKFLOW.read_text(encoding="utf-8")
+        self.assertEqual(body.count("actions/checkout@"), 1)
+        self.assertNotIn("code_ref:", body)
+        self.assertNotRegex(body, STABLE_USES)
+        self.assertRegex(body, r"(?m)^    timeout-minutes: 50$")
+
+    def test_webhook_deployment_automates_queue_rollout(self) -> None:
+        body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("      - .github/workflows/pull-request-dashboard.yml", body)
+        self.assertNotIn("vars.PR_DASHBOARD_QUEUE_MODE", body)
+        self.assertIn("queue_mode=canary", body)
+        self.assertIn("queue_mode=all", body)
+        self.assertIn("acquire-publisher-lock release-publisher-lock", body)
+        canary_default = body.index("queue_mode=canary")
+        stable_guard = body.index("stable_queue_ready=true")
+        all_selection = body.index("queue_mode=all")
+        environment_write = body.index(
+            'env:set PR_DASHBOARD_QUEUE_MODE "$queue_mode"'
+        )
+        self.assertLess(canary_default, stable_guard)
+        self.assertLess(stable_guard, all_selection)
+        self.assertLess(all_selection, environment_write)
 
 
 if __name__ == "__main__":

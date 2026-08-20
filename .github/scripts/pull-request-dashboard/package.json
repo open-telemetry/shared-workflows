@@ -2,8 +2,10 @@
   "name": "pull-request-dashboard",
   "version": "0.0.0",
   "private": true,
-  "description": "Pinned install of @github/copilot CLI used by the pull request dashboard",
+  "description": "Runtime dependencies for the pull request dashboard and webhook bridge",
   "dependencies": {
-    "@github/copilot": "1.0.80"
+    "@github/copilot": "1.0.80",
+    "@netlify/blobs": "10.7.13",
+    "jose": "6.2.8"
   }
 }

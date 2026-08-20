@@ -8,6 +8,21 @@ Webhook-triggered incremental runs keep active dashboards close to real time. Ho
 
 The classification cache reuses prior results for unchanged review threads, minimizing Copilot token usage.
 
+## Webhook queue
+
+Webhook events are coalesced by repository and pull request before they start
+GitHub Actions. One drain workflow claims a bounded batch and processes up to
+four repositories concurrently on one runner; pull requests from the same
+repository remain sequential. An event received while its pull request is being
+processed marks that item dirty and schedules one follow-up pass.
+
+Manual targeted runs and hourly backfills bypass the queue. Queue leases recover
+work after interrupted drain runs, and the hourly backfill remains the final
+correctness backstop. Canary and all-mode webhooks do not fall back to direct
+workflow dispatch when queue dependencies fail, because that would recreate the
+runner burst the queue is designed to prevent. The next hourly backfill repairs
+any refresh that could not be persisted.
+
 ## Dashboard columns
 
 The dashboard groups open non-draft pull requests by who is expected to act next (e.g. *Waiting on reviewers*, *Waiting on authors*, *Waiting on maintainers*). Draft PRs are listed separately at the bottom unless `large_repo` rendering is enabled. Within each group, rows are sorted longest-waiting first. Every row has these six columns:
@@ -272,13 +287,19 @@ a small set of repositories before it reaches everyone.
 - **Every other repository** runs them from the promoted rollout ref: a
   release's commit SHA, hash pinned with the release tag as a comment.
 
+The webhook queue follows the same boundary automatically. A merge deploys
+queueing only for the canary repositories. Merging the later promotion pull
+request triggers another deployment that enables queueing for every repository.
+No queue-mode variable or manual Netlify deployment is required.
+
 Repository configuration is never staged. `repositories.json` is always read
 from the commit that triggered the run, so opting a repository in, or changing
 its settings, takes effect on the next run in both channels.
 
 ### Promoting a change
 
-1. Merge the change. Canary repositories pick it up on their next run.
+1. Merge the change. Canary repositories pick it up on their next run, and the
+   webhook deployment automatically enables queueing only for those repositories.
 2. Let it soak.
 3. Cut a release with the [Release workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/release.yml).
 4. Run the [Promote pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/promote-pull-request-dashboard.yml)
@@ -286,7 +307,8 @@ its settings, takes effect on the next run in both channels.
    non-prerelease version and opens a pull request pointing every stable
    job at that release's commit, in both the `uses:` ref and the matching
    `code_ref` input.
-5. Review and merge the generated pull request to promote the release.
+5. Review and merge the generated pull request to promote the release. The merge
+   automatically redeploys the webhook with queueing enabled for every repository.
 
 The stable refs are deliberately excluded from Renovate because advancing them
 is the production rollout. `test_rollout.py` also fails if the workflow and

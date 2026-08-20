@@ -7,8 +7,11 @@ on:
     paths:
       - .github/scripts/pull-request-dashboard/netlify.toml
       - .github/scripts/pull-request-dashboard/netlify/**
+      - .github/scripts/pull-request-dashboard/package-lock.json
+      - .github/scripts/pull-request-dashboard/package.json
       - .github/scripts/pull-request-dashboard/public/**
       - .github/workflows/pull-request-dashboard-deploy-webhook.yml
+      - .github/workflows/pull-request-dashboard.yml
   workflow_dispatch:
 
 permissions:
@@ -42,6 +45,34 @@ jobs:
           OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY: ${{ secrets.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY }}
         run: |
           set -euo pipefail
+          queue_mode=canary
+          dashboard_workflow="../../workflows/pull-request-dashboard.yml"
+          mapfile -t stable_refs < <(
+            sed -nE \
+              's#^[[:space:]]*uses: open-telemetry/shared-workflows/\.github/workflows/pull-request-dashboard-repo\.yml@([0-9a-f]{40}).*$#\1#p' \
+              "$dashboard_workflow" |
+              sort -u
+          )
+          if [[ "${#stable_refs[@]}" -gt 1 ]]; then
+            echo "::error::Stable dashboard jobs use different workflow refs"
+            exit 1
+          fi
+          if [[ "${#stable_refs[@]}" -eq 1 ]]; then
+            stable_ref="${stable_refs[0]}"
+            git fetch --no-tags --depth=1 origin "$stable_ref"
+            stable_workflow=$(git show "$stable_ref:.github/workflows/pull-request-dashboard-repo.yml")
+            stable_queue_ready=true
+            for requirement in acquire-publisher-lock release-publisher-lock "timeout-minutes: 50"; do
+              if ! grep -Fq -- "$requirement" <<< "$stable_workflow"; then
+                echo "::notice::Stable dashboard workflow $stable_ref lacks $requirement; deploying canary queue mode"
+                stable_queue_ready=false
+              fi
+            done
+            if [[ "$stable_queue_ready" == "true" ]]; then
+              queue_mode=all
+            fi
+          fi
+          echo "Deploying pull request dashboard queue mode: $queue_mode"
           dispatcher_private_key_base64=$(printf '%s' "$OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY" | base64 -w0)
           echo "::add-mask::$dispatcher_private_key_base64"
           # Remove the deprecated variable left by App ID deployments.
@@ -70,6 +101,18 @@ jobs:
             --auth "$NETLIFY_AUTH_TOKEN" \
             --secret \
             --force
+          npx --yes netlify-cli@26.0.2 env:set PR_DASHBOARD_QUEUE_MODE "$queue_mode" \
+            --context production \
+            --scope functions \
+            --site "$NETLIFY_SITE_ID" \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --force
+
+      - name: Install function dependencies
+        working-directory: .github/scripts/pull-request-dashboard
+        # The functions import @netlify/blobs and jose, which the Netlify
+        # bundler resolves from node_modules while packaging the deploy.
+        run: npm ci
 
       - name: Deploy Netlify function
         working-directory: .github/scripts/pull-request-dashboard

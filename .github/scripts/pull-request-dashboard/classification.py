@@ -17,7 +17,12 @@ from utils import truncate
 
 
 LLM_DISCUSSION_TIMEOUT_SECONDS = 180
-CLASSIFICATION_CACHE_DIR = Path(__file__).resolve().parent / ".cache" / "classifications"
+CLASSIFICATION_CACHE_DIR = Path(
+    os.environ.get(
+        "PR_DASHBOARD_CLASSIFICATION_CACHE_DIR",
+        Path(__file__).resolve().parent / ".cache" / "classifications",
+    )
+)
 DISCUSSION_COMMENT_BODY_MAX_CHARS = 500
 MAX_PROMPT_CHARS = 18_000
 TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10

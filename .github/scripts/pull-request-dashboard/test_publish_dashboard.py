@@ -46,8 +46,12 @@ class PublishablePrsTest(unittest.TestCase):
     @patch.object(publish_dashboard, "publish_dashboard")
     @patch.object(publish_dashboard, "render_dashboard_markdown", return_value=Path("dashboard.md"))
     @patch.object(publish_dashboard, "set_state_dir")
+    @patch.object(publish_dashboard.state_branch, "fetch_state_branch", return_value=True)
+    @patch.object(publish_dashboard.state_branch, "ref_oid", return_value="revision")
     def test_publishes_from_read_only_accepted_state(
         self,
+        ref_oid: object,
+        fetch_state_branch: object,
         set_state_dir: object,
         render_dashboard_markdown: object,
         publish: object,
@@ -73,6 +77,45 @@ class PublishablePrsTest(unittest.TestCase):
             ["size/*"],
         )
         publish.assert_called_once_with("open-telemetry/example", Path("dashboard.md"))
+        fetch_state_branch.assert_called_once_with("state-branch", required=True)
+        self.assertEqual(ref_oid.call_count, 2)
+
+    @patch.object(publish_dashboard, "publish_dashboard")
+    @patch.object(
+        publish_dashboard,
+        "render_dashboard_markdown",
+        side_effect=[Path("old.md"), Path("new.md")],
+    )
+    @patch.object(publish_dashboard, "set_state_dir")
+    @patch.object(publish_dashboard.state_branch, "fetch_state_branch", return_value=True)
+    @patch.object(
+        publish_dashboard.state_branch,
+        "ref_oid",
+        side_effect=["old", "new", "new", "new"],
+    )
+    def test_republishes_when_accepted_state_advances(
+        self,
+        _ref_oid: object,
+        _fetch_state_branch: object,
+        _set_state_dir: object,
+        _render_dashboard_markdown: object,
+        publish: object,
+    ) -> None:
+        with patch.object(
+            publish_dashboard.state_branch,
+            "accepted_state_dir",
+            side_effect=[nullcontext(Path("old")), nullcontext(Path("new"))],
+        ):
+            publish_dashboard.publish_accepted_dashboard(
+                "open-telemetry/example",
+                "state-branch",
+                False,
+            )
+
+        self.assertEqual(
+            [call.args[1] for call in publish.call_args_list],
+            [Path("old.md"), Path("new.md")],
+        )
 
     def test_passes_labels_to_renderer(self) -> None:
         prs = [
