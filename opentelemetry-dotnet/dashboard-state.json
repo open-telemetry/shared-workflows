@@ -564,10 +564,14 @@
         "approval_count": 0,
         "assignees": [],
         "author": "matt-hensley",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7669#discussion_r3822606155",
+          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7669#discussion_r3822616524"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "0afc9cc8b1b54dd2923850c3107ec886",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "ci_uncleared_failing_count": 0,
         "conflicts": "no",
         "copilot_review_bypassed_by_override": false,
@@ -587,15 +591,24 @@
         "head_sha": "c6e98ada1e1d84058b63550876184fab17781480",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-20T14:44:04+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T14:47:56+00:00",
+        "last_approver_activity_at": "2026-08-20T14:47:56+00:00",
         "last_author_activity_at": "2026-08-20T14:44:04+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "routing_input_fingerprint": "997b6dea128791d53407c43f9097e64320f251ce1f40c61438d4452902419f24",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-08-20T14:40:03+00:00"
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": true,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
+        "routing_input_fingerprint": "e15dec65ddfd70ead88a30ffb8fca7d6517640ea193a1f82d135687b137123e3",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-20T14:46:13+00:00"
       },
       "failed": false,
       "pr_number": 7669,
