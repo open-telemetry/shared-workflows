@@ -2429,7 +2429,7 @@
     },
     "19719": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2452,21 +2452,31 @@
         "head_sha": "abd21c9fbd946668d47391a56c5ec60b50c422ab",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-20T18:15:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T19:39:00+00:00",
+        "last_approver_activity_at": "2026-08-20T19:39:00+00:00",
         "last_author_activity_at": "2026-08-20T18:15:43+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jack-berg",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1d36040d3f1ff53027c7f5cfe63d48b150ed1d5bdc19dc0a8ff5522d7c635bf6",
+        "routing_input_fingerprint": "13ad6d033c7ea71abc37a7b50061b3760a1dfe285ddc3ea5ee10d3c77a56dc5f",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-20T19:37:04.880571+00:00"
       },
       "failed": false,
       "pr_number": 19719,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19719",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19721": {
