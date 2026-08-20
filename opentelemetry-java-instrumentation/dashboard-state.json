@@ -2587,7 +2587,7 @@
     },
     "19730": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot",
         "author_action_review_thread_urls": [],
@@ -2610,15 +2610,26 @@
         "head_sha": "d7e4f2ce77a3c33966b110982f473e6345e75ceb",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-20T20:09:28+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-20T20:19:15+00:00",
+        "last_approver_activity_at": "2026-08-20T20:19:15+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-20T20:22:53.874122+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ee92f6e7aae7b65851253f1ee86d806738619ce0b4a1d868c433bf75656200aa",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "fe8c18c86e5b353018fb38c1e1182628542860fb4494afb2b925a18f86a2f5e1",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-20T20:09:28+00:00"
       },
       "failed": false,
