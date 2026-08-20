@@ -159,20 +159,22 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertNotRegex(body, STABLE_USES)
         self.assertRegex(body, r"(?m)^    timeout-minutes: 50$")
 
-    def test_webhook_deployment_rejects_unsupported_queue_modes(self) -> None:
+    def test_webhook_deployment_automates_queue_rollout(self) -> None:
         body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn('case "$PR_DASHBOARD_QUEUE_MODE" in', body)
-        self.assertIn("off|shadow|canary|all)", body)
-        self.assertIn(
-            'if [[ "$PR_DASHBOARD_QUEUE_MODE" == "all" ]]',
-            body,
-        )
+        self.assertIn("      - .github/workflows/pull-request-dashboard.yml", body)
+        self.assertNotIn("vars.PR_DASHBOARD_QUEUE_MODE", body)
+        self.assertIn("queue_mode=canary", body)
+        self.assertIn("queue_mode=all", body)
         self.assertIn("acquire-publisher-lock release-publisher-lock", body)
-        validation = body.index('case "$PR_DASHBOARD_QUEUE_MODE" in')
-        stable_guard = body.index('if [[ "$PR_DASHBOARD_QUEUE_MODE" == "all" ]]')
-        environment_write = body.index("env:set PR_DASHBOARD_QUEUE_MODE")
-        self.assertLess(validation, environment_write)
-        self.assertLess(stable_guard, environment_write)
+        canary_default = body.index("queue_mode=canary")
+        stable_guard = body.index("stable_queue_ready=true")
+        all_selection = body.index("queue_mode=all")
+        environment_write = body.index(
+            'env:set PR_DASHBOARD_QUEUE_MODE "$queue_mode"'
+        )
+        self.assertLess(canary_default, stable_guard)
+        self.assertLess(stable_guard, all_selection)
+        self.assertLess(all_selection, environment_write)
 
 
 if __name__ == "__main__":

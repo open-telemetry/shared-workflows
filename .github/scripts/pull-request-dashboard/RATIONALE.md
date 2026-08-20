@@ -77,11 +77,11 @@ the implementation understandable and operationally cheap.
   refreshes by target repository and PR before it starts GitHub Actions. One
   singleton drain claims a bounded batch. An event that arrives during
   processing marks the item dirty and schedules one follow-up pass.
-- Direct refreshes in `off` and `shadow` modes, and non-canary refreshes in
-  `canary` mode, use GitHub Actions concurrency groups by target repository and
-  PR. GitHub Actions keeps at most one running and one pending run in each
-  group; a newer pending run replaces the older pending run without canceling
-  the run already in progress.
+- Direct refreshes in `off` mode, and non-canary refreshes in `canary` mode, use
+  GitHub Actions concurrency groups by target repository and PR. GitHub Actions
+  keeps at most one running and one pending run in each group; a newer pending
+  run replaces the older pending run without canceling the run already in
+  progress.
 - Coalescing is safe because each refresh loads current PR state from GitHub.
   Intermediate states can go unobserved, but the surviving run reflects the
   state that exists when it executes.

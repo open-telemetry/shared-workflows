@@ -1,9 +1,6 @@
 import crypto from "node:crypto";
 
-import {
-  DashboardQueue,
-  openQueueStore,
-} from "../lib/dashboard-queue.mjs";
+import { DashboardQueue } from "../lib/dashboard-queue.mjs";
 import {
   dispatchDashboardRefresh,
   dispatchQueueDrain,
@@ -12,7 +9,7 @@ import {
 const MAX_WEBHOOK_BYTES = 1024 * 1024;
 const OWNER = "open-telemetry";
 const DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard";
-const QUEUE_MODES = new Set(["off", "shadow", "canary", "all"]);
+const QUEUE_MODES = new Set(["off", "canary", "all"]);
 const QUEUE_CANARY_REPOSITORIES = new Set([
   "opentelemetry-java-instrumentation",
   "shared-workflows",
@@ -58,7 +55,6 @@ export async function handleWebhookRequest(
   request,
   {
     queue,
-    shadowQueue,
     dispatchRefresh = dispatchDashboardRefresh,
     dispatchDrain = dispatchQueueDrain,
   } = {},
@@ -138,35 +134,7 @@ export async function handleWebhookRequest(
     });
   }
 
-  const targetQueue = config.queueMode === "shadow"
-    ? shadowQueue || new DashboardQueue({
-      store: openQueueStore("pr-dashboard-queue-shadow"),
-    })
-    : queue || new DashboardQueue();
-  if (config.queueMode === "shadow") {
-    let queueStatus = "error";
-    try {
-      const queued = await targetQueue.enqueue({
-        repository: repository.name,
-        prNumber: dispatchPrNumber ? Number.parseInt(dispatchPrNumber, 10) : null,
-        headSha: dispatchHeadSha,
-        triggerEvent: eventName,
-      });
-      queueStatus = queued.status;
-    } catch (error) {
-      console.error("shadow queue observation failed", error);
-    }
-    await dispatchRefresh(inputs);
-    return response(202, {
-      status: "shadow_queued",
-      queue_status: queueStatus,
-      repository: repository.fullName,
-      pr_number: dispatchPrNumber,
-      head_sha: dispatchHeadSha,
-      trigger_event: eventName,
-      queue_mode: config.queueMode,
-    });
-  }
+  const targetQueue = queue || new DashboardQueue();
 
   const queued = await targetQueue.enqueue({
     repository: repository.name,

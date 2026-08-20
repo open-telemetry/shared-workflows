@@ -287,13 +287,19 @@ a small set of repositories before it reaches everyone.
 - **Every other repository** runs them from the promoted rollout ref: a
   release's commit SHA, hash pinned with the release tag as a comment.
 
+The webhook queue follows the same boundary automatically. A merge deploys
+queueing only for the canary repositories. Merging the later promotion pull
+request triggers another deployment that enables queueing for every repository.
+No queue-mode variable or manual Netlify deployment is required.
+
 Repository configuration is never staged. `repositories.json` is always read
 from the commit that triggered the run, so opting a repository in, or changing
 its settings, takes effect on the next run in both channels.
 
 ### Promoting a change
 
-1. Merge the change. Canary repositories pick it up on their next run.
+1. Merge the change. Canary repositories pick it up on their next run, and the
+   webhook deployment automatically enables queueing only for those repositories.
 2. Let it soak.
 3. Cut a release with the [Release workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/release.yml).
 4. Run the [Promote pull request dashboard workflow](https://github.com/open-telemetry/shared-workflows/actions/workflows/promote-pull-request-dashboard.yml)
@@ -301,7 +307,8 @@ its settings, takes effect on the next run in both channels.
    non-prerelease version and opens a pull request pointing every stable
    job at that release's commit, in both the `uses:` ref and the matching
    `code_ref` input.
-5. Review and merge the generated pull request to promote the release.
+5. Review and merge the generated pull request to promote the release. The merge
+   automatically redeploys the webhook with queueing enabled for every repository.
 
 The stable refs are deliberately excluded from Renovate because advancing them
 is the production rollout. `test_rollout.py` also fails if the workflow and

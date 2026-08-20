@@ -19,28 +19,20 @@ Save the Netlify project ID as a GitHub Actions variable named
 Save a Netlify personal access token as a GitHub Actions secret named
 `NETLIFY_AUTH_TOKEN` in the `shared-workflows` repository.
 
-Create a GitHub Actions variable named `PR_DASHBOARD_QUEUE_MODE`. Supported
-values are:
+Queue rollout requires no queue-mode variable or manual Netlify deployment. The
+deployment workflow selects `canary` until the stable pinned repository workflow
+contains the shared publisher lock and its timeout. In that mode, only
+`opentelemetry-java-instrumentation` and `shared-workflows` use the queue.
 
-- `off`: dispatch every accepted webhook directly.
-- `shadow`: record queue decisions in the shadow Blob store while continuing
-  direct dispatch.
-- `canary`: queue only `opentelemetry-java-instrumentation` and
-  `shared-workflows`.
-- `all`: queue every accepted targeted webhook refresh.
-
-The deployment workflow defaults a missing value to `off` and writes the mode
-to the production Netlify Functions environment. Manually dispatch
-`Deploy pull request dashboard webhook` after changing the variable. An `all`
-deployment also verifies that the stable pinned repository workflow has the
-shared publisher lock and its timeout. The deployment fails until that code has
-been promoted from canary.
+Merging the promotion pull request updates the stable workflow pin and triggers
+another Netlify deployment. Once that pin contains the queue-compatible
+publisher behavior, the deployment automatically selects `all` and queues every
+accepted targeted webhook refresh.
 
 The drain workflow runs the dashboard scripts from the commit it was dispatched
-at, so a queued repository always runs the canary code path instead of the
-promoted rollout ref that `pull-request-dashboard.yml` pins for stable
-repositories. Keep the mode at `canary` until a change is meant to reach every
-repository without soaking.
+at. Before promotion, queued canary repositories therefore exercise the merged
+code while every other repository continues to use direct targeted refreshes and
+the promoted stable workflow.
 
 The queue uses the site-wide `pr-dashboard-queue` store with strong reads and
 ETag-conditional writes. Netlify creates the store on its first write. The drain
@@ -62,10 +54,6 @@ dispatcher leases. A new event normally starts the singleton drain immediately;
 scheduled recovery is only a failure backstop. An item whose lease expires
 repeatedly without an acknowledgment is moved to the shard's dead letters
 instead of being requeued forever.
-
-Shadow observations use the separate `pr-dashboard-queue-shadow` store and are
-never drained. Delete that store from the Netlify Blobs UI before a new shadow
-observation window and after queue behavior has been accepted.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
 PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->
@@ -218,8 +206,8 @@ Deploy contexts:
 
 The queue mode selects one of two dispatch contracts.
 
-In `off` and `shadow` modes, and for non-canary repositories in `canary` mode,
-the webhook bridge dispatches `pull-request-dashboard.yml` in
+In `off` mode, and for non-canary repositories in `canary` mode, the webhook
+bridge dispatches `pull-request-dashboard.yml` in
 `open-telemetry/shared-workflows` with these inputs:
 
 ```json

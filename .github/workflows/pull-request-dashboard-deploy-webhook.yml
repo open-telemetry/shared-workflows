@@ -11,6 +11,7 @@ on:
       - .github/scripts/pull-request-dashboard/package.json
       - .github/scripts/pull-request-dashboard/public/**
       - .github/workflows/pull-request-dashboard-deploy-webhook.yml
+      - .github/workflows/pull-request-dashboard.yml
   workflow_dispatch:
 
 permissions:
@@ -42,38 +43,36 @@ jobs:
           NETLIFY_SITE_ID: ${{ vars.NETLIFY_PR_DASHBOARD_PROJECT_ID }}
           OTELBOT_SHARED_WORKFLOWS_CLIENT_ID: ${{ vars.OTELBOT_SHARED_WORKFLOWS_CLIENT_ID }}
           OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY: ${{ secrets.OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY }}
-          PR_DASHBOARD_QUEUE_MODE: ${{ vars.PR_DASHBOARD_QUEUE_MODE || 'off' }}
         run: |
           set -euo pipefail
-          case "$PR_DASHBOARD_QUEUE_MODE" in
-            off|shadow|canary|all) ;;
-            *)
-              echo "::error::Unsupported PR_DASHBOARD_QUEUE_MODE: $PR_DASHBOARD_QUEUE_MODE"
-              exit 1
-              ;;
-          esac
-          if [[ "$PR_DASHBOARD_QUEUE_MODE" == "all" ]]; then
-            dashboard_workflow="../../workflows/pull-request-dashboard.yml"
-            mapfile -t stable_refs < <(
-              sed -nE \
-                's#^[[:space:]]*uses: open-telemetry/shared-workflows/\.github/workflows/pull-request-dashboard-repo\.yml@([0-9a-f]{40}).*$#\1#p' \
-                "$dashboard_workflow" |
-                sort -u
-            )
-            if [[ "${#stable_refs[@]}" -ne 1 ]]; then
-              echo "::error::Expected one stable dashboard workflow ref before enabling all queue mode"
-              exit 1
-            fi
+          queue_mode=canary
+          dashboard_workflow="../../workflows/pull-request-dashboard.yml"
+          mapfile -t stable_refs < <(
+            sed -nE \
+              's#^[[:space:]]*uses: open-telemetry/shared-workflows/\.github/workflows/pull-request-dashboard-repo\.yml@([0-9a-f]{40}).*$#\1#p' \
+              "$dashboard_workflow" |
+              sort -u
+          )
+          if [[ "${#stable_refs[@]}" -gt 1 ]]; then
+            echo "::error::Stable dashboard jobs use different workflow refs"
+            exit 1
+          fi
+          if [[ "${#stable_refs[@]}" -eq 1 ]]; then
             stable_ref="${stable_refs[0]}"
             git fetch --no-tags --depth=1 origin "$stable_ref"
             stable_workflow=$(git show "$stable_ref:.github/workflows/pull-request-dashboard-repo.yml")
+            stable_queue_ready=true
             for requirement in acquire-publisher-lock release-publisher-lock "timeout-minutes: 50"; do
               if ! grep -Fq -- "$requirement" <<< "$stable_workflow"; then
-                echo "::error::Stable dashboard workflow $stable_ref lacks $requirement; keep queue mode at canary"
-                exit 1
+                echo "::notice::Stable dashboard workflow $stable_ref lacks $requirement; deploying canary queue mode"
+                stable_queue_ready=false
               fi
             done
+            if [[ "$stable_queue_ready" == "true" ]]; then
+              queue_mode=all
+            fi
           fi
+          echo "Deploying pull request dashboard queue mode: $queue_mode"
           dispatcher_private_key_base64=$(printf '%s' "$OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY" | base64 -w0)
           echo "::add-mask::$dispatcher_private_key_base64"
           # Remove the deprecated variable left by App ID deployments.
@@ -102,7 +101,7 @@ jobs:
             --auth "$NETLIFY_AUTH_TOKEN" \
             --secret \
             --force
-          npx --yes netlify-cli@26.0.2 env:set PR_DASHBOARD_QUEUE_MODE "$PR_DASHBOARD_QUEUE_MODE" \
+          npx --yes netlify-cli@26.0.2 env:set PR_DASHBOARD_QUEUE_MODE "$queue_mode" \
             --context production \
             --scope functions \
             --site "$NETLIFY_SITE_ID" \

@@ -153,7 +153,6 @@ test("off mode retains direct workflow dispatch", async () => {
     webhookRequest("example", 123),
     {
       queue: queueMock(calls),
-      shadowQueue: queueMock(calls),
       dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
       dispatchDrain: async (generation) => calls.push(["drain", generation]),
     },
@@ -165,41 +164,11 @@ test("off mode retains direct workflow dispatch", async () => {
   assert.equal(calls.some(([name]) => name === "enqueue"), false);
 });
 
-test("shadow mode records queue decisions but still dispatches directly", async () => {
-  const calls = [];
-  const response = await withQueueMode("shadow", () => handleWebhookRequest(
-    webhookRequest("example", 123),
-    {
-      queue: queueMock(calls, "live"),
-      shadowQueue: queueMock(calls, "shadow"),
-      dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
-      dispatchDrain: async (generation) => calls.push(["drain", generation]),
-    },
-  ));
-
-  const body = await response.json();
-  assert.equal(body.status, "shadow_queued");
-  assert.deepEqual(calls.map(([name]) => name), ["enqueue:shadow", "refresh"]);
-});
-
-test("shadow mode dispatches directly when Blob observation fails", async () => {
-  const calls = [];
-  const response = await withQueueMode("shadow", () => handleWebhookRequest(
-    webhookRequest("example", 123),
-    {
-      shadowQueue: {
-        async enqueue() {
-          throw new Error("Blob store unavailable");
-        },
-      },
-      dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
-    },
-  ));
-
-  const body = await response.json();
-  assert.equal(body.status, "shadow_queued");
-  assert.equal(body.queue_status, "error");
-  assert.deepEqual(calls.map(([name]) => name), ["refresh"]);
+test("rejects the retired shadow mode", async () => {
+  await assert.rejects(
+    withQueueMode("shadow", () => handleWebhookRequest(webhookRequest("example", 123))),
+    /unsupported PR_DASHBOARD_QUEUE_MODE: shadow/,
+  );
 });
 
 test("canary mode queues only configured canary repositories", async () => {
