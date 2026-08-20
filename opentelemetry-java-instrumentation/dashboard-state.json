@@ -98,8 +98,11 @@
         "approval_count": 0,
         "assignees": [],
         "author": "zeitlinger",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816#discussion_r3822598603"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "2aa22348571c4e63bd3365eb2a6c7e37",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -118,8 +121,8 @@
         "head_sha": "470e7e365f9e8723f51c58369bf0e849a5e4bfac",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T16:42:44+00:00",
-        "last_approver_activity_at": "2026-08-19T15:00:51+00:00",
+        "last_activity_at": "2026-08-20T14:49:54+00:00",
+        "last_approver_activity_at": "2026-08-20T14:49:54+00:00",
         "last_author_activity_at": "2026-08-19T16:42:44+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -137,21 +140,21 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "trask",
-            "open_thread": false,
+            "open_thread": true,
             "pending_review": false,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bb14b7ce373fd17b6679dc83d8f1996f0af9e4dfa90a76b20179cb785742eb4a",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-08-19T20:09:38.562075+00:00"
+        "routing_input_fingerprint": "f86478a67343ab61656f0012e0edb722bb60f8fd1da2463c4b06f056336844e3",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-20T14:45:15+00:00"
       },
       "failed": false,
       "pr_number": 17816,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/17816",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4919466808": {
           "evidence": {
@@ -164,6 +167,12 @@
             "reply": "2026-07-13T11:58:43Z"
           },
           "reply_source_id": 4957689450
+        },
+        "pr-review-4217290830": {
+          "evidence": {
+            "reply": "2026-05-04T11:08:23Z"
+          },
+          "reply_source_id": 4370535876
         }
       }
     },
