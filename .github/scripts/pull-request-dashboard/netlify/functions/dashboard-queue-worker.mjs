@@ -66,13 +66,26 @@ export async function handleQueueWorkerRequest(
           body.retryAfterMs,
           "retryAfterMs",
         ) || 0,
+        operationId: body.operationId === undefined
+          ? ""
+          : nonEmptyString(body.operationId, "operationId", 200),
       }));
     case "finish": {
-      const result = await queue.finishDispatcher({
+      const finish = {
         generation: positiveInteger(body.generation, "generation"),
         workerId: workerId(body.workerId),
-      });
-      if (result.requested) {
+      };
+      const result = await queue.finishDispatcher(finish);
+      const dispatch = result.requested
+        ? await queue.claimFinishDispatch(finish)
+        : "completed";
+      if (dispatch === "in_progress" || dispatch === "unavailable") {
+        return Response.json(
+          { error: "successor dispatch is not yet confirmed" },
+          { status: 503 },
+        );
+      }
+      if (dispatch === "claimed") {
         try {
           await dispatchDrain(result.generation);
         } catch (error) {
@@ -80,8 +93,10 @@ export async function handleQueueWorkerRequest(
             generation: result.generation,
             requestOwner: result.requestOwner,
           });
+          await queue.failFinishDispatch(finish);
           throw error;
         }
+        await queue.completeFinishDispatch(finish);
       }
       return jsonResponse(result);
     }

@@ -43,6 +43,18 @@ function fixture() {
         requestOwner: "successor",
       };
     },
+    async claimFinishDispatch(input) {
+      calls.push(["claim-finish-dispatch", input]);
+      return "claimed";
+    },
+    async completeFinishDispatch(input) {
+      calls.push(["complete-finish-dispatch", input]);
+      return true;
+    },
+    async failFinishDispatch(input) {
+      calls.push(["fail-finish-dispatch", input]);
+      return true;
+    },
     async releaseRequestedDispatcher(input) {
       calls.push(["release", input]);
       return true;
@@ -94,6 +106,12 @@ test("dispatches a successor when finish leaves runnable work", async () => {
   assert.deepEqual(calls, [[
     "finish",
     { generation: 7, workerId: "worker" },
+  ], [
+    "claim-finish-dispatch",
+    { generation: 7, workerId: "worker" },
+  ], [
+    "complete-finish-dispatch",
+    { generation: 7, workerId: "worker" },
   ]]);
 });
 
@@ -113,10 +131,80 @@ test("releases a successor lease when dispatch fails", async () => {
     }),
     /dispatch failed/,
   );
-  assert.deepEqual(calls.at(-1), [
+  assert.deepEqual(calls.at(-2), [
     "release",
     { generation: 8, requestOwner: "successor" },
   ]);
+  assert.deepEqual(calls.at(-1), [
+    "fail-finish-dispatch",
+    { generation: 7, workerId: "worker" },
+  ]);
+});
+
+test("does not release a dispatched successor when recording completion fails", async () => {
+  const { calls, queue } = fixture();
+  queue.completeFinishDispatch = async (input) => {
+    calls.push(["complete-finish-dispatch", input]);
+    throw new Error("receipt failed");
+  };
+
+  await assert.rejects(
+    handleQueueWorkerRequest(request({
+      action: "finish",
+      generation: 7,
+      workerId: "worker",
+    }), {
+      queue,
+      verifyRequest,
+      dispatchDrain: async () => {},
+    }),
+    /receipt failed/,
+  );
+
+  assert.equal(calls.some(([action]) => action === "release"), false);
+  assert.equal(calls.some(([action]) => action === "fail-finish-dispatch"), false);
+});
+
+test("does not dispatch a committed finish twice when its response is lost", async () => {
+  const { queue } = fixture();
+  let dispatchClaimed = false;
+  queue.claimFinishDispatch = async () => {
+    if (dispatchClaimed) {
+      return "completed";
+    }
+    dispatchClaimed = true;
+    return "claimed";
+  };
+  const dispatches = [];
+  const input = {
+    action: "finish",
+    generation: 7,
+    workerId: "worker",
+  };
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await handleQueueWorkerRequest(request(input), {
+      queue,
+      verifyRequest,
+      dispatchDrain: async (generation) => dispatches.push(generation),
+    });
+    assert.equal(response.status, 200);
+  }
+
+  assert.deepEqual(dispatches, [8]);
+});
+
+test("reports an in-progress finish dispatch as transient", async () => {
+  const { queue } = fixture();
+  queue.claimFinishDispatch = async () => "in_progress";
+
+  const response = await handleQueueWorkerRequest(request({
+    action: "finish",
+    generation: 7,
+    workerId: "worker",
+  }), { queue, verifyRequest });
+
+  assert.equal(response.status, 503);
 });
 
 test("rejects malformed actions before touching the queue", async () => {
