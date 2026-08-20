@@ -291,16 +291,40 @@ test("a failed finish dispatch can request a new successor", async () => {
 
   const first = await queue.finishDispatcher(finish);
   assert.equal(await queue.claimFinishDispatch(finish), "claimed");
-  assert.equal(await queue.releaseRequestedDispatcher({
+  assert.equal(await queue.failFinishDispatchWithRelease(finish, {
     generation: first.generation,
     requestOwner: first.requestOwner,
   }), true);
-  assert.equal(await queue.failFinishDispatch(finish), true);
 
   const retried = await queue.finishDispatcher(finish);
   assert.equal(retried.requested, true);
   assert.notEqual(retried.generation, first.generation);
   assert.equal(await queue.claimFinishDispatch(finish), "claimed");
+});
+
+test("an expired successor lease is rejected by claimFinishDispatch", async () => {
+  const { queue, advance } = fixture();
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  const finish = {
+    generation: request.generation,
+    workerId: "worker",
+  };
+
+  const first = await queue.finishDispatcher(finish);
+  assert.equal(first.requested, true);
+  advance(1_001);
+
+  assert.equal(await queue.claimFinishDispatch(finish), "unavailable");
 });
 
 test("stale worker acknowledgment is rejected", async () => {
