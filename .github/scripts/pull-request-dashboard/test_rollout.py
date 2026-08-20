@@ -169,12 +169,14 @@ class RolloutWiringTest(unittest.TestCase):
         canary_default = body.index("queue_mode=canary")
         stable_guard = body.index("stable_queue_ready=true")
         all_selection = body.index("queue_mode=all")
+        environment_remove = body.index("env:unset PR_DASHBOARD_QUEUE_MODE")
         environment_write = body.index(
             'env:set PR_DASHBOARD_QUEUE_MODE "$queue_mode"'
         )
         self.assertLess(canary_default, stable_guard)
         self.assertLess(stable_guard, all_selection)
-        self.assertLess(all_selection, environment_write)
+        self.assertLess(all_selection, environment_remove)
+        self.assertLess(environment_remove, environment_write)
 
 
 if __name__ == "__main__":

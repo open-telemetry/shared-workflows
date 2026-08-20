@@ -88,6 +88,10 @@ jobs:
             --site "$NETLIFY_SITE_ID" \
             --auth "$NETLIFY_AUTH_TOKEN" \
             --force || true
+          npx --yes netlify-cli@26.0.2 env:unset PR_DASHBOARD_QUEUE_MODE \
+            --site "$NETLIFY_SITE_ID" \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --force || true
           npx --yes netlify-cli@26.0.2 env:set OTELBOT_SHARED_WORKFLOWS_CLIENT_ID "$OTELBOT_SHARED_WORKFLOWS_CLIENT_ID" \
             --context production \
             --scope functions \
