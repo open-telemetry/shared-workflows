@@ -73,6 +73,20 @@ def ref_is_ancestor(ancestor: str, descendant: str) -> bool:
     return result.returncode == 0
 
 
+def ref_oid(ref: str, cwd: Path | None = None) -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", ref],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        message = result.stderr.strip() or result.stdout.strip() or f"exit code {result.returncode}"
+        raise RuntimeError(f"failed to resolve Git ref {ref}: {message}")
+    return result.stdout.strip()
+
+
 def remote_is_behind_local(state_branch: str, fetched_ref: str) -> bool:
     if not has_state_branch(state_branch):
         return False
