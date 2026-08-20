@@ -265,16 +265,25 @@ class DashboardBatchProcessor:
         results: list[dict[str, Any]] = []
         ready: list[WorkItem] = []
 
+        try:
+            initial_backfill_complete = self._initial_backfill_complete(
+                repository, state_branch, env
+            )
+        except Exception as error:
+            return [
+                result
+                for item in items
+                for result in failure_acknowledgments(item.claims, error)
+            ]
+        if not initial_backfill_complete:
+            return [
+                acknowledgment(claim, "success")
+                for item in items
+                for claim in item.claims
+            ]
+
         for item in items:
             try:
-                initial_backfill_complete = self._initial_backfill_complete(
-                    repository, state_branch, env
-                )
-                if not initial_backfill_complete:
-                    results.extend(
-                        acknowledgment(claim, "success") for claim in item.claims
-                    )
-                    continue
                 self._update_dashboard(repository, item.pr_number, state_branch, config, env)
                 ready.append(item)
             except Exception as error:

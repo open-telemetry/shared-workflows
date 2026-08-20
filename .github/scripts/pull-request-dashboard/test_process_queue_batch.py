@@ -181,6 +181,36 @@ class QueueBatchTest(unittest.TestCase):
 
         self.assertNotEqual(runner_temps["a"], runner_temps["b"])
 
+    def test_initial_backfill_is_checked_once_for_all_repository_items(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(
+                json.dumps([{"name": "example"}]),
+                encoding="utf-8",
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(config_path)
+            items = [
+                WorkItem(
+                    "example",
+                    number,
+                    (claim(f"example#pr:{number}", "example", pr_number=number),),
+                )
+                for number in (1, 2)
+            ]
+            with (
+                mock.patch.object(
+                    processor,
+                    "_initial_backfill_complete",
+                    return_value=False,
+                ) as initial_backfill_complete,
+                mock.patch.object(processor, "_update_dashboard") as update_dashboard,
+            ):
+                results = processor.process_repository("example", items)
+
+        initial_backfill_complete.assert_called_once()
+        update_dashboard.assert_not_called()
+        self.assertEqual([result["outcome"] for result in results], ["success", "success"])
+
     def test_repository_failure_does_not_suppress_other_results(self) -> None:
         items = [
             WorkItem("bad", 1, (claim("bad#pr:1", "bad", pr_number=1),)),
