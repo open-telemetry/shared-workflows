@@ -614,6 +614,31 @@ export class DashboardQueue {
     return this.#setFinishDispatchState(generation, workerId, "dispatching", "failed");
   }
 
+  async failFinishDispatchWithRelease(
+    { generation: finishGeneration, workerId },
+    { generation: dispatchGeneration, requestOwner },
+  ) {
+    const receiptKey = operationKey([finishGeneration, workerId]);
+    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+      validateDispatcher(dispatcher);
+      const receipt = dispatcher.finishes?.[receiptKey];
+      if (!receipt || receipt.dispatchState !== "dispatching") {
+        return { changed: false, result: false };
+      }
+      if (
+        dispatcher.phase === "requested" &&
+        dispatcher.generation === dispatchGeneration &&
+        dispatcher.leaseOwner === requestOwner
+      ) {
+        setDispatcherIdle(dispatcher, this.#isoNow());
+      }
+      receipt.dispatchState = "failed";
+      receipt.completedAt = this.#isoNow();
+      return { changed: true, result: true };
+    });
+    return mutation.result;
+  }
+
   async hasRunnableItems() {
     const runnable = await this.#mapShards(async (shardKey) => {
       const entry = await this.store.get(shardKey);

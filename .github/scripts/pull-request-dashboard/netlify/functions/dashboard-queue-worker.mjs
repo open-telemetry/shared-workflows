@@ -89,11 +89,12 @@ export async function handleQueueWorkerRequest(
         try {
           await dispatchDrain(result.generation);
         } catch (error) {
-          await queue.releaseRequestedDispatcher({
-            generation: result.generation,
-            requestOwner: result.requestOwner,
-          });
-          await queue.failFinishDispatch(finish);
+          if (error.statusCode) {
+            await queue.failFinishDispatchWithRelease(finish, {
+              generation: result.generation,
+              requestOwner: result.requestOwner,
+            });
+          }
           throw error;
         }
         await queue.completeFinishDispatch(finish);
