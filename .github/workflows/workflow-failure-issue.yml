@@ -16,7 +16,7 @@ jobs:
     if: github.repository_owner == 'open-telemetry'
     permissions:
       issues: write # needed to open, comment on, and close workflow failure issues
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     steps:
       - name: Open issue or add comment if issue already open
         env:

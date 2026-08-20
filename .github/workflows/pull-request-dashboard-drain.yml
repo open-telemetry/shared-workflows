@@ -26,7 +26,7 @@ jobs:
       copilot-requests: write
       id-token: write
     environment: protected
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
       DISPATCHER_GENERATION: ${{ inputs.dispatcher_generation }}

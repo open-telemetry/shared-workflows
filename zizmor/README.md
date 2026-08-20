@@ -32,7 +32,7 @@ jobs:
 
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets are required. The workflow uses zizmor's `regular` persona by default.
 
-For reusable workflow callers, the optional Boolean `use-cncf-hosted-runner` input defaults to `false`. When it is `true`, the Zizmor job runs on `cncf-ubuntu-2-8-x86`; when it is `false` or omitted, the job runs on `ubuntu-latest`. Runs triggered directly in `open-telemetry/shared-workflows` always use `cncf-ubuntu-2-8-x86`. The mapping is fixed; callers cannot provide another runner label.
+The optional Boolean `use-cncf-hosted-runner` input defaults to `false`. When it is `true`, the Zizmor job runs on `cncf-ubuntu-2-8-x86`; when it is `false` or omitted, the job runs on `ubuntu-latest`. Runs triggered directly in this repository use `ubuntu-latest`. The mapping is fixed; callers cannot provide another runner label.
 
 To use a different persona, pass the `persona` input:
 

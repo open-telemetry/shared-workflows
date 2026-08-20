@@ -20,7 +20,7 @@ concurrency:
 jobs:
   promote:
     name: Open stable promotion pull request
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     steps:
       - name: Enforce main branch
         env:

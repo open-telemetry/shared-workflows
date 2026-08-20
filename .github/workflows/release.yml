@@ -25,7 +25,7 @@ concurrency:
 jobs:
   release:
     name: Cut new release
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     permissions:
       contents: write # to create the tag and the GitHub Release
     steps:
