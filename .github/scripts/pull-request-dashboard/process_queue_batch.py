@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from queue_worker_client import QueueWorkerClient
+from queue_worker_client import QueueWorkerClient, acknowledge_all
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OWNER = "open-telemetry"
@@ -512,8 +512,9 @@ def main() -> int:
     args = parser.parse_args()
 
     claims = load_claims(args.claims)
+    client = QueueWorkerClient(args.queue_endpoint)
     monitor = LeaseMonitor(
-        QueueWorkerClient(args.queue_endpoint),
+        client,
         args.dispatcher_generation,
         args.worker_id,
     )
@@ -532,10 +533,21 @@ def main() -> int:
             )
         )
     finally:
-        monitor.close()
         # Whatever was decided before an abort still has to be acknowledged, or
         # those items stay leased until recovery reclaims them.
         args.results.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
+        try:
+            if results:
+                acknowledge_all(
+                    client,
+                    args.results,
+                    {
+                        "generation": args.dispatcher_generation,
+                        "workerId": args.worker_id,
+                    },
+                )
+        finally:
+            monitor.close()
     dead_letters = sum(result["outcome"] == "dead" for result in results)
     retries = sum(result["outcome"] == "retry" for result in results)
     print(

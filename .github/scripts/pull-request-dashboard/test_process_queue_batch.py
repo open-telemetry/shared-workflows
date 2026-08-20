@@ -242,6 +242,8 @@ class QueueBatchTest(unittest.TestCase):
         self.assertIn("publish_dashboard.py", commands)
 
     def test_an_aborted_batch_still_records_decided_acknowledgments(self) -> None:
+        lifecycle: list[str] = []
+
         class Client:
             def __init__(self, *_args: object, **_kwargs: object) -> None:
                 pass
@@ -262,6 +264,16 @@ class QueueBatchTest(unittest.TestCase):
                 _items: list[WorkItem],
             ) -> list[dict[str, object]]:
                 raise AssertionError("unreachable")
+
+        def acknowledge(*_args: object, **_kwargs: object) -> dict[str, int]:
+            lifecycle.append("acknowledge")
+            return {"acknowledged": 1}
+
+        original_close = LeaseMonitor.close
+
+        def close(monitor: LeaseMonitor) -> None:
+            lifecycle.append("close")
+            original_close(monitor)
 
         with tempfile.TemporaryDirectory() as directory:
             claims_path = Path(directory) / "claims.json"
@@ -300,6 +312,8 @@ class QueueBatchTest(unittest.TestCase):
             with (
                 mock.patch.object(process_queue_batch, "QueueWorkerClient", Client),
                 mock.patch.object(process_queue_batch, "DashboardBatchProcessor", Processor),
+                mock.patch.object(process_queue_batch, "acknowledge_all", side_effect=acknowledge),
+                mock.patch.object(LeaseMonitor, "close", new=close),
                 mock.patch.object(sys, "argv", argv),
             ):
                 with self.assertRaises(ValueError):
@@ -310,6 +324,7 @@ class QueueBatchTest(unittest.TestCase):
             [(result["itemKey"], result["outcome"]) for result in results],
             [("example#head:abc", "success")],
         )
+        self.assertEqual(lifecycle, ["acknowledge", "close"])
 
 
 if __name__ == "__main__":

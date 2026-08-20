@@ -115,20 +115,6 @@ jobs:
             --dispatcher-generation "$DISPATCHER_GENERATION" \
             --worker-id "$WORKER_ID"
 
-      - name: Acknowledge queue batch
-        if: always() && steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
-        run: |
-          set -euo pipefail
-          if [[ ! -f "$RUNNER_TEMP/dashboard-results.json" ]]; then
-            echo "Queue processor did not produce acknowledgments; leases will recover."
-            exit 0
-          fi
-          python3 .github/scripts/pull-request-dashboard/queue_worker_client.py \
-            --generation "$DISPATCHER_GENERATION" \
-            --worker-id "$WORKER_ID" \
-            acknowledge \
-            --results "$RUNNER_TEMP/dashboard-results.json"
-
       - name: Save classification cache
         if: always() && steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
