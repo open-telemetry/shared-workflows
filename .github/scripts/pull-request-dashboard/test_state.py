@@ -167,7 +167,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(DASHBOARD_STATE_VERSION, 10)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
-        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 5)
+        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)
 
     def test_author_nudge_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

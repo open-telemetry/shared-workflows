@@ -8,9 +8,9 @@ import sys
 from typing import Any
 
 from author_nudge import (
+    copilot_request_component_digests,
+    copilot_request_fingerprint,
     fetch_current_pr_routing_inputs,
-    routing_input_component_digests,
-    routing_input_fingerprint,
 )
 from github_cli import (
     fetch_pr_reviews,
@@ -24,7 +24,6 @@ from utils import (
     format_ts,
     is_copilot_reviewer_login,
     parse_ts,
-    required_checks_settled,
     utc_now,
 )
 
@@ -144,14 +143,17 @@ def set_copilot_review_request_needed(
     enabled: bool,
     now: datetime | None = None,
 ) -> None:
-    # Requesting a re-review before the checks report would spend it on code CI
-    # is about to reject. Only two states are worth a request. A stale review
-    # means the author pushed, which is the one change a re-review can respond
-    # to; findings on the current head sit on unchanged code, so re-reviewing
-    # would reach the same verdict and be requested again on every pass. A
-    # review GitHub should have started automatically and never did is the
-    # other: the gate would otherwise hold the pull request on its author
-    # indefinitely, waiting for a review nobody has asked for.
+    # Only two states are worth a request. A stale review means the author
+    # pushed, which is the one change a re-review can respond to; findings on
+    # the current head sit on unchanged code, so re-reviewing would reach the
+    # same verdict and be requested again on every pass. A review GitHub should
+    # have started automatically and never did is the other: the gate would
+    # otherwise hold the pull request on its author indefinitely, waiting for a
+    # review nobody has asked for.
+    #
+    # Pending checks do not hold the request back, so the review and the checks
+    # run at once. Failing checks still do, because they route the pull request
+    # to its author and only a reviewer route reaches here.
     now = now or utc_now()
     review_missing = not facts.get("copilot_review_exists")
     facts["copilot_review_request_needed"] = (
@@ -165,7 +167,6 @@ def set_copilot_review_request_needed(
             or (review_missing and copilot_first_review_overdue(facts, now))
         )
         and not facts.get("copilot_review_requested")
-        and required_checks_settled(facts)
     )
 
 
@@ -178,13 +179,13 @@ def record_copilot_review_observation(
     key = str(pr_number)
     facts = (result or {}).get("facts") or {}
     head_sha = str(facts.get("head_sha") or "")
-    routing_fingerprint = str(facts.get("routing_input_fingerprint") or "")
+    request_fingerprint = str(facts.get("copilot_request_fingerprint") or "")
     if (
         not result
         or result.get("failed")
         or not facts.get("copilot_review_request_needed")
         or not head_sha
-        or not routing_fingerprint
+        or not request_fingerprint
     ):
         requests.pop(key, None)
     else:
@@ -192,7 +193,7 @@ def record_copilot_review_observation(
             "head_sha": head_sha,
             "observed_at": format_ts(observed_at),
             "requested_at": "",
-            "routing_input_fingerprint": routing_fingerprint,
+            "copilot_request_fingerprint": request_fingerprint,
         }
     save_copilot_review_requests(requests)
 
@@ -208,7 +209,7 @@ def stale_request_reason(
     entry: dict[str, Any],
     pr: dict[str, Any],
     current_head: str,
-    current_routing_fingerprint: str,
+    current_request_fingerprint: str,
     raw: dict[str, Any],
 ) -> str:
     if pr.get("state") != "OPEN":
@@ -220,7 +221,7 @@ def stale_request_reason(
             f"head is {current_head or '(missing)'} "
             f"but {entry.get('head_sha') or '(missing)'} was observed"
         )
-    # The fingerprint below only detects change, so checks that were unsettled
+    # The fingerprint below only detects change, so checks that were failing
     # when the request was recorded and still are would otherwise pass through.
     checks = raw.get("checks")
     if checks is None:
@@ -228,16 +229,13 @@ def stale_request_reason(
     failing = [check for check in checks if check.get("bucket") in ("fail", "cancel")]
     if failing:
         return f"required checks are failing: {named_checks(failing)}"
-    pending = [check for check in checks if check.get("bucket") == "pending"]
-    if pending:
-        return f"required checks have not completed: {named_checks(pending)}"
-    if not entry.get("routing_input_fingerprint"):
+    if not entry.get("copilot_request_fingerprint"):
         return "no routing fingerprint was observed"
-    if current_routing_fingerprint != entry["routing_input_fingerprint"]:
-        digests = routing_input_component_digests(raw)
+    if current_request_fingerprint != entry["copilot_request_fingerprint"]:
+        digests = copilot_request_component_digests(raw)
         return (
-            f"routing fingerprint is {current_routing_fingerprint} "
-            f"but {entry['routing_input_fingerprint']} was observed; "
+            f"routing fingerprint is {current_request_fingerprint} "
+            f"but {entry['copilot_request_fingerprint']} was observed; "
             f"components {digests}"
         )
     return ""
@@ -286,13 +284,13 @@ def deliver_copilot_review_requests(
                 repo,
                 pr_number,
             )
-            current_routing_fingerprint = routing_input_fingerprint(raw)
+            current_request_fingerprint = copilot_request_fingerprint(raw)
             current_head = pr.get("headRefOid") or ""
             stale_reason = stale_request_reason(
                 entry,
                 pr,
                 current_head,
-                current_routing_fingerprint,
+                current_request_fingerprint,
                 raw,
             )
             if stale_reason:

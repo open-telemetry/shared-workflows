@@ -284,7 +284,7 @@ the implementation understandable and operationally cheap.
 - Required-check and Copilot review gates still hold a handoff while a conflict
   exists, but their missing-result clock is paused. GitHub may not start either
   automation on an unmergeable head, so a missing result is expected rather than
-  a dashboard delivery failure. Entering the conflicted state clears any
+  a stalled handoff. Entering the conflicted state clears any
   same-head hold clock. A fresh four-hour clock starts if a gate is still missing
   after the conflict is resolved.
 - A PR does not advance toward merge while the required checks are unsettled:
@@ -365,18 +365,16 @@ the implementation understandable and operationally cheap.
   review never arrived when it is sitting on the PR. A review that is missing or
   that only covers older code still counts, because Copilot has said nothing
   about the code being reviewed.
-- An expired hold is reported as a delivery failure on
-  whole-repository passes, which opens the same tracking issue as any other
-  dashboard failure. This is the only alarm the gates raise. Each way a gate can
-  go missing has its own cause and none of them can be told apart from the
-  dashboard's side, so reporting them separately would mean a new alarm for
-  every new way GitHub finds to lose something. The hold expiring is the one
-  symptom they all share. A conflicted PR cannot expire its hold because its
-  missing automation is expected.
-- The report stays active while the stall does, the same way a PR that keeps
-  failing to refresh keeps the hourly failure active. A gate that will never
-  report is usually a repository misconfiguration — a required check with no
-  workflow to produce it — and it needs a person, not a reminder that stops.
+- An expired hold routes the pull request and says so in its status comment,
+  which is the whole of what the dashboard can do about it. The gates raise no
+  alarm of their own. Each way a gate can go missing has its own cause and none
+  of them can be told apart from the dashboard's side, and the pull request is
+  already in front of the people who can look at the missing gate. Failing the
+  repository's run instead would repeat every hour until the head moved, long
+  after the handoff it was reporting had happened, and it would keep firing once
+  a trip back to the author had stopped the dashboard re-requesting the review it
+  was naming. A conflicted PR cannot expire its hold because its missing
+  automation is expected.
 
 ## Copilot Review Gate
 
@@ -425,9 +423,18 @@ the implementation understandable and operationally cheap.
   two hours of the pull request becoming ready, against a failure that is
   otherwise unbounded.
 - A first-review request is reachable only where a re-request already is — the
-  pull request would otherwise route to reviewers or maintainers, Copilot is not
-  already a pending requested reviewer, and the required checks have settled —
-  so the recovery cannot spend a review on code CI is about to reject.
+  pull request would otherwise route to reviewers or maintainers, and Copilot is
+  not already a pending requested reviewer.
+- Running checks do not hold either request back, so the review and the checks
+  run at once rather than in sequence. Checks that fail still block it, because
+  they route the pull request to its author and only a reviewer route reaches
+  here, so a review is never spent on code CI is about to reject. Waiting for
+  pending checks only delayed the request by however long the suite took, on top
+  of the hour the missing review had already cost.
+- For the same reason the recorded request is fingerprinted without the checks.
+  The fingerprint exists to discard a request whose routing has since changed,
+  and a request made while CI runs would otherwise be discarded by the next
+  check to finish, one pass at a time, for as long as the suite lasted.
 - Delivery re-validates the review state against live data and discards the
   request only when a review already covers the current head, which is what
   happens when one lands between the observation and the delivery. A review that
@@ -479,16 +486,16 @@ the implementation understandable and operationally cheap.
   between the command and the pass that reads it belongs to the handoff instead
   of ending it, which is the safer direction: the author asked for help, and the
   worst case is one extra handoff the author can end with another push.
-- The gate withholds the re-review request until the required checks have
-  settled. A route computed while checks are still running is provisional: a
-  failure that has not completed yet cannot route the PR to its author, so the
-  PR looks ready for reviewers and the gate would spend a Copilot review on code
-  CI is about to reject. Unavailable check results are treated the same as
-  running ones, because both mean the routing decision cannot be trusted yet.
-- Delivery re-validates the required checks against live data rather than
-  relying on the routing fingerprint alone. The fingerprint only detects
-  change, so checks that were unsettled when the request was recorded and are
-  still unsettled at delivery would otherwise pass through unnoticed.
+- The gate does not wait for the required checks before requesting the review,
+  so the two run at once. A route computed while checks are still running is
+  provisional, but the only outcome that matters here is a failure, and a
+  failure routes the PR to its author, which is not a route the request is
+  reachable from. Waiting cost the review however long the suite took and
+  recovered nothing.
+- Delivery still re-validates the required checks against live data rather than
+  relying on the fingerprint alone. The fingerprint only detects change, so
+  checks that were already failing when the request was recorded would otherwise
+  pass through unnoticed.
 - "Clean" means no inline comments on the current head, counted from the
   review, not from the classifier's actionability judgment. Accepted
   limitation: if Copilot leaves comments the classifier treats as

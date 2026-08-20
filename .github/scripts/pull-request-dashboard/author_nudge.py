@@ -147,11 +147,30 @@ def routing_input_fingerprint(raw: dict[str, Any]) -> str:
     return _digest(routing_inputs(raw))
 
 
+def copilot_request_inputs(raw: dict[str, Any]) -> dict[str, Any]:
+    # The Copilot review is requested while the checks are still running, so
+    # covering them would change the fingerprint on every check transition and
+    # discard the request before it was ever sent. Checks that turn failing are
+    # caught on their own, where the pull request goes back to its author.
+    inputs = routing_inputs(raw)
+    inputs.pop("checks", None)
+    return inputs
+
+
+def copilot_request_fingerprint(raw: dict[str, Any]) -> str:
+    return _digest(copilot_request_inputs(raw))
+
+
 def routing_input_component_digests(raw: dict[str, Any]) -> dict[str, str]:
-    return {
-        name: _digest(value)[:16]
-        for name, value in routing_inputs(raw).items()
-    }
+    return _component_digests(routing_inputs(raw))
+
+
+def copilot_request_component_digests(raw: dict[str, Any]) -> dict[str, str]:
+    return _component_digests(copilot_request_inputs(raw))
+
+
+def _component_digests(inputs: dict[str, Any]) -> dict[str, str]:
+    return {name: _digest(value)[:16] for name, value in inputs.items()}
 
 
 def fetch_current_pr_routing_state(
