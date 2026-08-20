@@ -23,7 +23,7 @@ env:
 jobs:
   comment-on-pr:
     name: Add survey to PR if author is not a member
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     if: >-
       github.event.pull_request.merged == true &&
       github.repository_owner == 'open-telemetry' &&

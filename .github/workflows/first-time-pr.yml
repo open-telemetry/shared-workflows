@@ -26,7 +26,7 @@ jobs:
     name: Welcome first-time contributor
     permissions:
       pull-requests: write # for gh pr edit --add-label and posting the welcome comment
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     if: >-
       github.event.action == 'opened' &&
       github.repository_owner == 'open-telemetry' &&

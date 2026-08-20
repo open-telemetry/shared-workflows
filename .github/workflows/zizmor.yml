@@ -34,7 +34,7 @@ concurrency:
 jobs:
   zizmor:
     name: Zizmor Security Analysis
-    runs-on: ${{ (github.repository == 'open-telemetry/shared-workflows' || inputs['use-cncf-hosted-runner']) && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
+    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results

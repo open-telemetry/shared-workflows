@@ -49,7 +49,7 @@ jobs:
     # Targeted refreshes go straight to the reusable workflow, which resolves
     # its own configuration. Only backfills need a matrix resolved up front.
     if: inputs.head_sha == '' && (inputs.repository == '' || inputs.pr_number == '')
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     environment: protected
@@ -115,7 +115,7 @@ jobs:
     # Check and status events for a fork head carry no pull request number, so
     # the head commit has to be resolved before the reusable workflow runs.
     if: inputs.head_sha != '' && inputs.pr_number == ''
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     environment: protected

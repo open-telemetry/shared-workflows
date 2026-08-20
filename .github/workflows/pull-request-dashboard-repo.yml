@@ -42,7 +42,7 @@ jobs:
       contents: write
       copilot-requests: write
     environment: protected
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     outputs:
       initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
     steps:
@@ -227,7 +227,7 @@ jobs:
     permissions:
       contents: write
     environment: protected
-    runs-on: cncf-ubuntu-2-8-x86
+    runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
       PUBLISHER_LOCK_OWNER: ${{ github.run_id }}-${{ github.run_attempt }}-publish
