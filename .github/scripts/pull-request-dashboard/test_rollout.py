@@ -130,8 +130,10 @@ class RolloutWiringTest(unittest.TestCase):
 
     def test_direct_publisher_uses_the_shared_repository_lock(self) -> None:
         body = REPO_WORKFLOW.read_text(encoding="utf-8")
+        publish_job = job_blocks(body)["publish-dashboard"]
         self.assertEqual(body.count("acquire-publisher-lock"), 1)
         self.assertEqual(body.count("release-publisher-lock"), 1)
+        self.assertIn("    timeout-minutes: 50", publish_job)
         self.assertIn(
             "if: always() && steps.publisher-lock.outcome == 'success'",
             body,
