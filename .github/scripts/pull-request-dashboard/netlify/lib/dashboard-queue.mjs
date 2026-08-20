@@ -418,19 +418,20 @@ export class DashboardQueue {
         return { changed: true, result: { status: "dead", deadKey } };
       }
 
+      const hasFollowUp = item.dirty || item.generation !== claimGeneration;
       item.phase = "queued";
       item.dirty = false;
       item.leaseOwner = null;
       item.leaseExpiresAt = null;
       item.claimedGeneration = null;
-      item.attempts = outcome === "retry" ? item.attempts + 1 : 0;
-      item.notBefore = outcome === "retry" && retryAfterMs > 0
+      item.attempts = outcome === "retry" && !hasFollowUp ? item.attempts + 1 : 0;
+      item.notBefore = outcome === "retry" && !hasFollowUp && retryAfterMs > 0
         ? this.#isoAfter(retryAfterMs)
         : null;
       return {
         changed: true,
         result: {
-          status: outcome === "retry" ? "retry" : "follow_up",
+          status: outcome === "retry" && !hasFollowUp ? "retry" : "follow_up",
           attempts: item.attempts,
         },
       };
