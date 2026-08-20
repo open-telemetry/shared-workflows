@@ -52,7 +52,8 @@ class QueueWorkerClient:
     def call(self, action: str, **payload: Any) -> dict[str, Any]:
         request_payload = {"action": action, **payload}
         if action == "acknowledge":
-            request_payload.setdefault("operationId", self.operation_id_factory())
+            if "operationId" not in request_payload:
+                request_payload["operationId"] = self.operation_id_factory()
         body = json.dumps(request_payload, separators=(",", ":")).encode()
         for attempt in range(MAX_ATTEMPTS):
             try:

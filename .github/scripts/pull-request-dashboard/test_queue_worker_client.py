@@ -172,6 +172,34 @@ class QueueWorkerClientTest(unittest.TestCase):
             {"operation-1"},
         )
 
+    def test_skips_operation_id_factory_when_caller_supplies_id(self) -> None:
+        def fail_factory() -> str:
+            raise RuntimeError("factory must not be called")
+
+        def opener(request, timeout):
+            if "token.actions.test" in request.full_url:
+                return Response(json.dumps({"value": "oidc-token"}).encode())
+            return Response(json.dumps({"status": "removed"}).encode())
+
+        client = QueueWorkerClient(
+            "https://example.test/worker",
+            oidc_request_url="https://token.actions.test/request",
+            oidc_request_token="request-token",
+            opener=opener,
+            operation_id_factory=fail_factory,
+        )
+
+        result = client.call(
+            "acknowledge",
+            generation=1,
+            workerId="worker",
+            itemKey="example#pr:1",
+            claimGeneration=1,
+            outcome="success",
+            operationId="caller-supplied",
+        )
+        self.assertEqual(result, {"status": "removed"})
+
     def test_stops_after_the_bounded_attempt_count(self) -> None:
         worker_attempts = 0
 
