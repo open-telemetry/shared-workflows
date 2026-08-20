@@ -7,10 +7,13 @@
         "assignees": [],
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/2325#issuecomment-5336415735"
+        ],
         "author_nudge_episode_id": "6a0e255c03ff4d52be1576bc5d85dbd5",
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-20T19:37:49+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -30,7 +33,7 @@
         "last_activity_at": "2026-08-20T18:56:59+00:00",
         "last_approver_activity_at": "2026-08-20T03:38:04+00:00",
         "last_author_activity_at": "2026-08-20T18:56:59+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -66,14 +69,13 @@
             "login": "lquerel",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-20T19:15:23.452666+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "04885db0c78874f5db65e628fd34d3a4f78824691dab9e8af3e28c5f1a49ed30",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "d417bc2a896d67cea287b4714b4c7cf659c43bc8ad3dde4a8cbfc4a5db293b6c",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-08-19T01:34:50+00:00"
       },
       "failed": false,
@@ -81,12 +83,6 @@
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/2325",
       "route": "author",
       "top_level_history": {
-        "pr-issue-comment-5336415735": {
-          "evidence": {
-            "reply": "2026-08-20T06:02:04Z"
-          },
-          "reply_source_id": 5352025876
-        },
         "pr-review-4967670907": {
           "evidence": {
             "reply": "2026-08-20T06:02:04Z"
