@@ -141,6 +141,7 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertEqual(body.count("actions/checkout@"), 1)
         self.assertNotIn("code_ref:", body)
         self.assertNotRegex(body, STABLE_USES)
+        self.assertRegex(body, r"(?m)^    timeout-minutes: 50$")
 
 
 if __name__ == "__main__":
