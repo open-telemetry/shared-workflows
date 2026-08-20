@@ -1835,11 +1835,7 @@
         "assignees": [],
         "author": "leeyazhou",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11069#issuecomment-5163625420",
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11069#issuecomment-5354108403"
-        ],
-        "author_nudge_episode_id": "f1acf95db3654f889571b940733858b5",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "ci_uncleared_failing_count": 0,
@@ -1872,7 +1868,7 @@
             "changes_requested": false,
             "login": "julianocosta89",
             "open_thread": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           },
           {
             "approved": false,
@@ -1909,19 +1905,31 @@
         ],
         "route_held_for_gates": false,
         "routing_input_fingerprint": "8bd92b2996ee6465d766807f8e87aae71d7f81c616e2267d1df69c3e93353ec2",
-        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-20T14:18:02+00:00"
       },
       "failed": false,
       "pr_number": 11069,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11069",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5115123342": {
           "evidence": {
             "reply": "2026-07-30T03:06:43Z"
           },
           "reply_source_id": 5125911636
+        },
+        "pr-issue-comment-5163625420": {
+          "evidence": {
+            "reply": "2026-08-20T14:18:02Z"
+          },
+          "reply_source_id": 5357145725
+        },
+        "pr-issue-comment-5354108403": {
+          "evidence": {
+            "reply": "2026-08-20T14:18:02Z"
+          },
+          "reply_source_id": 5357145725
         }
       }
     },
