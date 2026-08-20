@@ -1222,8 +1222,12 @@
         "approval_count": 0,
         "assignees": [],
         "author": "alexliluz",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/417#discussion_r3823454611",
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/417#discussion_r3823456014"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "e94061ef7ae2478ca8c2286d7391bfc9",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1242,21 +1246,31 @@
         "head_sha": "5c3001ddd1c0818d4f3e16b950d9285aba1054df",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-20T15:16:56+00:00",
+        "last_activity_at": "2026-08-20T16:31:49+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-20T15:16:56+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "rads-1996",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "efcae6a071f0a5608c58854635f0884aa2024d4ca26ad3d1d3d34dbb17242f23",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-20T15:16:56+00:00"
+        "routing_input_fingerprint": "9b5190c78b43a00f3c04715ce740eb7d5eec7435908fd04adcdfc7ab89f050ac",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-20T16:31:37+00:00"
       },
       "failed": false,
       "pr_number": 417,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/417",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
