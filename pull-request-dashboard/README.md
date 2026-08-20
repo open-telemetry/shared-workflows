@@ -240,11 +240,12 @@ or an approver can use it, and replies to any unrecognized `/dashboard` command.
 
 The dashboard posts one reminder when a pull request remains in *Waiting on
 authors* for one week. The friendly reminder @-mentions the author, links to the
-dashboard-managed status comment containing the current blockers, and advertises
-`/dashboard route:reviewers` as a break-glass handoff when the author needs human
-help. The same one-week clock applies while the author route is held on required
-checks, Copilot review, or merge conflicts. An italic footer calls the reminder
-a snapshot and identifies the linked status comment as the live source of truth.
+dashboard-managed status comment containing the current blockers, says that
+answering the open items resumes normal approval-based routing, and advertises
+`/dashboard route:reviewers` as a break-glass handoff for any other reason,
+including the dashboard routing the pull request wrongly. The same one-week clock
+applies while the author route is held on required checks, Copilot review, or
+merge conflicts.
 
 When the dashboard routes the pull request to approvers or maintainers, it
 appends an italic note saying that the pull request is no longer waiting on the

@@ -17,7 +17,7 @@ from github_cli import (
     gh_graphql,
     run_gh,
 )
-from dashboard_override import author_override_guidance
+from dashboard_override import DASHBOARD_COMMAND_PREFIX
 from pr_status_comment import (
     DASHBOARD_APP_SLUG,
     managed_status_comments,
@@ -321,19 +321,14 @@ def render_nudge(
     return "\n".join([
         nudge_marker(episode_id),
         f"Hi @{author} — just a friendly reminder that this pull request is "
-        "waiting on you.",
+        f"waiting on you. The [dashboard status comment]({status_url}) has the "
+        "open items and is kept current.",
         "",
-        f"This pull request still needs your attention. See the "
-        f"[dashboard status comment]({status_url}) for the full list and current "
-        "routing; that comment is kept current.",
-        "",
-        author_override_guidance(
-            "This break-glass handoff works even when required checks, Copilot "
-            "review, or merge conflicts are still outstanding."
-        ),
-        "",
-        "_This reminder is a snapshot; the linked dashboard status is the current "
-        "source of truth._",
+        "- Replying is enough to hand it off — answer, explain why no change is "
+        "needed, or ask a follow-up. The dashboard routes it onward once nothing "
+        "on the list is waiting on you.",
+        "- To hand it back for any other reason, including the dashboard getting "
+        f"this wrong, comment `{DASHBOARD_COMMAND_PREFIX} route:reviewers`.",
         "",
     ])
 

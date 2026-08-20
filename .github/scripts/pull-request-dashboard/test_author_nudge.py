@@ -187,19 +187,19 @@ class AuthorNudgePolicyTest(unittest.TestCase):
 
         self.assertIn("just a friendly reminder", body)
         self.assertIn(
-            "_This reminder is a snapshot; the linked dashboard status is the "
-            "current source of truth._",
+            "The [dashboard status comment](https://example.test/status) has the "
+            "open items and is kept current.",
             body,
         )
         self.assertIn(
-            "comment `/dashboard route:reviewers` to request routing from waiting "
-            "on the author to waiting on reviewers. The dashboard binds the "
-            "request to the head it sees when it reads the command",
+            "- Replying is enough to hand it off — answer, explain why no change "
+            "is needed, or ask a follow-up. The dashboard routes it onward once "
+            "nothing on the list is waiting on you.",
             body,
         )
         self.assertIn(
-            "works even when required checks, Copilot review, or merge conflicts "
-            "are still outstanding",
+            "- To hand it back for any other reason, including the dashboard "
+            "getting this wrong, comment `/dashboard route:reviewers`.",
             body,
         )
 
