@@ -399,7 +399,7 @@
     },
     "5079": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "twenzel",
           "xiang17"
@@ -408,11 +408,10 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "a8c56767ec3046bf865dbce08547f229",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-08-21T18:01:22+00:00",
-        "ci_pending_count": 0,
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1ad78af64c7eb3635dbee16b086c8c62211c26caddc14aeaa80f6689fe3b93c5",
+        "copilot_request_fingerprint": "77fd8b75b92c21b261943ace9325e110678bdc67e488ea5609f56e235fe89dca",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -428,11 +427,20 @@
         "head_sha": "79f4a0375246d7dd6bc326c912dbaad65a0bb8b1",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T17:54:16+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T18:06:34+00:00",
+        "last_approver_activity_at": "2026-08-21T18:06:34+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -452,10 +460,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-21T18:07:10.072748+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "23eee007bfe7934666a8c7cd9cab007aae8036d38e489334294275982a9621ba",
-        "waiting_age_basis": "ci_failure",
+        "routing_input_fingerprint": "c6e89cc0b9dfdedeaa870b709579ab69821bfa3150a2716ccddf6cc592a0a1f2",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-21T18:01:22+00:00"
       },
       "failed": false,
