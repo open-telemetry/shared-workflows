@@ -504,7 +504,7 @@
     },
     "7670": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "matt-hensley",
         "author_action_review_thread_urls": [],
@@ -512,7 +512,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8e969f3555f01b2d6bfb0bf6cd53d207c95008eda5611512e670d58e7aa8bf02",
+        "copilot_request_fingerprint": "c54aa9a491b1f6b04ad858d935f39647c6cfb4fbf2222c279769d15f4c0e3a7c",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -528,21 +528,31 @@
         "head_sha": "3a23974ac674a9ecd507b5bb4442d82c2c66f6a4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-20T20:12:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T07:42:39+00:00",
+        "last_approver_activity_at": "2026-08-21T07:42:39+00:00",
         "last_author_activity_at": "2026-08-20T20:12:29+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "efb82662db968efcb44a2b396337766f8b0b331a0cb95e7fa23da6fd4c7fc064",
+        "routing_input_fingerprint": "7fc802c57c2d999300393d1d96b79ab162d27749d40535161e3be68864851070",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-20T20:33:03.755277+00:00"
       },
       "failed": false,
       "pr_number": 7670,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7670",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "7671": {
