@@ -452,7 +452,7 @@
     },
     "5067": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-dotnet-contrib",
         "author_action_review_thread_urls": [],
@@ -461,7 +461,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bb1dadfb808656d59d5a10d62fa5a9f59df0e0c6661bfa8aa236abfee9cd82b5",
+        "copilot_request_fingerprint": "4230ae6ad4cbe2864e9c685f0266a4afded927bbc3671e6b733860887048a0c2",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -477,16 +477,26 @@
         "head_sha": "ff082891d1f992c2db55137c2b6ba768b7b8ec59",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T17:27:31+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T17:29:22+00:00",
+        "last_approver_activity_at": "2026-08-21T17:29:22+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-08-21T17:28:47.380244+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d97c8bfd3290cf95b51132fb6f38f38ab7077ff66191ccb3424a15b7fa5d2f9e",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "7c9bd76e00298b68f0754a715707a20234ba617345dc4add286e518324367c62",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-21T17:27:31+00:00"
       },
       "failed": false,
