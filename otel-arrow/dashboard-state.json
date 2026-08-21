@@ -1770,7 +1770,7 @@
     },
     "3861": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "opentelemetrybot",
         "author_action_review_thread_urls": [],
@@ -1778,7 +1778,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "af8186a84bf458aa5ebf6635a70ddad0af7688afebe025859d348c4260dcd7ef",
+        "copilot_request_fingerprint": "8d8e68cfaccd7253f012039b3e4196617e1e6d303533a36d1a0364b93ac52e35",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1794,21 +1794,31 @@
         "head_sha": "90c8eeb2cf4f89201c91e2c784b4a13ad290848b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T22:03:08+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T22:34:36+00:00",
+        "last_approver_activity_at": "2026-08-21T22:34:36+00:00",
         "last_author_activity_at": "2026-08-21T21:15:45+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "drewrelmas",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9a12ae7c5d4aa32162b30269a61b94adb2dadfd7de71a006aab4c8030dbda6cf",
+        "routing_input_fingerprint": "a42d29ab6da61ac269e3f3add08442690e43f90b29a131600be5dd29f2368b4c",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-21T22:29:04.391824+00:00"
       },
       "failed": false,
       "pr_number": 3861,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3861",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
