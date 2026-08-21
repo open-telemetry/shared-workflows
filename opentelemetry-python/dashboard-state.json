@@ -1101,8 +1101,10 @@
         "author": "saurabh-saraswat",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "author_nudge_episode_id": "809ead6c20ce4102b0d5e707afeb9ca7",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-21T16:04:25+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "f99eb51aaffa8ec7153c55f28ab5696c2873b3a7fd1a94d494771d01e8655014",
         "copilot_review_exists": true,
@@ -1123,7 +1125,7 @@
         "last_activity_at": "2026-08-21T15:40:52+00:00",
         "last_approver_activity_at": "2026-08-21T15:40:52+00:00",
         "last_author_activity_at": "2026-08-21T04:38:36+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1155,14 +1157,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "10c8dc32b01d58904029708f4fa8e34b32b63b3d4b33126e4040bdca5804ed70",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-14T08:48:52+00:00"
+        "routing_input_fingerprint": "4910a3a50f969e3b8254055f9aef26a7fe7835266a928ac5c3077aa74c359523",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-21T16:04:25+00:00"
       },
       "failed": false,
       "pr_number": 5332,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5332",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4607739184": {
           "evidence": {
