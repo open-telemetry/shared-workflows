@@ -695,12 +695,14 @@
         "assignees": [],
         "author": "jerbly",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/weaver/pull/1716#pullrequestreview-4993577658"
+        ],
         "author_nudge_episode_id": "b258b761149e47f799805e4bfd62810a",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bfd4abea72a21bd7940cd0fb683652fb52d6528e5917177dcbc1f56167d058f8",
+        "copilot_request_fingerprint": "99388e909837c82a84ce908214060c6d51a5b4ea74f659b35d5c207d4472d9e3",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -719,7 +721,7 @@
         "last_activity_at": "2026-08-21T14:20:34+00:00",
         "last_approver_activity_at": "2026-08-21T13:52:44+00:00",
         "last_author_activity_at": "2026-08-21T14:20:34+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -728,7 +730,7 @@
             "login": "jsuereth",
             "open_thread": true,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": true,
@@ -740,12 +742,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-21T14:28:29.503172+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c9444db6127534297b42c2d1ccbf1770eb9a7a8a3eb8ac3de64676626925d48f",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-21T13:49:31+00:00"
+        "routing_input_fingerprint": "21157f123bc78fc533d389001f5dfc2322758493a305730f7bd72cdd5e3de168",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-21T13:17:49+00:00"
       },
       "failed": false,
       "pr_number": 1716,
