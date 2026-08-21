@@ -3128,7 +3128,7 @@
     },
     "7015": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "mwear",
         "author_action_review_thread_urls": [],
@@ -3136,7 +3136,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d9e7adf0f21b21ef561ee5859f1a63ba4732ec5adf0eb8c91eb9c3b29a024ab9",
+        "copilot_request_fingerprint": "4e3110815411d54081f78e96b04df3114c1c418845eebd865f8c1370fb905a24",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3152,21 +3152,31 @@
         "head_sha": "20a9cd08b21965fcbd66e6ba526453194123790d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-19T16:57:25+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T21:56:57+00:00",
+        "last_approver_activity_at": "2026-08-21T21:56:57+00:00",
         "last_author_activity_at": "2026-08-19T16:55:45+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1dcaf09d90622e7e0cb746a781031cba1013ebcf46bd00831cb10e743db4ab3c",
+        "routing_input_fingerprint": "0b8cf2569d2aff129c35d30e390bb133d5eccba69f732b15a08a4e4d00f694b2",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-19T16:55:45+00:00"
       },
       "failed": false,
       "pr_number": 7015,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7015",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
