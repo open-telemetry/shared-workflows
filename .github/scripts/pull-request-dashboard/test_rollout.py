@@ -3,9 +3,8 @@
 The rollout splits every entry path into a canary job that runs dashboard code
 from the triggering commit and a stable job that runs it from the promoted
 rollout ref. ``uses`` cannot take an expression and a job-level ``if`` cannot
-read ``env``, so the ref and the canary membership list are repeated across
-jobs; these tests keep the copies in sync so a promotion cannot land half
-applied.
+read ``env``, so the workflow ref and the canary membership list are repeated
+across jobs; these tests keep the copies in sync.
 """
 
 from __future__ import annotations
@@ -104,11 +103,9 @@ class RolloutWiringTest(unittest.TestCase):
             if not job.endswith("-canary"):
                 continue
             self.assertRegex(body, LOCAL_USES)
-            # Checking out anything other than the triggering commit would
-            # split the canary workflow from the canary scripts.
             self.assertNotIn("code_ref:", body)
 
-    def test_stable_jobs_pin_scripts_to_the_ref_they_are_called_at(self) -> None:
+    def test_stable_jobs_share_one_pinned_workflow_ref(self) -> None:
         stable_jobs = [job for job in self.jobs if job.endswith("-stable")]
         self.assertTrue(stable_jobs)
         refs = set()
@@ -119,20 +116,34 @@ class RolloutWiringTest(unittest.TestCase):
                 # Before the first promotion the stable jobs call the local
                 # workflow, so both channels run the same code.
                 self.assertRegex(body, LOCAL_USES, f"{job} calls an unexpected workflow")
-                self.assertNotIn("code_ref:", body, f"{job} pins scripts but not the workflow")
                 refs.add("")
                 continue
             ref = match.group(1)
             refs.add(ref)
-            # Anchored so a commented out or partially edited value cannot pass.
             code_ref = re.compile(rf"^\s*code_ref: {re.escape(ref)}\s*(#.*)?$", re.MULTILINE)
-            self.assertRegex(body, code_ref, f"{job} runs scripts from a different ref")
+            self.assertRegex(body, code_ref, f"{job} passes the wrong compatibility ref")
         self.assertEqual(len(refs), 1, f"stable jobs disagree on the rollout ref: {sorted(refs)}")
 
-    def test_repo_workflow_accepts_the_code_ref_input(self) -> None:
+    def test_repo_workflow_loads_code_from_its_own_commit(self) -> None:
         body = REPO_WORKFLOW.read_text(encoding="utf-8")
+        action = (SCRIPT_DIR / "action.yml").read_text(encoding="utf-8")
+        self.assertNotIn("ref: ${{ inputs.", body)
         self.assertIn("code_ref:", body)
-        self.assertIn("ref: ${{ inputs.code_ref }}", body)
+        self.assertEqual(body.count("inputs.code_ref"), 0)
+        self.assertEqual(body.count("actions/checkout@"), 2)
+        self.assertEqual(body.count("path: live-config"), 2)
+        self.assertEqual(body.count("uses: $/.github/scripts/pull-request-dashboard"), 2)
+        self.assertEqual(
+            body.count("${{ steps.dashboard-code.outputs.path }}/.cache/classifications"),
+            4,
+        )
+        self.assertEqual(
+            body.count("DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}"),
+            8,
+        )
+        self.assertNotIn('python3 "${{ steps.dashboard-code.outputs.path }}', body)
+        self.assertEqual(body.count("steps.dashboard-code.outcome == 'success'"), 3)
+        self.assertIn("path=$GITHUB_ACTION_PATH", action)
 
     def test_direct_publisher_uses_the_shared_repository_lock(self) -> None:
         body = REPO_WORKFLOW.read_text(encoding="utf-8")

@@ -38,7 +38,7 @@ jobs:
 
 
 class PromoteRolloutTest(unittest.TestCase):
-    def test_updates_every_stable_pair_without_touching_examples_or_canary(self) -> None:
+    def test_updates_every_stable_pin_without_touching_examples_or_canary(self) -> None:
         promoted = promoted_text(WORKFLOW, "v0.6.0", NEW_SHA)
 
         self.assertEqual(3, promoted.count(f"@{NEW_SHA} # v0.6.0"))
