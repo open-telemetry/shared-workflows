@@ -1620,23 +1620,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "jack-berg",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/4008#discussion_r3778986963",
-          "https://github.com/open-telemetry/semantic-conventions/pull/4008#discussion_r3779013517",
-          "https://github.com/open-telemetry/semantic-conventions/pull/4008#discussion_r3779013555",
-          "https://github.com/open-telemetry/semantic-conventions/pull/4008#discussion_r3779013580",
-          "https://github.com/open-telemetry/semantic-conventions/pull/4008#discussion_r3782888433"
-        ],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/4008#issuecomment-5294098988",
-          "https://github.com/open-telemetry/semantic-conventions/pull/4008#issuecomment-5304677216"
-        ],
-        "author_nudge_episode_id": "aadb91f089d0416ebce94a7d5b60550c",
+        "author_action_review_thread_urls": [],
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 1,
         "ci_failing_since": "2026-08-14T01:36:26+00:00",
         "ci_pending_count": 0,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "1106165e3db8d75242a72e8426cccf63d70cb061f2a2ffa0bd252d3b36852108",
+        "copilot_request_fingerprint": "3a4791977c2c25dd1b326bb6062ccc9a2732f258e5c87a6a7e2a932c546f7633",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1645,10 +1635,19 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-08-13T20:43:07+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5374629813,
+            "head_sha": "7255911e604ed1683edc5cdf7a367a92fdb8d5d2",
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "user": "jack-berg"
+          }
+        ],
+        "dashboard_override_command_id": 5374629813,
+        "dashboard_override_command_user": "jack-berg",
+        "dashboard_override_head_sha": "7255911e604ed1683edc5cdf7a367a92fdb8d5d2",
         "head_sha": "7255911e604ed1683edc5cdf7a367a92fdb8d5d2",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -1661,19 +1660,10 @@
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
-            "login": "github-advanced-security",
-            "open_thread": true,
-            "pending_review": false,
-            "top_level_feedback": false
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
             "login": "jsuereth",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           },
           {
             "approved": false,
@@ -1682,28 +1672,19 @@
             "login": "lmolkova",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "thompson-tomo",
-            "open_thread": true,
-            "pending_review": false,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "abf2e79392ba7256a4df85da0258aca08111bbab6022108efa85a21c70f16073",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-13T20:48:42+00:00"
+        "routing_input_fingerprint": "9e6c34177e1cc71dd9e71c99c791e7d45b8562fed7bbffb91a96b71ac66db327",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-19T21:14:29+00:00"
       },
       "failed": false,
       "pr_number": 4008,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4008",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "4011": {
