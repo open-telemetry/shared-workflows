@@ -11389,7 +11389,7 @@
     },
     "50364": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "singhvibhanshu",
         "author_action_review_thread_urls": [],
@@ -11397,7 +11397,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "77566919bb5e5e4327bcb077eb3fad3df0f67c8aca595f714aae11f848e476f9",
+        "copilot_request_fingerprint": "3423820812cfaff7017ba136ad60b933e3f502a0f12ee2d867756aabc31fef08",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -11413,11 +11413,20 @@
         "head_sha": "fcc6135cdf712de1c97586b7a85f75eea3100f69",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T11:35:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T15:21:27+00:00",
+        "last_approver_activity_at": "2026-08-21T15:21:27+00:00",
         "last_author_activity_at": "2026-08-21T11:35:43+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "iblancasa",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -11430,14 +11439,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5336d9ba2b221f8344dd82f722b1da6535a90fff10963d8e53fc8cb919073108",
+        "routing_input_fingerprint": "32c6a8401841f3e5435a5881d91740d70727d4d06e79b89716b02af40f9f1e88",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-21T11:35:43+00:00"
       },
       "failed": false,
       "pr_number": 50364,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50364",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5358449845": {
           "evidence": {
