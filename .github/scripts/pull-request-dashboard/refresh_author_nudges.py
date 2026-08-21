@@ -208,10 +208,12 @@ def sweep_pull_request(
     status = dashboard_status_comment(comments)
     status_url = (status or {}).get("html_url") or ""
     if not status_url:
-        return [
+        print(
             f"PR #{pr_number}: no dashboard status comment; "
-            f"left {len(nudges)} reminder(s) alone"
-        ]
+            f"left {len(nudges)} reminder(s) alone",
+            file=sys.stderr,
+        )
+        return []
 
     waiting = waiting_on_author(status.get("body") or "")
     live_index = (

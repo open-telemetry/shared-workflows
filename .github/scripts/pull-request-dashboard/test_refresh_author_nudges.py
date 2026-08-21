@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from contextlib import redirect_stderr
 from datetime import datetime, timezone
+from io import StringIO
 import unittest
 from unittest.mock import patch
 
@@ -222,12 +224,20 @@ class RefreshAuthorNudgesTest(unittest.TestCase):
         unminimized.assert_not_called()
 
     def test_pull_request_without_a_status_comment_is_reported_and_skipped(self) -> None:
-        comments = [nudge_comment(11, STALE_EPISODE)]
+        comments = [
+            nudge_comment(11, STALE_EPISODE),
+            nudge_comment(12, LIVE_EPISODE),
+        ]
+        stderr = StringIO()
 
-        actions, (patched, minimized, _) = self.sweep(comments)
+        with redirect_stderr(stderr):
+            actions, (patched, minimized, _) = self.sweep(comments)
 
-        self.assertEqual(len(actions), 1)
-        self.assertIn("no dashboard status comment", actions[0])
+        self.assertEqual(actions, [])
+        self.assertIn(
+            "no dashboard status comment; left 2 reminder(s) alone",
+            stderr.getvalue(),
+        )
         patched.assert_not_called()
         minimized.assert_not_called()
 
