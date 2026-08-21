@@ -50,10 +50,14 @@ the implementation understandable and operationally cheap.
   `if` cannot read `env` either, so the targeted canary job repeats the canary
   list inline and the targeted stable job reads that job's skip rather than
   repeating it again; `test_rollout.py` keeps the copy in sync.
-- The stable jobs pass the release commit they are called at as `code_ref`, and
-  the reusable workflow checks that ref out. Without it the workflow YAML would
-  come from that commit while the scripts came from the commit that triggered
-  the run, so any change to their interface would break the pinned repositories.
+- The reusable workflow loads the dashboard scripts through GitHub's
+  self-repository action syntax. The action resolves from the same commit as
+  the reusable workflow, so pinned stable jobs cannot mix released workflow
+  YAML with scripts from the commit that triggered the run.
+- Stable callers temporarily keep passing `code_ref` because the currently
+  promoted workflow still checks it out. The first release containing the
+  self-repository action accepts but ignores that compatibility input; it can
+  be removed from callers after that release is promoted.
 - Repository configuration is deliberately not staged. `repositories.json` is
   always read from the commit that triggered the run, so opting a repository in
   or changing its settings takes effect immediately in both channels. The cost

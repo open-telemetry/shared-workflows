@@ -12,10 +12,9 @@ on:
         required: false
         default: ""
         type: string
-      # Ref of this repository that the dashboard code runs from. Empty means
-      # the commit that triggered the run. A staged rollout passes the same
-      # hash pinned release commit that this workflow file is called at, so the
-      # scripts always match the workflow YAML that invoked them.
+      # Kept temporarily so stable callers pinned to a pre-self-action release
+      # can pass the ref that those releases still check out. This workflow
+      # loads its code through the self-repository action and ignores the input.
       code_ref:
         required: false
         default: ""
@@ -46,14 +45,13 @@ jobs:
     outputs:
       initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.code_ref }}
-          persist-credentials: false
+      - name: Load dashboard code
+        id: dashboard-code
+        uses: $/.github/scripts/pull-request-dashboard
 
-      # Repository configuration is deliberately not pinned to code_ref: opting
-      # a repository in, or changing its settings, takes effect immediately on
-      # every rollout ref.
+      # Repository configuration is deliberately read from the triggering
+      # commit: opting a repository in, or changing its settings, takes effect
+      # immediately on every rollout ref.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
@@ -105,7 +103,7 @@ jobs:
         if: inputs.pr_number != ''
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          path: ${{ steps.dashboard-code.outputs.path }}/.cache/classifications
           key: pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-${{ inputs.pr_number }}-
@@ -115,7 +113,7 @@ jobs:
         if: inputs.pr_number == ''
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          path: ${{ steps.dashboard-code.outputs.path }}/.cache/classifications
           key: pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-all-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-all-
@@ -128,8 +126,8 @@ jobs:
 
       - name: Install Copilot CLI
         run: |
-          npm ci --prefix .github/scripts/pull-request-dashboard
-          echo "$GITHUB_WORKSPACE/.github/scripts/pull-request-dashboard/node_modules/.bin" >> "$GITHUB_PATH"
+          npm ci --prefix "${{ steps.dashboard-code.outputs.path }}"
+          echo "${{ steps.dashboard-code.outputs.path }}/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Generate and update dashboard state
         id: dashboard-update
@@ -155,7 +153,7 @@ jobs:
           # A targeted refresh has nothing to update until the first full
           # backfill has populated the state branch.
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
-            initial_backfill_complete=$(python3 .github/scripts/pull-request-dashboard/state.py \
+            initial_backfill_complete=$(python3 "${{ steps.dashboard-code.outputs.path }}/state.py" \
               --repo "$REPO_NAME" \
               --state-branch "$state_branch")
             case "$initial_backfill_complete" in
@@ -190,30 +188,30 @@ jobs:
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
-          python3 .github/scripts/pull-request-dashboard/dashboard.py "${dashboard_args[@]}"
+          python3 "${{ steps.dashboard-code.outputs.path }}/dashboard.py" "${dashboard_args[@]}"
 
       - name: Save per-PR classification cache
         # Preserve valid classifications even when another item fails the update.
-        if: always() && inputs.pr_number != ''
+        if: always() && steps.dashboard-code.outcome == 'success' && inputs.pr_number != ''
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          path: ${{ steps.dashboard-code.outputs.path }}/.cache/classifications
           key: pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-${{ inputs.pr_number }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Save shared backfill classification cache
         # Preserve valid classifications even when another item fails the update.
-        if: always() && inputs.pr_number == ''
+        if: always() && steps.dashboard-code.outcome == 'success' && inputs.pr_number == ''
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .github/scripts/pull-request-dashboard/.cache/classifications
+          path: ${{ steps.dashboard-code.outputs.path }}/.cache/classifications
           key: pull-request-dashboard-classifications-${{ steps.config.outputs.name }}-all-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Report GitHub App rate limits
-        if: always()
+        if: always() && steps.dashboard-code.outcome == 'success'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
+        run: python3 "${{ steps.dashboard-code.outputs.path }}/report_rate_limits.py"
 
   publish-dashboard:
     needs: update-dashboard
@@ -232,14 +230,13 @@ jobs:
     env:
       PUBLISHER_LOCK_OWNER: ${{ github.run_id }}-${{ github.run_attempt }}-publish
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.code_ref }}
-          persist-credentials: false
+      - name: Load dashboard code
+        id: dashboard-code
+        uses: $/.github/scripts/pull-request-dashboard
 
-      # Repository configuration is deliberately not pinned to code_ref: opting
-      # a repository in, or changing its settings, takes effect immediately on
-      # every rollout ref.
+      # Repository configuration is deliberately read from the triggering
+      # commit: opting a repository in, or changing its settings, takes effect
+      # immediately on every rollout ref.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
@@ -292,7 +289,7 @@ jobs:
           REPO_NAME: ${{ steps.config.outputs.name }}
         run: |
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          python3 .github/scripts/pull-request-dashboard/state_branch.py \
+          python3 "${{ steps.dashboard-code.outputs.path }}/state_branch.py" \
             acquire-publisher-lock \
             --state-branch "$state_branch" \
             --owner "$PUBLISHER_LOCK_OWNER"
@@ -319,7 +316,7 @@ jobs:
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             delivery_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
-          python3 .github/scripts/pull-request-dashboard/delivery.py "${delivery_args[@]}"
+          python3 "${{ steps.dashboard-code.outputs.path }}/delivery.py" "${delivery_args[@]}"
 
       - name: Publish dashboard issue
         if: >-
@@ -342,7 +339,7 @@ jobs:
           if [[ "${LARGE_REPO:-false}" == "true" ]]; then
             publish_args+=(--large-repo)
           fi
-          python3 .github/scripts/pull-request-dashboard/publish_dashboard.py "${publish_args[@]}"
+          python3 "${{ steps.dashboard-code.outputs.path }}/publish_dashboard.py" "${publish_args[@]}"
 
       - name: Release repository publisher lock
         if: always() && steps.publisher-lock.outcome == 'success'
@@ -351,7 +348,7 @@ jobs:
           REPO_NAME: ${{ steps.config.outputs.name }}
         run: |
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          python3 .github/scripts/pull-request-dashboard/state_branch.py \
+          python3 "${{ steps.dashboard-code.outputs.path }}/state_branch.py" \
             release-publisher-lock \
             --state-branch "$state_branch" \
             --owner "$PUBLISHER_LOCK_OWNER"
@@ -361,7 +358,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
+        run: python3 "${{ steps.dashboard-code.outputs.path }}/report_rate_limits.py"
 
       - name: Check dashboard delivery
         if: always() && steps.delivery.outcome == 'failure'

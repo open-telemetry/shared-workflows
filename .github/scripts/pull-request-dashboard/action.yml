@@ -1,0 +1,14 @@
+name: Pull request dashboard code
+description: Exposes dashboard code from the commit running the reusable workflow
+
+outputs:
+  path:
+    description: Absolute path to the dashboard code
+    value: ${{ steps.code-path.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    - id: code-path
+      shell: bash
+      run: echo "path=$GITHUB_ACTION_PATH" >> "$GITHUB_OUTPUT"

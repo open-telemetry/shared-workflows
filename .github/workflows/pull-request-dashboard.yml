@@ -195,8 +195,10 @@ jobs:
   #   with:
   #     code_ref: <sha> # vX.Y.Z
   #
-  # Both halves name the same commit so the scripts always match the workflow
-  # YAML that invoked them; test_rollout.py fails if they disagree.
+  # The reusable workflow loads its scripts with self-repository syntax, so
+  # they resolve from the same commit as the workflow YAML. code_ref remains
+  # during the transition because the currently promoted workflow still uses
+  # it; the first self-action release accepts but ignores it.
   run-repo-dashboard-canary:
     needs: resolve-targets
     if: needs.resolve-targets.outputs.canary_count != '0'
