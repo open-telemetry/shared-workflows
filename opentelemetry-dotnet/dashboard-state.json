@@ -454,7 +454,7 @@
     },
     "7676": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
@@ -462,7 +462,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d2e1db7e40cbe811782f20a21cb3c2c5c41a7f1fd09ee6f883090f07003a32e4",
+        "copilot_request_fingerprint": "6d74ebb38e5d577dc4989afb24f5f7ef65b76016cbb1d4efc1ef1ecbe55ac5a2",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -478,21 +478,31 @@
         "head_sha": "2c6f274181417d7f0c93a78da2db6215f031580a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T13:29:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T22:55:19+00:00",
+        "last_approver_activity_at": "2026-08-21T22:55:19+00:00",
         "last_author_activity_at": "2026-08-21T13:29:19+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "rajkumar-rangaraj",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9bb73ec03fa07f826f0c5b7507127d0e313e2341d2909e7f766bec3d2c2d9d20",
+        "routing_input_fingerprint": "d189b0b09dc0e0849c8a723a80e88a4753f74887c72e50059f5d853402f7d99d",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-21T13:29:19+00:00"
       },
       "failed": false,
       "pr_number": 7676,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7676",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "7677": {
