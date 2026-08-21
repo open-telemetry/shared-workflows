@@ -2140,17 +2140,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "meshailabs",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/semantic-conventions-genai/pull/445#discussion_r3827000636"
-        ],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions-genai/pull/445#pullrequestreview-4989391659"
-        ],
+        "author_action_review_thread_urls": [],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "1141c336a2f04eb694bf4c901e987ba6",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "69195f29bbb0c0f1927dba23fd6546e1936a7c3bd4c4d55f5f1ca697a672923e",
+        "copilot_request_fingerprint": "d0d927b82dc8ee8bfe435d7e31287dadb4dc465a030f0e8752eeb260fee653d3",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2163,28 +2159,29 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "1d7da1b0a788c9e6708e9811cab2bb5bdd48f76f",
+        "head_sha": "07d00bbba484898e96a090e1fdb9fdf0a41029a0",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T03:17:51+00:00",
+        "last_activity_at": "2026-08-21T14:38:55+00:00",
         "last_approver_activity_at": "2026-08-21T03:17:51+00:00",
-        "last_author_activity_at": "2026-08-20T14:44:11+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-08-21T14:38:55+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": true,
             "login": "lmolkova",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-21T14:40:13.441210+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "deb9cc13d94fffd8a35f99862587a7d8c640e1c4e93730a875ab674d1e903877",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "bfff345690d9a3ab32d93fc97b1b2382d6659ca4da5a7ecf85964a3b319fcf19",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-21T03:13:16+00:00"
       },
       "failed": false,
@@ -2197,6 +2194,12 @@
             "reply": "2026-08-09T19:46:11Z"
           },
           "reply_source_id": 5233520077
+        },
+        "pr-review-4989391659": {
+          "evidence": {
+            "reply": "2026-08-21T14:38:46Z"
+          },
+          "reply_source_id": 5371346446
         }
       }
     },
