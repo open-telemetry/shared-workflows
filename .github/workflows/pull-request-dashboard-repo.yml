@@ -45,6 +45,7 @@ jobs:
     outputs:
       initial_backfill_complete: ${{ steps.dashboard-update.outputs.initial_backfill_complete }}
     steps:
+      # `$` resolves this same-repository action from the reusable workflow's exact commit.
       - name: Load dashboard code
         id: dashboard-code
         uses: $/.github/scripts/pull-request-dashboard
@@ -230,6 +231,7 @@ jobs:
     env:
       PUBLISHER_LOCK_OWNER: ${{ github.run_id }}-${{ github.run_attempt }}-publish
     steps:
+      # `$` resolves this same-repository action from the reusable workflow's exact commit.
       - name: Load dashboard code
         id: dashboard-code
         uses: $/.github/scripts/pull-request-dashboard
