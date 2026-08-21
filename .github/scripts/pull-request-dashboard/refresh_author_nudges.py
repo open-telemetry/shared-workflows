@@ -100,8 +100,10 @@ def live_nudge_index(
     nudges: list[tuple[str, dict[str, Any]]],
     live_episode_id: str,
 ) -> int:
-    for index, (episode_id, _) in enumerate(nudges):
+    for index, (episode_id, comment) in enumerate(nudges):
         if episode_id and episode_id == live_episode_id:
+            if completed_nudge_marker(episode_id) in (comment.get("body") or ""):
+                return -1
             return index
     if live_episode_id:
         return -1

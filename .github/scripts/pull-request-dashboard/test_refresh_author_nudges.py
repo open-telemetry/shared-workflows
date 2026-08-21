@@ -243,6 +243,26 @@ class RefreshAuthorNudgesTest(unittest.TestCase):
         self.assertIn(author_nudge.completed_nudge_marker(STALE_EPISODE), body)
         self.assertIn("no longer reflects the current dashboard state", body)
 
+    def test_status_marker_does_not_make_a_finished_reminder_live(self) -> None:
+        status = status_comment(episode_id=LIVE_EPISODE, route="author")
+        finished = dashboard_comment(
+            11,
+            author_nudge.render_completed_nudge(
+                author_nudge.render_nudge("alice", status["html_url"], LIVE_EPISODE),
+                status["html_url"],
+                LIVE_EPISODE,
+                NOW,
+            ),
+        )
+
+        actions, (patched, minimized, _) = self.sweep(
+            [status, finished], minimization_reason="OUTDATED"
+        )
+
+        self.assertEqual(actions, [])
+        patched.assert_not_called()
+        minimized.assert_not_called()
+
     def test_reminder_hidden_for_another_reason_is_reclassified(self) -> None:
         comments = [status_comment(), nudge_comment(11, STALE_EPISODE)]
 
