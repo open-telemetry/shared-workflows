@@ -2490,18 +2490,16 @@
     },
     "5453": {
       "facts": {
-        "approval_count": 2,
+        "approval_count": 3,
         "assignees": [],
         "author": "pranaysb",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-python/pull/5453#discussion_r3830424587"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "93378c8f69614cda9c1bdfd34ddc07b0",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "2b698d75aec31a3ed507ff6655842eafc8694de8d951dfe3e36df734d2d5a738",
+        "copilot_request_fingerprint": "6d956418bc21e99c2ade3c9d90973662ba9f7a9b8c9bac39be84199c05e93673",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2514,20 +2512,20 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "c999ba7276f713070d45c1b0c65dc473e3fa3e47",
+        "head_sha": "3651d4e114396956f631f8c72ce345fbf1795d17",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T13:08:55+00:00",
-        "last_approver_activity_at": "2026-08-21T13:08:55+00:00",
-        "last_author_activity_at": "2026-08-21T01:01:22+00:00",
-        "required_checks_settled": true,
+        "last_activity_at": "2026-08-21T15:39:18+00:00",
+        "last_approver_activity_at": "2026-08-21T15:29:17+00:00",
+        "last_author_activity_at": "2026-08-21T15:39:18+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "aabmass",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
           },
@@ -2536,7 +2534,7 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "emdneto",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
           },
@@ -2553,16 +2551,26 @@
             "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
+            "login": "lzchen",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
             "login": "tammy-baylis-swi",
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-21T15:53:16.694689+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "755050161ded205353cf86442209b04d3d7d5515d680be7643b86a8000d7c43d",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "1e0b92edd7c4fe99180c55ded04cf31ec4bf21918749d7a41bc98c6ae61fa167",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-21T13:08:42+00:00"
       },
       "failed": false,
