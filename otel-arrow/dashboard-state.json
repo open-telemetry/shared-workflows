@@ -1631,10 +1631,12 @@
         "assignees": [],
         "author": "timr-dev",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3846#issuecomment-5363901422"
+        ],
         "author_nudge_episode_id": "72d2776c0e91492c9d0be754e102b342",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
@@ -1651,17 +1653,26 @@
         "head_sha": "29ea6c3e8845e3b62801b4aea149d38426310f38",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T00:20:22+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T00:59:41+00:00",
+        "last_approver_activity_at": "2026-08-21T00:59:41+00:00",
         "last_author_activity_at": "2026-08-21T00:20:22+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-21T00:20:46.831917+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lquerel",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "84d847c02e3de9cac7a7d95a40faeb64f3ca7b486707ae7efbc81f114e514729",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-20T23:59:41+00:00"
+        "routing_input_fingerprint": "dc667e634bc6091421d9883b9a286c56f64a510dee67d9f637aec5c1e9d9dd13",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-21T00:59:41+00:00"
       },
       "failed": false,
       "pr_number": 3846,
