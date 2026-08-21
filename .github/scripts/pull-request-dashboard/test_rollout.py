@@ -131,7 +131,13 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("code_ref:", body)
         self.assertEqual(body.count("inputs.code_ref"), 0)
         self.assertEqual(body.count("actions/checkout@"), 2)
-        self.assertEqual(body.count("path: live-config"), 2)
+        self.assertEqual(body.count("ref: ${{ github.sha }}"), 2)
+        self.assertNotIn("path: live-config", body)
+        self.assertNotIn("sparse-checkout:", body)
+        self.assertIn(
+            "DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json",
+            body,
+        )
         self.assertEqual(body.count("uses: $/.github/scripts/pull-request-dashboard"), 2)
         self.assertEqual(
             body.count("${{ steps.dashboard-code.outputs.path }}/.cache/classifications"),

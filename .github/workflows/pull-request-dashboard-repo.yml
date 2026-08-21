@@ -29,7 +29,7 @@ permissions:
   contents: read
 
 env:
-  DASHBOARD_CONFIG: live-config/.github/scripts/pull-request-dashboard/repositories.json
+  DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
   DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
 
 jobs:
@@ -49,15 +49,11 @@ jobs:
         id: dashboard-code
         uses: $/.github/scripts/pull-request-dashboard
 
-      # Repository configuration is deliberately read from the triggering
-      # commit: opting a repository in, or changing its settings, takes effect
-      # immediately on every rollout ref.
+      # The checkout supplies current repository configuration and the Git
+      # context used to manage dashboard state worktrees.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
-          path: live-config
-          sparse-checkout: .github/scripts/pull-request-dashboard/repositories.json
-          sparse-checkout-cone-mode: false
           persist-credentials: false
 
       - name: Load repository configuration
@@ -238,15 +234,11 @@ jobs:
         id: dashboard-code
         uses: $/.github/scripts/pull-request-dashboard
 
-      # Repository configuration is deliberately read from the triggering
-      # commit: opting a repository in, or changing its settings, takes effect
-      # immediately on every rollout ref.
+      # The checkout supplies current repository configuration and the Git
+      # context used to manage dashboard state worktrees.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
-          path: live-config
-          sparse-checkout: .github/scripts/pull-request-dashboard/repositories.json
-          sparse-checkout-cone-mode: false
           persist-credentials: false
 
       - name: Load repository configuration
