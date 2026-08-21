@@ -153,8 +153,10 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertEqual(sweep_job.count("acquire-publisher-lock"), 1)
         self.assertEqual(sweep_job.count("release-publisher-lock"), 1)
         self.assertIn("      contents: write", sweep_job)
+        self.assertIn("if: inputs.dry_run == false", sweep_job)
         self.assertIn(
-            "if: always() && steps.publisher-lock.outcome == 'success'",
+            "inputs.dry_run == false &&\n"
+            "          steps.publisher-lock.outcome == 'success'",
             sweep_job,
         )
         self.assertLess(

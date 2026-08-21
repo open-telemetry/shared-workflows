@@ -94,6 +94,7 @@ jobs:
 
       - name: Acquire repository publisher lock
         id: publisher-lock
+        if: inputs.dry_run == false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_NAME: ${{ matrix.name }}
@@ -119,7 +120,10 @@ jobs:
           python3 refresh_author_nudges.py "${args[@]}"
 
       - name: Release repository publisher lock
-        if: always() && steps.publisher-lock.outcome == 'success'
+        if: >-
+          always() &&
+          inputs.dry_run == false &&
+          steps.publisher-lock.outcome == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_NAME: ${{ matrix.name }}
