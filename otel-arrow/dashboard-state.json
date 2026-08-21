@@ -1832,7 +1832,7 @@
     },
     "3854": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "drewrelmas",
         "author_action_review_thread_urls": [],
@@ -1840,7 +1840,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "facfd7e4cfec9411607500673dbb46a10c8f92aaa71613e93e03f2c96a4356f7",
+        "copilot_request_fingerprint": "b72177571e68750333b5cae1ea31f0839cdef74fc2b4a21287ee03f0ab1f9946",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1856,21 +1856,31 @@
         "head_sha": "a7ffa459c81a846e842c00997ee7ff32ee5eedc1",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T16:40:05+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T17:32:32+00:00",
+        "last_approver_activity_at": "2026-08-21T17:32:32+00:00",
         "last_author_activity_at": "2026-08-21T16:40:05+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "albertlockett",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f0b508d3b11dad71cfeffe1249455984a27e1c6c47d81065b69f95d8698a265c",
+        "routing_input_fingerprint": "d20b9ad9bbfe4260de2294fcfd5912784e73f5059145883067b04e7a7b546e1a",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-21T17:09:42.216129+00:00"
       },
       "failed": false,
       "pr_number": 3854,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3854",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
