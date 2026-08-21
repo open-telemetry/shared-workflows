@@ -399,7 +399,7 @@
     },
     "5091": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "matt-hensley"
         ],
@@ -410,7 +410,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "79c9280bcc016a35dd4ef5e2d98558a85c6e588c9f8e191b55cba54b894586b2",
+        "copilot_request_fingerprint": "66677cba0625e9c9458c1219dcecd9c1a63a3fb342f85591cfa9186973c759d6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -426,11 +426,20 @@
         "head_sha": "b7de2f9ad62531be00d4fed4c2b17bbb71af5678",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T18:38:25+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T18:40:25+00:00",
+        "last_approver_activity_at": "2026-08-21T18:40:25+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -444,8 +453,8 @@
         "route_held_for_gates": true,
         "route_held_since": "2026-08-21T18:39:53.566242+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c78b9193becfc0b07f98bf5136f0f711d37d1de8b4f4acf03bfcfe8cd2f05f9c",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "5a558ad2bb5ab0f86ce2c05772701f61702f1169f9d390004856c090d09c42a3",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-21T18:38:25+00:00"
       },
       "failed": false,
