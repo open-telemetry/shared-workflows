@@ -50,6 +50,10 @@ RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
 DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 
 
+class StatusCommentDeferred(Exception):
+    pass
+
+
 def author_nudge_episode_marker(episode_id: str) -> str:
     return f"{AUTHOR_NUDGE_EPISODE_MARKER_PREFIX}{episode_id} -->"
 
@@ -408,10 +412,15 @@ def upsert_status_comment(
     body: str,
     *,
     create: bool = True,
+    locked: bool = False,
 ) -> None:
     comments = managed_status_comments(repo, pr_number)
     if comments:
         comment = comments[0]
+        if locked and (comment.get("body") != body or len(comments) > 1):
+            raise StatusCommentDeferred(
+                f"PR #{pr_number} is locked; deferring terminal status comment"
+            )
         comment_id = comment["id"]
         if comment.get("body") == body:
             print(f"PR #{pr_number} status comment is unchanged", file=sys.stderr)
@@ -457,6 +466,7 @@ def publish_pr_status(repo: str, pr_number: int, dashboard_state: dict[str, Any]
         pr_number,
         render_status_comment(pr, result),
         create=not is_terminal_pr(pr),
+        locked=is_terminal_pr(pr) and bool(pr.get("locked")),
     )
 
 
@@ -472,6 +482,9 @@ def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list
         return []
     try:
         publish_pr_status(repo, pr_number, dashboard_state)
+    except StatusCommentDeferred as e:
+        print(e, file=sys.stderr)
+        return []
     except Exception as e:
         return [f"PR #{pr_number}: {e}"]
 
@@ -524,6 +537,8 @@ def update_status_comments_from_state(
     for number in rollout_pr_numbers:
         try:
             publish_pr_status(repo, number, dashboard_state)
+        except StatusCommentDeferred as e:
+            print(e, file=sys.stderr)
         except Exception as e:
             errors.append(f"PR #{number}: {e}")
         else:
