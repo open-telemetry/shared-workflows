@@ -125,9 +125,11 @@ jobs:
           package-manager-cache: false
 
       - name: Install Copilot CLI
+        env:
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
         run: |
-          npm ci --prefix "${{ steps.dashboard-code.outputs.path }}"
-          echo "${{ steps.dashboard-code.outputs.path }}/node_modules/.bin" >> "$GITHUB_PATH"
+          npm ci --prefix "$DASHBOARD_CODE"
+          echo "$DASHBOARD_CODE/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Generate and update dashboard state
         id: dashboard-update
@@ -139,6 +141,7 @@ jobs:
           # GH_TOKEN holds the app installation token, which cannot make Copilot requests, so the
           # CLI has to be pointed explicitly at the Actions token granted copilot-requests: write.
           COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ steps.config.outputs.name }}
           REQUIRED_APPROVALS: ${{ steps.config.outputs.required_approvals }}
@@ -153,7 +156,7 @@ jobs:
           # A targeted refresh has nothing to update until the first full
           # backfill has populated the state branch.
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
-            initial_backfill_complete=$(python3 "${{ steps.dashboard-code.outputs.path }}/state.py" \
+            initial_backfill_complete=$(python3 "$DASHBOARD_CODE/state.py" \
               --repo "$REPO_NAME" \
               --state-branch "$state_branch")
             case "$initial_backfill_complete" in
@@ -188,7 +191,7 @@ jobs:
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             dashboard_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
-          python3 "${{ steps.dashboard-code.outputs.path }}/dashboard.py" "${dashboard_args[@]}"
+          python3 "$DASHBOARD_CODE/dashboard.py" "${dashboard_args[@]}"
 
       - name: Save per-PR classification cache
         # Preserve valid classifications even when another item fails the update.
@@ -210,8 +213,9 @@ jobs:
         if: always() && steps.dashboard-code.outcome == 'success'
         continue-on-error: true
         env:
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-        run: python3 "${{ steps.dashboard-code.outputs.path }}/report_rate_limits.py"
+        run: python3 "$DASHBOARD_CODE/report_rate_limits.py"
 
   publish-dashboard:
     needs: update-dashboard
@@ -285,11 +289,12 @@ jobs:
       - name: Acquire repository publisher lock
         id: publisher-lock
         env:
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_NAME: ${{ steps.config.outputs.name }}
         run: |
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          python3 "${{ steps.dashboard-code.outputs.path }}/state_branch.py" \
+          python3 "$DASHBOARD_CODE/state_branch.py" \
             acquire-publisher-lock \
             --state-branch "$state_branch" \
             --owner "$PUBLISHER_LOCK_OWNER"
@@ -298,6 +303,7 @@ jobs:
         id: delivery
         continue-on-error: true
         env:
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -316,7 +322,7 @@ jobs:
           if [[ -n "${TRIGGER_PR_NUMBER:-}" ]]; then
             delivery_args+=(--pr-number "$TRIGGER_PR_NUMBER")
           fi
-          python3 "${{ steps.dashboard-code.outputs.path }}/delivery.py" "${delivery_args[@]}"
+          python3 "$DASHBOARD_CODE/delivery.py" "${delivery_args[@]}"
 
       - name: Publish dashboard issue
         if: >-
@@ -324,6 +330,7 @@ jobs:
           steps.dashboard-token.outcome == 'success' &&
           steps.delivery.outputs.active == 'true'
         env:
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           REPO_NAME: ${{ steps.config.outputs.name }}
           LARGE_REPO: ${{ steps.config.outputs.large_repo }}
@@ -339,16 +346,17 @@ jobs:
           if [[ "${LARGE_REPO:-false}" == "true" ]]; then
             publish_args+=(--large-repo)
           fi
-          python3 "${{ steps.dashboard-code.outputs.path }}/publish_dashboard.py" "${publish_args[@]}"
+          python3 "$DASHBOARD_CODE/publish_dashboard.py" "${publish_args[@]}"
 
       - name: Release repository publisher lock
         if: always() && steps.publisher-lock.outcome == 'success'
         env:
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_NAME: ${{ steps.config.outputs.name }}
         run: |
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          python3 "${{ steps.dashboard-code.outputs.path }}/state_branch.py" \
+          python3 "$DASHBOARD_CODE/state_branch.py" \
             release-publisher-lock \
             --state-branch "$state_branch" \
             --owner "$PUBLISHER_LOCK_OWNER"
@@ -357,8 +365,9 @@ jobs:
         if: always() && steps.dashboard-token.outcome == 'success'
         continue-on-error: true
         env:
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-        run: python3 "${{ steps.dashboard-code.outputs.path }}/report_rate_limits.py"
+        run: python3 "$DASHBOARD_CODE/report_rate_limits.py"
 
       - name: Check dashboard delivery
         if: always() && steps.delivery.outcome == 'failure'

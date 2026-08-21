@@ -131,6 +131,11 @@ class RolloutWiringTest(unittest.TestCase):
             body.count("${{ steps.dashboard-code.outputs.path }}/.cache/classifications"),
             4,
         )
+        self.assertEqual(
+            body.count("DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}"),
+            8,
+        )
+        self.assertNotIn('python3 "${{ steps.dashboard-code.outputs.path }}', body)
         self.assertEqual(body.count("steps.dashboard-code.outcome == 'success'"), 3)
         self.assertIn("path=$GITHUB_ACTION_PATH", action)
 
