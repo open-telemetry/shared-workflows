@@ -19,6 +19,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard.yml"
 REPO_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-repo.yml"
+SWEEP_WORKFLOW = (
+    REPO_ROOT
+    / ".github"
+    / "workflows"
+    / "pull-request-dashboard-refresh-author-nudges.yml"
+)
 DRAIN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-drain.yml"
 DEPLOY_WORKFLOW = (
     REPO_ROOT / ".github" / "workflows" / "pull-request-dashboard-deploy-webhook.yml"
@@ -140,6 +146,27 @@ class RolloutWiringTest(unittest.TestCase):
         )
         self.assertLess(body.index("acquire-publisher-lock"), body.index("delivery.py"))
         self.assertLess(body.index("publish_dashboard.py"), body.index("release-publisher-lock"))
+
+    def test_reminder_sweep_uses_the_shared_repository_lock(self) -> None:
+        body = SWEEP_WORKFLOW.read_text(encoding="utf-8")
+        sweep_job = job_blocks(body)["sweep"]
+        self.assertEqual(sweep_job.count("acquire-publisher-lock"), 1)
+        self.assertEqual(sweep_job.count("release-publisher-lock"), 1)
+        self.assertIn("      contents: write", sweep_job)
+        self.assertIn("if: inputs.dry_run == false", sweep_job)
+        self.assertIn(
+            "inputs.dry_run == false &&\n"
+            "          steps.publisher-lock.outcome == 'success'",
+            sweep_job,
+        )
+        self.assertLess(
+            sweep_job.index("acquire-publisher-lock"),
+            sweep_job.index("refresh_author_nudges.py"),
+        )
+        self.assertLess(
+            sweep_job.index("refresh_author_nudges.py"),
+            sweep_job.index("release-publisher-lock"),
+        )
 
     def test_queue_mode_canary_list_matches_the_rollout_canary_list(self) -> None:
         webhook = WEBHOOK.read_text(encoding="utf-8")
