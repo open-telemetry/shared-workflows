@@ -516,18 +516,17 @@
     },
     "5027": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "rajkumar-rangaraj"
         ],
         "author": "app/otelbot-dotnet-contrib",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "9f65602e9a1d4e018f7405f26dfd47ed",
         "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "304d62e9acc9c59f5f0eb36a6b541db522d2380d54598c6aa30a89f504788588",
+        "copilot_request_fingerprint": "90a5b446f3b33c3b83635c32f2c135bda300b202d2a2cd44b84a60ed20724ad2",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -543,11 +542,20 @@
         "head_sha": "d03158ccb25ec5f7e754a52bc71d6f088180082b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T14:32:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T14:36:36+00:00",
+        "last_approver_activity_at": "2026-08-21T14:36:36+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -558,17 +566,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-21T14:36:22.283330+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7aaa129f4ac4a277872ec3a479938163414bebcf843be6e18f724de011f10d37",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-08-21T14:32:06+00:00"
+        "routing_input_fingerprint": "e80afa31892e5b58e9bb627aead9bfe9dcbf374d7abe906221e26ec8b0b8ee02",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-21T14:38:07.531315+00:00"
       },
       "failed": false,
       "pr_number": 5027,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5027",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5029": {
