@@ -7,14 +7,12 @@
         "assignees": [],
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/otel-arrow/pull/2325#issuecomment-5336415735"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "c916cdcf35d54d65a9121200cf7d5307",
         "ci_failing_count": 0,
-        "ci_pending_count": 6,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5510427fca0f4c3ec0c8146986ac648813263598c63af2f2abf5f6e74c72ab97",
+        "copilot_request_fingerprint": "5105a575ffdafccb806865aaadf7d861f03db7df051e134d8286ae405ae5dd43",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -69,13 +67,14 @@
             "login": "lquerel",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-21T21:29:20.137636+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bd5828c7f4dd61973e50f5720c5743290e0432de59b4fc1e0c064ffda93a4c6f",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "2d872579a0a517f9bcefdf9b37e5529f9864713856673dd1bbfac88536b6714e",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-19T01:34:50+00:00"
       },
       "failed": false,
@@ -83,6 +82,12 @@
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/2325",
       "route": "author",
       "top_level_history": {
+        "pr-issue-comment-5336415735": {
+          "evidence": {
+            "reply": "2026-08-20T06:02:04Z"
+          },
+          "reply_source_id": 5352025876
+        },
         "pr-review-4967670907": {
           "evidence": {
             "reply": "2026-08-20T06:02:04Z"
