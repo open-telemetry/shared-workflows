@@ -1791,7 +1791,7 @@
     },
     "3852": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "drewrelmas",
         "author_action_review_thread_urls": [],
@@ -1799,7 +1799,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "351d87a9e4de1825998fca88dcb9622dca4f537de51b487994442cfc08c1e432",
+        "copilot_request_fingerprint": "1629cffb2bb04dc3ccd6d923db80032a07fd0aad0a5c703f66a4e1ea53485f9e",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1815,21 +1815,31 @@
         "head_sha": "4e2599c44c800c61f730107d3121a4f6b895cf97",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T16:06:24+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T16:54:37+00:00",
+        "last_approver_activity_at": "2026-08-21T16:54:37+00:00",
         "last_author_activity_at": "2026-08-21T16:06:24+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "dfb48acc7a09ca7426f0f280cb39d494e0f1e3558d1dcfab0dece4d83334fc18",
+        "routing_input_fingerprint": "292110c856c23228cc26d7ea367665f6264d2d0b510be72abb8cfaa441caf184",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-21T16:32:22.704077+00:00"
       },
       "failed": false,
       "pr_number": 3852,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3852",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3854": {
