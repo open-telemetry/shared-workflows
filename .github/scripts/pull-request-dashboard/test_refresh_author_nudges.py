@@ -140,6 +140,36 @@ class RefreshAuthorNudgesTest(unittest.TestCase):
         body = patched.call_args.args[2]
         self.assertIn(author_nudge.completed_nudge_marker(STALE_EPISODE), body)
 
+    def test_ambiguous_status_leaves_reminders_alone(self) -> None:
+        comments = [
+            status_comment(route="unknown"),
+            nudge_comment(11, STALE_EPISODE),
+        ]
+        stderr = StringIO()
+
+        with redirect_stderr(stderr):
+            actions, (patched, minimized, _) = self.sweep(comments)
+
+        self.assertEqual(actions, [])
+        self.assertIn("dashboard routing is not definitive", stderr.getvalue())
+        patched.assert_not_called()
+        minimized.assert_not_called()
+
+    def test_draft_author_status_does_not_keep_a_reminder_live(self) -> None:
+        self.pull["isDraft"] = True
+        comments = [
+            status_comment(route="author"),
+            nudge_comment(11, STALE_EPISODE),
+        ]
+
+        actions, (patched, minimized, _) = self.sweep(comments)
+
+        self.assertEqual(len(actions), 1)
+        self.assertIn("stale reminder 11", actions[0])
+        minimized.assert_called_once_with("node-11")
+        body = patched.call_args.args[2]
+        self.assertIn("no longer reflects the current dashboard state", body)
+
     def test_live_reminder_is_rewritten_when_the_wording_changed(self) -> None:
         stale_wording = dashboard_comment(
             11,

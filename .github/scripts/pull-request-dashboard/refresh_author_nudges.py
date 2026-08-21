@@ -10,12 +10,12 @@ author, a completion is queued for that episode, and the next delivery patches
 and minimizes the comment. A reminder whose state entry is gone is therefore
 stranded forever, because nothing records that the comment exists.
 
-The sweep reads the pull request instead. The status comment headline says
+The sweep reads the pull request instead. A definitive status headline says
 whether routing still sits at the author, and its episode marker names the live
-reminder; every other reminder on that pull request is stale, whatever the
-dashboard remembers. That marker is written from nudge state too, so it is
-missing on exactly the pull requests this sweep exists for, and the newest
-reminder stands in as the live one unless it has already been finished.
+reminder. Ambiguous dashboard statuses are left alone. The marker is written
+from nudge state too, so it is missing on exactly the pull requests this sweep
+exists for, and the newest reminder stands in as the live one unless it has
+already been finished.
 """
 
 from __future__ import annotations
@@ -49,7 +49,10 @@ from route_presentation import status_headline
 from utils import utc_now
 
 
-AUTHOR_STATUS_HEADLINE = f"**{status_headline('author')}** "
+STATUS_ROUTES = ("author", "approver", "maintainer")
+STATUS_HEADLINES = {
+    route: f"**{status_headline(route)}** " for route in STATUS_ROUTES
+}
 
 
 def pull_request_comments(repo: str, pr_number: int) -> list[dict[str, Any]]:
@@ -85,11 +88,12 @@ def dashboard_status_comment(
     return None
 
 
-def waiting_on_author(status_body: str) -> bool:
-    return any(
-        line.startswith(AUTHOR_STATUS_HEADLINE)
-        for line in status_body.splitlines()
-    )
+def dashboard_status_route(status_body: str) -> str:
+    for line in status_body.splitlines():
+        for route, headline in STATUS_HEADLINES.items():
+            if line.startswith(headline):
+                return route
+    return ""
 
 
 def live_nudge_index(
@@ -216,7 +220,17 @@ def sweep_pull_request(
         )
         return []
 
-    waiting = waiting_on_author(status.get("body") or "")
+    route = dashboard_status_route(status.get("body") or "")
+    draft = bool(pull.get("isDraft"))
+    if not draft and not route:
+        print(
+            f"PR #{pr_number}: dashboard routing is not definitive; "
+            f"left {len(nudges)} reminder(s) alone",
+            file=sys.stderr,
+        )
+        return []
+
+    waiting = route == "author" and not draft
     live_index = (
         live_nudge_index(nudges, status_author_nudge_episode_id(comments))
         if waiting
@@ -245,7 +259,7 @@ def sweep_pull_request(
                 now,
                 # A pull request that still waits on its author is owed a note
                 # saying only this episode is over, not that it can be ignored.
-                "routing_changed" if waiting else "left_author",
+                "routing_changed" if waiting or draft else "left_author",
                 dry_run,
             )
         if action:
