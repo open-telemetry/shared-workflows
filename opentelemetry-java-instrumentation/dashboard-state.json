@@ -2875,7 +2875,7 @@
     },
     "19752": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2883,7 +2883,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "741355e37c78fe4a5536e4e53e4ecf13e01543957b4872b4667a4a30c7b75596",
+        "copilot_request_fingerprint": "79a6c9f32c650654a7848fe0cbc211969fcc805e7268e3378dc00b37c53153cc",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2899,21 +2899,31 @@
         "head_sha": "7caddf46ec9d034eb1f5982f0db8a79503d0a8ed",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T17:53:51+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T19:59:51+00:00",
+        "last_approver_activity_at": "2026-08-21T19:59:51+00:00",
         "last_author_activity_at": "2026-08-21T17:53:51+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "breedx-splk",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1886ef3257c1e99372d14929980c2bcb8d0d36db29c3ab87eb6e23449c7d586d",
+        "routing_input_fingerprint": "b72d8880f4cde9fa3aeff9bf410be751721e0327fc717c2c2147dd6503239bad",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-21T19:03:33.055601+00:00"
       },
       "failed": false,
       "pr_number": 19752,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19752",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
