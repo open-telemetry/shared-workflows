@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
-from render import render_diagnostics_section, render_pr_tables, reviewers_cell_text
+from render import (
+    render_diagnostics_section,
+    render_draft_pr_section,
+    render_pr_tables,
+    reviewers_cell_text,
+)
 
 
 class RenderTest(unittest.TestCase):
@@ -322,6 +328,34 @@ class RenderTest(unittest.TestCase):
         )
 
         self.assertIn("| #125 Work in progress · <code>size/S</code> | author |", markdown)
+
+    @patch("render.activity_age", side_effect=lambda value: value.isoformat())
+    def test_renders_and_sorts_time_in_draft(self, activity_age) -> None:
+        lines = render_draft_pr_section([
+            {
+                "number": 2,
+                "title": "Newer draft",
+                "author": {"login": "author"},
+                "isDraft": True,
+                "createdAt": "2026-07-01T00:00:00Z",
+                "draftSince": "2026-07-17T00:00:00Z",
+            },
+            {
+                "number": 1,
+                "title": "Older draft",
+                "author": {"login": "author"},
+                "isDraft": True,
+                "createdAt": "2026-07-02T00:00:00Z",
+                "draftSince": "2026-07-10T00:00:00Z",
+            },
+        ])
+
+        markdown = "\n".join(lines)
+        self.assertIn("| PR | Author | Draft age |", markdown)
+        self.assertLess(markdown.index("#1 Older draft"), markdown.index("#2 Newer draft"))
+        self.assertIn("2026-07-10T00:00:00+00:00", markdown)
+        self.assertIn("2026-07-17T00:00:00+00:00", markdown)
+        self.assertEqual(2, activity_age.call_count)
 
     def test_omits_labels_when_none_are_configured(self) -> None:
         prs = [

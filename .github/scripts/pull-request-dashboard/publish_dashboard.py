@@ -9,7 +9,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from github_cli import detect_repo, gh_graphql, list_open_prs, normalize_repo, repo_state_key, run_gh
+from github_cli import (
+    detect_repo,
+    fetch_latest_draft_transitions,
+    gh_graphql,
+    list_open_prs,
+    normalize_repo,
+    repo_state_key,
+    run_gh,
+)
 from render import render_pr_tables
 from state import (
     dashboard_markdown_path,
@@ -168,6 +176,18 @@ def publishable_prs(
     ]
 
 
+def add_draft_since(repo: str, prs: list[dict[str, Any]]) -> None:
+    drafts = [pr for pr in prs if pr.get("isDraft")]
+    if not drafts:
+        return
+    transitions = fetch_latest_draft_transitions(
+        repo,
+        [pr["number"] for pr in drafts],
+    )
+    for pr in drafts:
+        pr["draftSince"] = transitions.get(pr["number"]) or pr.get("createdAt")
+
+
 def render_dashboard_markdown(
     repo: str,
     large_repo: bool,
@@ -178,6 +198,8 @@ def render_dashboard_markdown(
         raise RuntimeError("dashboard state not found")
 
     prs = list_open_prs(repo)
+    if not large_repo:
+        add_draft_since(repo, prs)
     open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
     results = results_from_dashboard_state(dashboard_state, open_non_draft_pr_numbers)
     md = render_pr_tables(

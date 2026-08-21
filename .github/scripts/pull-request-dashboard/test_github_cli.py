@@ -10,6 +10,7 @@ from github_cli import (
     fetch_pr_reviews,
     fetch_pr_routing_raw,
     fetch_review_requests,
+    fetch_latest_draft_transitions,
     gh_branch_rules,
     gh_pr_check_rollup,
     gh_pr_checks,
@@ -319,6 +320,7 @@ class GithubCliTest(unittest.TestCase):
                 "title": f"PR {number}",
                 "user": {"login": "author"},
                 "draft": number == 501,
+                "created_at": "2026-07-01T00:00:00Z",
                 "updated_at": "2026-07-17T00:00:00Z",
                 "html_url": f"https://example.test/pull/{number}",
                 "labels": [
@@ -341,7 +343,7 @@ class GithubCliTest(unittest.TestCase):
                 "title": "PR 501",
                 "author": {"login": "author"},
                 "isDraft": True,
-                "updatedAt": "2026-07-17T00:00:00Z",
+                "createdAt": "2026-07-01T00:00:00Z",
                 "url": "https://example.test/pull/501",
                 "labels": ["size/L"],
             },
@@ -352,6 +354,37 @@ class GithubCliTest(unittest.TestCase):
             "/repos/open-telemetry/example/pulls?state=open&per_page=100",
             paginate=True,
         )
+
+    @patch("github_cli.gh_graphql")
+    def test_fetches_latest_draft_transitions_in_one_query(self, graphql) -> None:
+        graphql.return_value = {
+            "data": {
+                "repository": {
+                    "pr_7": {
+                        "timelineItems": {
+                            "nodes": [{"createdAt": "2026-07-17T00:00:00Z"}],
+                        },
+                    },
+                    "pr_8": {"timelineItems": {"nodes": []}},
+                },
+            },
+        }
+
+        transitions = fetch_latest_draft_transitions(
+            "open-telemetry/example",
+            [8, 7, 7],
+        )
+
+        self.assertEqual({7: "2026-07-17T00:00:00Z"}, transitions)
+        graphql.assert_called_once_with(
+            ANY,
+            {"owner": "open-telemetry", "name": "example"},
+        )
+        query = graphql.call_args.args[0]
+        self.assertEqual(1, query.count("pr_7: pullRequest"))
+        self.assertIn("pr_8: pullRequest", query)
+        self.assertIn("itemTypes: [CONVERT_TO_DRAFT_EVENT]", query)
+        self.assertIn("... on ConvertToDraftEvent", query)
 
     @patch("github_cli.gh_graphql")
     def test_gh_pr_checks_preserves_reporting_app_identity(self, graphql) -> None:
