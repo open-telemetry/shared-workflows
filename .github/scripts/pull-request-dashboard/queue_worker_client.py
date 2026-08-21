@@ -1,15 +1,26 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
+import random
+import socket
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from pathlib import Path
 from typing import Any
 
 OIDC_AUDIENCE = "otel-pr-dashboard-queue"
+RETRYABLE_ACTIONS = frozenset({"acknowledge", "finish", "heartbeat", "stats"})
+RETRYABLE_HTTP_STATUSES = frozenset({502, 503, 504})
+MAX_ATTEMPTS = 4
+INITIAL_BACKOFF_SECONDS = 1.0
+MAX_BACKOFF_SECONDS = 4.0
 
 
 class QueueWorkerClient:
@@ -20,6 +31,9 @@ class QueueWorkerClient:
         oidc_request_url: str | None = None,
         oidc_request_token: str | None = None,
         opener: Any = urllib.request.urlopen,
+        sleeper: Any = time.sleep,
+        jitter: Any = random.uniform,
+        operation_id_factory: Any = lambda: uuid.uuid4().hex,
     ) -> None:
         self.endpoint = endpoint
         self.oidc_request_url = oidc_request_url or os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL", "")
@@ -27,29 +41,51 @@ class QueueWorkerClient:
             "ACTIONS_ID_TOKEN_REQUEST_TOKEN", ""
         )
         self.opener = opener
+        self.sleeper = sleeper
+        self.jitter = jitter
+        self.operation_id_factory = operation_id_factory
         if not self.endpoint.startswith("https://"):
             raise ValueError("queue endpoint must use HTTPS")
         if not self.oidc_request_url or not self.oidc_request_token:
             raise ValueError("GitHub OIDC request configuration is missing")
 
     def call(self, action: str, **payload: Any) -> dict[str, Any]:
-        token = self._request_oidc_token()
-        body = json.dumps({"action": action, **payload}, separators=(",", ":")).encode()
-        request = urllib.request.Request(
-            self.endpoint,
-            data=body,
-            method="POST",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-                "User-Agent": "pull-request-dashboard-queue-worker",
-            },
-        )
-        with self.opener(request, timeout=30) as response:
-            result = json.load(response)
-        if not isinstance(result, dict):
-            raise RuntimeError("queue worker response must be a JSON object")
-        return result
+        request_payload = {"action": action, **payload}
+        if action == "acknowledge":
+            if "operationId" not in request_payload:
+                request_payload["operationId"] = self.operation_id_factory()
+        body = json.dumps(request_payload, separators=(",", ":")).encode()
+        for attempt in range(MAX_ATTEMPTS):
+            try:
+                token = self._request_oidc_token()
+                request = urllib.request.Request(
+                    self.endpoint,
+                    data=body,
+                    method="POST",
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json",
+                        "User-Agent": "pull-request-dashboard-queue-worker",
+                    },
+                )
+                with self.opener(request, timeout=30) as response:
+                    result = json.load(response)
+                if not isinstance(result, dict):
+                    raise RuntimeError("queue worker response must be a JSON object")
+                return result
+            except Exception as error:
+                if (
+                    action not in RETRYABLE_ACTIONS
+                    or attempt + 1 >= MAX_ATTEMPTS
+                    or not is_transient_error(error)
+                ):
+                    raise
+                maximum = min(
+                    INITIAL_BACKOFF_SECONDS * (2**attempt),
+                    MAX_BACKOFF_SECONDS,
+                )
+                self.sleeper(self.jitter(0, maximum))
+        raise AssertionError("unreachable")
 
     def _request_oidc_token(self) -> str:
         separator = "&" if "?" in self.oidc_request_url else "?"
@@ -70,6 +106,23 @@ class QueueWorkerClient:
         if not isinstance(token, str) or not token:
             raise RuntimeError("GitHub OIDC response did not include a token")
         return token
+
+
+def is_transient_error(error: BaseException) -> bool:
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code in RETRYABLE_HTTP_STATUSES
+    if isinstance(error, urllib.error.URLError):
+        return is_transient_error(error.reason)
+    return isinstance(
+        error,
+        (
+            TimeoutError,
+            socket.timeout,
+            ConnectionError,
+            http.client.RemoteDisconnected,
+            http.client.IncompleteRead,
+        ),
+    )
 
 
 def write_github_output(path: Path, values: dict[str, str]) -> None:

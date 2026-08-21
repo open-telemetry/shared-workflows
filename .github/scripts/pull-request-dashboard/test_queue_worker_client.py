@@ -1,16 +1,24 @@
 from __future__ import annotations
 
 import contextlib
+import http.client
 import io
 import json
 import sys
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
 import queue_worker_client
-from queue_worker_client import OIDC_AUDIENCE, QueueWorkerClient, acknowledge_all
+from queue_worker_client import (
+    MAX_ATTEMPTS,
+    OIDC_AUDIENCE,
+    QueueWorkerClient,
+    acknowledge_all,
+    is_transient_error,
+)
 
 
 class Response(io.BytesIO):
@@ -67,6 +75,225 @@ class QueueWorkerClientTest(unittest.TestCase):
                 oidc_request_url="https://token.actions.test/request",
                 oidc_request_token="request-token",
             )
+
+    def test_selects_only_expected_transient_failures(self) -> None:
+        for status in (502, 503, 504):
+            with self.subTest(status=status):
+                self.assertTrue(
+                    is_transient_error(
+                        urllib.error.HTTPError(
+                            "https://example.test/worker",
+                            status,
+                            "transient",
+                            {},
+                            None,
+                        )
+                    )
+                )
+        for status in (400, 401, 409, 429, 500):
+            with self.subTest(status=status):
+                self.assertFalse(
+                    is_transient_error(
+                        urllib.error.HTTPError(
+                            "https://example.test/worker",
+                            status,
+                            "not transient",
+                            {},
+                            None,
+                        )
+                    )
+                )
+        for exc_type in (
+            ConnectionResetError,
+            ConnectionAbortedError,
+            ConnectionRefusedError,
+            BrokenPipeError,
+        ):
+            with self.subTest(exc_type=exc_type.__name__):
+                self.assertTrue(
+                    is_transient_error(
+                        urllib.error.URLError(exc_type("transient"))
+                    )
+                )
+        self.assertFalse(is_transient_error(urllib.error.URLError("name resolution failed")))
+
+    def test_retries_transient_worker_failures_with_capped_jittered_backoff(self) -> None:
+        requests = []
+        sleeps = []
+        worker_attempts = 0
+
+        def opener(request, timeout):
+            nonlocal worker_attempts
+            requests.append((request, timeout))
+            if "token.actions.test" in request.full_url:
+                return Response(json.dumps({"value": "oidc-token"}).encode())
+            worker_attempts += 1
+            if worker_attempts < MAX_ATTEMPTS:
+                raise urllib.error.HTTPError(
+                    request.full_url,
+                    503,
+                    "unavailable",
+                    {},
+                    None,
+                )
+            return Response(json.dumps({"status": "removed"}).encode())
+
+        client = QueueWorkerClient(
+            "https://example.test/worker",
+            oidc_request_url="https://token.actions.test/request",
+            oidc_request_token="request-token",
+            opener=opener,
+            sleeper=sleeps.append,
+            jitter=lambda _minimum, maximum: maximum,
+            operation_id_factory=lambda: "operation-1",
+        )
+
+        self.assertEqual(
+            client.call(
+                "acknowledge",
+                generation=1,
+                workerId="worker",
+                itemKey="example#pr:1",
+                claimGeneration=1,
+                outcome="success",
+            ),
+            {"status": "removed"},
+        )
+        self.assertEqual(worker_attempts, MAX_ATTEMPTS)
+        self.assertEqual(sleeps, [1.0, 2.0, 4.0])
+        self.assertEqual(len(requests), MAX_ATTEMPTS * 2)
+        worker_bodies = [
+            json.loads(request.data)
+            for request, _timeout in requests
+            if request.full_url == "https://example.test/worker"
+        ]
+        self.assertEqual(
+            {body["operationId"] for body in worker_bodies if body["action"] == "acknowledge"},
+            {"operation-1"},
+        )
+
+    def test_skips_operation_id_factory_when_caller_supplies_id(self) -> None:
+        def fail_factory() -> str:
+            raise RuntimeError("factory must not be called")
+
+        def opener(request, timeout):
+            if "token.actions.test" in request.full_url:
+                return Response(json.dumps({"value": "oidc-token"}).encode())
+            return Response(json.dumps({"status": "removed"}).encode())
+
+        client = QueueWorkerClient(
+            "https://example.test/worker",
+            oidc_request_url="https://token.actions.test/request",
+            oidc_request_token="request-token",
+            opener=opener,
+            operation_id_factory=fail_factory,
+        )
+
+        result = client.call(
+            "acknowledge",
+            generation=1,
+            workerId="worker",
+            itemKey="example#pr:1",
+            claimGeneration=1,
+            outcome="success",
+            operationId="caller-supplied",
+        )
+        self.assertEqual(result, {"status": "removed"})
+
+    def test_stops_after_the_bounded_attempt_count(self) -> None:
+        worker_attempts = 0
+
+        def opener(request, timeout):
+            nonlocal worker_attempts
+            if "token.actions.test" in request.full_url:
+                return Response(json.dumps({"value": "oidc-token"}).encode())
+            worker_attempts += 1
+            raise TimeoutError("timed out")
+
+        client = QueueWorkerClient(
+            "https://example.test/worker",
+            oidc_request_url="https://token.actions.test/request",
+            oidc_request_token="request-token",
+            opener=opener,
+            sleeper=lambda _duration: None,
+        )
+
+        with self.assertRaises(TimeoutError):
+            client.call("finish", generation=1, workerId="worker")
+        self.assertEqual(worker_attempts, MAX_ATTEMPTS)
+
+    def test_retries_transient_oidc_transport_failures(self) -> None:
+        token_attempts = 0
+        worker_attempts = 0
+
+        def opener(request, timeout):
+            nonlocal token_attempts, worker_attempts
+            if "token.actions.test" in request.full_url:
+                token_attempts += 1
+                if token_attempts == 1:
+                    raise http.client.IncompleteRead(b"partial")
+                return Response(json.dumps({"value": "oidc-token"}).encode())
+            worker_attempts += 1
+            return Response(json.dumps({"dispatcher": True}).encode())
+
+        client = QueueWorkerClient(
+            "https://example.test/worker",
+            oidc_request_url="https://token.actions.test/request",
+            oidc_request_token="request-token",
+            opener=opener,
+            sleeper=lambda _duration: None,
+        )
+
+        self.assertEqual(
+            client.call("heartbeat", generation=1, workerId="worker"),
+            {"dispatcher": True},
+        )
+        self.assertEqual(token_attempts, 2)
+        self.assertEqual(worker_attempts, 1)
+
+    def test_does_not_retry_non_transient_http_failures(self) -> None:
+        worker_attempts = 0
+
+        def opener(request, timeout):
+            nonlocal worker_attempts
+            if "token.actions.test" in request.full_url:
+                return Response(json.dumps({"value": "oidc-token"}).encode())
+            worker_attempts += 1
+            raise urllib.error.HTTPError(request.full_url, 500, "failed", {}, None)
+
+        client = QueueWorkerClient(
+            "https://example.test/worker",
+            oidc_request_url="https://token.actions.test/request",
+            oidc_request_token="request-token",
+            opener=opener,
+            sleeper=lambda _duration: self.fail("unexpected retry"),
+        )
+
+        with self.assertRaises(urllib.error.HTTPError):
+            client.call("acknowledge", generation=1, workerId="worker")
+        self.assertEqual(worker_attempts, 1)
+
+    def test_does_not_retry_non_repeatable_actions(self) -> None:
+        worker_attempts = 0
+
+        def opener(request, timeout):
+            nonlocal worker_attempts
+            if "token.actions.test" in request.full_url:
+                return Response(json.dumps({"value": "oidc-token"}).encode())
+            worker_attempts += 1
+            raise ConnectionResetError("connection reset")
+
+        client = QueueWorkerClient(
+            "https://example.test/worker",
+            oidc_request_url="https://token.actions.test/request",
+            oidc_request_token="request-token",
+            opener=opener,
+            sleeper=lambda _duration: self.fail("unexpected retry"),
+        )
+
+        with self.assertRaises(ConnectionResetError):
+            client.call("claim", generation=1, workerId="worker")
+        self.assertEqual(worker_attempts, 1)
 
 
 class RecordingClient:

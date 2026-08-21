@@ -12,6 +12,8 @@ export const DEFAULT_CAS_ATTEMPTS = 8;
 // acknowledged, so recovery needs its own ceiling to stop a poison item from
 // re-dispatching a drain forever.
 export const DEFAULT_MAX_RECOVERY_ATTEMPTS = 5;
+export const DEFAULT_ACKNOWLEDGMENT_RECEIPT_LIMIT = 100;
+export const DEFAULT_FINISH_RECEIPT_LIMIT = 20;
 // Every full scan touches each shard once, so the round trips have to overlap
 // to stay inside the Netlify function execution budget.
 export const DEFAULT_SHARD_CONCURRENCY = 8;
@@ -83,6 +85,8 @@ export class DashboardQueue {
     casAttempts = DEFAULT_CAS_ATTEMPTS,
     maxRecoveryAttempts = DEFAULT_MAX_RECOVERY_ATTEMPTS,
     shardConcurrency = DEFAULT_SHARD_CONCURRENCY,
+    acknowledgmentReceiptLimit = DEFAULT_ACKNOWLEDGMENT_RECEIPT_LIMIT,
+    finishReceiptLimit = DEFAULT_FINISH_RECEIPT_LIMIT,
   } = {}) {
     this.store = store;
     this.now = now;
@@ -94,6 +98,8 @@ export class DashboardQueue {
     this.casAttempts = casAttempts;
     this.maxRecoveryAttempts = maxRecoveryAttempts;
     this.shardConcurrency = shardConcurrency;
+    this.acknowledgmentReceiptLimit = acknowledgmentReceiptLimit;
+    this.finishReceiptLimit = finishReceiptLimit;
   }
 
   async enqueue({ repository, prNumber, headSha, triggerEvent }) {
@@ -158,11 +164,27 @@ export class DashboardQueue {
     };
   }
 
-  async requestDispatcher(requestOwner = this.randomId()) {
+  async requestDispatcher(requestOwner = this.randomId(), { replayExisting = false } = {}) {
     const requestedAt = this.#isoNow();
     const expiresAt = this.#isoAfter(this.dispatcherRequestLeaseMs);
     const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
+      if (
+        replayExisting &&
+        dispatcher.phase === "requested" &&
+        dispatcher.leaseOwner === requestOwner &&
+        !isExpired(dispatcher.leaseExpiresAt, this.now())
+      ) {
+        return {
+          changed: false,
+          result: {
+            acquired: true,
+            generation: dispatcher.generation,
+            phase: dispatcher.phase,
+            requestOwner,
+          },
+        };
+      }
       if (
         dispatcher.phase !== "idle" &&
         !isExpired(dispatcher.leaseExpiresAt, this.now())
@@ -377,14 +399,32 @@ export class DashboardQueue {
     outcome,
     error = "",
     retryAfterMs = 0,
+    operationId = "",
   }) {
     validateWorkerId(workerId);
     if (!["success", "retry", "dead"].includes(outcome)) {
       throw new Error(`unsupported acknowledgment outcome ${outcome}`);
     }
     const shardKey = queueShardKey(itemKey, this.shardCount);
+    const receiptKey = operationId ? operationKey([operationId]) : "";
+    const signature = JSON.stringify([
+      itemKey,
+      claimGeneration,
+      workerId,
+      outcome,
+      error,
+      retryAfterMs,
+    ]);
     const mutation = await this.#mutate(shardKey, emptyShard, (shard) => {
       validateShard(shard);
+      const acknowledgments = shard.acknowledgments || {};
+      const receipt = receiptKey ? acknowledgments[receiptKey] : null;
+      if (receipt) {
+        if (receipt.signature !== signature) {
+          throw new Error(`conflicting acknowledgment retry for ${itemKey}`);
+        }
+        return { changed: false, result: receipt.result };
+      }
       const item = shard.items[itemKey];
       if (!item) {
         throw new Error(`queue item ${itemKey} does not exist`);
@@ -400,7 +440,18 @@ export class DashboardQueue {
       }
       if (outcome === "success" && !item.dirty && item.generation === claimGeneration) {
         delete shard.items[itemKey];
-        return { changed: true, result: { status: "removed" } };
+        const result = { status: "removed" };
+        if (receiptKey) {
+          recordAcknowledgment(
+            shard,
+            receiptKey,
+            signature,
+            result,
+            this.#isoNow(),
+            this.acknowledgmentReceiptLimit,
+          );
+        }
+        return { changed: true, result };
       }
       if (
         outcome === "dead" &&
@@ -415,7 +466,18 @@ export class DashboardQueue {
         };
         trimDeadLetters(shard.deadLetters);
         delete shard.items[itemKey];
-        return { changed: true, result: { status: "dead", deadKey } };
+        const result = { status: "dead", deadKey };
+        if (receiptKey) {
+          recordAcknowledgment(
+            shard,
+            receiptKey,
+            signature,
+            result,
+            this.#isoNow(),
+            this.acknowledgmentReceiptLimit,
+          );
+        }
+        return { changed: true, result };
       }
 
       const hasFollowUp = item.dirty || item.generation !== claimGeneration;
@@ -428,21 +490,40 @@ export class DashboardQueue {
       item.notBefore = outcome === "retry" && !hasFollowUp && retryAfterMs > 0
         ? this.#isoAfter(retryAfterMs)
         : null;
-      return {
-        changed: true,
-        result: {
-          status: outcome === "retry" && !hasFollowUp ? "retry" : "follow_up",
-          attempts: item.attempts,
-        },
+      const result = {
+        status: outcome === "retry" && !hasFollowUp ? "retry" : "follow_up",
+        attempts: item.attempts,
       };
+      if (receiptKey) {
+        recordAcknowledgment(
+          shard,
+          receiptKey,
+          signature,
+          result,
+          this.#isoNow(),
+          this.acknowledgmentReceiptLimit,
+        );
+      }
+      return { changed: true, result };
     });
     return mutation.result;
   }
 
   async finishDispatcher({ generation, workerId }) {
     validateWorkerId(workerId);
+    const receiptKey = operationKey([generation, workerId]);
     const released = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
       validateDispatcher(dispatcher);
+      const receipt = dispatcher.finishes?.[receiptKey];
+      if (receipt) {
+        if (receipt.dispatchState === "failed") {
+          receipt.result = null;
+          receipt.dispatchState = "none";
+          receipt.completedAt = this.#isoNow();
+          return { changed: true, result: receipt };
+        }
+        return { changed: false, result: receipt };
+      }
       if (
         dispatcher.phase !== "active" ||
         dispatcher.generation !== generation ||
@@ -452,20 +533,111 @@ export class DashboardQueue {
         return { changed: false, result: false };
       }
       setDispatcherIdle(dispatcher, this.#isoNow());
-      return { changed: true, result: true };
+      dispatcher.finishes ||= {};
+      dispatcher.finishes[receiptKey] = {
+        generation,
+        workerId,
+        result: null,
+        dispatchState: "none",
+        completedAt: this.#isoNow(),
+      };
+      trimReceipts(dispatcher.finishes, this.finishReceiptLimit);
+      return { changed: true, result: dispatcher.finishes[receiptKey] };
     });
     if (!released.result) {
       throw new Error("worker does not own the active dispatcher");
     }
-    if (!(await this.hasRunnableItems())) {
-      return { requested: false };
+    if (released.result.result) {
+      return released.result.result;
     }
-    const request = await this.requestDispatcher(`successor:${workerId}`);
-    return {
-      requested: request.acquired,
-      generation: request.generation,
-      requestOwner: request.requestOwner,
-    };
+    let result = { requested: false };
+    if (await this.hasRunnableItems()) {
+      const request = await this.requestDispatcher(
+        `successor:${generation}:${workerId}`,
+        { replayExisting: true },
+      );
+      result = {
+        requested: request.acquired,
+        generation: request.generation,
+        requestOwner: request.requestOwner,
+      };
+    }
+    const completed = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+      validateDispatcher(dispatcher);
+      const receipt = dispatcher.finishes?.[receiptKey];
+      if (!receipt) {
+        throw new Error("dispatcher finish receipt disappeared");
+      }
+      if (receipt.result) {
+        return { changed: false, result: receipt.result };
+      }
+      receipt.result = result;
+      receipt.dispatchState = result.requested ? "pending" : "none";
+      receipt.completedAt = this.#isoNow();
+      return { changed: true, result };
+    });
+    return completed.result;
+  }
+
+  async claimFinishDispatch({ generation, workerId }) {
+    const receiptKey = operationKey([generation, workerId]);
+    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+      validateDispatcher(dispatcher);
+      const receipt = dispatcher.finishes?.[receiptKey];
+      if (receipt?.dispatchState === "dispatched") {
+        return { changed: false, result: "completed" };
+      }
+      if (receipt?.dispatchState === "dispatching") {
+        return { changed: false, result: "in_progress" };
+      }
+      if (
+        !receipt?.result?.requested ||
+        receipt.dispatchState !== "pending" ||
+        dispatcher.phase !== "requested" ||
+        dispatcher.generation !== receipt.result.generation ||
+        dispatcher.leaseOwner !== receipt.result.requestOwner ||
+        isExpired(dispatcher.leaseExpiresAt, this.now())
+      ) {
+        return { changed: false, result: "unavailable" };
+      }
+      receipt.dispatchState = "dispatching";
+      receipt.completedAt = this.#isoNow();
+      return { changed: true, result: "claimed" };
+    });
+    return mutation.result;
+  }
+
+  async completeFinishDispatch({ generation, workerId }) {
+    return this.#setFinishDispatchState(generation, workerId, "dispatching", "dispatched");
+  }
+
+  async failFinishDispatch({ generation, workerId }) {
+    return this.#setFinishDispatchState(generation, workerId, "dispatching", "failed");
+  }
+
+  async failFinishDispatchWithRelease(
+    { generation: finishGeneration, workerId },
+    { generation: dispatchGeneration, requestOwner },
+  ) {
+    const receiptKey = operationKey([finishGeneration, workerId]);
+    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+      validateDispatcher(dispatcher);
+      const receipt = dispatcher.finishes?.[receiptKey];
+      if (!receipt || receipt.dispatchState !== "dispatching") {
+        return { changed: false, result: false };
+      }
+      if (
+        dispatcher.phase === "requested" &&
+        dispatcher.generation === dispatchGeneration &&
+        dispatcher.leaseOwner === requestOwner
+      ) {
+        setDispatcherIdle(dispatcher, this.#isoNow());
+      }
+      receipt.dispatchState = "failed";
+      receipt.completedAt = this.#isoNow();
+      return { changed: true, result: true };
+    });
+    return mutation.result;
   }
 
   async hasRunnableItems() {
@@ -621,6 +793,21 @@ export class DashboardQueue {
     return dispatcher;
   }
 
+  async #setFinishDispatchState(generation, workerId, expected, next) {
+    const receiptKey = operationKey([generation, workerId]);
+    const mutation = await this.#mutate(DISPATCHER_KEY, emptyDispatcher, (dispatcher) => {
+      validateDispatcher(dispatcher);
+      const receipt = dispatcher.finishes?.[receiptKey];
+      if (!receipt || receipt.dispatchState !== expected) {
+        return { changed: false, result: false };
+      }
+      receipt.dispatchState = next;
+      receipt.completedAt = this.#isoNow();
+      return { changed: true, result: true };
+    });
+    return mutation.result;
+  }
+
   async #mutate(key, emptyValue, mutator) {
     for (let attempt = 0; attempt < this.casAttempts; attempt += 1) {
       const entry = await this.store.get(key);
@@ -684,6 +871,7 @@ function emptyShard() {
     schema: SCHEMA_VERSION,
     items: {},
     deadLetters: {},
+    acknowledgments: {},
   };
 }
 
@@ -695,6 +883,7 @@ function emptyDispatcher() {
     leaseOwner: null,
     leaseExpiresAt: null,
     updatedAt: null,
+    finishes: {},
   };
 }
 
@@ -719,7 +908,8 @@ function validateShard(shard) {
     !shard ||
     shard.schema !== SCHEMA_VERSION ||
     !isPlainObject(shard.items) ||
-    !isPlainObject(shard.deadLetters)
+    !isPlainObject(shard.deadLetters) ||
+    (shard.acknowledgments !== undefined && !isPlainObject(shard.acknowledgments))
   ) {
     throw new Error("queue shard has an unsupported schema");
   }
@@ -731,7 +921,8 @@ function validateDispatcher(dispatcher) {
     dispatcher.schema !== SCHEMA_VERSION ||
     !["idle", "requested", "active"].includes(dispatcher.phase) ||
     !Number.isInteger(dispatcher.generation) ||
-    dispatcher.generation < 0
+    dispatcher.generation < 0 ||
+    (dispatcher.finishes !== undefined && !isPlainObject(dispatcher.finishes))
   ) {
     throw new Error("dispatcher has an unsupported schema");
   }
@@ -815,6 +1006,38 @@ function trimDeadLetters(deadLetters, limit = 100) {
   for (const [key] of entries.slice(0, entries.length - limit)) {
     delete deadLetters[key];
   }
+}
+
+function recordAcknowledgment(
+  shard,
+  receiptKey,
+  signature,
+  result,
+  completedAt,
+  limit,
+) {
+  shard.acknowledgments ||= {};
+  shard.acknowledgments[receiptKey] = {
+    signature,
+    result,
+    completedAt,
+  };
+  trimReceipts(shard.acknowledgments, limit);
+}
+
+function trimReceipts(receipts, limit) {
+  const entries = Object.entries(receipts);
+  if (entries.length <= limit) {
+    return;
+  }
+  entries.sort((left, right) => left[1].completedAt.localeCompare(right[1].completedAt));
+  for (const [key] of entries.slice(0, entries.length - limit)) {
+    delete receipts[key];
+  }
+}
+
+function operationKey(parts) {
+  return crypto.createHash("sha256").update(JSON.stringify(parts)).digest("hex");
 }
 
 function normalizeError(error) {

@@ -211,6 +211,122 @@ test("clean success removes the claimed item", async () => {
   assert.equal((await queue.stats()).inflight, 0);
 });
 
+test("replays an identical acknowledgment after its response is lost", async () => {
+  const { queue } = fixture();
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  const [claim] = await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  const acknowledgment = {
+    itemKey: claim.itemKey,
+    claimGeneration: claim.claimGeneration,
+    workerId: "worker",
+    outcome: "success",
+    operationId: "acknowledgment-1",
+  };
+
+  assert.deepEqual(await queue.acknowledge(acknowledgment), { status: "removed" });
+  assert.deepEqual(await queue.acknowledge(acknowledgment), { status: "removed" });
+  await assert.rejects(
+    queue.acknowledge({ ...acknowledgment, outcome: "retry" }),
+    /conflicting acknowledgment retry/,
+  );
+});
+
+test("replays a committed finish without reclaiming its dispatch", async () => {
+  const { queue } = fixture();
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  const finish = {
+    generation: request.generation,
+    workerId: "worker",
+  };
+
+  const first = await queue.finishDispatcher(finish);
+  assert.equal(first.requested, true);
+  assert.equal(await queue.claimFinishDispatch(finish), "claimed");
+  assert.equal(await queue.completeFinishDispatch(finish), true);
+
+  assert.deepEqual(await queue.finishDispatcher(finish), first);
+  assert.equal(await queue.claimFinishDispatch(finish), "completed");
+});
+
+test("a failed finish dispatch can request a new successor", async () => {
+  const { queue } = fixture();
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  const finish = {
+    generation: request.generation,
+    workerId: "worker",
+  };
+
+  const first = await queue.finishDispatcher(finish);
+  assert.equal(await queue.claimFinishDispatch(finish), "claimed");
+  assert.equal(await queue.failFinishDispatchWithRelease(finish, {
+    generation: first.generation,
+    requestOwner: first.requestOwner,
+  }), true);
+
+  const retried = await queue.finishDispatcher(finish);
+  assert.equal(retried.requested, true);
+  assert.notEqual(retried.generation, first.generation);
+  assert.equal(await queue.claimFinishDispatch(finish), "claimed");
+});
+
+test("an expired successor lease is rejected by claimFinishDispatch", async () => {
+  const { queue, advance } = fixture();
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  const finish = {
+    generation: request.generation,
+    workerId: "worker",
+  };
+
+  const first = await queue.finishDispatcher(finish);
+  assert.equal(first.requested, true);
+  advance(1_001);
+
+  assert.equal(await queue.claimFinishDispatch(finish), "unavailable");
+});
+
 test("stale worker acknowledgment is rejected", async () => {
   const { queue } = fixture();
   await queue.enqueue({
