@@ -56,7 +56,7 @@
     },
     "285": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -64,7 +64,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0bfe27f0fd693f8a1c6e2d8541088c2d7e45f1151468482348c2418b234cbece",
+        "copilot_request_fingerprint": "bd9a748d901cebbee581d6b74dcd39365603ed484117bc510f181a5807b9929f",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -80,21 +80,31 @@
         "head_sha": "a0c8eb068967daebf7029419e53553ebfe4ce659",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T02:11:16+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T11:58:33+00:00",
+        "last_approver_activity_at": "2026-08-21T11:58:33+00:00",
         "last_author_activity_at": "2026-08-21T02:11:16+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b73a71e6d03523a5192f90e278c5be0192ede66c2909565ef3df8d5cb12d7981",
+        "routing_input_fingerprint": "054c35f70d8b2c66d9c3c85ad2f898cecef6421973e8fe0e92998ae2972d75a1",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-21T02:11:16+00:00"
       },
       "failed": false,
       "pr_number": 285,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/285",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
