@@ -1223,12 +1223,14 @@
         "assignees": [],
         "author": "noor-ahmadi",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8741#pullrequestreview-4997046902"
+        ],
         "author_nudge_episode_id": "3143227b5cd043989486f3682eac4d41",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6300ba291ee45e79c25b6820b14db7bde95bac805d9807e0adeeda433500cc7c",
+        "copilot_request_fingerprint": "e4797343eec36b4c8562d5a4d1cae5cdb5631950b9e53bcb325eb733dda309d6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1244,17 +1246,26 @@
         "head_sha": "339df626c6a62049ae950760391fce67202c05f0",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T19:56:20+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T20:13:42+00:00",
+        "last_approver_activity_at": "2026-08-21T20:13:42+00:00",
         "last_author_activity_at": "2026-08-21T19:56:20+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-21T19:54:40.890988+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jack-berg",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "71ec623e6e13e20f34c7b139356826190d5dc5c28e468d3acfa54773a257721e",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-21T19:51:41+00:00"
+        "routing_input_fingerprint": "f813367a4f0a3cb885214b5183affc85ff85c073f11f3139e5e1f5c60d4441f2",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-21T20:13:42+00:00"
       },
       "failed": false,
       "pr_number": 8741,
