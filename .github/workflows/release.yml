@@ -8,7 +8,7 @@ on:
       bump:
         description: 'Which semver part to bump.'
         required: true
-        default: patch
+        default: minor
         type: choice
         options:
           - patch
