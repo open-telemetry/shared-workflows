@@ -14,6 +14,7 @@ from route_presentation import status_headline
 NOW = datetime(2026, 8, 21, tzinfo=timezone.utc)
 LIVE_EPISODE = "0f1e2d3c4b5a60718293a4b5c6d7e8f9"
 STALE_EPISODE = "9f8e7d6c5b4a30291817263544536271"
+UNMATCHED_EPISODE = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 
 def dashboard_comment(comment_id: int, body: str) -> dict:
@@ -126,6 +127,18 @@ class RefreshAuthorNudgesTest(unittest.TestCase):
             patched.call_args.args[2],
             author_nudge.render_nudge("alice", status["html_url"], LIVE_EPISODE),
         )
+
+    def test_reminder_is_stale_when_status_episode_has_no_comment(self) -> None:
+        status = status_comment(episode_id=UNMATCHED_EPISODE, route="author")
+        comments = [status, nudge_comment(11, STALE_EPISODE)]
+
+        actions, (patched, minimized, _) = self.sweep(comments)
+
+        self.assertEqual(len(actions), 1)
+        self.assertIn("stale reminder 11", actions[0])
+        minimized.assert_called_once_with("node-11")
+        body = patched.call_args.args[2]
+        self.assertIn(author_nudge.completed_nudge_marker(STALE_EPISODE), body)
 
     def test_live_reminder_is_rewritten_when_the_wording_changed(self) -> None:
         stale_wording = dashboard_comment(

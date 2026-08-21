@@ -99,11 +99,12 @@ def live_nudge_index(
     for index, (episode_id, _) in enumerate(nudges):
         if episode_id and episode_id == live_episode_id:
             return index
+    if live_episode_id:
+        return -1
     # The dashboard only ever keeps one reminder open, so when the status
-    # comment cannot name the live episode, the newest reminder stands in for
-    # it. A newest reminder that is already finished means the pull request has
-    # no live one, whatever its routing says, and every older reminder is stale
-    # either way.
+    # comment has no episode marker, the newest reminder stands in for it. A
+    # newest reminder that is already finished means the pull request has no
+    # live one, whatever its routing says, and every older reminder is stale.
     if nudges:
         episode_id, comment = nudges[-1]
         if completed_nudge_marker(episode_id) not in (comment.get("body") or ""):
