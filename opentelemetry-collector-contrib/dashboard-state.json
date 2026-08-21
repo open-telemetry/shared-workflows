@@ -12604,14 +12604,17 @@
         "approval_count": 0,
         "assignees": [],
         "author": "AirbornePorcine",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50444#discussion_r3834175779"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50444#pullrequestreview-4997957919"
+        ],
         "author_nudge_episode_id": "60affa68cdb8488eae23eff36690238b",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-08-21T22:42:40+00:00",
-        "ci_pending_count": 0,
+        "ci_failing_count": 0,
+        "ci_pending_count": 9,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9b5cfd2c71abd6e898a11cfe1e2dbc9737792e6e36b13a71a2885f53369e5d45",
+        "copilot_request_fingerprint": "967eed7eeb97683f58249dc6d93ac760504f64dfdbf72dbdbf625e919a688ff6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12624,19 +12627,29 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "8923cb384a7eca6efe1a6a9121ae9d25f1f62bcf",
+        "head_sha": "8a9516d936f158f0e2d60490ca472969be91ad12",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T22:42:34+00:00",
+        "last_activity_at": "2026-08-21T22:44:54+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "",
-        "required_checks_settled": true,
-        "reviewers": [],
+        "last_author_activity_at": "2026-08-21T22:44:21+00:00",
+        "required_checks_settled": false,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0ca07de90ef0abd1c1208c90a3d9f5f02721295c5501c1b61fda675f4569d9f2",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-08-21T22:42:40+00:00"
+        "routing_input_fingerprint": "5a04018b569e5c61459c467472ffeff2f097b4d4092c1ff4daa1f24d376f773e",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-21T22:44:16+00:00"
       },
       "failed": false,
       "pr_number": 50444,
