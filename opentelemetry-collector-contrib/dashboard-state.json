@@ -2400,10 +2400,12 @@
         ],
         "author": "iypetrov",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/48704#pullrequestreview-4876184485"
+        ],
         "author_nudge_episode_id": "c192c9c750804c3287c7459d0f44c5bd",
         "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "98a8143bc0b50e3b5f6f19c120470d81a42df1f2ca6b620d98d4180f8b81ddf1",
         "copilot_review_exists": false,
@@ -2424,7 +2426,7 @@
         "last_activity_at": "2026-08-21T08:32:10+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-21T08:32:10+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2442,7 +2444,7 @@
             "login": "frzifus",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": false,
@@ -2454,12 +2456,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-21T08:30:51.468321+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6ee1ce003dd508a9f857991b01758b2f90dca61dec7b4440ab70a17a18aa4f31",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-20T20:35:12+00:00"
+        "routing_input_fingerprint": "342c4016c5704635f1c3e192f356bfcaa59893c336370ed91a22a9ecf05e8025",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-06T15:15:40+00:00"
       },
       "failed": false,
       "pr_number": 48704,
