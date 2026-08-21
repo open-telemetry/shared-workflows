@@ -2876,14 +2876,11 @@
         "assignees": [],
         "author": "slegarraga",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11220#issuecomment-5271948979"
-        ],
-        "author_nudge_episode_id": "b230b510da684a46bbf1d27c4622c4e7",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "85ad6e3ad45b809d8480eb40213e7e2aa1cf839d5d79a0cb807645628cf13de7",
+        "copilot_request_fingerprint": "766a1c8ce7136f345a7261c00cd1889e72a5ec68f380cb518b36537041dba6c7",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2892,10 +2889,19 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-08-06T05:24:01+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5376362261,
+            "head_sha": "1e29e21d9e25c7b17f37fca0e598963585dc8265",
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "user": "slegarraga"
+          }
+        ],
+        "dashboard_override_command_id": 5376362261,
+        "dashboard_override_command_user": "slegarraga",
+        "dashboard_override_head_sha": "1e29e21d9e25c7b17f37fca0e598963585dc8265",
         "head_sha": "1e29e21d9e25c7b17f37fca0e598963585dc8265",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -2920,19 +2926,19 @@
             "login": "immavalls",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1937592d79c5dbb518909c9d46113cb47a455df2faadc67e76e0229fd06b6f07",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "2cbe5dd0306312c16beb7ae6fb568dcfe7ffede90ca27875e01de3d9dffb6681",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-21T21:52:07+00:00"
       },
       "failed": false,
       "pr_number": 11220,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11220",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-5218293247": {
           "evidence": {
