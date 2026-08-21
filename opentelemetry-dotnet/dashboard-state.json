@@ -401,7 +401,7 @@
     },
     "7667": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
@@ -409,7 +409,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f94c7725f95c32e99cfd32441111af0ebf32e698075ca515e21dad9c8c967601",
+        "copilot_request_fingerprint": "da316f1654a9a5dd7093b5a1e632ce83374855b45c82b9fcf6821b425b282767",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -425,21 +425,31 @@
         "head_sha": "bfdb91fc09649530529374f32df0e558e8a6d387",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T09:35:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-21T22:55:47+00:00",
+        "last_approver_activity_at": "2026-08-21T22:55:47+00:00",
         "last_author_activity_at": "2026-08-21T09:35:33+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "rajkumar-rangaraj",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "191f44b419598c01d0a27fab095f96375f2b07a24c0a946949751f6fcde4a39b",
+        "routing_input_fingerprint": "88bb99b8f0c0ee72628f90c778c4766d3e2bce3ca4519e03eca687c4e4e7fcc2",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-20T14:30:55+00:00"
       },
       "failed": false,
       "pr_number": 7667,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7667",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "7676": {
