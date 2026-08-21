@@ -22,6 +22,7 @@ permissions: {}
 
 env:
   DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
+  DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
 
 jobs:
   resolve-targets:
@@ -70,10 +71,12 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.matrix) }}
     permissions:
-      contents: read
+      contents: write
     environment: protected
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      PUBLISHER_LOCK_OWNER: ${{ github.run_id }}-${{ github.run_attempt }}-sweep
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -89,6 +92,18 @@ jobs:
           permission-issues: write
           permission-pull-requests: read
 
+      - name: Acquire repository publisher lock
+        id: publisher-lock
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ matrix.name }}
+        run: |
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          python3 .github/scripts/pull-request-dashboard/state_branch.py \
+            acquire-publisher-lock \
+            --state-branch "$state_branch" \
+            --owner "$PUBLISHER_LOCK_OWNER"
+
       - name: Refresh author reminders
         env:
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
@@ -102,6 +117,18 @@ jobs:
             args+=(--dry-run)
           fi
           python3 refresh_author_nudges.py "${args[@]}"
+
+      - name: Release repository publisher lock
+        if: always() && steps.publisher-lock.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ matrix.name }}
+        run: |
+          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          python3 .github/scripts/pull-request-dashboard/state_branch.py \
+            release-publisher-lock \
+            --state-branch "$state_branch" \
+            --owner "$PUBLISHER_LOCK_OWNER"
 
       - name: Report GitHub App rate limits
         if: always()
