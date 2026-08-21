@@ -2037,7 +2037,10 @@ class CopilotReviewGateTest(unittest.TestCase):
 
         self.assertFalse(facts["copilot_review_request_needed"])
 
-    def test_running_checks_hold_re_review_request(self) -> None:
+    def test_running_checks_do_not_hold_a_re_review_request(self) -> None:
+        # The review and the checks run at once, so a slow suite does not delay
+        # the request. Checks that fail send the pull request to its author,
+        # which is a route that never reaches here.
         facts = {
             "ci_pending_count": 1,
             "copilot_review_requested": False,
@@ -2047,9 +2050,9 @@ class CopilotReviewGateTest(unittest.TestCase):
 
         set_copilot_review_request_needed(facts, "approver", enabled=True)
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertTrue(facts["copilot_review_request_needed"])
 
-    def test_unavailable_check_results_hold_re_review_request(self) -> None:
+    def test_unavailable_check_results_do_not_hold_a_re_review_request(self) -> None:
         facts = {
             "copilot_review_requested": False,
             "copilot_review_exists": True,
@@ -2058,7 +2061,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
         set_copilot_review_request_needed(facts, "approver", enabled=True)
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertTrue(facts["copilot_review_request_needed"])
 
     def test_author_route_does_not_request_a_re_review(self) -> None:
         facts = {

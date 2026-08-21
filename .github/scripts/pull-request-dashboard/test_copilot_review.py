@@ -6,7 +6,7 @@ import io
 import unittest
 from unittest.mock import patch
 
-from author_nudge import routing_input_fingerprint
+from author_nudge import copilot_request_fingerprint
 
 from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
@@ -17,6 +17,7 @@ from copilot_review import (
     set_copilot_review_request_needed,
     stale_request_reason,
 )
+from utils import format_ts
 
 
 NOW = datetime(2026, 7, 20, 2, tzinfo=timezone.utc)
@@ -167,7 +168,7 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
 
         self.assertFalse(facts["copilot_review_request_needed"])
 
-    def test_unsettled_checks_hold_the_first_review_request(self) -> None:
+    def test_unsettled_checks_do_not_hold_the_first_review_request(self) -> None:
         facts = self.base_facts(
             ci_pending_count=1,
             copilot_first_review_missing_since="2026-07-20T00:30:00+00:00",
@@ -177,7 +178,7 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
             facts, "approver", enabled=True, now=NOW
         )
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertTrue(facts["copilot_review_request_needed"])
 
     def test_author_route_does_not_request(self) -> None:
         facts = self.base_facts(
@@ -202,7 +203,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
-                    "routing_input_fingerprint": "accepted-fingerprint",
+                    "copilot_request_fingerprint": "accepted-fingerprint",
                 },
             },
             NOW,
@@ -213,7 +214,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
@@ -235,7 +236,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
-                    "routing_input_fingerprint": "accepted-fingerprint",
+                    "copilot_request_fingerprint": "accepted-fingerprint",
                 },
             },
             NOW,
@@ -246,7 +247,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
@@ -272,7 +273,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "facts": {
                     "head_sha": "current-head",
                     "copilot_review_request_needed": True,
-                    "routing_input_fingerprint": "accepted-fingerprint",
+                    "copilot_request_fingerprint": "accepted-fingerprint",
                 },
             },
             NOW,
@@ -283,7 +284,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T02:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
@@ -339,7 +340,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         return_value=[{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}],
     )
     @patch(
-        "copilot_review.routing_input_fingerprint",
+        "copilot_review.copilot_request_fingerprint",
         return_value="accepted-fingerprint",
     )
     @patch("copilot_review.request_copilot_review")
@@ -353,7 +354,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -397,12 +398,12 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
     @patch(
-        "copilot_review.routing_input_fingerprint",
+        "copilot_review.copilot_request_fingerprint",
         return_value="accepted-fingerprint",
     )
     @patch("copilot_review.request_copilot_review")
@@ -416,7 +417,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -461,12 +462,12 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
     @patch(
-        "copilot_review.routing_input_fingerprint",
+        "copilot_review.copilot_request_fingerprint",
         return_value="new-fingerprint",
     )
     @patch("copilot_review.request_copilot_review")
@@ -490,7 +491,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -523,7 +524,6 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         )
         for component in (
             "base_branch",
-            "checks",
             "conflicts",
             "issue_comments",
             "pr_text",
@@ -533,6 +533,72 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "review_threads",
         ):
             self.assertIn(component, discarded)
+        self.assertNotIn("checks", discarded)
+
+    def test_running_checks_do_not_discard_a_pending_request(self) -> None:
+        # The request is recorded while CI is still running, so every check that
+        # finishes changes the routing inputs. Discarding on that would put the
+        # request back to waiting for CI, one pass at a time.
+        pr = {
+            "id": "PR_node",
+            "state": "OPEN",
+            "isDraft": False,
+            "headRefOid": "current-head",
+            "mergeable": "MERGEABLE",
+            "mergeStateStatus": "CLEAN",
+        }
+        observed_raw = {
+            "checks": [{"name": "build", "bucket": "pending"}],
+            "pr": pr,
+        }
+        delivery_raw = {
+            "checks": [{"name": "build", "bucket": "pass"}],
+            "pr": pr,
+        }
+        requests = {
+            "7": {
+                "head_sha": "current-head",
+                "observed_at": "2026-07-20T01:00:00+00:00",
+                "requested_at": "",
+                "copilot_request_fingerprint": copilot_request_fingerprint(observed_raw),
+            }
+        }
+        with (
+            patch(
+                "copilot_review.load_copilot_review_requests",
+                return_value=requests,
+            ),
+            patch("copilot_review.save_copilot_review_requests") as save_requests,
+            patch(
+                "copilot_review.fetch_current_pr_routing_inputs",
+                return_value=(pr, delivery_raw),
+            ),
+            patch("copilot_review.fetch_pr_reviews", return_value=[]),
+            patch("copilot_review.request_copilot_review") as request_review,
+            patch(
+                "copilot_review.fetch_review_requests",
+                return_value=[{"login": "Copilot"}],
+            ),
+        ):
+            errors = deliver_copilot_review_requests(
+                "open-telemetry/example",
+                NOW,
+            )
+
+        self.assertEqual([], errors)
+        request_review.assert_called_once_with("PR_node")
+        save_requests.assert_called_once_with(
+            {
+                "7": {
+                    "head_sha": "current-head",
+                    "observed_at": "2026-07-20T01:00:00+00:00",
+                    "requested_at": format_ts(NOW),
+                    "copilot_request_fingerprint": copilot_request_fingerprint(
+                        observed_raw
+                    ),
+                }
+            }
+        )
 
     def test_drops_request_when_pr_becomes_conflicted(self) -> None:
         clean_raw = {
@@ -556,7 +622,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": routing_input_fingerprint(clean_raw),
+                "copilot_request_fingerprint": copilot_request_fingerprint(clean_raw),
             }
         }
         with (
@@ -583,7 +649,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         save_requests.assert_called_once_with({})
 
     @patch(
-        "copilot_review.routing_input_fingerprint",
+        "copilot_review.copilot_request_fingerprint",
         return_value="accepted-fingerprint",
     )
     @patch("copilot_review.request_copilot_review")
@@ -612,7 +678,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -647,7 +713,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         return_value=[{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}],
     )
     @patch(
-        "copilot_review.routing_input_fingerprint",
+        "copilot_review.copilot_request_fingerprint",
         return_value="accepted-fingerprint",
     )
     @patch("copilot_review.request_copilot_review")
@@ -672,7 +738,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -695,14 +761,14 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
     @patch("copilot_review.sleep_for_retry")
     @patch("copilot_review.fetch_review_requests", return_value=[])
     @patch(
-        "copilot_review.routing_input_fingerprint",
+        "copilot_review.copilot_request_fingerprint",
         return_value="accepted-fingerprint",
     )
     @patch("copilot_review.request_copilot_review")
@@ -727,7 +793,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -757,7 +823,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
         self.assertIn(
@@ -769,7 +835,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     @patch("copilot_review.sleep_for_retry")
     @patch("copilot_review.fetch_review_requests", return_value=[])
     @patch(
-        "copilot_review.routing_input_fingerprint",
+        "copilot_review.copilot_request_fingerprint",
         return_value="accepted-fingerprint",
     )
     @patch("copilot_review.request_copilot_review")
@@ -807,7 +873,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             }
         },
     )
@@ -830,7 +896,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "2026-07-20T02:00:00+00:00",
-                "routing_input_fingerprint": "accepted-fingerprint",
+                "copilot_request_fingerprint": "accepted-fingerprint",
             },
         })
 
@@ -838,7 +904,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 class StaleRequestReasonTest(unittest.TestCase):
     ENTRY = {
         "head_sha": "current-head",
-        "routing_input_fingerprint": "accepted-fingerprint",
+        "copilot_request_fingerprint": "accepted-fingerprint",
     }
     OPEN_PR = {"state": "OPEN", "isDraft": False}
 
@@ -904,9 +970,11 @@ class StaleRequestReasonTest(unittest.TestCase):
             ),
         )
 
-    def test_reports_pending_required_checks(self) -> None:
+    def test_pending_required_checks_do_not_make_a_request_stale(self) -> None:
+        # The request is sent while the checks are still running, so pending
+        # ones are not a reason to discard it.
         self.assertEqual(
-            "required checks have not completed: build",
+            "",
             self.reason(
                 raw={
                     "checks": [
@@ -917,13 +985,13 @@ class StaleRequestReasonTest(unittest.TestCase):
             ),
         )
 
-    def test_summarizes_long_lists_of_unsettled_checks(self) -> None:
+    def test_summarizes_long_lists_of_failing_checks(self) -> None:
         self.assertEqual(
-            "required checks have not completed: a, b, c and 2 more",
+            "required checks are failing: a, b, c and 2 more",
             self.reason(
                 raw={
                     "checks": [
-                        {"name": name, "bucket": "pending"}
+                        {"name": name, "bucket": "fail"}
                         for name in ("e", "d", "c", "b", "a")
                     ],
                 },
@@ -940,7 +1008,6 @@ class StaleRequestReasonTest(unittest.TestCase):
         )
         for component in (
             "base_branch",
-            "checks",
             "issue_comments",
             "pr_text",
             "review_comments",
@@ -949,6 +1016,7 @@ class StaleRequestReasonTest(unittest.TestCase):
             "review_threads",
         ):
             self.assertIn(component, reason)
+        self.assertNotIn("checks", reason)
 
 
 if __name__ == "__main__":

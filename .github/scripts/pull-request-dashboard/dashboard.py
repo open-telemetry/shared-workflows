@@ -190,8 +190,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     route_hold_expired              bool          A gate has reported nothing on
                                                   this head for longer than
                                                   GATE_HOLD_LIMIT, so the PR
-                                                  routes anyway and the stall
-                                                  is reported.
+                                                  routes anyway and its status
+                                                  comment names the gate that
+                                                  never reported.
     waiting_since                   str (iso)     Oldest pending discussion, or
                                                   route-appropriate fallback,
                                                   or PR creation time. Carried
@@ -273,7 +274,11 @@ from classification import (
     normalize_discussion_action,
     prune_classification_cache,
 )
-from author_nudge import record_author_nudge_observation, routing_input_fingerprint
+from author_nudge import (
+    copilot_request_fingerprint,
+    record_author_nudge_observation,
+    routing_input_fingerprint,
+)
 from copilot_review import (
     copilot_review_outstanding,
     copilot_review_status,
@@ -678,6 +683,7 @@ def compute_facts(
         "assignees": assignees,
         "head_sha": head_sha,
         "routing_input_fingerprint": routing_input_fingerprint(raw),
+        "copilot_request_fingerprint": copilot_request_fingerprint(raw),
         **dashboard_override_facts(
             raw,
             author,

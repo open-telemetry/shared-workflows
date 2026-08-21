@@ -9,7 +9,6 @@ import delivery
 
 
 class DeliveryTest(unittest.TestCase):
-    @patch.object(delivery, "report_stalled_gates", return_value=[])
     @patch.object(delivery, "notify_slack_from_state", return_value=[])
     @patch.object(delivery, "deliver_copilot_review_requests", return_value=[])
     @patch.object(delivery, "deliver_prepared_author_nudges", return_value=[])
@@ -31,7 +30,6 @@ class DeliveryTest(unittest.TestCase):
         author_nudges,
         copilot_reviews,
         slack,
-        stalled_gates,
     ) -> None:
         order = Mock()
 
@@ -44,7 +42,6 @@ class DeliveryTest(unittest.TestCase):
         author_nudges.side_effect = lambda *_args: record("author")
         copilot_reviews.side_effect = lambda *_args: record("copilot")
         slack.side_effect = lambda *_args: record("slack")
-        stalled_gates.side_effect = lambda *_args: record("stalled")
         errors = delivery.deliver_from_state(
             "open-telemetry/example",
             Path("author"),
@@ -61,7 +58,6 @@ class DeliveryTest(unittest.TestCase):
                 call("status"),
                 call("copilot"),
                 call("slack"),
-                call("stalled"),
             ],
             order.call_args_list,
         )
@@ -78,9 +74,7 @@ class DeliveryTest(unittest.TestCase):
             ],
             ANY,
         )
-        stalled_gates.assert_called_once_with({7, 8})
 
-    @patch.object(delivery, "report_stalled_gates", return_value=[])
     @patch.object(delivery, "notify_slack_from_state", return_value=[])
     @patch.object(delivery, "deliver_copilot_review_requests", return_value=[])
     @patch.object(delivery, "deliver_prepared_author_nudges", return_value=[])
@@ -99,7 +93,6 @@ class DeliveryTest(unittest.TestCase):
         author_nudges,
         copilot_reviews,
         slack,
-        stalled_gates,
     ) -> None:
         errors = delivery.deliver_from_state(
             "open-telemetry/example",
@@ -113,7 +106,6 @@ class DeliveryTest(unittest.TestCase):
         author_nudges.assert_called_once()
         copilot_reviews.assert_called_once()
         slack.assert_called_once()
-        stalled_gates.assert_called_once_with({7})
 
     def test_open_pr_list_failure_skips_dependent_stages(self) -> None:
         with (
@@ -177,131 +169,6 @@ class DeliveryTest(unittest.TestCase):
             ANY,
             {7},
         )
-
-    def test_a_stalled_gate_is_reported_when_the_whole_repository_runs(self) -> None:
-        state = {
-            "prs": {
-                "7": {
-                    "facts": {
-                        "route_hold_expired": True,
-                        "copilot_review_outstanding": True,
-                        "copilot_review_unreported": True,
-                        "required_checks_settled": True,
-                        "head_sha": "abc",
-                    }
-                },
-                "8": {"facts": {"route_held_for_gates": True}},
-            }
-        }
-
-        with patch.object(delivery, "load_dashboard_state_cache", return_value=state):
-            errors = delivery.report_stalled_gates({7, 8})
-
-        self.assertEqual(
-            ["PR #7: the Copilot review never reported on head abc"],
-            errors,
-        )
-
-    def test_a_stalled_gate_on_a_conflicted_pr_is_not_reported(self) -> None:
-        state = {
-            "prs": {
-                "7": {
-                    "facts": {
-                        "conflicts": "yes",
-                        "route_hold_expired": True,
-                        "copilot_review_outstanding": True,
-                        "copilot_review_unreported": True,
-                        "required_checks_settled": False,
-                        "head_sha": "abc",
-                    }
-                }
-            }
-        }
-
-        with patch.object(delivery, "load_dashboard_state_cache", return_value=state):
-            errors = delivery.report_stalled_gates({7})
-
-        self.assertEqual([], errors)
-
-    def test_a_copilot_review_that_reported_is_not_named_as_the_stall(self) -> None:
-        # The checks are what went missing. Copilot answered on this head, so
-        # naming it would send the reader after a gate that is not missing.
-        state = {
-            "prs": {
-                "7": {
-                    "facts": {
-                        "route_hold_expired": True,
-                        "copilot_review_outstanding": True,
-                        "copilot_review_unreported": False,
-                        "required_checks_settled": False,
-                        "head_sha": "abc",
-                    }
-                }
-            }
-        }
-
-        with patch.object(delivery, "load_dashboard_state_cache", return_value=state):
-            errors = delivery.report_stalled_gates({7})
-
-        self.assertEqual(
-            ["PR #7: the required status checks never reported on head abc"],
-            errors,
-        )
-
-    def test_an_expired_hold_with_every_gate_reported_is_not_reported(self) -> None:
-        state = {
-            "prs": {
-                "7": {
-                    "facts": {
-                        "route_hold_expired": True,
-                        "copilot_review_unreported": False,
-                        "required_checks_settled": True,
-                        "head_sha": "abc",
-                    }
-                }
-            }
-        }
-
-        with patch.object(delivery, "load_dashboard_state_cache", return_value=state):
-            errors = delivery.report_stalled_gates({7})
-
-        self.assertEqual([], errors)
-
-    def test_a_stalled_gate_on_a_closed_pr_is_not_reported(self) -> None:
-        state = {"prs": {"7": {"facts": {"route_hold_expired": True}}}}
-
-        with patch.object(delivery, "load_dashboard_state_cache", return_value=state):
-            errors = delivery.report_stalled_gates(set())
-
-        self.assertEqual([], errors)
-
-    def test_a_targeted_delivery_does_not_report_stalled_gates(self) -> None:
-        with (
-            patch.object(
-                delivery,
-                "gh_api",
-                return_value={"state": "open", "draft": False, "title": "Seven"},
-            ),
-            patch.object(delivery, "deliver_dashboard_command_replies", return_value=[]),
-            patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]),
-            patch.object(
-                delivery,
-                "update_targeted_status_comment_from_state",
-                return_value=[],
-            ),
-            patch.object(delivery, "deliver_copilot_review_requests", return_value=[]),
-            patch.object(delivery, "notify_slack_from_state", return_value=[]),
-            patch.object(delivery, "report_stalled_gates", return_value=[]) as stalled,
-        ):
-            delivery.deliver_from_state(
-                "open-telemetry/example",
-                Path("author"),
-                Path("copilot"),
-                Path("slack"),
-                7,
-            )
-
-        stalled.assert_not_called()
 
     @patch.object(delivery.sys, "stderr")
     @patch.object(delivery, "deliver_from_state", return_value=["status comments: boom"])

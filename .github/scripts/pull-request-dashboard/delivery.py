@@ -15,7 +15,6 @@ from copilot_review import deliver_copilot_review_requests
 from dashboard_override import deliver_dashboard_command_replies
 from github_cli import detect_repo, gh_api, list_open_prs, normalize_repo, repo_state_key
 from notify_slack import notify_slack_from_state
-from route_presentation import unreported_gate_phrase
 from pr_status_comment import (
     update_status_comments_from_state,
     update_targeted_status_comment_from_state,
@@ -24,7 +23,6 @@ from state import (
     author_nudge_state_path,
     claim_delivery_versions,
     copilot_review_request_state_path,
-    load_dashboard_state_cache,
     notification_state_path,
     set_state_dir,
 )
@@ -49,37 +47,6 @@ def run_delivery_action(
         print(f"{label} raised an exception:", file=sys.stderr)
         traceback.print_exc()
         errors.append(f"{label}: {e}")
-
-
-def report_stalled_gates(open_pr_numbers: set[int]) -> list[str]:
-    # The gates are the one place where the dashboard waits on someone else.
-    # When a wait outlasts its limit the dashboard has already routed the pull
-    # request, so nothing on the pull request itself is broken and nobody would
-    # notice. Reporting it here is what turns a silent stall into a failure a
-    # person sees, whatever the gate was and whatever went missing.
-    state = load_dashboard_state_cache()
-    if state is None:
-        return []
-    stalled: list[str] = []
-    for key, result in (state.get("prs") or {}).items():
-        facts = (result or {}).get("facts") or {}
-        # GitHub may not start checks or reviews for an unmergeable head, so a
-        # conflict is not evidence that dashboard delivery stalled.
-        if facts.get("conflicts") == "yes":
-            continue
-        if not facts.get("route_hold_expired"):
-            continue
-        try:
-            number = int(key)
-        except ValueError:
-            continue
-        if number not in open_pr_numbers:
-            continue
-        gates = unreported_gate_phrase(facts)
-        if not gates:
-            continue
-        stalled.append(f"PR #{number}: {gates} never reported on head {facts.get('head_sha') or 'unknown'}")
-    return sorted(stalled)
 
 
 def deliver_from_state(
@@ -157,16 +124,6 @@ def deliver_from_state(
                     now,
                 )
             ),
-            errors,
-        )
-    if pr_number is None and open_prs is not None:
-        # Last, so a stalled gate is reported but never keeps the real work
-        # from being delivered. Only whole-repository passes report it: a
-        # single pull request refresh has no business failing over another
-        # pull request's stall.
-        run_delivery_action(
-            "stalled gates",
-            lambda: report_stalled_gates({pr["number"] for pr in open_prs}),
             errors,
         )
     return errors
