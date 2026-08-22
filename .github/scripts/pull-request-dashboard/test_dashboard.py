@@ -27,6 +27,7 @@ from dashboard import (
     update_dashboard_for_backfill,
     write_initial_backfill_output,
 )
+from pull_request_activity import PullRequestActivity
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
 
@@ -48,7 +49,7 @@ def compute_facts(
     return dashboard_compute_facts(
         raw,
         author,
-        events,
+        PullRequestActivity(tuple(events), None, None, None),
         prepared_reviewers,
         reviewers,
         previous_facts,
@@ -254,7 +255,7 @@ class BuildPrResultTest(unittest.TestCase):
         facts = dashboard_compute_facts(
             raw,
             "author",
-            events,
+            PullRequestActivity(tuple(events), None, None, None),
             prepared_reviewers,
             {"reviewer"},
         )
@@ -1396,77 +1397,44 @@ class RequiredCiRoutingTest(unittest.TestCase):
         self.assertEqual("2026-07-17T01:00:00+00:00", facts["ci_failing_since"])
 
 
-class LastActivityTest(unittest.TestCase):
-    def _compute_last_activity_at(self, events: list[dict[str, object]]) -> object:
-        return compute_facts(
-            {
-                "pr": {
-                    # The dashboard's own status comment already bumped updatedAt.
-                    "updatedAt": "2026-07-20T09:00:00Z",
-                    "createdAt": "2026-07-20T01:00:00Z",
-                    "author": {"login": "author"},
-                    "assignees": [],
-                    "mergeStateStatus": "CLEAN",
-                    "mergeable": "MERGEABLE",
-                },
-                "checks": [],
+class ActivityFactsIntegrationTest(unittest.TestCase):
+    def test_formats_activity_clocks_and_clamps_overall_activity_to_creation(
+        self,
+    ) -> None:
+        raw = {
+            "pr": {
+                "createdAt": "2026-07-20T01:00:00Z",
+                "author": {"login": "author"},
+                "assignees": [],
+                "mergeStateStatus": "CLEAN",
+                "mergeable": "MERGEABLE",
             },
+            "checks": [],
+        }
+        prepared_reviewers = prepare_reviewers(ReviewerInput((), (), ()))
+        activity = PullRequestActivity(
+            (),
+            datetime(2024, 1, 5, tzinfo=timezone.utc),
+            datetime(2026, 7, 20, 2, tzinfo=timezone.utc),
+            datetime(2026, 7, 20, 3, tzinfo=timezone.utc),
+        )
+
+        facts = dashboard_compute_facts(
+            raw,
             "author",
-            events,
-        )["last_activity_at"]
+            activity,
+            prepared_reviewers,
+        )
 
-    def test_ignores_bot_activity(self) -> None:
-        last_activity_at = self._compute_last_activity_at([
-            {
-                "actor_role": "author",
-                "kind": "issue-comment",
-                "body": "ready for another look",
-                "timestamp": "2026-07-20T02:00:00Z",
-            },
-            {
-                "actor_role": "bot",
-                "kind": "issue-comment",
-                "body": "Pull request dashboard status",
-                "timestamp": "2026-07-20T09:00:00Z",
-            },
-        ])
-
-        self.assertEqual("2026-07-20T02:00:00+00:00", last_activity_at)
-
-    def test_uses_latest_activity_from_any_non_bot_role(self) -> None:
-        last_activity_at = self._compute_last_activity_at([
-            {
-                "actor_role": "author",
-                "kind": "issue-comment",
-                "body": "ready for another look",
-                "timestamp": "2026-07-20T02:00:00Z",
-            },
-            {
-                "actor_role": "outsider",
-                "kind": "issue-comment",
-                "body": "hitting this too",
-                "timestamp": "2026-07-20T03:00:00Z",
-            },
-        ])
-
-        self.assertEqual("2026-07-20T03:00:00+00:00", last_activity_at)
-
-    def test_falls_back_to_creation_time_without_activity(self) -> None:
-        self.assertEqual("2026-07-20T01:00:00+00:00", self._compute_last_activity_at([]))
-
-    def test_activity_predating_the_pr_is_clamped_to_creation_time(self) -> None:
-        # Commits pushed before the PR was opened, and cherry-picks that keep an
-        # old author date, must not report activity from before the PR existed.
-        last_activity_at = self._compute_last_activity_at([
-            {
-                "actor_role": "author",
-                "kind": "commit",
-                "body": "cherry-picked from a 2024 branch",
-                "timestamp": "2024-01-05T00:00:00Z",
-            },
-        ])
-
-        self.assertEqual("2026-07-20T01:00:00+00:00", last_activity_at)
+        self.assertEqual("2026-07-20T01:00:00+00:00", facts["last_activity_at"])
+        self.assertEqual(
+            "2026-07-20T02:00:00+00:00",
+            facts["last_author_activity_at"],
+        )
+        self.assertEqual(
+            "2026-07-20T03:00:00+00:00",
+            facts["last_approver_activity_at"],
+        )
 
 
 class BackfillFailureIsolationTest(unittest.TestCase):
