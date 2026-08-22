@@ -280,9 +280,7 @@ from discussion_lifecycle import (
     resolve_discussions,
 )
 from author_nudge import (
-    copilot_request_fingerprint,
     record_author_nudge_observation,
-    routing_input_fingerprint,
 )
 from copilot_review import (
     copilot_review_outstanding,
@@ -304,6 +302,7 @@ from pull_request_activity import (
     reviewer_actor_login,
     role_for,
 )
+from routing_snapshot import build_routing_snapshot
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -624,7 +623,8 @@ def compute_facts(
     previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pr = raw["pr"]
-    checks = raw["checks"]
+    snapshot = build_routing_snapshot(raw)
+    checks = snapshot.checks
     failing = [c for c in checks or [] if c.get("bucket") in ("fail", "cancel")]
     pending = [c for c in checks or [] if c.get("bucket") == "pending"]
     failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
@@ -646,18 +646,18 @@ def compute_facts(
     # Read the head OID straight from the PR object. Deriving it from
     # raw["commits"] is wrong for PRs with more than 250 commits, where the
     # commits REST endpoint truncates and the last entry is not the real head.
-    head_sha = pr.get("headRefOid") or ""
+    head_sha = snapshot.head_sha
     copilot_review_exists, copilot_review_stale, copilot_review_findings = copilot_review_status(
         raw.get("reviews") or [],
         head_sha,
-        raw.get("review_threads") or [],
+        snapshot.review_threads,
     )
     facts = {
         "author": author,
         "assignees": assignees,
         "head_sha": head_sha,
-        "routing_input_fingerprint": routing_input_fingerprint(raw),
-        "copilot_request_fingerprint": copilot_request_fingerprint(raw),
+        "routing_input_fingerprint": snapshot.routing_input_fingerprint,
+        "copilot_request_fingerprint": snapshot.copilot_request_fingerprint,
         **dashboard_override_facts(
             raw,
             author,
@@ -667,7 +667,7 @@ def compute_facts(
         ),
         "copilot_review_requested": any(
             is_copilot_reviewer(request)
-            for request in (raw.get("review_requests") or [])
+            for request in snapshot.review_requests
         ),
         "copilot_review_exists": copilot_review_exists,
         "copilot_review_stale": copilot_review_stale,

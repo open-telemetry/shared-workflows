@@ -7,17 +7,13 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from author_nudge import (
-    copilot_request_component_digests,
-    copilot_request_fingerprint,
-    fetch_current_pr_routing_inputs,
-)
 from github_cli import (
     fetch_pr_reviews,
     fetch_review_requests,
     request_copilot_review,
     sleep_for_retry,
 )
+from routing_snapshot import RoutingSnapshot, fetch_routing_snapshot
 from state import load_copilot_review_requests, save_copilot_review_requests
 from utils import (
     actor_login,
@@ -207,23 +203,20 @@ def named_checks(checks: list[dict[str, Any]]) -> str:
 
 def stale_request_reason(
     entry: dict[str, Any],
-    pr: dict[str, Any],
-    current_head: str,
-    current_request_fingerprint: str,
-    raw: dict[str, Any],
+    snapshot: RoutingSnapshot,
 ) -> str:
-    if pr.get("state") != "OPEN":
-        return f"pull request state is {pr.get('state')!r}"
-    if pr.get("isDraft"):
+    if snapshot.state != "OPEN":
+        return f"pull request state is {snapshot.state!r}"
+    if snapshot.is_draft:
         return "pull request is a draft"
-    if current_head != entry.get("head_sha"):
+    if snapshot.head_sha != entry.get("head_sha"):
         return (
-            f"head is {current_head or '(missing)'} "
+            f"head is {snapshot.head_sha or '(missing)'} "
             f"but {entry.get('head_sha') or '(missing)'} was observed"
         )
     # The fingerprint below only detects change, so checks that were failing
     # when the request was recorded and still are would otherwise pass through.
-    checks = raw.get("checks")
+    checks = snapshot.checks
     if checks is None:
         return "required check results are unavailable"
     failing = [check for check in checks if check.get("bucket") in ("fail", "cancel")]
@@ -231,12 +224,14 @@ def stale_request_reason(
         return f"required checks are failing: {named_checks(failing)}"
     if not entry.get("copilot_request_fingerprint"):
         return "no routing fingerprint was observed"
-    if current_request_fingerprint != entry["copilot_request_fingerprint"]:
-        digests = copilot_request_component_digests(raw)
+    if (
+        snapshot.copilot_request_fingerprint
+        != entry["copilot_request_fingerprint"]
+    ):
         return (
-            f"routing fingerprint is {current_request_fingerprint} "
+            f"routing fingerprint is {snapshot.copilot_request_fingerprint} "
             f"but {entry['copilot_request_fingerprint']} was observed; "
-            f"components {digests}"
+            f"components {snapshot.copilot_request_component_digests}"
         )
     return ""
 
@@ -280,19 +275,11 @@ def deliver_copilot_review_requests(
             continue
         pr_number = int(key)
         try:
-            pr, raw = fetch_current_pr_routing_inputs(
+            snapshot = fetch_routing_snapshot(
                 repo,
                 pr_number,
             )
-            current_request_fingerprint = copilot_request_fingerprint(raw)
-            current_head = pr.get("headRefOid") or ""
-            stale_reason = stale_request_reason(
-                entry,
-                pr,
-                current_head,
-                current_request_fingerprint,
-                raw,
-            )
+            stale_reason = stale_request_reason(entry, snapshot)
             if stale_reason:
                 print(
                     f"discarding Copilot review request for PR #{pr_number}: "
@@ -303,15 +290,15 @@ def deliver_copilot_review_requests(
                 continue
             if any(
                 is_copilot_reviewer(request)
-                for request in (raw.get("review_requests") or [])
+                for request in snapshot.review_requests
             ):
                 requests[key] = {**entry, "requested_at": format_ts(now)}
                 continue
             reviews = fetch_pr_reviews(owner, repo_name, pr_number) or []
             review_exists, review_stale, _review_findings = copilot_review_status(
                 reviews,
-                current_head,
-                raw.get("review_threads") or [],
+                snapshot.head_sha,
+                snapshot.review_threads,
             )
             # A missing review is a reason to request, not to discard: the
             # request was recorded precisely because the automatic first review
@@ -321,12 +308,12 @@ def deliver_copilot_review_requests(
             if review_exists and not review_stale:
                 print(
                     f"discarding Copilot review request for PR #{pr_number}: "
-                    f"Copilot review already covers head {current_head}",
+                    f"Copilot review already covers head {snapshot.head_sha}",
                     file=sys.stderr,
                 )
                 requests.pop(key, None)
                 continue
-            pull_request_id = pr.get("id") or ""
+            pull_request_id = snapshot.node_id
             if not pull_request_id:
                 raise RuntimeError(f"GitHub did not return a node ID for PR #{pr_number}")
             request_copilot_review(pull_request_id)
@@ -334,7 +321,7 @@ def deliver_copilot_review_requests(
                 owner,
                 repo_name,
                 pr_number,
-                current_head,
+                snapshot.head_sha,
             )
         except Exception as e:
             errors.append(f"PR #{pr_number}: {e}")
@@ -347,7 +334,7 @@ def deliver_copilot_review_requests(
         # pull request held, and the hold is what reports the stall.
         print(
             f"GitHub did not record the Copilot review request for "
-            f"PR #{pr_number} on head {current_head}",
+            f"PR #{pr_number} on head {snapshot.head_sha}",
             file=sys.stderr,
         )
     save_copilot_review_requests(requests)
