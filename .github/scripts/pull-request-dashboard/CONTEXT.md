@@ -1,6 +1,6 @@
 # Pull request dashboard context
 
-## Evaluation and dashboard updates
+## Evaluation, acceptance, and persistence
 
 Pull request evaluation is the dashboard's data plane. Given repository policy,
 a pull request summary, and the previous result, `pull_request_evaluation.py`
@@ -10,11 +10,22 @@ lifecycle and routing decisions, reviewer projection, command
 acknowledgements, author-action links, nudge episodes, and PR-specific failure
 shaping. Evaluation has no accepted-state or state-branch side effects.
 
-Dashboard updates are the operational control plane. `dashboard.py` selects
-targeted and backfill work, supplies cached results to evaluation, reconciles
-each result against concurrently accepted state, persists accepted updates,
-coordinates state-branch transactions and notification observations, and
-handles diagnostics and CLI behavior.
+`dashboard_state_update.py` owns the acceptance transaction for one pull request
+slot. It prepares the cached starting value, reconciles an evaluation with the
+latest accepted state, protects a slot changed by another writer, rejects failed
+evaluations, and returns the accepted state plus an explicit effect plan for
+persistence, status comments, observations, and backfill-failure clearing. The
+transaction is pure and does not fetch GitHub data or write state files.
+
+`dashboard.py` is the operational control plane. It selects targeted and
+backfill work, calls evaluation and the shared acceptance transaction, applies
+the planned effects, advances backfill scheduling state, and reports diagnostics
+and CLI status.
+
+`state_branch.py` owns the Git checkout, commit, push, and retry mechanics around
+those updates. The state branch remains the durable compare-and-swap boundary;
+the acceptance transaction only decides which dashboard state a retry may
+persist.
 
 ## Activity timeline
 
