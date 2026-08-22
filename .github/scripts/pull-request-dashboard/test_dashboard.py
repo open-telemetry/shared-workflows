@@ -12,15 +12,13 @@ from copilot_review import set_copilot_review_request_needed
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     DashboardUpdate,
-    add_reviewers,
     apply_targeted_dashboard_update,
     assign_author_nudge_episode,
     author_action_discussion_urls,
     backfill_failed_pr_numbers,
     build_pr_result,
     complete_initial_backfill_if_ready,
-    compute_facts,
-    current_approval_count,
+    compute_facts as dashboard_compute_facts,
     fetch_pr_raw,
     main,
     merge_dashboard_update_with_latest_state,
@@ -29,105 +27,32 @@ from dashboard import (
     update_dashboard_for_backfill,
     write_initial_backfill_output,
 )
+from reviewer_state import ReviewerInput, prepare_reviewers
+from routing_decision import resolve_routing
 
 
-class RerequestedReviewTest(unittest.TestCase):
-    @staticmethod
-    def approval(login: str) -> dict[str, object]:
-        return {
-            "kind": "review-state",
-            "timestamp": "2026-08-01T00:00:00Z",
-            "actor": login,
-            "actor_role": "approver",
-            "state": "APPROVED",
-        }
-
-    @staticmethod
-    def changes_requested(login: str) -> dict[str, object]:
-        return {
-            "kind": "review-state",
-            "timestamp": "2026-08-01T00:00:00Z",
-            "actor": login,
-            "actor_role": "approver",
-            "state": "CHANGES_REQUESTED",
-        }
-
-    def test_rerequested_approval_becomes_pending(self) -> None:
-        events = [self.approval("reviewer")]
-        review_requests = [{"__typename": "User", "login": "reviewer"}]
-        facts = {
-            "approval_count": current_approval_count(events, review_requests),
-            "assignees": [],
-            "is_maintenance_bot": False,
-        }
-
-        add_reviewers(facts, events, [], [], {}, review_requests)
-
-        self.assertEqual(0, facts["approval_count"])
-        self.assertEqual(
-            {
-                "login": "reviewer",
-                "approved": False,
-                "approved_non_team": False,
-                "pending_review": True,
-                "changes_requested": False,
-                "open_thread": False,
-                "top_level_feedback": False,
-            },
-            facts["reviewers"][0],
+def compute_facts(
+    raw: dict[str, object],
+    author: str,
+    events: list[dict[str, object]],
+    reviewers: set[str] | None = None,
+    previous_facts: dict[str, object] | None = None,
+) -> dict[str, object]:
+    prepared_reviewers = prepare_reviewers(
+        ReviewerInput(
+            tuple(events),
+            tuple(raw.get("review_requests") or []),
+            tuple((raw["pr"] or {}).get("assignees") or []),
         )
-
-    def test_other_active_approvals_still_count(self) -> None:
-        events = [self.approval("active"), self.approval("rerequested")]
-        review_requests = [{"__typename": "User", "login": "rerequested"}]
-        facts = {
-            "approval_count": current_approval_count(events, review_requests),
-            "assignees": [],
-            "is_maintenance_bot": False,
-        }
-
-        add_reviewers(facts, events, [], [], {}, review_requests)
-
-        self.assertEqual(1, facts["approval_count"])
-        self.assertTrue(facts["reviewers"][0]["approved"])
-        self.assertTrue(facts["reviewers"][1]["pending_review"])
-
-    def test_first_review_request_is_not_shown_as_a_rereview(self) -> None:
-        facts = {"assignees": []}
-
-        add_reviewers(
-            facts,
-            [],
-            [],
-            [],
-            {},
-            [{"__typename": "User", "login": "new-reviewer"}],
-        )
-
-        self.assertEqual([], facts["reviewers"])
-
-    def test_team_request_does_not_clear_individual_approvals(self) -> None:
-        events = [self.approval("reviewer")]
-        review_requests = [{"__typename": "Team", "slug": "example-approvers"}]
-
-        self.assertEqual(1, current_approval_count(events, review_requests))
-
-    def test_rerequest_keeps_a_blocking_changes_requested_state(self) -> None:
-        # GitHub keeps the review blocking the merge until the reviewer
-        # submits a new one, so the request adds a wait rather than clearing
-        # the block.
-        events = [self.changes_requested("reviewer")]
-        review_requests = [{"__typename": "User", "login": "reviewer"}]
-        facts = {"assignees": []}
-
-        add_reviewers(facts, events, [], [], {}, review_requests)
-
-        self.assertTrue(facts["reviewers"][0]["pending_review"])
-        self.assertTrue(facts["reviewers"][0]["changes_requested"])
-
-
-
-
+    )
+    return dashboard_compute_facts(
+        raw,
+        author,
+        events,
+        prepared_reviewers,
+        reviewers,
+        previous_facts,
+    )
 
 
 class AuthorNudgeEpisodeTest(unittest.TestCase):
@@ -312,6 +237,83 @@ class BuildPrResultTest(unittest.TestCase):
             "checks": checks or [],
             "non_blocking_check_failures": [],
         }
+
+    def test_compute_facts_uses_prepared_approval_count(self) -> None:
+        raw = self.raw_pr()
+        events = [{
+            "kind": "review-state",
+            "timestamp": "2026-08-16T08:00:00Z",
+            "actor": "reviewer",
+            "actor_role": "approver",
+            "state": "APPROVED",
+        }]
+        prepared_reviewers = prepare_reviewers(
+            ReviewerInput(tuple(events), (), ())
+        )
+
+        facts = dashboard_compute_facts(
+            raw,
+            "author",
+            events,
+            prepared_reviewers,
+            {"reviewer"},
+        )
+
+        self.assertEqual(1, facts["approval_count"])
+
+    @patch("dashboard.resolve_routing", wraps=resolve_routing)
+    @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
+    @patch("dashboard.fetch_pr_raw")
+    def test_build_result_routes_pending_reviewers_and_projects_reviewer_rows(
+        self,
+        fetch_raw: Mock,
+        _classify: Mock,
+        resolve: Mock,
+    ) -> None:
+        raw = self.raw_pr()
+        raw["reviews"] = [{
+            "id": 1,
+            "user": {"login": "reviewer"},
+            "state": "APPROVED",
+            "submitted_at": "2026-08-16T08:00:00Z",
+            "body": "",
+        }]
+        raw["review_requests"] = [{
+            "__typename": "User",
+            "login": "reviewer",
+        }]
+        fetch_raw.return_value = raw
+
+        result = build_pr_result(
+            "owner/repo",
+            "owner",
+            "repo",
+            {"number": 7},
+            {"reviewer"},
+            "model",
+            1,
+            [],
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        routing_input = resolve.call_args.args[0]
+        self.assertEqual(
+            frozenset({"reviewer"}),
+            routing_input.pending_human_reviewer_logins,
+        )
+        self.assertEqual(
+            [{
+                "login": "reviewer",
+                "approved": False,
+                "approved_non_team": False,
+                "pending_review": True,
+                "changes_requested": False,
+                "open_thread": False,
+                "top_level_feedback": False,
+            }],
+            result["facts"]["reviewers"],
+        )
 
     @patch(
         "dashboard.classify_discussion_domains",
