@@ -6,19 +6,12 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from dashboard import (
-    AuthorCommentOutcome,
     add_wait_age_facts,
     add_reviewers,
-    advance_top_level_actions,
     build_dashboard_update_for_pr,
-    build_review_thread_pending_actions,
     reviewers_with_open_threads,
-    derive_top_level_author_comment_items,
-    derive_top_level_items,
     normalize_events,
     route_pr,
-    top_level_author_comment_outcomes,
-    top_level_author_comment_source_state,
 )
 from classification import (
     PRAISE_VERDICTS,
@@ -29,6 +22,13 @@ from classification import (
     run_llm_for_verdict_batch,
     run_llm_for_top_level_author_comment_batch,
     top_level_reviewer_feedback_prompt_input,
+)
+from discussion_lifecycle import (
+    DiscussionClassifications,
+    DiscussionInput,
+    PreparedDiscussions,
+    prepare_discussions,
+    resolve_discussions,
 )
 from notifications import reviewer_logins_for_notification
 from render import reviewer_icon
@@ -121,19 +121,6 @@ def event(kind: str, timestamp: str, actor: str, actor_role: str, **values: obje
     }
 
 
-def author_comment_outcome(
-    feedback_id: str,
-    timestamp: str,
-    source_id: int = 102,
-) -> AuthorCommentOutcome:
-    return {
-        "source_id": source_id,
-        "action": "none",
-        "timestamp": timestamp,
-        "feedback_id": feedback_id,
-    }
-
-
 def top_level_history_record(kind: str, timestamp: str) -> dict:
     return {
         "evidence": {kind: timestamp},
@@ -154,10 +141,27 @@ def top_level_items_from_raw(
         "author",
         {"reviewer"},
     )
-    return derive_top_level_items(
-        events,
-        {"author": "author", "conflicts": conflicts},
+    return list(
+        prepare_discussions(
+            DiscussionInput(
+                (),
+                tuple(events),
+                "author",
+                frozenset({"reviewer"}),
+                conflicts,
+            )
+        ).top_level_items
     )
+
+
+def review_thread_pending_actions(
+    review_threads: list[dict],
+    classifications: list[dict],
+) -> dict[str, dict]:
+    return resolve_discussions(
+        PreparedDiscussions(tuple(review_threads), (), ()),
+        DiscussionClassifications(tuple(classifications), (), ()),
+    ).pending_actions
 
 
 def classify_feedback_domains(
@@ -232,7 +236,7 @@ class IgnoredPraiseWaitAgeTest(unittest.TestCase):
 
         with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
             records = classify_review_threads(1, [thread], "model", {}, {})
-        pending = build_review_thread_pending_actions([thread], list(records.values()))
+        pending = review_thread_pending_actions([thread], list(records.values()))
         return pending["t"]["since"]
 
     def test_praise_does_not_make_its_author_a_waiting_reviewer(self) -> None:
@@ -258,7 +262,7 @@ class IgnoredPraiseWaitAgeTest(unittest.TestCase):
 
         with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
             records = classify_review_threads(1, [thread], "model", {}, {})
-        pending = build_review_thread_pending_actions([thread], list(records.values()))
+        pending = review_thread_pending_actions([thread], list(records.values()))
 
         self.assertEqual({"alice"}, reviewers_with_open_threads([thread], pending))
 
@@ -285,7 +289,7 @@ class IgnoredPraiseWaitAgeTest(unittest.TestCase):
 
         with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
             records = classify_review_threads(1, [thread], "model", {}, {})
-        pending = build_review_thread_pending_actions([thread], list(records.values()))
+        pending = review_thread_pending_actions([thread], list(records.values()))
 
         self.assertEqual({"alice"}, reviewers_with_open_threads([thread], pending))
 
@@ -499,47 +503,6 @@ class NormalizeEventsCommandTest(unittest.TestCase):
 
 class TopLevelActionLedgerTest(unittest.TestCase):
 
-    def test_review_thread_pending_actions_include_since_and_omit_closed(self) -> None:
-        review_threads = [
-            {
-                "discussion_id": "open",
-                "comments": [{"timestamp": ROOT_TIMESTAMP}],
-            },
-            {
-                "discussion_id": "unclear",
-                "comments": [{"timestamp": ROOT_TIMESTAMP}],
-            },
-            {
-                "discussion_id": "closed",
-                "comments": [{"timestamp": ROOT_TIMESTAMP}],
-            },
-        ]
-        classifications = [
-            {
-                "discussion_id": "open",
-                "decision": {"discussion_action": "author"},
-            },
-            {
-                "discussion_id": "unclear",
-                "decision": {"discussion_action": "unclear"},
-            },
-            {
-                "discussion_id": "closed",
-                "decision": {"discussion_action": "none"},
-            },
-        ]
-
-        pending_actions = build_review_thread_pending_actions(
-            review_threads, classifications
-        )
-
-        self.assertEqual(
-            pending_actions,
-            {
-                "open": {"action": "author", "since": ROOT_TIMESTAMP},
-                "unclear": {"action": "author", "since": ROOT_TIMESTAMP},
-            },
-        )
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
@@ -1427,9 +1390,16 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             "author",
             {"reviewer"},
         )
-        items = derive_top_level_items(
-            events,
-            {"author": "author", "conflicts": "no"},
+        items = list(
+            prepare_discussions(
+                DiscussionInput(
+                    (),
+                    tuple(events),
+                    "author",
+                    frozenset({"reviewer"}),
+                    "no",
+                )
+            ).top_level_items
         )
 
         self.assertEqual(
@@ -1540,735 +1510,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertEqual(top_level_items_from_raw(raw), [])
 
-    def test_author_reply_advances_all_author_actions(self) -> None:
-        discussions = [
-            top_level_item("code"),
-            top_level_item("description"),
-            top_level_item("reply"),
-        ]
-        classifications = [
-            classification("code"),
-            classification("description"),
-            classification("reply"),
-        ]
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions,
-            classifications,
-            None,
-            [
-                author_comment_outcome(
-                    discussion["discussion_id"], "2026-07-14T03:00:00Z"
-                )
-                for discussion in discussions
-            ],
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(top_level_history["code"]["evidence"], {"reply": "2026-07-14T03:00:00Z"})
-        self.assertEqual(
-            top_level_history["description"]["evidence"],
-            {"reply": "2026-07-14T03:00:00Z"},
-        )
-        self.assertEqual(top_level_history["reply"]["evidence"], {"reply": "2026-07-14T03:00:00Z"})
-
-    def test_author_self_deferral_does_not_close_top_level_feedback(self) -> None:
-        discussion = top_level_item("test-request")
-        events = [
-            event(
-                "issue-comment",
-                "2026-07-14T03:00:00Z",
-                "author",
-                "author",
-                source_id=102,
-                created_timestamp="2026-07-14T03:00:00Z",
-                body="Thanks, I'll have time this week to test and validate.",
-            ),
-        ]
-        author_reply_items = derive_top_level_author_comment_items(
-            events,
-            [discussion],
-            {"conflicts": "no"},
-        )
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("test-request")],
-            {
-                "test-request": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                }
-            },
-            author_comment_outcomes=top_level_author_comment_outcomes(
-                author_reply_items,
-                [
-                    {
-                        "discussion_id": author_reply_items[0]["discussion_id"],
-                        "decision": author_comment_decision(
-                            ("test-request", "author")
-                        ),
-                    }
-                ],
-            ),
-        )
-
-        self.assertEqual(pending_actions["test-request"]["action"], "author")
-        self.assertNotIn("test-request", history)
-
-    def test_author_comment_candidates_include_only_earlier_feedback(self) -> None:
-        earlier = top_level_item("earlier")
-        earlier["comments"] = [{"body": "Please update the implementation."}]
-        later = top_level_item("later")
-        later["root_timestamp"] = "2026-07-14T04:00:00Z"
-        later["comments"] = [{"body": "Please add another test."}]
-        events = [
-            event(
-                "issue-comment",
-                "2026-07-14T03:00:00Z",
-                "author",
-                "author",
-                source_id=102,
-                created_timestamp="2026-07-14T03:00:00Z",
-            ),
-        ]
-
-        items = derive_top_level_author_comment_items(
-            events,
-            [earlier, later],
-            {"conflicts": "no"},
-        )
-
-        self.assertEqual(
-            items[0]["candidate_feedback"],
-            [
-                {
-                    "discussion_id": "earlier",
-                    "body": "Please update the implementation.",
-                }
-            ],
-        )
-
-    def test_completed_author_reply_closes_top_level_feedback(self) -> None:
-        discussion = top_level_item("question")
-        events = [
-            event(
-                "issue-comment",
-                "2026-07-14T03:00:00Z",
-                "author",
-                "author",
-                source_id=102,
-                created_timestamp="2026-07-14T03:00:00Z",
-                body="I tested this and confirmed it works.",
-            ),
-        ]
-        author_reply_items = derive_top_level_author_comment_items(
-            events,
-            [discussion],
-            {"conflicts": "no"},
-        )
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history=None,
-            author_comment_outcomes=top_level_author_comment_outcomes(
-                author_reply_items,
-                [
-                    {
-                        "discussion_id": author_reply_items[0]["discussion_id"],
-                        "decision": author_comment_decision(("question", "none")),
-                    }
-                ],
-            ),
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(
-            history["question"],
-            {
-                "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                "reply_source_id": 102,
-            },
-        )
-
-    def test_cached_author_reply_survives_missing_classification(self) -> None:
-        discussion = top_level_item("question")
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                    "reply_source_id": 102,
-                },
-            },
-            author_comment_outcomes=[],
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(
-            history["question"],
-            {
-                "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                "reply_source_id": 102,
-            },
-        )
-
-    def test_cached_author_reply_is_removed_with_its_source(self) -> None:
-        discussion = top_level_item("question")
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                    "reply_source_id": 102,
-                },
-            },
-            author_comment_outcomes=[],
-            author_comment_source_state={"current": set(), "classified": set()},
-        )
-
-        self.assertEqual(
-            pending_actions,
-            {"question": {"action": "author", "since": ROOT_TIMESTAMP}},
-        )
-        self.assertEqual(history, {})
-
-    def test_cached_author_reply_is_recomputed_after_classification(self) -> None:
-        discussion = top_level_item("question")
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                    "reply_source_id": 102,
-                },
-            },
-            author_comment_outcomes=[],
-            author_comment_source_state={"current": {102}, "classified": {102}},
-        )
-
-        self.assertEqual(
-            pending_actions,
-            {"question": {"action": "author", "since": ROOT_TIMESTAMP}},
-        )
-        self.assertEqual(history, {})
-
-    def test_cached_author_reply_survives_failed_classification(self) -> None:
-        discussion = top_level_item("question")
-        author_comment_items = [{"discussion_id": "reply", "source_id": 102}]
-        source_state = top_level_author_comment_source_state(
-            author_comment_items,
-            [{"discussion_id": "reply", "failed": True}],
-        )
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                    "reply_source_id": 102,
-                },
-            },
-            author_comment_outcomes=[],
-            author_comment_source_state=source_state,
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(
-            history["question"],
-            {
-                "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                "reply_source_id": 102,
-            },
-        )
-
-    def test_cached_author_reply_survives_deferred_classification(self) -> None:
-        discussion = top_level_item("question")
-        source_state = top_level_author_comment_source_state(
-            [{"discussion_id": "reply", "source_id": 102}],
-            [{"discussion_id": "reply", "failed": False, "deferred": True}],
-        )
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                    "reply_source_id": 102,
-                },
-            },
-            author_comment_outcomes=[],
-            author_comment_source_state=source_state,
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(
-            history["question"],
-            {
-                "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                "reply_source_id": 102,
-            },
-        )
-
-    def test_legacy_cached_author_reply_survives_missing_classification(self) -> None:
-        discussion = top_level_item("question")
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                },
-            },
-            author_comment_outcomes=[],
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(
-            history["question"],
-            {"evidence": {"reply": "2026-07-14T03:00:00Z"}},
-        )
-
-    def test_legacy_cached_author_reply_recovers_source_id(self) -> None:
-        discussion = top_level_item("question")
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                },
-            },
-            author_comment_outcomes=[
-                author_comment_outcome(
-                    "question", "2026-07-14T03:00:00Z", source_id=102
-                ),
-            ],
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(
-            history["question"],
-            {
-                "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                "reply_source_id": 102,
-            },
-        )
-
-    def test_newer_handoff_supersedes_legacy_cached_reply(self) -> None:
-        discussion = top_level_item("question")
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T02:00:00Z"},
-                },
-            },
-            author_comment_outcomes=[
-                {
-                    "source_id": 103,
-                    "action": "author",
-                    "timestamp": "2026-07-14T03:00:00Z",
-                    "feedback_id": "question",
-                },
-            ],
-        )
-
-        self.assertEqual(
-            pending_actions,
-            {
-                "question": {
-                    "action": "author",
-                    "since": "2026-07-14T03:00:00Z",
-                },
-            },
-        )
-        self.assertEqual(history, {})
-
-    def test_newer_author_handoff_supersedes_cached_reply(self) -> None:
-        discussion = top_level_item("question")
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T02:00:00Z"},
-                    "reply_source_id": 102,
-                },
-            },
-            author_comment_outcomes=[
-                {
-                    "source_id": 103,
-                    "action": "author",
-                    "timestamp": "2026-07-14T03:00:00Z",
-                    "feedback_id": "question",
-                },
-            ],
-        )
-
-        self.assertEqual(
-            pending_actions,
-            {
-                "question": {
-                    "action": "author",
-                    "since": "2026-07-14T03:00:00Z",
-                },
-            },
-        )
-        self.assertEqual(history, {})
-
-    def test_reclassified_author_reply_supersedes_cached_reply(self) -> None:
-        discussion = top_level_item("question")
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history={
-                "question": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                    "reply_source_id": 102,
-                },
-            },
-            author_comment_outcomes=[
-                {
-                    "source_id": 102,
-                    "action": "author",
-                    "timestamp": "2026-07-14T03:00:00Z",
-                    "feedback_id": "question",
-                },
-            ],
-        )
-
-        self.assertEqual(
-            pending_actions,
-            {
-                "question": {
-                    "action": "author",
-                    "since": "2026-07-14T03:00:00Z",
-                },
-            },
-        )
-        self.assertEqual(history, {})
-
-    def test_author_reply_uses_source_id_to_break_timestamp_tie(self) -> None:
-        discussion = top_level_item("question")
-        events = [
-            event(
-                "issue-comment",
-                "2026-07-14T03:00:00Z",
-                "author",
-                "author",
-                source_id=102,
-                created_timestamp="2026-07-14T03:00:00Z",
-                body="I tested this and confirmed it works.",
-            ),
-            event(
-                "issue-comment",
-                "2026-07-14T03:00:00Z",
-                "author",
-                "author",
-                source_id=103,
-                created_timestamp="2026-07-14T03:00:00Z",
-                body="I'll make another change later.",
-            ),
-        ]
-        author_reply_items = derive_top_level_author_comment_items(
-            events,
-            [discussion],
-            {"conflicts": "no"},
-        )
-        classifications = [
-            {
-                "discussion_id": author_reply_items[0]["discussion_id"],
-                "decision": author_comment_decision(("question", "none")),
-            },
-            {
-                "discussion_id": author_reply_items[1]["discussion_id"],
-                "decision": author_comment_decision(("question", "author")),
-            },
-        ]
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("question")],
-            previous_history=None,
-            author_comment_outcomes=top_level_author_comment_outcomes(
-                author_reply_items,
-                classifications,
-            ),
-        )
-
-        self.assertEqual(
-            pending_actions,
-            {
-                "question": {
-                    "action": "author",
-                    "since": "2026-07-14T03:00:00Z",
-                },
-            },
-        )
-        self.assertEqual(history, {})
-
-    def test_author_comment_applies_each_feedback_outcome_independently(self) -> None:
-        discussions = [
-            top_level_item("first-request"),
-            top_level_item("second-request"),
-        ]
-        classifications = [
-            classification("first-request"),
-            classification("second-request"),
-        ]
-        events = [
-            event(
-                "issue-comment",
-                "2026-07-14T03:00:00Z",
-                "author",
-                "author",
-                source_id=102,
-                created_timestamp="2026-07-14T03:00:00Z",
-            ),
-        ]
-        author_comment_items = derive_top_level_author_comment_items(
-            events,
-            discussions,
-            {"conflicts": "no"},
-        )
-        author_comment_outcomes = top_level_author_comment_outcomes(
-            author_comment_items,
-            [
-                {
-                    "discussion_id": author_comment_items[0]["discussion_id"],
-                    "decision": {
-                        "feedback_outcomes": [
-                            {
-                                "feedback_id": "first-request",
-                                "discussion_action": "none",
-                                "reason": "The author answered the first request.",
-                            },
-                            {
-                                "feedback_id": "second-request",
-                                "discussion_action": "author",
-                                "reason": "The author will address the second request.",
-                            },
-                        ],
-                    },
-                }
-            ],
-        )
-
-        pending_actions, history = advance_top_level_actions(
-            discussions,
-            classifications,
-            previous_history=None,
-            author_comment_outcomes=author_comment_outcomes,
-        )
-
-        self.assertEqual(
-            pending_actions,
-            {
-                "second-request": {
-                    "action": "author",
-                    "since": "2026-07-14T03:00:00Z",
-                },
-            },
-        )
-        self.assertEqual(
-            history,
-            {
-                "first-request": {
-                    "evidence": {"reply": "2026-07-14T03:00:00Z"},
-                    "reply_source_id": 102,
-                },
-            },
-        )
-
-    def test_author_handoff_uses_creation_order_after_older_comment_edit(self) -> None:
-        discussion = top_level_item("dependency")
-        events = [
-            event(
-                "issue-comment",
-                "2026-07-14T05:00:00Z",
-                "author",
-                "author",
-                source_id=103,
-                created_timestamp="2026-07-14T04:00:00Z",
-                body="This is blocked on a second upstream decision.",
-            ),
-            event(
-                "issue-comment",
-                "2026-07-14T06:00:00Z",
-                "author",
-                "author",
-                source_id=102,
-                created_timestamp="2026-07-14T02:00:00Z",
-                body="This is blocked on the first upstream decision.",
-            ),
-        ]
-        author_comment_items = derive_top_level_author_comment_items(
-            events,
-            [discussion],
-            {"conflicts": "no"},
-        )
-        author_comment_outcomes = top_level_author_comment_outcomes(
-            author_comment_items,
-            [
-                {
-                    "discussion_id": item["discussion_id"],
-                    "decision": author_comment_decision(
-                        ("dependency", "author")
-                    ),
-                }
-                for item in author_comment_items
-            ],
-        )
-
-        self.assertEqual(
-            [
-                (outcome["source_id"], outcome["timestamp"])
-                for outcome in author_comment_outcomes
-            ],
-            [
-                (102, "2026-07-14T02:00:00Z"),
-                (103, "2026-07-14T04:00:00Z"),
-            ],
-        )
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("dependency")],
-            previous_history=None,
-            author_comment_outcomes=author_comment_outcomes,
-        )
-
-        self.assertEqual(
-            pending_actions["dependency"],
-            {"action": "author", "since": "2026-07-14T02:00:00Z"},
-        )
-        self.assertNotIn("dependency", history)
-
-    def test_completed_reply_restarts_later_handoff_age(self) -> None:
-        discussion = top_level_item("dependency")
-        author_comment_outcomes = [
-            {
-                "source_id": 102,
-                "action": "author",
-                "timestamp": "2026-07-14T02:00:00Z",
-                "feedback_id": "dependency",
-            },
-            author_comment_outcome(
-                "dependency", "2026-07-14T03:00:00Z", source_id=103
-            ),
-            {
-                "source_id": 104,
-                "action": "author",
-                "timestamp": "2026-07-14T04:00:00Z",
-                "feedback_id": "dependency",
-            },
-        ]
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("dependency")],
-            previous_history=None,
-            author_comment_outcomes=author_comment_outcomes,
-        )
-
-        self.assertEqual(
-            pending_actions["dependency"],
-            {"action": "author", "since": "2026-07-14T04:00:00Z"},
-        )
-        self.assertEqual(history, {})
-
-    def test_unclear_reply_preserves_the_earlier_author_handoff(self) -> None:
-        discussion = top_level_item("dependency")
-        author_comment_outcomes = [
-            {
-                "source_id": 102,
-                "action": "author",
-                "timestamp": "2026-07-14T02:00:00Z",
-                "feedback_id": "dependency",
-            },
-            {
-                "source_id": 103,
-                "action": "unclear",
-                "timestamp": "2026-07-14T03:00:00Z",
-                "feedback_id": "dependency",
-            },
-        ]
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("dependency")],
-            previous_history=None,
-            author_comment_outcomes=author_comment_outcomes,
-        )
-
-        self.assertEqual(
-            pending_actions["dependency"],
-            {"action": "author", "since": "2026-07-14T02:00:00Z"},
-        )
-        self.assertEqual(history, {})
-
-    def test_non_content_updates_do_not_reopen_replied_to_feedback(self) -> None:
-        events = normalize_events(
-            {
-                "commits": [],
-                "issue_comments": [
-                    {
-                        "id": 101,
-                        "created_at": "2026-05-27T01:29:41Z",
-                        "updated_at": "2026-05-30T22:09:49Z",
-                        "content_updated_at": "2026-05-27T01:29:41Z",
-                        "user": {"login": "reviewer"},
-                        "body": "Can you mark this as resolving the issue?",
-                    },
-                    {
-                        "id": 102,
-                        "created_at": "2026-05-27T12:07:12Z",
-                        "updated_at": "2026-05-30T22:09:46Z",
-                        "content_updated_at": "2026-05-27T12:07:12Z",
-                        "user": {"login": "author"},
-                        "body": "This PR resolves it only partly.",
-                    },
-                ],
-                "review_comments": [],
-                "reviews": [],
-            },
-            "author",
-            {"reviewer"},
-        )
-        discussion = top_level_item("request")
-        discussion["root_timestamp"] = events[0]["timestamp"]
-
-        pending_actions, history = advance_top_level_actions(
-            [discussion],
-            [classification("request")],
-            None,
-            [
-                author_comment_outcome(
-                    "request", "2026-05-27T12:07:12Z", source_id=102
-                )
-            ],
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertEqual(
-            history["request"]["evidence"],
-            {"reply": "2026-05-27T12:07:12Z"},
-        )
 
     def test_normalized_events_use_creation_order_not_edit_order(self) -> None:
         events = normalize_events(
@@ -2303,81 +1544,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(events[0]["timestamp"], "2026-07-14T05:00:00Z")
         self.assertEqual(events[0]["created_timestamp"], "2026-07-14T01:00:00Z")
 
-    def test_top_level_items_use_creation_order_not_edit_order(self) -> None:
-        events = normalize_events(
-            {
-                "commits": [],
-                "issue_comments": [
-                    {
-                        "id": 101,
-                        "created_at": "2026-07-14T01:00:00Z",
-                        "updated_at": "2026-07-14T05:00:00Z",
-                        "content_updated_at": "2026-07-14T05:00:00Z",
-                        "user": {"login": "reviewer"},
-                        "body": "Older comment edited later.",
-                    },
-                    {
-                        "id": 102,
-                        "created_at": "2026-07-14T02:00:00Z",
-                        "updated_at": "2026-07-14T02:00:00Z",
-                        "content_updated_at": "2026-07-14T02:00:00Z",
-                        "user": {"login": "reviewer"},
-                        "body": "Newer comment.",
-                    },
-                ],
-                "review_comments": [],
-                "reviews": [],
-            },
-            "author",
-            {"reviewer"},
-        )
-
-        items = derive_top_level_items(
-            events,
-            {"author": "author", "conflicts": "no"},
-        )
-
-        self.assertEqual(
-            [item["discussion_id"] for item in items],
-            ["pr-issue-comment-101", "pr-issue-comment-102"],
-        )
-        self.assertEqual(
-            [item["root_timestamp"] for item in items],
-            ["2026-07-14T01:00:00Z", "2026-07-14T02:00:00Z"],
-        )
-
-    def test_edited_old_author_comment_does_not_count_as_reply(self) -> None:
-        events = normalize_events(
-            {
-                "commits": [],
-                "issue_comments": [
-                    {
-                        "id": 101,
-                        "created_at": "2026-07-14T00:00:00Z",
-                        "updated_at": "2026-07-14T03:00:00Z",
-                        "content_updated_at": "2026-07-14T03:00:00Z",
-                        "user": {"login": "author"},
-                        "body": "An earlier comment edited later.",
-                    }
-                ],
-                "review_comments": [],
-                "reviews": [],
-            },
-            "author",
-            {"reviewer"},
-        )
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            [top_level_item("code")],
-            [classification("code")],
-            None,
-            [],
-        )
-
-        self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
-        self.assertEqual(events[0]["created_timestamp"], "2026-07-14T00:00:00Z")
-        self.assertEqual(pending_actions["code"]["action"], "author")
-        self.assertNotIn("code", top_level_history)
 
     def test_maintainer_cherry_pick_uses_original_author_date(self) -> None:
         events = normalize_events(
@@ -2408,17 +1574,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         self.assertEqual(events[0]["actor"], "author")
         self.assertEqual(events[0]["timestamp"], "2026-07-13T03:00:00Z")
-
-        classifications = [classification("code")]
-        pending_actions, top_level_history = advance_top_level_actions(
-            [top_level_item("code")],
-            classifications,
-            None,
-            [],
-        )
-
-        self.assertEqual(pending_actions["code"]["action"], "author")
-        self.assertNotIn("code", top_level_history)
 
     def test_cherry_pick_by_author_is_author_evidence(self) -> None:
         events = normalize_events(
@@ -2481,162 +1636,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(events[0]["actor"], "author")
         self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
 
-    def test_review_state_does_not_change_action_lifecycle(self) -> None:
-        for review_state in ("CHANGES_REQUESTED", "APPROVED"):
-            with self.subTest(review_state=review_state):
-                discussion = top_level_item("code")
-                discussion["review_state"] = review_state
-
-                open_actions, open_history = advance_top_level_actions(
-                    [discussion],
-                    [classification("code")],
-                    None,
-                    [],
-                )
-                closed_actions, closed_history = advance_top_level_actions(
-                    [discussion],
-                    [classification("code")],
-                    None,
-                    [author_comment_outcome("code", "2026-07-14T03:00:00Z")],
-                )
-
-                self.assertEqual(open_actions["code"]["action"], "author")
-                self.assertNotIn("code", open_history)
-                self.assertEqual(closed_actions, {})
-                self.assertEqual(
-                    closed_history["code"]["evidence"],
-                    {"reply": "2026-07-14T03:00:00Z"},
-                )
-
-    def test_reviewer_activity_does_not_close_ordinary_item_without_author_evidence(self) -> None:
-        events = normalize_events(
-            {
-                "commits": [],
-                "issue_comments": [],
-                "review_comments": [],
-                "reviews": [
-                    {
-                        "id": 202,
-                        "submitted_at": "2026-07-14T00:00:00Z",
-                        "updated_at": "2026-07-14T03:00:00Z",
-                        "user": {"login": "reviewer"},
-                        "state": "COMMENTED",
-                        "body": "This is addressed.",
-                    }
-                ],
-            },
-            "author",
-            {"reviewer"},
-        )
-        classifications = [classification("code")]
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            [top_level_item("code")],
-            classifications,
-            None,
-            [],
-        )
-
-        self.assertEqual(events[0]["timestamp"], "2026-07-14T00:00:00Z")
-        self.assertEqual(pending_actions["code"]["action"], "author")
-        self.assertNotIn("code", top_level_history)
-
-    def test_later_actionable_request_does_not_confirm_older_item(self) -> None:
-        discussions = [
-            top_level_item("first", source_kind="issue-comment", source_id=101),
-            top_level_item("second", source_kind="issue-comment", source_id=102),
-        ]
-        classifications = [
-            classification("first"),
-            classification("second"),
-        ]
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions,
-            classifications,
-            None,
-            [],
-        )
-
-        self.assertEqual(pending_actions["first"]["action"], "author")
-        self.assertNotIn("first", top_level_history)
-        self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
-
-    def test_later_reviewer_acknowledgement_does_not_address_older_item(self) -> None:
-        discussions = [
-            top_level_item("request", source_kind="issue-comment", source_id=101),
-            top_level_item("ack", source_kind="issue-comment", source_id=102),
-        ]
-        classifications = [
-            classification("request"),
-            {
-                "discussion_id": "ack",
-                "discussion_kind": "top-level-feedback",
-                "decision": {"discussion_action": "none"},
-            },
-        ]
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions,
-            classifications,
-            None,
-            [],
-        )
-
-        self.assertEqual(pending_actions["request"]["action"], "author")
-        self.assertNotIn("request", top_level_history)
-        self.assertEqual(classifications[0]["decision"]["discussion_action"], "author")
-
-    def test_review_state_does_not_block_routing_after_author_evidence(self) -> None:
-        discussions = [top_level_item("code")]
-        discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        classifications = [classification("code")]
-        facts = {"approval_count": 1, "is_maintenance_bot": False}
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions,
-            classifications,
-            None,
-            [author_comment_outcome("code", "2026-07-14T02:00:00Z")],
-        )
-
-        self.assertEqual(pending_actions, {})
-        self.assertIn("evidence", top_level_history["code"])
-        self.assertEqual(route_pr(facts, pending_actions, 1), "maintainer")
-
-    def test_reviewer_activity_does_not_close_unclear_items(self) -> None:
-        discussions = [top_level_item("unclear")]
-        classifications = [classification("unclear")]
-        classifications[0]["decision"]["discussion_action"] = "unclear"
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions,
-            classifications,
-            None,
-            [],
-        )
-
-        self.assertEqual(pending_actions["unclear"]["action"], "author")
-        self.assertNotIn("unclear", top_level_history)
-        self.assertEqual(classifications[0]["decision"]["discussion_action"], "unclear")
-
-    def test_author_reply_closes_unclear_items(self) -> None:
-        discussions = [top_level_item("unclear")]
-        classifications = [classification("unclear")]
-        classifications[0]["decision"]["discussion_action"] = "unclear"
-
-        pending_actions, top_level_history = advance_top_level_actions(
-            discussions,
-            classifications,
-            None,
-            [author_comment_outcome("unclear", "2026-07-14T03:00:00Z")],
-        )
-
-        self.assertNotIn("unclear", pending_actions)
-        self.assertEqual(
-            top_level_history["unclear"]["evidence"],
-            {"reply": "2026-07-14T03:00:00Z"},
-        )
 
     def test_changes_requested_is_visual_only_after_action_clears(self) -> None:
         discussions = [top_level_item("code")]
