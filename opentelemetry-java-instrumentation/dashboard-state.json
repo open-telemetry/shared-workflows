@@ -1815,18 +1815,16 @@
         "assignees": [],
         "author": "DhroovP",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526#issuecomment-5375110759"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "4970f0cb74bf47ef96e81574794cfa8f",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4cf1c90580011bce7a0ffee62b2b969292e9a5e5b31947f27b5e166232c6207a",
+        "copilot_request_fingerprint": "c97f3ce0b99310120a24a3530f46fef8f5be7b1dea4fbdccddf69cece394e2d7",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
-        "copilot_review_request_needed": false,
+        "copilot_review_request_needed": true,
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
@@ -1838,9 +1836,9 @@
         "head_sha": "3a4daa389810c832851dd4ed3c865ad118ae45f8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-22T00:34:36+00:00",
+        "last_activity_at": "2026-08-22T00:36:24+00:00",
         "last_approver_activity_at": "2026-08-21T20:35:02+00:00",
-        "last_author_activity_at": "2026-08-22T00:34:36+00:00",
+        "last_author_activity_at": "2026-08-22T00:36:24+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -1859,13 +1857,14 @@
             "login": "trask",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-22T00:37:05.653195+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "32a66d689d48c33829c6aacdc7e4b9517484e5ff82a42da5982d49897ba5ac1a",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "5bd226bf07e572e9be99a7a5a8295916a0e24c812c7ee6bb4beb414a8b2acc93",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-21T20:40:01+00:00"
       },
       "failed": false,
@@ -1878,6 +1877,12 @@
             "reply": "2026-08-21T19:55:50Z"
           },
           "reply_source_id": 5374673303
+        },
+        "pr-issue-comment-5375110759": {
+          "evidence": {
+            "reply": "2026-08-22T00:36:24Z"
+          },
+          "reply_source_id": 5376811463
         }
       }
     },
