@@ -681,7 +681,7 @@
     },
     "1719": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jerbly",
         "author_action_review_thread_urls": [],
@@ -689,7 +689,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6775b9f7f9e983a8019bd9e3e451ba32b154ca8dba8e50eef263c1c3c57fd250",
+        "copilot_request_fingerprint": "4fe4c6483b1d72e7848f001a42e442ae4a7db882718b42d2487afbcdb3157131",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -705,21 +705,31 @@
         "head_sha": "f539f1b80468f07c024c47367686176ea13ec0e5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-22T00:21:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-22T20:20:26+00:00",
+        "last_approver_activity_at": "2026-08-22T20:20:26+00:00",
         "last_author_activity_at": "2026-08-22T00:17:31+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9649ba28c872acb9c3ba866171211b44d26f79b15ef10a97ebbc165ef3d8fd0b",
+        "routing_input_fingerprint": "faabd41a0bdf83b4e3be205e3e3b4aa6e460339a01e404c0e2b9a65d2ddd27ed",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-22T00:29:51.762840+00:00"
       },
       "failed": false,
       "pr_number": 1719,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1719",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "845": {
