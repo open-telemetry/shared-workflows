@@ -34,3 +34,24 @@ Copilot review state.
 The durable evidence that a specific author reply closed a top-level feedback
 item. It lets later refreshes preserve that outcome when the reply does not
 need classification again.
+
+## Routing snapshot
+
+The routing snapshot is the shared live view used when the dashboard computes
+facts and when prepared author reminders or Copilot review requests are
+delivered. It carries the pull request state, draft state, node ID, head SHA,
+required checks, review requests, review threads, and both routing
+fingerprints.
+
+### Routing fingerprint
+
+The dashboard routing fingerprint covers every input that can change routing,
+including required checks. Prepared author reminders compare it with the live
+snapshot before delivery.
+
+### Copilot request fingerprint
+
+The Copilot request fingerprint covers the same routing inputs except required
+checks. A request can therefore be delivered while checks move from pending to
+passing. Component digests identify which covered input changed when delivery
+rejects a stale request.

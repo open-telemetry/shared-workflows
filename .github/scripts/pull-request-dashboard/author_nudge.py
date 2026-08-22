@@ -4,15 +4,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-import hashlib
-import json
 from pathlib import Path
 import re
 import sys
 from typing import Any
 
 from github_cli import (
-    fetch_pr_routing_raw,
     gh_api,
     gh_graphql,
     run_gh,
@@ -28,7 +25,8 @@ from state import (
     load_dashboard_state_cache,
     save_author_nudges,
 )
-from utils import compute_conflicts, format_ts, parse_ts
+from routing_snapshot import fetch_routing_snapshot
+from utils import format_ts, parse_ts
 
 
 NUDGE_AFTER = timedelta(weeks=1)
@@ -104,90 +102,6 @@ def queue_completion(
             "completed_at": format_ts(completed_at),
             "kind": kind,
         })
-
-
-def routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
-    dashboard_login = f"{DASHBOARD_APP_SLUG}[bot]"
-    pr = raw.get("pr") or {}
-    issue_comments = [
-        comment
-        for comment in raw.get("issue_comments") or []
-        if (comment.get("user") or {}).get("login") != dashboard_login
-    ]
-    routing_inputs = {
-        "base_branch": str(pr.get("baseRefName") or ""),
-        "checks": raw.get("checks"),
-        # The derived conflict state, not the raw fields it comes from. A
-        # mergeability status that moves between values routing reads the same
-        # way must not invalidate a prepared delivery.
-        "conflicts": compute_conflicts(pr),
-        "issue_comments": issue_comments,
-        "pr_text": {
-            "body": str(pr.get("body") or "").replace("\r\n", "\n"),
-            "title": str(pr.get("title") or ""),
-        },
-        "review_comments": raw.get("review_comments") or [],
-        "review_requests": raw.get("review_requests") or [],
-        "reviews": raw.get("reviews") or [],
-        "review_threads": raw.get("review_threads") or [],
-    }
-    return routing_inputs
-
-
-def _digest(value: Any) -> str:
-    encoded = json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode()
-    return hashlib.sha256(encoded).hexdigest()
-
-
-def routing_input_fingerprint(raw: dict[str, Any]) -> str:
-    return _digest(routing_inputs(raw))
-
-
-def copilot_request_inputs(raw: dict[str, Any]) -> dict[str, Any]:
-    # The Copilot review is requested while the checks are still running, so
-    # covering them would change the fingerprint on every check transition and
-    # discard the request before it was ever sent. Checks that turn failing are
-    # caught on their own, where the pull request goes back to its author.
-    inputs = routing_inputs(raw)
-    inputs.pop("checks", None)
-    return inputs
-
-
-def copilot_request_fingerprint(raw: dict[str, Any]) -> str:
-    return _digest(copilot_request_inputs(raw))
-
-
-def routing_input_component_digests(raw: dict[str, Any]) -> dict[str, str]:
-    return _component_digests(routing_inputs(raw))
-
-
-def copilot_request_component_digests(raw: dict[str, Any]) -> dict[str, str]:
-    return _component_digests(copilot_request_inputs(raw))
-
-
-def _component_digests(inputs: dict[str, Any]) -> dict[str, str]:
-    return {name: _digest(value)[:16] for name, value in inputs.items()}
-
-
-def fetch_current_pr_routing_state(
-    repo: str,
-    pr_number: int,
-) -> tuple[dict[str, Any], str]:
-    pr, raw = fetch_current_pr_routing_inputs(repo, pr_number)
-    return pr, routing_input_fingerprint(raw)
-
-
-def fetch_current_pr_routing_inputs(
-    repo: str,
-    pr_number: int,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    owner, repo_name = repo.split("/", 1)
-    raw = fetch_pr_routing_raw(repo, owner, repo_name, pr_number)
-    return raw["pr"], raw
 
 
 def waiting_on_author(result: dict[str, Any] | None) -> bool:
@@ -612,14 +526,13 @@ def deliver_prepared_author_nudges(
                 updated[key] = reset_entry
             continue
         try:
-            pr, current_routing_fingerprint = fetch_current_pr_routing_state(
+            snapshot = fetch_routing_snapshot(
                 repo,
                 pr_number,
             )
             expected_head = entry.get("head_sha") or ""
             expected_routing_fingerprint = entry.get("routing_input_fingerprint") or ""
-            current_head = pr.get("headRefOid") or ""
-            if pr.get("state") != "OPEN" or pr.get("isDraft"):
+            if snapshot.state != "OPEN" or snapshot.is_draft:
                 completion_entry = completion_only(entry)
                 if completion_entry is None:
                     updated.pop(key, None)
@@ -628,9 +541,10 @@ def deliver_prepared_author_nudges(
                 continue
             if (
                 not expected_head
-                or current_head != expected_head
+                or snapshot.head_sha != expected_head
                 or not expected_routing_fingerprint
-                or current_routing_fingerprint != expected_routing_fingerprint
+                or snapshot.routing_input_fingerprint
+                != expected_routing_fingerprint
             ):
                 updated[key] = {
                     name: value
