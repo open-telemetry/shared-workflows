@@ -12535,8 +12535,10 @@
         "author": "AirbornePorcine",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "author_nudge_episode_id": "47a047c7017b4afd80d04c12e4230283",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-21T23:26:09+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "ee2f944ee59564e9e8e378aa8173ebe645ec52e5ea021992787f337144695000",
         "copilot_review_exists": true,
@@ -12557,18 +12559,18 @@
         "last_activity_at": "2026-08-21T23:17:59+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-21T23:15:04+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4a8a27ee065e46381c7b327199af6282ac7de96029af5d49655c6786cba5d67e",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-21T23:15:04+00:00"
+        "routing_input_fingerprint": "31e582ed5bce15cd1fa9f0127e55be6d2f901b1cc646181b0ed85e0a68fb27e3",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-21T23:26:09+00:00"
       },
       "failed": false,
       "pr_number": 50444,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50444",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-4997957919": {
           "evidence": {
