@@ -159,7 +159,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
 
-    Stage 2 — add_wait_age_facts (depends on routing + pending actions):
+    Stage 2 — resolve_routing (depends on routing + pending actions):
     copilot_review_outstanding      bool          The Copilot review gate applies
                                                   to this PR and its review is
                                                   missing or stale, so the route
@@ -189,7 +189,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   pushes.
     route_hold_expired              bool          A gate has reported nothing on
                                                   this head for longer than
-                                                  GATE_HOLD_LIMIT, so the PR
+                                                  four-hour hold limit, so the PR
                                                   routes anyway and its status
                                                   comment names the gate that
                                                   never reported.
@@ -253,7 +253,7 @@ import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -283,13 +283,9 @@ from author_nudge import (
     record_author_nudge_observation,
 )
 from copilot_review import (
-    copilot_review_outstanding,
     copilot_review_status,
-    copilot_review_unreported,
     is_copilot_reviewer,
     record_copilot_review_observation,
-    set_copilot_first_review_missing_since,
-    set_copilot_review_request_needed,
 )
 from dashboard_override import (
     append_command_ack_reply,
@@ -303,6 +299,12 @@ from pull_request_activity import (
     role_for,
 )
 from routing_snapshot import build_routing_snapshot
+from routing_decision import (
+    RoutingInput,
+    resolve_routing,
+    reviewer_handoff_active,
+    routing_failure_facts,
+)
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -323,7 +325,6 @@ from utils import (
     compute_conflicts,
     format_ts,
     parse_ts,
-    required_checks_settled,
     utc_now,
 )
 
@@ -702,192 +703,6 @@ def compute_facts(
 # ---------------------------------------------------------------- routing
 
 
-ROUTE_DISCUSSION_ACTIONS = {
-    "author": {"author"},
-    "approver": {"reviewer"},
-    "maintainer": {"reviewer"},
-}
-
-
-def action_counts(pending_actions: dict[str, dict[str, Any]]) -> dict[str, int]:
-    counts = {"author": 0, "reviewer": 0, "none": 0, "unclear": 0}
-    for entry in pending_actions.values():
-        counts[normalize_discussion_action(entry.get("action") or "")] += 1
-    return counts
-
-
-def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], required_approvals: int) -> str:
-    counts = action_counts(pending_actions)
-    # Copilot PRs are mapped back to a human author when possible. Maintenance
-    # bot PRs have no useful author route and need only one approval.
-    is_maintenance_bot = facts.get("is_maintenance_bot")
-    approval_threshold = 1 if is_maintenance_bot else required_approvals
-    # Default precedence, which an active reviewer handoff overrides later in
-    # resolve_pr_route:
-    #   1. A required status check failure -> "author".
-    #   2. A discussion waiting on the author -> "author".
-    #   3. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
-    #      remains visible but does not keep an approved PR out of this route.
-    #   4. Otherwise the PR is still waiting on approvers.
-    ci_failing = (facts.get("ci_failing_count") or 0) > 0
-    if ci_failing and not is_maintenance_bot:
-        return "author"
-    if counts["author"] and not is_maintenance_bot:
-        return "author"
-    if facts.get("approval_count", 0) >= approval_threshold:
-        return "maintainer"
-    return "approver"
-
-
-def oldest_pending_action_ts(
-    pending_actions: dict[str, dict[str, Any]],
-    actions: set[str],
-) -> datetime | None:
-    timestamps = [
-        parse_ts(entry.get("since") or "")
-        for entry in pending_actions.values()
-        if normalize_discussion_action(entry.get("action") or "") in actions
-    ]
-    timestamps = [ts for ts in timestamps if ts is not None]
-    return min(timestamps) if timestamps else None
-
-
-# Routes where the PR is out of the author's hands and someone else owes it a
-# response, so an author push does not change whose turn it is.
-REVIEWER_ROUTES = ("approver", "maintainer")
-
-# How far a PR has travelled toward merge. An unsettled gate stops it from
-# advancing, but never from moving back toward its author.
-ROUTE_PROGRESSION = ("author", "approver", "maintainer")
-
-# How long a gate may keep a pull request off its reviewers. Long enough that a
-# slow check suite or a queued Copilot review finishes first, short enough that
-# a gate which is never going to report costs the pull request part of a day
-# rather than the rest of its life.
-GATE_HOLD_LIMIT = timedelta(hours=4)
-
-
-def route_progress(route: str) -> int:
-    return ROUTE_PROGRESSION.index(route) if route in ROUTE_PROGRESSION else 0
-
-
-def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
-    if route in REVIEWER_ROUTES:
-        return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
-    if route == "author":
-        if facts.get("conflicts") == "yes":
-            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
-        if (facts.get("ci_failing_count") or 0) > 0:
-            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
-            if ci_failing_since is not None:
-                return ci_failing_since, "ci_failure"
-            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
-        return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
-    return parse_ts(facts.get("last_activity_at") or ""), "last_activity"
-
-
-def add_wait_age_facts(
-    facts: dict[str, Any],
-    route: str,
-    pending_actions: dict[str, dict[str, Any]],
-    previous_result: dict[str, Any] | None = None,
-    now: datetime | None = None,
-    pending_reviewers: set[str] | None = None,
-) -> None:
-    previous_facts = (previous_result or {}).get("facts") or {}
-    previous_route = (previous_result or {}).get("route")
-    previous_pending_reviewers = {
-        reviewer.get("login") or ""
-        for reviewer in previous_facts.get("reviewers") or []
-        if reviewer.get("pending_review")
-    }
-    current_pending_reviewers = pending_reviewers or set()
-    # A held route was not re-evaluated, so its wait continues uninterrupted
-    # rather than restarting from whatever the incomplete facts now imply.
-    if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
-        facts["waiting_since"] = previous_facts["waiting_since"]
-        facts["waiting_age_basis"] = "gate_hold"
-        return
-    # Reviewers have been waiting since the gates let the PR reach them, which
-    # is not the push. The fallback below dates a reviewer's wait from the last
-    # author activity, and that was the same moment until the gates started
-    # sitting between the two: now a PR whose checks took an hour would arrive
-    # already an hour old, and one released after a stalled gate would arrive
-    # older still, blaming reviewers for a wait they could not have answered.
-    if (
-        route in REVIEWER_ROUTES
-        and previous_facts.get("route_held_for_gates")
-        and (previous_result or {}).get("route") == "author"
-    ):
-        facts["waiting_since"] = format_ts(now or utc_now())
-        facts["waiting_age_basis"] = "gate_release"
-        return
-    # Re-requesting a review can remove an approval and hand the PR from
-    # maintainers back to approvers without any author activity to date the
-    # handoff. Start the reviewer wait when the dashboard first sees it.
-    if (
-        route == "approver"
-        and previous_route == "maintainer"
-        and current_pending_reviewers - previous_pending_reviewers
-    ):
-        facts["waiting_since"] = format_ts(now or utc_now())
-        facts["waiting_age_basis"] = "review_rerequest"
-        return
-    # The release above only happens on the pass that hands the PR over, so
-    # without carrying it the next pass falls back to the author's push and
-    # presents the very wait the release exists to discard. The guard below
-    # cannot catch that, because it only stops the wait moving forward.
-    if (
-        route in REVIEWER_ROUTES
-        and (previous_result or {}).get("route") in REVIEWER_ROUTES
-        and previous_facts.get("waiting_age_basis") == "gate_release"
-        and previous_facts.get("waiting_since")
-        and facts.get("head_sha")
-        and facts.get("head_sha") == previous_facts.get("head_sha")
-    ):
-        facts["waiting_since"] = previous_facts["waiting_since"]
-        facts["waiting_age_basis"] = "gate_release"
-        return
-    if (
-        route in REVIEWER_ROUTES
-        and previous_route in REVIEWER_ROUTES
-        and previous_facts.get("waiting_age_basis") == "review_rerequest"
-        and previous_facts.get("waiting_since")
-        and current_pending_reviewers & previous_pending_reviewers
-    ):
-        facts["waiting_since"] = previous_facts["waiting_since"]
-        facts["waiting_age_basis"] = "review_rerequest"
-        return
-    actions = ROUTE_DISCUSSION_ACTIONS.get(route)
-    wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
-    basis = "oldest_pending_thread" if wait_ts else ""
-    fallback_ts, fallback_basis = fallback_wait_ts(route, facts)
-    if wait_ts is None or (
-        fallback_basis == "ci_failure"
-        and fallback_ts is not None
-        and fallback_ts < wait_ts
-    ):
-        wait_ts, basis = fallback_ts, fallback_basis
-    if wait_ts is None:
-        wait_ts = parse_ts(facts.get("created_at") or "")
-        basis = "created"
-    previous_wait_ts = parse_ts(previous_facts.get("waiting_since") or "")
-    # Reviewers have been waiting since the PR reached them, so while it stays
-    # with them the clock only moves back, never forward: an author push is not
-    # a fresh start for a review that has not happened yet.
-    if (
-        route in REVIEWER_ROUTES
-        and (previous_result or {}).get("route") in REVIEWER_ROUTES
-        and previous_wait_ts is not None
-        and wait_ts is not None
-        and previous_wait_ts < wait_ts
-    ):
-        wait_ts = previous_wait_ts
-        basis = previous_facts.get("waiting_age_basis") or ""
-    facts["waiting_since"] = format_ts(wait_ts)
-    facts["waiting_age_basis"] = basis
-
-
 def author_action_discussion_urls(
     discussions: list[dict[str, Any]],
     pending_actions: dict[str, dict[str, Any]],
@@ -995,183 +810,6 @@ def add_reviewers(
     ]
 
 
-def gate_hold_expired(facts: dict[str, Any], now: datetime) -> bool:
-    held_since = parse_ts(facts.get("route_held_since"))
-    if held_since is None:
-        return False
-    return now - held_since >= GATE_HOLD_LIMIT
-
-
-def set_gate_hold_clock(
-    facts: dict[str, Any],
-    previous_result: dict[str, Any] | None,
-    route: str,
-    *,
-    unreported_gates: bool,
-    would_hold: bool,
-    now: datetime,
-) -> None:
-    # How long the gates have been keeping this pull request off the reviewers
-    # it would otherwise be with. It starts when a gate first holds the pull
-    # request back, and then runs on its own for as long as the same head still
-    # has a gate that has not reported. Carrying it that way is what lets the
-    # hold give up without the stall looking resolved a moment later, and it is
-    # why a trip back to the author does not stop it: the author owes the pull
-    # request something, but the gate is still missing on the same code, so
-    # letting the round trip clear the clock would hand that gate four more
-    # hours the moment the author answers. Starting it only on a real hold is
-    # what keeps a slow check suite on a pull request that was already with its
-    # reviewers from looking like one. A push clears it, because new code means
-    # new checks and a review that has to run again.
-    previous_facts = (previous_result or {}).get("facts") or {}
-    head_sha = str(facts.get("head_sha") or "")
-    carried = (
-        str(previous_facts.get("route_held_since") or "")
-        if head_sha and head_sha == previous_facts.get("head_sha")
-        else ""
-    )
-    if not (
-        unreported_gates
-        and (carried or (route in REVIEWER_ROUTES and would_hold))
-    ):
-        facts.pop("route_held_since", None)
-        return
-    facts["route_held_since"] = carried or format_ts(now)
-
-
-def hold_route_until_gates_settle(
-    facts: dict[str, Any],
-    route: str,
-    previous_result: dict[str, Any] | None,
-    *,
-    require_clean_copilot_review: bool,
-    now: datetime,
-    bypass_gates: bool = False,
-) -> str:
-    # The required checks and the Copilot review are the author's to clear, so
-    # a PR does not advance while one is outstanding. Moving back toward the
-    # author is always allowed, because those are decisions a gate cannot undo.
-    previous_route = (previous_result or {}).get("route") or ""
-    if previous_route not in ROUTE_PROGRESSION or (
-        facts.get("is_maintenance_bot") and previous_route == "author"
-    ):
-        # A maintenance bot has no author route to fall back to. A cached result
-        # can still say "author" if the pull request author only became
-        # classified as a maintenance bot after that result was stored.
-        previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
-    gates_enabled = not bypass_gates
-    copilot_review_gate_enabled = require_clean_copilot_review and gates_enabled
-    facts["copilot_review_outstanding"] = copilot_review_outstanding(
-        facts, enabled=copilot_review_gate_enabled
-    )
-    facts["copilot_review_unreported"] = copilot_review_unreported(
-        facts, enabled=copilot_review_gate_enabled
-    )
-    facts["required_checks_settled"] = required_checks_settled(facts)
-    gates_outstanding = gates_enabled and (
-        not facts["required_checks_settled"] or facts["copilot_review_outstanding"]
-    )
-    # Only a gate that has reported nothing on this head can stall. A Copilot
-    # review that left findings did report, and clearing those findings is the
-    # author's own work, so counting it would turn every author who takes more
-    # than four hours over review comments into a missing gate.
-    unreported_gates = gates_enabled and (
-        not facts["required_checks_settled"] or facts["copilot_review_unreported"]
-    )
-    would_hold = route_progress(route) > route_progress(previous_route)
-    set_gate_hold_clock(
-        facts,
-        previous_result,
-        route,
-        # GitHub may not start checks or reviews while a PR is conflicted. Do not
-        # let that expected absence consume the four-hour missing-gate budget.
-        unreported_gates=unreported_gates and facts.get("conflicts") != "yes",
-        would_hold=would_hold,
-        now=now,
-    )
-    # A gate can stay outstanding forever: a required check that never reports,
-    # a review GitHub never runs. The dashboard cannot block a merge, so an
-    # endless hold protects nobody and only keeps the pull request away from
-    # the people who could move it. Past the limit it routes the pull request
-    # anyway and says which gate it stopped waiting for.
-    expired = gate_hold_expired(facts, now)
-    facts["route_hold_expired"] = expired
-    held = would_hold and gates_outstanding and not expired
-    facts["route_held_for_gates"] = held
-    return previous_route if held else route
-
-
-def reviewer_handoff_active(facts: dict[str, Any]) -> bool:
-    """Whether an override command binds the head this pass observed.
-
-    The bound head is recorded in the command's acknowledgement comment, so the
-    handoff survives a dropped cache and a failed pass, and a later push ends it
-    without any code path having to remember that the push happened.
-    """
-    bound_head = facts.get("dashboard_override_head_sha") or ""
-    return bool(bound_head) and bound_head == (facts.get("head_sha") or "")
-
-
-def resolve_pr_route(
-    facts: dict[str, Any],
-    pending_actions: dict[str, dict[str, Any]],
-    required_approvals: int,
-    require_clean_copilot_review: bool,
-    previous_result: dict[str, Any] | None = None,
-    now: datetime | None = None,
-    manual_reviewer_handoff: bool | None = None,
-) -> str:
-    now = now or utc_now()
-    route = route_pr(facts, pending_actions, required_approvals)
-    if manual_reviewer_handoff is None:
-        manual_reviewer_handoff = reviewer_handoff_active(facts)
-    if manual_reviewer_handoff:
-        route = "approver"
-    copilot_review_gate_enabled = (
-        require_clean_copilot_review
-        and not manual_reviewer_handoff
-    )
-    copilot_review_request_enabled = (
-        copilot_review_gate_enabled and facts.get("conflicts") != "yes"
-    )
-    set_copilot_first_review_missing_since(
-        facts,
-        previous_result,
-        enabled=copilot_review_request_enabled,
-        now=now,
-    )
-    set_copilot_review_request_needed(
-        facts, route, enabled=copilot_review_request_enabled, now=now
-    )
-    return hold_route_until_gates_settle(
-        facts,
-        route,
-        previous_result,
-        require_clean_copilot_review=copilot_review_gate_enabled,
-        bypass_gates=manual_reviewer_handoff,
-        now=now,
-    )
-
-
-def preserve_gate_state_after_failure(
-    facts: dict[str, Any],
-    previous_result: dict[str, Any] | None,
-) -> None:
-    """Carry gate state that a failed classification would otherwise reset.
-
-    Override state needs nothing here. It is read from the command and its
-    acknowledgement comment on every pass, so a failed pass recomputes it
-    instead of losing it.
-    """
-    previous_facts = (previous_result or {}).get("facts") or {}
-    # A failed pass must not restart the first-review clock, or a repeatedly
-    # failing classification would keep the wait permanently under the grace.
-    if previous_facts.get("copilot_first_review_missing_since"):
-        facts["copilot_first_review_missing_since"] = previous_facts[
-            "copilot_first_review_missing_since"
-        ]
-
-
 def assign_author_nudge_episode(
     facts: dict[str, Any],
     route: str,
@@ -1269,7 +907,7 @@ def build_pr_result(
         lifecycle_fields = lifecycle.dashboard_fields()
         failed_classifications = lifecycle.failed_classifications
         if failed_classifications:
-            preserve_gate_state_after_failure(facts, previous_result)
+            facts = routing_failure_facts(facts, previous_facts)
             return {
                 "pr_number": number,
                 "pr_title": raw["pr"].get("title") or "",
@@ -1286,14 +924,25 @@ def build_pr_result(
         require_clean_copilot_review = (raw["pr"].get("baseRefName") or "") in (
             require_clean_copilot_review_branches or []
         )
-        route = resolve_pr_route(
-            facts,
-            pending_actions,
-            required_approvals,
-            require_clean_copilot_review,
-            previous_result,
-            manual_reviewer_handoff=manual_reviewer_handoff,
+        routing_outcome = resolve_routing(
+            RoutingInput(
+                facts=facts,
+                pending_actions=pending_actions,
+                previous_route=(previous_result or {}).get("route"),
+                previous_facts=previous_facts,
+                required_approvals=required_approvals,
+                require_clean_copilot_review=require_clean_copilot_review,
+                manual_reviewer_handoff=manual_reviewer_handoff,
+                pending_human_reviewer_logins=frozenset(
+                    pending_review_logins(
+                        events,
+                        raw.get("review_requests") or [],
+                    )
+                ),
+            )
         )
+        route = routing_outcome.route
+        facts = routing_outcome.facts
         assign_author_nudge_episode(
             facts,
             route,
@@ -1301,15 +950,6 @@ def build_pr_result(
             raw.get("issue_comments") or [],
         )
         append_command_ack_reply(raw, facts, route)
-        add_wait_age_facts(
-            facts,
-            route,
-            pending_actions,
-            previous_result,
-            pending_reviewers=pending_review_logins(
-                events, raw.get("review_requests") or []
-            ),
-        )
         facts["author_action_review_thread_urls"] = author_action_discussion_urls(
             review_threads, pending_actions
         )
