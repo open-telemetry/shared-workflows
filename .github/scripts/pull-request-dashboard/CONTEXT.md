@@ -1,5 +1,21 @@
 # Pull request dashboard context
 
+## Evaluation and dashboard updates
+
+Pull request evaluation is the dashboard's data plane. Given repository policy,
+a pull request summary, and the previous result, `pull_request_evaluation.py`
+fetches current GitHub data and produces one complete routing result. It owns
+effective-author resolution, facts, activity, discussions, classification,
+lifecycle and routing decisions, reviewer projection, command
+acknowledgements, author-action links, nudge episodes, and PR-specific failure
+shaping. Evaluation has no accepted-state or state-branch side effects.
+
+Dashboard updates are the operational control plane. `dashboard.py` selects
+targeted and backfill work, supplies cached results to evaluation, reconciles
+each result against concurrently accepted state, persists accepted updates,
+coordinates state-branch transactions and notification observations, and
+handles diagnostics and CLI behavior.
+
 ## Activity timeline
 
 The activity timeline normalizes raw commits, issue comments, review comments,
