@@ -212,8 +212,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     author_action_top_level_feedback_urls
                                     list[str]     Canonical links to top-level
                                                   feedback routed to the author.
-    reviewers                       list[dict]    Reviewers to display (added by
-                                                  add_reviewers). Each entry is
+    reviewers                       list[dict]    Reviewer summaries projected after
+                                                  discussion resolution. Each entry is
                                                   {"login": str, "approved": bool,
                                                   "approved_non_team": bool,
                                                   "pending_review": bool,
@@ -299,6 +299,13 @@ from pull_request_activity import (
     role_for,
 )
 from routing_snapshot import build_routing_snapshot
+from reviewer_state import (
+    PreparedReviewers,
+    ReviewerDiscussionInput,
+    ReviewerInput,
+    prepare_reviewers,
+    resolve_reviewers,
+)
 from routing_decision import (
     RoutingInput,
     resolve_routing,
@@ -524,102 +531,11 @@ def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[s
     return max(timestamps) if timestamps else None
 
 
-def current_approval_count(
-    events: list[dict[str, Any]],
-    review_requests: list[dict[str, Any]] | None = None,
-) -> int:
-    approvers = approver_logins(events)
-    return sum(
-        1
-        for reviewer, state in active_review_states(events, review_requests).items()
-        if state == "APPROVED" and reviewer in approvers
-    )
-
-
-def approver_logins(events: list[dict[str, Any]]) -> set[str]:
-    return {
-        event["actor"]
-        for event in events
-        if event.get("actor_role") == "approver" and event.get("actor")
-    }
-
-
-def latest_review_states(events: list[dict[str, Any]]) -> dict[str, str]:
-    latest_by_reviewer: dict[str, tuple[str, str]] = {}
-    for event in events:
-        if event.get("kind") != "review-state":
-            continue
-        reviewer = event.get("actor") or ""
-        submitted_at = event.get("timestamp") or ""
-        state = event.get("state") or ""
-        if not reviewer or not submitted_at or state == "COMMENTED":
-            continue
-        previous = latest_by_reviewer.get(reviewer)
-        if previous is None or submitted_at >= previous[0]:
-            latest_by_reviewer[reviewer] = (submitted_at, state)
-    return {reviewer: state for reviewer, (_, state) in latest_by_reviewer.items()}
-
-
-def requested_human_reviewer_logins(
-    review_requests: list[dict[str, Any]] | None,
-) -> set[str]:
-    return {
-        login
-        for request in (review_requests or [])
-        if request.get("__typename") == "User"
-        and (login := reviewer_actor_login(request))
-    }
-
-
-def pending_review_logins(
-    events: list[dict[str, Any]],
-    review_requests: list[dict[str, Any]] | None,
-) -> set[str]:
-    return requested_human_reviewer_logins(review_requests) & reviewing_logins(events)
-
-
-def active_review_states(
-    events: list[dict[str, Any]],
-    review_requests: list[dict[str, Any]] | None = None,
-) -> dict[str, str]:
-    # Only an approval goes stale when its reviewer is asked to look again.
-    # GitHub keeps a CHANGES_REQUESTED review blocking the merge until that
-    # reviewer submits a new one, so dropping it here would hide a live
-    # blocker rather than report a wait.
-    requested = requested_human_reviewer_logins(review_requests)
-    return {
-        reviewer: state
-        for reviewer, state in latest_review_states(events).items()
-        if state != "APPROVED" or reviewer not in requested
-    }
-
-
-def reviewing_logins(events: list[dict[str, Any]]) -> set[str]:
-    return {
-        event["actor"]
-        for event in events
-        if event.get("kind") == "review-state" and event.get("actor")
-    }
-
-
-def commenting_reviewers(events: list[dict[str, Any]]) -> set[str]:
-    # Approver-team members who have participated on the PR in any way: an
-    # issue comment, an inline review comment, or a submitted review. This
-    # surfaces engaged reviewers even when they have neither approved nor own
-    # an open discussion.
-    return {
-        event["actor"]
-        for event in events
-        if event.get("actor_role") == "approver"
-        and event.get("kind") in ("issue-comment", "review-comment", "review-state")
-        and event.get("actor")
-    }
-
-
 def compute_facts(
     raw: dict[str, Any],
     author: str,
     events: list[dict[str, Any]],
+    prepared_reviewers: PreparedReviewers,
     reviewers: set[str] | None = None,
     previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -642,8 +558,6 @@ def compute_facts(
     author_activity_ts = latest_substantive_activity(events, {"author"})
     approver_activity_ts = latest_substantive_activity(events, {"approver"})
     api_author = actor_login(pr.get("author") or {})
-    assignees = [reviewer_actor_login(a) for a in (pr.get("assignees") or [])]
-    assignees = [a for a in assignees if a]
     # Read the head OID straight from the PR object. Deriving it from
     # raw["commits"] is wrong for PRs with more than 250 commits, where the
     # commits REST endpoint truncates and the last entry is not the real head.
@@ -655,7 +569,7 @@ def compute_facts(
     )
     facts = {
         "author": author,
-        "assignees": assignees,
+        "assignees": list(prepared_reviewers.assignee_logins),
         "head_sha": head_sha,
         "routing_input_fingerprint": snapshot.routing_input_fingerprint,
         "copilot_request_fingerprint": snapshot.copilot_request_fingerprint,
@@ -675,10 +589,7 @@ def compute_facts(
         "copilot_review_needed": copilot_review_stale or copilot_review_findings,
         "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
         "is_draft": snapshot.is_draft,
-        "approval_count": current_approval_count(
-            events,
-            snapshot.review_requests,
-        ),
+        "approval_count": prepared_reviewers.approval_count,
         "conflicts": compute_conflicts(pr),
         "created_at": format_ts(created_ts),
         "last_activity_at": format_ts(last_activity_ts),
@@ -718,96 +629,6 @@ def author_action_discussion_urls(
         if url and url not in urls:
             urls.append(url)
     return urls
-
-
-# Discussion actions that count as open and unresolved. A reviewer who commented
-# in such a discussion is not yet satisfied, even if they have approved.
-# "none" means no follow-up is needed, so it does not block a clear check.
-OPEN_DISCUSSION_ACTIONS = {"author", "reviewer"}
-
-
-def reviewers_with_open_threads(
-    review_threads: list[dict[str, Any]],
-    pending_actions: dict[str, dict[str, Any]],
-) -> set[str]:
-    logins: set[str] = set()
-    for discussion in review_threads:
-        entry = pending_actions.get(discussion["discussion_id"]) or {}
-        action = entry.get("action")
-        if action not in OPEN_DISCUSSION_ACTIONS:
-            continue
-        # praise was dropped for routing, so it does not make its writer a reviewer here
-        comments = discussion.get("comments") or []
-        if entry.get("ignored_last_comment"):
-            comments = comments[:-1]
-        for comment in comments:
-            if comment.get("actor_role") in ("approver", "outsider") and comment.get("actor"):
-                logins.add(comment["actor"])
-    return logins
-
-
-def reviewers_with_top_level_feedback(
-    top_level_items: list[dict[str, Any]],
-    pending_actions: dict[str, dict[str, Any]],
-) -> set[str]:
-    logins: set[str] = set()
-    for discussion in top_level_items:
-        action = (pending_actions.get(discussion["discussion_id"]) or {}).get("action")
-        if action != "author":
-            continue
-        if discussion.get("requester"):
-            logins.add(discussion["requester"])
-    return logins
-
-
-def add_reviewers(
-    facts: dict[str, Any],
-    events: list[dict[str, Any]],
-    review_threads: list[dict[str, Any]],
-    top_level_items: list[dict[str, Any]],
-    pending_actions: dict[str, dict[str, Any]],
-    review_requests: list[dict[str, Any]] | None = None,
-) -> None:
-    # Reviewers to display in the dashboard, each flagged with their review
-    # stance: approved (by an approver-team member), approved_non_team (an
-    # approval from someone outside the team), pending_review (a human review
-    # was requested again), changes_requested (their latest review blocks),
-    # open_thread (they own an
-    # unresolved discussion), and top_level_feedback (their top-level feedback
-    # still needs author action). The renderer turns these into icons.
-    # Reviewers are everyone who reviewed, owns an open discussion, otherwise
-    # commented, or is a PR assignee, sorted alphabetically (case-insensitive).
-    pending_reviews = pending_review_logins(events, review_requests)
-    states = active_review_states(events, review_requests)
-    approvers = approver_logins(events)
-    approved = {r for r, s in states.items() if s == "APPROVED" and r in approvers}
-    approved_non_team = {r for r, s in states.items() if s == "APPROVED" and r not in approvers}
-    changes_requested = {r for r, s in states.items() if s == "CHANGES_REQUESTED"}
-    with_open = reviewers_with_open_threads(review_threads, pending_actions)
-    with_top_level = reviewers_with_top_level_feedback(top_level_items, pending_actions)
-    candidates = (
-        approved
-        | approved_non_team
-        | pending_reviews
-        | changes_requested
-        | with_open
-        | with_top_level
-        | commenting_reviewers(events)
-        | set(facts.get("assignees") or [])
-    )
-    candidates.discard("")
-    facts["reviewers"] = [
-        {
-            "login": login,
-            "approved": login in approved,
-            "approved_non_team": login in approved_non_team,
-            "pending_review": login in pending_reviews,
-            "changes_requested": login in changes_requested,
-            "open_thread": login in with_open,
-            "top_level_feedback": login in with_top_level,
-        }
-        for login in sorted(candidates, key=str.lower)
-    ]
 
 
 def assign_author_nudge_episode(
@@ -864,8 +685,22 @@ def build_pr_result(
             return None
         author = effective_author(raw)
         events = normalize_events(raw, author, reviewers)
+        prepared_reviewers = prepare_reviewers(
+            ReviewerInput(
+                tuple(events),
+                tuple(raw.get("review_requests") or []),
+                tuple(raw["pr"].get("assignees") or []),
+            )
+        )
         previous_facts = (previous_result or {}).get("facts") or {}
-        facts = compute_facts(raw, author, events, reviewers, previous_facts)
+        facts = compute_facts(
+            raw,
+            author,
+            events,
+            prepared_reviewers,
+            reviewers,
+            previous_facts,
+        )
         manual_reviewer_handoff = reviewer_handoff_active(facts)
         prepared_discussions = prepare_discussions(
             DiscussionInput(
@@ -933,11 +768,8 @@ def build_pr_result(
                 required_approvals=required_approvals,
                 require_clean_copilot_review=require_clean_copilot_review,
                 manual_reviewer_handoff=manual_reviewer_handoff,
-                pending_human_reviewer_logins=frozenset(
-                    pending_review_logins(
-                        events,
-                        raw.get("review_requests") or [],
-                    )
+                pending_human_reviewer_logins=(
+                    prepared_reviewers.pending_human_reviewer_logins
                 ),
             )
         )
@@ -956,14 +788,17 @@ def build_pr_result(
         facts["author_action_top_level_feedback_urls"] = author_action_discussion_urls(
             top_level_items, pending_actions
         )
-        add_reviewers(
-            facts,
-            events,
-            review_threads,
-            top_level_items,
-            pending_actions,
-            raw.get("review_requests") or [],
-        )
+        facts["reviewers"] = [
+            reviewer.dashboard_dict()
+            for reviewer in resolve_reviewers(
+                prepared_reviewers,
+                ReviewerDiscussionInput(
+                    tuple(review_threads),
+                    tuple(top_level_items),
+                    pending_actions,
+                ),
+            )
+        ]
         return {
             "pr_number": number,
             "pr_title": raw["pr"].get("title") or "",

@@ -6,9 +6,7 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from dashboard import (
-    add_reviewers,
     build_dashboard_update_for_pr,
-    reviewers_with_open_threads,
     normalize_events,
 )
 from classification import (
@@ -28,8 +26,6 @@ from discussion_lifecycle import (
     prepare_discussions,
     resolve_discussions,
 )
-from notifications import reviewer_logins_for_notification
-from render import reviewer_icon
 from routing_decision import RoutingInput, resolve_routing
 
 
@@ -237,60 +233,6 @@ class IgnoredPraiseWaitAgeTest(unittest.TestCase):
             records = classify_review_threads(1, [thread], "model", {}, {})
         pending = review_thread_pending_actions([thread], list(records.values()))
         return pending["t"]["since"]
-
-    def test_praise_does_not_make_its_author_a_waiting_reviewer(self) -> None:
-        thread = self.thread(
-            ("approver", "please fix", "2026-03-12T00:00:00Z"),
-            ("author", "fixed it", "2026-04-01T00:00:00Z"),
-            ("approver", "LGTM", "2026-05-20T00:00:00Z"),
-        )
-        thread["comments"][0]["actor"] = "alice"
-        thread["comments"][2]["actor"] = "bob"
-
-        def batch(items, _model, _prompt, verdicts):
-            answer = "praise" if verdicts == PRAISE_VERDICTS else "complete"
-            return [
-                {
-                    "discussion_id": item["discussion_id"],
-                    "discussion_kind": "review-comment-thread",
-                    "failed": False,
-                    "decision": {"verdict": answer, "reason": "because"},
-                }
-                for item in items
-            ]
-
-        with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
-            records = classify_review_threads(1, [thread], "model", {}, {})
-        pending = review_thread_pending_actions([thread], list(records.values()))
-
-        self.assertEqual({"alice"}, reviewers_with_open_threads([thread], pending))
-
-    def test_an_edited_request_still_counts_its_reviewer(self) -> None:
-        thread = self.thread(
-            ("approver", "please fix", "2026-06-01T00:00:00Z"),
-            ("author", "fixed it", "2026-04-01T00:00:00Z"),
-            ("approver", "LGTM", "2026-05-20T00:00:00Z"),
-        )
-        thread["comments"][0]["actor"] = "alice"
-        thread["comments"][2]["actor"] = "bob"
-
-        def batch(items, _model, _prompt, verdicts):
-            answer = "praise" if verdicts == PRAISE_VERDICTS else "complete"
-            return [
-                {
-                    "discussion_id": item["discussion_id"],
-                    "discussion_kind": "review-comment-thread",
-                    "failed": False,
-                    "decision": {"verdict": answer, "reason": "because"},
-                }
-                for item in items
-            ]
-
-        with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
-            records = classify_review_threads(1, [thread], "model", {}, {})
-        pending = review_thread_pending_actions([thread], list(records.values()))
-
-        self.assertEqual({"alice"}, reviewers_with_open_threads([thread], pending))
 
     def test_praise_after_a_reviewer_request_keeps_the_request_date(self) -> None:
         thread = self.thread(
@@ -1622,31 +1564,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
 
 
-    def test_changes_requested_is_visual_only_after_action_clears(self) -> None:
-        discussions = [top_level_item("code")]
-        discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        discussions[0]["comments"] = [
-            event("issue-comment", ROOT_TIMESTAMP, "reviewer", "approver"),
-        ]
-        pending_actions = {}
-        facts = {"approval_count": 1, "is_maintenance_bot": False, "assignees": []}
-        events = [
-            event(
-                "review-state",
-                ROOT_TIMESTAMP,
-                "reviewer",
-                "approver",
-                state="CHANGES_REQUESTED",
-            )
-        ]
-
-        add_reviewers(facts, events, [], discussions, pending_actions)
-        reviewer = facts["reviewers"][0]
-        self.assertFalse(reviewer["top_level_feedback"])
-        self.assertFalse(reviewer["open_thread"])
-        self.assertEqual(reviewer_icon(reviewer), "🔴")
-        self.assertEqual(reviewer_logins_for_notification(facts), ["reviewer"])
-
     def test_review_state_does_not_block_routing_after_author_evidence(self) -> None:
         discussion = top_level_item("code")
         discussion["review_state"] = "CHANGES_REQUESTED"
@@ -1708,64 +1625,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             )
         )
         self.assertEqual(routing.route, "maintainer")
-
-    def test_outsider_changes_requested_reviewer_remains_visible(self) -> None:
-        discussions = [top_level_item("code", requester="outsider")]
-        discussions[0]["review_state"] = "CHANGES_REQUESTED"
-        pending_actions = {}
-        facts = {"approval_count": 0, "is_maintenance_bot": False, "assignees": []}
-        events = [
-            event(
-                "review-state",
-                ROOT_TIMESTAMP,
-                "outsider",
-                "outsider",
-                state="CHANGES_REQUESTED",
-            )
-        ]
-
-        add_reviewers(facts, events, [], discussions, pending_actions)
-
-        reviewer = facts["reviewers"][0]
-        self.assertEqual(reviewer["login"], "outsider")
-        self.assertTrue(reviewer["changes_requested"])
-        self.assertFalse(reviewer["top_level_feedback"])
-        self.assertEqual(reviewer_icon(reviewer), "🔴")
-        self.assertEqual(reviewer_logins_for_notification(facts), ["outsider"])
-
-    def test_inline_and_top_level_feedback_keep_both_badges(self) -> None:
-        top_level = top_level_item("top_level")
-        top_level["comments"] = [
-            event("issue-comment", ROOT_TIMESTAMP, "reviewer", "approver"),
-        ]
-        inline = {
-            "discussion_id": "inline",
-            "discussion_kind": "review-comment-thread",
-            "comments": [
-                event("review-comment", ROOT_TIMESTAMP, "reviewer", "approver"),
-            ],
-        }
-        classifications = [classification("top_level")]
-        classifications.append(
-            {
-                "discussion_id": "inline",
-                "discussion_kind": "review-comment-thread",
-                "decision": {"discussion_action": "author", "reason": "inline request"},
-            }
-        )
-        facts = {"assignees": []}
-        pending_actions = {
-            "top_level": {"action": "author", "since": ROOT_TIMESTAMP},
-            "inline": {"action": "author", "since": ROOT_TIMESTAMP},
-        }
-
-        add_reviewers(facts, [], [inline], [top_level], pending_actions)
-
-        reviewer = facts["reviewers"][0]
-        self.assertTrue(reviewer["top_level_feedback"])
-        self.assertTrue(reviewer["open_thread"])
-        self.assertEqual(reviewer_icon(reviewer), "💬\u2060📌")
-
 
 if __name__ == "__main__":
     unittest.main()
