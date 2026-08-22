@@ -282,7 +282,7 @@
     },
     "848": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "brancz",
         "author_action_review_thread_urls": [],
@@ -290,7 +290,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "59a64f431324a41cdde90430af4ce3a55d91a36c6b51cc0dbbcb4a8d6be37db1",
+        "copilot_request_fingerprint": "19d07168de4c205b905ae73754c23efd12c747f12b715f6b393d91e2af87f3f9",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -306,11 +306,20 @@
         "head_sha": "aff37447eaaa198aee32b05a78d50233b2bfed9c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T18:16:23+00:00",
-        "last_approver_activity_at": "2026-08-21T16:54:02+00:00",
+        "last_activity_at": "2026-08-22T01:11:21+00:00",
+        "last_approver_activity_at": "2026-08-22T01:11:21+00:00",
         "last_author_activity_at": "2026-08-21T18:16:23+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "aalexand",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -323,14 +332,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1980eea59bb3455035d92b8ea03f3f04d0a40615bb33e8a5b782056f97d19210",
+        "routing_input_fingerprint": "cd159520b58e545ad37180c4eaffb2c87550f9e889fd5101570077e20806e029",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-21T18:16:23+00:00"
       },
       "failed": false,
       "pr_number": 848,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/848",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5372782991": {
           "evidence": {
