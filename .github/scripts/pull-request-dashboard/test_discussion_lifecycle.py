@@ -163,6 +163,16 @@ class PrepareDiscussionsTest(unittest.TestCase):
                         "actor_role": "author",
                         "body": "I updated the description.",
                     },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 202,
+                        "created_timestamp": "2026-07-14T05:00:00Z",
+                        "timestamp": "2026-07-14T07:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Please add another test.",
+                        "discussion_url": "https://example.test/comment/202",
+                    },
                 ),
                 "author",
                 frozenset({"reviewer"}),
@@ -184,7 +194,7 @@ class PrepareDiscussionsTest(unittest.TestCase):
         )
         self.assertEqual(
             [item["discussion_id"] for item in prepared.top_level_items],
-            ["pr-issue-comment-201"],
+            ["pr-issue-comment-201", "pr-issue-comment-202"],
         )
         self.assertEqual(
             prepared.top_level_author_comment_items[0]["candidate_feedback"],
@@ -459,6 +469,38 @@ class ResolveDiscussionsTest(unittest.TestCase):
                 "dependency": {
                     "action": "author",
                     "since": "2026-07-14T04:00:00Z",
+                }
+            },
+        )
+        self.assertEqual(outcome.top_level_history, {})
+
+    def test_unclear_reply_preserves_the_earlier_author_handoff(self) -> None:
+        prepared = PreparedDiscussions(
+            (),
+            (top_level_item("dependency"),),
+            (
+                author_reply(102, "2026-07-14T02:00:00Z", "dependency"),
+                author_reply(103, "2026-07-14T03:00:00Z", "dependency"),
+            ),
+        )
+        outcome = resolve_discussions(
+            prepared,
+            DiscussionClassifications(
+                (),
+                (classification("dependency", "author"),),
+                (
+                    author_reply_classification(102, ("dependency", "author")),
+                    author_reply_classification(103, ("dependency", "unclear")),
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            outcome.pending_actions,
+            {
+                "dependency": {
+                    "action": "author",
+                    "since": "2026-07-14T02:00:00Z",
                 }
             },
         )
