@@ -782,7 +782,10 @@
         "assignees": [],
         "author": "jack-berg",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8610#pullrequestreview-4892649865"
+        ],
+        "author_nudge_episode_id": "7fef2c9c285a455b8cb7c37ba91a3fdc",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -815,18 +818,27 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "LarryHu0217",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "1489b84becf6e2ff3fdcd6a6b672b6b2b4b7d0b547a0ed5522799804dcfecfc4",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-21T19:52:05+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-09T21:45:02+00:00"
       },
       "failed": false,
       "pr_number": 8610,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8610",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-4998083458": {
           "evidence": {
@@ -835,12 +847,6 @@
           "reply_source_id": 5038583847
         },
         "pr-issue-comment-5234001713": {
-          "evidence": {
-            "reply": "2026-08-12T16:55:33Z"
-          },
-          "reply_source_id": 5269829380
-        },
-        "pr-review-4892649865": {
           "evidence": {
             "reply": "2026-08-12T16:55:33Z"
           },
