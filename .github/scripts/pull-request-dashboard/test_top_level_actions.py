@@ -5,7 +5,6 @@ import unittest
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
-from dashboard import build_dashboard_update_for_pr
 from classification import (
     PRAISE_VERDICTS,
     REVIEWER_FEEDBACK_VERDICTS,
@@ -1231,43 +1230,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(leading_mentions("@First @Open-Telemetry/Java"), ["first", "open-telemetry/java"])
         self.assertEqual(leading_mentions("@invalid- please look"), [])
         self.assertEqual(leading_mentions(""), [])
-
-    @patch("dashboard.build_pr_result")
-    def test_dashboard_refresh_reuses_stored_top_level_history(self, build_result) -> None:
-        build_result.return_value = None
-        previous_state = {
-            "pr-review-456": top_level_history_record("commit", "2026-07-14T03:00:00Z"),
-        }
-
-        build_dashboard_update_for_pr(
-            "open-telemetry/example",
-            "open-telemetry",
-            "example",
-            {123},
-            {"reviewer"},
-            123,
-            "model",
-            1,
-            [],
-            {
-                "prs": {
-                    "123": {
-                        "pr_number": 123,
-                        "top_level_history": previous_state,
-                    }
-                }
-            },
-            ["main"],
-        )
-
-        self.assertEqual(
-            build_result.call_args.kwargs["previous_top_level_history"],
-            previous_state,
-        )
-        self.assertEqual(
-            build_result.call_args.kwargs["require_clean_copilot_review_branches"],
-            ["main"],
-        )
 
     def test_top_level_feedback_gets_stable_individual_items(self) -> None:
         raw = {

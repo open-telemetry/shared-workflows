@@ -5,9 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from github_cli import gh_api, run_gh
 from route_presentation import outstanding_gate_phrase
-from state import load_dashboard_state_cache
 from utils import actor_login
 
 
@@ -320,41 +318,6 @@ def command_reply_exists(
         and marker in (comment.get("body") or "")
         for comment in comments or []
     )
-
-
-def deliver_dashboard_command_replies(repo: str) -> list[str]:
-    dashboard_state = load_dashboard_state_cache()
-    if dashboard_state is None:
-        return []
-    errors: list[str] = []
-    for key, result in sorted(
-        (dashboard_state.get("prs") or {}).items(),
-        key=lambda item: int(item[0]),
-    ):
-        replies = ((result or {}).get("facts") or {}).get("dashboard_command_replies") or []
-        if not replies:
-            continue
-        pr_number = int(key)
-        try:
-            comments = gh_api(
-                f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
-                paginate=True,
-            )
-        except Exception as e:
-            errors.append(f"PR #{pr_number}: {e}")
-            continue
-        for reply in replies:
-            try:
-                if command_reply_exists(comments, int(reply["comment_id"])):
-                    continue
-                run_gh([
-                    "gh", "api", "--method", "POST",
-                    f"repos/{repo}/issues/{pr_number}/comments",
-                    "-f", f"body={render_command_reply(reply)}",
-                ])
-            except Exception as e:
-                errors.append(f"PR #{pr_number}: {e}")
-    return errors
 
 
 def append_command_ack_reply(

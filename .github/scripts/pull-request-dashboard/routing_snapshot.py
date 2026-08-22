@@ -8,7 +8,7 @@ import json
 from typing import Any
 
 from github_cli import fetch_pr_routing_raw
-from pr_status_comment import DASHBOARD_APP_SLUG
+from dashboard_status import DASHBOARD_APP_SLUG
 from utils import compute_conflicts
 
 
