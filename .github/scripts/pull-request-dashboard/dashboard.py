@@ -289,14 +289,13 @@ from copilot_review import (
 )
 from dashboard_override import (
     append_command_ack_reply,
-    dashboard_command_body_remainder,
     dashboard_override_facts,
 )
 from pr_status_comment import status_author_nudge_episode_id
 from pull_request_activity import (
-    is_substantive_activity,
-    reviewer_actor_login,
-    role_for,
+    ActivityInput,
+    PullRequestActivity,
+    build_activity_timeline,
 )
 from routing_snapshot import build_routing_snapshot
 from reviewer_state import (
@@ -341,11 +340,6 @@ DEFAULT_BACKFILL_MAX_PRS = 50
 BACKFILL_RECORDED_FAILURE_STATUS = 2
 
 # ---------------------------------------------------------------- model helpers
-
-
-# `role_for` matches the PR's own author before it checks for bot-shaped logins,
-# so a bot-authored PR counts that bot's activity here.
-PARTICIPANT_ACTOR_ROLES = {"author", "approver", "outsider"}
 
 
 # Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
@@ -414,127 +408,10 @@ def effective_author(raw: dict[str, Any]) -> str:
     return author
 
 
-def is_merge_commit(commit: dict[str, Any]) -> bool:
-    return len(commit.get("parents") or []) >= 2
-
-
-def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    for c in raw["commits"]:
-        commit_obj = c.get("commit") or {}
-        commit_author = commit_obj.get("author") or {}
-        commit_committer = commit_obj.get("committer") or {}
-        author_login = actor_login(c.get("author") or {})
-        committer_login = actor_login(c.get("committer") or {})
-        # A change made by someone other than the PR author should be
-        # accompanied by an explanatory reply.
-        if committer_login.lower() == author.lower():
-            login = committer_login
-            timestamp = commit_committer.get("date") or commit_author.get("date") or ""
-        elif author_login.lower() == author.lower():
-            login = author_login
-            timestamp = commit_author.get("date") or ""
-        elif committer_login:
-            login = committer_login
-            timestamp = commit_committer.get("date") or ""
-        else:
-            login = author_login or commit_author.get("name") or ""
-            timestamp = commit_author.get("date") or ""
-        sha = c.get("sha") or ""
-        events.append({
-            "kind": "commit",
-            "timestamp": timestamp,
-            "actor": login,
-            "actor_role": role_for(login, author, reviewers),
-            "body": commit_obj.get("message") or "",
-            "state": None,
-            "path": None,
-            "sha": sha[:7],
-            "is_merge_from_base_by_non_author": is_merge_commit(c) and login.lower() != author.lower(),
-        })
-    for c in raw["issue_comments"]:
-        if c.get("minimized"):
-            continue
-        command_remainder = dashboard_command_body_remainder(c)
-        # A `/dashboard` command line is control metadata, not discussion. Skip
-        # the comment only when it is command-only; otherwise keep the author's
-        # explanation that follows the command as an event.
-        if command_remainder is not None and not command_remainder:
-            continue
-        body = command_remainder if command_remainder is not None else (c.get("body") or "")
-        login = reviewer_actor_login(c.get("user") or {})
-        timestamp = (
-            c.get("content_updated_at")
-            or c.get("created_at")
-            or c.get("updated_at")
-            or ""
-        )
-        events.append({
-            "source_id": c.get("id"),
-            "discussion_url": c.get("html_url") or "",
-            "kind": "issue-comment",
-            "timestamp": timestamp,
-            "created_timestamp": c.get("created_at") or timestamp,
-            "actor": login,
-            "actor_role": role_for(login, author, reviewers),
-            "body": body,
-            "state": None,
-            "path": None,
-            "sha": None,
-            "is_merge_from_base_by_non_author": False,
-        })
-    for c in raw["review_comments"]:
-        login = reviewer_actor_login(c.get("user") or {})
-        timestamp = c.get("updated_at") or c.get("created_at") or ""
-        events.append({
-            "source_id": c.get("id"),
-            "kind": "review-comment",
-            "timestamp": timestamp,
-            "created_timestamp": c.get("created_at") or timestamp,
-            "actor": login,
-            "actor_role": role_for(login, author, reviewers),
-            "body": c.get("body") or "",
-            "state": None,
-            "path": c.get("path"),
-            "sha": None,
-            "is_merge_from_base_by_non_author": False,
-        })
-    for r in raw["reviews"]:
-        login = reviewer_actor_login(r.get("user") or {})
-        state = r.get("state") or ""
-        events.append({
-            "source_id": r.get("id"),
-            "discussion_url": r.get("url") or "",
-            "kind": "review-state",
-            "timestamp": r.get("submitted_at") or "",
-            "created_timestamp": r.get("submitted_at") or "",
-            "actor": login,
-            "actor_role": role_for(login, author, reviewers),
-            "body": r.get("body") or "",
-            "state": state,
-            "path": None,
-            "sha": None,
-            "is_merge_from_base_by_non_author": False,
-        })
-    events = [e for e in events if e["timestamp"]]
-    events.sort(key=lambda e: e.get("created_timestamp") or e["timestamp"])
-    return events
-
-
-def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[str]) -> datetime | None:
-    timestamps = [
-        parse_ts(e["timestamp"])
-        for e in events
-        if e.get("actor_role") in actor_roles and is_substantive_activity(e)
-    ]
-    timestamps = [ts for ts in timestamps if ts is not None]
-    return max(timestamps) if timestamps else None
-
-
 def compute_facts(
     raw: dict[str, Any],
     author: str,
-    events: list[dict[str, Any]],
+    activity: PullRequestActivity,
     prepared_reviewers: PreparedReviewers,
     reviewers: set[str] | None = None,
     previous_facts: dict[str, Any] | None = None,
@@ -549,14 +426,18 @@ def compute_facts(
     created_ts = parse_ts(pr["createdAt"])
     # Not pr["updatedAt"]: the dashboard's own status comment bumps it, which
     # would make every refresh look like new activity and retrigger itself.
-    activity_ts = latest_substantive_activity(events, PARTICIPANT_ACTOR_ROLES)
     # Commits can carry author dates from before the PR was opened.
     last_activity_ts = max(
-        [ts for ts in (activity_ts, created_ts) if ts is not None],
+        [
+            ts
+            for ts in (
+                activity.latest_participant_activity_at,
+                created_ts,
+            )
+            if ts is not None
+        ],
         default=None,
     )
-    author_activity_ts = latest_substantive_activity(events, {"author"})
-    approver_activity_ts = latest_substantive_activity(events, {"approver"})
     api_author = actor_login(pr.get("author") or {})
     # Read the head OID straight from the PR object. Deriving it from
     # raw["commits"] is wrong for PRs with more than 250 commits, where the
@@ -593,8 +474,8 @@ def compute_facts(
         "conflicts": compute_conflicts(pr),
         "created_at": format_ts(created_ts),
         "last_activity_at": format_ts(last_activity_ts),
-        "last_author_activity_at": format_ts(author_activity_ts),
-        "last_approver_activity_at": format_ts(approver_activity_ts),
+        "last_author_activity_at": format_ts(activity.latest_author_activity_at),
+        "last_approver_activity_at": format_ts(activity.latest_approver_activity_at),
     }
     if checks is not None:
         facts["ci_failing_count"] = len(failing)
@@ -684,10 +565,12 @@ def build_pr_result(
         if raw["pr"].get("state") != "OPEN" or raw["pr"].get("isDraft"):
             return None
         author = effective_author(raw)
-        events = normalize_events(raw, author, reviewers)
+        activity = build_activity_timeline(
+            ActivityInput(raw, author, frozenset(reviewers))
+        )
         prepared_reviewers = prepare_reviewers(
             ReviewerInput(
-                tuple(events),
+                activity.events,
                 tuple(raw.get("review_requests") or []),
                 tuple(raw["pr"].get("assignees") or []),
             )
@@ -696,7 +579,7 @@ def build_pr_result(
         facts = compute_facts(
             raw,
             author,
-            events,
+            activity,
             prepared_reviewers,
             reviewers,
             previous_facts,
@@ -705,7 +588,7 @@ def build_pr_result(
         prepared_discussions = prepare_discussions(
             DiscussionInput(
                 tuple(raw["review_threads"]),
-                tuple(events),
+                activity.events,
                 author,
                 frozenset(reviewers),
                 facts.get("conflicts") or "unknown",
