@@ -87,8 +87,8 @@ def compute_conflicts(pr: dict[str, Any]) -> str:
 
 
 def required_checks_settled(facts: dict[str, Any]) -> bool:
-    # A route computed while checks are still running is provisional: route_pr
-    # can only see a failure once the check has completed.
+    # A route computed while checks are still running is provisional because a
+    # failure becomes visible only after the check completes.
     if "ci_pending_count" not in facts:
         return False
     return not facts.get("ci_pending_count", 0)
