@@ -1996,12 +1996,15 @@
         "assignees": [],
         "author": "elang2",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/443#pullrequestreview-4899280349"
+        ],
         "author_nudge_episode_id": "807080ef8e9a4e469d8e11a87b766c83",
-        "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-22T04:35:07+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f45f007b05317fce231466b4a2dd2a009b8e723e7127df202d52cb3433152ec0",
+        "copilot_request_fingerprint": "baf18e8f3586f7b87813c163a5e336e91f6939e592629e4da49147e743f86ee0",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2017,10 +2020,10 @@
         "head_sha": "8580a273b219aaacbcd1b7550b79e605f88e574f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-22T04:34:30+00:00",
+        "last_activity_at": "2026-08-22T04:34:51+00:00",
         "last_approver_activity_at": "2026-08-19T12:14:29+00:00",
-        "last_author_activity_at": "2026-08-22T04:34:30+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-08-22T04:34:51+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2038,7 +2041,7 @@
             "login": "lmolkova",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": false,
@@ -2050,12 +2053,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-22T04:35:01.251419+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "95dd02bba5d7c5c8240fb8cdd331263576b8752e13f87a2074c8847be4631308",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-19T03:31:28+00:00"
+        "routing_input_fingerprint": "7ba6b14905ab3e6fd84f691e25a8da1967e1ef0b04044bdcf5e91f9a974a9586",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-22T04:34:51+00:00"
       },
       "failed": false,
       "pr_number": 443,
@@ -2073,12 +2075,6 @@
             "reply": "2026-08-11T04:56:43Z"
           },
           "reply_source_id": 5249149054
-        },
-        "pr-review-4899280349": {
-          "evidence": {
-            "reply": "2026-08-17T03:53:09Z"
-          },
-          "reply_source_id": 5311559526
         }
       }
     },
