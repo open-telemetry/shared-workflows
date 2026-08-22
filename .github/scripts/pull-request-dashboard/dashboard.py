@@ -673,10 +673,10 @@ def compute_facts(
         "copilot_review_stale": copilot_review_stale,
         "copilot_review_needed": copilot_review_stale or copilot_review_findings,
         "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
-        "is_draft": bool(pr.get("isDraft")),
+        "is_draft": snapshot.is_draft,
         "approval_count": current_approval_count(
             events,
-            raw.get("review_requests") or [],
+            snapshot.review_requests,
         ),
         "conflicts": compute_conflicts(pr),
         "created_at": format_ts(created_ts),
