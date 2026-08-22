@@ -62,8 +62,10 @@ def _digest(value: Any) -> str:
 
 
 def _copilot_request_inputs(raw: dict[str, Any]) -> dict[str, Any]:
-    # Review requests are sent while checks are running. Check transitions
-    # therefore cannot make an otherwise current request stale.
+    # Review requests are sent while checks are running, so including checks in
+    # the fingerprint would invalidate queued requests as their status changes.
+    # Delivery separately rejects requests when check results are unavailable or
+    # a required check is failing or canceled.
     inputs = _routing_inputs(raw)
     inputs.pop("checks", None)
     return inputs
