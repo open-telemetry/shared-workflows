@@ -1403,6 +1403,9 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
     ) -> None:
         raw = {
             "pr": {
+                # A later updatedAt must not advance any activity clock: the
+                # dashboard's own status comment bumps it on every refresh.
+                "updatedAt": "2026-07-20T09:00:00Z",
                 "createdAt": "2026-07-20T01:00:00Z",
                 "author": {"login": "author"},
                 "assignees": [],
