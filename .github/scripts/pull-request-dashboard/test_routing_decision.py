@@ -602,6 +602,33 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
         self.assertEqual("2026-08-16T12:00:00+00:00", carried.facts["waiting_since"])
         self.assertEqual("gate_release", carried.facts["waiting_age_basis"])
 
+    def test_a_release_between_reviewer_routes_keeps_the_wait(self) -> None:
+        # This pull request never left the people who owe it a response, so the
+        # merge request is as old as the review that produced it.
+        outcome = self.resolve(
+            {
+                "approval_count": 1,
+                "ci_failing_count": 0,
+                "ci_pending_count": 0,
+                "head_sha": "abc",
+                "is_maintenance_bot": False,
+                "last_author_activity_at": "2026-08-16T08:00:00+00:00",
+            },
+            previous_route="approver",
+            previous_facts={
+                "head_sha": "abc",
+                "route_held_for_gates": True,
+                "waiting_since": "2026-08-10T01:00:00+00:00",
+                "waiting_age_basis": "last_author_activity",
+            },
+        )
+
+        self.assertEqual("maintainer", outcome.route)
+        self.assertEqual("2026-08-10T01:00:00+00:00", outcome.facts["waiting_since"])
+        self.assertEqual(
+            "last_author_activity", outcome.facts["waiting_age_basis"]
+        )
+
     def test_unheld_handoff_dates_from_the_latest_author_activity(self) -> None:
         outcome = self.resolve(
             {
@@ -715,6 +742,38 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
 
         self.assertEqual("2026-08-10T08:00:00+00:00", outcome.facts["waiting_since"])
         self.assertEqual("oldest_pending_thread", outcome.facts["waiting_age_basis"])
+
+    def test_required_check_failure_outranks_only_newer_author_threads(self) -> None:
+        cases = (
+            (
+                "2026-07-17T03:00:00Z",
+                "2026-07-17T01:00:00+00:00",
+                "ci_failure",
+            ),
+            (
+                "2026-07-16T23:00:00Z",
+                "2026-07-16T23:00:00+00:00",
+                "oldest_pending_thread",
+            ),
+        )
+        for thread_since, waiting_since, basis in cases:
+            with self.subTest(thread_since=thread_since):
+                outcome = self.resolve(
+                    {
+                        "approval_count": 0,
+                        "ci_failing_count": 1,
+                        "ci_failing_since": "2026-07-17T01:00:00+00:00",
+                        "ci_pending_count": 0,
+                        "conflicts": "no",
+                        "is_maintenance_bot": False,
+                        "last_author_activity_at": "2026-07-14T02:00:00+00:00",
+                    },
+                    {"thread": {"action": "author", "since": thread_since}},
+                )
+
+                self.assertEqual("author", outcome.route)
+                self.assertEqual(waiting_since, outcome.facts["waiting_since"])
+                self.assertEqual(basis, outcome.facts["waiting_age_basis"])
 
     def test_unclear_classification_uses_reviewer_thread_wait_age(self) -> None:
         outcome = self.resolve(
