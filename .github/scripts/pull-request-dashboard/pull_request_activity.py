@@ -8,6 +8,8 @@ from dashboard_override import dashboard_command_body_remainder
 from utils import actor_login, is_copilot_reviewer_login, parse_ts
 
 
+# `role_for` assigns the author role before it checks for bot-shaped logins, so
+# a bot that opened the pull request counts as a participant here.
 _PARTICIPANT_ACTOR_ROLES = {"author", "approver", "outsider"}
 
 

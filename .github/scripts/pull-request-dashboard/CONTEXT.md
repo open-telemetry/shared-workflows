@@ -10,10 +10,11 @@ using one actor, role, activity timestamp, and creation timestamp shape.
 ### Substantive activity
 
 Substantive activity is participant activity that can advance an activity clock.
-It excludes bot activity and non-author merge commits. Non-comment review states
-are substantive without body text; other activity events require non-whitespace
-text. The timeline records separate latest participant, author, and approver
-activity clocks.
+It excludes activity in the bot role and non-author merge commits. A bot that
+opened the pull request takes the author role instead, so its own activity still
+counts. Non-comment review states are substantive without body text; other
+activity events require non-whitespace text. The timeline records separate
+latest participant, author, and approver activity clocks.
 
 ## Discussion lifecycle
 
