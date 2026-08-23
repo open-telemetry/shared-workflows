@@ -313,7 +313,7 @@ class DashboardEvaluationHandoffTest(unittest.TestCase):
         )
 
 
-class BuildPrResultTest(unittest.TestCase):
+class PullRequestEvaluationTest(unittest.TestCase):
     @staticmethod
     def raw_pr(*, checks: list[dict[str, object]] | None = None) -> dict[str, object]:
         return {
@@ -374,7 +374,7 @@ class BuildPrResultTest(unittest.TestCase):
         return_value=([], [], []),
     )
     @patch("pull_request_evaluation._fetch_pr_raw")
-    def test_build_result_routes_pending_reviewers_and_projects_reviewer_rows(
+    def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(
         self,
         fetch_raw: Mock,
         _classify: Mock,
