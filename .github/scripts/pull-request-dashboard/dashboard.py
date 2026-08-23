@@ -159,7 +159,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
 
-    Stage 2 — resolve_routing (depends on routing + pending actions):
+    Stage 2 — resolve_routing (depends on pending actions + the previous result):
     copilot_review_outstanding      bool          The Copilot review gate applies
                                                   to this PR and its review is
                                                   missing or stale, so the route
@@ -188,7 +188,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   has reported or the author
                                                   pushes.
     route_hold_expired              bool          A gate has reported nothing on
-                                                  this head for longer than
+                                                  this head for longer than the
                                                   four-hour hold limit, so the PR
                                                   routes anyway and its status
                                                   comment names the gate that
