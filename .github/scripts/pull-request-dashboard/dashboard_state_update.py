@@ -87,10 +87,11 @@ def _acceptance(
 ) -> DashboardUpdateAcceptance:
     changed = disposition is DashboardUpdateDisposition.APPLIED
     rejected = disposition is DashboardUpdateDisposition.FAILED_RESULT_REJECTED
+    result = (dashboard_state.get("prs") or {}).get(str(pr_number))
     return DashboardUpdateAcceptance(
         disposition=disposition,
         dashboard_state=dashboard_state,
-        accepted_result=(dashboard_state.get("prs") or {}).get(str(pr_number)),
+        accepted_result=result if isinstance(result, dict) else None,
         effects=DashboardUpdateEffects(
             persist_dashboard_state=changed,
             enqueue_status_comment=changed,

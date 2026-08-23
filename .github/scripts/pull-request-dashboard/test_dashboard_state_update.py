@@ -166,8 +166,10 @@ class DashboardStateUpdateTest(unittest.TestCase):
             acceptance.disposition,
             DashboardUpdateDisposition.CONCURRENT_UPDATE,
         )
-        self.assertEqual("malformed", acceptance.accepted_result)
+        self.assertIsNone(acceptance.accepted_result)
+        self.assertEqual("malformed", acceptance.dashboard_state["prs"]["7"])
         self.assertFalse(acceptance.effects.persist_dashboard_state)
+        self.assertTrue(acceptance.effects.record_observations)
 
     def test_successful_result_is_accepted_and_plans_all_effects(self) -> None:
         starting = result(7, "author")
