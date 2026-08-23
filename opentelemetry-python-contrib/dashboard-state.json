@@ -337,9 +337,8 @@
         "author": "zmievsa",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "dce6f2e01f3f4e5ca14e88a1eeb42161",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "f1c83182f815de9042bb513952ae2341f60e815dbc1d58845b90d962866266db",
         "copilot_review_exists": false,
@@ -360,7 +359,7 @@
         "last_activity_at": "2026-08-23T13:57:15+00:00",
         "last_approver_activity_at": "2026-08-19T20:06:58+00:00",
         "last_author_activity_at": "2026-08-23T13:57:15+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -435,17 +434,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-23T13:57:18.585138+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4fb682b4f73cb640a7c988f646386fbf54f6df8eadf18af6503df17a31d15e9a",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-23T13:54:40+00:00"
+        "routing_input_fingerprint": "4903250655f8a133688e88fc7eb54ced4baa82ce1013c09337710b9e7bb75fa8",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-23T14:15:19.444925+00:00"
       },
       "failed": false,
       "pr_number": 4102,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4102",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-3753822973": {
           "evidence": {
@@ -454,6 +452,12 @@
           "reply_source_id": 3754033444
         },
         "pr-issue-comment-4435602329": {
+          "evidence": {
+            "reply": "2026-08-18T10:01:09Z"
+          },
+          "reply_source_id": 5326620191
+        },
+        "pr-issue-comment-5320800634": {
           "evidence": {
             "reply": "2026-08-18T10:01:09Z"
           },
