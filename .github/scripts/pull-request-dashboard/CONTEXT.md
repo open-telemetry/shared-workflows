@@ -3,9 +3,10 @@
 ## Activity timeline
 
 The activity timeline normalizes raw commits, issue comments, review comments,
-and reviews into ordered activity events. An activity event preserves the
-GitHub source fields needed by reviewer state and the discussion lifecycle while
-using one actor, role, activity timestamp, and creation timestamp shape.
+and reviews into ordered activity events. Each event uses a normalized actor,
+role, and activity timestamp while preserving the GitHub source fields needed by
+reviewer state and the discussion lifecycle. Comment and review events also
+preserve their creation time for ordering.
 
 ### Substantive activity
 
