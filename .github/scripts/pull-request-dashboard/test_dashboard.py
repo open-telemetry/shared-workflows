@@ -1241,7 +1241,10 @@ class StatusCommentQueueTest(unittest.TestCase):
         saved_state = save_state.call_args.args[1]
         self.assertEqual({"56": {}}, saved_state["prs"])
         self.assertEqual(
-            [call(12, None, ANY), call(34, None, ANY)],
+            [
+                call(12, None, ANY, prepare_due=False),
+                call(34, None, ANY, prepare_due=False),
+            ],
             sorted(record_nudge.call_args_list, key=lambda value: value.args[0]),
         )
 

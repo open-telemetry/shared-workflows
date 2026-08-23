@@ -577,7 +577,7 @@ def apply_dashboard_update_effects(
     acceptance: DashboardUpdateAcceptance,
     observed_at: datetime,
     *,
-    prepare_author_nudges: bool | None,
+    prepare_author_nudges: bool,
 ) -> None:
     effects = acceptance.effects
     if effects.clear_backfill_failure:
@@ -585,19 +585,12 @@ def apply_dashboard_update_effects(
     if effects.enqueue_status_comment:
         enqueue_status_comment_update(pr_number)
     if effects.record_observations:
-        if prepare_author_nudges is None:
-            record_author_nudge_observation(
-                pr_number,
-                acceptance.accepted_result,
-                observed_at,
-            )
-        else:
-            record_author_nudge_observation(
-                pr_number,
-                acceptance.accepted_result,
-                observed_at,
-                prepare_due=prepare_author_nudges,
-            )
+        record_author_nudge_observation(
+            pr_number,
+            acceptance.accepted_result,
+            observed_at,
+            prepare_due=prepare_author_nudges,
+        )
         record_copilot_review_observation(
             pr_number,
             acceptance.accepted_result,
@@ -626,7 +619,7 @@ def remove_cached_dashboard_prs(
             number,
             acceptance,
             observed_at,
-            prepare_author_nudges=None,
+            prepare_author_nudges=False,
         )
         dashboard_state = acceptance.dashboard_state
         persist_dashboard_state |= acceptance.effects.persist_dashboard_state
