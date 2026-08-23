@@ -740,9 +740,9 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
         self.assertEqual("last_author_activity", outcome.facts["waiting_age_basis"])
 
     def test_author_wait_without_a_failure_dates_from_the_last_approver(self) -> None:
-        # A gate holds this pull request on its author while the checks run,
-        # and nothing is failing, so the wait dates from the review that sent
-        # it back rather than from the pull request's latest activity.
+        # A pending required check holds the computed approver route at the
+        # previous author route. With no failure, conflict, or pending author
+        # thread, the wait dates from the last substantive approver activity.
         outcome = self.resolve(
             {
                 "approval_count": 0,
