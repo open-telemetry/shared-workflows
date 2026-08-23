@@ -76,17 +76,6 @@ def verdict_record(discussion_id: str, verdict: str = "author_action") -> dict:
     }
 
 
-def classification(discussion_id: str) -> dict:
-    return {
-        "discussion_id": discussion_id,
-        "discussion_kind": "top-level-feedback",
-        "decision": {
-            "discussion_action": "author",
-            "reason": "action requested",
-        },
-    }
-
-
 def author_comment_decision(*feedback_actions: tuple[str, str]) -> dict:
     return {
         "feedback_outcomes": [
