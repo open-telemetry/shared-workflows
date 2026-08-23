@@ -26,6 +26,12 @@ from discussion_lifecycle import (
     prepare_discussions,
     resolve_discussions,
 )
+from reviewer_state import (
+    ReviewerDiscussionInput,
+    ReviewerInput,
+    prepare_reviewers,
+    resolve_reviewers,
+)
 from routing_decision import RoutingInput, resolve_routing
 
 
@@ -216,7 +222,7 @@ class IgnoredPraiseWaitAgeTest(unittest.TestCase):
             ],
         }
 
-    def waiting_since(self, thread: dict, reply: str) -> str:
+    def pending_actions(self, thread: dict, reply: str) -> dict[str, dict]:
         def batch(items, _model, _prompt, verdicts):
             answer = "praise" if verdicts == PRAISE_VERDICTS else reply
             return [
@@ -231,8 +237,44 @@ class IgnoredPraiseWaitAgeTest(unittest.TestCase):
 
         with patch("classification.run_llm_for_verdict_batch", side_effect=batch):
             records = classify_review_threads(1, [thread], "model", {}, {})
-        pending = review_thread_pending_actions([thread], list(records.values()))
-        return pending["t"]["since"]
+        return review_thread_pending_actions([thread], list(records.values()))
+
+    def waiting_since(self, thread: dict, reply: str) -> str:
+        return self.pending_actions(thread, reply)["t"]["since"]
+
+    def open_thread_reviewers(self, thread: dict) -> list[str]:
+        pending = self.pending_actions(thread, "complete")
+        self.assertTrue(pending["t"]["ignored_last_comment"])
+        return [
+            reviewer.login
+            for reviewer in resolve_reviewers(
+                prepare_reviewers(ReviewerInput((), (), ())),
+                ReviewerDiscussionInput((thread,), (), pending),
+            )
+            if reviewer.open_thread
+        ]
+
+    def test_praise_does_not_make_its_author_a_waiting_reviewer(self) -> None:
+        thread = self.thread(
+            ("approver", "please fix", "2026-03-12T00:00:00Z"),
+            ("author", "fixed it", "2026-04-01T00:00:00Z"),
+            ("approver", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][0]["actor"] = "alice"
+        thread["comments"][2]["actor"] = "bob"
+
+        self.assertEqual(["alice"], self.open_thread_reviewers(thread))
+
+    def test_an_edited_request_still_counts_its_reviewer(self) -> None:
+        thread = self.thread(
+            ("approver", "please fix", "2026-06-01T00:00:00Z"),
+            ("author", "fixed it", "2026-04-01T00:00:00Z"),
+            ("approver", "LGTM", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][0]["actor"] = "alice"
+        thread["comments"][2]["actor"] = "bob"
+
+        self.assertEqual(["alice"], self.open_thread_reviewers(thread))
 
     def test_praise_after_a_reviewer_request_keeps_the_request_date(self) -> None:
         thread = self.thread(
