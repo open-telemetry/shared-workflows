@@ -1436,6 +1436,30 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
             facts["last_approver_activity_at"],
         )
 
+    def test_uses_creation_time_without_participant_activity(self) -> None:
+        raw = {
+            "pr": {
+                "createdAt": "2026-07-20T01:00:00Z",
+                "author": {"login": "author"},
+                "assignees": [],
+                "mergeStateStatus": "CLEAN",
+                "mergeable": "MERGEABLE",
+            },
+            "checks": [],
+        }
+
+        facts = dashboard_compute_facts(
+            raw,
+            "author",
+            PullRequestActivity((), None, None, None),
+            prepare_reviewers(ReviewerInput((), (), ())),
+        )
+
+        self.assertEqual(
+            "2026-07-20T01:00:00+00:00",
+            facts["last_activity_at"],
+        )
+
 
 class BackfillFailureIsolationTest(unittest.TestCase):
     def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
