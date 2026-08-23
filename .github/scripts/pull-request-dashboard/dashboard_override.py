@@ -1,4 +1,4 @@
-"""Recognize and deliver explicit reviewer-routing overrides."""
+"""Recognize explicit reviewer-routing overrides and prepare dashboard command replies."""
 
 from __future__ import annotations
 
