@@ -371,6 +371,21 @@ class ActivityClockTest(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             timeline.events = ()  # type: ignore[misc]
 
+    def test_activity_timeline_events_are_frozen(self) -> None:
+        timeline = activity(
+            issue_comments=[
+                {
+                    "id": 1,
+                    "created_at": "2026-07-14T01:00:00Z",
+                    "user": {"login": "author"},
+                    "body": "Author update",
+                }
+            ]
+        )
+
+        with self.assertRaises(TypeError):
+            timeline.events[0]["body"] = "Changed"  # type: ignore[index]
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from types import MappingProxyType
 from typing import Any
 
 from dashboard_override import dashboard_command_body_remainder
@@ -22,7 +24,7 @@ class ActivityInput:
 
 @dataclass(frozen=True)
 class PullRequestActivity:
-    events: tuple[dict[str, Any], ...]
+    events: tuple[Mapping[str, Any], ...]
     latest_participant_activity_at: datetime | None
     latest_author_activity_at: datetime | None
     latest_approver_activity_at: datetime | None
@@ -48,7 +50,7 @@ def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
     return login
 
 
-def is_substantive_activity(event: dict[str, Any]) -> bool:
+def is_substantive_activity(event: Mapping[str, Any]) -> bool:
     if event.get("is_merge_from_base_by_non_author"):
         return False
     # Bot events never count as substantive: merge-bot pings, CI status
@@ -187,7 +189,7 @@ def _review_event(
     }
 
 
-def _ordered_events(source: ActivityInput) -> tuple[dict[str, Any], ...]:
+def _ordered_events(source: ActivityInput) -> tuple[Mapping[str, Any], ...]:
     raw = source.raw
     approver_logins = set(source.approver_logins)
     events = [
@@ -218,11 +220,11 @@ def _ordered_events(source: ActivityInput) -> tuple[dict[str, Any], ...]:
     events.sort(
         key=lambda event: event.get("created_timestamp") or event["timestamp"]
     )
-    return tuple(events)
+    return tuple(MappingProxyType(event) for event in events)
 
 
 def _latest_substantive_activity(
-    events: tuple[dict[str, Any], ...],
+    events: tuple[Mapping[str, Any], ...],
     actor_roles: set[str],
 ) -> datetime | None:
     timestamps = [
