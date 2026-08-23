@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from dashboard_status import DASHBOARD_APP_SLUG
 from route_presentation import outstanding_gate_phrase
 from utils import actor_login
 
@@ -12,9 +13,6 @@ from utils import actor_login
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
 DASHBOARD_OVERRIDE_COMMAND = "/dashboard route:reviewers"
 DASHBOARD_OVERRIDE_SUBCOMMAND = "route:reviewers"
-# Mirrors pr_status_comment.DASHBOARD_APP_SLUG; duplicated here to avoid a
-# circular import between the two modules.
-DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
 COMMAND_REPLY_MARKER_PREFIX = "<!-- pull-request-dashboard-command-reply:"
 _COMMAND_REPLY_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-command-reply:(\d+) -->"
