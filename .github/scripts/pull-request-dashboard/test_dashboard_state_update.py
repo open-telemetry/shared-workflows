@@ -35,6 +35,8 @@ class DashboardStateUpdateTest(unittest.TestCase):
         prepared = prepare_dashboard_update(state(starting), {7}, 7)
 
         self.assertEqual(starting, prepared.starting_result)
+        self.assertTrue(prepared.starting_slot_present)
+        self.assertEqual(starting, prepared.starting_slot)
         with self.assertRaises(FrozenInstanceError):
             prepared.pr_number = 8  # type: ignore[misc]
 
@@ -130,6 +132,42 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertFalse(acceptance.effects.persist_dashboard_state)
         self.assertFalse(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
+
+    def test_malformed_tracked_pr_removal_is_accepted(self) -> None:
+        malformed_state = state()
+        malformed_state["prs"]["7"] = None
+        prepared = prepare_dashboard_update(malformed_state, {7}, 7)
+
+        acceptance = accept_dashboard_update(
+            prepared.with_evaluated_result(None),
+            malformed_state,
+        )
+
+        self.assertIsNone(prepared.starting_result)
+        self.assertTrue(prepared.starting_slot_present)
+        self.assertIsNone(prepared.starting_slot)
+        self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
+        self.assertEqual({}, acceptance.dashboard_state["prs"])
+        self.assertTrue(acceptance.effects.persist_dashboard_state)
+
+    def test_concurrent_malformed_slot_change_wins(self) -> None:
+        starting_state = state()
+        starting_state["prs"]["7"] = None
+        latest_state = state()
+        latest_state["prs"]["7"] = "malformed"
+        prepared = prepare_dashboard_update(starting_state, {7}, 7)
+
+        acceptance = accept_dashboard_update(
+            prepared.with_evaluated_result(None),
+            latest_state,
+        )
+
+        self.assertIs(
+            acceptance.disposition,
+            DashboardUpdateDisposition.CONCURRENT_UPDATE,
+        )
+        self.assertEqual("malformed", acceptance.accepted_result)
+        self.assertFalse(acceptance.effects.persist_dashboard_state)
 
     def test_successful_result_is_accepted_and_plans_all_effects(self) -> None:
         starting = result(7, "author")

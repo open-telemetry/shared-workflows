@@ -23,6 +23,8 @@ class PreparedDashboardUpdate:
     pr_number: int
     starting_dashboard_state: dict[str, Any]
     starting_result: dict[str, Any] | None
+    starting_slot_present: bool
+    starting_slot: Any
 
     def with_evaluated_result(
         self,
@@ -62,6 +64,8 @@ def prepare_dashboard_update(
     open_pr_numbers: set[int],
     pr_number: int,
 ) -> PreparedDashboardUpdate:
+    prs = dashboard_state.get("prs") or {}
+    key = str(pr_number)
     return PreparedDashboardUpdate(
         pr_number=pr_number,
         starting_dashboard_state=dashboard_state,
@@ -69,6 +73,8 @@ def prepare_dashboard_update(
             dashboard_state,
             open_pr_numbers,
         ).get(pr_number),
+        starting_slot_present=key in prs,
+        starting_slot=prs.get(key),
     )
 
 
@@ -105,24 +111,23 @@ def accept_dashboard_update(
         if latest_dashboard_state is not None
         else prepared.starting_dashboard_state
     )
-    latest_result = (
-        (latest_dashboard_state.get("prs") or {}).get(str(pr_number))
-        if latest_dashboard_state is not None
-        else prepared.starting_result
+    latest_prs = dashboard_state.get("prs") or {}
+    latest_slot_present = str(pr_number) in latest_prs
+    latest_result = latest_prs.get(str(pr_number))
+    slot_changed = (
+        latest_slot_present != prepared.starting_slot_present
+        or latest_result != prepared.starting_slot
     )
     evaluated_result = update.evaluated_result
 
     if evaluated_result is None:
-        if (
-            latest_dashboard_state is not None
-            and latest_result != prepared.starting_result
-        ):
+        if latest_dashboard_state is not None and slot_changed:
             return _acceptance(
                 DashboardUpdateDisposition.CONCURRENT_UPDATE,
                 dashboard_state,
                 pr_number,
             )
-        if latest_result is None:
+        if not latest_slot_present:
             return _acceptance(
                 DashboardUpdateDisposition.UNCHANGED,
                 dashboard_state,
@@ -143,10 +148,7 @@ def accept_dashboard_update(
             pr_number,
             clear_backfill_failure=clear_backfill_failure,
         )
-    if (
-        latest_dashboard_state is not None
-        and latest_result != prepared.starting_result
-    ):
+    if latest_dashboard_state is not None and slot_changed:
         return _acceptance(
             DashboardUpdateDisposition.CONCURRENT_UPDATE,
             dashboard_state,
