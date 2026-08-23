@@ -12930,7 +12930,7 @@
     },
     "50453": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "paulojmdias",
         "author_action_review_thread_urls": [],
@@ -12938,7 +12938,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "15a799e3ddf6c6adf5f0d32ea695a35c3cac81bf83975bbea587518c4043d32d",
+        "copilot_request_fingerprint": "8d8e04cbe71e09eb9d7a5c356430dce646a3afaf804a9c06f33ae4a12586b3be",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12954,21 +12954,31 @@
         "head_sha": "9df30a6dc80db021553caac4b083a7d22edbbaa0",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-22T18:10:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-23T19:15:31+00:00",
+        "last_approver_activity_at": "2026-08-23T19:15:31+00:00",
         "last_author_activity_at": "2026-08-22T18:10:52+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bd995bb6a09f866eadfef48d33eb12dc0e583eeb68b039272d352ace6a655019",
+        "routing_input_fingerprint": "8f9b98c35488393bc292b901db873230dee49b84ef7eaaf2794274dcdf9035af",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-22T21:08:40.122833+00:00"
       },
       "failed": false,
       "pr_number": 50453,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50453",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50454": {
