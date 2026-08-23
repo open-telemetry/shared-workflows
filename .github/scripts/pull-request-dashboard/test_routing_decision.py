@@ -381,6 +381,26 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
             "2026-08-16T12:00:00+00:00", reset.facts["route_held_since"]
         )
 
+    def test_a_route_that_does_not_advance_never_starts_the_hold_clock(self) -> None:
+        # A pull request already with its reviewers is not a stalled handoff,
+        # however long its checks run.
+        outcome = self.resolve(
+            {
+                "approval_count": 1,
+                "ci_failing_count": 0,
+                "ci_pending_count": 1,
+                "head_sha": "abc",
+                "is_maintenance_bot": False,
+            },
+            previous_route="maintainer",
+            previous_facts={"head_sha": "abc"},
+        )
+
+        self.assertEqual("maintainer", outcome.route)
+        self.assertFalse(outcome.facts["route_held_for_gates"])
+        self.assertNotIn("route_held_since", outcome.facts)
+        self.assertFalse(outcome.facts["route_hold_expired"])
+
     def test_settled_gates_clear_the_hold_clock(self) -> None:
         outcome = self.resolve(
             {
@@ -653,6 +673,26 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
         )
 
         self.assertEqual("2026-07-23T01:00:00+00:00", outcome.facts["waiting_since"])
+        self.assertEqual("last_author_activity", outcome.facts["waiting_age_basis"])
+
+    def test_conflict_wait_dates_from_the_last_author_activity(self) -> None:
+        # A conflicted pull request waits on its author from their own last
+        # activity, not from the failing check or the last approver activity.
+        outcome = self.resolve(
+            {
+                "approval_count": 0,
+                "ci_failing_count": 1,
+                "ci_failing_since": "2026-08-10T08:00:00+00:00",
+                "ci_pending_count": 0,
+                "conflicts": "yes",
+                "is_maintenance_bot": False,
+                "last_author_activity_at": "2026-08-16T08:00:00+00:00",
+                "last_approver_activity_at": "2026-08-09T08:00:00+00:00",
+            }
+        )
+
+        self.assertEqual("author", outcome.route)
+        self.assertEqual("2026-08-16T08:00:00+00:00", outcome.facts["waiting_since"])
         self.assertEqual("last_author_activity", outcome.facts["waiting_age_basis"])
 
     def test_conflict_wait_uses_oldest_relevant_author_evidence(self) -> None:
