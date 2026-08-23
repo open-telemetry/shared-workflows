@@ -47,6 +47,8 @@ STATUS_REPORT_TRUNCATION_NOTICE = (
     "[Status comment truncated to keep this report link usable.]"
 )
 RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
+
+
 def status_report_url(pr: dict[str, Any], status_comment: str) -> str:
     quoted_status_comment = "\n".join(
         f"> {line}" for line in status_comment.splitlines()
