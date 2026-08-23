@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from dashboard_override import command_reply_exists, render_command_reply
 from github_cli import gh_api, run_gh
 from state import load_dashboard_state_cache

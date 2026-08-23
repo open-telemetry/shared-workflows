@@ -8,7 +8,6 @@ from typing import Any
 from github_cli import (
     fetch_pr_reviews,
     fetch_review_requests,
-    request_copilot_review,
     sleep_for_retry,
 )
 from routing_snapshot import RoutingSnapshot
