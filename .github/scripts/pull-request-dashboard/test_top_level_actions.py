@@ -95,12 +95,6 @@ def copilot_batch_response(*items: dict) -> CompletedProcess[str]:
     )
 
 
-def top_level_history_record(kind: str, timestamp: str) -> dict:
-    return {
-        "evidence": {kind: timestamp},
-    }
-
-
 def top_level_items_from_raw(
     raw: dict,
     conflicts: str = "no",

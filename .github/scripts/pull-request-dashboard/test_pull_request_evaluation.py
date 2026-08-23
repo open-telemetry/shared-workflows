@@ -4,6 +4,7 @@ from dataclasses import FrozenInstanceError
 import unittest
 from unittest.mock import patch
 
+from discussion_lifecycle import resolve_discussions
 from github_cli import TransientGhError
 from pull_request_evaluation import (
     PullRequestEvaluationConfig,
@@ -95,6 +96,40 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         self.assertEqual(7, result["pr_number"])
         self.assertEqual("Evaluation contract", result["pr_title"])
         self.assertEqual("https://example.test/pull/7", result["pr_url"])
+
+    @patch(
+        "pull_request_evaluation.resolve_discussions",
+        wraps=resolve_discussions,
+    )
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_cached_top_level_history_reaches_the_discussion_lifecycle(
+        self,
+        fetch_raw,
+        _classify,
+        resolve,
+    ) -> None:
+        fetch_raw.return_value = raw_pr()
+        history = {
+            "pr-review-456": {"evidence": {"commit": "2026-08-16T07:30:00Z"}},
+        }
+
+        result = evaluate_pull_request(
+            evaluation_config(),
+            PullRequestEvaluationInput(
+                {"number": 7},
+                previous_result={"top_level_history": history},
+            ),
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertFalse(result["failed"])
+        resolve.assert_called_once()
+        self.assertEqual(history, resolve.call_args.args[2])
 
     def test_closed_and_draft_pull_requests_are_not_results(self) -> None:
         for name, raw in (
