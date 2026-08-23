@@ -21,7 +21,6 @@ class DashboardUpdateDisposition(Enum):
 @dataclass(frozen=True)
 class PreparedDashboardUpdate:
     pr_number: int
-    open_pr_numbers: frozenset[int]
     starting_dashboard_state: dict[str, Any]
     starting_result: dict[str, Any] | None
 
@@ -57,13 +56,6 @@ class DashboardUpdateAcceptance:
     def failed_result_rejected(self) -> bool:
         return self.disposition is DashboardUpdateDisposition.FAILED_RESULT_REJECTED
 
-    @property
-    def dashboard_state_unchanged(self) -> bool:
-        return self.disposition in {
-            DashboardUpdateDisposition.UNCHANGED,
-            DashboardUpdateDisposition.CONCURRENT_UPDATE,
-        }
-
 
 def prepare_dashboard_update(
     dashboard_state: dict[str, Any],
@@ -72,7 +64,6 @@ def prepare_dashboard_update(
 ) -> PreparedDashboardUpdate:
     return PreparedDashboardUpdate(
         pr_number=pr_number,
-        open_pr_numbers=frozenset(open_pr_numbers),
         starting_dashboard_state=dashboard_state,
         starting_result=results_from_dashboard_state(
             dashboard_state,

@@ -35,7 +35,6 @@ class DashboardStateUpdateTest(unittest.TestCase):
         prepared = prepare_dashboard_update(state(starting), {7}, 7)
 
         self.assertEqual(starting, prepared.starting_result)
-        self.assertEqual(frozenset({7}), prepared.open_pr_numbers)
         with self.assertRaises(FrozenInstanceError):
             prepared.pr_number = 8  # type: ignore[misc]
 
@@ -163,7 +162,6 @@ class DashboardStateUpdateTest(unittest.TestCase):
             DashboardUpdateDisposition.FAILED_RESULT_REJECTED,
         )
         self.assertEqual(starting, acceptance.accepted_result)
-        self.assertFalse(acceptance.dashboard_state_unchanged)
         self.assertFalse(acceptance.effects.persist_dashboard_state)
         self.assertFalse(acceptance.effects.enqueue_status_comment)
         self.assertFalse(acceptance.effects.record_observations)
