@@ -458,7 +458,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertEqual(held_since.isoformat(), reviewers.facts["route_held_since"])
         self.assertTrue(reviewers.facts["route_hold_expired"])
 
-    def test_conflict_pauses_the_hold_clock_and_copilot_request(self) -> None:
+    def test_conflict_clears_the_hold_clock_and_copilot_request(self) -> None:
         outcome = self.resolve(
             {
                 "approval_count": 1,

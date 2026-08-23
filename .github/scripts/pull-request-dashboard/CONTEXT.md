@@ -46,10 +46,10 @@ clock that affects routing.
 
 An unsettled required check or Copilot review can stop a pull request from
 advancing, but cannot stop it from moving back toward its author. The hold
-tracks the first missing report on the current head, pauses during conflicts,
-and expires after four hours. Releasing a hold that kept the pull request with
-its author starts a fresh reviewer wait. A release between reviewer routes
-keeps the existing wait.
+tracks the first missing report on the current head, clears its clock during
+conflicts and restarts it when they resolve, and expires after four hours.
+Releasing a hold that kept the pull request with its author starts a fresh
+reviewer wait. A release between reviewer routes keeps the existing wait.
 
 ### Reviewer handoff
 
