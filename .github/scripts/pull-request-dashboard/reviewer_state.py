@@ -10,7 +10,7 @@ from pull_request_activity import reviewer_actor_login
 
 @dataclass(frozen=True)
 class ReviewerInput:
-    events: tuple[dict[str, Any], ...]
+    events: tuple[Mapping[str, Any], ...]
     review_requests: tuple[dict[str, Any], ...]
     raw_assignees: tuple[dict[str, Any], ...]
 
@@ -62,7 +62,7 @@ class ReviewerSummary:
 _OPEN_DISCUSSION_ACTIONS = {"author", "reviewer"}
 
 
-def _latest_review_states(events: tuple[dict[str, Any], ...]) -> dict[str, str]:
+def _latest_review_states(events: tuple[Mapping[str, Any], ...]) -> dict[str, str]:
     latest_by_reviewer: dict[str, tuple[str, str]] = {}
     for event in events:
         if event.get("kind") != "review-state":
@@ -92,7 +92,7 @@ def _human_request_logins(
     }
 
 
-def _reviewing_logins(events: tuple[dict[str, Any], ...]) -> set[str]:
+def _reviewing_logins(events: tuple[Mapping[str, Any], ...]) -> set[str]:
     return {
         event["actor"]
         for event in events
@@ -100,7 +100,7 @@ def _reviewing_logins(events: tuple[dict[str, Any], ...]) -> set[str]:
     }
 
 
-def _approver_logins(events: tuple[dict[str, Any], ...]) -> set[str]:
+def _approver_logins(events: tuple[Mapping[str, Any], ...]) -> set[str]:
     return {
         event["actor"]
         for event in events
@@ -109,7 +109,7 @@ def _approver_logins(events: tuple[dict[str, Any], ...]) -> set[str]:
 
 
 def _participating_approver_logins(
-    events: tuple[dict[str, Any], ...],
+    events: tuple[Mapping[str, Any], ...],
 ) -> set[str]:
     return {
         event["actor"]
