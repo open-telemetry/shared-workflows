@@ -1529,11 +1529,13 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
             "checks": [],
         }
 
-        facts = dashboard_compute_facts(
+        facts = evaluation_compute_facts(
             raw,
             "author",
             PullRequestActivity((), None, None, None),
             prepare_reviewers(ReviewerInput((), (), ())),
+            frozenset(),
+            {},
         )
 
         self.assertEqual(
