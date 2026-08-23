@@ -121,6 +121,9 @@ def deliver_copilot_review_requests(
                 "requested_at": format_ts(now),
             }
             continue
+        # Leaving the request undelivered keeps the next pass trying. Nothing
+        # escalates from here: a request that keeps going missing leaves the
+        # pull request held, and the hold is what reports the stall.
         print(
             f"GitHub did not record the Copilot review request for "
             f"PR #{pr_number} on head {snapshot.head_sha}",

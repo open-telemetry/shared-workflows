@@ -46,6 +46,10 @@ from routing_snapshot import build_routing_snapshot
 from utils import actor_login, compute_conflicts, format_ts, parse_ts
 
 
+# Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
+# `app/<slug>` form, while the Pulls/commits endpoint's `committer.login`
+# field can return the bare `copilot` slug. Do not treat either form as the
+# human author behind a Copilot-authored PR.
 _COPILOT_COMMITTER_LOGINS = {"copilot"}
 _COPILOT_PR_AUTHORS = {"app/copilot-swe-agent", "copilot"}
 _MAINTENANCE_BOT_PR_AUTHORS = {"app/otelbot", "app/renovate"}
