@@ -350,6 +350,22 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
 
         self.assertEqual("approver", outcome.route)
 
+    def test_a_newly_classified_maintenance_bot_falls_back_to_approvers(self) -> None:
+        # A cached result can still say "author" when the pull request author
+        # was only classified as a maintenance bot after it was stored, and a
+        # maintenance bot has no author route to fall back to.
+        outcome = self.resolve(
+            {
+                "approval_count": 1,
+                "ci_pending_count": 1,
+                "head_sha": "abc",
+                "is_maintenance_bot": True,
+            },
+            previous_route="author",
+        )
+
+        self.assertEqual("approver", outcome.route)
+
     def test_hold_clock_carries_on_the_same_head_and_resets_after_push(self) -> None:
         previous_facts = {
             "head_sha": "abc",
@@ -701,6 +717,52 @@ class RoutingWaitAgeTest(RoutingTestMixin, unittest.TestCase):
 
         self.assertEqual("2026-07-23T01:00:00+00:00", outcome.facts["waiting_since"])
         self.assertEqual("last_author_activity", outcome.facts["waiting_age_basis"])
+
+    def test_reviewer_wait_moves_back_to_newly_found_older_evidence(self) -> None:
+        # The wait only moves back while the pull request stays with its
+        # reviewers, so evidence older than the carried wait replaces it.
+        outcome = self.resolve(
+            {
+                "approval_count": 0,
+                "ci_failing_count": 0,
+                "ci_pending_count": 0,
+                "is_maintenance_bot": False,
+                "last_author_activity_at": "2026-07-10T01:00:00+00:00",
+            },
+            previous_route="approver",
+            previous_facts={
+                "waiting_since": "2026-07-23T01:00:00+00:00",
+                "waiting_age_basis": "last_author_activity",
+            },
+        )
+
+        self.assertEqual("2026-07-10T01:00:00+00:00", outcome.facts["waiting_since"])
+        self.assertEqual("last_author_activity", outcome.facts["waiting_age_basis"])
+
+    def test_author_wait_without_a_failure_dates_from_the_last_approver(self) -> None:
+        # A gate holds this pull request on its author while the checks run,
+        # and nothing is failing, so the wait dates from the review that sent
+        # it back rather than from the pull request's latest activity.
+        outcome = self.resolve(
+            {
+                "approval_count": 0,
+                "ci_failing_count": 0,
+                "ci_pending_count": 1,
+                "conflicts": "no",
+                "head_sha": "abc",
+                "is_maintenance_bot": False,
+                "last_activity_at": "2026-07-20T01:00:00+00:00",
+                "last_approver_activity_at": "2026-07-10T01:00:00+00:00",
+            },
+            previous_route="author",
+            previous_facts={"head_sha": "abc"},
+        )
+
+        self.assertEqual("author", outcome.route)
+        self.assertEqual("2026-07-10T01:00:00+00:00", outcome.facts["waiting_since"])
+        self.assertEqual(
+            "last_approver_activity", outcome.facts["waiting_age_basis"]
+        )
 
     def test_conflict_wait_dates_from_the_last_author_activity(self) -> None:
         # A conflicted pull request waits on its author from their own last
