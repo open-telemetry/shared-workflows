@@ -563,7 +563,7 @@
     },
     "5111": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "evgenyfedorov2"
         ],
@@ -571,9 +571,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "eede364a6fc14bcc6f994c1226f09764501fe9290007a283e9dc4fa8f734d763",
+        "copilot_request_fingerprint": "6f83b1d62cceeba4f68904e4d64fe2e6405ff4a4626caec5cfee74fba1c14577",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -589,10 +589,10 @@
         "head_sha": "49fd96466d7cfb6f6dcb1e1930a8b1c505995c5d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-23T10:51:21+00:00",
-        "last_approver_activity_at": "2026-08-23T10:49:13+00:00",
+        "last_activity_at": "2026-08-23T12:06:04+00:00",
+        "last_approver_activity_at": "2026-08-23T12:06:04+00:00",
         "last_author_activity_at": "2026-08-23T10:51:21+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -604,19 +604,20 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "martincostello",
             "open_thread": false,
-            "pending_review": true,
+            "pending_review": false,
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-23T12:06:46.279713+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "dedb0ae03156daa848c422094a561df07c37111f93f60345ad71b7fe86075e0c",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "80a5d7de9d5653f6e3f6b5d9e15f6f2d9c1df2bc8a284a3f3355f502a2c959a1",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-23T10:33:52+00:00"
       },
       "failed": false,
