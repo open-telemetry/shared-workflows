@@ -98,19 +98,6 @@ def copilot_batch_response(*items: dict) -> CompletedProcess[str]:
     )
 
 
-def event(kind: str, timestamp: str, actor: str, actor_role: str, **values: object) -> dict:
-    return {
-        "kind": kind,
-        "timestamp": timestamp,
-        "actor": actor,
-        "actor_role": actor_role,
-        "body": values.pop("body", kind),
-        "state": values.pop("state", None),
-        "is_merge_from_base_by_non_author": False,
-        **values,
-    }
-
-
 def top_level_history_record(kind: str, timestamp: str) -> dict:
     return {
         "evidence": {kind: timestamp},
