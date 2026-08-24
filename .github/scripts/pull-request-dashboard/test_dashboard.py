@@ -11,17 +11,20 @@ from unittest.mock import ANY, Mock, call, patch
 from copilot_review import set_copilot_review_request_needed
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
-    DashboardUpdate,
     apply_targeted_dashboard_update,
     backfill_failed_pr_numbers,
     build_dashboard_update_for_pr,
     complete_initial_backfill_if_ready,
     main,
-    merge_dashboard_update_with_latest_state,
     remove_cached_dashboard_prs,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
+)
+from dashboard_state_update import (
+    DashboardStateUpdate,
+    accept_dashboard_update,
+    prepare_dashboard_update,
 )
 from pull_request_evaluation import (
     PullRequestEvaluationConfig,
@@ -297,20 +300,8 @@ class DashboardEvaluationHandoffTest(unittest.TestCase):
             frozenset({"main"}),
             config.require_clean_copilot_review_branches,
         )
-        self.assertEqual(starting_result, update.starting_pr_result)
-        self.assertEqual(evaluated_result, update.trigger_pr_result)
-        self.assertEqual(evaluated_result, update.results[7])
-        self.assertEqual(
-            {
-                "pr_number": 7,
-                "pr_url": "",
-                "route": "approver",
-                "failed": False,
-                "facts": {"head_sha": "new-head"},
-                "top_level_history": starting_result["top_level_history"],
-            },
-            update.current_pr_result,
-        )
+        self.assertEqual(starting_result, update.prepared.starting_result)
+        self.assertEqual(evaluated_result, update.evaluated_result)
 
 
 class PullRequestEvaluationTest(unittest.TestCase):
@@ -1250,7 +1241,10 @@ class StatusCommentQueueTest(unittest.TestCase):
         saved_state = save_state.call_args.args[1]
         self.assertEqual({"56": {}}, saved_state["prs"])
         self.assertEqual(
-            [call(12, None, ANY), call(34, None, ANY)],
+            [
+                call(12, None, ANY, prepare_due=False),
+                call(34, None, ANY, prepare_due=False),
+            ],
             sorted(record_nudge.call_args_list, key=lambda value: value.args[0]),
         )
 
@@ -1259,30 +1253,52 @@ class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
-    @patch("dashboard.merge_dashboard_update_with_latest_state")
+    @patch("dashboard.load_dashboard_state_cache")
     def test_targeted_state_change_enqueues_status_comment(
         self,
-        merge_update: Mock,
+        load_state: Mock,
         enqueue_update: Mock,
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
         record_copilot: Mock,
     ) -> None:
-        accepted_result = {"route": "author"}
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"12": accepted_result}},
-            trigger_pr_result={"route": "approver"},
-        )
-        merge_update.return_value = (calculation, False)
+        starting_result = {
+            "pr_number": 12,
+            "pr_url": "",
+            "route": "author",
+            "failed": False,
+            "facts": {},
+            "top_level_history": {},
+        }
+        evaluated_result = {"pr_number": 12, "route": "approver"}
+        dashboard_state = {"prs": {"12": starting_result}}
+        calculation = prepare_dashboard_update(
+            dashboard_state,
+            {12},
+            12,
+        ).with_evaluated_result(evaluated_result)
+        accepted_result = {
+            "pr_number": 12,
+            "pr_url": "",
+            "route": "approver",
+            "failed": False,
+            "facts": {},
+            "top_level_history": {},
+        }
+        load_state.return_value = dashboard_state
 
-        status = apply_targeted_dashboard_update(
-            Namespace(pr_number=12, prepare_author_nudges=True),
-            calculation,
-        )
+        with patch(
+            "dashboard.accept_dashboard_update",
+            wraps=accept_dashboard_update,
+        ) as accept_update:
+            status = apply_targeted_dashboard_update(
+                Namespace(pr_number=12, prepare_author_nudges=True),
+                calculation,
+            )
 
         self.assertEqual(0, status)
+        accept_update.assert_called_once()
         enqueue_update.assert_called_once_with(12)
         record_nudge.assert_called_once_with(
             12,
@@ -1301,23 +1317,31 @@ class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
-    @patch("dashboard.merge_dashboard_update_with_latest_state")
+    @patch("dashboard.load_dashboard_state_cache")
     def test_unchanged_targeted_state_does_not_enqueue_status_comment(
         self,
-        merge_update: Mock,
+        load_state: Mock,
         enqueue_update: Mock,
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
         _record_copilot: Mock,
     ) -> None:
-        accepted_result = {"route": "approver"}
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"12": accepted_result}},
-            trigger_pr_result={"route": "author"},
-        )
-        merge_update.return_value = (calculation, True)
+        accepted_result = {
+            "pr_number": 12,
+            "pr_url": "",
+            "route": "approver",
+            "failed": False,
+            "facts": {},
+            "top_level_history": {},
+        }
+        dashboard_state = {"prs": {"12": accepted_result}}
+        calculation = prepare_dashboard_update(
+            dashboard_state,
+            {12},
+            12,
+        ).with_evaluated_result(dict(accepted_result))
+        load_state.return_value = dashboard_state
 
         status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
 
@@ -1329,51 +1353,6 @@ class StatusCommentQueueTest(unittest.TestCase):
             ANY,
             prepare_due=False,
         )
-
-    @patch(
-        "dashboard.load_dashboard_state_cache",
-        return_value={"prs": {"34": {"route": "author"}}},
-    )
-    def test_untracked_closed_pr_reports_no_state_change(
-        self, _load_state: Mock
-    ) -> None:
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"34": {"route": "author"}}},
-            trigger_pr_result=None,
-            starting_pr_result=None,
-            used_cached_dashboard_state=True,
-        )
-
-        _merged, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
-            calculation, 12, {34}
-        )
-
-        self.assertTrue(dashboard_state_unchanged)
-
-    @patch(
-        "dashboard.load_dashboard_state_cache",
-        return_value={"prs": {"12": {"route": "author"}}},
-    )
-    def test_tracked_closed_pr_still_reports_a_state_change(
-        self, _load_state: Mock
-    ) -> None:
-        starting_pr_result = {"route": "author"}
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"12": starting_pr_result}},
-            trigger_pr_result=None,
-            starting_pr_result=starting_pr_result,
-            used_cached_dashboard_state=True,
-        )
-
-        merged, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
-            calculation, 12, set()
-        )
-
-        self.assertFalse(dashboard_state_unchanged)
-        self.assertEqual({}, merged.dashboard_state["prs"])
-
 
 class RequiredCiRoutingTest(unittest.TestCase):
     def test_non_blocking_check_failures_use_deterministic_casefold_tiebreaker(self) -> None:
@@ -1571,7 +1550,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             backfill_state.clear()
             backfill_state.update(deepcopy(state))
 
-        def build_update(*call_args) -> DashboardUpdate:
+        def build_update(*call_args) -> DashboardStateUpdate:
             pr_number = call_args[5]
             starting_state = call_args[9]
             refreshed_pr_numbers.append(pr_number)
@@ -1580,13 +1559,11 @@ class BackfillFailureIsolationTest(unittest.TestCase):
                 "failed": pr_number == 1,
                 "route": "unknown" if pr_number == 1 else "reviewer",
             }
-            updated_state = deepcopy(starting_state)
-            updated_state["prs"][str(pr_number)] = result
-            return DashboardUpdate(
-                results={pr_number: result},
-                dashboard_state=updated_state,
-                trigger_pr_result=result,
-            )
+            return prepare_dashboard_update(
+                starting_state,
+                {1, 2},
+                pr_number,
+            ).with_evaluated_result(result)
 
         def save_dashboard_state(_args, state: dict, unchanged: bool) -> int:
             if not unchanged:
@@ -1606,13 +1583,9 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             patch("dashboard.save_backfill_state", side_effect=save_backfill_state),
             patch("dashboard.build_dashboard_update_for_pr", side_effect=build_update),
             patch(
-                "dashboard.merge_dashboard_update_with_latest_state",
-                side_effect=lambda calculation, *_args: (calculation, False),
-            ),
-            patch(
-                "dashboard.reject_failed_dashboard_result",
-                side_effect=lambda result: result["failed"],
-            ),
+                "dashboard.accept_dashboard_update",
+                wraps=accept_dashboard_update,
+            ) as accept_update,
             patch("dashboard.save_dashboard_update_state", side_effect=save_dashboard_state),
             patch("dashboard.record_author_nudge_observation") as record_nudge,
             patch("dashboard.state_branch.configure_git"),
@@ -1623,9 +1596,22 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             status = update_dashboard_for_backfill(args, Path("state"))
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
+        self.assertEqual(2, accept_update.call_count)
         record_nudge.assert_called_once_with(2, ANY, ANY, prepare_due=False)
         self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
-        self.assertEqual(dashboard_state["prs"], {"2": {"pr_number": 2, "failed": False, "route": "reviewer"}})
+        self.assertEqual(
+            dashboard_state["prs"],
+            {
+                "2": {
+                    "pr_number": 2,
+                    "pr_url": "",
+                    "failed": False,
+                    "route": "reviewer",
+                    "facts": {},
+                    "top_level_history": {},
+                }
+            },
+        )
         self.assertTrue(dashboard_state["initial_backfill_complete"])
         self.assertEqual(backfill_state["cursor"], {"last_pr_number": 2})
         self.assertEqual(backfill_failed_pr_numbers(backfill_state), {1})
@@ -1638,10 +1624,21 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
     def test_successful_targeted_update_clears_recorded_failure(self) -> None:
         args = Namespace(pr_number=1)
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"1": {"pr_number": 1}}},
-            trigger_pr_result={"pr_number": 1, "failed": False},
+        starting_result = {
+            "pr_number": 1,
+            "pr_url": "",
+            "failed": False,
+            "route": "author",
+            "facts": {},
+            "top_level_history": {},
+        }
+        dashboard_state = {"prs": {"1": starting_result}}
+        calculation = prepare_dashboard_update(
+            dashboard_state,
+            {1},
+            1,
+        ).with_evaluated_result(
+            {"pr_number": 1, "failed": False, "route": "approver"}
         )
         backfill_state = {
             "cursor": {"last_pr_number": 7},
@@ -1651,8 +1648,8 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
         with (
             patch(
-                "dashboard.merge_dashboard_update_with_latest_state",
-                return_value=(calculation, False),
+                "dashboard.load_dashboard_state_cache",
+                return_value=dashboard_state,
             ),
             patch("dashboard.load_backfill_state", return_value=deepcopy(backfill_state)),
             patch(
@@ -1666,7 +1663,9 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertEqual(saved_backfill_state["cursor"], {"last_pr_number": 7})
         self.assertEqual(saved_backfill_state["failed_pr_numbers"], [2])
-        save_dashboard.assert_called_once_with(args, calculation.dashboard_state, False)
+        saved_dashboard_state = save_dashboard.call_args.args[1]
+        self.assertEqual("approver", saved_dashboard_state["prs"]["1"]["route"])
+        self.assertFalse(save_dashboard.call_args.args[2])
 
     def test_emits_initial_backfill_status_only_for_accepted_state_outcomes(self) -> None:
         for status, should_emit in (

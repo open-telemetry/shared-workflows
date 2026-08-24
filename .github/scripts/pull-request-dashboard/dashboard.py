@@ -39,8 +39,8 @@ A run flows like this:
        single-PR + cache miss: skip; wait for backfill to create initial state
        no PR target:           backfill, processing PRs one at a time
        v
-  merge_dashboard_update_with_latest_state
-       reload dashboard-state in case a concurrent run updated it
+  accept_dashboard_update
+       reconcile the evaluated PR slot with the latest accepted dashboard state
        v
   save_dashboard_state_cache
 
@@ -249,7 +249,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -270,6 +270,12 @@ from author_nudge import (
 from copilot_review_delivery import (
     record_copilot_review_observation,
 )
+from dashboard_state_update import (
+    DashboardStateUpdate,
+    DashboardUpdateAcceptance,
+    accept_dashboard_update,
+    prepare_dashboard_update,
+)
 from pull_request_evaluation import (
     PullRequestEvaluationConfig,
     PullRequestEvaluationInput,
@@ -282,12 +288,9 @@ from state import (
     initial_backfill_complete,
     load_dashboard_state_cache,
     load_backfill_state,
-    results_from_dashboard_state,
     save_dashboard_state_cache,
     save_backfill_state,
     set_state_dir,
-    stored_result,
-    update_dashboard_state_for_pr,
 )
 import state_branch
 from utils import utc_now
@@ -296,16 +299,6 @@ from utils import utc_now
 DEFAULT_MODEL = "gpt-5.4-mini"
 DEFAULT_BACKFILL_MAX_PRS = 50
 BACKFILL_RECORDED_FAILURE_STATUS = 2
-
-@dataclass
-class DashboardUpdate:
-    results: dict[int, dict[str, Any]]
-    dashboard_state: dict[str, Any]
-    trigger_pr_result: dict[str, Any] | None = None
-    current_pr_result: dict[str, Any] | None = None
-    starting_pr_result: dict[str, Any] | None = None
-    used_cached_dashboard_state: bool = False
-
 
 def build_dashboard_update_for_pr(
     repo: str,
@@ -319,10 +312,13 @@ def build_dashboard_update_for_pr(
     non_blocking_check_patterns: list[str],
     dashboard_state: dict[str, Any],
     require_clean_copilot_review_branches: list[str] | None = None,
-) -> DashboardUpdate:
+) -> DashboardStateUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
-    results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-    starting_pr_result = results.get(pr_number)
+    prepared_update = prepare_dashboard_update(
+        dashboard_state,
+        open_pr_numbers,
+        pr_number,
+    )
     trigger_pr_result = evaluate_pull_request(
         PullRequestEvaluationConfig(
             repo=repo,
@@ -338,81 +334,10 @@ def build_dashboard_update_for_pr(
         ),
         PullRequestEvaluationInput(
             pr_summary={"number": pr_number},
-            previous_result=starting_pr_result,
+            previous_result=prepared_update.starting_result,
         ),
     )
-    if trigger_pr_result is None:
-        results.pop(pr_number, None)
-    else:
-        results[pr_number] = trigger_pr_result
-    current_pr_result = stored_result(trigger_pr_result) if trigger_pr_result is not None else None
-    return DashboardUpdate(
-        results=results,
-        dashboard_state=dashboard_state,
-        trigger_pr_result=trigger_pr_result,
-        current_pr_result=current_pr_result,
-        starting_pr_result=starting_pr_result,
-        used_cached_dashboard_state=True,
-    )
-
-
-def merge_dashboard_update_with_latest_state(
-    calculation: DashboardUpdate,
-    pr_number: int | None,
-    open_pr_numbers: set[int],
-) -> tuple[DashboardUpdate, bool]:
-    if not pr_number or not calculation.used_cached_dashboard_state:
-        return calculation, False
-
-    if calculation.trigger_pr_result is None:
-        # The trigger PR is a draft, closed, or was dropped between
-        # list_open_prs and the worker run. Drop any outdated cached result so
-        # the notification job cannot continue treating the PR as routed.
-        dashboard_state = load_dashboard_state_cache()
-        if dashboard_state is not None:
-            previous_pr_result = dashboard_state["prs"].get(str(pr_number))
-            if previous_pr_result != calculation.starting_pr_result:
-                results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-                return replace(calculation, results=results, dashboard_state=dashboard_state), True
-        else:
-            dashboard_state = calculation.dashboard_state
-            previous_pr_result = calculation.starting_pr_result
-        if previous_pr_result is None:
-            # Nothing is cached for this PR, so there is no routed result to
-            # drop. Reporting a change here would queue a status comment for a
-            # PR the dashboard never tracked, which is how an event on a
-            # long-merged PR ends up posting a first status comment on it.
-            results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-            return replace(calculation, results=results, dashboard_state=dashboard_state), True
-        dashboard_state = update_dashboard_state_for_pr(dashboard_state, pr_number, None)
-        results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-        return replace(calculation, results=results, dashboard_state=dashboard_state), False
-
-    # Reload the cache so we pick up any concurrent writer's update of
-    # other PR slots before we merge in our own.
-    latest_dashboard_state = load_dashboard_state_cache()
-    if latest_dashboard_state is None:
-        previous_pr_result = None
-    else:
-        previous_pr_result = latest_dashboard_state["prs"].get(str(pr_number))
-    dashboard_state = calculation.dashboard_state
-    results = calculation.results
-
-    if previous_pr_result == calculation.current_pr_result:
-        if latest_dashboard_state is not None:
-            dashboard_state = latest_dashboard_state
-            results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-        return replace(calculation, results=results, dashboard_state=dashboard_state), True
-
-    if latest_dashboard_state is not None and previous_pr_result != calculation.starting_pr_result:
-        results = results_from_dashboard_state(latest_dashboard_state, open_pr_numbers)
-        return replace(calculation, results=results, dashboard_state=latest_dashboard_state), True
-
-    if latest_dashboard_state is not None:
-        dashboard_state = latest_dashboard_state
-    dashboard_state = update_dashboard_state_for_pr(dashboard_state, pr_number, calculation.trigger_pr_result)
-    results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-    return replace(calculation, results=results, dashboard_state=dashboard_state), False
+    return prepared_update.with_evaluated_result(trigger_pr_result)
 
 
 def dashboard_state_pr_numbers(state: dict[str, Any]) -> set[int]:
@@ -647,6 +572,32 @@ def clear_backfill_pr_failure(pr_number: int) -> None:
     save_backfill_state(backfill_state)
 
 
+def apply_dashboard_update_effects(
+    pr_number: int,
+    acceptance: DashboardUpdateAcceptance,
+    observed_at: datetime,
+    *,
+    prepare_author_nudges: bool,
+) -> None:
+    effects = acceptance.effects
+    if effects.clear_backfill_failure:
+        clear_backfill_pr_failure(pr_number)
+    if effects.enqueue_status_comment:
+        enqueue_status_comment_update(pr_number)
+    if effects.record_observations:
+        record_author_nudge_observation(
+            pr_number,
+            acceptance.accepted_result,
+            observed_at,
+            prepare_due=prepare_author_nudges,
+        )
+        record_copilot_review_observation(
+            pr_number,
+            acceptance.accepted_result,
+            observed_at,
+        )
+
+
 def remove_cached_dashboard_prs(
     args: argparse.Namespace,
     pr_numbers_to_remove: set[int],
@@ -655,18 +606,31 @@ def remove_cached_dashboard_prs(
     if not pr_numbers_to_remove:
         return 0
     dashboard_state = load_dashboard_state_cache() or empty_state()
-    state_prs = dict(dashboard_state.get("prs") or {})
     observed_at = observed_at or utc_now()
-    for number in pr_numbers_to_remove:
-        state_prs.pop(str(number), None)
-        enqueue_status_comment_update(number)
-        record_author_nudge_observation(number, None, observed_at)
-        record_copilot_review_observation(number, None, observed_at)
-    dashboard_state["prs"] = state_prs
-    return save_dashboard_update_state(args, dashboard_state, False)
+    persist_dashboard_state = False
+    for number in sorted(pr_numbers_to_remove):
+        update = prepare_dashboard_update(
+            dashboard_state,
+            {number},
+            number,
+        ).with_evaluated_result(None)
+        acceptance = accept_dashboard_update(update, dashboard_state)
+        apply_dashboard_update_effects(
+            number,
+            acceptance,
+            observed_at,
+            prepare_author_nudges=False,
+        )
+        dashboard_state = acceptance.dashboard_state
+        persist_dashboard_state |= acceptance.effects.persist_dashboard_state
+    return save_dashboard_update_state(
+        args,
+        dashboard_state,
+        not persist_dashboard_state,
+    )
 
 
-def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate | None:
+def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardStateUpdate | None:
     if args.pr_number is None:
         raise RuntimeError("build_targeted_dashboard_update requires --pr-number")
 
@@ -696,39 +660,28 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate
 
 def apply_targeted_dashboard_update(
     args: argparse.Namespace,
-    calculation: DashboardUpdate,
+    update: DashboardStateUpdate,
     observed_at: datetime | None = None,
 ) -> int:
-    merged_calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
-        calculation,
-        args.pr_number,
-        {args.pr_number} if args.pr_number is not None else set(),
+    if args.pr_number is None:
+        raise RuntimeError("apply_targeted_dashboard_update requires --pr-number")
+    acceptance = accept_dashboard_update(
+        update,
+        load_dashboard_state_cache(),
     )
-    if not dashboard_state_unchanged and reject_failed_dashboard_result(merged_calculation.trigger_pr_result):
+    if acceptance.failed_result_rejected:
+        reject_failed_dashboard_result(update.evaluated_result)
         return 1
-    if merged_calculation.trigger_pr_result is not None and not has_failed_dashboard_result(
-        merged_calculation.trigger_pr_result
-    ):
-        clear_backfill_pr_failure(args.pr_number)
-    if not dashboard_state_unchanged and args.pr_number is not None:
-        enqueue_status_comment_update(args.pr_number)
-    if args.pr_number is not None:
-        observed_at = observed_at or utc_now()
-        accepted_result = (merged_calculation.dashboard_state.get("prs") or {}).get(
-            str(args.pr_number)
-        )
-        record_author_nudge_observation(
-            args.pr_number,
-            accepted_result,
-            observed_at,
-            prepare_due=getattr(args, "prepare_author_nudges", False),
-        )
-        record_copilot_review_observation(args.pr_number, accepted_result, observed_at)
-
+    apply_dashboard_update_effects(
+        args.pr_number,
+        acceptance,
+        observed_at or utc_now(),
+        prepare_author_nudges=getattr(args, "prepare_author_nudges", False),
+    )
     return save_dashboard_update_state(
         args,
-        merged_calculation.dashboard_state,
-        dashboard_state_unchanged,
+        acceptance.dashboard_state,
+        not acceptance.effects.persist_dashboard_state,
     )
 
 
@@ -831,46 +784,46 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 dashboard_state,
                 getattr(args, "require_clean_copilot_review_branches", []),
             )
-            calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
+            acceptance = accept_dashboard_update(
                 calculation,
-                pr_number,
-                open_non_draft_pr_numbers,
+                load_dashboard_state_cache(),
             )
-            if not dashboard_state_unchanged and reject_failed_dashboard_result(calculation.trigger_pr_result):
+            if acceptance.failed_result_rejected:
+                reject_failed_dashboard_result(calculation.evaluated_result)
                 failed_pr_numbers = update_backfill_progress(pr_number, failed=True)
                 initial_backfill_completed = complete_initial_backfill_if_ready(
-                    dashboard_state,
+                    acceptance.dashboard_state,
                     open_non_draft_pr_numbers,
                     failed_pr_numbers,
                 )
                 return save_dashboard_update_state(
                     args,
-                    dashboard_state,
+                    acceptance.dashboard_state,
                     not initial_backfill_completed,
                 )
-            record_author_nudge_observation(
+            apply_dashboard_update_effects(
                 pr_number,
-                (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
+                acceptance,
                 observed_at,
-                prepare_due=getattr(args, "prepare_author_nudges", False),
-            )
-            record_copilot_review_observation(
-                pr_number,
-                (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
-                observed_at,
+                prepare_author_nudges=getattr(
+                    args,
+                    "prepare_author_nudges",
+                    False,
+                ),
             )
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
-            if not dashboard_state_unchanged:
-                enqueue_status_comment_update(pr_number)
             initial_backfill_completed = complete_initial_backfill_if_ready(
-                calculation.dashboard_state,
+                acceptance.dashboard_state,
                 open_non_draft_pr_numbers,
                 failed_pr_numbers,
             )
             return save_dashboard_update_state(
                 args,
-                calculation.dashboard_state,
-                dashboard_state_unchanged and not initial_backfill_completed,
+                acceptance.dashboard_state,
+                (
+                    not acceptance.effects.persist_dashboard_state
+                    and not initial_backfill_completed
+                ),
             )
 
         status = state_branch.push_state_changes(
