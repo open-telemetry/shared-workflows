@@ -655,7 +655,9 @@ def decode_stored_result(
         pr_number=pr_number,
         pr_url=_string(value.get("pr_url"), "dashboard result pr_url"),
         route=route,
-        facts=decode_dashboard_facts(value.get("facts") or {}),
+        facts=decode_dashboard_facts(
+            value["facts"] if "facts" in value else {}
+        ),
         top_level_history=freeze_json_object(history),
     )
 

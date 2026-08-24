@@ -275,6 +275,23 @@ class StateTest(unittest.TestCase):
         self.assertEqual(first, decode_stored_result(encode_stored_result(first)))
         self.assertEqual(state, decode_dashboard_state(encode_dashboard_state(state)))
 
+    def test_stored_result_rejects_explicit_non_object_facts(self) -> None:
+        stored = {
+            "pr_number": 7,
+            "pr_url": "https://github.com/open-telemetry/example/pull/7",
+            "failed": False,
+            "route": "approver",
+        }
+
+        self.assertEqual(dashboard_facts(), decode_stored_result(stored).facts)
+        for facts in ([], "", 0, False, None):
+            with self.subTest(facts=facts):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "dashboard result facts must be an object",
+                ):
+                    decode_stored_result({**stored, "facts": facts})
+
     def test_malformed_persisted_results_are_rejected_individually(self) -> None:
         persisted = {
             "version": DASHBOARD_STATE_VERSION,
