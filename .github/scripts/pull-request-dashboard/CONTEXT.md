@@ -80,3 +80,23 @@ The Copilot request fingerprint covers the same routing inputs except required
 checks. A request can therefore be delivered while checks move from pending to
 passing. Component digests identify which covered input changed when delivery
 rejects a stale request.
+
+## Reviewer state
+
+Reviewer state is prepared once from normalized pull request events, current
+review requests, and raw assignees. It determines active approver-team
+approvals, normalized assignees, and pending human re-reviews before routing.
+
+### Pending re-review
+
+A pending re-review is an individual review request for someone who has already
+submitted a review. It invalidates that reviewer's approval but keeps a
+CHANGES_REQUESTED state active. Team requests and first-time review requests do
+not create pending re-review rows.
+
+### Reviewer summary
+
+A reviewer summary is the final dashboard row produced after discussion actions
+are resolved. It combines approval state, pending re-review, changes requested,
+inline discussion ownership, top-level feedback ownership, approver
+participation, and assignee visibility.
