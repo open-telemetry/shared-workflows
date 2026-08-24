@@ -366,8 +366,18 @@ class StateTest(unittest.TestCase):
             "version": DASHBOARD_STATE_VERSION,
             "initial_backfill_complete": True,
             "prs": {
-                "1": encode_stored_result(stored_dashboard_result(1)),
-                "01": encode_stored_result(stored_dashboard_result(1)),
+                "1": encode_stored_result(
+                    stored_dashboard_result(
+                        1,
+                        facts=dashboard_facts(author="canonical"),
+                    )
+                ),
+                "01": encode_stored_result(
+                    stored_dashboard_result(
+                        1,
+                        facts=dashboard_facts(author="alias"),
+                    )
+                ),
                 "not-a-number": {},
                 "0": {},
                 "2": [],
@@ -382,12 +392,14 @@ class StateTest(unittest.TestCase):
                 },
             },
         }
+        sorted_persisted = json.loads(json.dumps(persisted, sort_keys=True))
         warnings = StringIO()
 
         with redirect_stderr(warnings):
-            decoded = decode_dashboard_state(persisted)
+            decoded = decode_dashboard_state(sorted_persisted)
 
         self.assertEqual(frozenset({1}), decoded.pr_numbers)
+        self.assertEqual("canonical", decoded.results[0].facts.author)
         self.assertTrue(decoded.initial_backfill_complete)
         self.assertEqual(8, warnings.getvalue().count(
             "warning: ignoring malformed dashboard result"

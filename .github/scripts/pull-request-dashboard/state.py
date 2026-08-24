@@ -716,6 +716,8 @@ def decode_dashboard_state(value: Mapping[str, Any]) -> DashboardState:
             pr_number = int(key)
             if pr_number <= 0:
                 raise ValueError("PR number must be positive")
+            if key != str(pr_number):
+                raise ValueError("PR number key must use canonical decimal form")
             if pr_number in decoded_pr_numbers:
                 raise ValueError("duplicate normalized PR number")
             result = decode_stored_result(
