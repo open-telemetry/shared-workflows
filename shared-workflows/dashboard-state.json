@@ -56,7 +56,7 @@
     },
     "301": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -64,7 +64,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ec69b54e0f95f8a835aa7c57882a82ab19b083f9f35fd669066b322b892cc26e",
+        "copilot_request_fingerprint": "0c49e0673f4656e96009b2a919c6d354d5bf08846bcf96629e912580e8645926",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -80,21 +80,31 @@
         "head_sha": "6d5f688f108f31ef8f023e474c90727cbeda8db0",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-24T00:28:02+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T02:57:20+00:00",
+        "last_approver_activity_at": "2026-08-24T02:57:20+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ffdfc894776a62f5a85dc492dde5d2dcbc4b0d0ae41ca4c74ff547c1918cfe15",
+        "routing_input_fingerprint": "c6c05e666dbb388dfec51c0116fa2a57bc36361ebbf3cb43cdb75fa6e4234996",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-24T00:28:02+00:00"
       },
       "failed": false,
       "pr_number": 301,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/301",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "302": {
