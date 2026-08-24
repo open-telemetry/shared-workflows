@@ -407,7 +407,7 @@
     },
     "850": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -415,7 +415,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "dc3fdd4815c39d5c45ade10763932ef35ba35207e375921995c8e85ecbdf06a2",
+        "copilot_request_fingerprint": "b70f0ea4115efc18fc4dc7d3efd73267f5b8830a6c9a7c661c9752a809a95d5d",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -431,21 +431,31 @@
         "head_sha": "b20d5d98f8d03414820273927d389d2230497232",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-24T00:30:00+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T05:57:27+00:00",
+        "last_approver_activity_at": "2026-08-24T05:57:27+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d88bdcc3ac728a996cd249608f8f5fefeb3e584246bf7b0174dce6ea9ef56503",
+        "routing_input_fingerprint": "aaac9b2567fafd8e52f4a83bb38ae1df29d9d6bd3ddec92926367d89714e534b",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-24T00:30:00+00:00"
       },
       "failed": false,
       "pr_number": 850,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/850",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "851": {
