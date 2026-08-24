@@ -1608,7 +1608,16 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             PreparedDiscussions((), (discussion,), (author_reply_item,)),
             DiscussionClassifications(
                 (),
-                (classification("code"),),
+                (
+                    {
+                        "discussion_id": "code",
+                        "discussion_kind": "top-level-feedback",
+                        "decision": {
+                            "discussion_action": "author",
+                            "reason": "action requested",
+                        },
+                    },
+                ),
                 (
                     {
                         "discussion_id": "pr-author-reply-102",
