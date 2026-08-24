@@ -5157,7 +5157,7 @@
     },
     "11413": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -5165,7 +5165,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "2c15bb94f1e9d5c1f7550a8a9ef9255d0ca15c034a12529b905bc4015d720997",
+        "copilot_request_fingerprint": "94e76b92d69f9b6bff2fb738d4d044ef012295d25103ac5d9dca484e1c440f6b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -5181,21 +5181,31 @@
         "head_sha": "064c50c0ec94c640861826620619a0f8c1bf0014",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-24T13:05:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T13:16:08+00:00",
+        "last_approver_activity_at": "2026-08-24T13:16:08+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "cffb83bdcf406fb964bb775ab7dbbc39d85f38af1976fca5c0bf76fb84b510ff",
+        "routing_input_fingerprint": "ec1330c9c3fe6ce8c86a8282a6c2038e35ca597b709cde6b09be6f3da2646d5a",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-24T03:01:14+00:00"
       },
       "failed": false,
       "pr_number": 11413,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11413",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11414": {
