@@ -4335,7 +4335,7 @@
     },
     "4984": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "tammy-baylis-swi",
         "author_action_review_thread_urls": [],
@@ -4343,7 +4343,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1adde6b2633f38052f1ea5a0f6ebe93f1179a0a06cc662fec668cde970e4eba7",
+        "copilot_request_fingerprint": "41be3a2df919b34d8c5470c89c6d0697da6573ef907bc3a2673cb39537596291",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4359,21 +4359,31 @@
         "head_sha": "a1784e522e3586feaa75e2024d4e07fd7ca69564",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T18:58:00+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T07:16:04+00:00",
+        "last_approver_activity_at": "2026-08-24T07:16:04+00:00",
         "last_author_activity_at": "2026-08-21T18:56:21+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "xrmx",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4d651d0f5c264d2aeca7400017f7bf78e6d271c9ea874e6ac6a84febd3c1a407",
+        "routing_input_fingerprint": "0539ec06cf051cbf77806d2c4fe09249a782c910d41003a4cd574113517a5ec1",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-21T19:23:56.788749+00:00"
       },
       "failed": false,
       "pr_number": 4984,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4984",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4985": {
