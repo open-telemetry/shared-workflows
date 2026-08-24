@@ -35,6 +35,31 @@ The durable evidence that a specific author reply closed a top-level feedback
 item. It lets later refreshes preserve that outcome when the reply does not
 need classification again.
 
+## Routing decision
+
+The routing decision is one transition from current facts and pending actions,
+plus the previous route and durable facts, to a final route and enriched facts.
+It owns route progression, required-check and Copilot coordination, and every
+clock that affects routing.
+
+### Gate hold
+
+An unsettled required check or Copilot review can stop a pull request from
+advancing, but cannot stop it from moving back toward its author. The hold
+starts its clock when an unreported gate blocks progress to a reviewer route.
+A missing report does not start the clock while the pull request remains on an
+existing reviewer route. Conflicts clear the clock and restart it when they
+resolve. The hold expires after four hours. Releasing a hold that kept the pull
+request with its author starts a fresh reviewer wait. A release between
+reviewer routes keeps the existing wait.
+
+### Reviewer handoff
+
+An acknowledged dashboard override binds a reviewer handoff to one head SHA.
+While that head remains current, the handoff routes directly to approvers and
+bypasses discussions, approvals, conflicts, required checks, and the Copilot
+gate. A push ends the handoff.
+
 ## Routing snapshot
 
 The routing snapshot is the shared live view used when the dashboard computes

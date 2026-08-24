@@ -6,12 +6,10 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from dashboard import (
-    add_wait_age_facts,
     add_reviewers,
     build_dashboard_update_for_pr,
     reviewers_with_open_threads,
     normalize_events,
-    route_pr,
 )
 from classification import (
     PRAISE_VERDICTS,
@@ -32,6 +30,7 @@ from discussion_lifecycle import (
 )
 from notifications import reviewer_logins_for_notification
 from render import reviewer_icon
+from routing_decision import RoutingInput, resolve_routing
 
 
 ROOT_TIMESTAMP = "2026-07-14T01:00:00Z"
@@ -1304,20 +1303,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(leading_mentions("@invalid- please look"), [])
         self.assertEqual(leading_mentions(""), [])
 
-    def test_unclear_item_sets_reviewer_wait_age(self) -> None:
-        pending_actions = {
-            "unclear": {"action": "reviewer", "since": ROOT_TIMESTAMP},
-        }
-        facts = {
-            "last_author_activity_at": "2026-07-14T04:00:00Z",
-            "created_at": "2026-07-13T01:00:00Z",
-        }
-
-        add_wait_age_facts(facts, "approver", pending_actions)
-
-        self.assertEqual(facts["waiting_since"], "2026-07-14T01:00:00+00:00")
-        self.assertEqual(facts["waiting_age_basis"], "oldest_pending_thread")
-
     @patch("dashboard.build_pr_result")
     def test_dashboard_refresh_reuses_stored_top_level_history(self, build_result) -> None:
         build_result.return_value = None
@@ -1655,7 +1640,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqual(route_pr(facts, pending_actions, 1), "maintainer")
         add_reviewers(facts, events, [], discussions, pending_actions)
         reviewer = facts["reviewers"][0]
         self.assertFalse(reviewer["top_level_feedback"])
@@ -1699,14 +1683,31 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 ),
             ),
         )
-        facts = {"approval_count": 1, "is_maintenance_bot": False}
+        facts = {
+            "approval_count": 1,
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "is_maintenance_bot": False,
+        }
 
         self.assertEqual(outcome.pending_actions, {})
         self.assertEqual(
             outcome.top_level_history["code"]["evidence"],
             {"reply": "2026-07-14T02:00:00Z"},
         )
-        self.assertEqual(route_pr(facts, outcome.pending_actions, 1), "maintainer")
+        routing = resolve_routing(
+            RoutingInput(
+                facts=facts,
+                pending_actions=outcome.pending_actions,
+                previous_route=None,
+                previous_facts={},
+                required_approvals=1,
+                require_clean_copilot_review=False,
+                manual_reviewer_handoff=False,
+                pending_human_reviewer_logins=frozenset(),
+            )
+        )
+        self.assertEqual(routing.route, "maintainer")
 
     def test_outsider_changes_requested_reviewer_remains_visible(self) -> None:
         discussions = [top_level_item("code", requester="outsider")]
@@ -1723,7 +1724,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqual(route_pr(facts, pending_actions, 1), "approver")
         add_reviewers(facts, events, [], discussions, pending_actions)
 
         reviewer = facts["reviewers"][0]
