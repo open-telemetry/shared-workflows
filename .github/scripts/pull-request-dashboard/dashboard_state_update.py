@@ -96,7 +96,7 @@ def _acceptance(
             persist_dashboard_state=changed,
             enqueue_status_comment=changed,
             record_observations=not rejected,
-            clear_backfill_failure=clear_backfill_failure and not rejected,
+            clear_backfill_failure=clear_backfill_failure,
         ),
     )
 
