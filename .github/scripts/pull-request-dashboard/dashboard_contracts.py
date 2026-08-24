@@ -41,6 +41,14 @@ class DashboardCommandReply:
             raise ValueError(f"unknown dashboard command reply kind: {self.kind!r}")
         if self.kind == "routed" and self.route is None:
             raise ValueError("routed dashboard command replies require a route")
+        if (
+            self.kind == "routed"
+            and self.route is not None
+            and self.route.is_failure
+        ):
+            raise ValueError(
+                "routed dashboard command replies require a successful route"
+            )
         if self.kind != "routed" and self.route is not None:
             raise ValueError("only routed dashboard command replies may include a route")
 

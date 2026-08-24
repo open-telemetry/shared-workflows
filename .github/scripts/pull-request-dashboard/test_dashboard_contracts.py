@@ -4,6 +4,7 @@ from dataclasses import FrozenInstanceError
 import unittest
 
 from dashboard_contracts import (
+    DashboardCommandReply,
     DashboardRoute,
     DashboardState,
     EvaluationFailure,
@@ -15,6 +16,20 @@ from dashboard_test_support import (
     evaluation_success,
     stored_dashboard_result,
 )
+
+
+class DashboardCommandReplyContractTest(unittest.TestCase):
+    def test_routed_reply_rejects_failure_routes(self) -> None:
+        for route in (
+            DashboardRoute.UNKNOWN,
+            DashboardRoute.TRANSIENT_FAILURE,
+        ):
+            with self.subTest(route=route):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "routed dashboard command replies require a successful route",
+                ):
+                    DashboardCommandReply(1, "routed", route=route)
 
 
 class EvaluationResultContractTest(unittest.TestCase):
