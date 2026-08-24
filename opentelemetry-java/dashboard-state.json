@@ -981,16 +981,15 @@
     },
     "8743": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "98bb2d0ed4194be9849b5a3c51751c33",
         "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d6ce3a3d3564fe9df58dd4597184f22a6571935a164ef01818af09519faf183d",
+        "copilot_request_fingerprint": "1cc65703ab48261a6c58708d6259a01a385d072a11b34c2a85677e8efafc64d0",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1006,22 +1005,31 @@
         "head_sha": "960b27f0d20d4b34d188d2614dc2bc8666501280",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T19:36:50+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T19:40:42+00:00",
+        "last_approver_activity_at": "2026-08-24T19:40:42+00:00",
         "last_author_activity_at": "2026-08-24T19:36:30+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-24T19:38:59.096048+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "284c282e2ac0492ca1c09ea51e0aea253dee48bde9a81ffa2d4087b67f66006a",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-08-24T19:36:50+00:00"
+        "routing_input_fingerprint": "2d254406be915f2bdd8488d6dd3beab3ebf226c119a7e1a1cd6b2415880196aa",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-24T21:04:59.488260+00:00"
       },
       "failed": false,
       "pr_number": 8743,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8743",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
