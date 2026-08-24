@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from contextlib import redirect_stderr
+from dataclasses import replace
 from datetime import datetime, timezone
 import io
 import unittest
 from unittest.mock import patch
-
-from author_nudge import copilot_request_fingerprint
 
 from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
@@ -17,10 +16,25 @@ from copilot_review import (
     set_copilot_review_request_needed,
     stale_request_reason,
 )
+from routing_snapshot import build_routing_snapshot
 from utils import format_ts
 
 
 NOW = datetime(2026, 7, 20, 2, tzinfo=timezone.utc)
+
+
+def routing_snapshot(raw: dict | None = None, **changes):
+    if raw is None:
+        raw = {
+            "checks": [],
+            "pr": {
+                "id": "PR_node",
+                "state": "OPEN",
+                "isDraft": False,
+                "headRefOid": "current-head",
+            },
+        }
+    return replace(build_routing_snapshot(raw), **changes)
 
 
 class CopilotFirstReviewMissingSinceTest(unittest.TestCase):
@@ -339,13 +353,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         "copilot_review.fetch_review_requests",
         return_value=[{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}],
     )
-    @patch(
-        "copilot_review.copilot_request_fingerprint",
-        return_value="accepted-fingerprint",
-    )
     @patch("copilot_review.request_copilot_review")
     @patch("copilot_review.fetch_pr_reviews")
-    @patch("copilot_review.fetch_current_pr_routing_inputs")
+    @patch("copilot_review.fetch_routing_snapshot")
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
         "copilot_review.load_copilot_review_requests",
@@ -362,10 +372,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        fetch_current_state,
+        fetch_snapshot,
         fetch_reviews,
         request_review,
-        _fingerprint,
         fetch_pending_requests,
     ) -> None:
         pr = {
@@ -374,7 +383,10 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             "headRefOid": "current-head",
             "id": "PR_node_id",
         }
-        fetch_current_state.return_value = (pr, {"checks": []})
+        fetch_snapshot.return_value = routing_snapshot(
+            {"checks": [], "pr": pr},
+            copilot_request_fingerprint="accepted-fingerprint",
+        )
         fetch_reviews.return_value = [{
             "id": 20,
             "commit_id": "reviewed-head",
@@ -389,7 +401,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
-        fetch_current_state.assert_called_once_with("open-telemetry/example", 7)
+        fetch_snapshot.assert_called_once_with("open-telemetry/example", 7)
         fetch_reviews.assert_called_once_with("open-telemetry", "example", 7)
         request_review.assert_called_once_with("PR_node_id")
         fetch_pending_requests.assert_called_once_with("open-telemetry", "example", 7)
@@ -402,13 +414,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             },
         })
 
-    @patch(
-        "copilot_review.copilot_request_fingerprint",
-        return_value="accepted-fingerprint",
-    )
     @patch("copilot_review.request_copilot_review")
     @patch("copilot_review.fetch_pr_reviews")
-    @patch("copilot_review.fetch_current_pr_routing_inputs")
+    @patch("copilot_review.fetch_routing_snapshot")
     @patch("copilot_review.save_copilot_review_requests")
     @patch(
         "copilot_review.load_copilot_review_requests",
@@ -425,20 +433,19 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        fetch_current_state,
+        fetch_snapshot,
         fetch_reviews,
         request_review,
-        _fingerprint,
     ) -> None:
         pr = {
             "state": "OPEN",
             "isDraft": False,
             "headRefOid": "current-head",
         }
-        fetch_current_state.return_value = (
-            pr,
+        fetch_snapshot.return_value = routing_snapshot(
             {
                 "checks": [],
+                "pr": pr,
                 "review_requests": [
                     {
                         "__typename": "Bot",
@@ -446,6 +453,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     },
                 ],
             },
+            copilot_request_fingerprint="accepted-fingerprint",
         )
 
         errors = deliver_copilot_review_requests(
@@ -454,7 +462,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
-        fetch_current_state.assert_called_once_with("open-telemetry/example", 7)
+        fetch_snapshot.assert_called_once_with("open-telemetry/example", 7)
         fetch_reviews.assert_not_called()
         request_review.assert_not_called()
         save_requests.assert_called_once_with({
@@ -466,21 +474,12 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             },
         })
 
-    @patch(
-        "copilot_review.copilot_request_fingerprint",
-        return_value="new-fingerprint",
-    )
     @patch("copilot_review.request_copilot_review")
     @patch("copilot_review.fetch_pr_reviews")
     @patch(
-        "copilot_review.fetch_current_pr_routing_inputs",
-        return_value=(
-            {
-                "state": "OPEN",
-                "isDraft": False,
-                "headRefOid": "current-head",
-            },
-            {"checks": []},
+        "copilot_review.fetch_routing_snapshot",
+        return_value=routing_snapshot(
+            copilot_request_fingerprint="new-fingerprint",
         ),
     )
     @patch("copilot_review.save_copilot_review_requests")
@@ -499,10 +498,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        _fetch_current_state,
+        _fetch_snapshot,
         fetch_reviews,
         request_review,
-        _fingerprint,
     ) -> None:
         stderr = io.StringIO()
 
@@ -560,7 +558,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "copilot_request_fingerprint": copilot_request_fingerprint(observed_raw),
+                "copilot_request_fingerprint": build_routing_snapshot(
+                    observed_raw
+                ).copilot_request_fingerprint,
             }
         }
         with (
@@ -570,8 +570,8 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             ),
             patch("copilot_review.save_copilot_review_requests") as save_requests,
             patch(
-                "copilot_review.fetch_current_pr_routing_inputs",
-                return_value=(pr, delivery_raw),
+                "copilot_review.fetch_routing_snapshot",
+                return_value=build_routing_snapshot(delivery_raw),
             ),
             patch("copilot_review.fetch_pr_reviews", return_value=[]),
             patch("copilot_review.request_copilot_review") as request_review,
@@ -593,9 +593,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     "head_sha": "current-head",
                     "observed_at": "2026-07-20T01:00:00+00:00",
                     "requested_at": format_ts(NOW),
-                    "copilot_request_fingerprint": copilot_request_fingerprint(
+                    "copilot_request_fingerprint": build_routing_snapshot(
                         observed_raw
-                    ),
+                    ).copilot_request_fingerprint,
                 }
             }
         )
@@ -622,7 +622,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "head_sha": "current-head",
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
-                "copilot_request_fingerprint": copilot_request_fingerprint(clean_raw),
+                "copilot_request_fingerprint": build_routing_snapshot(
+                    clean_raw
+                ).copilot_request_fingerprint,
             }
         }
         with (
@@ -632,8 +634,8 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             ),
             patch("copilot_review.save_copilot_review_requests") as save_requests,
             patch(
-                "copilot_review.fetch_current_pr_routing_inputs",
-                return_value=(conflicted_pr, conflicted_raw),
+                "copilot_review.fetch_routing_snapshot",
+                return_value=build_routing_snapshot(conflicted_raw),
             ),
             patch("copilot_review.fetch_pr_reviews") as fetch_reviews,
             patch("copilot_review.request_copilot_review") as request_review,
@@ -648,10 +650,6 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         request_review.assert_not_called()
         save_requests.assert_called_once_with({})
 
-    @patch(
-        "copilot_review.copilot_request_fingerprint",
-        return_value="accepted-fingerprint",
-    )
     @patch("copilot_review.request_copilot_review")
     @patch(
         "copilot_review.fetch_pr_reviews",
@@ -660,14 +658,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         ],
     )
     @patch(
-        "copilot_review.fetch_current_pr_routing_inputs",
-        return_value=(
-            {
-                "state": "OPEN",
-                "isDraft": False,
-                "headRefOid": "current-head",
-            },
-            {"checks": []},
+        "copilot_review.fetch_routing_snapshot",
+        return_value=routing_snapshot(
+            copilot_request_fingerprint="accepted-fingerprint",
         ),
     )
     @patch("copilot_review.save_copilot_review_requests")
@@ -686,10 +679,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        _fetch_current_state,
+        _fetch_snapshot,
         _fetch_reviews,
         request_review,
-        _fingerprint,
     ) -> None:
         stderr = io.StringIO()
 
@@ -712,22 +704,12 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         "copilot_review.fetch_review_requests",
         return_value=[{"__typename": "Bot", "login": "copilot-pull-request-reviewer"}],
     )
-    @patch(
-        "copilot_review.copilot_request_fingerprint",
-        return_value="accepted-fingerprint",
-    )
     @patch("copilot_review.request_copilot_review")
     @patch("copilot_review.fetch_pr_reviews", return_value=[])
     @patch(
-        "copilot_review.fetch_current_pr_routing_inputs",
-        return_value=(
-            {
-                "id": "PR_node",
-                "state": "OPEN",
-                "isDraft": False,
-                "headRefOid": "current-head",
-            },
-            {"checks": []},
+        "copilot_review.fetch_routing_snapshot",
+        return_value=routing_snapshot(
+            copilot_request_fingerprint="accepted-fingerprint",
         ),
     )
     @patch("copilot_review.save_copilot_review_requests")
@@ -746,10 +728,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        _fetch_current_state,
+        _fetch_snapshot,
         _fetch_reviews,
         request_review,
-        _fingerprint,
         _fetch_pending_requests,
     ) -> None:
         errors = deliver_copilot_review_requests("open-telemetry/example", NOW)
@@ -767,22 +748,12 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 
     @patch("copilot_review.sleep_for_retry")
     @patch("copilot_review.fetch_review_requests", return_value=[])
-    @patch(
-        "copilot_review.copilot_request_fingerprint",
-        return_value="accepted-fingerprint",
-    )
     @patch("copilot_review.request_copilot_review")
     @patch("copilot_review.fetch_pr_reviews", return_value=[])
     @patch(
-        "copilot_review.fetch_current_pr_routing_inputs",
-        return_value=(
-            {
-                "id": "PR_node",
-                "state": "OPEN",
-                "isDraft": False,
-                "headRefOid": "current-head",
-            },
-            {"checks": []},
+        "copilot_review.fetch_routing_snapshot",
+        return_value=routing_snapshot(
+            copilot_request_fingerprint="accepted-fingerprint",
         ),
     )
     @patch("copilot_review.save_copilot_review_requests")
@@ -801,10 +772,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        _fetch_current_state,
+        _fetch_snapshot,
         _fetch_reviews,
         _request_review,
-        _fingerprint,
         fetch_pending_requests,
         _sleep,
     ) -> None:
@@ -834,10 +804,6 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
 
     @patch("copilot_review.sleep_for_retry")
     @patch("copilot_review.fetch_review_requests", return_value=[])
-    @patch(
-        "copilot_review.copilot_request_fingerprint",
-        return_value="accepted-fingerprint",
-    )
     @patch("copilot_review.request_copilot_review")
     @patch(
         "copilot_review.fetch_pr_reviews",
@@ -854,15 +820,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         ],
     )
     @patch(
-        "copilot_review.fetch_current_pr_routing_inputs",
-        return_value=(
-            {
-                "id": "PR_node",
-                "state": "OPEN",
-                "isDraft": False,
-                "headRefOid": "current-head",
-            },
-            {"checks": []},
+        "copilot_review.fetch_routing_snapshot",
+        return_value=routing_snapshot(
+            copilot_request_fingerprint="accepted-fingerprint",
         ),
     )
     @patch("copilot_review.save_copilot_review_requests")
@@ -881,10 +841,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
         self,
         _load_requests,
         save_requests,
-        _fetch_current_state,
+        _fetch_snapshot,
         _fetch_reviews,
         _request_review,
-        _fingerprint,
         _fetch_pending_requests,
         _sleep,
     ) -> None:
@@ -916,12 +875,19 @@ class StaleRequestReasonTest(unittest.TestCase):
         current_routing_fingerprint: str = "accepted-fingerprint",
         raw: dict | None = None,
     ) -> str:
+        raw = dict({"checks": []} if raw is None else raw)
+        raw["pr"] = {
+            **(raw.get("pr") or {}),
+            **(self.OPEN_PR if pr is None else pr),
+            "headRefOid": current_head,
+        }
+        snapshot = routing_snapshot(
+            raw,
+            copilot_request_fingerprint=current_routing_fingerprint,
+        )
         return stale_request_reason(
             self.ENTRY if entry is None else entry,
-            self.OPEN_PR if pr is None else pr,
-            current_head,
-            current_routing_fingerprint,
-            {"checks": []} if raw is None else raw,
+            snapshot,
         )
 
     def test_current_request_is_not_stale(self) -> None:
