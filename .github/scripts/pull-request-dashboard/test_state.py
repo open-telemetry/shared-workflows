@@ -459,7 +459,7 @@ class StateTest(unittest.TestCase):
                     "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
                     "target_revision": 2,
                     "completed_revision": 1,
-                    "pending_pr_numbers": [12, 34],
+                    "pending_pr_numbers": [34, 12],
                 },
             )
 
@@ -470,7 +470,7 @@ class StateTest(unittest.TestCase):
             enqueue_status_comment_update(34)
 
             self.assertEqual(
-                [12, 34],
+                [34, 12],
                 load_status_comment_rollout_state()["pending_pr_numbers"],
             )
 

@@ -205,7 +205,9 @@ def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
         {
             "target_revision": int(state.get("target_revision") or 0),
             "completed_revision": int(state.get("completed_revision") or 0),
-            "pending_pr_numbers": sorted(set(state.get("pending_pr_numbers") or [])),
+            "pending_pr_numbers": list(
+                dict.fromkeys(state.get("pending_pr_numbers") or [])
+            ),
         },
         STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     )
@@ -259,9 +261,9 @@ def claim_delivery_versions() -> bool:
 
 def enqueue_status_comment_update(pr_number: int) -> None:
     state = load_status_comment_rollout_state()
-    pending = set(state["pending_pr_numbers"])
-    pending.add(pr_number)
-    state["pending_pr_numbers"] = sorted(pending)
+    pending = state["pending_pr_numbers"]
+    if pr_number not in pending:
+        pending.append(pr_number)
     save_status_comment_rollout_state(state)
 
 

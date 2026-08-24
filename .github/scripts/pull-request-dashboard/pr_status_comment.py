@@ -451,7 +451,9 @@ def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list
         return []
 
     rollout_state = load_status_comment_rollout_state()
-    pending_pr_numbers = set(rollout_state.get("pending_pr_numbers") or [])
+    pending_pr_numbers = list(
+        dict.fromkeys(rollout_state.get("pending_pr_numbers") or [])
+    )
     if pr_number not in pending_pr_numbers:
         return []
     try:
@@ -463,7 +465,7 @@ def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list
         return [f"PR #{pr_number}: {e}"]
 
     pending_pr_numbers.remove(pr_number)
-    rollout_state["pending_pr_numbers"] = sorted(pending_pr_numbers)
+    rollout_state["pending_pr_numbers"] = pending_pr_numbers
     if not pending_pr_numbers:
         rollout_state["completed_revision"] = rollout_state["target_revision"]
     save_status_comment_rollout_state(rollout_state)
