@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from dashboard_contracts import DashboardFacts
@@ -12,10 +13,20 @@ from github_cli import (
     sleep_for_retry,
 )
 from routing_snapshot import RoutingSnapshot
+from pull_request_source import (
+    Actor,
+    Check,
+    Review,
+    ReviewRequest,
+    ReviewThread,
+    normalize_actor,
+    normalize_checks,
+    normalize_review_requests,
+    normalize_review_threads,
+    normalize_reviews,
+)
 from utils import (
-    actor_login,
     format_ts,
-    is_copilot_reviewer_login,
     parse_ts,
     utc_now,
 )
@@ -34,35 +45,54 @@ FIRST_REVIEW_GRACE = timedelta(hours=1)
 REQUEST_CONFIRMATION_ATTEMPTS = 3
 
 
-def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
-    return is_copilot_reviewer_login(actor_login(obj))
+def is_copilot_reviewer(
+    value: Actor | ReviewRequest | Review,
+) -> bool:
+    if isinstance(value, Mapping):
+        value = normalize_actor(
+            value.get("user")
+            or value.get("author")
+            or value
+        )
+    if isinstance(value, ReviewRequest):
+        return value.is_copilot_reviewer
+    actor = value.actor if isinstance(value, Review) else value
+    return actor.is_copilot_reviewer
 
 
-def open_copilot_finding_count(review_threads: list[dict[str, Any]] | None) -> int:
+def open_copilot_finding_count(
+    review_threads: Sequence[ReviewThread],
+) -> int:
     # A review's own comment count never shrinks, so it still counts findings
     # the author has since addressed. Unresolved threads are the live ones:
     # GitHub marks a thread outdated once its anchor lines change, which is how
     # the rest of the dashboard already recognises a pushed fix.
+    if review_threads and not isinstance(review_threads[0], ReviewThread):
+        review_threads = normalize_review_threads(review_threads)
     count = 0
-    for thread in review_threads or []:
-        if thread.get("isResolved") or thread.get("isOutdated"):
+    for thread in review_threads:
+        if thread.is_resolved or thread.is_outdated:
             continue
-        comments = (thread.get("comments") or {}).get("nodes") or []
-        if comments and is_copilot_reviewer(comments[0].get("author") or {}):
+        comments = thread.comments
+        if comments and is_copilot_reviewer(comments[0].actor):
             count += 1
     return count
 
 
 def copilot_review_status(
-    reviews: list[dict[str, Any]],
+    reviews: Sequence[Review],
     head_sha: str,
-    review_threads: list[dict[str, Any]],
+    review_threads: Sequence[ReviewThread],
 ) -> tuple[bool, bool, bool]:
     """Return (review exists, review is stale, review left open findings)."""
+    if reviews and not isinstance(reviews[0], Review):
+        reviews = normalize_reviews(reviews)
+    if review_threads and not isinstance(review_threads[0], ReviewThread):
+        review_threads = normalize_review_threads(review_threads)
     copilot_reviews = [
         review
         for review in reviews
-        if is_copilot_reviewer(review.get("user"))
+        if is_copilot_reviewer(review)
     ]
     if not copilot_reviews:
         return False, False, False
@@ -71,7 +101,7 @@ def copilot_review_status(
         # acting on incomplete data would hold the pull request on a guess.
         return True, False, False
     stale = not any(
-        (review.get("commit_id") or "") == head_sha
+        review.commit_id == head_sha
         for review in copilot_reviews
     )
     return True, stale, open_copilot_finding_count(review_threads) > 0
@@ -160,8 +190,10 @@ def set_copilot_review_request_needed(
     ))
 
 
-def named_checks(checks: list[dict[str, Any]]) -> str:
-    names = sorted(check.get("name") or "" for check in checks)
+def named_checks(checks: Sequence[Check]) -> str:
+    if checks and not isinstance(checks[0], Check):
+        checks = normalize_checks(checks) or ()
+    names = sorted(check.name for check in checks)
     if len(names) > 3:
         return f"{', '.join(names[:3])} and {len(names) - 3} more"
     return ", ".join(names)
@@ -185,7 +217,11 @@ def stale_request_reason(
     checks = snapshot.checks
     if checks is None:
         return "required check results are unavailable"
-    failing = [check for check in checks if check.get("bucket") in ("fail", "cancel")]
+    failing = [
+        check
+        for check in checks
+        if check.bucket in ("fail", "cancel")
+    ]
     if failing:
         return f"required checks are failing: {named_checks(failing)}"
     if not entry.get("copilot_request_fingerprint"):
@@ -214,14 +250,16 @@ def copilot_review_request_landed(
             sleep_for_retry(attempt - 1)
         if any(
             is_copilot_reviewer(request)
-            for request in fetch_review_requests(owner, repo_name, pr_number) or []
+            for request in normalize_review_requests(
+                fetch_review_requests(owner, repo_name, pr_number)
+            )
         ):
             return True
     # Copilot can finish a short review before the last read, which takes it
     # back out of the pending requests. A review of the current head proves the
     # request landed just as well as a pending one does.
     review_exists, review_stale, _findings = copilot_review_status(
-        fetch_pr_reviews(owner, repo_name, pr_number) or [],
+        normalize_reviews(fetch_pr_reviews(owner, repo_name, pr_number)),
         head_sha,
         [],
     )

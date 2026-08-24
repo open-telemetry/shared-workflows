@@ -5,6 +5,7 @@ import unittest
 from dashboard_contracts import ReviewerSummary
 from dashboard_test_support import dashboard_facts
 from notifications import reviewer_logins_for_notification
+from pull_request_source import normalize_actor, normalize_review_requests
 from render import reviewer_icon
 from reviewer_state import (
     ReviewerDiscussionInput,
@@ -47,8 +48,8 @@ def prepare(
     return prepare_reviewers(
         ReviewerInput(
             tuple(events or []),
-            tuple(review_requests or []),
-            tuple(assignees or []),
+            normalize_review_requests(review_requests),
+            tuple(normalize_actor(value) for value in assignees or []),
         )
     )
 

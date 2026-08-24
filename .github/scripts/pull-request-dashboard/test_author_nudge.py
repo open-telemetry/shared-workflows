@@ -13,6 +13,7 @@ from dashboard_test_support import (
     stored_dashboard_result,
 )
 from routing_snapshot import build_routing_snapshot
+from pull_request_source import normalize_pull_request_source
 
 
 NOW = datetime(2026, 7, 17, tzinfo=timezone.utc)
@@ -25,14 +26,14 @@ def routing_snapshot(
     head_sha: str = "current-head",
     fingerprint: str = "current-fingerprint",
 ):
-    snapshot = build_routing_snapshot({
+    snapshot = build_routing_snapshot(normalize_pull_request_source({
         "checks": [],
         "pr": {
             "state": state,
             "isDraft": is_draft,
             "headRefOid": head_sha,
         },
-    })
+    }))
     return replace(snapshot, routing_input_fingerprint=fingerprint)
 
 
@@ -829,7 +830,9 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "pending_at": "2026-07-17T00:00:00+00:00",
                 "head_sha": "current-head",
                 "routing_input_fingerprint": (
-                    build_routing_snapshot(clean_raw).routing_input_fingerprint
+                    build_routing_snapshot(
+                        normalize_pull_request_source(clean_raw)
+                    ).routing_input_fingerprint
                 ),
             }
         }
@@ -847,7 +850,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 return_value=replace(
                     routing_snapshot(),
                     routing_input_fingerprint=build_routing_snapshot(
-                        conflicted_raw
+                        normalize_pull_request_source(conflicted_raw)
                     ).routing_input_fingerprint,
                 ),
             ),

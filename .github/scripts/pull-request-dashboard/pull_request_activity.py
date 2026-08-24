@@ -7,7 +7,15 @@ from types import MappingProxyType
 from typing import Any
 
 from dashboard_override import dashboard_command_body_remainder
-from utils import actor_login, is_copilot_reviewer_login, parse_ts
+from pull_request_source import (
+    Actor,
+    Commit,
+    IssueComment,
+    PullRequestSource,
+    Review,
+    ReviewComment,
+)
+from utils import parse_ts
 
 
 # `role_for` assigns the author role before it checks for bot-shaped logins, so
@@ -17,7 +25,7 @@ _PARTICIPANT_ACTOR_ROLES = {"author", "approver", "outsider"}
 
 @dataclass(frozen=True)
 class ActivityInput:
-    raw: dict[str, Any]
+    source: PullRequestSource
     author: str
     approver_logins: frozenset[str]
 
@@ -43,11 +51,8 @@ def role_for(login: str, author: str, reviewers: set[str]) -> str:
     return "outsider"
 
 
-def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
-    login = actor_login(obj)
-    if is_copilot_reviewer_login(login):
-        return "copilot-pull-request-reviewer[bot]"
-    return login
+def reviewer_actor_login(actor: Actor) -> str:
+    return actor.reviewer_login
 
 
 def is_substantive_activity(event: Mapping[str, Any]) -> bool:
@@ -64,54 +69,46 @@ def is_substantive_activity(event: Mapping[str, Any]) -> bool:
     return bool((event.get("body") or "").strip())
 
 
-def _is_merge_commit(commit: dict[str, Any]) -> bool:
-    return len(commit.get("parents") or []) >= 2
-
-
 def _commit_event(
-    commit: dict[str, Any],
+    commit: Commit,
     author: str,
     approver_logins: set[str],
 ) -> dict[str, Any]:
-    commit_obj = commit.get("commit") or {}
-    commit_author = commit_obj.get("author") or {}
-    commit_committer = commit_obj.get("committer") or {}
-    author_login = actor_login(commit.get("author") or {})
-    committer_login = actor_login(commit.get("committer") or {})
+    author_login = commit.author.login
+    committer_login = commit.committer.login
     if committer_login.lower() == author.lower():
         login = committer_login
-        timestamp = commit_committer.get("date") or commit_author.get("date") or ""
+        timestamp = commit.committed_at or commit.authored_at
     elif author_login.lower() == author.lower():
         login = author_login
-        timestamp = commit_author.get("date") or ""
+        timestamp = commit.authored_at
     elif committer_login:
         login = committer_login
-        timestamp = commit_committer.get("date") or ""
+        timestamp = commit.committed_at
     else:
-        login = author_login or commit_author.get("name") or ""
-        timestamp = commit_author.get("date") or ""
-    sha = commit.get("sha") or ""
+        login = author_login or commit.author_name
+        timestamp = commit.authored_at
     return {
         "kind": "commit",
         "timestamp": timestamp,
         "actor": login,
         "actor_role": role_for(login, author, approver_logins),
-        "body": commit_obj.get("message") or "",
+        "body": commit.message,
         "state": None,
         "path": None,
-        "sha": sha[:7],
+        "sha": commit.sha[:7],
         "is_merge_from_base_by_non_author": (
-            _is_merge_commit(commit) and login.lower() != author.lower()
+            commit.parent_count >= 2 and login.lower() != author.lower()
         ),
     }
 
 
 def _issue_comment_event(
-    comment: dict[str, Any],
+    comment: IssueComment,
     author: str,
     approver_logins: set[str],
 ) -> dict[str, Any] | None:
-    if comment.get("minimized"):
+    if comment.minimized:
         return None
     command_remainder = dashboard_command_body_remainder(comment)
     if command_remainder is not None and not command_remainder:
@@ -119,21 +116,20 @@ def _issue_comment_event(
     body = (
         command_remainder
         if command_remainder is not None
-        else (comment.get("body") or "")
+        else comment.body
     )
-    login = reviewer_actor_login(comment.get("user") or {})
+    login = reviewer_actor_login(comment.actor)
     timestamp = (
-        comment.get("content_updated_at")
-        or comment.get("created_at")
-        or comment.get("updated_at")
-        or ""
+    comment.content_updated_at
+    or comment.created_at
+    or comment.updated_at
     )
     return {
-        "source_id": comment.get("id"),
-        "discussion_url": comment.get("html_url") or "",
+    "source_id": comment.database_id or None,
+    "discussion_url": comment.url,
         "kind": "issue-comment",
         "timestamp": timestamp,
-        "created_timestamp": comment.get("created_at") or timestamp,
+        "created_timestamp": comment.created_at or timestamp,
         "actor": login,
         "actor_role": role_for(login, author, approver_logins),
         "body": body,
@@ -145,43 +141,43 @@ def _issue_comment_event(
 
 
 def _review_comment_event(
-    comment: dict[str, Any],
+    comment: ReviewComment,
     author: str,
     approver_logins: set[str],
 ) -> dict[str, Any]:
-    login = reviewer_actor_login(comment.get("user") or {})
-    timestamp = comment.get("updated_at") or comment.get("created_at") or ""
+    login = reviewer_actor_login(comment.actor)
+    timestamp = comment.updated_at or comment.created_at
     return {
-        "source_id": comment.get("id"),
+        "source_id": comment.database_id or None,
         "kind": "review-comment",
         "timestamp": timestamp,
-        "created_timestamp": comment.get("created_at") or timestamp,
+        "created_timestamp": comment.created_at or timestamp,
         "actor": login,
         "actor_role": role_for(login, author, approver_logins),
-        "body": comment.get("body") or "",
+        "body": comment.body,
         "state": None,
-        "path": comment.get("path"),
+        "path": comment.path or None,
         "sha": None,
         "is_merge_from_base_by_non_author": False,
     }
 
 
 def _review_event(
-    review: dict[str, Any],
+    review: Review,
     author: str,
     approver_logins: set[str],
 ) -> dict[str, Any]:
-    login = reviewer_actor_login(review.get("user") or {})
-    state = review.get("state") or ""
+    login = reviewer_actor_login(review.actor)
+    state = review.state
     return {
-        "source_id": review.get("id"),
-        "discussion_url": review.get("url") or "",
+        "source_id": review.database_id or None,
+        "discussion_url": review.url,
         "kind": "review-state",
-        "timestamp": review.get("submitted_at") or "",
-        "created_timestamp": review.get("submitted_at") or "",
+        "timestamp": review.submitted_at,
+        "created_timestamp": review.submitted_at,
         "actor": login,
         "actor_role": role_for(login, author, approver_logins),
-        "body": review.get("body") or "",
+        "body": review.body,
         "state": state,
         "path": None,
         "sha": None,
@@ -190,15 +186,15 @@ def _review_event(
 
 
 def _ordered_events(source: ActivityInput) -> tuple[Mapping[str, Any], ...]:
-    raw = source.raw
+    pr_source = source.source
     approver_logins = set(source.approver_logins)
     events = [
         _commit_event(commit, source.author, approver_logins)
-        for commit in raw["commits"]
+        for commit in pr_source.commits
     ]
     events.extend(
         event
-        for comment in raw["issue_comments"]
+        for comment in pr_source.issue_comments
         if (
             event := _issue_comment_event(
                 comment,
@@ -210,11 +206,11 @@ def _ordered_events(source: ActivityInput) -> tuple[Mapping[str, Any], ...]:
     )
     events.extend(
         _review_comment_event(comment, source.author, approver_logins)
-        for comment in raw["review_comments"]
+        for comment in pr_source.review_comments
     )
     events.extend(
         _review_event(review, source.author, approver_logins)
-        for review in raw["reviews"]
+        for review in pr_source.reviews
     )
     events = [event for event in events if event["timestamp"]]
     events.sort(

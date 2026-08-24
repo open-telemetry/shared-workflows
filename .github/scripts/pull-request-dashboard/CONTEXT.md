@@ -3,8 +3,8 @@
 ## Evaluation, acceptance, and persistence
 
 Pull request evaluation is the dashboard's data plane. Given repository policy,
-a pull request summary, and the previous result, `pull_request_evaluation.py`
-fetches current GitHub data and produces either `EvaluationSuccess` or
+a pull request number, and the previous result, `pull_request_evaluation.py`
+reads a canonical `PullRequestSource` and produces either `EvaluationSuccess` or
 `EvaluationFailure`. A success carries typed `DashboardFacts`, the final route,
 diagnostics, pending actions, and top-level history. A failure carries a failure
 route and error, so failure routes cannot be combined with successful results.
@@ -13,11 +13,19 @@ classification, lifecycle and routing decisions, reviewer projection, command
 acknowledgements, author-action links, nudge episodes, and PR-specific failure
 shaping. It has no accepted-state or state-branch side effects.
 
+`pull_request_source.py` is the sole aggregate GitHub source boundary. It
+schedules the concurrent `gh pr view`, REST, and GraphQL reads, settles required
+checks against branch rules, rejects a stale check rollup, and normalizes the
+results into frozen records for pull metadata, actors, commits, comments,
+reviews, review requests, review threads, checks, and non-blocking failures.
+`github_cli.py` remains the transport layer; its response dictionaries do not
+cross into evaluation or domain modules.
+
 `dashboard_contracts.py` defines the immutable in-memory boundary. A
 `StoredDashboardResult` projects an evaluation success down to the fields that
 survive refreshes. `DashboardState` holds those projections and the initial
-backfill marker. Raw GitHub and classifier payloads remain dictionaries only
-while they are source or diagnostic data.
+backfill marker. Classifier payloads remain dictionaries only while they are
+diagnostic data.
 
 `state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
 codecs translate the immutable contracts to the existing version 10
@@ -43,9 +51,9 @@ persist.
 
 ## Activity timeline
 
-The activity timeline normalizes raw commits, issue comments, review comments,
-and reviews into ordered activity events. Each event uses a normalized actor,
-role, and activity timestamp while preserving the GitHub source fields needed by
+The activity timeline projects canonical commits, issue comments, review
+comments, and reviews into ordered activity events. Each event uses a normalized
+actor, role, and activity timestamp while preserving the source fields needed by
 reviewer state and the discussion lifecycle. Comment and review events also
 preserve their creation time for ordering.
 
@@ -125,6 +133,11 @@ facts and when prepared author reminders or Copilot review requests are
 delivered. It carries the pull request state, draft state, node ID, head SHA,
 required checks, review requests, review threads, and both routing
 fingerprints.
+
+The source boundary also carries a frozen fingerprint projection with the
+historical JSON field spellings. Routing hashes that projection rather than the
+domain records, preserving existing fingerprints while keeping transport shapes
+out of routing logic.
 
 ### Routing fingerprint
 

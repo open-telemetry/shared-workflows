@@ -69,6 +69,7 @@ def actor_login(obj: dict[str, Any] | None) -> str:
 # Every login GitHub has used for the Copilot reviewer, lowercased.
 COPILOT_REVIEWER_LOGINS = frozenset({
     "copilot",
+    "copilot[bot]",
     "copilot-pull-request-reviewer",
     "copilot-pull-request-reviewer[bot]",
 })

@@ -38,10 +38,20 @@ from dashboard_contracts import (
     StoredDashboardResult,
 )
 from dashboard_test_support import (
+    check_source,
     dashboard_facts,
     dashboard_state,
     evaluation_success,
+    pull_request_metadata,
+    pull_request_source,
+    review_request,
+    review_source,
     stored_dashboard_result,
+)
+from pull_request_source import (
+    PullRequestSource,
+    fetch_pull_request_source,
+    normalize_pull_request_source,
 )
 from pull_request_evaluation import (
     PullRequestEvaluationConfig,
@@ -49,7 +59,6 @@ from pull_request_evaluation import (
     _assign_author_nudge_episode,
     _author_action_discussion_urls,
     _compute_facts as evaluation_compute_facts,
-    _fetch_pr_raw,
     evaluate_pull_request,
 )
 from pull_request_activity import PullRequestActivity
@@ -64,15 +73,16 @@ def evaluation_facts(
     reviewers: set[str] | None = None,
     previous_facts: DashboardFacts | None = None,
 ) -> DashboardFacts:
+    source = normalize_pull_request_source(raw)
     prepared_reviewers = prepare_reviewers(
         ReviewerInput(
             tuple(events),
-            tuple(raw.get("review_requests") or []),
-            tuple((raw["pr"] or {}).get("assignees") or []),
+            source.review_requests,
+            source.pull_request.assignees,
         )
     )
     return evaluation_compute_facts(
-        raw,
+        source,
         author,
         PullRequestActivity(tuple(events), None, None, None),
         prepared_reviewers,
@@ -111,7 +121,7 @@ def evaluate_pr(
             )
         ),
         PullRequestEvaluationInput(
-            pr_summary=pr_summary,
+            pr_number=int(pr_summary["number"]),
             previous_result=previous_result,
         ),
     )
@@ -188,7 +198,7 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
 
         self.assertEqual("abc123", facts.author_nudge_episode_id)
 
-class FetchPrRawTest(unittest.TestCase):
+class PullRequestSourceFetchTest(unittest.TestCase):
     def test_uses_graphql_issue_comments_without_rest_join(self) -> None:
         issue_comments = [{"id": 101, "body": "GraphQL comment"}]
         rest_payloads = {
@@ -206,26 +216,25 @@ class FetchPrRawTest(unittest.TestCase):
 
         with (
             patch(
-                "github_cli.gh_pr_view",
+                "pull_request_source.gh_pr_view",
                 return_value={"id": "PR_node", "baseRefName": "main"},
             ),
             patch(
-                "github_cli.fetch_pr_issue_comments",
+                "pull_request_source.fetch_pr_issue_comments",
                 return_value=issue_comments,
             ) as fetch_issue_comments,
-            patch("github_cli.gh_api", side_effect=gh_api) as routing_rest_api,
             patch(
-                "pull_request_evaluation.gh_api",
+                "pull_request_source.gh_api",
                 side_effect=gh_api,
-            ) as commits_rest_api,
-            patch("github_cli.fetch_review_threads", return_value=[]),
-            patch("github_cli.fetch_review_requests", return_value=[]),
+            ) as source_rest_api,
+            patch("pull_request_source.fetch_review_threads", return_value=[]),
+            patch("pull_request_source.fetch_review_requests", return_value=[]),
             patch(
-                "github_cli.fetch_pr_reviews",
+                "pull_request_source.fetch_pr_reviews",
                 return_value=[],
             ),
             patch(
-                "github_cli.gh_pr_check_rollup",
+                "pull_request_source.gh_pr_check_rollup",
                 return_value={
                     "head_oid": "",
                     "required": [],
@@ -234,23 +243,25 @@ class FetchPrRawTest(unittest.TestCase):
                     "pending": [],
                 },
             ),
-            patch("github_cli.gh_branch_rules", return_value=[]),
-            patch("github_cli.include_missing_required_checks", return_value=[]),
+            patch("pull_request_source.gh_branch_rules", return_value=[]),
+            patch(
+                "pull_request_source.include_missing_required_checks",
+                return_value=[],
+            ),
         ):
-            raw = _fetch_pr_raw(
-                evaluation_config(),
-                {"number": 7},
+            source = fetch_pull_request_source(
+                "owner/repo",
+                "owner",
+                "repo",
+                7,
             )
 
-        self.assertEqual(raw["issue_comments"], issue_comments)
+        self.assertEqual(101, source.issue_comments[0].database_id)
         fetch_issue_comments.assert_called_once_with("owner", "repo", 7)
         self.assertEqual(
             {
                 call.args[0]
-                for call in [
-                    *routing_rest_api.call_args_list,
-                    *commits_rest_api.call_args_list,
-                ]
+                for call in source_rest_api.call_args_list
             },
             set(rest_payloads),
         )
@@ -309,34 +320,17 @@ class DashboardEvaluationHandoffTest(unittest.TestCase):
 
 class PullRequestEvaluationTest(unittest.TestCase):
     @staticmethod
-    def raw_pr(*, checks: list[dict[str, object]] | None = None) -> dict[str, object]:
-        return {
-            "summary": {"author": {"login": "author"}},
-            "pr": {
-                "state": "OPEN",
-                "isDraft": False,
-                "title": "Routing integration",
-                "url": "https://example.test/pull/7",
-                "author": {"login": "author"},
-                "assignees": [],
-                "mergeStateStatus": "CLEAN",
-                "mergeable": "MERGEABLE",
-                "createdAt": "2026-08-16T07:00:00Z",
-                "updatedAt": "2026-08-16T08:00:00Z",
-                "headRefOid": "abcdef123456",
-                "headRefName": "feature",
-                "headRepository": {"nameWithOwner": "owner/repo"},
-                "baseRefName": "main",
-            },
-            "commits": [],
-            "issue_comments": [],
-            "review_comments": [],
-            "reviews": [],
-            "review_threads": [],
-            "review_requests": [],
-            "checks": checks or [],
-            "non_blocking_check_failures": [],
-        }
+    def raw_pr(
+        *,
+        checks: list[dict[str, object]] | None = None,
+    ) -> PullRequestSource:
+        return pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            checks=tuple(
+                check_source(**check)
+                for check in checks or []
+            ),
+        )
 
     def test_compute_facts_uses_prepared_approval_count(self) -> None:
         raw = self.raw_pr()
@@ -367,26 +361,23 @@ class PullRequestEvaluationTest(unittest.TestCase):
         "pull_request_evaluation.classify_discussion_domains",
         return_value=([], [], []),
     )
-    @patch("pull_request_evaluation._fetch_pr_raw")
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(
         self,
         fetch_raw: Mock,
         _classify: Mock,
         resolve: Mock,
     ) -> None:
-        raw = self.raw_pr()
-        raw["reviews"] = [{
-            "id": 1,
-            "user": {"login": "reviewer"},
-            "state": "APPROVED",
-            "submitted_at": "2026-08-16T08:00:00Z",
-            "body": "",
-        }]
-        raw["review_requests"] = [{
-            "__typename": "User",
-            "login": "reviewer",
-        }]
-        fetch_raw.return_value = raw
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            reviews=(review_source(
+                database_id=1,
+                state="APPROVED",
+                submitted_at="2026-08-16T08:00:00Z",
+                body="",
+            ),),
+            review_requests=(review_request(),),
+        )
 
         result = evaluate_pr(
             {"number": 7},
@@ -408,11 +399,11 @@ class PullRequestEvaluationTest(unittest.TestCase):
         "pull_request_evaluation.classify_discussion_domains",
         side_effect=AssertionError("classification must be bypassed"),
     )
-    @patch("pull_request_evaluation._fetch_pr_raw")
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_override_binds_to_the_observed_head_before_classification(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
-        fetch_raw.return_value = {
+        fetch_raw.return_value = normalize_pull_request_source({
             "summary": {"author": {"login": "author"}},
             "pr": {
                 "state": "OPEN",
@@ -457,7 +448,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                 }
             ],
             "non_blocking_check_failures": [],
-        }
+        })
 
         result = evaluate_pr(
             {"number": 7},
@@ -491,11 +482,11 @@ class PullRequestEvaluationTest(unittest.TestCase):
         "pull_request_evaluation.classify_discussion_domains",
         return_value=([], [], []),
     )
-    @patch("pull_request_evaluation._fetch_pr_raw")
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_conflict_uses_normal_discussion_and_approval_routing(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
-        fetch_raw.return_value = {
+        fetch_raw.return_value = normalize_pull_request_source({
             "summary": {"author": {"login": "author"}},
             "pr": {
                 "state": "OPEN",
@@ -538,7 +529,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             "review_requests": [],
             "checks": [],
             "non_blocking_check_failures": [],
-        }
+        })
 
         result = evaluate_pr(
             {"number": 7},
@@ -557,7 +548,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         "pull_request_evaluation.classify_discussion_domains",
         return_value=([], [], []),
     )
-    @patch("pull_request_evaluation._fetch_pr_raw")
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_normal_routing_flows_through_evaluation(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
@@ -582,7 +573,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         "pull_request_evaluation.classify_discussion_domains",
         return_value=([], [], []),
     )
-    @patch("pull_request_evaluation._fetch_pr_raw")
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_running_required_check_keeps_integrated_route_held(
         self, fetch_raw: Mock, classify: Mock, utc_now: Mock
     ) -> None:
@@ -617,7 +608,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         "pull_request_evaluation.classify_discussion_domains",
         return_value=([], [{"failed": True, "error": "model failed"}], []),
     )
-    @patch("pull_request_evaluation._fetch_pr_raw")
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_classification_failure_preserves_integrated_routing_failure_facts(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
@@ -1460,7 +1451,7 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
         )
 
         facts = evaluation_compute_facts(
-            raw,
+            normalize_pull_request_source(raw),
             "author",
             activity,
             prepared_reviewers,
@@ -1491,7 +1482,7 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
         }
 
         facts = evaluation_compute_facts(
-            raw,
+            normalize_pull_request_source(raw),
             "author",
             PullRequestActivity((), None, None, None),
             prepare_reviewers(ReviewerInput((), (), ())),

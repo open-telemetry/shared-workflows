@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
 
 from dashboard_contracts import (
     DashboardCommandReply,
@@ -12,8 +12,8 @@ from dashboard_contracts import (
     DashboardRoute,
 )
 from dashboard_status import DASHBOARD_APP_SLUG
+from pull_request_source import IssueComment, normalize_issue_comments
 from route_presentation import outstanding_gate_phrase
-from utils import actor_login
 
 
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
@@ -42,6 +42,29 @@ class DashboardOverrideFacts:
     command_replies: tuple[DashboardCommandReply, ...]
 
 
+@dataclass(frozen=True)
+class DashboardOverrideInput:
+    issue_comments: tuple[IssueComment, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "issue_comments", tuple(self.issue_comments))
+
+
+def _override_input(source: DashboardOverrideInput) -> DashboardOverrideInput:
+    if isinstance(source, DashboardOverrideInput):
+        return source
+    raw = source if isinstance(source, Mapping) else {}
+    return DashboardOverrideInput(
+        normalize_issue_comments(raw.get("issue_comments"))
+    )
+
+
+def _issue_comment(comment: IssueComment) -> IssueComment:
+    if isinstance(comment, IssueComment):
+        return comment
+    return normalize_issue_comments((comment,))[0]
+
+
 def author_override_guidance(staleness_note: str = "") -> str:
     guidance = (
         "If you need reviewer or maintainer help, comment "
@@ -55,15 +78,16 @@ def author_override_guidance(staleness_note: str = "") -> str:
     return guidance
 
 
-def parse_dashboard_command(comment: dict[str, Any]) -> str | None:
+def parse_dashboard_command(comment: IssueComment) -> str | None:
     """Return the subcommand of a `/dashboard` command, or None.
 
     Returns the (possibly empty) subcommand token when the comment's first
     line is a `/dashboard` command, and None when it is not a command at all.
     """
-    if comment.get("minimized"):
+    comment = _issue_comment(comment)
+    if comment.minimized:
         return None
-    lines = (comment.get("body") or "").strip().splitlines()
+    lines = comment.body.strip().splitlines()
     if not lines:
         return None
     tokens = lines[0].strip().split()
@@ -72,7 +96,7 @@ def parse_dashboard_command(comment: dict[str, Any]) -> str | None:
     return tokens[1] if len(tokens) > 1 else ""
 
 
-def dashboard_command_body_remainder(comment: dict[str, Any]) -> str | None:
+def dashboard_command_body_remainder(comment: IssueComment) -> str | None:
     """Return the comment body after a leading `/dashboard` command.
 
     Returns None when the comment is not a `/dashboard` command, and the
@@ -80,9 +104,10 @@ def dashboard_command_body_remainder(comment: dict[str, Any]) -> str | None:
     keep an author's explanation on the same or later lines while treating the
     command tokens themselves as control metadata.
     """
+    comment = _issue_comment(comment)
     if parse_dashboard_command(comment) is None:
         return None
-    lines = (comment.get("body") or "").strip().splitlines()
+    lines = comment.body.strip().splitlines()
     first_line = lines[0].strip().split(maxsplit=2)
     return "\n".join([first_line[2] if len(first_line) > 2 else "", *lines[1:]]).strip()
 
@@ -93,11 +118,12 @@ def is_authorized_commander(login: str, author: str, reviewers: set[str] | None)
 
 
 def latest_authorized_command(
-    raw: dict[str, Any],
+    source: DashboardOverrideInput,
     author: str,
     reviewers: set[str] | None,
 ) -> tuple[int, str]:
-    comments = raw.get("issue_comments") or []
+    source = _override_input(source)
+    comments = source.issue_comments
     acknowledged_id = _acknowledged_override_command_id(comments)
     replied_ids = _replied_command_ids(comments)
     best_id = 0
@@ -105,11 +131,11 @@ def latest_authorized_command(
     for comment in comments:
         if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
             continue
-        commenter = actor_login(comment.get("user") or {})
+        commenter = comment.actor.login
         if not is_authorized_commander(commenter, author, reviewers):
             continue
         try:
-            comment_id = int(comment.get("id"))
+            comment_id = comment.database_id
         except (TypeError, ValueError):
             continue
         if comment_id <= acknowledged_id or comment_id in replied_ids:
@@ -120,13 +146,18 @@ def latest_authorized_command(
 
 
 def dashboard_override_facts(
-    raw: dict[str, Any],
+    source: DashboardOverrideInput,
     author: str,
     reviewers: set[str] | None = None,
     head_sha: str = "",
     previous_facts: DashboardFacts | None = None,
 ) -> DashboardOverrideFacts:
-    command_id, command_user = latest_authorized_command(raw, author, reviewers)
+    source = _override_input(source)
+    command_id, command_user = latest_authorized_command(
+        source,
+        author,
+        reviewers,
+    )
     previous_command_id = (
         previous_facts.dashboard_override_command_id
         if previous_facts is not None
@@ -143,7 +174,7 @@ def dashboard_override_facts(
         else:
             bound_head = head_sha
     else:
-        bound_head = acknowledged_override_head(raw.get("issue_comments"))
+        bound_head = acknowledged_override_head(source.issue_comments)
     return DashboardOverrideFacts(
         command_id=command_id,
         command_user=command_user,
@@ -151,23 +182,15 @@ def dashboard_override_facts(
         # records it in the acknowledgement. An acknowledged command keeps the
         # binding from that acknowledgement.
         head_sha=bound_head,
-        command_replies=pending_command_replies(raw, author, reviewers),
+        command_replies=pending_command_replies(source, author, reviewers),
     )
 
 
-def _is_dashboard_app_comment(comment: dict[str, Any]) -> bool:
-    """Whether a comment was authored by the dashboard GitHub App.
-
-    Handles both the REST shape (``performed_via_github_app.slug``) and the
-    normalized GraphQL shape from ``fetch_pr_issue_comments`` (a bot
-    ``user.login`` of ``<slug>[bot]``).
-    """
-    if (comment.get("performed_via_github_app") or {}).get("slug") == DASHBOARD_APP_SLUG:
-        return True
-    return (comment.get("user") or {}).get("login") == f"{DASHBOARD_APP_SLUG}[bot]"
+def _is_dashboard_app_comment(comment: IssueComment) -> bool:
+    return comment.is_from_app(DASHBOARD_APP_SLUG)
 
 
-def _replied_command_ids(comments: list[dict[str, Any]] | None) -> set[int]:
+def _replied_command_ids(comments: Sequence[IssueComment]) -> set[int]:
     """Command ids already answered by a dashboard-app reply comment.
 
     Reply markers are matched only in comments authored by the dashboard app, so
@@ -177,13 +200,13 @@ def _replied_command_ids(comments: list[dict[str, Any]] | None) -> set[int]:
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
-        for match in _COMMAND_REPLY_MARKER_RE.findall(comment.get("body") or ""):
+        for match in _COMMAND_REPLY_MARKER_RE.findall(comment.body):
             replied_ids.add(int(match))
     return replied_ids
 
 
 def _acknowledged_override_command_ids(
-    comments: list[dict[str, Any]] | None,
+    comments: Sequence[IssueComment],
 ) -> set[int]:
     """Command ids the dashboard app has already acknowledged.
 
@@ -194,12 +217,12 @@ def _acknowledged_override_command_ids(
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.get("body") or ""):
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body):
             acknowledged_ids.add(int(match.group(1)))
     return acknowledged_ids
 
 
-def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
+def acknowledged_override_head(comments: Sequence[IssueComment]) -> str:
     """Head SHA the newest acknowledged override command bound to.
 
     Empty when no command has been acknowledged, and also when the newest
@@ -211,7 +234,7 @@ def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
-        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.get("body") or ""):
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.body):
             comment_id = int(match.group(1))
             if comment_id > best_id or (comment_id == best_id and not best_head):
                 best_id, best_head = comment_id, match.group(2) or ""
@@ -219,13 +242,13 @@ def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
 
 
 def _acknowledged_override_command_id(
-    comments: list[dict[str, Any]] | None,
+    comments: Sequence[IssueComment],
 ) -> int:
     return max(_acknowledged_override_command_ids(comments), default=0)
 
 
 def pending_command_replies(
-    raw: dict[str, Any],
+    source: DashboardOverrideInput,
     author: str,
     reviewers: set[str] | None = None,
 ) -> tuple[DashboardCommandReply, ...]:
@@ -237,7 +260,8 @@ def pending_command_replies(
     an unknown-command reply. Commands that already have a reply comment are
     skipped so replies are posted at most once.
     """
-    comments = raw.get("issue_comments") or []
+    source = _override_input(source)
+    comments = source.issue_comments
     replied_ids = _replied_command_ids(comments)
 
     replies: list[DashboardCommandReply] = []
@@ -246,12 +270,12 @@ def pending_command_replies(
         if subcommand is None:
             continue
         try:
-            comment_id = int(comment.get("id"))
+            comment_id = comment.database_id
         except (TypeError, ValueError):
             continue
         if comment_id in replied_ids:
             continue
-        commenter = actor_login(comment.get("user") or {})
+        commenter = comment.actor.login
         if subcommand == DASHBOARD_OVERRIDE_SUBCOMMAND:
             if is_authorized_commander(commenter, author, reviewers):
                 continue
@@ -331,19 +355,19 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
 
 
 def command_reply_exists(
-    comments: list[dict[str, Any]] | None,
+    comments: Sequence[IssueComment],
     comment_id: int,
 ) -> bool:
     marker = command_reply_marker(comment_id)
     return any(
-        (comment.get("performed_via_github_app") or {}).get("slug") == DASHBOARD_APP_SLUG
-        and marker in (comment.get("body") or "")
-        for comment in comments or []
+        _is_dashboard_app_comment(comment)
+        and marker in comment.body
+        for comment in comments
     )
 
 
 def append_command_ack_reply(
-    raw: dict[str, Any],
+    source: DashboardOverrideInput,
     facts: DashboardFacts,
     route: DashboardRoute,
 ) -> DashboardFacts:
@@ -354,10 +378,11 @@ def append_command_ack_reply(
     authorized command gets a reply because the command forces the reviewer
     route even when no discussion or failing check was cleared.
     """
+    source = _override_input(source)
     command_id = facts.dashboard_override_command_id
     if not command_id:
         return facts
-    if command_id in _replied_command_ids(raw.get("issue_comments") or []):
+    if command_id in _replied_command_ids(source.issue_comments):
         return facts
     replies = facts.dashboard_command_replies
     if any(reply.comment_id == command_id for reply in replies):

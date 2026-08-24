@@ -14,6 +14,7 @@ from copilot_review import (
 )
 from dashboard_contracts import StoredDashboardResult
 from github_cli import fetch_pr_reviews, request_copilot_review
+from pull_request_source import normalize_reviews
 from routing_snapshot import fetch_routing_snapshot
 from state import load_copilot_review_requests, save_copilot_review_requests
 from utils import format_ts
@@ -86,7 +87,9 @@ def deliver_copilot_review_requests(
                     "requested_at": format_ts(now),
                 }
                 continue
-            reviews = fetch_pr_reviews(owner, repo_name, pr_number) or []
+            reviews = normalize_reviews(
+                fetch_pr_reviews(owner, repo_name, pr_number)
+            )
             review_exists, review_stale, _review_findings = (
                 copilot_review_status(
                     reviews,
