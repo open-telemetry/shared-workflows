@@ -1610,15 +1610,16 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "a40bbbab19b5494e95a8d15eb5871c62",
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-24T03:42:20+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ac922ed96e001c9ac79a24c5470bc584a2ea64dcc871f9b935428834d041594a",
+        "copilot_request_fingerprint": "5770bf73c598bcbbb7d2763254e785b75fc3b5730c7d4e8dc259f6240736b546",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": false,
+        "copilot_review_requested": true,
         "copilot_review_stale": true,
         "copilot_review_unreported": false,
         "created_at": "2026-07-12T20:48:13+00:00",
@@ -1632,7 +1633,7 @@
         "last_activity_at": "2026-08-24T03:41:12+00:00",
         "last_approver_activity_at": "2026-07-14T13:11:44+00:00",
         "last_author_activity_at": "2026-08-24T03:41:12+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1644,12 +1645,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-24T03:41:49.577116+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "00f41df7d41cdaedf9e2e9bd02072b1e0ea38fe436ad9c3e0e94ada8d436527d",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-23T20:19:10+00:00"
+        "routing_input_fingerprint": "5307c6889a905d3d314543ee9603d08707a05660b3357b0555cb08890d54f99c",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-24T03:42:20+00:00"
       },
       "failed": false,
       "pr_number": 374,
