@@ -5,10 +5,7 @@ import unittest
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
-from dashboard import (
-    build_dashboard_update_for_pr,
-    normalize_events,
-)
+from dashboard import build_dashboard_update_for_pr
 from classification import (
     PRAISE_VERDICTS,
     REVIEWER_FEEDBACK_VERDICTS,
@@ -33,6 +30,7 @@ from reviewer_state import (
     resolve_reviewers,
 )
 from routing_decision import RoutingInput, resolve_routing
+from pull_request_activity import ActivityInput, build_activity_timeline
 
 
 ROOT_TIMESTAMP = "2026-07-14T01:00:00Z"
@@ -108,21 +106,23 @@ def top_level_items_from_raw(
     raw: dict,
     conflicts: str = "no",
 ) -> list[dict]:
-    events = normalize_events(
-        {
-            "commits": [],
-            "issue_comments": raw.get("issue_comments") or [],
-            "review_comments": [],
-            "reviews": raw.get("reviews") or [],
-        },
-        "author",
-        {"reviewer"},
+    activity = build_activity_timeline(
+        ActivityInput(
+            {
+                "commits": [],
+                "issue_comments": raw.get("issue_comments") or [],
+                "review_comments": [],
+                "reviews": raw.get("reviews") or [],
+            },
+            "author",
+            frozenset({"reviewer"}),
+        )
     )
     return list(
         prepare_discussions(
             DiscussionInput(
                 (),
-                tuple(events),
+                activity.events,
                 "author",
                 frozenset({"reviewer"}),
                 conflicts,
@@ -384,38 +384,7 @@ class ReviewThreadPraiseTest(unittest.TestCase):
         self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
 
 
-class NormalizeEventsCommandTest(unittest.TestCase):
-    def _issue_comment_events(self, body: str) -> list[dict]:
-        events = normalize_events(
-            {
-                "commits": [],
-                "issue_comments": [
-                    {
-                        "id": 1,
-                        "user": {"login": "author"},
-                        "created_at": "2026-07-14T00:00:00Z",
-                        "body": body,
-                    }
-                ],
-                "review_comments": [],
-                "reviews": [],
-            },
-            "author",
-            set(),
-        )
-        return [e for e in events if e["kind"] == "issue-comment"]
-
-    def test_command_only_comment_is_dropped(self) -> None:
-        self.assertEqual([], self._issue_comment_events("/dashboard route:reviewers"))
-
-    def test_command_with_explanation_keeps_the_explanation(self) -> None:
-        events = self._issue_comment_events(
-            "/dashboard route:reviewers\n\nI addressed the feedback by doing X."
-        )
-
-        self.assertEqual(1, len(events))
-        self.assertEqual("I addressed the feedback by doing X.", events[0]["body"])
-
+class AutomationCommandFeedbackTest(unittest.TestCase):
     def test_automation_command_comments_are_not_top_level_feedback(self) -> None:
         def items(body: str) -> list[dict]:
             return top_level_items_from_raw({
@@ -1325,21 +1294,23 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ],
         }
 
-        events = normalize_events(
-            {
-                "commits": [],
-                "issue_comments": raw["issue_comments"],
-                "review_comments": [],
-                "reviews": raw["reviews"],
-            },
-            "author",
-            {"reviewer"},
+        activity = build_activity_timeline(
+            ActivityInput(
+                {
+                    "commits": [],
+                    "issue_comments": raw["issue_comments"],
+                    "review_comments": [],
+                    "reviews": raw["reviews"],
+                },
+                "author",
+                frozenset({"reviewer"}),
+            )
         )
         items = list(
             prepare_discussions(
                 DiscussionInput(
                     (),
-                    tuple(events),
+                    activity.events,
                     "author",
                     frozenset({"reviewer"}),
                     "no",
@@ -1454,133 +1425,6 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         }
 
         self.assertEqual(top_level_items_from_raw(raw), [])
-
-
-    def test_normalized_events_use_creation_order_not_edit_order(self) -> None:
-        events = normalize_events(
-            {
-                "commits": [],
-                "issue_comments": [
-                    {
-                        "id": 101,
-                        "created_at": "2026-07-14T01:00:00Z",
-                        "updated_at": "2026-07-14T05:00:00Z",
-                        "content_updated_at": "2026-07-14T05:00:00Z",
-                        "user": {"login": "author"},
-                        "body": "Older comment edited later.",
-                    },
-                    {
-                        "id": 102,
-                        "created_at": "2026-07-14T02:00:00Z",
-                        "updated_at": "2026-07-14T02:00:00Z",
-                        "content_updated_at": "2026-07-14T02:00:00Z",
-                        "user": {"login": "author"},
-                        "body": "Newer comment.",
-                    },
-                ],
-                "review_comments": [],
-                "reviews": [],
-            },
-            "author",
-            {"reviewer"},
-        )
-
-        self.assertEqual([event["source_id"] for event in events], [101, 102])
-        self.assertEqual(events[0]["timestamp"], "2026-07-14T05:00:00Z")
-        self.assertEqual(events[0]["created_timestamp"], "2026-07-14T01:00:00Z")
-
-
-    def test_maintainer_cherry_pick_uses_original_author_date(self) -> None:
-        events = normalize_events(
-            {
-                "commits": [
-                    {
-                        "sha": "abcdef123456",
-                        "author": {"login": "author"},
-                        "committer": {"login": "maintainer"},
-                        "commit": {
-                            "author": {
-                                "name": "Author",
-                                "date": "2026-07-13T03:00:00Z",
-                            },
-                            "committer": {"date": "2026-07-14T03:00:00Z"},
-                            "message": "Cherry-pick requested change",
-                        },
-                        "parents": [{}],
-                    }
-                ],
-                "issue_comments": [],
-                "review_comments": [],
-                "reviews": [],
-            },
-            "author",
-            {"reviewer"},
-        )
-
-        self.assertEqual(events[0]["actor"], "author")
-        self.assertEqual(events[0]["timestamp"], "2026-07-13T03:00:00Z")
-
-    def test_cherry_pick_by_author_is_author_evidence(self) -> None:
-        events = normalize_events(
-            {
-                "commits": [
-                    {
-                        "sha": "abcdef123456",
-                        "author": {"login": "original-author"},
-                        "committer": {"login": "author"},
-                        "commit": {
-                            "author": {
-                                "name": "Original Author",
-                                "date": "2026-07-13T03:00:00Z",
-                            },
-                            "committer": {"date": "2026-07-14T03:00:00Z"},
-                            "message": "Cherry-pick requested change",
-                        },
-                        "parents": [{}],
-                    }
-                ],
-                "issue_comments": [],
-                "review_comments": [],
-                "reviews": [],
-            },
-            "author",
-            {"reviewer"},
-        )
-
-        self.assertEqual(events[0]["actor"], "author")
-        self.assertEqual(events[0]["actor_role"], "author")
-        self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
-
-    def test_author_commit_without_committer_date_uses_author_date(self) -> None:
-        events = normalize_events(
-            {
-                "commits": [
-                    {
-                        "sha": "abcdef123456",
-                        "author": {"login": "author"},
-                        "committer": {"login": "author"},
-                        "commit": {
-                            "author": {
-                                "name": "Author",
-                                "date": "2026-07-14T03:00:00Z",
-                            },
-                            "committer": {},
-                            "message": "Address requested change",
-                        },
-                        "parents": [{}],
-                    }
-                ],
-                "issue_comments": [],
-                "review_comments": [],
-                "reviews": [],
-            },
-            "author",
-            {"reviewer"},
-        )
-
-        self.assertEqual(events[0]["actor"], "author")
-        self.assertEqual(events[0]["timestamp"], "2026-07-14T03:00:00Z")
-
 
     def test_review_state_does_not_block_routing_after_author_evidence(self) -> None:
         discussion = top_level_item("code")

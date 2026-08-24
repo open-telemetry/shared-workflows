@@ -1,5 +1,22 @@
 # Pull request dashboard context
 
+## Activity timeline
+
+The activity timeline normalizes raw commits, issue comments, review comments,
+and reviews into ordered activity events. Each event uses a normalized actor,
+role, and activity timestamp while preserving the GitHub source fields needed by
+reviewer state and the discussion lifecycle. Comment and review events also
+preserve their creation time for ordering.
+
+### Substantive activity
+
+Substantive activity is participant activity that can advance an activity clock.
+It excludes activity in the bot role and non-author merge commits. A bot that
+opened the pull request takes the author role instead, so its own activity still
+counts. Non-comment review states are substantive without body text; other
+activity events require non-whitespace text. The timeline records separate
+latest participant, author, and approver activity clocks.
+
 ## Discussion lifecycle
 
 The discussion lifecycle turns current pull request discussion into the pending

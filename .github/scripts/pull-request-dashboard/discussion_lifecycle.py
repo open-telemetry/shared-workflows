@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
@@ -28,7 +29,7 @@ class LifecycleMode(Enum):
 @dataclass(frozen=True)
 class DiscussionInput:
     review_threads: tuple[dict[str, Any], ...]
-    events: tuple[dict[str, Any], ...]
+    events: tuple[Mapping[str, Any], ...]
     author: str
     reviewers: frozenset[str]
     conflicts: str
