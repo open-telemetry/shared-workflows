@@ -142,7 +142,7 @@ def accept_dashboard_update(
 
     clear_backfill_failure = not bool(evaluated_result.get("failed"))
     current_result = stored_result(evaluated_result)
-    if latest_result == current_result:
+    if latest_dashboard_state is not None and latest_result == current_result:
         return _acceptance(
             DashboardUpdateDisposition.UNCHANGED,
             dashboard_state,

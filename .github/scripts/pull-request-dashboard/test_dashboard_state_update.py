@@ -55,6 +55,22 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertTrue(acceptance.effects.record_observations)
         self.assertTrue(acceptance.effects.clear_backfill_failure)
 
+    def test_matching_result_is_applied_when_latest_state_is_missing(self) -> None:
+        starting = result(7, "author")
+        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+
+        acceptance = accept_dashboard_update(
+            prepared.with_evaluated_result(dict(starting)),
+            None,
+        )
+
+        self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
+        self.assertEqual(starting, acceptance.accepted_result)
+        self.assertTrue(acceptance.effects.persist_dashboard_state)
+        self.assertTrue(acceptance.effects.enqueue_status_comment)
+        self.assertTrue(acceptance.effects.record_observations)
+        self.assertTrue(acceptance.effects.clear_backfill_failure)
+
     def test_concurrent_other_slot_change_is_retained(self) -> None:
         starting = result(7, "author")
         other_starting = result(8, "author")
