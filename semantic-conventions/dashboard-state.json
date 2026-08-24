@@ -748,15 +748,11 @@
         "assignees": [],
         "author": "kathiehuang",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/3860#pullrequestreview-4651858067",
-          "https://github.com/open-telemetry/semantic-conventions/pull/3860#issuecomment-4916613873"
-        ],
-        "author_nudge_episode_id": "e650e84d94e44c948d8694ae769fc278",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d5fec339c86a0228450bd4e54cb0cf0f0489ca9576a05ebae67689ba9d254bab",
+        "copilot_request_fingerprint": "cbe287f7f915fd47976725c3169f2d68ef7b746cfcd2db0ef71f9f98935f4933",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -767,15 +763,17 @@
         "created_at": "2026-07-07T18:30:46+00:00",
         "dashboard_command_replies": [
           {
-            "comment_id": 5397247463,
-            "kind": "unauthorized",
-            "subcommand": "route:reviewers",
-            "user": "Lewis-E"
+            "comment_id": 5400197799,
+            "head_sha": "6d57de336148a34535fcaec5041ac9a446aa424e",
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "user": "trask"
           }
         ],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_override_command_id": 5400197799,
+        "dashboard_override_command_user": "trask",
+        "dashboard_override_head_sha": "6d57de336148a34535fcaec5041ac9a446aa424e",
         "head_sha": "6d57de336148a34535fcaec5041ac9a446aa424e",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -783,36 +781,17 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-13T19:08:54+00:00",
         "required_checks_settled": true,
-        "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "chatgpt-codex-connector",
-            "open_thread": true,
-            "pending_review": false,
-            "top_level_feedback": false
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "Dipanshusinghh",
-            "open_thread": false,
-            "pending_review": false,
-            "top_level_feedback": true
-          }
-        ],
+        "reviewers": [],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ff094493db809efcc97a2861c0b2440cffd0a0a8113e794c5a47b15bd3557d06",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-08T15:02:43+00:00"
+        "routing_input_fingerprint": "bcd9bc6443f7b6e0250f5d37cb06f613db7560b91f685b06db3a90d892d33f13",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-13T19:08:54+00:00"
       },
       "failed": false,
       "pr_number": 3860,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3860",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "3866": {
