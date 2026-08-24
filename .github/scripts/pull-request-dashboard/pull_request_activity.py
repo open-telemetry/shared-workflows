@@ -28,6 +28,10 @@ def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
 def is_substantive_activity(event: dict[str, Any]) -> bool:
     if event.get("is_merge_from_base_by_non_author"):
         return False
+    # Bot events never count as substantive: merge-bot pings, CI status
+    # comments, and the like must not refresh the waiting clock. Bot PR
+    # authors are remapped to their human delegator in `effective_author`,
+    # so a real human's activity still shows up here under that login.
     if event.get("actor_role") == "bot":
         return False
     if event["kind"] == "review-state" and event.get("state") != "COMMENTED":

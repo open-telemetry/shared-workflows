@@ -440,6 +440,89 @@ class ResolveDiscussionsTest(unittest.TestCase):
             },
         )
 
+    def test_review_state_does_not_change_action_lifecycle(self) -> None:
+        for review_state in ("CHANGES_REQUESTED", "APPROVED"):
+            with self.subTest(review_state=review_state):
+                discussion = top_level_item("code")
+                discussion["review_state"] = review_state
+                open_outcome = resolve_discussions(
+                    PreparedDiscussions((), (discussion,), ()),
+                    DiscussionClassifications(
+                        (),
+                        (classification("code", "author"),),
+                        (),
+                    ),
+                )
+                closed_outcome = resolve_discussions(
+                    PreparedDiscussions(
+                        (),
+                        (discussion,),
+                        (author_reply(102, "2026-07-14T03:00:00Z", "code"),),
+                    ),
+                    DiscussionClassifications(
+                        (),
+                        (classification("code", "author"),),
+                        (author_reply_classification(102, ("code", "none")),),
+                    ),
+                )
+
+                self.assertEqual(
+                    open_outcome.pending_actions["code"]["action"],
+                    "author",
+                )
+                self.assertNotIn("code", open_outcome.top_level_history)
+                self.assertEqual(closed_outcome.pending_actions, {})
+                self.assertEqual(
+                    closed_outcome.top_level_history["code"]["evidence"],
+                    {"reply": "2026-07-14T03:00:00Z"},
+                )
+
+    def test_author_reply_closes_unclear_items(self) -> None:
+        outcome = resolve_discussions(
+            PreparedDiscussions(
+                (),
+                (top_level_item("unclear"),),
+                (author_reply(102, "2026-07-14T03:00:00Z", "unclear"),),
+            ),
+            DiscussionClassifications(
+                (),
+                (classification("unclear", "unclear"),),
+                (author_reply_classification(102, ("unclear", "none")),),
+            ),
+        )
+
+        self.assertEqual(outcome.pending_actions, {})
+        self.assertEqual(
+            outcome.top_level_history["unclear"]["evidence"],
+            {"reply": "2026-07-14T03:00:00Z"},
+        )
+
+    def test_later_reviewer_acknowledgement_does_not_address_older_item(self) -> None:
+        outcome = resolve_discussions(
+            PreparedDiscussions(
+                (),
+                (
+                    top_level_item("request"),
+                    top_level_item("ack", "2026-07-14T02:00:00Z"),
+                ),
+                (),
+            ),
+            DiscussionClassifications(
+                (),
+                (
+                    classification("request", "author"),
+                    classification("ack", "none"),
+                ),
+                (),
+            ),
+        )
+
+        self.assertEqual(
+            outcome.pending_actions,
+            {"request": {"action": "author", "since": ROOT_TIMESTAMP}},
+        )
+        self.assertEqual(outcome.top_level_history, {})
+
     def test_renewed_author_handoff_supersedes_completion(self) -> None:
         prepared = PreparedDiscussions(
             (),

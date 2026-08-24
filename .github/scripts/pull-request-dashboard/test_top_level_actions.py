@@ -1663,6 +1663,51 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(reviewer_icon(reviewer), "🔴")
         self.assertEqual(reviewer_logins_for_notification(facts), ["reviewer"])
 
+    def test_review_state_does_not_block_routing_after_author_evidence(self) -> None:
+        discussion = top_level_item("code")
+        discussion["review_state"] = "CHANGES_REQUESTED"
+        author_reply_item = {
+            "discussion_id": "pr-author-reply-102",
+            "discussion_kind": "top-level-author-reply",
+            "source_id": 102,
+            "candidate_feedback": [
+                {
+                    "discussion_id": "code",
+                    "body": "Please update this.",
+                }
+            ],
+            "comments": [
+                {
+                    "timestamp": "2026-07-14T02:00:00Z",
+                    "actor": "author",
+                    "actor_role": "author",
+                    "body": "I handled this.",
+                }
+            ],
+        }
+        outcome = resolve_discussions(
+            PreparedDiscussions((), (discussion,), (author_reply_item,)),
+            DiscussionClassifications(
+                (),
+                (classification("code"),),
+                (
+                    {
+                        "discussion_id": "pr-author-reply-102",
+                        "failed": False,
+                        "decision": author_comment_decision(("code", "none")),
+                    },
+                ),
+            ),
+        )
+        facts = {"approval_count": 1, "is_maintenance_bot": False}
+
+        self.assertEqual(outcome.pending_actions, {})
+        self.assertEqual(
+            outcome.top_level_history["code"]["evidence"],
+            {"reply": "2026-07-14T02:00:00Z"},
+        )
+        self.assertEqual(route_pr(facts, outcome.pending_actions, 1), "maintainer")
+
     def test_outsider_changes_requested_reviewer_remains_visible(self) -> None:
         discussions = [top_level_item("code", requester="outsider")]
         discussions[0]["review_state"] = "CHANGES_REQUESTED"
