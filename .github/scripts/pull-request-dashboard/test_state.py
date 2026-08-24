@@ -292,6 +292,75 @@ class StateTest(unittest.TestCase):
                 ):
                     decode_stored_result({**stored, "facts": facts})
 
+    def test_dashboard_facts_rejects_null_non_optional_fields(self) -> None:
+        cases = (
+            ({"author": None}, "facts.author must be a string"),
+            ({"assignees": None}, "facts.assignees must be an array of strings"),
+            ({"is_draft": None}, "facts.is_draft must be a boolean"),
+            ({"approval_count": None}, "facts.approval_count must be an integer"),
+            (
+                {"dashboard_command_replies": None},
+                "facts.dashboard_command_replies must be an array",
+            ),
+            ({"reviewers": None}, "facts.reviewers must be an array"),
+            (
+                {"reviewers": [{"login": None}]},
+                "facts.reviewers.login must be a string",
+            ),
+            (
+                {
+                    "dashboard_command_replies": [{
+                        "comment_id": None,
+                        "kind": "unauthorized",
+                    }]
+                },
+                "facts.dashboard_command_replies.comment_id must be an integer",
+            ),
+        )
+
+        for facts, message in cases:
+            with self.subTest(facts=facts):
+                with self.assertRaises(ValueError) as raised:
+                    decode_dashboard_facts(facts)
+                self.assertEqual(message, str(raised.exception))
+
+    def test_dashboard_facts_accepts_null_optional_fields(self) -> None:
+        self.assertEqual(
+            dashboard_facts(),
+            decode_dashboard_facts({
+                "ci_failing_count": None,
+                "ci_failing_since": None,
+                "ci_pending_count": None,
+                "copilot_first_review_missing_since": None,
+                "route_held_since": None,
+                "author_nudge_episode_id": None,
+            }),
+        )
+
+    def test_stored_result_rejects_null_non_optional_fields(self) -> None:
+        stored = {
+            "pr_number": 7,
+            "pr_url": "https://github.com/open-telemetry/example/pull/7",
+            "failed": False,
+            "route": "approver",
+        }
+        cases = (
+            ("pr_number", "dashboard result pr_number must be an integer"),
+            ("pr_url", "dashboard result pr_url must be a string"),
+            ("failed", "dashboard result failed must be a boolean"),
+            ("route", "dashboard result route must be a string"),
+            (
+                "top_level_history",
+                "dashboard result top_level_history must be an object",
+            ),
+        )
+
+        for field, message in cases:
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError) as raised:
+                    decode_stored_result({**stored, field: None})
+                self.assertEqual(message, str(raised.exception))
+
     def test_malformed_persisted_results_are_rejected_individually(self) -> None:
         persisted = {
             "version": DASHBOARD_STATE_VERSION,

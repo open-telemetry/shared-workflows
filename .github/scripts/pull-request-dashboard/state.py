@@ -275,8 +275,11 @@ def enqueue_status_comment_update(pr_number: int) -> None:
     save_status_comment_rollout_state(state)
 
 
+_MISSING = object()
+
+
 def _string(value: Any, field_name: str, default: str = "") -> str:
-    if value is None:
+    if value is _MISSING:
         return default
     if not isinstance(value, str):
         raise ValueError(f"{field_name} must be a string")
@@ -284,7 +287,7 @@ def _string(value: Any, field_name: str, default: str = "") -> str:
 
 
 def _boolean(value: Any, field_name: str, default: bool = False) -> bool:
-    if value is None:
+    if value is _MISSING:
         return default
     if not isinstance(value, bool):
         raise ValueError(f"{field_name} must be a boolean")
@@ -292,7 +295,7 @@ def _boolean(value: Any, field_name: str, default: bool = False) -> bool:
 
 
 def _integer(value: Any, field_name: str, default: int = 0) -> int:
-    if value is None:
+    if value is _MISSING:
         return default
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(f"{field_name} must be an integer")
@@ -308,7 +311,7 @@ def _optional_string(value: Any, field_name: str) -> str | None:
 
 
 def _string_tuple(value: Any, field_name: str) -> tuple[str, ...]:
-    if value is None:
+    if value is _MISSING:
         return ()
     if not isinstance(value, list) or any(
         not isinstance(item, str)
@@ -322,26 +325,29 @@ def _decode_reviewer(value: Any) -> ReviewerSummary:
     if not isinstance(value, dict):
         raise ValueError("facts.reviewers entries must be objects")
     return ReviewerSummary(
-        login=_string(value.get("login"), "facts.reviewers.login"),
-        approved=_boolean(value.get("approved"), "facts.reviewers.approved"),
+        login=_string(value.get("login", _MISSING), "facts.reviewers.login"),
+        approved=_boolean(
+            value.get("approved", _MISSING),
+            "facts.reviewers.approved",
+        ),
         approved_non_team=_boolean(
-            value.get("approved_non_team"),
+            value.get("approved_non_team", _MISSING),
             "facts.reviewers.approved_non_team",
         ),
         pending_review=_boolean(
-            value.get("pending_review"),
+            value.get("pending_review", _MISSING),
             "facts.reviewers.pending_review",
         ),
         changes_requested=_boolean(
-            value.get("changes_requested"),
+            value.get("changes_requested", _MISSING),
             "facts.reviewers.changes_requested",
         ),
         open_thread=_boolean(
-            value.get("open_thread"),
+            value.get("open_thread", _MISSING),
             "facts.reviewers.open_thread",
         ),
         top_level_feedback=_boolean(
-            value.get("top_level_feedback"),
+            value.get("top_level_feedback", _MISSING),
             "facts.reviewers.top_level_feedback",
         ),
     )
@@ -370,22 +376,28 @@ def _decode_command_reply(value: Any) -> DashboardCommandReply:
     )
     return DashboardCommandReply(
         comment_id=_integer(
-            value.get("comment_id"),
+            value.get("comment_id", _MISSING),
             "facts.dashboard_command_replies.comment_id",
         ),
-        kind=_string(value.get("kind"), "facts.dashboard_command_replies.kind"),
-        user=_string(value.get("user"), "facts.dashboard_command_replies.user"),
+        kind=_string(
+            value.get("kind", _MISSING),
+            "facts.dashboard_command_replies.kind",
+        ),
+        user=_string(
+            value.get("user", _MISSING),
+            "facts.dashboard_command_replies.user",
+        ),
         subcommand=_string(
-            value.get("subcommand"),
+            value.get("subcommand", _MISSING),
             "facts.dashboard_command_replies.subcommand",
         ),
         head_sha=_string(
-            value.get("head_sha"),
+            value.get("head_sha", _MISSING),
             "facts.dashboard_command_replies.head_sha",
         ),
         route=route,
         held_gates=_string(
-            value.get("held_gates"),
+            value.get("held_gates", _MISSING),
             "facts.dashboard_command_replies.held_gates",
         ),
     )
@@ -412,38 +424,41 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
 def decode_dashboard_facts(value: Any) -> DashboardFacts:
     if not isinstance(value, dict):
         raise ValueError("dashboard result facts must be an object")
-    raw_replies = value.get("dashboard_command_replies")
-    if raw_replies is None:
+    raw_replies = value.get("dashboard_command_replies", _MISSING)
+    if raw_replies is _MISSING:
         raw_replies = []
     if not isinstance(raw_replies, list):
         raise ValueError("facts.dashboard_command_replies must be an array")
-    raw_reviewers = value.get("reviewers")
-    if raw_reviewers is None:
+    raw_reviewers = value.get("reviewers", _MISSING)
+    if raw_reviewers is _MISSING:
         raw_reviewers = []
     if not isinstance(raw_reviewers, list):
         raise ValueError("facts.reviewers must be an array")
     return DashboardFacts(
-        author=_string(value.get("author"), "facts.author"),
-        assignees=_string_tuple(value.get("assignees"), "facts.assignees"),
-        head_sha=_string(value.get("head_sha"), "facts.head_sha"),
+        author=_string(value.get("author", _MISSING), "facts.author"),
+        assignees=_string_tuple(
+            value.get("assignees", _MISSING),
+            "facts.assignees",
+        ),
+        head_sha=_string(value.get("head_sha", _MISSING), "facts.head_sha"),
         routing_input_fingerprint=_string(
-            value.get("routing_input_fingerprint"),
+            value.get("routing_input_fingerprint", _MISSING),
             "facts.routing_input_fingerprint",
         ),
         copilot_request_fingerprint=_string(
-            value.get("copilot_request_fingerprint"),
+            value.get("copilot_request_fingerprint", _MISSING),
             "facts.copilot_request_fingerprint",
         ),
         dashboard_override_command_id=_integer(
-            value.get("dashboard_override_command_id"),
+            value.get("dashboard_override_command_id", _MISSING),
             "facts.dashboard_override_command_id",
         ),
         dashboard_override_command_user=_string(
-            value.get("dashboard_override_command_user"),
+            value.get("dashboard_override_command_user", _MISSING),
             "facts.dashboard_override_command_user",
         ),
         dashboard_override_head_sha=_string(
-            value.get("dashboard_override_head_sha"),
+            value.get("dashboard_override_head_sha", _MISSING),
             "facts.dashboard_override_head_sha",
         ),
         dashboard_command_replies=tuple(
@@ -451,42 +466,52 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             for reply in raw_replies
         ),
         copilot_review_requested=_boolean(
-            value.get("copilot_review_requested"),
+            value.get("copilot_review_requested", _MISSING),
             "facts.copilot_review_requested",
         ),
         copilot_review_exists=_boolean(
-            value.get("copilot_review_exists"),
+            value.get("copilot_review_exists", _MISSING),
             "facts.copilot_review_exists",
         ),
         copilot_review_stale=_boolean(
-            value.get("copilot_review_stale"),
+            value.get("copilot_review_stale", _MISSING),
             "facts.copilot_review_stale",
         ),
         copilot_review_needed=_boolean(
-            value.get("copilot_review_needed"),
+            value.get("copilot_review_needed", _MISSING),
             "facts.copilot_review_needed",
         ),
         is_maintenance_bot=_boolean(
-            value.get("is_maintenance_bot"),
+            value.get("is_maintenance_bot", _MISSING),
             "facts.is_maintenance_bot",
         ),
-        is_draft=_boolean(value.get("is_draft"), "facts.is_draft"),
+        is_draft=_boolean(
+            value.get("is_draft", _MISSING),
+            "facts.is_draft",
+        ),
         approval_count=_integer(
-            value.get("approval_count"),
+            value.get("approval_count", _MISSING),
             "facts.approval_count",
         ),
-        conflicts=_string(value.get("conflicts"), "facts.conflicts", "unknown"),
-        created_at=_string(value.get("created_at"), "facts.created_at"),
+        conflicts=_string(
+            value.get("conflicts", _MISSING),
+            "facts.conflicts",
+            "unknown",
+        ),
+        created_at=_string(
+            value.get("created_at", _MISSING),
+            "facts.created_at",
+        ),
         last_activity_at=_string(
-            value.get("last_activity_at"),
+            value.get("last_activity_at", _MISSING),
             "facts.last_activity_at",
         ),
         last_author_activity_at=_string(
-            value.get("last_author_activity_at"),
+            value.get("last_author_activity_at", _MISSING),
             "facts.last_author_activity_at",
         ),
         last_approver_activity_at=_string(
-            value.get("last_approver_activity_at"),
+            value.get("last_approver_activity_at", _MISSING),
             "facts.last_approver_activity_at",
         ),
         ci_failing_count=_optional_integer(
@@ -502,7 +527,7 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             "facts.ci_pending_count",
         ),
         non_blocking_check_failures=_string_tuple(
-            value.get("non_blocking_check_failures"),
+            value.get("non_blocking_check_failures", _MISSING),
             "facts.non_blocking_check_failures",
         ),
         copilot_first_review_missing_since=_optional_string(
@@ -510,19 +535,19 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             "facts.copilot_first_review_missing_since",
         ),
         copilot_review_outstanding=_boolean(
-            value.get("copilot_review_outstanding"),
+            value.get("copilot_review_outstanding", _MISSING),
             "facts.copilot_review_outstanding",
         ),
         copilot_review_unreported=_boolean(
-            value.get("copilot_review_unreported"),
+            value.get("copilot_review_unreported", _MISSING),
             "facts.copilot_review_unreported",
         ),
         copilot_review_request_needed=_boolean(
-            value.get("copilot_review_request_needed"),
+            value.get("copilot_review_request_needed", _MISSING),
             "facts.copilot_review_request_needed",
         ),
         required_checks_settled=_boolean(
-            value.get("required_checks_settled"),
+            value.get("required_checks_settled", _MISSING),
             "facts.required_checks_settled",
         ),
         route_held_since=_optional_string(
@@ -530,19 +555,19 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             "facts.route_held_since",
         ),
         route_hold_expired=_boolean(
-            value.get("route_hold_expired"),
+            value.get("route_hold_expired", _MISSING),
             "facts.route_hold_expired",
         ),
         route_held_for_gates=_boolean(
-            value.get("route_held_for_gates"),
+            value.get("route_held_for_gates", _MISSING),
             "facts.route_held_for_gates",
         ),
         waiting_since=_string(
-            value.get("waiting_since"),
+            value.get("waiting_since", _MISSING),
             "facts.waiting_since",
         ),
         waiting_age_basis=_string(
-            value.get("waiting_age_basis"),
+            value.get("waiting_age_basis", _MISSING),
             "facts.waiting_age_basis",
         ),
         author_nudge_episode_id=_optional_string(
@@ -550,11 +575,11 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             "facts.author_nudge_episode_id",
         ),
         author_action_review_thread_urls=_string_tuple(
-            value.get("author_action_review_thread_urls"),
+            value.get("author_action_review_thread_urls", _MISSING),
             "facts.author_action_review_thread_urls",
         ),
         author_action_top_level_feedback_urls=_string_tuple(
-            value.get("author_action_top_level_feedback_urls"),
+            value.get("author_action_top_level_feedback_urls", _MISSING),
             "facts.author_action_top_level_feedback_urls",
         ),
         reviewers=tuple(_decode_reviewer(reviewer) for reviewer in raw_reviewers),
@@ -634,26 +659,33 @@ def decode_stored_result(
 ) -> StoredDashboardResult:
     if not isinstance(value, dict):
         raise ValueError("dashboard result must be an object")
-    if _boolean(value.get("failed"), "dashboard result failed"):
+    if _boolean(value.get("failed", _MISSING), "dashboard result failed"):
         raise ValueError("failed dashboard results cannot be stored")
     pr_number = _integer(
-        value.get("pr_number"),
+        value.get("pr_number", _MISSING),
         "dashboard result pr_number",
         pr_number_hint or 0,
     )
     if pr_number_hint is not None and pr_number != pr_number_hint:
         raise ValueError("dashboard result pr_number does not match its state key")
     route = DashboardRoute(
-        _string(value.get("route"), "dashboard result route", "unknown")
+        _string(
+            value.get("route", _MISSING),
+            "dashboard result route",
+            "unknown",
+        )
     )
-    history = value.get("top_level_history")
-    if history is None:
+    history = value.get("top_level_history", _MISSING)
+    if history is _MISSING:
         history = {}
     if not isinstance(history, dict):
         raise ValueError("dashboard result top_level_history must be an object")
     return StoredDashboardResult(
         pr_number=pr_number,
-        pr_url=_string(value.get("pr_url"), "dashboard result pr_url"),
+        pr_url=_string(
+            value.get("pr_url", _MISSING),
+            "dashboard result pr_url",
+        ),
         route=route,
         facts=decode_dashboard_facts(
             value["facts"] if "facts" in value else {}
