@@ -2527,7 +2527,7 @@
     },
     "19736": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2536,7 +2536,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "238e096a526dee6b790156e572db5f20f9707e696708351619cb78ac60d59548",
+        "copilot_request_fingerprint": "4b8abcf7269760de0cc3dbe2a4e968ff38a7ea24a093348d85aff6d41fc4ac8c",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2552,16 +2552,26 @@
         "head_sha": "f19e1af63b7f3d48e44559b5b02b8af68f569b48",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T23:29:54+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T23:43:26+00:00",
+        "last_approver_activity_at": "2026-08-24T23:43:26+00:00",
         "last_author_activity_at": "2026-08-24T23:29:54+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-08-24T23:39:29.972783+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "29b7a73942585f4f9faa62a5932c5fe842a046050e57a7941f98e744dc874ae5",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "19ab18568fd09240e89a62920f5830a7be2012b8dbaa19e328eca2f3dee520dc",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-20T22:33:09+00:00"
       },
       "failed": false,
