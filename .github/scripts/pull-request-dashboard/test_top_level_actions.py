@@ -30,6 +30,7 @@ from discussion_lifecycle import (
 )
 from notifications import reviewer_logins_for_notification
 from render import reviewer_icon
+from routing_decision import RoutingInput, resolve_routing
 
 
 ROOT_TIMESTAMP = "2026-07-14T01:00:00Z"
@@ -1682,14 +1683,31 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 ),
             ),
         )
-        facts = {"approval_count": 1, "is_maintenance_bot": False}
+        facts = {
+            "approval_count": 1,
+            "ci_failing_count": 0,
+            "ci_pending_count": 0,
+            "is_maintenance_bot": False,
+        }
 
         self.assertEqual(outcome.pending_actions, {})
         self.assertEqual(
             outcome.top_level_history["code"]["evidence"],
             {"reply": "2026-07-14T02:00:00Z"},
         )
-        self.assertEqual(route_pr(facts, outcome.pending_actions, 1), "maintainer")
+        routing = resolve_routing(
+            RoutingInput(
+                facts=facts,
+                pending_actions=outcome.pending_actions,
+                previous_route=None,
+                previous_facts={},
+                required_approvals=1,
+                require_clean_copilot_review=False,
+                manual_reviewer_handoff=False,
+                pending_human_reviewer_logins=frozenset(),
+            )
+        )
+        self.assertEqual(routing.route, "maintainer")
 
     def test_outsider_changes_requested_reviewer_remains_visible(self) -> None:
         discussions = [top_level_item("code", requester="outsider")]
