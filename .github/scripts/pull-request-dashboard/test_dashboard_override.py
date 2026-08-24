@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import call, patch
 
 import dashboard_override
+import dashboard_override_delivery
 
 
 class DashboardOverrideTest(unittest.TestCase):
@@ -456,10 +457,10 @@ class DashboardOverrideTest(unittest.TestCase):
             facts["dashboard_command_replies"],
         )
 
-    @patch.object(dashboard_override, "run_gh")
-    @patch.object(dashboard_override, "gh_api", return_value=[])
+    @patch.object(dashboard_override_delivery, "run_gh")
+    @patch.object(dashboard_override_delivery, "gh_api", return_value=[])
     @patch.object(
-        dashboard_override,
+        dashboard_override_delivery,
         "load_dashboard_state_cache",
         return_value={
             "prs": {
@@ -474,7 +475,7 @@ class DashboardOverrideTest(unittest.TestCase):
         },
     )
     def test_delivers_pending_command_reply(self, _load_state, gh_api, run_gh) -> None:
-        errors = dashboard_override.deliver_dashboard_command_replies(
+        errors = dashboard_override_delivery.deliver_dashboard_command_replies(
             "open-telemetry/example"
         )
 
@@ -487,9 +488,9 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(posted[:5], ["gh", "api", "--method", "POST", "repos/open-telemetry/example/issues/5/comments"])
         self.assertIn(dashboard_override.command_reply_marker(2), posted[-1])
 
-    @patch.object(dashboard_override, "run_gh")
+    @patch.object(dashboard_override_delivery, "run_gh")
     @patch.object(
-        dashboard_override,
+        dashboard_override_delivery,
         "gh_api",
         return_value=[
             {
@@ -499,7 +500,7 @@ class DashboardOverrideTest(unittest.TestCase):
         ],
     )
     @patch.object(
-        dashboard_override,
+        dashboard_override_delivery,
         "load_dashboard_state_cache",
         return_value={
             "prs": {
@@ -514,7 +515,7 @@ class DashboardOverrideTest(unittest.TestCase):
         },
     )
     def test_delivery_skips_already_replied_command(self, _load_state, _gh_api, run_gh) -> None:
-        errors = dashboard_override.deliver_dashboard_command_replies(
+        errors = dashboard_override_delivery.deliver_dashboard_command_replies(
             "open-telemetry/example"
         )
 
@@ -675,10 +676,10 @@ class DashboardOverrideTest(unittest.TestCase):
             facts["dashboard_command_replies"],
         )
 
-    @patch.object(dashboard_override, "run_gh")
-    @patch.object(dashboard_override, "gh_api", return_value=[])
+    @patch.object(dashboard_override_delivery, "run_gh")
+    @patch.object(dashboard_override_delivery, "gh_api", return_value=[])
     @patch.object(
-        dashboard_override,
+        dashboard_override_delivery,
         "load_dashboard_state_cache",
         return_value={
             "prs": {
@@ -699,7 +700,7 @@ class DashboardOverrideTest(unittest.TestCase):
         },
     )
     def test_delivers_command_acknowledgement(self, _load_state, _gh_api, run_gh) -> None:
-        errors = dashboard_override.deliver_dashboard_command_replies(
+        errors = dashboard_override_delivery.deliver_dashboard_command_replies(
             "open-telemetry/example"
         )
 

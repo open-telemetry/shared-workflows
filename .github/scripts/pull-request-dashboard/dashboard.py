@@ -39,8 +39,8 @@ A run flows like this:
        single-PR + cache miss: skip; wait for backfill to create initial state
        no PR target:           backfill, processing PRs one at a time
        v
-  merge_dashboard_update_with_latest_state
-       reload dashboard-state in case a concurrent run updated it
+  accept_dashboard_update
+       reconcile the evaluated PR slot with the latest accepted dashboard state
        v
   save_dashboard_state_cache
 
@@ -67,7 +67,7 @@ Field schemas
 Two record shapes flow through the pipeline as ``dict[str, Any]``. They are
 built up across stages, so not every field is present at every point.
 
-``result`` (one per PR) — produced by ``build_pr_result``:
+``result`` (one per PR) — produced by ``evaluate_pull_request``:
 
 - ``pr_number`` (``int``): PR number.
 - ``pr_title`` (``str``): PR title.
@@ -95,7 +95,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
 
 ``facts`` (one per PR) — built in two stages:
 
-  Stage 1 — compute_facts (deterministic from GitHub data):
+  Stage 1 — pull request evaluation (deterministic from GitHub data):
     author                          str           Effective author (human, after
                                                   bot-delegation resolution).
     assignees                       list[str]     PR assignees.
@@ -159,7 +159,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     last_author_activity_at         str (iso)
     last_approver_activity_at       str (iso)
 
-    Stage 2 — add_wait_age_facts (depends on routing + pending actions):
+    Stage 2 — resolve_routing (depends on pending actions + the previous result):
     copilot_review_outstanding      bool          The Copilot review gate applies
                                                   to this PR and its review is
                                                   missing or stale, so the route
@@ -188,8 +188,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   has reported or the author
                                                   pushes.
     route_hold_expired              bool          A gate has reported nothing on
-                                                  this head for longer than
-                                                  GATE_HOLD_LIMIT, so the PR
+                                                  this head for longer than the
+                                                  four-hour hold limit, so the PR
                                                   routes anyway and its status
                                                   comment names the gate that
                                                   never reported.
@@ -212,8 +212,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     author_action_top_level_feedback_urls
                                     list[str]     Canonical links to top-level
                                                   feedback routed to the author.
-    reviewers                       list[dict]    Reviewers to display (added by
-                                                  add_reviewers). Each entry is
+    reviewers                       list[dict]    Reviewer summaries projected after
+                                                  discussion resolution. Each entry is
                                                   {"login": str, "approved": bool,
                                                   "approved_non_team": bool,
                                                   "pending_review": bool,
@@ -249,51 +249,38 @@ from __future__ import annotations
 
 import argparse
 import sys
-import traceback
-import uuid
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 from github_cli import (
-    TransientGhError,
     detect_repo,
-    fetch_pr_routing_raw,
-    gh_api,
     list_open_prs,
     load_reviewer_set,
     normalize_repo,
     repo_state_key,
 )
 from classification import (
-    classify_discussion_domains,
-    is_automation_command_comment,
-    is_conflict_resolution_comment,
-    normalize_discussion_action,
     prune_classification_cache,
 )
 from author_nudge import (
-    copilot_request_fingerprint,
     record_author_nudge_observation,
-    routing_input_fingerprint,
 )
-from copilot_review import (
-    copilot_review_outstanding,
-    copilot_review_status,
-    copilot_review_unreported,
-    is_copilot_reviewer,
+from copilot_review_delivery import (
     record_copilot_review_observation,
-    set_copilot_first_review_missing_since,
-    set_copilot_review_request_needed,
 )
-from dashboard_override import (
-    append_command_ack_reply,
-    dashboard_command_body_remainder,
-    dashboard_override_facts,
+from dashboard_state_update import (
+    DashboardStateUpdate,
+    DashboardUpdateAcceptance,
+    accept_dashboard_update,
+    prepare_dashboard_update,
 )
-from pr_status_comment import status_author_nudge_episode_id
+from pull_request_evaluation import (
+    PullRequestEvaluationConfig,
+    PullRequestEvaluationInput,
+    evaluate_pull_request,
+)
 from state import (
     INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
@@ -301,1634 +288,17 @@ from state import (
     initial_backfill_complete,
     load_dashboard_state_cache,
     load_backfill_state,
-    results_from_dashboard_state,
     save_dashboard_state_cache,
     save_backfill_state,
     set_state_dir,
-    stored_result,
-    update_dashboard_state_for_pr,
 )
 import state_branch
-from utils import (
-    actor_login,
-    compute_conflicts,
-    format_ts,
-    parse_ts,
-    required_checks_settled,
-    truncate,
-    utc_now,
-)
+from utils import utc_now
 
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.4-mini"
-POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
 DEFAULT_BACKFILL_MAX_PRS = 50
 BACKFILL_RECORDED_FAILURE_STATUS = 2
-
-# ---------------------------------------------------------------- model helpers
-
-
-def role_for(login: str, author: str, reviewers: set[str]) -> str:
-    if not login:
-        return "outsider"
-    low = login.lower()
-    if low == author.lower():
-        return "author"
-    if low in reviewers:
-        return "approver"
-    if low.startswith("app/") or low.endswith("[bot]"):
-        return "bot"
-    return "outsider"
-
-
-# `role_for` matches the PR's own author before it checks for bot-shaped logins,
-# so a bot-authored PR counts that bot's activity here.
-PARTICIPANT_ACTOR_ROLES = {"author", "approver", "outsider"}
-
-
-# Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
-# `app/<slug>` form, while the Pulls/commits endpoint's `committer.login`
-# field can return the bare `copilot` slug. Do not treat either form as the
-# human author behind a Copilot-authored PR.
-_COPILOT_COMMITTER_LOGINS = {"copilot"}
-_COPILOT_PR_AUTHORS = {"app/copilot-swe-agent", "copilot"}
-_MAINTENANCE_BOT_PR_AUTHORS = {"app/otelbot", "app/renovate"}
-
-
-def reviewer_actor_login(obj: dict[str, Any] | None) -> str:
-    login = actor_login(obj)
-    if is_copilot_reviewer(obj):
-        return "copilot-pull-request-reviewer[bot]"
-    return login
-
-
-def human_author_for_copilot_pr(raw: dict[str, Any]) -> str:
-    assignees = [actor_login(a) for a in (raw["pr"].get("assignees") or [])]
-    for login in assignees:
-        low = login.lower()
-        if login and low not in _COPILOT_PR_AUTHORS and not low.startswith("app/") and not low.endswith("[bot]"):
-            return login
-
-    commits = raw["commits"]
-    if not commits:
-        return ""
-    first_commit = commits[0]
-    login = actor_login(first_commit.get("committer") or {})
-    low = login.lower()
-    if not login or low in _COPILOT_COMMITTER_LOGINS:
-        return ""
-    return login
-
-
-def fetch_pr_raw(
-    repo: str,
-    owner: str,
-    repo_name: str,
-    pr_summary: dict[str, Any],
-    non_blocking_check_patterns: list[str],
-) -> dict[str, Any]:
-    number = pr_summary["number"]
-    with ThreadPoolExecutor() as pool:
-        f_commits = pool.submit(
-            gh_api,
-            f"/repos/{owner}/{repo_name}/pulls/{number}/commits?per_page=100",
-            True,
-        )
-        raw = fetch_pr_routing_raw(
-            repo,
-            owner,
-            repo_name,
-            number,
-            non_blocking_check_patterns,
-        )
-        return {
-            **raw,
-            "summary": pr_summary,
-            "commits": f_commits.result() or [],
-        }
-
-
-def effective_author(raw: dict[str, Any]) -> str:
-    pr = raw["pr"]
-    summary = raw["summary"]
-    author = actor_login(pr.get("author") or {}) or actor_login(summary.get("author") or {})
-    if author.lower() in _COPILOT_PR_AUTHORS:
-        human_author = human_author_for_copilot_pr(raw)
-        if human_author:
-            return human_author
-    return author
-
-
-def is_merge_commit(commit: dict[str, Any]) -> bool:
-    return len(commit.get("parents") or []) >= 2
-
-
-def normalize_events(raw: dict[str, Any], author: str, reviewers: set[str]) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    for c in raw["commits"]:
-        commit_obj = c.get("commit") or {}
-        commit_author = commit_obj.get("author") or {}
-        commit_committer = commit_obj.get("committer") or {}
-        author_login = actor_login(c.get("author") or {})
-        committer_login = actor_login(c.get("committer") or {})
-        # A change made by someone other than the PR author should be
-        # accompanied by an explanatory reply.
-        if committer_login.lower() == author.lower():
-            login = committer_login
-            timestamp = commit_committer.get("date") or commit_author.get("date") or ""
-        elif author_login.lower() == author.lower():
-            login = author_login
-            timestamp = commit_author.get("date") or ""
-        elif committer_login:
-            login = committer_login
-            timestamp = commit_committer.get("date") or ""
-        else:
-            login = author_login or commit_author.get("name") or ""
-            timestamp = commit_author.get("date") or ""
-        sha = c.get("sha") or ""
-        events.append({
-            "kind": "commit",
-            "timestamp": timestamp,
-            "actor": login,
-            "actor_role": role_for(login, author, reviewers),
-            "body": commit_obj.get("message") or "",
-            "state": None,
-            "path": None,
-            "sha": sha[:7],
-            "is_merge_from_base_by_non_author": is_merge_commit(c) and login.lower() != author.lower(),
-        })
-    for c in raw["issue_comments"]:
-        if c.get("minimized"):
-            continue
-        command_remainder = dashboard_command_body_remainder(c)
-        # A `/dashboard` command line is control metadata, not discussion. Skip
-        # the comment only when it is command-only; otherwise keep the author's
-        # explanation that follows the command as an event.
-        if command_remainder is not None and not command_remainder:
-            continue
-        body = command_remainder if command_remainder is not None else (c.get("body") or "")
-        login = reviewer_actor_login(c.get("user") or {})
-        timestamp = (
-            c.get("content_updated_at")
-            or c.get("created_at")
-            or c.get("updated_at")
-            or ""
-        )
-        events.append({
-            "source_id": c.get("id"),
-            "discussion_url": c.get("html_url") or "",
-            "kind": "issue-comment",
-            "timestamp": timestamp,
-            "created_timestamp": c.get("created_at") or timestamp,
-            "actor": login,
-            "actor_role": role_for(login, author, reviewers),
-            "body": body,
-            "state": None,
-            "path": None,
-            "sha": None,
-            "is_merge_from_base_by_non_author": False,
-        })
-    for c in raw["review_comments"]:
-        login = reviewer_actor_login(c.get("user") or {})
-        timestamp = c.get("updated_at") or c.get("created_at") or ""
-        events.append({
-            "source_id": c.get("id"),
-            "kind": "review-comment",
-            "timestamp": timestamp,
-            "created_timestamp": c.get("created_at") or timestamp,
-            "actor": login,
-            "actor_role": role_for(login, author, reviewers),
-            "body": c.get("body") or "",
-            "state": None,
-            "path": c.get("path"),
-            "sha": None,
-            "is_merge_from_base_by_non_author": False,
-        })
-    for r in raw["reviews"]:
-        login = reviewer_actor_login(r.get("user") or {})
-        state = r.get("state") or ""
-        events.append({
-            "source_id": r.get("id"),
-            "discussion_url": r.get("url") or "",
-            "kind": "review-state",
-            "timestamp": r.get("submitted_at") or "",
-            "created_timestamp": r.get("submitted_at") or "",
-            "actor": login,
-            "actor_role": role_for(login, author, reviewers),
-            "body": r.get("body") or "",
-            "state": state,
-            "path": None,
-            "sha": None,
-            "is_merge_from_base_by_non_author": False,
-        })
-    events = [e for e in events if e["timestamp"]]
-    events.sort(key=lambda e: e.get("created_timestamp") or e["timestamp"])
-    return events
-
-
-def is_substantive_activity(event: dict[str, Any]) -> bool:
-    if event.get("is_merge_from_base_by_non_author"):
-        return False
-    # Bot events never count as substantive: merge-bot pings, CI status
-    # comments, and the like must not refresh the waiting clock. Bot PR
-    # authors are remapped to their human delegator in `effective_author`,
-    # so a real human's activity still shows up here under that login.
-    if event.get("actor_role") == "bot":
-        return False
-    if event["kind"] == "review-state" and event.get("state") != "COMMENTED":
-        return True
-    return bool((event.get("body") or "").strip())
-
-
-def latest_substantive_activity(events: list[dict[str, Any]], actor_roles: set[str]) -> datetime | None:
-    timestamps = [
-        parse_ts(e["timestamp"])
-        for e in events
-        if e.get("actor_role") in actor_roles and is_substantive_activity(e)
-    ]
-    timestamps = [ts for ts in timestamps if ts is not None]
-    return max(timestamps) if timestamps else None
-
-
-def current_approval_count(
-    events: list[dict[str, Any]],
-    review_requests: list[dict[str, Any]] | None = None,
-) -> int:
-    approvers = approver_logins(events)
-    return sum(
-        1
-        for reviewer, state in active_review_states(events, review_requests).items()
-        if state == "APPROVED" and reviewer in approvers
-    )
-
-
-def approver_logins(events: list[dict[str, Any]]) -> set[str]:
-    return {
-        event["actor"]
-        for event in events
-        if event.get("actor_role") == "approver" and event.get("actor")
-    }
-
-
-def latest_review_states(events: list[dict[str, Any]]) -> dict[str, str]:
-    latest_by_reviewer: dict[str, tuple[str, str]] = {}
-    for event in events:
-        if event.get("kind") != "review-state":
-            continue
-        reviewer = event.get("actor") or ""
-        submitted_at = event.get("timestamp") or ""
-        state = event.get("state") or ""
-        if not reviewer or not submitted_at or state == "COMMENTED":
-            continue
-        previous = latest_by_reviewer.get(reviewer)
-        if previous is None or submitted_at >= previous[0]:
-            latest_by_reviewer[reviewer] = (submitted_at, state)
-    return {reviewer: state for reviewer, (_, state) in latest_by_reviewer.items()}
-
-
-def requested_human_reviewer_logins(
-    review_requests: list[dict[str, Any]] | None,
-) -> set[str]:
-    return {
-        login
-        for request in (review_requests or [])
-        if request.get("__typename") == "User"
-        and (login := reviewer_actor_login(request))
-    }
-
-
-def pending_review_logins(
-    events: list[dict[str, Any]],
-    review_requests: list[dict[str, Any]] | None,
-) -> set[str]:
-    return requested_human_reviewer_logins(review_requests) & reviewing_logins(events)
-
-
-def active_review_states(
-    events: list[dict[str, Any]],
-    review_requests: list[dict[str, Any]] | None = None,
-) -> dict[str, str]:
-    # Only an approval goes stale when its reviewer is asked to look again.
-    # GitHub keeps a CHANGES_REQUESTED review blocking the merge until that
-    # reviewer submits a new one, so dropping it here would hide a live
-    # blocker rather than report a wait.
-    requested = requested_human_reviewer_logins(review_requests)
-    return {
-        reviewer: state
-        for reviewer, state in latest_review_states(events).items()
-        if state != "APPROVED" or reviewer not in requested
-    }
-
-
-def reviewing_logins(events: list[dict[str, Any]]) -> set[str]:
-    return {
-        event["actor"]
-        for event in events
-        if event.get("kind") == "review-state" and event.get("actor")
-    }
-
-
-def commenting_reviewers(events: list[dict[str, Any]]) -> set[str]:
-    # Approver-team members who have participated on the PR in any way: an
-    # issue comment, an inline review comment, or a submitted review. This
-    # surfaces engaged reviewers even when they have neither approved nor own
-    # an open discussion.
-    return {
-        event["actor"]
-        for event in events
-        if event.get("actor_role") == "approver"
-        and event.get("kind") in ("issue-comment", "review-comment", "review-state")
-        and event.get("actor")
-    }
-
-
-def compute_facts(
-    raw: dict[str, Any],
-    author: str,
-    events: list[dict[str, Any]],
-    reviewers: set[str] | None = None,
-    previous_facts: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    pr = raw["pr"]
-    checks = raw["checks"]
-    failing = [c for c in checks or [] if c.get("bucket") in ("fail", "cancel")]
-    pending = [c for c in checks or [] if c.get("bucket") == "pending"]
-    failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
-    failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
-    created_ts = parse_ts(pr["createdAt"])
-    # Not pr["updatedAt"]: the dashboard's own status comment bumps it, which
-    # would make every refresh look like new activity and retrigger itself.
-    activity_ts = latest_substantive_activity(events, PARTICIPANT_ACTOR_ROLES)
-    # Commits can carry author dates from before the PR was opened.
-    last_activity_ts = max(
-        [ts for ts in (activity_ts, created_ts) if ts is not None],
-        default=None,
-    )
-    author_activity_ts = latest_substantive_activity(events, {"author"})
-    approver_activity_ts = latest_substantive_activity(events, {"approver"})
-    api_author = actor_login(pr.get("author") or {})
-    assignees = [reviewer_actor_login(a) for a in (pr.get("assignees") or [])]
-    assignees = [a for a in assignees if a]
-    # Read the head OID straight from the PR object. Deriving it from
-    # raw["commits"] is wrong for PRs with more than 250 commits, where the
-    # commits REST endpoint truncates and the last entry is not the real head.
-    head_sha = pr.get("headRefOid") or ""
-    copilot_review_exists, copilot_review_stale, copilot_review_findings = copilot_review_status(
-        raw.get("reviews") or [],
-        head_sha,
-        raw.get("review_threads") or [],
-    )
-    facts = {
-        "author": author,
-        "assignees": assignees,
-        "head_sha": head_sha,
-        "routing_input_fingerprint": routing_input_fingerprint(raw),
-        "copilot_request_fingerprint": copilot_request_fingerprint(raw),
-        **dashboard_override_facts(
-            raw,
-            author,
-            reviewers or set(),
-            head_sha,
-            previous_facts,
-        ),
-        "copilot_review_requested": any(
-            is_copilot_reviewer(request)
-            for request in (raw.get("review_requests") or [])
-        ),
-        "copilot_review_exists": copilot_review_exists,
-        "copilot_review_stale": copilot_review_stale,
-        "copilot_review_needed": copilot_review_stale or copilot_review_findings,
-        "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
-        "is_draft": bool(pr.get("isDraft")),
-        "approval_count": current_approval_count(
-            events,
-            raw.get("review_requests") or [],
-        ),
-        "conflicts": compute_conflicts(pr),
-        "created_at": format_ts(created_ts),
-        "last_activity_at": format_ts(last_activity_ts),
-        "last_author_activity_at": format_ts(author_activity_ts),
-        "last_approver_activity_at": format_ts(approver_activity_ts),
-    }
-    if checks is not None:
-        facts["ci_failing_count"] = len(failing)
-        if failing_timestamps:
-            facts["ci_failing_since"] = format_ts(min(failing_timestamps))
-        facts["ci_pending_count"] = len(pending)
-    non_blocking_check_failures = sorted({
-        check.get("name") or ""
-        for check in raw.get("non_blocking_check_failures") or []
-        if check.get("name")
-    }, key=lambda name: (name.casefold(), name))
-    if non_blocking_check_failures:
-        facts["non_blocking_check_failures"] = non_blocking_check_failures
-    return facts
-
-
-def discussion_comment(
-    timestamp: str,
-    actor: str,
-    author: str,
-    reviewers: set[str],
-    body: str,
-    positive_reactors: set[str] | None = None,
-) -> dict[str, Any]:
-    return {
-        "timestamp": timestamp,
-        "actor": actor,
-        "actor_role": role_for(actor, author, reviewers),
-        "body": truncate(body),
-        "positive_reactors": sorted(positive_reactors or set()),
-    }
-
-
-def add_discussion_facts(
-    discussion: dict[str, Any],
-    comments: list[dict[str, Any]],
-    facts: dict[str, Any],
-) -> dict[str, Any]:
-    discussion["discussion_facts"] = {
-        "latest_comment_role": comments[-1].get("actor_role"),
-        "current_conflicts": facts.get("conflicts"),
-    }
-    return discussion
-
-
-def positive_reaction_logins(comment: dict[str, Any]) -> set[str]:
-    logins: set[str] = set()
-    for group in comment.get("reactionGroups") or []:
-        if group.get("content") not in POSITIVE_ACK_REACTIONS:
-            continue
-        for user in ((group.get("users") or {}).get("nodes") or []):
-            login = actor_login(user).lower()
-            if login:
-                logins.add(login)
-    return logins
-
-
-def group_review_threads(
-    raw: dict[str, Any],
-    author: str,
-    reviewers: set[str],
-    facts: dict[str, Any],
-) -> list[dict[str, Any]]:
-    discussions: list[dict[str, Any]] = []
-    for discussion in raw["review_threads"]:
-        # Skip outdated discussions: GitHub marks a discussion outdated when its
-        # anchor lines no longer exist, which typically means the author
-        # pushed a fix, so surfacing them would treat addressed feedback
-        # as live.
-        if discussion.get("isResolved") or discussion.get("isOutdated"):
-            continue
-        raw_comments = (discussion.get("comments") or {}).get("nodes") or []
-        thread_url = raw_comments[0].get("url") if raw_comments else ""
-        # a thread reads in creation order; sorting on updatedAt would move an
-        # edited old comment to the end and change who last spoke
-        ordered = sorted(raw_comments, key=lambda c: c.get("createdAt") or "")
-        comments = []
-        for c in ordered:
-            actor = reviewer_actor_login(c.get("author") or {})
-            # Not updatedAt: this timestamp becomes how long the thread has been
-            # waiting, and a reviewer fixing a typo in their own comment must not
-            # make a weeks-old thread look freshly raised.
-            comments.append(discussion_comment(
-                c.get("createdAt") or "",
-                actor,
-                author,
-                reviewers,
-                c.get("body") or "",
-                positive_reaction_logins(c),
-            ))
-        comments = [c for c in comments if c["timestamp"]]
-        if not comments or all(c["actor_role"] == "author" for c in comments):
-            continue
-        discussions.append(add_discussion_facts({
-            "discussion_id": discussion.get("id") or f"review-discussion-{len(discussions) + 1}",
-            "discussion_kind": "review-comment-thread",
-            "path": discussion.get("path"),
-            "line": discussion.get("line"),
-            "resolved": False,
-            "discussion_url": thread_url,
-            "comments": comments,
-        }, comments, facts))
-    discussions.sort(key=lambda t: t["comments"][-1]["timestamp"])
-    return discussions
-
-
-def derive_top_level_items(
-    events: list[dict[str, Any]],
-    facts: dict[str, Any],
-) -> list[dict[str, Any]]:
-    items: list[dict[str, Any]] = []
-    for event in events:
-        source_kind = event.get("kind") or ""
-        if source_kind not in ("issue-comment", "review-state"):
-            continue
-        state = event.get("state") or ""
-        if state == "DISMISSED":
-            continue
-        body = truncate(event.get("body") or "")
-        if source_kind == "review-state" and not body:
-            continue
-        root_timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
-        comment = {
-            "timestamp": root_timestamp,
-            "actor": event.get("actor") or "",
-            "actor_role": event.get("actor_role"),
-            "body": body,
-            "positive_reactors": [],
-        }
-        if (
-            event.get("source_id") is not None
-            and comment["actor"]
-            and comment["timestamp"]
-            and comment["actor_role"] in ("approver", "outsider")
-            and comment["body"]
-            and not is_automation_command_comment(comment["body"])
-            and not (
-                state != "CHANGES_REQUESTED"
-                and facts.get("conflicts") == "no"
-                and is_conflict_resolution_comment(comment["body"])
-            )
-        ):
-            items.append(add_discussion_facts({
-                "discussion_id": (
-                    f"pr-issue-comment-{event['source_id']}"
-                    if source_kind == "issue-comment"
-                    else f"pr-review-{event['source_id']}"
-                ),
-                "discussion_kind": "top-level-feedback",
-                "source_kind": source_kind,
-                "source_id": event["source_id"],
-                "discussion_url": event.get("discussion_url") or "",
-                "requester": comment["actor"],
-                "pr_author": facts.get("author") or "",
-                "review_state": state or None,
-                "root_timestamp": root_timestamp,
-                "path": None,
-                "line": None,
-                "resolved": False,
-                "comments": [comment],
-            }, [comment], facts))
-    items.sort(key=lambda item: item["root_timestamp"])
-    return items
-
-
-def derive_top_level_author_comment_items(
-    events: list[dict[str, Any]],
-    top_level_items: list[dict[str, Any]],
-    facts: dict[str, Any],
-) -> list[dict[str, Any]]:
-    if not top_level_items:
-        return []
-    earliest_root_timestamp = min(
-        item.get("root_timestamp") or "" for item in top_level_items
-    )
-    items: list[dict[str, Any]] = []
-    for event in events:
-        timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
-        if (
-            event.get("kind") != "issue-comment"
-            or event.get("actor_role") != "author"
-            or event.get("source_id") is None
-            or timestamp <= earliest_root_timestamp
-            or not is_substantive_activity(event)
-        ):
-            continue
-        comment = {
-            "timestamp": timestamp,
-            "actor": event.get("actor") or "",
-            "actor_role": "author",
-            "body": truncate(event.get("body") or ""),
-            "positive_reactors": [],
-        }
-        candidate_feedback = [
-            {
-                "discussion_id": item["discussion_id"],
-                "body": "\n\n".join(
-                    item_comment.get("body") or ""
-                    for item_comment in (item.get("comments") or [])
-                ),
-            }
-            for item in top_level_items
-            if (item.get("root_timestamp") or "") < timestamp
-        ]
-        items.append(add_discussion_facts({
-            "discussion_id": f"pr-author-reply-{event['source_id']}",
-            "discussion_kind": "top-level-author-reply",
-            "source_id": event["source_id"],
-            "candidate_feedback": candidate_feedback,
-            "comments": [comment],
-        }, [comment], facts))
-    return items
-
-
-class AuthorCommentOutcome(TypedDict):
-    source_id: int
-    action: str
-    timestamp: str
-    feedback_id: str
-
-
-class AuthorCommentSourceState(TypedDict):
-    current: set[int]
-    classified: set[int]
-
-
-def top_level_author_comment_source_state(
-    top_level_author_comment_items: list[dict[str, Any]],
-    classifications: list[dict[str, Any]],
-) -> AuthorCommentSourceState:
-    by_id = discussions_by_id(top_level_author_comment_items)
-    current = {
-        source_id
-        for item in top_level_author_comment_items
-        if isinstance(source_id := item.get("source_id"), int)
-    }
-    classified = {
-        source_id
-        for classification in classifications
-        if not classification.get("failed")
-        and not classification.get("deferred")
-        and (
-            source_id := (by_id.get(classification.get("discussion_id") or "") or {}).get(
-                "source_id"
-            )
-        )
-        in current
-    }
-    return {"current": current, "classified": classified}
-
-
-def top_level_author_comment_outcomes(
-    top_level_author_comment_items: list[dict[str, Any]],
-    classifications: list[dict[str, Any]],
-) -> list[AuthorCommentOutcome]:
-    by_id = discussions_by_id(top_level_author_comment_items)
-    outcomes: list[AuthorCommentOutcome] = []
-    for classification in classifications:
-        if classification.get("failed"):
-            continue
-        decision = classification.get("decision") or {}
-        discussion = by_id.get(classification.get("discussion_id") or "")
-        comments = (discussion or {}).get("comments") or []
-        timestamp = comments[-1].get("timestamp") if comments else ""
-        source_id = (discussion or {}).get("source_id")
-        if not isinstance(source_id, int) or not timestamp:
-            continue
-        for feedback_outcome in decision.get("feedback_outcomes") or []:
-            action = normalize_discussion_action(
-                feedback_outcome.get("discussion_action") or ""
-            )
-            feedback_id = feedback_outcome.get("feedback_id")
-            if action not in ("author", "none", "unclear") or not isinstance(
-                feedback_id, str
-            ):
-                continue
-            outcomes.append({
-                "source_id": source_id,
-                "action": action,
-                "timestamp": timestamp,
-                "feedback_id": feedback_id,
-            })
-    outcomes.sort(key=lambda outcome: (
-        outcome["timestamp"],
-        outcome["source_id"],
-        outcome["feedback_id"],
-    ))
-    return outcomes
-
-
-def author_reply_is_superseded(
-    outcomes: list[AuthorCommentOutcome],
-    # None supports history written before reply_source_id was persisted.
-    source_id: int | None,
-    timestamp: str,
-    feedback_id: str,
-) -> bool:
-    return any(
-        outcome["feedback_id"] == feedback_id
-        and outcome["action"] == "author"
-        and (
-            outcome["timestamp"] > timestamp
-            or (
-                outcome["timestamp"] == timestamp
-                and (
-                    source_id is None
-                    or outcome["source_id"] >= source_id
-                )
-            )
-        )
-        for outcome in outcomes
-    )
-
-
-def should_restore_author_reply(
-    outcomes: list[AuthorCommentOutcome],
-    source_state: AuthorCommentSourceState | None,
-    source_id: int | None,
-    timestamp: str,
-    feedback_id: str,
-) -> bool:
-    if source_state is not None and source_id is not None:
-        if (
-            source_id not in source_state["current"]
-            or source_id in source_state["classified"]
-        ):
-            return False
-    return not author_reply_is_superseded(
-        outcomes,
-        source_id,
-        timestamp,
-        feedback_id,
-    )
-
-
-def completed_author_reply_after(
-    feedback_id: str,
-    root_timestamp: str,
-    outcomes: list[AuthorCommentOutcome],
-) -> tuple[str, int | None] | None:
-    for outcome in outcomes:
-        if (
-            outcome["timestamp"] > root_timestamp
-            and outcome["action"] == "none"
-            and outcome["feedback_id"] == feedback_id
-            and not author_reply_is_superseded(
-                outcomes,
-                outcome["source_id"],
-                outcome["timestamp"],
-                feedback_id,
-            )
-        ):
-            return outcome["timestamp"], outcome["source_id"]
-    return None
-
-
-def latest_top_level_author_comment_handoff(
-    feedback_id: str,
-    root_timestamp: str,
-    outcomes: list[AuthorCommentOutcome],
-) -> dict[str, str] | None:
-    relevant_outcomes = [
-        outcome
-        for outcome in outcomes
-        if outcome["timestamp"] > root_timestamp
-        and outcome["action"] in ("author", "none")
-        and feedback_id == outcome["feedback_id"]
-    ]
-    if (
-        not relevant_outcomes
-        or relevant_outcomes[-1]["action"] != "author"
-    ):
-        return None
-    latest_action = relevant_outcomes[-1]["action"]
-    since = relevant_outcomes[-1]["timestamp"]
-    for outcome in reversed(relevant_outcomes[:-1]):
-        if outcome["action"] != latest_action:
-            break
-        since = outcome["timestamp"]
-    return {"action": latest_action, "timestamp": since}
-
-
-def collect_author_evidence(
-    discussion: dict[str, Any],
-    previous_entry: dict[str, Any],
-    author_comment_outcomes: list[AuthorCommentOutcome],
-    author_comment_source_state: AuthorCommentSourceState | None,
-) -> tuple[dict[str, str], int | None]:
-    """Find the author reply that closes a top-level feedback item, if any.
-
-    An explicit reply is the only thing that closes an item. Commits, title
-    edits, and description edits are not tied to the item they would close, so
-    any push after the feedback arrived would close every open item at once and
-    hide feedback that nobody had answered.
-    """
-    root_timestamp = discussion.get("root_timestamp") or ""
-    evidence: dict[str, str] = {}
-    reply_source_id: int | None = None
-    previous_reply = (previous_entry.get("evidence") or {}).get("reply") or ""
-    previous_reply_source_id = previous_entry.get("reply_source_id")
-    if (
-        previous_reply > root_timestamp
-        and should_restore_author_reply(
-            author_comment_outcomes,
-            author_comment_source_state,
-            previous_reply_source_id
-            if isinstance(previous_reply_source_id, int)
-            else None,
-            previous_reply,
-            discussion["discussion_id"],
-        )
-    ):
-        evidence["reply"] = previous_reply
-        reply_source_id = previous_reply_source_id
-
-    completed_reply = completed_author_reply_after(
-        discussion["discussion_id"],
-        root_timestamp,
-        author_comment_outcomes,
-    )
-    if completed_reply:
-        timestamp, source_id = completed_reply
-        if (
-            not evidence.get("reply")
-            or timestamp < evidence["reply"]
-            or (timestamp == evidence["reply"] and reply_source_id is None)
-        ):
-            evidence["reply"] = timestamp
-            reply_source_id = source_id
-    return evidence, reply_source_id
-
-
-def pending_action_for(action: str) -> str:
-    """Map a classified discussion action onto a pending action.
-
-    "unclear" collapses onto the author: when the classifier cannot tell what a
-    discussion needs, the author is the one who can clarify it. Leaving it in its
-    own lane produces a discussion that nobody owns.
-    """
-    return "author" if action == "unclear" else action
-
-
-def build_review_thread_pending_actions(
-    review_threads: list[dict[str, Any]],
-    classifications: list[dict[str, Any]],
-) -> dict[str, dict[str, Any]]:
-    by_id = discussions_by_id(review_threads)
-    pending_actions: dict[str, dict[str, Any]] = {}
-    for classification in classifications:
-        action = normalize_discussion_action(
-            (classification.get("decision") or {}).get("discussion_action") or ""
-        )
-        discussion = by_id.get(classification.get("discussion_id") or "")
-        comments = (discussion or {}).get("comments") or []
-        if action != "none" and comments:
-            entry = {
-                "action": pending_action_for(action),
-                "since": classification.get("since") or comments[-1].get("timestamp") or "",
-            }
-            if classification.get("ignored_last_comment"):
-                entry["ignored_last_comment"] = True
-            pending_actions[classification["discussion_id"]] = entry
-    return pending_actions
-
-
-def advance_top_level_actions(
-    top_level_items: list[dict[str, Any]],
-    classifications: list[dict[str, Any]],
-    previous_history: dict[str, dict[str, Any]] | None,
-    author_comment_outcomes: list[AuthorCommentOutcome],
-    author_comment_source_state: AuthorCommentSourceState | None = None,
-) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
-    by_id = discussions_by_id(top_level_items)
-    pending_actions: dict[str, dict[str, Any]] = {}
-    top_level_history: dict[str, dict[str, Any]] = {}
-    for classification in classifications:
-        discussion = by_id.get(classification.get("discussion_id") or "")
-        decision = classification.get("decision") or {}
-        if not discussion:
-            continue
-        action = normalize_discussion_action(decision.get("discussion_action") or "")
-        root_timestamp = discussion.get("root_timestamp") or ""
-        if action not in ("author", "unclear"):
-            continue
-        previous_entry = (previous_history or {}).get(discussion["discussion_id"]) or {}
-        evidence, reply_source_id = collect_author_evidence(
-            discussion,
-            previous_entry,
-            author_comment_outcomes,
-            author_comment_source_state,
-        )
-        if evidence:
-            top_level_history[discussion["discussion_id"]] = {"evidence": evidence}
-            if reply_source_id is not None:
-                top_level_history[discussion["discussion_id"]]["reply_source_id"] = (
-                    reply_source_id
-                )
-        if evidence.get("reply"):
-            continue
-        handoff = latest_top_level_author_comment_handoff(
-            discussion["discussion_id"],
-            root_timestamp,
-            author_comment_outcomes,
-        )
-        if handoff is not None:
-            pending_actions[discussion["discussion_id"]] = {
-                "action": pending_action_for(handoff["action"]),
-                "since": handoff["timestamp"],
-            }
-            continue
-        pending_actions[discussion["discussion_id"]] = {
-            "action": pending_action_for(action),
-            "since": root_timestamp,
-        }
-    return pending_actions, top_level_history
-
-
-# ---------------------------------------------------------------- routing
-
-
-ROUTE_DISCUSSION_ACTIONS = {
-    "author": {"author"},
-    "approver": {"reviewer"},
-    "maintainer": {"reviewer"},
-}
-
-
-def action_counts(pending_actions: dict[str, dict[str, Any]]) -> dict[str, int]:
-    counts = {"author": 0, "reviewer": 0, "none": 0, "unclear": 0}
-    for entry in pending_actions.values():
-        counts[normalize_discussion_action(entry.get("action") or "")] += 1
-    return counts
-
-
-def route_pr(facts: dict[str, Any], pending_actions: dict[str, dict[str, Any]], required_approvals: int) -> str:
-    counts = action_counts(pending_actions)
-    # Copilot PRs are mapped back to a human author when possible. Maintenance
-    # bot PRs have no useful author route and need only one approval.
-    is_maintenance_bot = facts.get("is_maintenance_bot")
-    approval_threshold = 1 if is_maintenance_bot else required_approvals
-    # Default precedence, which an active reviewer handoff overrides later in
-    # resolve_pr_route:
-    #   1. A required status check failure -> "author".
-    #   2. A discussion waiting on the author -> "author".
-    #   3. If there are enough approvals -> "maintainer". Reviewer-owned follow-up
-    #      remains visible but does not keep an approved PR out of this route.
-    #   4. Otherwise the PR is still waiting on approvers.
-    ci_failing = (facts.get("ci_failing_count") or 0) > 0
-    if ci_failing and not is_maintenance_bot:
-        return "author"
-    if counts["author"] and not is_maintenance_bot:
-        return "author"
-    if facts.get("approval_count", 0) >= approval_threshold:
-        return "maintainer"
-    return "approver"
-
-
-def discussions_by_id(discussions: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {t["discussion_id"]: t for t in discussions}
-
-
-def oldest_pending_action_ts(
-    pending_actions: dict[str, dict[str, Any]],
-    actions: set[str],
-) -> datetime | None:
-    timestamps = [
-        parse_ts(entry.get("since") or "")
-        for entry in pending_actions.values()
-        if normalize_discussion_action(entry.get("action") or "") in actions
-    ]
-    timestamps = [ts for ts in timestamps if ts is not None]
-    return min(timestamps) if timestamps else None
-
-
-# Routes where the PR is out of the author's hands and someone else owes it a
-# response, so an author push does not change whose turn it is.
-REVIEWER_ROUTES = ("approver", "maintainer")
-
-# How far a PR has travelled toward merge. An unsettled gate stops it from
-# advancing, but never from moving back toward its author.
-ROUTE_PROGRESSION = ("author", "approver", "maintainer")
-
-# How long a gate may keep a pull request off its reviewers. Long enough that a
-# slow check suite or a queued Copilot review finishes first, short enough that
-# a gate which is never going to report costs the pull request part of a day
-# rather than the rest of its life.
-GATE_HOLD_LIMIT = timedelta(hours=4)
-
-
-def route_progress(route: str) -> int:
-    return ROUTE_PROGRESSION.index(route) if route in ROUTE_PROGRESSION else 0
-
-
-def fallback_wait_ts(route: str, facts: dict[str, Any]) -> tuple[datetime | None, str]:
-    if route in REVIEWER_ROUTES:
-        return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
-    if route == "author":
-        if facts.get("conflicts") == "yes":
-            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
-        if (facts.get("ci_failing_count") or 0) > 0:
-            ci_failing_since = parse_ts(facts.get("ci_failing_since") or "")
-            if ci_failing_since is not None:
-                return ci_failing_since, "ci_failure"
-            return parse_ts(facts.get("last_author_activity_at") or ""), "last_author_activity"
-        return parse_ts(facts.get("last_approver_activity_at") or ""), "last_approver_activity"
-    return parse_ts(facts.get("last_activity_at") or ""), "last_activity"
-
-
-def add_wait_age_facts(
-    facts: dict[str, Any],
-    route: str,
-    pending_actions: dict[str, dict[str, Any]],
-    previous_result: dict[str, Any] | None = None,
-    now: datetime | None = None,
-    pending_reviewers: set[str] | None = None,
-) -> None:
-    previous_facts = (previous_result or {}).get("facts") or {}
-    previous_route = (previous_result or {}).get("route")
-    previous_pending_reviewers = {
-        reviewer.get("login") or ""
-        for reviewer in previous_facts.get("reviewers") or []
-        if reviewer.get("pending_review")
-    }
-    current_pending_reviewers = pending_reviewers or set()
-    # A held route was not re-evaluated, so its wait continues uninterrupted
-    # rather than restarting from whatever the incomplete facts now imply.
-    if facts.get("route_held_for_gates") and previous_facts.get("waiting_since"):
-        facts["waiting_since"] = previous_facts["waiting_since"]
-        facts["waiting_age_basis"] = "gate_hold"
-        return
-    # Reviewers have been waiting since the gates let the PR reach them, which
-    # is not the push. The fallback below dates a reviewer's wait from the last
-    # author activity, and that was the same moment until the gates started
-    # sitting between the two: now a PR whose checks took an hour would arrive
-    # already an hour old, and one released after a stalled gate would arrive
-    # older still, blaming reviewers for a wait they could not have answered.
-    if (
-        route in REVIEWER_ROUTES
-        and previous_facts.get("route_held_for_gates")
-        and (previous_result or {}).get("route") == "author"
-    ):
-        facts["waiting_since"] = format_ts(now or utc_now())
-        facts["waiting_age_basis"] = "gate_release"
-        return
-    # Re-requesting a review can remove an approval and hand the PR from
-    # maintainers back to approvers without any author activity to date the
-    # handoff. Start the reviewer wait when the dashboard first sees it.
-    if (
-        route == "approver"
-        and previous_route == "maintainer"
-        and current_pending_reviewers - previous_pending_reviewers
-    ):
-        facts["waiting_since"] = format_ts(now or utc_now())
-        facts["waiting_age_basis"] = "review_rerequest"
-        return
-    # The release above only happens on the pass that hands the PR over, so
-    # without carrying it the next pass falls back to the author's push and
-    # presents the very wait the release exists to discard. The guard below
-    # cannot catch that, because it only stops the wait moving forward.
-    if (
-        route in REVIEWER_ROUTES
-        and (previous_result or {}).get("route") in REVIEWER_ROUTES
-        and previous_facts.get("waiting_age_basis") == "gate_release"
-        and previous_facts.get("waiting_since")
-        and facts.get("head_sha")
-        and facts.get("head_sha") == previous_facts.get("head_sha")
-    ):
-        facts["waiting_since"] = previous_facts["waiting_since"]
-        facts["waiting_age_basis"] = "gate_release"
-        return
-    if (
-        route in REVIEWER_ROUTES
-        and previous_route in REVIEWER_ROUTES
-        and previous_facts.get("waiting_age_basis") == "review_rerequest"
-        and previous_facts.get("waiting_since")
-        and current_pending_reviewers & previous_pending_reviewers
-    ):
-        facts["waiting_since"] = previous_facts["waiting_since"]
-        facts["waiting_age_basis"] = "review_rerequest"
-        return
-    actions = ROUTE_DISCUSSION_ACTIONS.get(route)
-    wait_ts = oldest_pending_action_ts(pending_actions, actions) if actions else None
-    basis = "oldest_pending_thread" if wait_ts else ""
-    fallback_ts, fallback_basis = fallback_wait_ts(route, facts)
-    if wait_ts is None or (
-        fallback_basis == "ci_failure"
-        and fallback_ts is not None
-        and fallback_ts < wait_ts
-    ):
-        wait_ts, basis = fallback_ts, fallback_basis
-    if wait_ts is None:
-        wait_ts = parse_ts(facts.get("created_at") or "")
-        basis = "created"
-    previous_wait_ts = parse_ts(previous_facts.get("waiting_since") or "")
-    # Reviewers have been waiting since the PR reached them, so while it stays
-    # with them the clock only moves back, never forward: an author push is not
-    # a fresh start for a review that has not happened yet.
-    if (
-        route in REVIEWER_ROUTES
-        and (previous_result or {}).get("route") in REVIEWER_ROUTES
-        and previous_wait_ts is not None
-        and wait_ts is not None
-        and previous_wait_ts < wait_ts
-    ):
-        wait_ts = previous_wait_ts
-        basis = previous_facts.get("waiting_age_basis") or ""
-    facts["waiting_since"] = format_ts(wait_ts)
-    facts["waiting_age_basis"] = basis
-
-
-def author_action_discussion_urls(
-    discussions: list[dict[str, Any]],
-    pending_actions: dict[str, dict[str, Any]],
-) -> list[str]:
-    by_id = discussions_by_id(discussions)
-    urls: list[str] = []
-    for discussion_id, entry in pending_actions.items():
-        action = normalize_discussion_action(entry.get("action") or "")
-        if action != "author":
-            continue
-        thread = by_id.get(discussion_id)
-        url = (thread or {}).get("discussion_url") or ""
-        if url and url not in urls:
-            urls.append(url)
-    return urls
-
-
-# Discussion actions that count as open and unresolved. A reviewer who commented
-# in such a discussion is not yet satisfied, even if they have approved.
-# "none" means no follow-up is needed, so it does not block a clear check.
-OPEN_DISCUSSION_ACTIONS = {"author", "reviewer"}
-
-
-def reviewers_with_open_threads(
-    review_threads: list[dict[str, Any]],
-    pending_actions: dict[str, dict[str, Any]],
-) -> set[str]:
-    logins: set[str] = set()
-    for discussion in review_threads:
-        entry = pending_actions.get(discussion["discussion_id"]) or {}
-        action = entry.get("action")
-        if action not in OPEN_DISCUSSION_ACTIONS:
-            continue
-        # praise was dropped for routing, so it does not make its writer a reviewer here
-        comments = discussion.get("comments") or []
-        if entry.get("ignored_last_comment"):
-            comments = comments[:-1]
-        for comment in comments:
-            if comment.get("actor_role") in ("approver", "outsider") and comment.get("actor"):
-                logins.add(comment["actor"])
-    return logins
-
-
-def reviewers_with_top_level_feedback(
-    top_level_items: list[dict[str, Any]],
-    pending_actions: dict[str, dict[str, Any]],
-) -> set[str]:
-    logins: set[str] = set()
-    for discussion in top_level_items:
-        action = (pending_actions.get(discussion["discussion_id"]) or {}).get("action")
-        if action != "author":
-            continue
-        if discussion.get("requester"):
-            logins.add(discussion["requester"])
-    return logins
-
-
-def add_reviewers(
-    facts: dict[str, Any],
-    events: list[dict[str, Any]],
-    review_threads: list[dict[str, Any]],
-    top_level_items: list[dict[str, Any]],
-    pending_actions: dict[str, dict[str, Any]],
-    review_requests: list[dict[str, Any]] | None = None,
-) -> None:
-    # Reviewers to display in the dashboard, each flagged with their review
-    # stance: approved (by an approver-team member), approved_non_team (an
-    # approval from someone outside the team), pending_review (a human review
-    # was requested again), changes_requested (their latest review blocks),
-    # open_thread (they own an
-    # unresolved discussion), and top_level_feedback (their top-level feedback
-    # still needs author action). The renderer turns these into icons.
-    # Reviewers are everyone who reviewed, owns an open discussion, otherwise
-    # commented, or is a PR assignee, sorted alphabetically (case-insensitive).
-    pending_reviews = pending_review_logins(events, review_requests)
-    states = active_review_states(events, review_requests)
-    approvers = approver_logins(events)
-    approved = {r for r, s in states.items() if s == "APPROVED" and r in approvers}
-    approved_non_team = {r for r, s in states.items() if s == "APPROVED" and r not in approvers}
-    changes_requested = {r for r, s in states.items() if s == "CHANGES_REQUESTED"}
-    with_open = reviewers_with_open_threads(review_threads, pending_actions)
-    with_top_level = reviewers_with_top_level_feedback(top_level_items, pending_actions)
-    candidates = (
-        approved
-        | approved_non_team
-        | pending_reviews
-        | changes_requested
-        | with_open
-        | with_top_level
-        | commenting_reviewers(events)
-        | set(facts.get("assignees") or [])
-    )
-    candidates.discard("")
-    facts["reviewers"] = [
-        {
-            "login": login,
-            "approved": login in approved,
-            "approved_non_team": login in approved_non_team,
-            "pending_review": login in pending_reviews,
-            "changes_requested": login in changes_requested,
-            "open_thread": login in with_open,
-            "top_level_feedback": login in with_top_level,
-        }
-        for login in sorted(candidates, key=str.lower)
-    ]
-
-
-def gate_hold_expired(facts: dict[str, Any], now: datetime) -> bool:
-    held_since = parse_ts(facts.get("route_held_since"))
-    if held_since is None:
-        return False
-    return now - held_since >= GATE_HOLD_LIMIT
-
-
-def set_gate_hold_clock(
-    facts: dict[str, Any],
-    previous_result: dict[str, Any] | None,
-    route: str,
-    *,
-    unreported_gates: bool,
-    would_hold: bool,
-    now: datetime,
-) -> None:
-    # How long the gates have been keeping this pull request off the reviewers
-    # it would otherwise be with. It starts when a gate first holds the pull
-    # request back, and then runs on its own for as long as the same head still
-    # has a gate that has not reported. Carrying it that way is what lets the
-    # hold give up without the stall looking resolved a moment later, and it is
-    # why a trip back to the author does not stop it: the author owes the pull
-    # request something, but the gate is still missing on the same code, so
-    # letting the round trip clear the clock would hand that gate four more
-    # hours the moment the author answers. Starting it only on a real hold is
-    # what keeps a slow check suite on a pull request that was already with its
-    # reviewers from looking like one. A push clears it, because new code means
-    # new checks and a review that has to run again.
-    previous_facts = (previous_result or {}).get("facts") or {}
-    head_sha = str(facts.get("head_sha") or "")
-    carried = (
-        str(previous_facts.get("route_held_since") or "")
-        if head_sha and head_sha == previous_facts.get("head_sha")
-        else ""
-    )
-    if not (
-        unreported_gates
-        and (carried or (route in REVIEWER_ROUTES and would_hold))
-    ):
-        facts.pop("route_held_since", None)
-        return
-    facts["route_held_since"] = carried or format_ts(now)
-
-
-def hold_route_until_gates_settle(
-    facts: dict[str, Any],
-    route: str,
-    previous_result: dict[str, Any] | None,
-    *,
-    require_clean_copilot_review: bool,
-    now: datetime,
-    bypass_gates: bool = False,
-) -> str:
-    # The required checks and the Copilot review are the author's to clear, so
-    # a PR does not advance while one is outstanding. Moving back toward the
-    # author is always allowed, because those are decisions a gate cannot undo.
-    previous_route = (previous_result or {}).get("route") or ""
-    if previous_route not in ROUTE_PROGRESSION or (
-        facts.get("is_maintenance_bot") and previous_route == "author"
-    ):
-        # A maintenance bot has no author route to fall back to. A cached result
-        # can still say "author" if the pull request author only became
-        # classified as a maintenance bot after that result was stored.
-        previous_route = "approver" if facts.get("is_maintenance_bot") else "author"
-    gates_enabled = not bypass_gates
-    copilot_review_gate_enabled = require_clean_copilot_review and gates_enabled
-    facts["copilot_review_outstanding"] = copilot_review_outstanding(
-        facts, enabled=copilot_review_gate_enabled
-    )
-    facts["copilot_review_unreported"] = copilot_review_unreported(
-        facts, enabled=copilot_review_gate_enabled
-    )
-    facts["required_checks_settled"] = required_checks_settled(facts)
-    gates_outstanding = gates_enabled and (
-        not facts["required_checks_settled"] or facts["copilot_review_outstanding"]
-    )
-    # Only a gate that has reported nothing on this head can stall. A Copilot
-    # review that left findings did report, and clearing those findings is the
-    # author's own work, so counting it would turn every author who takes more
-    # than four hours over review comments into a missing gate.
-    unreported_gates = gates_enabled and (
-        not facts["required_checks_settled"] or facts["copilot_review_unreported"]
-    )
-    would_hold = route_progress(route) > route_progress(previous_route)
-    set_gate_hold_clock(
-        facts,
-        previous_result,
-        route,
-        # GitHub may not start checks or reviews while a PR is conflicted. Do not
-        # let that expected absence consume the four-hour missing-gate budget.
-        unreported_gates=unreported_gates and facts.get("conflicts") != "yes",
-        would_hold=would_hold,
-        now=now,
-    )
-    # A gate can stay outstanding forever: a required check that never reports,
-    # a review GitHub never runs. The dashboard cannot block a merge, so an
-    # endless hold protects nobody and only keeps the pull request away from
-    # the people who could move it. Past the limit it routes the pull request
-    # anyway and says which gate it stopped waiting for.
-    expired = gate_hold_expired(facts, now)
-    facts["route_hold_expired"] = expired
-    held = would_hold and gates_outstanding and not expired
-    facts["route_held_for_gates"] = held
-    return previous_route if held else route
-
-
-def reviewer_handoff_active(facts: dict[str, Any]) -> bool:
-    """Whether an override command binds the head this pass observed.
-
-    The bound head is recorded in the command's acknowledgement comment, so the
-    handoff survives a dropped cache and a failed pass, and a later push ends it
-    without any code path having to remember that the push happened.
-    """
-    bound_head = facts.get("dashboard_override_head_sha") or ""
-    return bool(bound_head) and bound_head == (facts.get("head_sha") or "")
-
-
-def resolve_pr_route(
-    facts: dict[str, Any],
-    pending_actions: dict[str, dict[str, Any]],
-    required_approvals: int,
-    require_clean_copilot_review: bool,
-    previous_result: dict[str, Any] | None = None,
-    now: datetime | None = None,
-    manual_reviewer_handoff: bool | None = None,
-) -> str:
-    now = now or utc_now()
-    route = route_pr(facts, pending_actions, required_approvals)
-    if manual_reviewer_handoff is None:
-        manual_reviewer_handoff = reviewer_handoff_active(facts)
-    if manual_reviewer_handoff:
-        route = "approver"
-    copilot_review_gate_enabled = (
-        require_clean_copilot_review
-        and not manual_reviewer_handoff
-    )
-    copilot_review_request_enabled = (
-        copilot_review_gate_enabled and facts.get("conflicts") != "yes"
-    )
-    set_copilot_first_review_missing_since(
-        facts,
-        previous_result,
-        enabled=copilot_review_request_enabled,
-        now=now,
-    )
-    set_copilot_review_request_needed(
-        facts, route, enabled=copilot_review_request_enabled, now=now
-    )
-    return hold_route_until_gates_settle(
-        facts,
-        route,
-        previous_result,
-        require_clean_copilot_review=copilot_review_gate_enabled,
-        bypass_gates=manual_reviewer_handoff,
-        now=now,
-    )
-
-
-def preserve_gate_state_after_failure(
-    facts: dict[str, Any],
-    previous_result: dict[str, Any] | None,
-) -> None:
-    """Carry gate state that a failed classification would otherwise reset.
-
-    Override state needs nothing here. It is read from the command and its
-    acknowledgement comment on every pass, so a failed pass recomputes it
-    instead of losing it.
-    """
-    previous_facts = (previous_result or {}).get("facts") or {}
-    # A failed pass must not restart the first-review clock, or a repeatedly
-    # failing classification would keep the wait permanently under the grace.
-    if previous_facts.get("copilot_first_review_missing_since"):
-        facts["copilot_first_review_missing_since"] = previous_facts[
-            "copilot_first_review_missing_since"
-        ]
-
-
-def assign_author_nudge_episode(
-    facts: dict[str, Any],
-    route: str,
-    previous_result: dict[str, Any] | None,
-    issue_comments: list[dict[str, Any]],
-) -> None:
-    if route != "author":
-        facts.pop("author_nudge_episode_id", None)
-        return
-    previous_facts = (previous_result or {}).get("facts") or {}
-    previous_episode_id = (
-        previous_facts.get("author_nudge_episode_id")
-        if (previous_result or {}).get("route") == "author"
-        else ""
-    )
-    recovered_episode_id = (
-        status_author_nudge_episode_id(issue_comments)
-        if previous_result is None
-        else ""
-    )
-    facts["author_nudge_episode_id"] = str(
-        previous_episode_id or recovered_episode_id or uuid.uuid4().hex
-    )
-
-
-# ---------------------------------------------------------------- main
-
-
-def build_pr_result(
-    repo: str,
-    owner: str,
-    repo_name: str,
-    pr_summary: dict[str, Any],
-    reviewers: set[str],
-    model: str,
-    required_approvals: int,
-    non_blocking_check_patterns: list[str],
-    previous_top_level_history: dict[str, dict[str, Any]] | None = None,
-    require_clean_copilot_review_branches: list[str] | None = None,
-    previous_result: dict[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    number = pr_summary["number"]
-    try:
-        raw = fetch_pr_raw(
-            repo,
-            owner,
-            repo_name,
-            pr_summary,
-            non_blocking_check_patterns,
-        )
-        if raw["pr"].get("state") != "OPEN" or raw["pr"].get("isDraft"):
-            return None
-        author = effective_author(raw)
-        events = normalize_events(raw, author, reviewers)
-        previous_facts = (previous_result or {}).get("facts") or {}
-        facts = compute_facts(raw, author, events, reviewers, previous_facts)
-        manual_reviewer_handoff = reviewer_handoff_active(facts)
-        review_threads = group_review_threads(raw, author, reviewers, facts)
-        top_level_items = derive_top_level_items(events, facts)
-        top_level_author_comment_items = derive_top_level_author_comment_items(
-            events, top_level_items, facts
-        )
-        if manual_reviewer_handoff:
-            review_thread_classifications = []
-            top_level_classifications = []
-            top_level_author_comment_classifications = []
-            pending_actions = {}
-            top_level_history = previous_top_level_history or {}
-        else:
-            (
-                review_thread_classifications,
-                top_level_classifications,
-                top_level_author_comment_classifications,
-            ) = classify_discussion_domains(
-                number,
-                review_threads,
-                top_level_items,
-                top_level_author_comment_items,
-                model,
-            )
-            author_comment_outcomes = top_level_author_comment_outcomes(
-                top_level_author_comment_items,
-                top_level_author_comment_classifications,
-            )
-            author_comment_source_state = top_level_author_comment_source_state(
-                top_level_author_comment_items,
-                top_level_author_comment_classifications,
-            )
-            review_thread_pending_actions = build_review_thread_pending_actions(
-                review_threads, review_thread_classifications
-            )
-            top_level_pending_actions, top_level_history = advance_top_level_actions(
-                top_level_items,
-                top_level_classifications,
-                previous_top_level_history,
-                author_comment_outcomes,
-                author_comment_source_state,
-            )
-            pending_actions = review_thread_pending_actions | top_level_pending_actions
-        failed_classifications = [
-            classification
-            for classification in (
-                review_thread_classifications
-                + top_level_classifications
-                + top_level_author_comment_classifications
-            )
-            if classification.get("failed")
-        ]
-        if failed_classifications:
-            preserve_gate_state_after_failure(facts, previous_result)
-            return {
-                "pr_number": number,
-                "pr_title": raw["pr"].get("title") or "",
-                "pr_url": raw["pr"].get("url") or "",
-                "failed": True,
-                "facts": facts,
-                "review_threads": review_threads,
-                "top_level_items": top_level_items,
-                "top_level_author_comment_items": top_level_author_comment_items,
-                "review_thread_classifications": review_thread_classifications,
-                "top_level_classifications": top_level_classifications,
-                "top_level_author_comment_classifications": (
-                    top_level_author_comment_classifications
-                ),
-                "route": "unknown",
-                "error": f"{len(failed_classifications)} discussion classification(s) failed",
-            }
-        require_clean_copilot_review = (raw["pr"].get("baseRefName") or "") in (
-            require_clean_copilot_review_branches or []
-        )
-        route = resolve_pr_route(
-            facts,
-            pending_actions,
-            required_approvals,
-            require_clean_copilot_review,
-            previous_result,
-            manual_reviewer_handoff=manual_reviewer_handoff,
-        )
-        assign_author_nudge_episode(
-            facts,
-            route,
-            previous_result,
-            raw.get("issue_comments") or [],
-        )
-        append_command_ack_reply(raw, facts, route)
-        add_wait_age_facts(
-            facts,
-            route,
-            pending_actions,
-            previous_result,
-            pending_reviewers=pending_review_logins(
-                events, raw.get("review_requests") or []
-            ),
-        )
-        facts["author_action_review_thread_urls"] = author_action_discussion_urls(
-            review_threads, pending_actions
-        )
-        facts["author_action_top_level_feedback_urls"] = author_action_discussion_urls(
-            top_level_items, pending_actions
-        )
-        add_reviewers(
-            facts,
-            events,
-            review_threads,
-            top_level_items,
-            pending_actions,
-            raw.get("review_requests") or [],
-        )
-        return {
-            "pr_number": number,
-            "pr_title": raw["pr"].get("title") or "",
-            "pr_url": raw["pr"].get("url") or "",
-            "failed": False,
-            "facts": facts,
-            "review_threads": review_threads,
-            "top_level_items": top_level_items,
-            "top_level_author_comment_items": top_level_author_comment_items,
-            "review_thread_classifications": review_thread_classifications,
-            "top_level_classifications": top_level_classifications,
-            "top_level_author_comment_classifications": (
-                top_level_author_comment_classifications
-            ),
-            "pending_actions": pending_actions,
-            "top_level_history": top_level_history,
-            "route": route,
-        }
-    except TransientGhError as e:
-        return {
-            "pr_number": number,
-            "failed": True,
-            "facts": {},
-            "review_threads": [],
-            "top_level_items": [],
-            "review_thread_classifications": [],
-            "top_level_classifications": [],
-            "route": "transient-failure",
-            "error": repr(e),
-        }
-    except Exception as e:
-        # Boundary: keep unexpected PR-specific exceptions as failed results
-        # with tracebacks, so callers can fail cleanly instead of crashing
-        # mid-refresh.
-        print(f"  warning: PR #{number} failed to build result:", file=sys.stderr)
-        traceback.print_exc()
-        return {
-            "pr_number": number,
-            "failed": True,
-            "facts": {},
-            "review_threads": [],
-            "top_level_items": [],
-            "review_thread_classifications": [],
-            "top_level_classifications": [],
-            "route": "unknown",
-            "error": repr(e),
-        }
-
-
-@dataclass
-class DashboardUpdate:
-    results: dict[int, dict[str, Any]]
-    dashboard_state: dict[str, Any]
-    trigger_pr_result: dict[str, Any] | None = None
-    current_pr_result: dict[str, Any] | None = None
-    starting_pr_result: dict[str, Any] | None = None
-    used_cached_dashboard_state: bool = False
-
 
 def build_dashboard_update_for_pr(
     repo: str,
@@ -1942,95 +312,32 @@ def build_dashboard_update_for_pr(
     non_blocking_check_patterns: list[str],
     dashboard_state: dict[str, Any],
     require_clean_copilot_review_branches: list[str] | None = None,
-) -> DashboardUpdate:
+) -> DashboardStateUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
-    results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-    starting_pr_result = results.get(pr_number)
-    trigger_pr_result = build_pr_result(
-        repo,
-        owner,
-        repo_name,
-        {"number": pr_number},
-        reviewers,
-        model,
-        required_approvals,
-        non_blocking_check_patterns,
-        previous_top_level_history=(starting_pr_result or {}).get("top_level_history") or {},
-        require_clean_copilot_review_branches=require_clean_copilot_review_branches,
-        previous_result=starting_pr_result,
+    prepared_update = prepare_dashboard_update(
+        dashboard_state,
+        open_pr_numbers,
+        pr_number,
     )
-    if trigger_pr_result is None:
-        results.pop(pr_number, None)
-    else:
-        results[pr_number] = trigger_pr_result
-    current_pr_result = stored_result(trigger_pr_result) if trigger_pr_result is not None else None
-    return DashboardUpdate(
-        results=results,
-        dashboard_state=dashboard_state,
-        trigger_pr_result=trigger_pr_result,
-        current_pr_result=current_pr_result,
-        starting_pr_result=starting_pr_result,
-        used_cached_dashboard_state=True,
+    trigger_pr_result = evaluate_pull_request(
+        PullRequestEvaluationConfig(
+            repo=repo,
+            owner=owner,
+            repo_name=repo_name,
+            approver_logins=frozenset(reviewers),
+            classifier_model=model,
+            required_approvals=required_approvals,
+            non_blocking_check_patterns=tuple(non_blocking_check_patterns),
+            require_clean_copilot_review_branches=frozenset(
+                require_clean_copilot_review_branches or []
+            ),
+        ),
+        PullRequestEvaluationInput(
+            pr_summary={"number": pr_number},
+            previous_result=prepared_update.starting_result,
+        ),
     )
-
-
-def merge_dashboard_update_with_latest_state(
-    calculation: DashboardUpdate,
-    pr_number: int | None,
-    open_pr_numbers: set[int],
-) -> tuple[DashboardUpdate, bool]:
-    if not pr_number or not calculation.used_cached_dashboard_state:
-        return calculation, False
-
-    if calculation.trigger_pr_result is None:
-        # The trigger PR is a draft, closed, or was dropped between
-        # list_open_prs and the worker run. Drop any outdated cached result so
-        # the notification job cannot continue treating the PR as routed.
-        dashboard_state = load_dashboard_state_cache()
-        if dashboard_state is not None:
-            previous_pr_result = dashboard_state["prs"].get(str(pr_number))
-            if previous_pr_result != calculation.starting_pr_result:
-                results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-                return replace(calculation, results=results, dashboard_state=dashboard_state), True
-        else:
-            dashboard_state = calculation.dashboard_state
-            previous_pr_result = calculation.starting_pr_result
-        if previous_pr_result is None:
-            # Nothing is cached for this PR, so there is no routed result to
-            # drop. Reporting a change here would queue a status comment for a
-            # PR the dashboard never tracked, which is how an event on a
-            # long-merged PR ends up posting a first status comment on it.
-            results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-            return replace(calculation, results=results, dashboard_state=dashboard_state), True
-        dashboard_state = update_dashboard_state_for_pr(dashboard_state, pr_number, None)
-        results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-        return replace(calculation, results=results, dashboard_state=dashboard_state), False
-
-    # Reload the cache so we pick up any concurrent writer's update of
-    # other PR slots before we merge in our own.
-    latest_dashboard_state = load_dashboard_state_cache()
-    if latest_dashboard_state is None:
-        previous_pr_result = None
-    else:
-        previous_pr_result = latest_dashboard_state["prs"].get(str(pr_number))
-    dashboard_state = calculation.dashboard_state
-    results = calculation.results
-
-    if previous_pr_result == calculation.current_pr_result:
-        if latest_dashboard_state is not None:
-            dashboard_state = latest_dashboard_state
-            results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-        return replace(calculation, results=results, dashboard_state=dashboard_state), True
-
-    if latest_dashboard_state is not None and previous_pr_result != calculation.starting_pr_result:
-        results = results_from_dashboard_state(latest_dashboard_state, open_pr_numbers)
-        return replace(calculation, results=results, dashboard_state=latest_dashboard_state), True
-
-    if latest_dashboard_state is not None:
-        dashboard_state = latest_dashboard_state
-    dashboard_state = update_dashboard_state_for_pr(dashboard_state, pr_number, calculation.trigger_pr_result)
-    results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
-    return replace(calculation, results=results, dashboard_state=dashboard_state), False
+    return prepared_update.with_evaluated_result(trigger_pr_result)
 
 
 def dashboard_state_pr_numbers(state: dict[str, Any]) -> set[int]:
@@ -2265,6 +572,32 @@ def clear_backfill_pr_failure(pr_number: int) -> None:
     save_backfill_state(backfill_state)
 
 
+def apply_dashboard_update_effects(
+    pr_number: int,
+    acceptance: DashboardUpdateAcceptance,
+    observed_at: datetime,
+    *,
+    prepare_author_nudges: bool,
+) -> None:
+    effects = acceptance.effects
+    if effects.clear_backfill_failure:
+        clear_backfill_pr_failure(pr_number)
+    if effects.enqueue_status_comment:
+        enqueue_status_comment_update(pr_number)
+    if effects.record_observations:
+        record_author_nudge_observation(
+            pr_number,
+            acceptance.accepted_result,
+            observed_at,
+            prepare_due=prepare_author_nudges,
+        )
+        record_copilot_review_observation(
+            pr_number,
+            acceptance.accepted_result,
+            observed_at,
+        )
+
+
 def remove_cached_dashboard_prs(
     args: argparse.Namespace,
     pr_numbers_to_remove: set[int],
@@ -2273,18 +606,31 @@ def remove_cached_dashboard_prs(
     if not pr_numbers_to_remove:
         return 0
     dashboard_state = load_dashboard_state_cache() or empty_state()
-    state_prs = dict(dashboard_state.get("prs") or {})
     observed_at = observed_at or utc_now()
-    for number in pr_numbers_to_remove:
-        state_prs.pop(str(number), None)
-        enqueue_status_comment_update(number)
-        record_author_nudge_observation(number, None, observed_at)
-        record_copilot_review_observation(number, None, observed_at)
-    dashboard_state["prs"] = state_prs
-    return save_dashboard_update_state(args, dashboard_state, False)
+    persist_dashboard_state = False
+    for number in sorted(pr_numbers_to_remove):
+        update = prepare_dashboard_update(
+            dashboard_state,
+            {number},
+            number,
+        ).with_evaluated_result(None)
+        acceptance = accept_dashboard_update(update, dashboard_state)
+        apply_dashboard_update_effects(
+            number,
+            acceptance,
+            observed_at,
+            prepare_author_nudges=False,
+        )
+        dashboard_state = acceptance.dashboard_state
+        persist_dashboard_state |= acceptance.effects.persist_dashboard_state
+    return save_dashboard_update_state(
+        args,
+        dashboard_state,
+        not persist_dashboard_state,
+    )
 
 
-def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate | None:
+def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardStateUpdate | None:
     if args.pr_number is None:
         raise RuntimeError("build_targeted_dashboard_update requires --pr-number")
 
@@ -2314,39 +660,28 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardUpdate
 
 def apply_targeted_dashboard_update(
     args: argparse.Namespace,
-    calculation: DashboardUpdate,
+    update: DashboardStateUpdate,
     observed_at: datetime | None = None,
 ) -> int:
-    merged_calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
-        calculation,
-        args.pr_number,
-        {args.pr_number} if args.pr_number is not None else set(),
+    if args.pr_number is None:
+        raise RuntimeError("apply_targeted_dashboard_update requires --pr-number")
+    acceptance = accept_dashboard_update(
+        update,
+        load_dashboard_state_cache(),
     )
-    if not dashboard_state_unchanged and reject_failed_dashboard_result(merged_calculation.trigger_pr_result):
+    if acceptance.failed_result_rejected:
+        reject_failed_dashboard_result(update.evaluated_result)
         return 1
-    if merged_calculation.trigger_pr_result is not None and not has_failed_dashboard_result(
-        merged_calculation.trigger_pr_result
-    ):
-        clear_backfill_pr_failure(args.pr_number)
-    if not dashboard_state_unchanged and args.pr_number is not None:
-        enqueue_status_comment_update(args.pr_number)
-    if args.pr_number is not None:
-        observed_at = observed_at or utc_now()
-        accepted_result = (merged_calculation.dashboard_state.get("prs") or {}).get(
-            str(args.pr_number)
-        )
-        record_author_nudge_observation(
-            args.pr_number,
-            accepted_result,
-            observed_at,
-            prepare_due=getattr(args, "prepare_author_nudges", False),
-        )
-        record_copilot_review_observation(args.pr_number, accepted_result, observed_at)
-
+    apply_dashboard_update_effects(
+        args.pr_number,
+        acceptance,
+        observed_at or utc_now(),
+        prepare_author_nudges=getattr(args, "prepare_author_nudges", False),
+    )
     return save_dashboard_update_state(
         args,
-        merged_calculation.dashboard_state,
-        dashboard_state_unchanged,
+        acceptance.dashboard_state,
+        not acceptance.effects.persist_dashboard_state,
     )
 
 
@@ -2449,46 +784,46 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 dashboard_state,
                 getattr(args, "require_clean_copilot_review_branches", []),
             )
-            calculation, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
+            acceptance = accept_dashboard_update(
                 calculation,
-                pr_number,
-                open_non_draft_pr_numbers,
+                load_dashboard_state_cache(),
             )
-            if not dashboard_state_unchanged and reject_failed_dashboard_result(calculation.trigger_pr_result):
+            if acceptance.failed_result_rejected:
+                reject_failed_dashboard_result(calculation.evaluated_result)
                 failed_pr_numbers = update_backfill_progress(pr_number, failed=True)
                 initial_backfill_completed = complete_initial_backfill_if_ready(
-                    dashboard_state,
+                    acceptance.dashboard_state,
                     open_non_draft_pr_numbers,
                     failed_pr_numbers,
                 )
                 return save_dashboard_update_state(
                     args,
-                    dashboard_state,
+                    acceptance.dashboard_state,
                     not initial_backfill_completed,
                 )
-            record_author_nudge_observation(
+            apply_dashboard_update_effects(
                 pr_number,
-                (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
+                acceptance,
                 observed_at,
-                prepare_due=getattr(args, "prepare_author_nudges", False),
-            )
-            record_copilot_review_observation(
-                pr_number,
-                (calculation.dashboard_state.get("prs") or {}).get(str(pr_number)),
-                observed_at,
+                prepare_author_nudges=getattr(
+                    args,
+                    "prepare_author_nudges",
+                    False,
+                ),
             )
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
-            if not dashboard_state_unchanged:
-                enqueue_status_comment_update(pr_number)
             initial_backfill_completed = complete_initial_backfill_if_ready(
-                calculation.dashboard_state,
+                acceptance.dashboard_state,
                 open_non_draft_pr_numbers,
                 failed_pr_numbers,
             )
             return save_dashboard_update_state(
                 args,
-                calculation.dashboard_state,
-                dashboard_state_unchanged and not initial_backfill_completed,
+                acceptance.dashboard_state,
+                (
+                    not acceptance.effects.persist_dashboard_state
+                    and not initial_backfill_completed
+                ),
             )
 
         status = state_branch.push_state_changes(

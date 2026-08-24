@@ -1,13 +1,33 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timezone
 import unittest
 from unittest.mock import patch
 
 import author_nudge
+from routing_snapshot import build_routing_snapshot
 
 
 NOW = datetime(2026, 7, 17, tzinfo=timezone.utc)
+
+
+def routing_snapshot(
+    *,
+    state: str = "OPEN",
+    is_draft: bool = False,
+    head_sha: str = "current-head",
+    fingerprint: str = "current-fingerprint",
+):
+    snapshot = build_routing_snapshot({
+        "checks": [],
+        "pr": {
+            "state": state,
+            "isDraft": is_draft,
+            "headRefOid": head_sha,
+        },
+    })
+    return replace(snapshot, routing_input_fingerprint=fingerprint)
 
 
 def author_result(route: str = "author") -> dict:
@@ -23,161 +43,6 @@ def author_result(route: str = "author") -> dict:
 
 
 class AuthorNudgePolicyTest(unittest.TestCase):
-    def test_routing_fingerprint_ignores_dashboard_comments_and_tracks_author_activity(self) -> None:
-        raw = {
-            "checks": [],
-            "issue_comments": [],
-            "review_comments": [],
-            "reviews": [],
-            "review_threads": [],
-        }
-        baseline = author_nudge.routing_input_fingerprint(raw)
-
-        raw["issue_comments"].append({
-            "id": 1,
-            "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-            "body": "dashboard status",
-        })
-        self.assertEqual(baseline, author_nudge.routing_input_fingerprint(raw))
-
-        raw["issue_comments"].append({
-            "id": 2,
-            "user": {"login": "alice"},
-            "body": "I addressed the feedback.",
-        })
-        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
-
-    def test_routing_fingerprint_tracks_required_check_state(self) -> None:
-        raw = {
-            "checks": [{"name": "build", "bucket": "fail"}],
-            "issue_comments": [],
-            "review_comments": [],
-            "reviews": [],
-            "review_threads": [],
-        }
-        failing = author_nudge.routing_input_fingerprint(raw)
-
-        raw["checks"][0]["bucket"] = "pass"
-
-        self.assertNotEqual(failing, author_nudge.routing_input_fingerprint(raw))
-
-    def test_routing_fingerprint_tracks_review_requests(self) -> None:
-        raw = {"review_requests": []}
-        baseline = author_nudge.routing_input_fingerprint(raw)
-
-        raw["review_requests"].append({
-            "__typename": "User",
-            "login": "reviewer",
-        })
-
-        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
-
-    def test_routing_fingerprint_tracks_pr_title_and_body(self) -> None:
-        raw = {
-            "checks": [],
-            "issue_comments": [],
-            "pr": {"title": "Original title", "body": "Original body"},
-            "review_comments": [],
-            "reviews": [],
-            "review_threads": [],
-        }
-        baseline = author_nudge.routing_input_fingerprint(raw)
-
-        raw["pr"]["title"] = "Updated title"
-        title_updated = author_nudge.routing_input_fingerprint(raw)
-        raw["pr"]["title"] = "Original title"
-        raw["pr"]["body"] = "Updated body"
-
-        self.assertNotEqual(baseline, title_updated)
-        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
-
-    def test_routing_fingerprint_tracks_base_branch(self) -> None:
-        raw = {"pr": {"baseRefName": "main"}}
-        baseline = author_nudge.routing_input_fingerprint(raw)
-
-        raw["pr"]["baseRefName"] = "release"
-
-        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
-
-    def test_routing_fingerprint_tracks_conflict_state(self) -> None:
-        raw = {
-            "pr": {
-                "mergeable": "MERGEABLE",
-                "mergeStateStatus": "CLEAN",
-            }
-        }
-        baseline = author_nudge.routing_input_fingerprint(raw)
-
-        raw["pr"]["mergeable"] = "CONFLICTING"
-        raw["pr"]["mergeStateStatus"] = "DIRTY"
-
-        self.assertNotEqual(baseline, author_nudge.routing_input_fingerprint(raw))
-
-    @patch("github_cli.gh_branch_rules", return_value=[])
-    @patch(
-        "github_cli.gh_pr_check_rollup",
-        return_value={
-            "head_oid": "current-head",
-            "required": [{"name": "build", "bucket": "fail"}],
-            "non_blocking_failures": [],
-            "code_scanning": [],
-            "pending": [],
-        },
-    )
-    @patch("github_cli.fetch_review_threads", return_value=[])
-    @patch("github_cli.fetch_review_requests", return_value=[])
-    @patch("github_cli.fetch_pr_reviews", return_value=[])
-    @patch("github_cli.fetch_pr_issue_comments", return_value=[])
-    @patch("github_cli.gh_api", return_value=[])
-    @patch("github_cli.gh_pr_view")
-    def test_fetch_current_routing_state_includes_required_checks(
-        self,
-        gh_pr_view,
-        _gh_api,
-        _fetch_issue_comments,
-        _fetch_review_data,
-        _fetch_review_requests,
-        _fetch_review_threads,
-        gh_pr_check_rollup,
-        gh_branch_rules,
-    ) -> None:
-        pr = {
-            "id": "PR_node",
-            "baseRefName": "main",
-            "body": "Current body",
-            "headRefOid": "current-head",
-            "labels": [{"name": "needs-triage"}],
-            "title": "Current title",
-        }
-        gh_pr_view.return_value = pr
-
-        current_pr, fingerprint = author_nudge.fetch_current_pr_routing_state(
-            "open-telemetry/example",
-            1,
-        )
-
-        self.assertEqual(pr, current_pr)
-        self.assertEqual(
-            author_nudge.routing_input_fingerprint({
-                "checks": [{"name": "build", "bucket": "fail"}],
-                "issue_comments": [],
-                "pr": pr,
-                "review_comments": [],
-                "reviews": [],
-                "review_threads": [],
-            }),
-            fingerprint,
-        )
-        gh_pr_check_rollup.assert_called_once_with(
-            "open-telemetry/example",
-            "PR_node",
-            [],
-        )
-        gh_branch_rules.assert_called_once_with(
-            "open-telemetry/example",
-            "main",
-        )
-
     def test_nudge_advertises_dashboard_override_command(self) -> None:
         body = author_nudge.render_nudge(
             "alice",
@@ -567,16 +432,12 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     )
     @patch.object(
         author_nudge,
-        "fetch_current_pr_routing_state",
-        return_value=({
-            "state": "OPEN",
-            "isDraft": False,
-            "headRefOid": "current-head",
-        }, "current-fingerprint"),
+        "fetch_routing_snapshot",
+        return_value=routing_snapshot(),
     )
     def test_delivery_records_posted_nudge(
         self,
-        fetch_current_state,
+        fetch_snapshot,
         _load_dashboard_state,
         _load_nudges,
         save_nudges,
@@ -588,7 +449,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
-        fetch_current_state.assert_called_once_with("open-telemetry/example", 1)
+        fetch_snapshot.assert_called_once_with("open-telemetry/example", 1)
         ensure_nudge.assert_called_once()
         save_nudges.assert_called_once_with({
             "1": {
@@ -783,12 +644,8 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             ),
             patch.object(
                 author_nudge,
-                "fetch_current_pr_routing_state",
-                return_value=({
-                    "state": "CLOSED",
-                    "isDraft": False,
-                    "headRefOid": "current-head",
-                }, "current-fingerprint"),
+                "fetch_routing_snapshot",
+                return_value=routing_snapshot(state="CLOSED"),
             ),
             patch.object(author_nudge, "ensure_nudge") as ensure_nudge,
         ):
@@ -832,12 +689,8 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             ),
             patch.object(
                 author_nudge,
-                "fetch_current_pr_routing_state",
-                return_value=({
-                    "state": "OPEN",
-                    "isDraft": False,
-                    "headRefOid": "current-head",
-                }, "current-fingerprint"),
+                "fetch_routing_snapshot",
+                return_value=routing_snapshot(),
             ),
             patch.object(
                 author_nudge,
@@ -882,12 +735,8 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     )
     @patch.object(
         author_nudge,
-        "fetch_current_pr_routing_state",
-        return_value=({
-            "state": "OPEN",
-            "isDraft": False,
-            "headRefOid": "new-head",
-        }, "current-fingerprint"),
+        "fetch_routing_snapshot",
+        return_value=routing_snapshot(head_sha="new-head"),
     )
     def test_delivery_defers_when_head_advanced(
         self,
@@ -933,16 +782,12 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     )
     @patch.object(
         author_nudge,
-        "fetch_current_pr_routing_state",
-        return_value=({
-            "state": "OPEN",
-            "isDraft": False,
-            "headRefOid": "current-head",
-        }, "new-fingerprint"),
+        "fetch_routing_snapshot",
+        return_value=routing_snapshot(fingerprint="new-fingerprint"),
     )
     def test_delivery_defers_when_routing_inputs_changed(
         self,
-        _fetch_current_state,
+        _fetch_snapshot,
         _load_dashboard_state,
         _load_nudges,
         save_nudges,
@@ -982,7 +827,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "pending_at": "2026-07-17T00:00:00+00:00",
                 "head_sha": "current-head",
                 "routing_input_fingerprint": (
-                    author_nudge.routing_input_fingerprint(clean_raw)
+                    build_routing_snapshot(clean_raw).routing_input_fingerprint
                 ),
             }
         }
@@ -996,14 +841,12 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             ),
             patch.object(
                 author_nudge,
-                "fetch_current_pr_routing_state",
-                return_value=(
-                    {
-                        "state": "OPEN",
-                        "isDraft": False,
-                        "headRefOid": "current-head",
-                    },
-                    author_nudge.routing_input_fingerprint(conflicted_raw),
+                "fetch_routing_snapshot",
+                return_value=replace(
+                    routing_snapshot(),
+                    routing_input_fingerprint=build_routing_snapshot(
+                        conflicted_raw
+                    ).routing_input_fingerprint,
                 ),
             ),
             patch.object(author_nudge, "ensure_nudge") as ensure_nudge,
@@ -1044,12 +887,11 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 ),
                 patch.object(
                     author_nudge,
-                    "fetch_current_pr_routing_state",
-                    return_value=({
-                        "state": state,
-                        "isDraft": draft,
-                        "headRefOid": "current-head",
-                    }, "current-fingerprint"),
+                    "fetch_routing_snapshot",
+                    return_value=routing_snapshot(
+                        state=state,
+                        is_draft=draft,
+                    ),
                 ),
                 patch.object(author_nudge, "ensure_nudge") as ensure_nudge,
             ):

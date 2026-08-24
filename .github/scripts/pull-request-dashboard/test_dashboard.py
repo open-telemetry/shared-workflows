@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from argparse import Namespace
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,1126 +11,100 @@ from unittest.mock import ANY, Mock, call, patch
 from copilot_review import set_copilot_review_request_needed
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
-    GATE_HOLD_LIMIT,
-    DashboardUpdate,
-    add_reviewers,
-    add_wait_age_facts,
     apply_targeted_dashboard_update,
-    assign_author_nudge_episode,
-    author_action_discussion_urls,
     backfill_failed_pr_numbers,
-    build_pr_result,
+    build_dashboard_update_for_pr,
     complete_initial_backfill_if_ready,
-    compute_facts,
-    current_approval_count,
-    fetch_pr_raw,
-    group_review_threads,
-    hold_route_until_gates_settle,
     main,
-    merge_dashboard_update_with_latest_state,
-    preserve_gate_state_after_failure,
-    reviewer_handoff_active,
     remove_cached_dashboard_prs,
-    resolve_pr_route,
-    route_pr,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
 )
+from dashboard_state_update import (
+    DashboardStateUpdate,
+    accept_dashboard_update,
+    prepare_dashboard_update,
+)
+from pull_request_evaluation import (
+    PullRequestEvaluationConfig,
+    PullRequestEvaluationInput,
+    _assign_author_nudge_episode,
+    _author_action_discussion_urls,
+    _compute_facts as evaluation_compute_facts,
+    _fetch_pr_raw,
+    evaluate_pull_request,
+)
+from pull_request_activity import PullRequestActivity
+from reviewer_state import ReviewerInput, prepare_reviewers
+from routing_decision import resolve_routing
 
 
-class ResolvePrRouteTest(unittest.TestCase):
-    def _override_facts(self, **overrides: object) -> dict[str, object]:
-        facts: dict[str, object] = {
-            "ci_failing_count": 1,
-            "ci_pending_count": 0,
-            "dashboard_override_command_id": 1,
-            "dashboard_override_head_sha": "current-head",
-            "head_sha": "current-head",
-        }
-        facts.update(overrides)
-        return facts
-
-    def test_override_bypasses_required_copilot_review(self) -> None:
-        facts = self._override_facts(
-            copilot_review_exists=True,
-            copilot_review_needed=True,
-            copilot_review_stale=True,
-            copilot_review_requested=False,
+def evaluation_facts(
+    raw: dict[str, object],
+    author: str,
+    events: list[dict[str, object]],
+    reviewers: set[str] | None = None,
+    previous_facts: dict[str, object] | None = None,
+) -> dict[str, object]:
+    prepared_reviewers = prepare_reviewers(
+        ReviewerInput(
+            tuple(events),
+            tuple(raw.get("review_requests") or []),
+            tuple((raw["pr"] or {}).get("assignees") or []),
         )
-
-        route = resolve_pr_route(facts, {}, 1, True)
-
-        self.assertEqual("approver", route)
-        self.assertFalse(facts["copilot_review_request_needed"])
-        self.assertFalse(facts["copilot_review_outstanding"])
-        self.assertFalse(facts["route_held_for_gates"])
-
-    def test_override_bypasses_conflict_running_checks_and_missing_review(self) -> None:
-        facts = self._override_facts(
-            approval_count=0,
-            conflicts="yes",
-            is_maintenance_bot=False,
-            ci_failing_count=0,
-            ci_pending_count=1,
-            copilot_review_exists=False,
-            copilot_review_requested=False,
-        )
-
-        route = resolve_pr_route(facts, {}, 1, True)
-
-        self.assertEqual("approver", route)
-        self.assertFalse(facts["copilot_review_request_needed"])
-        self.assertFalse(facts["copilot_review_outstanding"])
-        self.assertFalse(facts["route_held_for_gates"])
-        self.assertFalse(facts["route_hold_expired"])
-
-    def test_override_bypasses_a_required_check_failure(self) -> None:
-        facts = self._override_facts(
-            approval_count=0,
-            is_maintenance_bot=False,
-        )
-
-        route = resolve_pr_route(facts, {}, 1, False)
-
-        self.assertEqual("approver", route)
-        self.assertFalse(facts["route_held_for_gates"])
-
-    def test_conflict_pauses_hold_expiry_without_changing_the_existing_route(self) -> None:
-        facts: dict[str, object] = {
-            "approval_count": 1,
-            "conflicts": "yes",
-            "is_maintenance_bot": False,
-            "head_sha": "abc",
-            "ci_pending_count": 1,
-            "copilot_review_exists": False,
-            "copilot_review_requested": False,
-            "copilot_first_review_missing_since": "2026-08-16T08:00:00+00:00",
-        }
-        previous_result = {
-            "route": "approver",
-            "facts": {
-                "head_sha": "abc",
-                "route_held_since": "2026-08-16T08:00:00+00:00",
-            },
-        }
-
-        route = resolve_pr_route(
-            facts,
-            {},
-            1,
-            True,
-            previous_result,
-            now=datetime(2026, 8, 16, 13, 0, tzinfo=timezone.utc),
-        )
-
-        self.assertEqual("approver", route)
-        self.assertFalse(facts["copilot_review_request_needed"])
-        self.assertTrue(facts["copilot_review_outstanding"])
-        self.assertTrue(facts["copilot_review_unreported"])
-        self.assertTrue(facts["route_held_for_gates"])
-        self.assertFalse(facts["route_hold_expired"])
-        self.assertNotIn("copilot_first_review_missing_since", facts)
-        self.assertNotIn("route_held_since", facts)
-
-    def test_conflict_uses_normal_ci_routing_without_expiring_missing_gates(self) -> None:
-        cases = (
-            ("unavailable", {}, "author", True),
-            ("running", {"ci_pending_count": 1}, "author", True),
-            (
-                "failing",
-                {
-                    "ci_failing_count": 1,
-                    "ci_pending_count": 0,
-                },
-                "author",
-                False,
-            ),
-            (
-                "passing",
-                {"ci_failing_count": 0, "ci_pending_count": 0},
-                "approver",
-                False,
-            ),
-        )
-        for name, check_facts, expected_route, held in cases:
-            with self.subTest(name=name):
-                facts: dict[str, object] = {
-                    "approval_count": 0,
-                    "conflicts": "yes",
-                    "head_sha": "abc",
-                    "is_maintenance_bot": False,
-                    **check_facts,
-                }
-
-                route = resolve_pr_route(
-                    facts,
-                    {},
-                    1,
-                    False,
-                    {
-                        "route": "author",
-                        "facts": {
-                            "head_sha": "abc",
-                            "route_held_since": "2026-08-16T08:00:00+00:00",
-                        },
-                    },
-                    now=datetime(2026, 8, 16, 13, 0, tzinfo=timezone.utc),
-                )
-
-                self.assertEqual(expected_route, route)
-                self.assertEqual(held, facts["route_held_for_gates"])
-                self.assertFalse(facts["route_hold_expired"])
-                self.assertNotIn("route_held_since", facts)
-
-    def test_discussion_override_bypasses_required_copilot_review(self) -> None:
-        facts = self._override_facts(
-            ci_failing_count=0,
-            copilot_review_exists=True,
-            copilot_review_needed=True,
-            copilot_review_stale=True,
-            copilot_review_requested=False,
-        )
-
-        route = resolve_pr_route(facts, {}, 1, True)
-
-        self.assertEqual("approver", route)
-        self.assertFalse(facts["copilot_review_request_needed"])
-
-    def test_normal_handoff_is_still_gated_by_required_copilot_review(self) -> None:
-        facts: dict[str, object] = {
-            "ci_failing_count": 0,
-            "ci_pending_count": 0,
-            "copilot_review_exists": True,
-            "copilot_review_needed": True,
-            "copilot_review_stale": True,
-            "copilot_review_requested": False,
-        }
-
-        route = resolve_pr_route(facts, {}, 1, True)
-
-        self.assertEqual("author", route)
-        self.assertTrue(facts["copilot_review_request_needed"])
-        self.assertTrue(facts["copilot_review_outstanding"])
-        self.assertTrue(facts["route_held_for_gates"])
-
-    def test_override_without_a_bound_head_does_not_bypass(self) -> None:
-        # An acknowledgement written before the dashboard recorded a head leaves
-        # the bound head unknown, which ends the handoff rather than guessing.
-        facts = self._override_facts(
-            dashboard_override_command_id=0,
-            dashboard_override_head_sha="",
-            copilot_review_exists=True,
-            copilot_review_needed=True,
-            copilot_review_stale=True,
-            copilot_review_requested=False,
-        )
-
-        route = resolve_pr_route(facts, {}, 1, True)
-
-        self.assertEqual("author", route)
-        self.assertFalse(facts["copilot_review_request_needed"])
-
-    def test_acknowledged_override_bypasses_without_cached_state(self) -> None:
-        # The bound head is read back from the acknowledgement comment, so the
-        # handoff holds across a refresh with no previous result to carry it.
-        facts = self._override_facts(
-            ci_failing_count=0,
-            dashboard_override_command_id=0,
-            copilot_review_exists=True,
-            copilot_review_needed=True,
-            copilot_review_stale=True,
-            copilot_review_requested=False,
-        )
-
-        route = resolve_pr_route(facts, {}, 1, True)
-
-        self.assertEqual("approver", route)
-        self.assertFalse(facts["copilot_review_request_needed"])
-
-    def test_push_restores_old_author_actions_after_override(self) -> None:
-        facts = self._override_facts(
-            ci_failing_count=0,
-            dashboard_override_command_id=0,
-            dashboard_override_head_sha="old-head",
-            head_sha="new-head",
-            copilot_review_exists=True,
-            copilot_review_needed=True,
-            copilot_review_stale=True,
-            copilot_review_requested=False,
-        )
-
-        route = resolve_pr_route(
-            facts,
-            {
-                "old-feedback": {
-                    "action": "author",
-                    "since": "2026-08-11T11:00:00Z",
-                }
-            },
-            1,
-            True,
-        )
-
-        self.assertEqual("author", route)
-        self.assertFalse(facts["copilot_review_request_needed"])
-
-    def test_handoff_is_active_while_the_bound_head_is_current(self) -> None:
-        facts = {
-            "dashboard_override_head_sha": "current-head",
-            "head_sha": "current-head",
-        }
-
-        self.assertTrue(reviewer_handoff_active(facts))
-
-    def test_push_ends_the_handoff(self) -> None:
-        facts = {
-            "dashboard_override_head_sha": "old-head",
-            "head_sha": "new-head",
-        }
-
-        self.assertFalse(reviewer_handoff_active(facts))
-
-    def test_handoff_is_inactive_without_a_bound_head(self) -> None:
-        for facts in (
-            {"dashboard_override_head_sha": "", "head_sha": "current-head"},
-            {"head_sha": "current-head"},
-            {"dashboard_override_head_sha": "current-head", "head_sha": ""},
-        ):
-            with self.subTest(facts=facts):
-                self.assertFalse(reviewer_handoff_active(facts))
-
-    def test_classification_failure_keeps_the_handoff_on_the_bound_head(self) -> None:
-        # Override state is re-read from the command and its acknowledgement on
-        # every pass, so a failed pass has nothing to preserve and nothing to lose.
-        failed_facts: dict[str, object] = {
-            "dashboard_override_head_sha": "current-head",
-            "head_sha": "current-head",
-        }
-
-        preserve_gate_state_after_failure(
-            failed_facts,
-            {"route": "author", "facts": {"head_sha": "old-head"}},
-        )
-
-        self.assertTrue(reviewer_handoff_active(failed_facts))
-
-    def test_push_during_classification_failure_ends_the_handoff(self) -> None:
-        failed_facts: dict[str, object] = {
-            "dashboard_override_head_sha": "old-head",
-            "head_sha": "new-head",
-        }
-
-        preserve_gate_state_after_failure(
-            failed_facts,
-            {
-                "route": "approver",
-                "facts": {
-                    "dashboard_override_head_sha": "old-head",
-                    "head_sha": "old-head",
-                },
-            },
-        )
-
-        self.assertFalse(reviewer_handoff_active(failed_facts))
-
-    def test_classification_failure_does_not_restart_first_review_clock(self) -> None:
-        facts: dict[str, object] = {"head_sha": "current-head"}
-
-        preserve_gate_state_after_failure(
-            facts,
-            {
-                "route": "author",
-                "facts": {
-                    "copilot_first_review_missing_since": "2026-08-11T12:00:00Z",
-                },
-            },
-        )
-
-        self.assertEqual(
-            "2026-08-11T12:00:00Z",
-            facts["copilot_first_review_missing_since"],
-        )
-
-    def test_override_reaches_reviewers_when_copilot_review_is_clean(self) -> None:
-        facts = self._override_facts(
-            copilot_review_exists=True,
-            copilot_review_needed=False,
-        )
-
-        route = resolve_pr_route(facts, {}, 1, True)
-
-        self.assertEqual("approver", route)
-
-    def test_override_reaches_reviewers_when_gate_disabled(self) -> None:
-        facts = self._override_facts()
-
-        route = resolve_pr_route(facts, {}, 1, False)
-
-        self.assertEqual("approver", route)
-
-    def test_override_bypasses_running_checks(self) -> None:
-        facts = self._override_facts(
-            ci_failing_count=0,
-            ci_pending_count=1,
-        )
-
-        route = resolve_pr_route(facts, {}, 1, False, {"route": "author"})
-
-        self.assertEqual("approver", route)
-        self.assertFalse(facts["route_held_for_gates"])
-
-
-class RoutePrTest(unittest.TestCase):
-    def test_completed_author_reply_does_not_block_an_approved_pr(self) -> None:
-        facts = {"approval_count": 1, "is_maintenance_bot": False}
-        pending_actions = {
-            "thread": {"action": "reviewer", "since": "2026-08-11T13:44:18Z"}
-        }
-
-        self.assertEqual("maintainer", route_pr(facts, pending_actions, 1))
-
-    def test_unfinished_author_work_still_blocks_an_approved_pr(self) -> None:
-        facts = {"approval_count": 1, "is_maintenance_bot": False}
-        pending_actions = {
-            "thread": {"action": "author", "since": "2026-08-11T13:44:18Z"}
-        }
-
-        self.assertEqual("author", route_pr(facts, pending_actions, 1))
-
-    def test_completed_author_reply_without_approval_waits_on_reviewers(self) -> None:
-        facts = {"approval_count": 0, "is_maintenance_bot": False}
-        pending_actions = {
-            "thread": {"action": "reviewer", "since": "2026-08-11T13:44:18Z"}
-        }
-
-        self.assertEqual("approver", route_pr(facts, pending_actions, 1))
-
-    def test_conflict_does_not_override_maintenance_bot_routing(self) -> None:
-        facts = {
-            "approval_count": 1,
-            "conflicts": "yes",
-            "is_maintenance_bot": True,
-        }
-
-        self.assertEqual("maintainer", route_pr(facts, {}, 1))
-
-
-class RerequestedReviewTest(unittest.TestCase):
-    @staticmethod
-    def approval(login: str) -> dict[str, object]:
-        return {
-            "kind": "review-state",
-            "timestamp": "2026-08-01T00:00:00Z",
-            "actor": login,
-            "actor_role": "approver",
-            "state": "APPROVED",
-        }
-
-    @staticmethod
-    def changes_requested(login: str) -> dict[str, object]:
-        return {
-            "kind": "review-state",
-            "timestamp": "2026-08-01T00:00:00Z",
-            "actor": login,
-            "actor_role": "approver",
-            "state": "CHANGES_REQUESTED",
-        }
-
-    def test_rerequested_approval_becomes_pending_and_routes_to_reviewers(self) -> None:
-        events = [self.approval("reviewer")]
-        review_requests = [{"__typename": "User", "login": "reviewer"}]
-        facts = {
-            "approval_count": current_approval_count(events, review_requests),
-            "assignees": [],
-            "is_maintenance_bot": False,
-        }
-
-        add_reviewers(facts, events, [], [], {}, review_requests)
-
-        self.assertEqual(0, facts["approval_count"])
-        self.assertEqual("approver", route_pr(facts, {}, 1))
-        self.assertEqual(
-            {
-                "login": "reviewer",
-                "approved": False,
-                "approved_non_team": False,
-                "pending_review": True,
-                "changes_requested": False,
-                "open_thread": False,
-                "top_level_feedback": False,
-            },
-            facts["reviewers"][0],
-        )
-
-    def test_other_active_approvals_still_count(self) -> None:
-        events = [self.approval("active"), self.approval("rerequested")]
-        review_requests = [{"__typename": "User", "login": "rerequested"}]
-        facts = {
-            "approval_count": current_approval_count(events, review_requests),
-            "assignees": [],
-            "is_maintenance_bot": False,
-        }
-
-        add_reviewers(facts, events, [], [], {}, review_requests)
-
-        self.assertEqual(1, facts["approval_count"])
-        self.assertEqual("maintainer", route_pr(facts, {}, 1))
-        self.assertTrue(facts["reviewers"][0]["approved"])
-        self.assertTrue(facts["reviewers"][1]["pending_review"])
-
-    def test_first_review_request_is_not_shown_as_a_rereview(self) -> None:
-        facts = {"assignees": []}
-
-        add_reviewers(
-            facts,
-            [],
-            [],
-            [],
-            {},
-            [{"__typename": "User", "login": "new-reviewer"}],
-        )
-
-        self.assertEqual([], facts["reviewers"])
-
-    def test_team_request_does_not_clear_individual_approvals(self) -> None:
-        events = [self.approval("reviewer")]
-        review_requests = [{"__typename": "Team", "slug": "example-approvers"}]
-
-        self.assertEqual(1, current_approval_count(events, review_requests))
-
-    def test_rerequest_keeps_a_blocking_changes_requested_state(self) -> None:
-        # GitHub keeps the review blocking the merge until the reviewer
-        # submits a new one, so the request adds a wait rather than clearing
-        # the block.
-        events = [self.changes_requested("reviewer")]
-        review_requests = [{"__typename": "User", "login": "reviewer"}]
-        facts = {"assignees": []}
-
-        add_reviewers(facts, events, [], [], {}, review_requests)
-
-        self.assertTrue(facts["reviewers"][0]["pending_review"])
-        self.assertTrue(facts["reviewers"][0]["changes_requested"])
-
-
-class GateHoldTest(unittest.TestCase):
-    START = datetime(2026, 8, 16, 12, 0, tzinfo=timezone.utc)
-
-    def _hold(
-        self,
-        facts: dict[str, object],
-        route: str,
-        previous_result: dict[str, object] | None,
-        require_clean_copilot_review: bool = False,
-        now: datetime | None = None,
-    ) -> str:
-        return hold_route_until_gates_settle(
-            facts,
-            route,
-            previous_result,
-            require_clean_copilot_review=require_clean_copilot_review,
-            now=now or self.START,
-        )
-
-    def test_author_keeps_the_pr_while_replacement_checks_run(self) -> None:
-        route = self._hold(
-            {"ci_failing_count": 0, "ci_pending_count": 1},
-            "approver",
-            {"route": "author"},
-        )
-
-        self.assertEqual("author", route)
-
-    def test_author_keeps_the_pr_while_check_results_are_unavailable(self) -> None:
-        route = self._hold({}, "maintainer", {"route": "author"})
-
-        self.assertEqual("author", route)
-
-    def test_author_keeps_the_pr_while_a_copilot_review_is_outstanding(self) -> None:
-        route = self._hold(
-            {"ci_pending_count": 0, "copilot_review_exists": False},
-            "approver",
-            {"route": "author"},
-            require_clean_copilot_review=True,
-        )
-
-        self.assertEqual("author", route)
-
-    def test_settled_checks_release_the_pr_to_reviewers(self) -> None:
-        route = self._hold(
-            {"ci_failing_count": 0, "ci_pending_count": 0},
-            "approver",
-            {"route": "author"},
-        )
-
-        self.assertEqual("approver", route)
-
-    def test_reviewers_do_not_hand_off_to_maintainers_while_checks_run(self) -> None:
-        route = self._hold({"ci_pending_count": 1}, "maintainer", {"route": "approver"})
-
-        self.assertEqual("approver", route)
-
-    def test_a_pr_still_moves_back_to_its_author_while_checks_run(self) -> None:
-        facts: dict[str, object] = {"ci_pending_count": 1, "ci_failing_count": 1}
-
-        route = self._hold(facts, "author", {"route": "maintainer"})
-
-        self.assertEqual("author", route)
-        self.assertFalse(facts["route_held_for_gates"])
-
-    def test_an_unchanged_route_is_not_held(self) -> None:
-        route = self._hold({"ci_pending_count": 1}, "maintainer", {"route": "maintainer"})
-
-        self.assertEqual("maintainer", route)
-
-    def test_a_pr_that_never_reached_reviewers_is_held(self) -> None:
-        route = self._hold({"ci_pending_count": 1}, "approver", None)
-
-        self.assertEqual("author", route)
-
-    def test_a_held_maintenance_bot_pr_is_never_routed_to_its_author(self) -> None:
-        route = self._hold(
-            {"ci_pending_count": 1, "is_maintenance_bot": True},
-            "maintainer",
-            None,
-        )
-
-        self.assertEqual("approver", route)
-
-    def test_a_newly_classified_maintenance_bot_falls_back_to_approvers(self) -> None:
-        route = self._hold(
-            {"ci_pending_count": 1, "is_maintenance_bot": True},
-            "maintainer",
-            {"route": "author", "facts": {}},
-        )
-
-        self.assertEqual("approver", route)
-
-    def test_a_held_pr_starts_the_hold_clock(self) -> None:
-        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
-
-        self._hold(facts, "approver", None, now=self.START)
-
-        self.assertEqual("2026-08-16T12:00:00+00:00", facts["route_held_since"])
-        self.assertFalse(facts["route_hold_expired"])
-
-    def test_the_hold_clock_keeps_running_on_the_same_head(self) -> None:
-        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
-
-        self._hold(
-            facts,
-            "approver",
-            {
-                "route": "author",
-                "facts": {"head_sha": "abc", "route_held_since": "2026-08-16T09:00:00+00:00"},
-            },
-            now=self.START,
-        )
-
-        self.assertEqual("2026-08-16T09:00:00+00:00", facts["route_held_since"])
-
-    def test_a_push_restarts_the_hold_clock(self) -> None:
-        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "def"}
-
-        self._hold(
-            facts,
-            "approver",
-            {
-                "route": "author",
-                "facts": {"head_sha": "abc", "route_held_since": "2026-08-16T09:00:00+00:00"},
-            },
-            now=self.START,
-        )
-
-        self.assertEqual("2026-08-16T12:00:00+00:00", facts["route_held_since"])
-
-    def test_settled_gates_clear_the_hold_clock(self) -> None:
-        facts: dict[str, object] = {
-            "ci_failing_count": 0,
-            "ci_pending_count": 0,
-            "head_sha": "abc",
-        }
-
-        self._hold(
-            facts,
-            "approver",
-            {
-                "route": "author",
-                "facts": {"head_sha": "abc", "route_held_since": "2026-08-16T09:00:00+00:00"},
-            },
-            now=self.START,
-        )
-
-        self.assertNotIn("route_held_since", facts)
-        self.assertFalse(facts["route_hold_expired"])
-
-    def test_a_gate_that_never_reports_stops_holding_the_pr(self) -> None:
-        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
-        held_since = self.START - GATE_HOLD_LIMIT
-
-        route = self._hold(
-            facts,
-            "approver",
-            {
-                "route": "author",
-                "facts": {
-                    "head_sha": "abc",
-                    "route_held_since": held_since.isoformat(),
-                },
-            },
-            now=self.START,
-        )
-
-        self.assertEqual("approver", route)
-        self.assertFalse(facts["route_held_for_gates"])
-        self.assertTrue(facts["route_hold_expired"])
-
-    def test_a_gate_still_missing_after_release_stays_reported(self) -> None:
-        # Releasing the pull request does not make the stall look resolved: the
-        # clock carries on while the same head has an outstanding gate.
-        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
-        held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
-
-        route = self._hold(
-            facts,
-            "approver",
-            {
-                "route": "approver",
-                "facts": {
-                    "head_sha": "abc",
-                    "route_held_since": held_since.isoformat(),
-                },
-            },
-            now=self.START,
-        )
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["route_hold_expired"])
-
-    def test_checks_that_never_held_the_pr_do_not_start_the_clock(self) -> None:
-        # An approved pull request whose author pushes is already with its
-        # reviewers, so a slow check suite is not a stalled handoff.
-        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
-
-        self._hold(
-            facts,
-            "maintainer",
-            {"route": "maintainer", "facts": {"head_sha": "abc"}},
-            now=self.START,
-        )
-
-        self.assertNotIn("route_held_since", facts)
-        self.assertFalse(facts["route_hold_expired"])
-
-    def test_a_pr_sent_back_to_its_author_keeps_the_clock(self) -> None:
-        # The author owes this PR something, but the gate is still missing on
-        # the same code, so the round trip must not buy it a fresh four hours.
-        facts: dict[str, object] = {
-            "ci_pending_count": 1,
-            "ci_failing_count": 1,
-            "head_sha": "abc",
-        }
-        held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
-
-        route = self._hold(
-            facts,
-            "author",
-            {
-                "route": "approver",
-                "facts": {
-                    "head_sha": "abc",
-                    "route_held_since": held_since.isoformat(),
-                },
-            },
-            now=self.START,
-        )
-
-        self.assertEqual("author", route)
-        self.assertEqual(held_since.isoformat(), facts["route_held_since"])
-        self.assertTrue(facts["route_hold_expired"])
-        self.assertFalse(facts["route_held_for_gates"])
-
-    def test_an_author_round_trip_does_not_restart_an_expired_hold(self) -> None:
-        # The author replies without pushing, so the same never-reporting gate
-        # would otherwise hold the PR for another four hours.
-        facts: dict[str, object] = {"ci_pending_count": 1, "head_sha": "abc"}
-        held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
-
-        route = self._hold(
-            facts,
-            "approver",
-            {
-                "route": "author",
-                "facts": {
-                    "head_sha": "abc",
-                    "route_held_since": held_since.isoformat(),
-                },
-            },
-            now=self.START + timedelta(minutes=20),
-        )
-
-        self.assertEqual("approver", route)
-        self.assertEqual(held_since.isoformat(), facts["route_held_since"])
-        self.assertTrue(facts["route_hold_expired"])
-
-    def test_copilot_findings_on_the_current_head_do_not_stall(self) -> None:
-        # Copilot reported on this head and left findings, so the PR is with
-        # its author over review comments, not waiting on a gate GitHub lost.
-        facts: dict[str, object] = {
-            "ci_failing_count": 0,
-            "ci_pending_count": 0,
-            "head_sha": "abc",
-            "copilot_review_exists": True,
-            "copilot_review_stale": False,
-            "copilot_review_needed": True,
-        }
-        held_since = self.START - GATE_HOLD_LIMIT - timedelta(hours=1)
-
-        route = self._hold(
-            facts,
-            "author",
-            {
-                "route": "approver",
-                "facts": {
-                    "head_sha": "abc",
-                    "route_held_since": held_since.isoformat(),
-                },
-            },
-            require_clean_copilot_review=True,
-            now=self.START,
-        )
-
-        self.assertEqual("author", route)
-        self.assertTrue(facts["copilot_review_outstanding"])
-        self.assertFalse(facts["copilot_review_unreported"])
-        self.assertNotIn("route_held_since", facts)
-        self.assertFalse(facts["route_hold_expired"])
-
-    def test_a_review_that_only_covers_older_code_still_stalls(self) -> None:
-        # Copilot has said nothing about this head, so the wait for it is real
-        # even though an older review exists.
-        facts: dict[str, object] = {
-            "ci_failing_count": 0,
-            "ci_pending_count": 0,
-            "head_sha": "abc",
-            "copilot_review_exists": True,
-            "copilot_review_stale": True,
-            "copilot_review_needed": True,
-        }
-        held_since = self.START - GATE_HOLD_LIMIT
-
-        route = self._hold(
-            facts,
-            "approver",
-            {
-                "route": "author",
-                "facts": {
-                    "head_sha": "abc",
-                    "route_held_since": held_since.isoformat(),
-                },
-            },
-            require_clean_copilot_review=True,
-            now=self.START,
-        )
-
-        self.assertEqual("approver", route)
-        self.assertTrue(facts["copilot_review_unreported"])
-        self.assertTrue(facts["route_hold_expired"])
-
-    def test_held_route_carries_the_previous_wait_forward(self) -> None:
-        facts = {
-            "route_held_for_gates": True,
-            "ci_failing_count": 0,
-            "last_approver_activity_at": "2026-07-10T01:00:00+00:00",
-        }
-
-        add_wait_age_facts(
-            facts,
-            "author",
-            {},
-            {
-                "route": "author",
-                "facts": {
-                    "waiting_since": "2026-07-20T01:00:00+00:00",
-                    "waiting_age_basis": "ci_failure",
-                },
-            },
-        )
-
-        self.assertEqual("2026-07-20T01:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("gate_hold", facts["waiting_age_basis"])
-
-    def test_released_route_recomputes_the_wait(self) -> None:
-        facts = {
-            "route_held_for_gates": False,
-            "ci_failing_count": 0,
-            "last_approver_activity_at": "2026-07-10T01:00:00+00:00",
-        }
-
-        add_wait_age_facts(
-            facts,
-            "author",
-            {},
-            {
-                "route": "author",
-                "facts": {"waiting_since": "2026-07-20T01:00:00+00:00"},
-            },
-        )
-
-        self.assertEqual("2026-07-10T01:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("last_approver_activity", facts["waiting_age_basis"])
-
-    def test_conflict_wait_dates_from_the_last_author_activity(self) -> None:
-        facts = {
-            "conflicts": "yes",
-            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
-            "last_approver_activity_at": "2026-08-10T08:00:00+00:00",
-        }
-
-        add_wait_age_facts(facts, "author", {})
-
-        self.assertEqual("2026-08-16T08:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
-
-    def test_conflict_preserves_an_older_pending_author_discussion(self) -> None:
-        facts = {
-            "conflicts": "yes",
-            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
-        }
-        pending_actions = {
-            "thread": {
-                "action": "author",
-                "since": "2026-08-10T08:00:00+00:00",
-            }
-        }
-
-        add_wait_age_facts(facts, "author", pending_actions)
-
-        self.assertEqual("2026-08-10T08:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("oldest_pending_thread", facts["waiting_age_basis"])
-
-    def test_reviewers_start_waiting_when_the_gates_release_the_pr(self) -> None:
-        # The push was four hours ago; the reviewers could not have answered
-        # any of it, because the gates held the PR on its author throughout.
-        facts = {
-            "route_held_for_gates": False,
-            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
-        }
-
-        add_wait_age_facts(
-            facts,
-            "approver",
-            {},
-            {
-                "route": "author",
-                "facts": {
-                    "route_held_for_gates": True,
-                    "waiting_since": "2026-08-16T08:00:00+00:00",
-                },
-            },
-            now=self.START,
-        )
-
-        self.assertEqual("2026-08-16T12:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("gate_release", facts["waiting_age_basis"])
-
-    def test_the_gate_release_wait_survives_the_next_refresh(self) -> None:
-        # The release only happens once, so the wait it started has to be
-        # carried, or the very next refresh dates the PR from the push again.
-        facts = {
-            "route_held_for_gates": False,
-            "head_sha": "abc",
-            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
-        }
-
-        add_wait_age_facts(
-            facts,
-            "approver",
-            {},
-            {
-                "route": "approver",
-                "facts": {
-                    "head_sha": "abc",
-                    "waiting_since": "2026-08-16T12:00:00+00:00",
-                    "waiting_age_basis": "gate_release",
-                },
-            },
-            now=self.START + timedelta(hours=1),
-        )
-
-        self.assertEqual("2026-08-16T12:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("gate_release", facts["waiting_age_basis"])
-
-    def test_an_unheld_handoff_still_dates_from_the_push(self) -> None:
-        facts = {
-            "route_held_for_gates": False,
-            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
-        }
-
-        add_wait_age_facts(
-            facts,
-            "approver",
-            {},
-            {
-                "route": "author",
-                "facts": {"waiting_since": "2026-08-10T01:00:00+00:00"},
-            },
-            now=self.START,
-        )
-
-        self.assertEqual("2026-08-16T08:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
-
-    def test_a_release_to_maintainers_keeps_the_reviewer_wait(self) -> None:
-        # This PR never left the people who owe it a response, so the merge
-        # request is as old as the review that produced it.
-        facts = {
-            "route_held_for_gates": False,
-            "last_author_activity_at": "2026-08-16T08:00:00+00:00",
-        }
-
-        add_wait_age_facts(
-            facts,
-            "maintainer",
-            {},
-            {
-                "route": "approver",
-                "facts": {
-                    "route_held_for_gates": True,
-                    "waiting_since": "2026-08-10T01:00:00+00:00",
-                },
-            },
-            now=self.START,
-        )
-
-        self.assertEqual("2026-08-10T01:00:00+00:00", facts["waiting_since"])
-
-
-class ReviewerWaitTest(unittest.TestCase):
-    def test_rereview_handoff_restarts_the_reviewer_wait(self) -> None:
-        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
-        now = datetime(2026, 8, 17, 20, 0, tzinfo=timezone.utc)
-
-        add_wait_age_facts(
-            facts,
-            "approver",
-            {},
-            {
-                "route": "maintainer",
-                "facts": {
-                    "waiting_since": "2026-07-30T01:00:00+00:00",
-                    "reviewers": [
-                        {
-                            "login": "reviewer",
-                            "pending_review": False,
-                        }
-                    ],
-                },
-            },
-            now=now,
-            pending_reviewers={"reviewer"},
-        )
-
-        self.assertEqual("2026-08-17T20:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("review_rerequest", facts["waiting_age_basis"])
-
-    def test_rereview_handoff_wait_survives_reviewer_route_changes(self) -> None:
-        for route in ("approver", "maintainer"):
-            with self.subTest(route=route):
-                facts = {
-                    "last_author_activity_at": "2026-07-30T01:00:00+00:00"
-                }
-
-                add_wait_age_facts(
-                    facts,
-                    route,
-                    {},
-                    {
-                        "route": "approver",
-                        "facts": {
-                            "waiting_since": "2026-08-17T20:00:00+00:00",
-                            "waiting_age_basis": "review_rerequest",
-                            "reviewers": [
-                                {
-                                    "login": "reviewer",
-                                    "pending_review": True,
-                                }
-                            ],
-                        },
-                    },
-                    now=datetime(2026, 8, 17, 21, 0, tzinfo=timezone.utc),
-                    pending_reviewers={"reviewer"},
-                )
-
-                self.assertEqual(
-                    "2026-08-17T20:00:00+00:00", facts["waiting_since"]
-                )
-                self.assertEqual("review_rerequest", facts["waiting_age_basis"])
-
-    def test_author_push_does_not_restart_the_reviewer_wait(self) -> None:
-        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
-
-        add_wait_age_facts(
-            facts,
-            "approver",
-            {},
-            {
-                "route": "approver",
-                "facts": {
-                    "waiting_since": "2026-07-23T01:00:00+00:00",
-                    "waiting_age_basis": "last_author_activity",
-                },
-            },
-        )
-
-        self.assertEqual("2026-07-23T01:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
-
-    def test_handoff_from_the_author_starts_a_new_wait(self) -> None:
-        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
-
-        add_wait_age_facts(
-            facts,
-            "approver",
-            {},
-            {
-                "route": "author",
-                "facts": {"waiting_since": "2026-07-23T01:00:00+00:00"},
-            },
-        )
-
-        self.assertEqual("2026-07-30T01:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
-
-    def test_older_evidence_still_moves_the_wait_back(self) -> None:
-        facts = {"last_author_activity_at": "2026-07-10T01:00:00+00:00"}
-
-        add_wait_age_facts(
-            facts,
-            "approver",
-            {},
-            {
-                "route": "approver",
-                "facts": {"waiting_since": "2026-07-23T01:00:00+00:00"},
-            },
-        )
-
-        self.assertEqual("2026-07-10T01:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("last_author_activity", facts["waiting_age_basis"])
-
-    def test_first_observation_computes_the_wait(self) -> None:
-        facts = {"last_author_activity_at": "2026-07-30T01:00:00+00:00"}
-
-        add_wait_age_facts(facts, "approver", {}, None)
-
-        self.assertEqual("2026-07-30T01:00:00+00:00", facts["waiting_since"])
+    )
+    return evaluation_compute_facts(
+        raw,
+        author,
+        PullRequestActivity(tuple(events), None, None, None),
+        prepared_reviewers,
+        frozenset(reviewers or set()),
+        previous_facts or {},
+    )
+
+
+def evaluation_config(
+    *,
+    require_clean_copilot_review_branches: list[str] | None = None,
+) -> PullRequestEvaluationConfig:
+    return PullRequestEvaluationConfig(
+        repo="owner/repo",
+        owner="owner",
+        repo_name="repo",
+        approver_logins=frozenset({"reviewer"}),
+        classifier_model="model",
+        required_approvals=1,
+        require_clean_copilot_review_branches=frozenset(
+            require_clean_copilot_review_branches or []
+        ),
+    )
+
+
+def evaluate_pr(
+    pr_summary: dict[str, object],
+    *,
+    previous_result: dict[str, object] | None = None,
+    require_clean_copilot_review_branches: list[str] | None = None,
+) -> dict[str, object] | None:
+    return evaluate_pull_request(
+        evaluation_config(
+            require_clean_copilot_review_branches=(
+                require_clean_copilot_review_branches
+            )
+        ),
+        PullRequestEvaluationInput(
+            pr_summary=pr_summary,
+            previous_result=previous_result,
+        ),
+    )
 
 
 class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_preserves_episode_while_route_remains_author(self) -> None:
         facts: dict[str, object] = {}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             {
@@ -1142,12 +116,12 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
 
         self.assertEqual("abc123", facts["author_nudge_episode_id"])
 
-    @patch("dashboard.uuid.uuid4")
+    @patch("pull_request_evaluation.uuid.uuid4")
     def test_starts_new_episode_after_known_route_departure(self, uuid4: Mock) -> None:
         uuid4.return_value.hex = "def456"
         facts: dict[str, object] = {}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             {"route": "approver", "facts": {}},
@@ -1165,7 +139,7 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_recovers_episode_from_status_comment_after_cache_loss(self) -> None:
         facts: dict[str, object] = {}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             None,
@@ -1183,7 +157,7 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_preserves_episode_while_route_is_held_for_gates(self) -> None:
         facts: dict[str, object] = {"route_held_for_gates": True}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             {
@@ -1198,7 +172,7 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_preserves_episode_while_pr_is_conflicted(self) -> None:
         facts: dict[str, object] = {"conflicts": "yes"}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             {
@@ -1236,7 +210,10 @@ class FetchPrRawTest(unittest.TestCase):
                 return_value=issue_comments,
             ) as fetch_issue_comments,
             patch("github_cli.gh_api", side_effect=gh_api) as routing_rest_api,
-            patch("dashboard.gh_api", side_effect=gh_api) as commits_rest_api,
+            patch(
+                "pull_request_evaluation.gh_api",
+                side_effect=gh_api,
+            ) as commits_rest_api,
             patch("github_cli.fetch_review_threads", return_value=[]),
             patch("github_cli.fetch_review_requests", return_value=[]),
             patch(
@@ -1256,12 +233,9 @@ class FetchPrRawTest(unittest.TestCase):
             patch("github_cli.gh_branch_rules", return_value=[]),
             patch("github_cli.include_missing_required_checks", return_value=[]),
         ):
-            raw = fetch_pr_raw(
-                "owner/repo",
-                "owner",
-                "repo",
+            raw = _fetch_pr_raw(
+                evaluation_config(),
                 {"number": 7},
-                [],
             )
 
         self.assertEqual(raw["issue_comments"], issue_comments)
@@ -1278,12 +252,168 @@ class FetchPrRawTest(unittest.TestCase):
         )
 
 
-class BuildPrResultTest(unittest.TestCase):
+class DashboardEvaluationHandoffTest(unittest.TestCase):
+    @patch("dashboard.evaluate_pull_request")
+    def test_passes_the_cached_result_and_wraps_the_evaluation(
+        self,
+        evaluate: Mock,
+    ) -> None:
+        starting_result = {
+            "pr_number": 7,
+            "route": "author",
+            "facts": {"head_sha": "old-head"},
+            "top_level_history": {
+                "feedback": {
+                    "kind": "commit",
+                    "timestamp": "2026-08-16T08:00:00Z",
+                }
+            },
+        }
+        evaluated_result = {
+            "pr_number": 7,
+            "route": "approver",
+            "failed": False,
+            "facts": {"head_sha": "new-head"},
+            "top_level_history": starting_result["top_level_history"],
+        }
+        evaluate.return_value = evaluated_result
+
+        update = build_dashboard_update_for_pr(
+            "owner/repo",
+            "owner",
+            "repo",
+            {7},
+            {"reviewer"},
+            7,
+            "model",
+            1,
+            ["optional-*"],
+            {"prs": {"7": starting_result}},
+            ["main"],
+        )
+
+        config, source = evaluate.call_args.args
+        self.assertEqual(starting_result, source.previous_result)
+        self.assertEqual(frozenset({"reviewer"}), config.approver_logins)
+        self.assertEqual(("optional-*",), config.non_blocking_check_patterns)
+        self.assertEqual(
+            frozenset({"main"}),
+            config.require_clean_copilot_review_branches,
+        )
+        self.assertEqual(starting_result, update.prepared.starting_result)
+        self.assertEqual(evaluated_result, update.evaluated_result)
+
+
+class PullRequestEvaluationTest(unittest.TestCase):
+    @staticmethod
+    def raw_pr(*, checks: list[dict[str, object]] | None = None) -> dict[str, object]:
+        return {
+            "summary": {"author": {"login": "author"}},
+            "pr": {
+                "state": "OPEN",
+                "isDraft": False,
+                "title": "Routing integration",
+                "url": "https://example.test/pull/7",
+                "author": {"login": "author"},
+                "assignees": [],
+                "mergeStateStatus": "CLEAN",
+                "mergeable": "MERGEABLE",
+                "createdAt": "2026-08-16T07:00:00Z",
+                "updatedAt": "2026-08-16T08:00:00Z",
+                "headRefOid": "abcdef123456",
+                "headRefName": "feature",
+                "headRepository": {"nameWithOwner": "owner/repo"},
+                "baseRefName": "main",
+            },
+            "commits": [],
+            "issue_comments": [],
+            "review_comments": [],
+            "reviews": [],
+            "review_threads": [],
+            "review_requests": [],
+            "checks": checks or [],
+            "non_blocking_check_failures": [],
+        }
+
+    def test_compute_facts_uses_prepared_approval_count(self) -> None:
+        raw = self.raw_pr()
+        events = [{
+            "kind": "review-state",
+            "timestamp": "2026-08-16T08:00:00Z",
+            "actor": "reviewer",
+            "actor_role": "approver",
+            "state": "APPROVED",
+        }]
+        prepared_reviewers = prepare_reviewers(
+            ReviewerInput(tuple(events), (), ())
+        )
+
+        facts = evaluation_compute_facts(
+            raw,
+            "author",
+            PullRequestActivity(tuple(events), None, None, None),
+            prepared_reviewers,
+            frozenset({"reviewer"}),
+            {},
+        )
+
+        self.assertEqual(1, facts["approval_count"])
+
+    @patch("pull_request_evaluation.resolve_routing", wraps=resolve_routing)
     @patch(
-        "dashboard.classify_discussion_domains",
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(
+        self,
+        fetch_raw: Mock,
+        _classify: Mock,
+        resolve: Mock,
+    ) -> None:
+        raw = self.raw_pr()
+        raw["reviews"] = [{
+            "id": 1,
+            "user": {"login": "reviewer"},
+            "state": "APPROVED",
+            "submitted_at": "2026-08-16T08:00:00Z",
+            "body": "",
+        }]
+        raw["review_requests"] = [{
+            "__typename": "User",
+            "login": "reviewer",
+        }]
+        fetch_raw.return_value = raw
+
+        result = evaluate_pr(
+            {"number": 7},
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        routing_input = resolve.call_args.args[0]
+        self.assertEqual(
+            frozenset({"reviewer"}),
+            routing_input.pending_human_reviewer_logins,
+        )
+        self.assertEqual(
+            [{
+                "login": "reviewer",
+                "approved": False,
+                "approved_non_team": False,
+                "pending_review": True,
+                "changes_requested": False,
+                "open_thread": False,
+                "top_level_feedback": False,
+            }],
+            result["facts"]["reviewers"],
+        )
+
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
         side_effect=AssertionError("classification must be bypassed"),
     )
-    @patch("dashboard.fetch_pr_raw")
+    @patch("pull_request_evaluation._fetch_pr_raw")
     def test_override_binds_to_the_observed_head_before_classification(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
@@ -1334,15 +464,8 @@ class BuildPrResultTest(unittest.TestCase):
             "non_blocking_check_failures": [],
         }
 
-        result = build_pr_result(
-            "owner/repo",
-            "owner",
-            "repo",
+        result = evaluate_pr(
             {"number": 7},
-            {"reviewer"},
-            "model",
-            1,
-            [],
             require_clean_copilot_review_branches=["main"],
         )
 
@@ -1369,8 +492,11 @@ class BuildPrResultTest(unittest.TestCase):
         )
         classify.assert_not_called()
 
-    @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
-    @patch("dashboard.fetch_pr_raw")
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
     def test_conflict_uses_normal_discussion_and_approval_routing(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
@@ -1419,15 +545,8 @@ class BuildPrResultTest(unittest.TestCase):
             "non_blocking_check_failures": [],
         }
 
-        result = build_pr_result(
-            "owner/repo",
-            "owner",
-            "repo",
+        result = evaluate_pr(
             {"number": 7},
-            {"reviewer"},
-            "model",
-            1,
-            [],
         )
 
         self.assertIsNotNone(result)
@@ -1438,163 +557,97 @@ class BuildPrResultTest(unittest.TestCase):
         self.assertEqual("last_author_activity", result["facts"]["waiting_age_basis"])
         classify.assert_called_once()
 
-
-class ReviewThreadOrderTest(unittest.TestCase):
-    def test_editing_an_old_comment_does_not_make_it_the_last_word(self) -> None:
-        threads = group_review_threads(
-            {
-                "review_threads": [
-                    {
-                        "id": "thread-1",
-                        "isResolved": False,
-                        "isOutdated": False,
-                        "comments": {
-                            "nodes": [
-                                {
-                                    "url": "https://example.test/discussion/1",
-                                    "body": "please fix",
-                                    "createdAt": "2026-07-14T01:00:00Z",
-                                    "updatedAt": "2026-07-14T03:00:00Z",
-                                    "author": {"login": "reviewer"},
-                                },
-                                {
-                                    "url": "https://example.test/discussion/2",
-                                    "body": "fixed it",
-                                    "createdAt": "2026-07-14T02:00:00Z",
-                                    "updatedAt": "2026-07-14T02:00:00Z",
-                                    "author": {"login": "author"},
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-            "author",
-            {"reviewer"},
-            {"conflicts": "no"},
-        )
-
-        self.assertEqual(
-            "author", threads[0]["discussion_facts"]["latest_comment_role"]
-        )
-        self.assertEqual(
-            ["please fix", "fixed it"], [c["body"] for c in threads[0]["comments"]]
-        )
-
-    def test_editing_a_comment_does_not_reset_how_long_the_thread_has_waited(
-        self,
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_normal_routing_flows_through_evaluation(
+        self, fetch_raw: Mock, classify: Mock
     ) -> None:
-        threads = group_review_threads(
-            {
-                "review_threads": [
-                    {
-                        "id": "thread-1",
-                        "isResolved": False,
-                        "isOutdated": False,
-                        "comments": {
-                            "nodes": [
-                                {
-                                    "url": "https://example.test/discussion/1",
-                                    "body": "please fix",
-                                    "createdAt": "2026-07-01T01:00:00Z",
-                                    "updatedAt": "2026-07-14T03:00:00Z",
-                                    "author": {"login": "reviewer"},
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-            "author",
-            {"reviewer"},
-            {"conflicts": "no"},
+        fetch_raw.return_value = self.raw_pr(
+            checks=[{"name": "required", "bucket": "pass"}]
         )
 
-        self.assertEqual(
-            ["2026-07-01T01:00:00Z"], [c["timestamp"] for c in threads[0]["comments"]]
+        result = evaluate_pr(
+            {"number": 7},
         )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertFalse(result["failed"])
+        self.assertEqual("approver", result["route"])
+        self.assertFalse(result["facts"]["route_held_for_gates"])
+        classify.assert_called_once()
+
+    @patch("routing_decision.utc_now")
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_running_required_check_keeps_integrated_route_held(
+        self, fetch_raw: Mock, classify: Mock, utc_now: Mock
+    ) -> None:
+        utc_now.return_value = datetime(2026, 8, 16, 12, 0, tzinfo=timezone.utc)
+        fetch_raw.return_value = self.raw_pr(
+            checks=[{"name": "required", "bucket": "pending"}]
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            previous_result={
+                "route": "author",
+                "facts": {
+                    "head_sha": "abcdef123456",
+                    "waiting_since": "2026-08-16T08:00:00+00:00",
+                },
+            },
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertFalse(result["failed"])
+        self.assertEqual("author", result["route"])
+        self.assertTrue(result["facts"]["route_held_for_gates"])
+        self.assertEqual(
+            "2026-08-16T12:00:00+00:00", result["facts"]["route_held_since"]
+        )
+        classify.assert_called_once()
+
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [{"failed": True, "error": "model failed"}], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_classification_failure_preserves_integrated_routing_failure_facts(
+        self, fetch_raw: Mock, classify: Mock
+    ) -> None:
+        fetch_raw.return_value = self.raw_pr()
+
+        result = evaluate_pr(
+            {"number": 7},
+            previous_result={
+                "route": "author",
+                "facts": {
+                    "copilot_first_review_missing_since": "2026-08-11T12:00:00Z"
+                },
+            },
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertTrue(result["failed"])
+        self.assertEqual("unknown", result["route"])
+        self.assertEqual(
+            "2026-08-11T12:00:00Z",
+            result["facts"]["copilot_first_review_missing_since"],
+        )
+        classify.assert_called_once()
 
 
 class ReviewThreadDiscussionUrlTest(unittest.TestCase):
-    def test_group_review_threads_ignores_author_only_annotations(self) -> None:
-        thread = {
-            "id": "thread-1",
-            "isResolved": False,
-            "isOutdated": False,
-            "comments": {
-                "nodes": [
-                    {
-                        "url": "https://example.test/discussion/1",
-                        "body": "todo: automate this later",
-                        "createdAt": "2026-07-14T01:00:00Z",
-                        "author": {"login": "author"},
-                    },
-                ],
-            },
-        }
 
-        self.assertEqual(
-            group_review_threads(
-                {"review_threads": [thread]},
-                "author",
-                {"reviewer"},
-                {"conflicts": "no"},
-            ),
-            [],
-        )
-
-        thread["comments"]["nodes"].append({
-            "url": "https://example.test/discussion/2",
-            "body": "Please handle this in the current PR.",
-            "createdAt": "2026-07-14T02:00:00Z",
-            "author": {"login": "reviewer"},
-        })
-
-        self.assertEqual(
-            len(group_review_threads(
-                {"review_threads": [thread]},
-                "author",
-                {"reviewer"},
-                {"conflicts": "no"},
-            )),
-            1,
-        )
-
-    def test_group_review_threads_stores_first_comment_url_on_thread(self) -> None:
-        threads = group_review_threads(
-            {
-                "review_threads": [
-                    {
-                        "id": "thread-1",
-                        "isResolved": False,
-                        "isOutdated": False,
-                        "comments": {
-                            "nodes": [
-                                {
-                                    "url": "https://example.test/discussion/1",
-                                    "body": "first",
-                                    "createdAt": "2026-07-14T02:00:00Z",
-                                    "author": {"login": "reviewer"},
-                                },
-                                {
-                                    "url": "https://example.test/discussion/2",
-                                    "body": "second",
-                                    "createdAt": "2026-07-14T01:00:00Z",
-                                    "author": {"login": "author"},
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-            "author",
-            {"reviewer"},
-            {"conflicts": "no"},
-        )
-
-        self.assertEqual("https://example.test/discussion/1", threads[0]["discussion_url"])
-        self.assertEqual("second", threads[0]["comments"][0]["body"])
-        self.assertNotIn("url", threads[0]["comments"][0])
 
     def test_author_action_urls_use_thread_url_and_deduplicate(self) -> None:
         discussions = [
@@ -1610,13 +663,13 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
 
         self.assertEqual(
             ["https://example.test/discussion/1", "https://example.test/discussion/2"],
-            author_action_discussion_urls(discussions, pending_actions),
+            _author_action_discussion_urls(discussions, pending_actions),
         )
 
 
 class CopilotReviewGateTest(unittest.TestCase):
     def test_current_head_matches_latest_clean_copilot_review(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1664,7 +717,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_late_stale_review_does_not_replace_clean_current_head_review(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1702,7 +755,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_push_since_latest_clean_copilot_review_needs_rereview(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1734,7 +787,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_needed"])
 
     def test_unresolved_copilot_thread_on_current_head_needs_rereview(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1793,7 +846,7 @@ class CopilotReviewGateTest(unittest.TestCase):
     def test_resolved_copilot_findings_on_current_head_are_clean(self) -> None:
         # A review's comment count never shrinks, so counting it would hold the
         # PR on feedback the author already addressed.
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1859,7 +912,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_human_thread_does_not_count_as_a_copilot_finding(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1908,7 +961,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_findings_only_history_needs_rereview(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1939,7 +992,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_needed"])
 
     def test_waits_for_automatic_initial_copilot_review(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -2090,7 +1143,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
 class HeadShaSourceTest(unittest.TestCase):
     def test_head_sha_prefers_pr_head_ref_oid_over_truncated_commits(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -2188,7 +1241,10 @@ class StatusCommentQueueTest(unittest.TestCase):
         saved_state = save_state.call_args.args[1]
         self.assertEqual({"56": {}}, saved_state["prs"])
         self.assertEqual(
-            [call(12, None, ANY), call(34, None, ANY)],
+            [
+                call(12, None, ANY, prepare_due=False),
+                call(34, None, ANY, prepare_due=False),
+            ],
             sorted(record_nudge.call_args_list, key=lambda value: value.args[0]),
         )
 
@@ -2197,30 +1253,52 @@ class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
-    @patch("dashboard.merge_dashboard_update_with_latest_state")
+    @patch("dashboard.load_dashboard_state_cache")
     def test_targeted_state_change_enqueues_status_comment(
         self,
-        merge_update: Mock,
+        load_state: Mock,
         enqueue_update: Mock,
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
         record_copilot: Mock,
     ) -> None:
-        accepted_result = {"route": "author"}
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"12": accepted_result}},
-            trigger_pr_result={"route": "approver"},
-        )
-        merge_update.return_value = (calculation, False)
+        starting_result = {
+            "pr_number": 12,
+            "pr_url": "",
+            "route": "author",
+            "failed": False,
+            "facts": {},
+            "top_level_history": {},
+        }
+        evaluated_result = {"pr_number": 12, "route": "approver"}
+        dashboard_state = {"prs": {"12": starting_result}}
+        calculation = prepare_dashboard_update(
+            dashboard_state,
+            {12},
+            12,
+        ).with_evaluated_result(evaluated_result)
+        accepted_result = {
+            "pr_number": 12,
+            "pr_url": "",
+            "route": "approver",
+            "failed": False,
+            "facts": {},
+            "top_level_history": {},
+        }
+        load_state.return_value = dashboard_state
 
-        status = apply_targeted_dashboard_update(
-            Namespace(pr_number=12, prepare_author_nudges=True),
-            calculation,
-        )
+        with patch(
+            "dashboard.accept_dashboard_update",
+            wraps=accept_dashboard_update,
+        ) as accept_update:
+            status = apply_targeted_dashboard_update(
+                Namespace(pr_number=12, prepare_author_nudges=True),
+                calculation,
+            )
 
         self.assertEqual(0, status)
+        accept_update.assert_called_once()
         enqueue_update.assert_called_once_with(12)
         record_nudge.assert_called_once_with(
             12,
@@ -2239,23 +1317,31 @@ class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.clear_backfill_pr_failure")
     @patch("dashboard.save_dashboard_update_state", return_value=0)
     @patch("dashboard.enqueue_status_comment_update")
-    @patch("dashboard.merge_dashboard_update_with_latest_state")
+    @patch("dashboard.load_dashboard_state_cache")
     def test_unchanged_targeted_state_does_not_enqueue_status_comment(
         self,
-        merge_update: Mock,
+        load_state: Mock,
         enqueue_update: Mock,
         _save_state: Mock,
         _clear_backfill_failure: Mock,
         record_nudge: Mock,
         _record_copilot: Mock,
     ) -> None:
-        accepted_result = {"route": "approver"}
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"12": accepted_result}},
-            trigger_pr_result={"route": "author"},
-        )
-        merge_update.return_value = (calculation, True)
+        accepted_result = {
+            "pr_number": 12,
+            "pr_url": "",
+            "route": "approver",
+            "failed": False,
+            "facts": {},
+            "top_level_history": {},
+        }
+        dashboard_state = {"prs": {"12": accepted_result}}
+        calculation = prepare_dashboard_update(
+            dashboard_state,
+            {12},
+            12,
+        ).with_evaluated_result(dict(accepted_result))
+        load_state.return_value = dashboard_state
 
         status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
 
@@ -2268,54 +1354,9 @@ class StatusCommentQueueTest(unittest.TestCase):
             prepare_due=False,
         )
 
-    @patch(
-        "dashboard.load_dashboard_state_cache",
-        return_value={"prs": {"34": {"route": "author"}}},
-    )
-    def test_untracked_closed_pr_reports_no_state_change(
-        self, _load_state: Mock
-    ) -> None:
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"34": {"route": "author"}}},
-            trigger_pr_result=None,
-            starting_pr_result=None,
-            used_cached_dashboard_state=True,
-        )
-
-        _merged, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
-            calculation, 12, {34}
-        )
-
-        self.assertTrue(dashboard_state_unchanged)
-
-    @patch(
-        "dashboard.load_dashboard_state_cache",
-        return_value={"prs": {"12": {"route": "author"}}},
-    )
-    def test_tracked_closed_pr_still_reports_a_state_change(
-        self, _load_state: Mock
-    ) -> None:
-        starting_pr_result = {"route": "author"}
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"12": starting_pr_result}},
-            trigger_pr_result=None,
-            starting_pr_result=starting_pr_result,
-            used_cached_dashboard_state=True,
-        )
-
-        merged, dashboard_state_unchanged = merge_dashboard_update_with_latest_state(
-            calculation, 12, set()
-        )
-
-        self.assertFalse(dashboard_state_unchanged)
-        self.assertEqual({}, merged.dashboard_state["prs"])
-
-
 class RequiredCiRoutingTest(unittest.TestCase):
     def test_non_blocking_check_failures_use_deterministic_casefold_tiebreaker(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-14T03:00:00Z",
@@ -2340,19 +1381,19 @@ class RequiredCiRoutingTest(unittest.TestCase):
             facts["non_blocking_check_failures"],
         )
 
-    def test_required_check_buckets_control_ci_facts_and_author_routing(self) -> None:
+    def test_required_check_buckets_control_ci_facts(self) -> None:
         cases = (
-            ("TIMED_OUT", "fail", 1, 0, "author"),
-            ("ACTION_REQUIRED", "fail", 1, 0, "author"),
-            ("STARTUP_FAILURE", "fail", 1, 0, "author"),
-            ("CANCELLED", "cancel", 1, 0, "author"),
-            ("IN_PROGRESS", "pending", 0, 1, "approver"),
-            ("SKIPPED", "skipping", 0, 0, "approver"),
-            ("SUCCESS", "pass", 0, 0, "approver"),
+            ("TIMED_OUT", "fail", 1, 0),
+            ("ACTION_REQUIRED", "fail", 1, 0),
+            ("STARTUP_FAILURE", "fail", 1, 0),
+            ("CANCELLED", "cancel", 1, 0),
+            ("IN_PROGRESS", "pending", 0, 1),
+            ("SKIPPED", "skipping", 0, 0),
+            ("SUCCESS", "pass", 0, 0),
         )
-        for state, bucket, failing, pending, route in cases:
+        for state, bucket, failing, pending in cases:
             with self.subTest(state=state, bucket=bucket):
-                facts = compute_facts(
+                facts = evaluation_facts(
                     {
                         "pr": {
                             "updatedAt": "2026-07-14T03:00:00Z",
@@ -2377,79 +1418,9 @@ class RequiredCiRoutingTest(unittest.TestCase):
                     ["workflow-notification"],
                     facts["non_blocking_check_failures"],
                 )
-                self.assertEqual(route, route_pr(facts, {}, 1))
-
-    def test_required_ci_failure_routes_to_author_before_approval_state(self) -> None:
-        facts = {
-            "approval_count": 1,
-            "ci_failing_count": 1,
-            "is_maintenance_bot": False,
-        }
-
-        self.assertEqual("author", route_pr(facts, {}, 1))
-
-    def test_required_ci_failure_preserves_maintenance_bot_routing(self) -> None:
-        for approval_count, expected_route in ((0, "approver"), (1, "maintainer")):
-            with self.subTest(approval_count=approval_count):
-                facts = {
-                    "approval_count": approval_count,
-                    "ci_failing_count": 1,
-                    "is_maintenance_bot": True,
-                }
-
-                self.assertEqual(expected_route, route_pr(facts, {}, 2))
-
-    def test_required_ci_failure_waits_since_first_current_failure(self) -> None:
-        facts = compute_facts(
-            {
-                "pr": {
-                    "updatedAt": "2026-07-17T03:00:00Z",
-                    "createdAt": "2026-07-14T01:00:00Z",
-                    "author": {"login": "author"},
-                    "assignees": [],
-                    "mergeStateStatus": "CLEAN",
-                    "mergeable": "MERGEABLE",
-                },
-                "checks": [
-                    {
-                        "bucket": "fail",
-                        "completed_at": "2026-07-17T02:00:00Z",
-                    },
-                    {
-                        "bucket": "cancel",
-                        "completed_at": "2026-07-17T01:00:00Z",
-                    },
-                ],
-            },
-            "author",
-            [
-                {
-                    "actor_role": "author",
-                    "kind": "issue-comment",
-                    "body": "old activity",
-                    "timestamp": "2026-07-14T02:00:00Z",
-                }
-            ],
-        )
-
-        cases = (
-            ("2026-07-17T03:00:00Z", "2026-07-17T01:00:00+00:00", "ci_failure"),
-            ("2026-07-16T23:00:00Z", "2026-07-16T23:00:00+00:00", "oldest_pending_thread"),
-        )
-        for discussion_since, waiting_since, basis in cases:
-            with self.subTest(discussion_since=discussion_since):
-                current_facts = dict(facts)
-                add_wait_age_facts(
-                    current_facts,
-                    "author",
-                    {"thread": {"action": "author", "since": discussion_since}},
-                )
-
-                self.assertEqual(waiting_since, current_facts["waiting_since"])
-                self.assertEqual(basis, current_facts["waiting_age_basis"])
 
     def test_override_command_does_not_clear_required_check_failures(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-17T03:00:00Z",
@@ -2479,85 +1450,77 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
         self.assertEqual(3, facts["ci_failing_count"])
         self.assertEqual("2026-07-17T01:00:00+00:00", facts["ci_failing_since"])
-        self.assertEqual("author", route_pr(facts, {}, 1))
-
-        add_wait_age_facts(facts, "author", {})
-
-        self.assertEqual("2026-07-17T01:00:00+00:00", facts["waiting_since"])
-        self.assertEqual("ci_failure", facts["waiting_age_basis"])
 
 
-class LastActivityTest(unittest.TestCase):
-    def _compute_last_activity_at(self, events: list[dict[str, object]]) -> object:
-        return compute_facts(
-            {
-                "pr": {
-                    # The dashboard's own status comment already bumped updatedAt.
-                    "updatedAt": "2026-07-20T09:00:00Z",
-                    "createdAt": "2026-07-20T01:00:00Z",
-                    "author": {"login": "author"},
-                    "assignees": [],
-                    "mergeStateStatus": "CLEAN",
-                    "mergeable": "MERGEABLE",
-                },
-                "checks": [],
+class ActivityFactsIntegrationTest(unittest.TestCase):
+    def test_formats_activity_clocks_and_clamps_overall_activity_to_creation(
+        self,
+    ) -> None:
+        raw = {
+            "pr": {
+                # A later updatedAt must not advance any activity clock: the
+                # dashboard's own status comment bumps it on every refresh.
+                "updatedAt": "2026-07-20T09:00:00Z",
+                "createdAt": "2026-07-20T01:00:00Z",
+                "author": {"login": "author"},
+                "assignees": [],
+                "mergeStateStatus": "CLEAN",
+                "mergeable": "MERGEABLE",
             },
+            "checks": [],
+        }
+        prepared_reviewers = prepare_reviewers(ReviewerInput((), (), ()))
+        activity = PullRequestActivity(
+            (),
+            datetime(2024, 1, 5, tzinfo=timezone.utc),
+            datetime(2026, 7, 20, 2, tzinfo=timezone.utc),
+            datetime(2026, 7, 20, 3, tzinfo=timezone.utc),
+        )
+
+        facts = evaluation_compute_facts(
+            raw,
             "author",
-            events,
-        )["last_activity_at"]
+            activity,
+            prepared_reviewers,
+            frozenset(),
+            {},
+        )
 
-    def test_ignores_bot_activity(self) -> None:
-        last_activity_at = self._compute_last_activity_at([
-            {
-                "actor_role": "author",
-                "kind": "issue-comment",
-                "body": "ready for another look",
-                "timestamp": "2026-07-20T02:00:00Z",
+        self.assertEqual("2026-07-20T01:00:00+00:00", facts["last_activity_at"])
+        self.assertEqual(
+            "2026-07-20T02:00:00+00:00",
+            facts["last_author_activity_at"],
+        )
+        self.assertEqual(
+            "2026-07-20T03:00:00+00:00",
+            facts["last_approver_activity_at"],
+        )
+
+    def test_uses_creation_time_without_participant_activity(self) -> None:
+        raw = {
+            "pr": {
+                "createdAt": "2026-07-20T01:00:00Z",
+                "author": {"login": "author"},
+                "assignees": [],
+                "mergeStateStatus": "CLEAN",
+                "mergeable": "MERGEABLE",
             },
-            {
-                "actor_role": "bot",
-                "kind": "issue-comment",
-                "body": "Pull request dashboard status",
-                "timestamp": "2026-07-20T09:00:00Z",
-            },
-        ])
+            "checks": [],
+        }
 
-        self.assertEqual("2026-07-20T02:00:00+00:00", last_activity_at)
+        facts = evaluation_compute_facts(
+            raw,
+            "author",
+            PullRequestActivity((), None, None, None),
+            prepare_reviewers(ReviewerInput((), (), ())),
+            frozenset(),
+            {},
+        )
 
-    def test_uses_latest_activity_from_any_non_bot_role(self) -> None:
-        last_activity_at = self._compute_last_activity_at([
-            {
-                "actor_role": "author",
-                "kind": "issue-comment",
-                "body": "ready for another look",
-                "timestamp": "2026-07-20T02:00:00Z",
-            },
-            {
-                "actor_role": "outsider",
-                "kind": "issue-comment",
-                "body": "hitting this too",
-                "timestamp": "2026-07-20T03:00:00Z",
-            },
-        ])
-
-        self.assertEqual("2026-07-20T03:00:00+00:00", last_activity_at)
-
-    def test_falls_back_to_creation_time_without_activity(self) -> None:
-        self.assertEqual("2026-07-20T01:00:00+00:00", self._compute_last_activity_at([]))
-
-    def test_activity_predating_the_pr_is_clamped_to_creation_time(self) -> None:
-        # Commits pushed before the PR was opened, and cherry-picks that keep an
-        # old author date, must not report activity from before the PR existed.
-        last_activity_at = self._compute_last_activity_at([
-            {
-                "actor_role": "author",
-                "kind": "commit",
-                "body": "cherry-picked from a 2024 branch",
-                "timestamp": "2024-01-05T00:00:00Z",
-            },
-        ])
-
-        self.assertEqual("2026-07-20T01:00:00+00:00", last_activity_at)
+        self.assertEqual(
+            "2026-07-20T01:00:00+00:00",
+            facts["last_activity_at"],
+        )
 
 
 class BackfillFailureIsolationTest(unittest.TestCase):
@@ -2587,7 +1550,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             backfill_state.clear()
             backfill_state.update(deepcopy(state))
 
-        def build_update(*call_args) -> DashboardUpdate:
+        def build_update(*call_args) -> DashboardStateUpdate:
             pr_number = call_args[5]
             starting_state = call_args[9]
             refreshed_pr_numbers.append(pr_number)
@@ -2596,13 +1559,11 @@ class BackfillFailureIsolationTest(unittest.TestCase):
                 "failed": pr_number == 1,
                 "route": "unknown" if pr_number == 1 else "reviewer",
             }
-            updated_state = deepcopy(starting_state)
-            updated_state["prs"][str(pr_number)] = result
-            return DashboardUpdate(
-                results={pr_number: result},
-                dashboard_state=updated_state,
-                trigger_pr_result=result,
-            )
+            return prepare_dashboard_update(
+                starting_state,
+                {1, 2},
+                pr_number,
+            ).with_evaluated_result(result)
 
         def save_dashboard_state(_args, state: dict, unchanged: bool) -> int:
             if not unchanged:
@@ -2622,13 +1583,9 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             patch("dashboard.save_backfill_state", side_effect=save_backfill_state),
             patch("dashboard.build_dashboard_update_for_pr", side_effect=build_update),
             patch(
-                "dashboard.merge_dashboard_update_with_latest_state",
-                side_effect=lambda calculation, *_args: (calculation, False),
-            ),
-            patch(
-                "dashboard.reject_failed_dashboard_result",
-                side_effect=lambda result: result["failed"],
-            ),
+                "dashboard.accept_dashboard_update",
+                wraps=accept_dashboard_update,
+            ) as accept_update,
             patch("dashboard.save_dashboard_update_state", side_effect=save_dashboard_state),
             patch("dashboard.record_author_nudge_observation") as record_nudge,
             patch("dashboard.state_branch.configure_git"),
@@ -2639,9 +1596,22 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             status = update_dashboard_for_backfill(args, Path("state"))
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
+        self.assertEqual(2, accept_update.call_count)
         record_nudge.assert_called_once_with(2, ANY, ANY, prepare_due=False)
         self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
-        self.assertEqual(dashboard_state["prs"], {"2": {"pr_number": 2, "failed": False, "route": "reviewer"}})
+        self.assertEqual(
+            dashboard_state["prs"],
+            {
+                "2": {
+                    "pr_number": 2,
+                    "pr_url": "",
+                    "failed": False,
+                    "route": "reviewer",
+                    "facts": {},
+                    "top_level_history": {},
+                }
+            },
+        )
         self.assertTrue(dashboard_state["initial_backfill_complete"])
         self.assertEqual(backfill_state["cursor"], {"last_pr_number": 2})
         self.assertEqual(backfill_failed_pr_numbers(backfill_state), {1})
@@ -2654,10 +1624,21 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
     def test_successful_targeted_update_clears_recorded_failure(self) -> None:
         args = Namespace(pr_number=1)
-        calculation = DashboardUpdate(
-            results={},
-            dashboard_state={"prs": {"1": {"pr_number": 1}}},
-            trigger_pr_result={"pr_number": 1, "failed": False},
+        starting_result = {
+            "pr_number": 1,
+            "pr_url": "",
+            "failed": False,
+            "route": "author",
+            "facts": {},
+            "top_level_history": {},
+        }
+        dashboard_state = {"prs": {"1": starting_result}}
+        calculation = prepare_dashboard_update(
+            dashboard_state,
+            {1},
+            1,
+        ).with_evaluated_result(
+            {"pr_number": 1, "failed": False, "route": "approver"}
         )
         backfill_state = {
             "cursor": {"last_pr_number": 7},
@@ -2667,8 +1648,8 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
         with (
             patch(
-                "dashboard.merge_dashboard_update_with_latest_state",
-                return_value=(calculation, False),
+                "dashboard.load_dashboard_state_cache",
+                return_value=dashboard_state,
             ),
             patch("dashboard.load_backfill_state", return_value=deepcopy(backfill_state)),
             patch(
@@ -2682,7 +1663,9 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertEqual(saved_backfill_state["cursor"], {"last_pr_number": 7})
         self.assertEqual(saved_backfill_state["failed_pr_numbers"], [2])
-        save_dashboard.assert_called_once_with(args, calculation.dashboard_state, False)
+        saved_dashboard_state = save_dashboard.call_args.args[1]
+        self.assertEqual("approver", saved_dashboard_state["prs"]["1"]["route"])
+        self.assertFalse(save_dashboard.call_args.args[2])
 
     def test_emits_initial_backfill_status_only_for_accepted_state_outcomes(self) -> None:
         for status, should_emit in (
