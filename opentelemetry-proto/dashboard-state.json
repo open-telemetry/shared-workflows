@@ -460,7 +460,7 @@
     },
     "851": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -468,7 +468,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "87638231c8620470d4d904e0ae681001f04b177a61b9db9e67d0ad801c068113",
+        "copilot_request_fingerprint": "26d017bd0a6ee5c22463d8b2fa79e66c260c14228ca8b314f6aa675db87f5e17",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -484,21 +484,31 @@
         "head_sha": "ac40195af4d9d901d6b6164aadd9d3d2142c3ddb",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-24T00:30:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T05:58:07+00:00",
+        "last_approver_activity_at": "2026-08-24T05:58:07+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5980cadcbe2785529fda56a1f61401fb80fbac8e4449d9e0d751d84e2e37d326",
+        "routing_input_fingerprint": "127a16203a9555fbc7082e2d8415723e33fbd3365539beaefea97f332f4cf586",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-24T00:30:06+00:00"
       },
       "failed": false,
       "pr_number": 851,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/851",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
