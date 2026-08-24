@@ -3848,7 +3848,7 @@
     },
     "5573": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "dwin-gharibi",
         "author_action_review_thread_urls": [],
@@ -3856,7 +3856,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9f461a801f2429247cc4b3f0fe5e7a33bddb958554f41d4869d1852ac809c136",
+        "copilot_request_fingerprint": "08984e0daf75b6548a6dd7b51d136f8a5a798bfb5ff1ca504d01fb53c6ca6d33",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3872,21 +3872,31 @@
         "head_sha": "032d4b78cfa9fdd3f2ef128a704395e527dc1489",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-23T17:00:19+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T13:11:20+00:00",
+        "last_approver_activity_at": "2026-08-24T13:11:20+00:00",
         "last_author_activity_at": "2026-08-23T15:59:43+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "DylanRussell",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bfc505637b72ebb729464ad7654cc1cbb15a84a2865706c81044f270fbf7aa2e",
+        "routing_input_fingerprint": "39e5cd218393c034b8573fe1b4d2292e85c0be5d9e7ba4234a728ac14acec0a5",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-23T15:59:43+00:00"
       },
       "failed": false,
       "pr_number": 5573,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5573",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5575": {
