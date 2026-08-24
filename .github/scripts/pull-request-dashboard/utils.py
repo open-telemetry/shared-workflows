@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from dashboard_contracts import DashboardFacts
+
 
 DEFAULT_TRUNCATE_CHARS = 1200
 
@@ -86,12 +88,12 @@ def compute_conflicts(pr: dict[str, Any]) -> str:
     return "no"
 
 
-def required_checks_settled(facts: dict[str, Any]) -> bool:
+def required_checks_settled(facts: DashboardFacts) -> bool:
     # A route computed while checks are still running is provisional because a
     # failure becomes visible only after the check completes.
-    if "ci_pending_count" not in facts:
+    if facts.ci_pending_count is None:
         return False
-    return not facts.get("ci_pending_count", 0)
+    return not facts.ci_pending_count
 
 
 def format_ts(ts: datetime | None) -> str:

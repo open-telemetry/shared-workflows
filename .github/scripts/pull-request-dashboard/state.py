@@ -3,9 +3,21 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from dashboard_contracts import (
+    DashboardCommandReply,
+    DashboardFacts,
+    DashboardRoute,
+    DashboardState,
+    EvaluationSuccess,
+    ReviewerSummary,
+    StoredDashboardResult,
+    freeze_json_object,
+    thaw_json,
+)
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
 
@@ -84,16 +96,12 @@ def dashboard_markdown_path() -> Path:
     return state_dir() / DASHBOARD_MARKDOWN_FILE
 
 
-def empty_state() -> dict[str, Any]:
-    return {
-        "version": DASHBOARD_STATE_VERSION,
-        INITIAL_BACKFILL_COMPLETE_KEY: False,
-        "prs": {},
-    }
+def empty_state() -> DashboardState:
+    return DashboardState()
 
 
-def initial_backfill_complete(state: dict[str, Any] | None) -> bool:
-    return bool(state and state.get(INITIAL_BACKFILL_COMPLETE_KEY) is True)
+def initial_backfill_complete(state: DashboardState | None) -> bool:
+    return bool(state and state.initial_backfill_complete)
 
 
 def empty_backfill_state() -> dict[str, Any]:
@@ -267,17 +275,450 @@ def enqueue_status_comment_update(pr_number: int) -> None:
     save_status_comment_rollout_state(state)
 
 
-def load_dashboard_state_cache() -> dict[str, Any] | None:
+def _string(value: Any, field_name: str, default: str = "") -> str:
+    if value is None:
+        return default
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    return value
+
+
+def _boolean(value: Any, field_name: str, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if not isinstance(value, bool):
+        raise ValueError(f"{field_name} must be a boolean")
+    return value
+
+
+def _integer(value: Any, field_name: str, default: int = 0) -> int:
+    if value is None:
+        return default
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"{field_name} must be an integer")
+    return value
+
+
+def _optional_integer(value: Any, field_name: str) -> int | None:
+    return None if value is None else _integer(value, field_name)
+
+
+def _optional_string(value: Any, field_name: str) -> str | None:
+    return None if value is None else _string(value, field_name)
+
+
+def _string_tuple(value: Any, field_name: str) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list) or any(
+        not isinstance(item, str)
+        for item in value
+    ):
+        raise ValueError(f"{field_name} must be an array of strings")
+    return tuple(value)
+
+
+def _decode_reviewer(value: Any) -> ReviewerSummary:
+    if not isinstance(value, dict):
+        raise ValueError("facts.reviewers entries must be objects")
+    return ReviewerSummary(
+        login=_string(value.get("login"), "facts.reviewers.login"),
+        approved=_boolean(value.get("approved"), "facts.reviewers.approved"),
+        approved_non_team=_boolean(
+            value.get("approved_non_team"),
+            "facts.reviewers.approved_non_team",
+        ),
+        pending_review=_boolean(
+            value.get("pending_review"),
+            "facts.reviewers.pending_review",
+        ),
+        changes_requested=_boolean(
+            value.get("changes_requested"),
+            "facts.reviewers.changes_requested",
+        ),
+        open_thread=_boolean(
+            value.get("open_thread"),
+            "facts.reviewers.open_thread",
+        ),
+        top_level_feedback=_boolean(
+            value.get("top_level_feedback"),
+            "facts.reviewers.top_level_feedback",
+        ),
+    )
+
+
+def _encode_reviewer(reviewer: ReviewerSummary) -> dict[str, Any]:
+    return {
+        "login": reviewer.login,
+        "approved": reviewer.approved,
+        "approved_non_team": reviewer.approved_non_team,
+        "pending_review": reviewer.pending_review,
+        "changes_requested": reviewer.changes_requested,
+        "open_thread": reviewer.open_thread,
+        "top_level_feedback": reviewer.top_level_feedback,
+    }
+
+
+def _decode_command_reply(value: Any) -> DashboardCommandReply:
+    if not isinstance(value, dict):
+        raise ValueError("facts.dashboard_command_replies entries must be objects")
+    route_value = value.get("route")
+    route = (
+        DashboardRoute(_string(route_value, "facts.dashboard_command_replies.route"))
+        if route_value is not None
+        else None
+    )
+    return DashboardCommandReply(
+        comment_id=_integer(
+            value.get("comment_id"),
+            "facts.dashboard_command_replies.comment_id",
+        ),
+        kind=_string(value.get("kind"), "facts.dashboard_command_replies.kind"),
+        user=_string(value.get("user"), "facts.dashboard_command_replies.user"),
+        subcommand=_string(
+            value.get("subcommand"),
+            "facts.dashboard_command_replies.subcommand",
+        ),
+        head_sha=_string(
+            value.get("head_sha"),
+            "facts.dashboard_command_replies.head_sha",
+        ),
+        route=route,
+        held_gates=_string(
+            value.get("held_gates"),
+            "facts.dashboard_command_replies.held_gates",
+        ),
+    )
+
+
+def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
+    if reply.kind == "routed":
+        return {
+            "comment_id": reply.comment_id,
+            "kind": reply.kind,
+            "head_sha": reply.head_sha,
+            "user": reply.user,
+            "route": reply.route.value if reply.route is not None else "",
+            "held_gates": reply.held_gates,
+        }
+    return {
+        "comment_id": reply.comment_id,
+        "kind": reply.kind,
+        "user": reply.user,
+        "subcommand": reply.subcommand,
+    }
+
+
+def decode_dashboard_facts(value: Any) -> DashboardFacts:
+    if not isinstance(value, dict):
+        raise ValueError("dashboard result facts must be an object")
+    raw_replies = value.get("dashboard_command_replies")
+    if raw_replies is None:
+        raw_replies = []
+    if not isinstance(raw_replies, list):
+        raise ValueError("facts.dashboard_command_replies must be an array")
+    raw_reviewers = value.get("reviewers")
+    if raw_reviewers is None:
+        raw_reviewers = []
+    if not isinstance(raw_reviewers, list):
+        raise ValueError("facts.reviewers must be an array")
+    return DashboardFacts(
+        author=_string(value.get("author"), "facts.author"),
+        assignees=_string_tuple(value.get("assignees"), "facts.assignees"),
+        head_sha=_string(value.get("head_sha"), "facts.head_sha"),
+        routing_input_fingerprint=_string(
+            value.get("routing_input_fingerprint"),
+            "facts.routing_input_fingerprint",
+        ),
+        copilot_request_fingerprint=_string(
+            value.get("copilot_request_fingerprint"),
+            "facts.copilot_request_fingerprint",
+        ),
+        dashboard_override_command_id=_integer(
+            value.get("dashboard_override_command_id"),
+            "facts.dashboard_override_command_id",
+        ),
+        dashboard_override_command_user=_string(
+            value.get("dashboard_override_command_user"),
+            "facts.dashboard_override_command_user",
+        ),
+        dashboard_override_head_sha=_string(
+            value.get("dashboard_override_head_sha"),
+            "facts.dashboard_override_head_sha",
+        ),
+        dashboard_command_replies=tuple(
+            _decode_command_reply(reply)
+            for reply in raw_replies
+        ),
+        copilot_review_requested=_boolean(
+            value.get("copilot_review_requested"),
+            "facts.copilot_review_requested",
+        ),
+        copilot_review_exists=_boolean(
+            value.get("copilot_review_exists"),
+            "facts.copilot_review_exists",
+        ),
+        copilot_review_stale=_boolean(
+            value.get("copilot_review_stale"),
+            "facts.copilot_review_stale",
+        ),
+        copilot_review_needed=_boolean(
+            value.get("copilot_review_needed"),
+            "facts.copilot_review_needed",
+        ),
+        is_maintenance_bot=_boolean(
+            value.get("is_maintenance_bot"),
+            "facts.is_maintenance_bot",
+        ),
+        is_draft=_boolean(value.get("is_draft"), "facts.is_draft"),
+        approval_count=_integer(
+            value.get("approval_count"),
+            "facts.approval_count",
+        ),
+        conflicts=_string(value.get("conflicts"), "facts.conflicts", "unknown"),
+        created_at=_string(value.get("created_at"), "facts.created_at"),
+        last_activity_at=_string(
+            value.get("last_activity_at"),
+            "facts.last_activity_at",
+        ),
+        last_author_activity_at=_string(
+            value.get("last_author_activity_at"),
+            "facts.last_author_activity_at",
+        ),
+        last_approver_activity_at=_string(
+            value.get("last_approver_activity_at"),
+            "facts.last_approver_activity_at",
+        ),
+        ci_failing_count=_optional_integer(
+            value.get("ci_failing_count"),
+            "facts.ci_failing_count",
+        ),
+        ci_failing_since=_optional_string(
+            value.get("ci_failing_since"),
+            "facts.ci_failing_since",
+        ),
+        ci_pending_count=_optional_integer(
+            value.get("ci_pending_count"),
+            "facts.ci_pending_count",
+        ),
+        non_blocking_check_failures=_string_tuple(
+            value.get("non_blocking_check_failures"),
+            "facts.non_blocking_check_failures",
+        ),
+        copilot_first_review_missing_since=_optional_string(
+            value.get("copilot_first_review_missing_since"),
+            "facts.copilot_first_review_missing_since",
+        ),
+        copilot_review_outstanding=_boolean(
+            value.get("copilot_review_outstanding"),
+            "facts.copilot_review_outstanding",
+        ),
+        copilot_review_unreported=_boolean(
+            value.get("copilot_review_unreported"),
+            "facts.copilot_review_unreported",
+        ),
+        copilot_review_request_needed=_boolean(
+            value.get("copilot_review_request_needed"),
+            "facts.copilot_review_request_needed",
+        ),
+        required_checks_settled=_boolean(
+            value.get("required_checks_settled"),
+            "facts.required_checks_settled",
+        ),
+        route_held_since=_optional_string(
+            value.get("route_held_since"),
+            "facts.route_held_since",
+        ),
+        route_hold_expired=_boolean(
+            value.get("route_hold_expired"),
+            "facts.route_hold_expired",
+        ),
+        route_held_for_gates=_boolean(
+            value.get("route_held_for_gates"),
+            "facts.route_held_for_gates",
+        ),
+        waiting_since=_string(
+            value.get("waiting_since"),
+            "facts.waiting_since",
+        ),
+        waiting_age_basis=_string(
+            value.get("waiting_age_basis"),
+            "facts.waiting_age_basis",
+        ),
+        author_nudge_episode_id=_optional_string(
+            value.get("author_nudge_episode_id"),
+            "facts.author_nudge_episode_id",
+        ),
+        author_action_review_thread_urls=_string_tuple(
+            value.get("author_action_review_thread_urls"),
+            "facts.author_action_review_thread_urls",
+        ),
+        author_action_top_level_feedback_urls=_string_tuple(
+            value.get("author_action_top_level_feedback_urls"),
+            "facts.author_action_top_level_feedback_urls",
+        ),
+        reviewers=tuple(_decode_reviewer(reviewer) for reviewer in raw_reviewers),
+    )
+
+
+def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
+    stored: dict[str, Any] = {
+        "author": facts.author,
+        "assignees": list(facts.assignees),
+        "head_sha": facts.head_sha,
+        "routing_input_fingerprint": facts.routing_input_fingerprint,
+        "copilot_request_fingerprint": facts.copilot_request_fingerprint,
+        "dashboard_override_command_id": facts.dashboard_override_command_id,
+        "dashboard_override_command_user": facts.dashboard_override_command_user,
+        "dashboard_override_head_sha": facts.dashboard_override_head_sha,
+        "dashboard_command_replies": [
+            _encode_command_reply(reply)
+            for reply in facts.dashboard_command_replies
+        ],
+        "copilot_review_requested": facts.copilot_review_requested,
+        "copilot_review_exists": facts.copilot_review_exists,
+        "copilot_review_stale": facts.copilot_review_stale,
+        "copilot_review_needed": facts.copilot_review_needed,
+        "is_maintenance_bot": facts.is_maintenance_bot,
+        "is_draft": facts.is_draft,
+        "approval_count": facts.approval_count,
+        "conflicts": facts.conflicts,
+        "created_at": facts.created_at,
+        "last_activity_at": facts.last_activity_at,
+        "last_author_activity_at": facts.last_author_activity_at,
+        "last_approver_activity_at": facts.last_approver_activity_at,
+        "copilot_review_outstanding": facts.copilot_review_outstanding,
+        "copilot_review_unreported": facts.copilot_review_unreported,
+        "copilot_review_request_needed": facts.copilot_review_request_needed,
+        "required_checks_settled": facts.required_checks_settled,
+        "route_hold_expired": facts.route_hold_expired,
+        "route_held_for_gates": facts.route_held_for_gates,
+        "waiting_since": facts.waiting_since,
+        "waiting_age_basis": facts.waiting_age_basis,
+        "author_action_review_thread_urls": list(
+            facts.author_action_review_thread_urls
+        ),
+        "author_action_top_level_feedback_urls": list(
+            facts.author_action_top_level_feedback_urls
+        ),
+        "reviewers": [
+            _encode_reviewer(reviewer)
+            for reviewer in facts.reviewers
+        ],
+    }
+    if facts.ci_failing_count is not None:
+        stored["ci_failing_count"] = facts.ci_failing_count
+    if facts.ci_failing_since is not None:
+        stored["ci_failing_since"] = facts.ci_failing_since
+    if facts.ci_pending_count is not None:
+        stored["ci_pending_count"] = facts.ci_pending_count
+    if facts.non_blocking_check_failures:
+        stored["non_blocking_check_failures"] = list(
+            facts.non_blocking_check_failures
+        )
+    if facts.copilot_first_review_missing_since is not None:
+        stored["copilot_first_review_missing_since"] = (
+            facts.copilot_first_review_missing_since
+        )
+    if facts.route_held_since is not None:
+        stored["route_held_since"] = facts.route_held_since
+    if facts.author_nudge_episode_id is not None:
+        stored["author_nudge_episode_id"] = facts.author_nudge_episode_id
+    return stored
+
+
+def decode_stored_result(
+    value: Any,
+    *,
+    pr_number_hint: int | None = None,
+) -> StoredDashboardResult:
+    if not isinstance(value, dict):
+        raise ValueError("dashboard result must be an object")
+    if _boolean(value.get("failed"), "dashboard result failed"):
+        raise ValueError("failed dashboard results cannot be stored")
+    pr_number = _integer(
+        value.get("pr_number"),
+        "dashboard result pr_number",
+        pr_number_hint or 0,
+    )
+    if pr_number_hint is not None and pr_number != pr_number_hint:
+        raise ValueError("dashboard result pr_number does not match its state key")
+    route = DashboardRoute(
+        _string(value.get("route"), "dashboard result route", "unknown")
+    )
+    history = value.get("top_level_history")
+    if history is None:
+        history = {}
+    if not isinstance(history, dict):
+        raise ValueError("dashboard result top_level_history must be an object")
+    return StoredDashboardResult(
+        pr_number=pr_number,
+        pr_url=_string(value.get("pr_url"), "dashboard result pr_url"),
+        route=route,
+        facts=decode_dashboard_facts(value.get("facts") or {}),
+        top_level_history=freeze_json_object(history),
+    )
+
+
+def encode_stored_result(result: StoredDashboardResult) -> dict[str, Any]:
+    return {
+        "pr_number": result.pr_number,
+        "pr_url": result.pr_url,
+        "failed": False,
+        "route": result.route.value,
+        "facts": encode_dashboard_facts(result.facts),
+        "top_level_history": thaw_json(result.top_level_history),
+    }
+
+
+def decode_dashboard_state(value: Mapping[str, Any]) -> DashboardState:
+    raw_prs = value.get("prs")
+    if not isinstance(raw_prs, dict):
+        raw_prs = {}
+    results: list[StoredDashboardResult] = []
+    decoded_pr_numbers: set[int] = set()
+    for key, raw_result in raw_prs.items():
+        try:
+            pr_number = int(key)
+            if pr_number <= 0:
+                raise ValueError("PR number must be positive")
+            if pr_number in decoded_pr_numbers:
+                raise ValueError("duplicate normalized PR number")
+            result = decode_stored_result(
+                raw_result,
+                pr_number_hint=pr_number,
+            )
+            results.append(result)
+            decoded_pr_numbers.add(pr_number)
+        except (TypeError, ValueError) as error:
+            print(
+                f"warning: ignoring malformed dashboard result {key!r}: {error}",
+                file=sys.stderr,
+            )
+    return DashboardState(
+        initial_backfill_complete=(
+            value.get(INITIAL_BACKFILL_COMPLETE_KEY) is True
+        ),
+        results=tuple(results),
+    )
+
+
+def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
+    return {
+        "version": DASHBOARD_STATE_VERSION,
+        INITIAL_BACKFILL_COMPLETE_KEY: state.initial_backfill_complete,
+        "prs": {
+            str(result.pr_number): encode_stored_result(result)
+            for result in state.results
+        },
+    }
+
+
+def load_dashboard_state_cache() -> DashboardState | None:
     state = load_state_file(dashboard_state_path(), DASHBOARD_STATE_VERSION)
     if state is None:
         return None
-    prs = state.get("prs")
-    prs = prs if isinstance(prs, dict) else {}
-    return {
-        "version": DASHBOARD_STATE_VERSION,
-        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
-        "prs": prs,
-    }
+    return decode_dashboard_state(state)
 
 
 def load_accepted_dashboard_state(
@@ -285,7 +726,7 @@ def load_accepted_dashboard_state(
     state_branch_name: str,
     *,
     required: bool = False,
-) -> dict[str, Any] | None:
+) -> DashboardState | None:
     with state_branch.accepted_state_dir(state_branch_name, required=required) as checkout_dir:
         if checkout_dir is None:
             return None
@@ -293,13 +734,12 @@ def load_accepted_dashboard_state(
         return load_dashboard_state_cache()
 
 
-def save_dashboard_state_cache(state: dict[str, Any]) -> None:
-    prs = state.get("prs")
-    stored = {
-        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
-        "prs": prs if isinstance(prs, dict) else {},
-    }
-    save_state_file(dashboard_state_path(), stored, DASHBOARD_STATE_VERSION)
+def save_dashboard_state_cache(state: DashboardState) -> None:
+    save_state_file(
+        dashboard_state_path(),
+        encode_dashboard_state(state),
+        DASHBOARD_STATE_VERSION,
+    )
 
 
 def load_notification_state_file(path: Path) -> dict[str, Any] | None:
@@ -467,55 +907,38 @@ def union_merge_notifications(
     return merged_notifications
 
 
-def stored_result(result: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "pr_number": result.get("pr_number"),
-        "pr_url": result.get("pr_url") or "",
-        "failed": bool(result.get("failed")),
-        "route": result.get("route") or "unknown",
-        "facts": result.get("facts") or {},
-        "top_level_history": result.get("top_level_history") or {},
-    }
+def stored_result(result: EvaluationSuccess) -> StoredDashboardResult:
+    return StoredDashboardResult.from_evaluation(result)
 
 
-def results_from_dashboard_state(state: dict[str, Any], open_pr_numbers: set[int]) -> dict[int, dict[str, Any]]:
-    results: dict[int, dict[str, Any]] = {}
-    for key, value in (state.get("prs") or {}).items():
-        if not isinstance(value, dict):
-            continue
-        try:
-            number = int(key)
-        except ValueError:
-            continue
-        if number in open_pr_numbers:
-            results[number] = value
-    return results
+def results_from_dashboard_state(
+    state: DashboardState,
+    open_pr_numbers: set[int],
+) -> tuple[StoredDashboardResult, ...]:
+    return state.results_for(open_pr_numbers)
 
 
-def dashboard_state_from_results(results: dict[int, dict[str, Any]]) -> dict[str, Any]:
-    return {
-        "version": DASHBOARD_STATE_VERSION,
-        INITIAL_BACKFILL_COMPLETE_KEY: False,
-        "prs": {str(number): stored_result(result) for number, result in sorted(results.items())},
-    }
+def dashboard_state_from_results(
+    results: Iterable[EvaluationSuccess | StoredDashboardResult],
+) -> DashboardState:
+    stored = tuple(
+        result
+        if isinstance(result, StoredDashboardResult)
+        else stored_result(result)
+        for result in results
+    )
+    return DashboardState(results=stored)
 
 
 def update_dashboard_state_for_pr(
-    state: dict[str, Any],
+    state: DashboardState,
     number: int,
-    result: dict[str, Any] | None,
-) -> dict[str, Any]:
-    prs = dict(state.get("prs") or {})
-    key = str(number)
-    if result is None:
-        prs.pop(key, None)
-    else:
-        prs[key] = stored_result(result)
-    return {
-        "version": DASHBOARD_STATE_VERSION,
-        INITIAL_BACKFILL_COMPLETE_KEY: initial_backfill_complete(state),
-        "prs": prs,
-    }
+    result: EvaluationSuccess | None,
+) -> DashboardState:
+    return state.with_result(
+        number,
+        stored_result(result) if result is not None else None,
+    )
 
 
 def main() -> int:

@@ -53,8 +53,10 @@ def notify_slack_from_state(
         open_pr_numbers &= target_pr_numbers
     results = results_from_dashboard_state(dashboard_state, open_pr_numbers)
     current_prs = {p["number"]: p for p in open_prs}
-    for number, result in results.items():
-        result["pr_title"] = current_prs.get(number, {}).get("title") or ""
+    pr_titles = {
+        result.pr_number: current_prs.get(result.pr_number, {}).get("title") or ""
+        for result in results
+    }
 
     saved_notifications = load_notifications()
     last_notification_state = last_notifications(saved_notifications, retry_snapshot_path)
@@ -69,6 +71,7 @@ def notify_slack_from_state(
     updated_notifications, delivery_errors = next_notifications(
         repo,
         results,
+        pr_titles,
         last_notification_state,
         now,
     )

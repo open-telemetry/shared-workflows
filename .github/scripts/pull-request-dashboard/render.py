@@ -1,9 +1,20 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
+from dataclasses import replace
 from datetime import datetime
 from fnmatch import fnmatchcase
 from typing import Any
 
+from dashboard_contracts import (
+    DashboardFacts,
+    DashboardRoute,
+    EvaluationFailure,
+    EvaluationResult,
+    EvaluationSuccess,
+    ReviewerSummary,
+    StoredDashboardResult,
+)
 from route_presentation import ROUTE_ORDER, route_label
 from utils import (
     COPILOT_REVIEWER_LOGINS,
@@ -82,18 +93,18 @@ def render_draft_pr_section(
     return lines
 
 
-def ci_cell(facts: dict[str, Any]) -> str:
-    if "ci_failing_count" not in facts and "ci_pending_count" not in facts:
+def ci_cell(facts: DashboardFacts) -> str:
+    if facts.ci_failing_count is None and facts.ci_pending_count is None:
         return "?"
-    if facts.get("ci_failing_count", 0) > 0:
+    if (facts.ci_failing_count or 0) > 0:
         return "❌"
-    if facts.get("ci_pending_count", 0) > 0:
+    if (facts.ci_pending_count or 0) > 0:
         return "⏳"
     return "✅"
 
 
-def conflicts_cell(facts: dict[str, Any]) -> str:
-    conflicts = facts.get("conflicts")
+def conflicts_cell(facts: DashboardFacts) -> str:
+    conflicts = facts.conflicts
     if conflicts == "yes":
         return "❌"
     if conflicts == "no":
@@ -101,36 +112,36 @@ def conflicts_cell(facts: dict[str, Any]) -> str:
     return "?"
 
 
-def _age_ts(facts: dict[str, Any]) -> datetime | None:
-    return parse_ts(facts.get("waiting_since") or facts.get("last_activity_at") or "")
+def _age_ts(facts: DashboardFacts) -> datetime | None:
+    return parse_ts(facts.waiting_since or facts.last_activity_at)
 
 
-def age_seconds(facts: dict[str, Any]) -> int | None:
+def age_seconds(facts: DashboardFacts) -> int | None:
     return seconds_since(_age_ts(facts))
 
 
-def age_cell(facts: dict[str, Any]) -> str:
+def age_cell(facts: DashboardFacts) -> str:
     return activity_age(_age_ts(facts))
 
 
 WORD_JOINER = "\u2060"
 
 
-def reviewer_icon(reviewer: dict[str, Any]) -> str:
+def reviewer_icon(reviewer: ReviewerSummary) -> str:
     discussion_icons = []
-    pending_review = bool(reviewer.get("pending_review"))
+    pending_review = reviewer.pending_review
     if pending_review:
         discussion_icons.append("⏳")
-    if reviewer.get("open_thread"):
+    if reviewer.open_thread:
         discussion_icons.append("💬")
-    if reviewer.get("top_level_feedback"):
+    if reviewer.top_level_feedback:
         discussion_icons.append("📌")
-    if reviewer.get("changes_requested"):
+    if reviewer.changes_requested:
         discussion_icons.append("🔴")
         return WORD_JOINER.join(discussion_icons)
-    if not pending_review and reviewer.get("approved"):
+    if not pending_review and reviewer.approved:
         discussion_icons.append("✅")
-    elif not pending_review and reviewer.get("approved_non_team"):
+    elif not pending_review and reviewer.approved_non_team:
         # A black/gray check distinguishes a non-code-owner approval from a
         # code-owner approval; only code-owner approvals count toward merge.
         discussion_icons.append("✔️")
@@ -151,7 +162,7 @@ def reviewer_display_name(login: str) -> str:
 COPILOT_REVIEWER_LOGIN = "copilot-pull-request-reviewer"
 
 
-def copilot_review_pending(facts: dict[str, Any]) -> bool:
+def copilot_review_pending(facts: DashboardFacts) -> bool:
     # "Pending" has to mean a review is genuinely in flight, or the icon shows
     # on nearly every row and stops carrying information. It also has to mean
     # the wait is someone's turn, which is what the gate decides. First-time
@@ -163,34 +174,38 @@ def copilot_review_pending(facts: dict[str, Any]) -> bool:
     # through the dashboard and the hold it causes would otherwise have nothing
     # on the row to explain it. A hold is not enough on its own: unsettled
     # checks hold a route too.
-    if not facts.get("copilot_review_outstanding"):
+    if not facts.copilot_review_outstanding:
         return False
-    if facts.get("copilot_review_requested"):
+    if facts.copilot_review_requested:
         return True
-    return bool(facts.get("route_held_for_gates")) and not facts.get(
-        "copilot_review_exists"
-    )
+    return facts.route_held_for_gates and not facts.copilot_review_exists
 
 
-def display_reviewers(facts: dict[str, Any]) -> list[dict[str, Any]]:
+def display_reviewers(facts: DashboardFacts) -> list[ReviewerSummary]:
     # Copilot only joins the reviewer list once it has reviewed, so a review
     # that is still in flight has to be added for the wait to be visible at all.
-    reviewers = [dict(reviewer) for reviewer in facts.get("reviewers") or []]
+    reviewers = list(facts.reviewers)
     if not copilot_review_pending(facts):
         return reviewers
     for reviewer in reviewers:
-        if is_copilot_reviewer_login(reviewer.get("login") or ""):
-            reviewer["pending_review"] = True
+        if is_copilot_reviewer_login(reviewer.login):
+            reviewers[reviewers.index(reviewer)] = replace(
+                reviewer,
+                pending_review=True,
+            )
             return reviewers
-    reviewers.append({"login": COPILOT_REVIEWER_LOGIN, "pending_review": True})
-    reviewers.sort(key=lambda reviewer: str(reviewer.get("login") or "").lower())
+    reviewers.append(ReviewerSummary(
+        login=COPILOT_REVIEWER_LOGIN,
+        pending_review=True,
+    ))
+    reviewers.sort(key=lambda reviewer: reviewer.login.lower())
     return reviewers
 
 
-def reviewers_cell_text(facts: dict[str, Any]) -> str:
+def reviewers_cell_text(facts: DashboardFacts) -> str:
     parts = []
     for reviewer in display_reviewers(facts):
-        login = markdown_escape(reviewer_display_name(reviewer.get("login") or ""))
+        login = markdown_escape(reviewer_display_name(reviewer.login))
         if not login:
             continue
         icon = reviewer_icon(reviewer)
@@ -204,16 +219,23 @@ def _neutralize_code_fence(s: str) -> str:
 
 
 def render_diagnostics_section(
-    results: dict[int, dict[str, Any]],
+    results: Iterable[EvaluationResult],
     max_rows_per_section: int | None = None,
 ) -> list[str]:
+    results_by_number = {
+        result.pr_number: result
+        for result in results
+    }
     prs_with_content = [
-        number for number in sorted(results, reverse=True)
+        number for number in sorted(results_by_number, reverse=True)
         if (
-            results[number].get("review_thread_classifications")
-            or results[number].get("top_level_classifications")
-            or results[number].get("top_level_author_comment_classifications")
-            or results[number].get("error")
+            results_by_number[number].diagnostics.review_thread_classifications
+            or results_by_number[number].diagnostics.top_level_classifications
+            or (
+                results_by_number[number]
+                .diagnostics.top_level_author_comment_classifications
+            )
+            or isinstance(results_by_number[number], EvaluationFailure)
         )
     ]
     if not prs_with_content:
@@ -221,13 +243,17 @@ def render_diagnostics_section(
     prs_with_content, truncated = _limit_rows(prs_with_content, max_rows_per_section)
     data_lines: list[str] = []
     for number in prs_with_content:
-        result = results[number]
-        pending_actions = result.get("pending_actions") or {}
+        result = results_by_number[number]
+        pending_actions = (
+            result.pending_actions
+            if isinstance(result, EvaluationSuccess)
+            else {}
+        )
         data_lines.append(f"PR #{number}")
         classifications = (
-            (result.get("review_thread_classifications") or [])
-            + (result.get("top_level_classifications") or [])
-            + (result.get("top_level_author_comment_classifications") or [])
+            result.diagnostics.review_thread_classifications
+            + result.diagnostics.top_level_classifications
+            + result.diagnostics.top_level_author_comment_classifications
         )
         for c in classifications:
             decision = c.get("decision") or {}
@@ -235,7 +261,7 @@ def render_diagnostics_section(
                 feedback_outcomes = [
                     outcome
                     for outcome in (decision.get("feedback_outcomes") or [])
-                    if isinstance(outcome, dict)
+                    if isinstance(outcome, Mapping)
                     and isinstance(outcome.get("feedback_id"), str)
                 ]
                 if not feedback_outcomes:
@@ -272,9 +298,8 @@ def render_diagnostics_section(
             data_lines.append(
                 f"llm: {c.get('discussion_id')} -> {decision.get('discussion_action')}{lifecycle_suffix} ({reason})"
             )
-        error = result.get("error")
-        if error:
-            data_lines.append(f"error: {error}")
+        if isinstance(result, EvaluationFailure):
+            data_lines.append(f"error: {result.error}")
         data_lines.append("")
     section = [
         "<details>",
@@ -295,11 +320,15 @@ def render_diagnostics_section(
 
 def render_pr_tables(
     prs: list[dict[str, Any]],
-    results: dict[int, dict[str, Any]],
+    results: Iterable[StoredDashboardResult],
     max_rows_per_section: int | None = None,
     skip_drafts: bool = False,
     labels_to_display: list[str] | None = None,
 ) -> str:
+    results_by_number = {
+        result.pr_number: result
+        for result in results
+    }
     source_url = "https://github.com/open-telemetry/shared-workflows/blob/main/.github/scripts/pull-request-dashboard/dashboard.py"
     draft_note = (
         "Draft PRs are omitted to keep this dashboard concise."
@@ -327,15 +356,19 @@ def render_pr_tables(
     for pr in prs:
         if pr.get("isDraft"):
             continue
-        res = results.get(pr["number"]) or {"route": "unknown"}
-        route = res.get("route") or "unknown"
+        res = results_by_number.get(pr["number"])
+        route = (
+            res.route.value
+            if res is not None
+            else DashboardRoute.UNKNOWN.value
+        )
         if route not in ROUTE_ORDER:
             route = "unknown"
         by_route.setdefault(route, []).append(pr)
 
     def row_sort_key(pr: dict[str, Any]) -> tuple[int, int]:
-        res = results.get(pr["number"]) or {}
-        facts = res.get("facts") or {}
+        res = results_by_number.get(pr["number"])
+        facts = res.facts if res is not None else DashboardFacts()
         activity = age_seconds(facts)
         return (activity if activity is not None else -1, pr["number"])
 
@@ -351,9 +384,9 @@ def render_pr_tables(
         out.append("|---|---|---|:---:|:---:|:---:|")
         for pr in rows:
             number = pr["number"]
-            res = results.get(number) or {}
-            facts = res.get("facts") or {}
-            author = facts.get("author") or actor_login(pr.get("author") or {})
+            res = results_by_number.get(number)
+            facts = res.facts if res is not None else DashboardFacts()
+            author = facts.author or actor_login(pr.get("author") or {})
             reviewers_cell = reviewers_cell_text(facts)
             activity_cell = age_cell(facts)
             # GitHub autolinks same-repo PR numbers; avoid full URLs so large
@@ -374,5 +407,4 @@ def render_pr_tables(
             max_rows_per_section,
             labels_to_display,
         ))
-    out.extend(render_diagnostics_section(results, max_rows_per_section))
     return "\n".join(out) + "\n"

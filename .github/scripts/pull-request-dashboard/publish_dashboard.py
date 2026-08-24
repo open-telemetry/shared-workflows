@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ from github_cli import (
     repo_state_key,
     run_gh,
 )
+from dashboard_contracts import StoredDashboardResult
 from render import render_pr_tables
 from state import (
     dashboard_markdown_path,
@@ -167,12 +169,13 @@ def publish_dashboard(repo: str, dashboard_body: Path) -> None:
 
 def publishable_prs(
     prs: list[dict[str, Any]],
-    results: dict[int, dict[str, Any]],
+    results: Iterable[StoredDashboardResult],
 ) -> list[dict[str, Any]]:
+    result_numbers = {result.pr_number for result in results}
     return [
         pr
         for pr in prs
-        if pr.get("isDraft") or pr.get("number") in results
+        if pr.get("isDraft") or pr.get("number") in result_numbers
     ]
 
 

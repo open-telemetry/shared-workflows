@@ -4,11 +4,25 @@
 
 Pull request evaluation is the dashboard's data plane. Given repository policy,
 a pull request summary, and the previous result, `pull_request_evaluation.py`
-fetches current GitHub data and produces one complete routing result. It owns
-effective-author resolution, facts, activity, discussions, classification,
-lifecycle and routing decisions, reviewer projection, command
+fetches current GitHub data and produces either `EvaluationSuccess` or
+`EvaluationFailure`. A success carries typed `DashboardFacts`, the final route,
+diagnostics, pending actions, and top-level history. A failure carries a failure
+route and error, so failure routes cannot be combined with successful results.
+Evaluation owns effective-author resolution, activity, discussions,
+classification, lifecycle and routing decisions, reviewer projection, command
 acknowledgements, author-action links, nudge episodes, and PR-specific failure
-shaping. Evaluation has no accepted-state or state-branch side effects.
+shaping. It has no accepted-state or state-branch side effects.
+
+`dashboard_contracts.py` defines the immutable in-memory boundary. A
+`StoredDashboardResult` projects an evaluation success down to the fields that
+survive refreshes. `DashboardState` holds those projections and the initial
+backfill marker. Raw GitHub and classifier payloads remain dictionaries only
+while they are source or diagnostic data.
+
+`state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
+codecs translate the immutable contracts to the existing version 10
+`dashboard-state.json` shape. Malformed pull request entries are discarded
+individually, so one bad entry does not prevent valid entries from loading.
 
 `dashboard_state_update.py` owns the acceptance transaction for one pull request
 slot. It prepares the cached starting value, reconciles an evaluation with the
