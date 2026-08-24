@@ -1079,6 +1079,69 @@ class RolloutStateTest(unittest.TestCase):
         self.assertEqual([12], saved_state["pending_pr_numbers"])
         self.assertEqual(0, saved_state["completed_revision"])
 
+    @patch.object(pr_status_comment, "STATUS_COMMENT_ROLLOUT_BATCH_SIZE", 2)
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(
+        pr_status_comment,
+        "publish_pr_status",
+        side_effect=[
+            pr_status_comment.StatusCommentDeferred("PR #12 is locked"),
+            pr_status_comment.StatusCommentDeferred("PR #34 is locked"),
+        ],
+    )
+    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "completed_revision": 0,
+            "pending_pr_numbers": [12, 34, 56],
+        },
+    )
+    def test_deferred_locked_prs_rotate_behind_unattempted_prs(
+        self,
+        load_rollout: Mock,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {12, 34, 56},
+        )
+
+        self.assertEqual([], errors)
+        self.assertEqual(
+            [12, 34],
+            [call.args[1] for call in publish_pr_status.call_args_list],
+        )
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([56, 12, 34], saved_state["pending_pr_numbers"])
+        self.assertEqual(0, saved_state["completed_revision"])
+
+        load_rollout.return_value = saved_state
+        publish_pr_status.reset_mock()
+        publish_pr_status.side_effect = [
+            None,
+            pr_status_comment.StatusCommentDeferred("PR #12 is locked"),
+        ]
+
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {12, 34, 56},
+        )
+
+        self.assertEqual([], errors)
+        self.assertEqual(
+            [56, 12],
+            [call.args[1] for call in publish_pr_status.call_args_list],
+        )
+        self.assertEqual(
+            [34, 12],
+            save_rollout.call_args.args[0]["pending_pr_numbers"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

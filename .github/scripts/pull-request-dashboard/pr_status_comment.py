@@ -502,24 +502,40 @@ def update_status_comments_from_state(
         return []
 
     saved_rollout_state = load_status_comment_rollout_state()
-    queued_pr_numbers = set(saved_rollout_state.get("pending_pr_numbers") or [])
+    queued_pr_numbers = list(
+        dict.fromkeys(saved_rollout_state.get("pending_pr_numbers") or [])
+    )
     rollout_state = prepare_rollout_state(saved_rollout_state, open_pr_numbers)
-    pending_pr_numbers = set(rollout_state["pending_pr_numbers"]) | queued_pr_numbers
-    rollout_pr_numbers = sorted(pending_pr_numbers)[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    queued_pr_number_set = set(queued_pr_numbers)
+    pending_pr_numbers = queued_pr_numbers + [
+        number
+        for number in rollout_state["pending_pr_numbers"]
+        if number not in queued_pr_number_set
+    ]
+    rollout_pr_numbers = pending_pr_numbers[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
+    deferred_pr_numbers: set[int] = set()
     errors: list[str] = []
     for number in rollout_pr_numbers:
         try:
             publish_pr_status(repo, number, dashboard_state)
         except StatusCommentDeferred as e:
             print(e, file=sys.stderr)
+            deferred_pr_numbers.add(number)
         except Exception as e:
             errors.append(f"PR #{number}: {e}")
         else:
             successful_pr_numbers.add(number)
 
-    pending = pending_pr_numbers - successful_pr_numbers
-    rollout_state["pending_pr_numbers"] = sorted(pending)
+    rollout_state["pending_pr_numbers"] = [
+        number
+        for number in pending_pr_numbers
+        if number not in successful_pr_numbers
+        and number not in deferred_pr_numbers
+    ] + [
+        number for number in rollout_pr_numbers if number in deferred_pr_numbers
+    ]
+    pending = rollout_state["pending_pr_numbers"]
     if not pending:
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
     save_status_comment_rollout_state(rollout_state)
