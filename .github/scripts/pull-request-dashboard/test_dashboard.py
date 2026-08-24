@@ -13,13 +13,9 @@ from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
     DashboardUpdate,
     apply_targeted_dashboard_update,
-    assign_author_nudge_episode,
-    author_action_discussion_urls,
     backfill_failed_pr_numbers,
-    build_pr_result,
+    build_dashboard_update_for_pr,
     complete_initial_backfill_if_ready,
-    compute_facts as dashboard_compute_facts,
-    fetch_pr_raw,
     main,
     merge_dashboard_update_with_latest_state,
     remove_cached_dashboard_prs,
@@ -27,12 +23,21 @@ from dashboard import (
     update_dashboard_for_backfill,
     write_initial_backfill_output,
 )
+from pull_request_evaluation import (
+    PullRequestEvaluationConfig,
+    PullRequestEvaluationInput,
+    _assign_author_nudge_episode,
+    _author_action_discussion_urls,
+    _compute_facts as evaluation_compute_facts,
+    _fetch_pr_raw,
+    evaluate_pull_request,
+)
 from pull_request_activity import PullRequestActivity
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
 
 
-def compute_facts(
+def evaluation_facts(
     raw: dict[str, object],
     author: str,
     events: list[dict[str, object]],
@@ -46,13 +51,49 @@ def compute_facts(
             tuple((raw["pr"] or {}).get("assignees") or []),
         )
     )
-    return dashboard_compute_facts(
+    return evaluation_compute_facts(
         raw,
         author,
         PullRequestActivity(tuple(events), None, None, None),
         prepared_reviewers,
-        reviewers,
-        previous_facts,
+        frozenset(reviewers or set()),
+        previous_facts or {},
+    )
+
+
+def evaluation_config(
+    *,
+    require_clean_copilot_review_branches: list[str] | None = None,
+) -> PullRequestEvaluationConfig:
+    return PullRequestEvaluationConfig(
+        repo="owner/repo",
+        owner="owner",
+        repo_name="repo",
+        approver_logins=frozenset({"reviewer"}),
+        classifier_model="model",
+        required_approvals=1,
+        require_clean_copilot_review_branches=frozenset(
+            require_clean_copilot_review_branches or []
+        ),
+    )
+
+
+def evaluate_pr(
+    pr_summary: dict[str, object],
+    *,
+    previous_result: dict[str, object] | None = None,
+    require_clean_copilot_review_branches: list[str] | None = None,
+) -> dict[str, object] | None:
+    return evaluate_pull_request(
+        evaluation_config(
+            require_clean_copilot_review_branches=(
+                require_clean_copilot_review_branches
+            )
+        ),
+        PullRequestEvaluationInput(
+            pr_summary=pr_summary,
+            previous_result=previous_result,
+        ),
     )
 
 
@@ -60,7 +101,7 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_preserves_episode_while_route_remains_author(self) -> None:
         facts: dict[str, object] = {}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             {
@@ -72,12 +113,12 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
 
         self.assertEqual("abc123", facts["author_nudge_episode_id"])
 
-    @patch("dashboard.uuid.uuid4")
+    @patch("pull_request_evaluation.uuid.uuid4")
     def test_starts_new_episode_after_known_route_departure(self, uuid4: Mock) -> None:
         uuid4.return_value.hex = "def456"
         facts: dict[str, object] = {}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             {"route": "approver", "facts": {}},
@@ -95,7 +136,7 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_recovers_episode_from_status_comment_after_cache_loss(self) -> None:
         facts: dict[str, object] = {}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             None,
@@ -113,7 +154,7 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_preserves_episode_while_route_is_held_for_gates(self) -> None:
         facts: dict[str, object] = {"route_held_for_gates": True}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             {
@@ -128,7 +169,7 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_preserves_episode_while_pr_is_conflicted(self) -> None:
         facts: dict[str, object] = {"conflicts": "yes"}
 
-        assign_author_nudge_episode(
+        _assign_author_nudge_episode(
             facts,
             "author",
             {
@@ -166,7 +207,10 @@ class FetchPrRawTest(unittest.TestCase):
                 return_value=issue_comments,
             ) as fetch_issue_comments,
             patch("github_cli.gh_api", side_effect=gh_api) as routing_rest_api,
-            patch("dashboard.gh_api", side_effect=gh_api) as commits_rest_api,
+            patch(
+                "pull_request_evaluation.gh_api",
+                side_effect=gh_api,
+            ) as commits_rest_api,
             patch("github_cli.fetch_review_threads", return_value=[]),
             patch("github_cli.fetch_review_requests", return_value=[]),
             patch(
@@ -186,12 +230,9 @@ class FetchPrRawTest(unittest.TestCase):
             patch("github_cli.gh_branch_rules", return_value=[]),
             patch("github_cli.include_missing_required_checks", return_value=[]),
         ):
-            raw = fetch_pr_raw(
-                "owner/repo",
-                "owner",
-                "repo",
+            raw = _fetch_pr_raw(
+                evaluation_config(),
                 {"number": 7},
-                [],
             )
 
         self.assertEqual(raw["issue_comments"], issue_comments)
@@ -208,7 +249,71 @@ class FetchPrRawTest(unittest.TestCase):
         )
 
 
-class BuildPrResultTest(unittest.TestCase):
+class DashboardEvaluationHandoffTest(unittest.TestCase):
+    @patch("dashboard.evaluate_pull_request")
+    def test_passes_the_cached_result_and_wraps_the_evaluation(
+        self,
+        evaluate: Mock,
+    ) -> None:
+        starting_result = {
+            "pr_number": 7,
+            "route": "author",
+            "facts": {"head_sha": "old-head"},
+            "top_level_history": {
+                "feedback": {
+                    "kind": "commit",
+                    "timestamp": "2026-08-16T08:00:00Z",
+                }
+            },
+        }
+        evaluated_result = {
+            "pr_number": 7,
+            "route": "approver",
+            "failed": False,
+            "facts": {"head_sha": "new-head"},
+            "top_level_history": starting_result["top_level_history"],
+        }
+        evaluate.return_value = evaluated_result
+
+        update = build_dashboard_update_for_pr(
+            "owner/repo",
+            "owner",
+            "repo",
+            {7},
+            {"reviewer"},
+            7,
+            "model",
+            1,
+            ["optional-*"],
+            {"prs": {"7": starting_result}},
+            ["main"],
+        )
+
+        config, source = evaluate.call_args.args
+        self.assertEqual(starting_result, source.previous_result)
+        self.assertEqual(frozenset({"reviewer"}), config.approver_logins)
+        self.assertEqual(("optional-*",), config.non_blocking_check_patterns)
+        self.assertEqual(
+            frozenset({"main"}),
+            config.require_clean_copilot_review_branches,
+        )
+        self.assertEqual(starting_result, update.starting_pr_result)
+        self.assertEqual(evaluated_result, update.trigger_pr_result)
+        self.assertEqual(evaluated_result, update.results[7])
+        self.assertEqual(
+            {
+                "pr_number": 7,
+                "pr_url": "",
+                "route": "approver",
+                "failed": False,
+                "facts": {"head_sha": "new-head"},
+                "top_level_history": starting_result["top_level_history"],
+            },
+            update.current_pr_result,
+        )
+
+
+class PullRequestEvaluationTest(unittest.TestCase):
     @staticmethod
     def raw_pr(*, checks: list[dict[str, object]] | None = None) -> dict[str, object]:
         return {
@@ -252,20 +357,24 @@ class BuildPrResultTest(unittest.TestCase):
             ReviewerInput(tuple(events), (), ())
         )
 
-        facts = dashboard_compute_facts(
+        facts = evaluation_compute_facts(
             raw,
             "author",
             PullRequestActivity(tuple(events), None, None, None),
             prepared_reviewers,
-            {"reviewer"},
+            frozenset({"reviewer"}),
+            {},
         )
 
         self.assertEqual(1, facts["approval_count"])
 
-    @patch("dashboard.resolve_routing", wraps=resolve_routing)
-    @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
-    @patch("dashboard.fetch_pr_raw")
-    def test_build_result_routes_pending_reviewers_and_projects_reviewer_rows(
+    @patch("pull_request_evaluation.resolve_routing", wraps=resolve_routing)
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(
         self,
         fetch_raw: Mock,
         _classify: Mock,
@@ -285,15 +394,8 @@ class BuildPrResultTest(unittest.TestCase):
         }]
         fetch_raw.return_value = raw
 
-        result = build_pr_result(
-            "owner/repo",
-            "owner",
-            "repo",
+        result = evaluate_pr(
             {"number": 7},
-            {"reviewer"},
-            "model",
-            1,
-            [],
         )
 
         self.assertIsNotNone(result)
@@ -317,10 +419,10 @@ class BuildPrResultTest(unittest.TestCase):
         )
 
     @patch(
-        "dashboard.classify_discussion_domains",
+        "pull_request_evaluation.classify_discussion_domains",
         side_effect=AssertionError("classification must be bypassed"),
     )
-    @patch("dashboard.fetch_pr_raw")
+    @patch("pull_request_evaluation._fetch_pr_raw")
     def test_override_binds_to_the_observed_head_before_classification(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
@@ -371,15 +473,8 @@ class BuildPrResultTest(unittest.TestCase):
             "non_blocking_check_failures": [],
         }
 
-        result = build_pr_result(
-            "owner/repo",
-            "owner",
-            "repo",
+        result = evaluate_pr(
             {"number": 7},
-            {"reviewer"},
-            "model",
-            1,
-            [],
             require_clean_copilot_review_branches=["main"],
         )
 
@@ -406,8 +501,11 @@ class BuildPrResultTest(unittest.TestCase):
         )
         classify.assert_not_called()
 
-    @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
-    @patch("dashboard.fetch_pr_raw")
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
     def test_conflict_uses_normal_discussion_and_approval_routing(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
@@ -456,15 +554,8 @@ class BuildPrResultTest(unittest.TestCase):
             "non_blocking_check_failures": [],
         }
 
-        result = build_pr_result(
-            "owner/repo",
-            "owner",
-            "repo",
+        result = evaluate_pr(
             {"number": 7},
-            {"reviewer"},
-            "model",
-            1,
-            [],
         )
 
         self.assertIsNotNone(result)
@@ -475,24 +566,20 @@ class BuildPrResultTest(unittest.TestCase):
         self.assertEqual("last_author_activity", result["facts"]["waiting_age_basis"])
         classify.assert_called_once()
 
-    @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
-    @patch("dashboard.fetch_pr_raw")
-    def test_normal_routing_flows_through_build_pr_result(
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_normal_routing_flows_through_evaluation(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
         fetch_raw.return_value = self.raw_pr(
             checks=[{"name": "required", "bucket": "pass"}]
         )
 
-        result = build_pr_result(
-            "owner/repo",
-            "owner",
-            "repo",
+        result = evaluate_pr(
             {"number": 7},
-            {"reviewer"},
-            "model",
-            1,
-            [],
         )
 
         self.assertIsNotNone(result)
@@ -503,8 +590,11 @@ class BuildPrResultTest(unittest.TestCase):
         classify.assert_called_once()
 
     @patch("routing_decision.utc_now")
-    @patch("dashboard.classify_discussion_domains", return_value=([], [], []))
-    @patch("dashboard.fetch_pr_raw")
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
     def test_running_required_check_keeps_integrated_route_held(
         self, fetch_raw: Mock, classify: Mock, utc_now: Mock
     ) -> None:
@@ -513,15 +603,8 @@ class BuildPrResultTest(unittest.TestCase):
             checks=[{"name": "required", "bucket": "pending"}]
         )
 
-        result = build_pr_result(
-            "owner/repo",
-            "owner",
-            "repo",
+        result = evaluate_pr(
             {"number": 7},
-            {"reviewer"},
-            "model",
-            1,
-            [],
             previous_result={
                 "route": "author",
                 "facts": {
@@ -542,24 +625,17 @@ class BuildPrResultTest(unittest.TestCase):
         classify.assert_called_once()
 
     @patch(
-        "dashboard.classify_discussion_domains",
+        "pull_request_evaluation.classify_discussion_domains",
         return_value=([], [{"failed": True, "error": "model failed"}], []),
     )
-    @patch("dashboard.fetch_pr_raw")
+    @patch("pull_request_evaluation._fetch_pr_raw")
     def test_classification_failure_preserves_integrated_routing_failure_facts(
         self, fetch_raw: Mock, classify: Mock
     ) -> None:
         fetch_raw.return_value = self.raw_pr()
 
-        result = build_pr_result(
-            "owner/repo",
-            "owner",
-            "repo",
+        result = evaluate_pr(
             {"number": 7},
-            {"reviewer"},
-            "model",
-            1,
-            [],
             previous_result={
                 "route": "author",
                 "facts": {
@@ -596,13 +672,13 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
 
         self.assertEqual(
             ["https://example.test/discussion/1", "https://example.test/discussion/2"],
-            author_action_discussion_urls(discussions, pending_actions),
+            _author_action_discussion_urls(discussions, pending_actions),
         )
 
 
 class CopilotReviewGateTest(unittest.TestCase):
     def test_current_head_matches_latest_clean_copilot_review(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -650,7 +726,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_late_stale_review_does_not_replace_clean_current_head_review(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -688,7 +764,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_push_since_latest_clean_copilot_review_needs_rereview(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -720,7 +796,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_needed"])
 
     def test_unresolved_copilot_thread_on_current_head_needs_rereview(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -779,7 +855,7 @@ class CopilotReviewGateTest(unittest.TestCase):
     def test_resolved_copilot_findings_on_current_head_are_clean(self) -> None:
         # A review's comment count never shrinks, so counting it would hold the
         # PR on feedback the author already addressed.
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -845,7 +921,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_human_thread_does_not_count_as_a_copilot_finding(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -894,7 +970,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertFalse(facts["copilot_review_needed"])
 
     def test_findings_only_history_needs_rereview(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -925,7 +1001,7 @@ class CopilotReviewGateTest(unittest.TestCase):
         self.assertTrue(facts["copilot_review_needed"])
 
     def test_waits_for_automatic_initial_copilot_review(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1076,7 +1152,7 @@ class CopilotReviewGateTest(unittest.TestCase):
 
 class HeadShaSourceTest(unittest.TestCase):
     def test_head_sha_prefers_pr_head_ref_oid_over_truncated_commits(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-20T03:00:00Z",
@@ -1301,7 +1377,7 @@ class StatusCommentQueueTest(unittest.TestCase):
 
 class RequiredCiRoutingTest(unittest.TestCase):
     def test_non_blocking_check_failures_use_deterministic_casefold_tiebreaker(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-14T03:00:00Z",
@@ -1338,7 +1414,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
         )
         for state, bucket, failing, pending in cases:
             with self.subTest(state=state, bucket=bucket):
-                facts = compute_facts(
+                facts = evaluation_facts(
                     {
                         "pr": {
                             "updatedAt": "2026-07-14T03:00:00Z",
@@ -1365,7 +1441,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
                 )
 
     def test_override_command_does_not_clear_required_check_failures(self) -> None:
-        facts = compute_facts(
+        facts = evaluation_facts(
             {
                 "pr": {
                     "updatedAt": "2026-07-17T03:00:00Z",
@@ -1422,11 +1498,13 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
             datetime(2026, 7, 20, 3, tzinfo=timezone.utc),
         )
 
-        facts = dashboard_compute_facts(
+        facts = evaluation_compute_facts(
             raw,
             "author",
             activity,
             prepared_reviewers,
+            frozenset(),
+            {},
         )
 
         self.assertEqual("2026-07-20T01:00:00+00:00", facts["last_activity_at"])
@@ -1451,11 +1529,13 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
             "checks": [],
         }
 
-        facts = dashboard_compute_facts(
+        facts = evaluation_compute_facts(
             raw,
             "author",
             PullRequestActivity((), None, None, None),
             prepare_reviewers(ReviewerInput((), (), ())),
+            frozenset(),
+            {},
         )
 
         self.assertEqual(

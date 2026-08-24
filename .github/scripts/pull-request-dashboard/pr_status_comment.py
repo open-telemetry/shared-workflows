@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import re
 import sys
 from typing import Any
 from urllib.parse import urlencode
@@ -13,6 +12,14 @@ from github_cli import (
     run_gh,
 )
 from dashboard_override import PRE_REVIEW_ROUTES
+from dashboard_status import (
+    AUTHOR_NUDGE_EPISODE_MARKER_PREFIX,
+    DASHBOARD_APP_SLUG,
+    STATUS_MARKER,
+    author_nudge_episode_marker,
+    is_dashboard_app_comment,
+    status_author_nudge_episode_id,
+)
 from route_presentation import (
     abandoned_gate_note,
     outstanding_gate_phrase,
@@ -29,13 +36,6 @@ from utils import markdown_escape, truncate
 from utils import utc_now
 
 
-STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
-AUTHOR_NUDGE_EPISODE_MARKER_PREFIX = (
-    "<!-- pull-request-dashboard-author-nudge-episode:"
-)
-_AUTHOR_NUDGE_EPISODE_MARKER_RE = re.compile(
-    r"<!-- pull-request-dashboard-author-nudge-episode:([a-f0-9]+) -->"
-)
 STATUS_COMMENT_ROLLOUT_BATCH_SIZE = 50
 AUTHOR_ACTION_FEEDBACK_LINK_LIMIT = 20
 NON_BLOCKING_CHECK_FAILURE_LIMIT = 20
@@ -47,32 +47,6 @@ STATUS_REPORT_TRUNCATION_NOTICE = (
     "[Status comment truncated to keep this report link usable.]"
 )
 RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
-DASHBOARD_APP_SLUG = "opentelemetry-pr-dashboard"
-
-
-def author_nudge_episode_marker(episode_id: str) -> str:
-    return f"{AUTHOR_NUDGE_EPISODE_MARKER_PREFIX}{episode_id} -->"
-
-
-def is_dashboard_app_comment(comment: dict[str, Any]) -> bool:
-    app_slug = (comment.get("performed_via_github_app") or {}).get("slug") or ""
-    author_login = (comment.get("user") or {}).get("login") or ""
-    return app_slug == DASHBOARD_APP_SLUG or author_login == f"{DASHBOARD_APP_SLUG}[bot]"
-
-
-def status_author_nudge_episode_id(
-    comments: list[dict[str, Any]] | None,
-) -> str:
-    for comment in comments or []:
-        body = comment.get("body") or ""
-        match = _AUTHOR_NUDGE_EPISODE_MARKER_RE.search(body)
-        if (
-            match
-            and STATUS_MARKER in body
-            and is_dashboard_app_comment(comment)
-        ):
-            return match.group(1)
-    return ""
 
 
 def status_report_url(pr: dict[str, Any], status_comment: str) -> str:
