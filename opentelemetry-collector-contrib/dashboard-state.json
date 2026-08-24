@@ -13064,7 +13064,7 @@
     },
     "50459": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -13072,7 +13072,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8a7eec9c34cbbac7f9476c627c94454af21afb0db00d765597529a388ebe77b6",
+        "copilot_request_fingerprint": "e3db72d55cd05fbfc65a47c823ee0688e0baac5c693503dafa16d48d155afbf9",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13088,21 +13088,31 @@
         "head_sha": "b72f6256b17ec7833554c4ca2b5cf94c7b604c04",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-24T00:16:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T09:07:29+00:00",
+        "last_approver_activity_at": "2026-08-24T09:07:29+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "iblancasa",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b1206fdaf990be8506bf70daa377d6693a1e7e6f770bd66b0cc6910e0fbc210c",
+        "routing_input_fingerprint": "6097e3efd85a2c7d8d6302ed9d7cbcea4d6998f69f6c9a68b8cea928cb808005",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-24T00:16:42+00:00"
       },
       "failed": false,
       "pr_number": 50459,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50459",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
