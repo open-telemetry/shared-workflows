@@ -4564,7 +4564,7 @@
     },
     "3696": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "aryamohanan",
         "author_action_review_thread_urls": [],
@@ -4573,7 +4573,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 6,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a7d467b6a474cdcf425f237f87ac4fc2e74f38df2b623d9a4bd5329787717c9b",
+        "copilot_request_fingerprint": "af0ec78ad25b1cbf8f9e7111efad6d0cd361651ed763f462a63519fb2651a65b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4589,16 +4589,26 @@
         "head_sha": "2891d947180c2b69804d74dfcfca18fb96a612c3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T09:07:19+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T09:10:29+00:00",
+        "last_approver_activity_at": "2026-08-24T09:10:29+00:00",
         "last_author_activity_at": "2026-08-24T09:04:15+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "pichlermarc",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-08-24T09:08:46.736407+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "980ccb4e0a706ee705db8ef9e905be0bcbff8ad49a61846e4840ab63da41ef9f",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "d0f748591b66c9c74c5e94d68fcfd012fde5f20c9f7aded2c679aea56170ebbc",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-24T09:07:19+00:00"
       },
       "failed": false,
