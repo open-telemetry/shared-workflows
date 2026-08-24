@@ -49,6 +49,10 @@ STATUS_REPORT_TRUNCATION_NOTICE = (
 RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
 
 
+class StatusCommentDeferred(Exception):
+    pass
+
+
 def status_report_url(pr: dict[str, Any], status_comment: str) -> str:
     quoted_status_comment = "\n".join(
         f"> {line}" for line in status_comment.splitlines()
@@ -382,10 +386,15 @@ def upsert_status_comment(
     body: str,
     *,
     create: bool = True,
+    locked: bool = False,
 ) -> None:
     comments = managed_status_comments(repo, pr_number)
     if comments:
         comment = comments[0]
+        if locked and (comment.get("body") != body or len(comments) > 1):
+            raise StatusCommentDeferred(
+                f"PR #{pr_number} is locked; deferring terminal status comment"
+            )
         comment_id = comment["id"]
         if comment.get("body") == body:
             print(f"PR #{pr_number} status comment is unchanged", file=sys.stderr)
@@ -431,6 +440,7 @@ def publish_pr_status(repo: str, pr_number: int, dashboard_state: dict[str, Any]
         pr_number,
         render_status_comment(pr, result),
         create=not is_terminal_pr(pr),
+        locked=is_terminal_pr(pr) and bool(pr.get("locked")),
     )
 
 
@@ -441,16 +451,21 @@ def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list
         return []
 
     rollout_state = load_status_comment_rollout_state()
-    pending_pr_numbers = set(rollout_state.get("pending_pr_numbers") or [])
+    pending_pr_numbers = list(
+        dict.fromkeys(rollout_state.get("pending_pr_numbers") or [])
+    )
     if pr_number not in pending_pr_numbers:
         return []
     try:
         publish_pr_status(repo, pr_number, dashboard_state)
+    except StatusCommentDeferred as e:
+        print(e, file=sys.stderr)
+        return []
     except Exception as e:
         return [f"PR #{pr_number}: {e}"]
 
     pending_pr_numbers.remove(pr_number)
-    rollout_state["pending_pr_numbers"] = sorted(pending_pr_numbers)
+    rollout_state["pending_pr_numbers"] = pending_pr_numbers
     if not pending_pr_numbers:
         rollout_state["completed_revision"] = rollout_state["target_revision"]
     save_status_comment_rollout_state(rollout_state)
@@ -489,22 +504,40 @@ def update_status_comments_from_state(
         return []
 
     saved_rollout_state = load_status_comment_rollout_state()
-    queued_pr_numbers = set(saved_rollout_state.get("pending_pr_numbers") or [])
+    queued_pr_numbers = list(
+        dict.fromkeys(saved_rollout_state.get("pending_pr_numbers") or [])
+    )
     rollout_state = prepare_rollout_state(saved_rollout_state, open_pr_numbers)
-    pending_pr_numbers = set(rollout_state["pending_pr_numbers"]) | queued_pr_numbers
-    rollout_pr_numbers = sorted(pending_pr_numbers)[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    queued_pr_number_set = set(queued_pr_numbers)
+    pending_pr_numbers = queued_pr_numbers + [
+        number
+        for number in rollout_state["pending_pr_numbers"]
+        if number not in queued_pr_number_set
+    ]
+    rollout_pr_numbers = pending_pr_numbers[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
+    deferred_pr_numbers: set[int] = set()
     errors: list[str] = []
     for number in rollout_pr_numbers:
         try:
             publish_pr_status(repo, number, dashboard_state)
+        except StatusCommentDeferred as e:
+            print(e, file=sys.stderr)
+            deferred_pr_numbers.add(number)
         except Exception as e:
             errors.append(f"PR #{number}: {e}")
         else:
             successful_pr_numbers.add(number)
 
-    pending = pending_pr_numbers - successful_pr_numbers
-    rollout_state["pending_pr_numbers"] = sorted(pending)
+    rollout_state["pending_pr_numbers"] = [
+        number
+        for number in pending_pr_numbers
+        if number not in successful_pr_numbers
+        and number not in deferred_pr_numbers
+    ] + [
+        number for number in rollout_pr_numbers if number in deferred_pr_numbers
+    ]
+    pending = rollout_state["pending_pr_numbers"]
     if not pending:
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
     save_status_comment_rollout_state(rollout_state)

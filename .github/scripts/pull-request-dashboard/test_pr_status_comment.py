@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -669,6 +671,20 @@ class UpsertStatusCommentTest(unittest.TestCase):
 
         self.assertEqual([], self.commands)
 
+    @patch.object(pr_status_comment, "managed_status_comments", return_value=[])
+    def test_locked_pr_without_status_comment_has_nothing_to_defer(
+        self, _comments: object
+    ) -> None:
+        pr_status_comment.upsert_status_comment(
+            "open-telemetry/example",
+            1,
+            "body",
+            create=False,
+            locked=True,
+        )
+
+        self.assertEqual([], self.commands)
+
     @patch.object(
         pr_status_comment,
         "managed_status_comments",
@@ -683,8 +699,49 @@ class UpsertStatusCommentTest(unittest.TestCase):
 
         self.assertEqual(["PATCH"], [command[3] for command in self.commands])
 
+    @patch.object(
+        pr_status_comment,
+        "managed_status_comments",
+        return_value=[{"id": 7, "body": "<!-- pull-request-dashboard-status --> old"}],
+    )
+    def test_locked_pr_defers_existing_comment_update(self, _comments: object) -> None:
+        with self.assertRaisesRegex(
+            pr_status_comment.StatusCommentDeferred,
+            "PR #1 is locked",
+        ):
+            pr_status_comment.upsert_status_comment(
+                "open-telemetry/example",
+                1,
+                "body",
+                create=False,
+                locked=True,
+            )
+
+        self.assertEqual([], self.commands)
+
 
 class PublishPrStatusTest(unittest.TestCase):
+    @patch.object(pr_status_comment, "upsert_status_comment")
+    @patch.object(
+        pr_status_comment,
+        "gh_api",
+        return_value={
+            "number": 1,
+            "state": "closed",
+            "merged": True,
+            "locked": True,
+        },
+    )
+    def test_locked_terminal_pr_disables_creation_and_marks_update_locked(
+        self, _gh_api: Mock, upsert: Mock
+    ) -> None:
+        pr_status_comment.publish_pr_status(
+            "open-telemetry/example", 1, {"prs": {}}
+        )
+
+        self.assertFalse(upsert.call_args.kwargs["create"])
+        self.assertTrue(upsert.call_args.kwargs["locked"])
+
     @patch.object(pr_status_comment, "upsert_status_comment")
     @patch.object(pr_status_comment, "gh_api")
     def test_terminal_pr_never_creates_a_status_comment(
@@ -748,15 +805,54 @@ class ManagedStatusCommentsTest(unittest.TestCase):
 
 class RolloutStateTest(unittest.TestCase):
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(
+        pr_status_comment,
+        "publish_pr_status",
+        side_effect=pr_status_comment.StatusCommentDeferred("PR #34 is locked"),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value={"prs": {}},
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": 12,
+            "completed_revision": 11,
+            "pending_pr_numbers": [34],
+        },
+    )
+    def test_targeted_update_retains_deferred_locked_pr(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        _publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        status = pr_status_comment.update_targeted_status_comment_from_state(
+            "open-telemetry/example",
+            34,
+        )
+
+        self.assertEqual([], status)
+        save_rollout.assert_not_called()
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value={"prs": {}},
+    )
     @patch.object(
         pr_status_comment,
         "load_status_comment_rollout_state",
         return_value={
             "target_revision": 0,
             "completed_revision": 0,
-            "pending_pr_numbers": [12, 34],
+            "pending_pr_numbers": [56, 34, 12],
         },
     )
     def test_targeted_update_only_drains_triggering_pr(
@@ -775,11 +871,15 @@ class RolloutStateTest(unittest.TestCase):
         publish_pr_status.assert_called_once_with("open-telemetry/example", 34, {"prs": {}})
         saved_state = save_rollout.call_args.args[0]
         self.assertEqual(0, saved_state["target_revision"])
-        self.assertEqual([12], saved_state["pending_pr_numbers"])
+        self.assertEqual([56, 12], saved_state["pending_pr_numbers"])
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value={"prs": {}},
+    )
     @patch.object(
         pr_status_comment,
         "load_status_comment_rollout_state",
@@ -933,10 +1033,114 @@ class RolloutStateTest(unittest.TestCase):
         )
 
         self.assertEqual(["PR #12: failed"], errors)
-        self.assertEqual([12, 34], [call.args[1] for call in publish_pr_status.call_args_list])
+        self.assertEqual(
+            [12, 34],
+            [call.args[1] for call in publish_pr_status.call_args_list],
+        )
         saved_state = save_rollout.call_args.args[0]
         self.assertEqual([12], saved_state["pending_pr_numbers"])
         self.assertEqual(0, saved_state["completed_revision"])
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(
+        pr_status_comment,
+        "publish_pr_status",
+        side_effect=[
+            pr_status_comment.StatusCommentDeferred("PR #12 is locked"),
+            None,
+        ],
+    )
+    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": 0,
+            "completed_revision": 0,
+            "pending_pr_numbers": [],
+        },
+    )
+    def test_deferred_locked_pr_stays_pending_without_delivery_error(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {12, 34},
+        )
+
+        self.assertEqual([], errors)
+        self.assertEqual(
+            [12, 34],
+            [call.args[1] for call in publish_pr_status.call_args_list],
+        )
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([12], saved_state["pending_pr_numbers"])
+        self.assertEqual(0, saved_state["completed_revision"])
+
+    @patch.object(pr_status_comment, "STATUS_COMMENT_ROLLOUT_BATCH_SIZE", 2)
+    @patch.object(
+        pr_status_comment,
+        "publish_pr_status",
+        side_effect=[
+            pr_status_comment.StatusCommentDeferred("PR #12 is locked"),
+            pr_status_comment.StatusCommentDeferred("PR #34 is locked"),
+        ],
+    )
+    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    def test_deferred_locked_prs_rotate_behind_unattempted_prs(
+        self,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch(
+            "state._state_dir", Path(temp_dir)
+        ):
+            pr_status_comment.save_status_comment_rollout_state({
+                "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+                "completed_revision": 0,
+                "pending_pr_numbers": [12, 34, 56],
+            })
+
+            errors = pr_status_comment.update_status_comments_from_state(
+                "open-telemetry/example",
+                {12, 34, 56},
+            )
+
+            self.assertEqual([], errors)
+            self.assertEqual(
+                [12, 34],
+                [call.args[1] for call in publish_pr_status.call_args_list],
+            )
+            saved_state = pr_status_comment.load_status_comment_rollout_state()
+            self.assertEqual([56, 12, 34], saved_state["pending_pr_numbers"])
+            self.assertEqual(0, saved_state["completed_revision"])
+
+            publish_pr_status.reset_mock()
+            publish_pr_status.side_effect = [
+                None,
+                pr_status_comment.StatusCommentDeferred("PR #12 is locked"),
+            ]
+
+            errors = pr_status_comment.update_status_comments_from_state(
+                "open-telemetry/example",
+                {12, 34, 56},
+            )
+
+            self.assertEqual([], errors)
+            self.assertEqual(
+                [56, 12],
+                [call.args[1] for call in publish_pr_status.call_args_list],
+            )
+            self.assertEqual(
+                [34, 12],
+                pr_status_comment.load_status_comment_rollout_state()[
+                    "pending_pr_numbers"
+                ],
+            )
 
 
 if __name__ == "__main__":
