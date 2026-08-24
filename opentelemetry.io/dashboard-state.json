@@ -5205,10 +5205,12 @@
         "author": "walleseve",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "5437f6b9497447ce81bb9a015ec715ed",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-24T10:12:36+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5184cc5d050d0e299bd648ee2aba944bca5011791f8a6d2f8799260c51eef552",
+        "copilot_request_fingerprint": "855d1b9757ca0848a064d73fe783cb18cf76e3915cff6abcb10db743ba0f2a27",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -5224,21 +5226,31 @@
         "head_sha": "d613893b6000db5d22aa46aef13b450ec8976505",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T02:40:45+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T10:13:33+00:00",
+        "last_approver_activity_at": "2026-08-24T10:13:33+00:00",
         "last_author_activity_at": "2026-08-24T02:39:42+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ebe9a0b1ead6b9e9247fcee37dbee0b58b7c21cd6106e7c1e3a5a1c13a5e98c7",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-24T02:39:42+00:00"
+        "routing_input_fingerprint": "ea5f9e006f41e7b483515f07e747aa7c75ce2e0f0c04bbc05bf6e4f4cdf3eda2",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-24T10:12:36+00:00"
       },
       "failed": false,
       "pr_number": 11412,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11412",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11413": {
