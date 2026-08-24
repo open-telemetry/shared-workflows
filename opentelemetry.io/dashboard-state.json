@@ -4878,7 +4878,7 @@
     },
     "11395": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "chalin",
         "author_action_review_thread_urls": [],
@@ -4886,7 +4886,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ec4de824999b2efe86ea4afc5388eb8cffd7c2d3a1fcdc8d62bcca60dfce8bbc",
+        "copilot_request_fingerprint": "1fe90819df07afffb6ea81e17d1c51c865c4b3ef8f5b603f0ce42ebbb862fe73",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4902,21 +4902,31 @@
         "head_sha": "469c39b9a470bf187cc16bc53b2917e11e396805",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-21T17:09:11+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-24T14:19:49+00:00",
+        "last_approver_activity_at": "2026-08-24T14:19:49+00:00",
         "last_author_activity_at": "2026-08-21T17:09:11+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ad5364504dec7e6226a89490d74a6a5ca09841182276087a1c419f39a71f7b0d",
+        "routing_input_fingerprint": "d56418543ee0d7a0b1dcb1ed58ce2b01e94541233994e2351f02681cbd8ec387",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-21T15:54:48+00:00"
       },
       "failed": false,
       "pr_number": 11395,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11395",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11399": {
