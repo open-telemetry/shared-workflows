@@ -511,6 +511,12 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
     def test_acknowledges_feedback_that_superseded_a_pending_command(self) -> None:
+        raw = {
+            "issue_comments": [{
+                "id": 12,
+                "createdAt": "2026-08-16T08:00:00Z",
+            }]
+        }
         facts = {
             "author": "author",
             "dashboard_override_command_id": 12,
@@ -519,14 +525,18 @@ class DashboardOverrideTest(unittest.TestCase):
         }
 
         dashboard_override.append_command_ack_reply(
-            {"issue_comments": []}, facts, "author"
+            raw, facts, "author"
         )
         body = dashboard_override.render_command_reply(
             facts["dashboard_command_replies"][0]
         )
 
         self.assertIn(
-            dashboard_override.override_ack_marker(12, "bound-head"),
+            dashboard_override.override_ack_marker(
+                12,
+                "bound-head",
+                "2026-08-16T08:00:00Z",
+            ),
             body,
         )
         self.assertIn(

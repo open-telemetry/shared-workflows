@@ -417,11 +417,19 @@ def append_command_ack_reply(
     command_id = int(facts.get("dashboard_override_command_id") or 0)
     if not command_id:
         return
-    if command_id in _replied_command_ids(raw.get("issue_comments") or []):
+    comments = raw.get("issue_comments") or []
+    if command_id in _replied_command_ids(comments):
         return
     replies = facts.setdefault("dashboard_command_replies", [])
     if any(reply.get("comment_id") == command_id for reply in replies):
         return
+    override_since = (
+        facts.get("dashboard_override_since")
+        or _override_command_created_at(comments, command_id)
+        or ""
+    )
+    if override_since:
+        facts["dashboard_override_since"] = override_since
     reply = {
         "comment_id": command_id,
         "kind": (
@@ -438,7 +446,6 @@ def append_command_ack_reply(
             else ""
         ),
     }
-    override_since = facts.get("dashboard_override_since") or ""
     if override_since:
         reply["since"] = override_since
     replies.append(reply)

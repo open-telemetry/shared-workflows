@@ -280,7 +280,15 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                 {
                     "dashboard_override_head_sha": "current-head",
                     "head_sha": "current-head",
-                    "dashboard_override_since": "2026-08-16T08:00:00Z",
+                }
+            )
+        )
+        self.assertTrue(
+            reviewer_handoff_active(
+                {
+                    "dashboard_override_head_sha": "current-head",
+                    "head_sha": "current-head",
+                    "dashboard_override_since": "not-a-timestamp",
                 }
             )
         )
@@ -292,16 +300,6 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
             {
                 "dashboard_override_head_sha": "current-head",
                 "head_sha": "current-head",
-            },
-            {
-                "dashboard_override_head_sha": "current-head",
-                "head_sha": "current-head",
-                "dashboard_override_since": "not-a-timestamp",
-            },
-            {
-                "dashboard_override_head_sha": "current-head",
-                "head_sha": "current-head",
-                "dashboard_override_since": "2026-08-16T08:00:00Z",
                 "dashboard_override_cleared_by_feedback": True,
             },
         ):
@@ -880,7 +878,6 @@ class RoutingFailureTest(unittest.TestCase):
         facts = {
             "head_sha": "current-head",
             "dashboard_override_head_sha": "current-head",
-            "dashboard_override_since": "2026-08-16T08:00:00Z",
             "copilot_first_review_missing_since": "2026-08-16T12:00:00+00:00",
         }
         previous_facts = {
@@ -896,7 +893,6 @@ class RoutingFailureTest(unittest.TestCase):
             {
                 "head_sha": "current-head",
                 "dashboard_override_head_sha": "current-head",
-                "dashboard_override_since": "2026-08-16T08:00:00Z",
                 "copilot_first_review_missing_since": "2026-08-11T12:00:00Z",
             },
             failed_facts,
