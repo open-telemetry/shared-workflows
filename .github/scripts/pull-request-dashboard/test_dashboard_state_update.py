@@ -138,7 +138,9 @@ class DashboardStateUpdateTest(unittest.TestCase):
         )
         self.assertEqual(concurrent, acceptance.accepted_result)
         self.assertFalse(acceptance.effects.persist_dashboard_state)
+        self.assertFalse(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
+        self.assertTrue(acceptance.effects.clear_backfill_failure)
 
     def test_tracked_pr_removal_is_accepted(self) -> None:
         starting = stored(7, DashboardRoute.AUTHOR)
@@ -154,6 +156,7 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertIsNone(acceptance.accepted_result)
         self.assertEqual((), acceptance.dashboard_state.results)
         self.assertTrue(acceptance.effects.persist_dashboard_state)
+        self.assertTrue(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
         self.assertFalse(acceptance.effects.clear_backfill_failure)
 
@@ -170,6 +173,8 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertIs(acceptance.disposition, DashboardUpdateDisposition.UNCHANGED)
         self.assertEqual(state, acceptance.dashboard_state)
         self.assertFalse(acceptance.effects.persist_dashboard_state)
+        self.assertFalse(acceptance.effects.enqueue_status_comment)
+        self.assertTrue(acceptance.effects.record_observations)
 
     def test_successful_result_is_accepted_and_plans_all_effects(self) -> None:
         starting = stored(7, DashboardRoute.AUTHOR)
@@ -194,6 +199,7 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertTrue(acceptance.effects.persist_dashboard_state)
         self.assertTrue(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
+        self.assertTrue(acceptance.effects.clear_backfill_failure)
 
     def test_failed_result_is_rejected_and_previous_slot_is_retained(self) -> None:
         starting = stored(7, DashboardRoute.AUTHOR)
