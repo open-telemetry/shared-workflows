@@ -38,13 +38,17 @@ retrieves files from a Git clone instead of an export archive; it does not
 change the commit or branch metadata available to checks.
 
 The optional Boolean `use-harden-runner` input defaults to `false`. When it is
-`true`, both Scorecard jobs begin with `step-security/harden-runner` using
-`egress-policy: audit`. That audits outbound calls on `ubuntu-latest`. It does
-not audit the jobs selected by `use-cncf-hosted-runner: true`, because
-Harden Runner installs no agent on a self-hosted runner whose image does not
-already carry one.
+`true`, the analysis and upload jobs begin with `step-security/harden-runner`
+using `egress-policy: audit`. That audits outbound calls on `ubuntu-latest`. It
+does not audit those jobs when `use-cncf-hosted-runner: true`, because Harden
+Runner installs no agent on a self-hosted runner whose image does not already
+carry one.
 
-The optional Boolean `use-cncf-hosted-runner` input defaults to `false`. When it is `true`, both Scorecard jobs run on `cncf-ubuntu-2-8-x86`; when it is `false` or omitted, both jobs run on `ubuntu-latest`. Runs triggered directly in this repository use `ubuntu-latest`. The mapping is fixed; callers cannot provide another runner label.
+The optional Boolean `use-cncf-hosted-runner` input defaults to `false`. When
+it is `true`, all three jobs run on `cncf-ubuntu-2-8-x86`; when it is `false`
+or omitted, they run on `ubuntu-latest`. Runs triggered directly in this
+repository use `ubuntu-latest`. The mapping is fixed; callers cannot provide
+another runner label.
 
 ## What gets filtered
 

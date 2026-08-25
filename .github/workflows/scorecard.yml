@@ -31,7 +31,7 @@ permissions: {}
 jobs:
   validate-inputs:
     name: Validate inputs
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
     steps:
       - name: Validate file mode
         env:
