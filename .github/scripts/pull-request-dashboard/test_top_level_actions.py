@@ -443,6 +443,21 @@ class ReviewerHandoffFeedbackTest(unittest.TestCase):
         self.assertIn("unrelated-key", saved)
         self.assertEqual(2, len(saved))
 
+    @patch("classification.save_classification_cache")
+    @patch(
+        "classification.load_classification_cache",
+        return_value={"existing-key": {"discussion_id": "existing"}},
+    )
+    def test_empty_handoff_feedback_does_not_rewrite_cache(
+        self,
+        _load_cache,
+        save_cache,
+    ) -> None:
+        records = classify_reviewer_handoff_feedback(1, [], [], "model")
+
+        self.assertEqual([], records)
+        save_cache.assert_not_called()
+
 
 class AutomationCommandFeedbackTest(unittest.TestCase):
     def test_automation_command_comments_are_not_top_level_feedback(self) -> None:
