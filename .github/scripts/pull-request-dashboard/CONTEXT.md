@@ -155,7 +155,7 @@ rejects a stale request.
 ## Reviewer state
 
 Reviewer state is prepared once from normalized pull request events, current
-review requests, and raw assignees. It determines active approver-team
+review requests, and assignee actors. It determines active approver-team
 approvals, normalized assignees, and pending human re-reviews before routing.
 
 ### Pending re-review
