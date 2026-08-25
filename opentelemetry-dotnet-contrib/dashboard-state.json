@@ -343,9 +343,8 @@
         "author": "Yun-Ting",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "6aeda41c628045659a9ba50fb400bc99",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "958f3f90995d09379f74b2ed0772f31364ff079f7803b63100729f118ba2ea04",
         "copilot_review_exists": false,
@@ -366,7 +365,7 @@
         "last_activity_at": "2026-08-25T00:10:19+00:00",
         "last_approver_activity_at": "2026-08-22T15:27:22+00:00",
         "last_author_activity_at": "2026-08-25T00:10:19+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -396,17 +395,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-25T00:10:47.587501+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "45bc68d5b34f9badb2c67a4aab48b23d63751ddea9099f49e0eb3479b95f1efa",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-25T00:05:35+00:00"
+        "routing_input_fingerprint": "658eaf43e59925d27f7827ba998a85cbbb9cdbc3126bdfb5bbebdc4e043ff537",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-25T00:18:25.185598+00:00"
       },
       "failed": false,
       "pr_number": 5108,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5108",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-5381157907": {
           "evidence": {
