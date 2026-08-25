@@ -36,7 +36,6 @@ from classification_policy import (
     RawModelResponse,
     VerdictContract,
     VerdictModelRequest,
-    author_comment_prompt_input,
     cached_classification_record,
     classification_result_from_cache_record,
     combine_author_comment_results,
@@ -54,7 +53,6 @@ from classification_policy import (
     prepare_praise_candidates,
     prepare_verdict_requests,
     praise_prompt_input,
-    render_prompt_inputs,
     resolve_author_comment_response,
     resolve_review_thread_policy,
     resolve_verdict_response,
@@ -138,28 +136,6 @@ def top_level_reviewer_feedback_prompt_input(
 ) -> dict[str, Any]:
     return reviewer_feedback_prompt_input(
         ClassificationDiscussion.from_record(discussion)
-    )
-
-
-def top_level_author_comment_prompt_input(
-    discussion: dict[str, Any],
-) -> dict[str, Any]:
-    return author_comment_prompt_input(
-        ClassificationDiscussion.from_record(discussion)
-    )
-
-
-def render_top_level_batch_prompt(
-    discussions: list[dict[str, Any]],
-    prompt_template: str,
-    prompt_discussions: list[dict[str, Any]],
-) -> str:
-    if len(discussions) != len(prompt_discussions):
-        raise ValueError("prompt inputs must match the discussions")
-    return render_prompt_inputs(
-        prompt_discussions,
-        prompt_template,
-        max_prompt_chars=MAX_PROMPT_CHARS,
     )
 
 
@@ -574,24 +550,6 @@ def _classify_items(
     }
 
 
-def classify_praise(
-    number: int,
-    discussions: list[dict[str, Any]],
-    model: str,
-    cache_in: dict[str, dict[str, Any]],
-    cache_out: dict[str, dict[str, Any]],
-) -> dict[str, ClassificationResult]:
-    return _classify_items(
-        number,
-        _policy_discussions(discussions),
-        model,
-        cache_in,
-        cache_out,
-        contract=VerdictContract.PRAISE,
-        warning_label="praise",
-    )
-
-
 def classify_review_threads(
     number: int,
     discussions: list[dict[str, Any]],
@@ -664,24 +622,6 @@ def classify_reviewer_feedback(
         cache_out,
         contract=VerdictContract.REVIEWER_FEEDBACK,
         warning_label="reviewer_feedback",
-    )
-
-
-def classify_author_replies(
-    number: int,
-    discussions: list[dict[str, Any]],
-    model: str,
-    cache_in: dict[str, dict[str, Any]],
-    cache_out: dict[str, dict[str, Any]],
-) -> dict[str, ClassificationResult]:
-    return _classify_items(
-        number,
-        _policy_discussions(discussions),
-        model,
-        cache_in,
-        cache_out,
-        contract=VerdictContract.AUTHOR_REPLY,
-        warning_label="author_reply",
     )
 
 
