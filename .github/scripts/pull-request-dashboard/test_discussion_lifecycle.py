@@ -868,7 +868,7 @@ class LifecycleProjectionTest(unittest.TestCase):
                 "timestamp": "2026-07-14T05:00:00Z",
                 "actor": "reviewer",
                 "actor_role": "approver",
-                "body": "This still needs work.",
+                "body": "Thanks.",
             },
         ])
         bot_thread = review_thread("bot-thread", "2026-07-14T01:00:00Z")
@@ -897,6 +897,7 @@ class LifecycleProjectionTest(unittest.TestCase):
         filtered = reviewer_handoff_feedback(
             prepared,
             "2026-07-14T04:00:00Z",
+            "author",
         )
 
         self.assertEqual(
@@ -904,13 +905,26 @@ class LifecycleProjectionTest(unittest.TestCase):
             [thread["discussion_id"] for thread in filtered.review_threads],
         )
         self.assertEqual(
+            ["Thanks."],
+            [
+                comment["body"]
+                for comment in filtered.review_threads[0]["comments"]
+            ],
+        )
+        self.assertEqual(
+            {
+                "latest_comment_role": "approver",
+                "current_conflicts": "unknown",
+            },
+            filtered.review_threads[0]["discussion_facts"],
+        )
+        self.assertEqual("reviewer", filtered.review_threads[0]["requester"])
+        self.assertEqual("author", filtered.review_threads[0]["pr_author"])
+        self.assertEqual(
             ["new-feedback"],
             [item["discussion_id"] for item in filtered.top_level_items],
         )
-        self.assertEqual(
-            [{"discussion_id": "new-feedback", "body": "Please update this."}],
-            filtered.top_level_author_comment_items[0]["candidate_feedback"],
-        )
+        self.assertEqual((), filtered.top_level_author_comment_items)
 
     def test_handoff_feedback_keeps_same_second_feedback_out_of_scope(self) -> None:
         prepared = PreparedDiscussions(
@@ -922,6 +936,7 @@ class LifecycleProjectionTest(unittest.TestCase):
         filtered = reviewer_handoff_feedback(
             prepared,
             "2026-07-14T04:00:00Z",
+            "author",
         )
 
         self.assertEqual(PreparedDiscussions((), (), ()), filtered)

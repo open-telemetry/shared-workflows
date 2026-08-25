@@ -11,6 +11,7 @@ from typing import Any
 
 from classification import (
     classify_discussion_domains,
+    classify_reviewer_handoff_feedback,
     normalize_discussion_action,
 )
 from copilot_review import copilot_review_status, is_copilot_reviewer
@@ -368,42 +369,47 @@ def evaluate_pull_request(
             handoff_feedback = reviewer_handoff_feedback(
                 prepared_discussions,
                 str(facts.get("dashboard_override_since") or ""),
+                author,
             )
             has_handoff_feedback = bool(
                 handoff_feedback.review_threads
                 or handoff_feedback.top_level_items
             )
-            feedback_lifecycle = (
-                _classify_discussions(
+            feedback_classifications = (
+                classify_reviewer_handoff_feedback(
                     number,
-                    handoff_feedback,
+                    list(handoff_feedback.review_threads),
+                    list(handoff_feedback.top_level_items),
                     config.classifier_model,
-                    previous_top_level_history,
                 )
                 if has_handoff_feedback
-                else None
+                else []
             )
             feedback_routes_to_author = bool(
-                feedback_lifecycle
-                and not feedback_lifecycle.failed_classifications
+                feedback_classifications
+                and not any(
+                    classification.get("failed")
+                    for classification in feedback_classifications
+                )
                 and any(
-                    normalize_discussion_action(entry.get("action") or "")
+                    normalize_discussion_action(
+                        (classification.get("decision") or {}).get(
+                            "discussion_action"
+                        )
+                        or ""
+                    )
                     == "author"
-                    for entry in feedback_lifecycle.pending_actions.values()
+                    for classification in feedback_classifications
                 )
             )
             if feedback_routes_to_author:
                 facts["dashboard_override_cleared_by_feedback"] = True
                 manual_reviewer_handoff = False
-                lifecycle = (
-                    feedback_lifecycle
-                    if handoff_feedback == prepared_discussions
-                    else _classify_discussions(
-                        number,
-                        prepared_discussions,
-                        config.classifier_model,
-                        previous_top_level_history,
-                    )
+                lifecycle = _classify_discussions(
+                    number,
+                    prepared_discussions,
+                    config.classifier_model,
+                    previous_top_level_history,
                 )
             else:
                 lifecycle = resolve_discussions(

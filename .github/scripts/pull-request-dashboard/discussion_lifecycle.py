@@ -319,6 +319,7 @@ def prepare_discussions(source: DiscussionInput) -> PreparedDiscussions:
 def reviewer_handoff_feedback(
     prepared: PreparedDiscussions,
     override_since: str,
+    pr_author: str,
 ) -> PreparedDiscussions:
     """Select human reviewer feedback created after a reviewer handoff command."""
     cutoff = parse_ts(override_since)
@@ -329,39 +330,39 @@ def reviewer_handoff_feedback(
         parsed = parse_ts(timestamp)
         return parsed is not None and parsed > cutoff
 
-    review_threads = tuple(
-        thread
-        for thread in prepared.review_threads
-        if any(
+    review_threads: list[dict[str, Any]] = []
+    for thread in prepared.review_threads:
+        comments = [
+            deepcopy(comment)
+            for comment in (thread.get("comments") or [])
+            if (
             comment.get("actor_role") in ("approver", "outsider")
             and after_cutoff(comment.get("timestamp") or "")
-            for comment in (thread.get("comments") or [])
+            )
+        ]
+        if not comments:
+            continue
+        filtered = deepcopy(thread)
+        filtered["comments"] = comments
+        filtered["requester"] = comments[-1].get("actor") or ""
+        filtered["pr_author"] = pr_author
+        review_threads.append(
+            _add_discussion_facts(
+                filtered,
+                comments,
+                (thread.get("discussion_facts") or {}).get("current_conflicts")
+                or "unknown",
+            )
         )
-    )
     top_level_items = tuple(
         item
         for item in prepared.top_level_items
         if after_cutoff(item.get("root_timestamp") or "")
     )
-    top_level_ids = {
-        item.get("discussion_id") or "" for item in top_level_items
-    }
-    author_comment_items: list[dict[str, Any]] = []
-    for item in prepared.top_level_author_comment_items:
-        candidates = [
-            candidate
-            for candidate in (item.get("candidate_feedback") or [])
-            if candidate.get("discussion_id") in top_level_ids
-        ]
-        if not candidates:
-            continue
-        filtered = deepcopy(item)
-        filtered["candidate_feedback"] = candidates
-        author_comment_items.append(filtered)
     return PreparedDiscussions(
-        review_threads,
+        tuple(review_threads),
         top_level_items,
-        tuple(author_comment_items),
+        (),
     )
 
 

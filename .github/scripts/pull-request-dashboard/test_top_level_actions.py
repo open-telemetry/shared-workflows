@@ -9,6 +9,7 @@ from classification import (
     PRAISE_VERDICTS,
     REVIEWER_FEEDBACK_VERDICTS,
     classify_discussion_domains,
+    classify_reviewer_handoff_feedback,
     classify_review_threads,
     leading_mentions,
     run_llm_for_verdict_batch,
@@ -375,6 +376,40 @@ class ReviewThreadPraiseTest(unittest.TestCase):
         )
 
         self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+
+
+class ReviewerHandoffFeedbackTest(unittest.TestCase):
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_inline_feedback_uses_actionable_feedback_classifier(
+        self,
+        run_verdict,
+        _load_cache,
+        _save_cache,
+    ) -> None:
+        thread = review_thread_discussion("thread")
+        thread.update({
+            "requester": "reviewer",
+            "pr_author": "author",
+            "comments": [{"body": "For context, this API is deprecated."}],
+        })
+        run_verdict.return_value = [
+            verdict_record("thread", "no_author_action")
+        ]
+
+        records = classify_reviewer_handoff_feedback(
+            1,
+            [thread],
+            [],
+            "model",
+        )
+
+        self.assertEqual(records[0]["decision"]["discussion_action"], "none")
+        self.assertEqual(
+            run_verdict.call_args.args[3],
+            REVIEWER_FEEDBACK_VERDICTS,
+        )
 
 
 class AutomationCommandFeedbackTest(unittest.TestCase):

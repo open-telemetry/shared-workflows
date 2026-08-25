@@ -493,6 +493,17 @@ class PullRequestEvaluationTest(unittest.TestCase):
         classify.assert_not_called()
 
     @patch(
+        "pull_request_evaluation.classify_reviewer_handoff_feedback",
+        return_value=[{
+            "discussion_id": "pr-review-501",
+            "failed": False,
+            "decision": {
+                "discussion_action": "author",
+                "reason": "The reviewer requested a change.",
+            },
+        }],
+    )
+    @patch(
         "pull_request_evaluation.classify_discussion_domains",
         return_value=(
             [],
@@ -509,7 +520,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
     )
     @patch("pull_request_evaluation._fetch_pr_raw")
     def test_actionable_review_after_override_ends_handoff(
-        self, fetch_raw: Mock, classify: Mock
+        self, fetch_raw: Mock, classify: Mock, handoff_classify: Mock
     ) -> None:
         raw = self.raw_pr()
         raw["issue_comments"] = [{
@@ -551,7 +562,19 @@ class PullRequestEvaluationTest(unittest.TestCase):
             result["facts"]["dashboard_command_replies"][0]["kind"],
         )
         classify.assert_called_once()
+        handoff_classify.assert_called_once()
 
+    @patch(
+        "pull_request_evaluation.classify_reviewer_handoff_feedback",
+        return_value=[{
+            "discussion_id": "pr-review-501",
+            "failed": False,
+            "decision": {
+                "discussion_action": "none",
+                "reason": "The reviewer left praise.",
+            },
+        }],
+    )
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
         return_value=(
@@ -569,7 +592,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
     )
     @patch("pull_request_evaluation._fetch_pr_raw")
     def test_non_actionable_review_keeps_handoff(
-        self, fetch_raw: Mock, _classify: Mock
+        self, fetch_raw: Mock, classify: Mock, handoff_classify: Mock
     ) -> None:
         raw = self.raw_pr()
         raw["issue_comments"] = [{
@@ -597,7 +620,18 @@ class PullRequestEvaluationTest(unittest.TestCase):
             result["facts"]["dashboard_override_cleared_by_feedback"]
         )
         self.assertEqual({}, result["pending_actions"])
+        classify.assert_not_called()
+        handoff_classify.assert_called_once()
 
+    @patch(
+        "pull_request_evaluation.classify_reviewer_handoff_feedback",
+        return_value=[{
+            "discussion_id": "pr-review-501",
+            "failed": True,
+            "error": "model failed",
+            "decision": {},
+        }],
+    )
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
         return_value=(
@@ -613,7 +647,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
     )
     @patch("pull_request_evaluation._fetch_pr_raw")
     def test_feedback_classification_failure_does_not_block_handoff(
-        self, fetch_raw: Mock, _classify: Mock
+        self, fetch_raw: Mock, classify: Mock, handoff_classify: Mock
     ) -> None:
         raw = self.raw_pr()
         raw["issue_comments"] = [{
@@ -640,6 +674,148 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertFalse(
             result["facts"]["dashboard_override_cleared_by_feedback"]
         )
+        classify.assert_not_called()
+        handoff_classify.assert_called_once()
+
+    @patch(
+        "pull_request_evaluation.classify_reviewer_handoff_feedback",
+        return_value=[{
+            "discussion_id": "thread-1",
+            "failed": False,
+            "decision": {
+                "discussion_action": "none",
+                "reason": "The comment is informational.",
+            },
+        }],
+    )
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        side_effect=AssertionError("normal classification must be bypassed"),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_informational_inline_feedback_keeps_handoff(
+        self, fetch_raw: Mock, classify: Mock, handoff_classify: Mock
+    ) -> None:
+        raw = self.raw_pr()
+        raw["issue_comments"] = [{
+            "id": 102,
+            "body": "/dashboard route:reviewers",
+            "created_at": "2026-08-16T08:00:00Z",
+            "user": {"login": "author"},
+        }]
+        raw["review_threads"] = [{
+            "id": "thread-1",
+            "isResolved": False,
+            "isOutdated": False,
+            "path": "src/example.py",
+            "line": 7,
+            "comments": {
+                "nodes": [
+                    {
+                        "url": "https://example.test/thread/old",
+                        "body": "Please change this.",
+                        "createdAt": "2026-08-16T07:30:00Z",
+                        "author": {"login": "reviewer"},
+                    },
+                    {
+                        "url": "https://example.test/thread/new",
+                        "body": "For context, this API is deprecated.",
+                        "createdAt": "2026-08-16T09:00:00Z",
+                        "author": {"login": "reviewer"},
+                    },
+                ]
+            },
+        }]
+        fetch_raw.return_value = raw
+
+        result = evaluate_pr({"number": 7})
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual("approver", result["route"])
+        self.assertFalse(
+            result["facts"]["dashboard_override_cleared_by_feedback"]
+        )
+        classify.assert_not_called()
+        thread = handoff_classify.call_args.args[1][0]
+        self.assertEqual(
+            ["For context, this API is deprecated."],
+            [comment["body"] for comment in thread["comments"]],
+        )
+
+    @patch(
+        "pull_request_evaluation.classify_reviewer_handoff_feedback",
+        return_value=[{
+            "discussion_id": "pr-issue-comment-501",
+            "failed": False,
+            "decision": {
+                "discussion_action": "author",
+                "reason": "The reviewer requested a change.",
+            },
+        }],
+    )
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=(
+            [],
+            [{
+                "discussion_id": "pr-issue-comment-501",
+                "failed": False,
+                "decision": {
+                    "discussion_action": "author",
+                    "reason": "The reviewer requested a change.",
+                },
+            }],
+            [{
+                "discussion_id": "pr-author-reply-502",
+                "failed": False,
+                "decision": {
+                    "feedback_outcomes": [{
+                        "feedback_id": "pr-issue-comment-501",
+                        "discussion_action": "none",
+                        "reason": "The author completed the work.",
+                    }],
+                },
+            }],
+        ),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_author_reply_does_not_reactivate_cleared_handoff(
+        self, fetch_raw: Mock, classify: Mock, handoff_classify: Mock
+    ) -> None:
+        raw = self.raw_pr()
+        raw["issue_comments"] = [
+            {
+                "id": 102,
+                "body": "/dashboard route:reviewers",
+                "created_at": "2026-08-16T08:00:00Z",
+                "user": {"login": "author"},
+            },
+            {
+                "id": 501,
+                "body": "Please update this.",
+                "created_at": "2026-08-16T09:00:00Z",
+                "user": {"login": "reviewer"},
+            },
+            {
+                "id": 502,
+                "body": "Done in the latest commit.",
+                "created_at": "2026-08-16T10:00:00Z",
+                "user": {"login": "author"},
+            },
+        ]
+        fetch_raw.return_value = raw
+
+        result = evaluate_pr({"number": 7})
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertTrue(
+            result["facts"]["dashboard_override_cleared_by_feedback"]
+        )
+        self.assertEqual({}, result["pending_actions"])
+        classify.assert_called_once()
+        handoff_classify.assert_called_once()
 
     @patch(
         "pull_request_evaluation.classify_discussion_domains",

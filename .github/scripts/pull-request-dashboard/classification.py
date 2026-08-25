@@ -1293,6 +1293,27 @@ def classify_reviewer_feedback(
     }
 
 
+def classify_reviewer_handoff_feedback(
+    number: int,
+    review_threads: list[dict[str, Any]],
+    top_level_items: list[dict[str, Any]],
+    model: str,
+) -> list[dict[str, Any]]:
+    """Classify whether post-handoff reviewer feedback requires author action."""
+    discussions = [*review_threads, *top_level_items]
+    cache_in = load_classification_cache(number)
+    cache_out: dict[str, dict[str, Any]] = {}
+    classifications = classify_reviewer_feedback(
+        number,
+        discussions,
+        model,
+        cache_in,
+        cache_out,
+    )
+    save_classification_cache(number, cache_out)
+    return [classifications[item["discussion_id"]] for item in discussions]
+
+
 def classify_author_replies(
     number: int,
     discussions: list[dict[str, Any]],
