@@ -10,11 +10,19 @@ from pull_request_source import (
     PullRequestMetadata,
     fetch_pull_request_source,
     normalize_actor,
+    normalize_issue_comments,
     normalize_pull_request_source,
 )
 
 
 class PullRequestSourceNormalizationTest(unittest.TestCase):
+    def test_non_numeric_issue_comment_database_id_normalizes_to_zero(self) -> None:
+        comments = normalize_issue_comments([
+            {"databaseId": "not-a-number", "body": "Comment"}
+        ])
+
+        self.assertEqual(0, comments[0].database_id)
+
     def test_normalizes_mixed_gh_rest_and_graphql_shapes(self) -> None:
         source = normalize_pull_request_source(
             {

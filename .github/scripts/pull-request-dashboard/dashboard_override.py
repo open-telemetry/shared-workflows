@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from dashboard_contracts import (
@@ -12,7 +12,7 @@ from dashboard_contracts import (
     DashboardRoute,
 )
 from dashboard_status import DASHBOARD_APP_SLUG
-from pull_request_source import IssueComment, normalize_issue_comments
+from pull_request_source import IssueComment
 from route_presentation import outstanding_gate_phrase
 
 
@@ -50,21 +50,6 @@ class DashboardOverrideInput:
         object.__setattr__(self, "issue_comments", tuple(self.issue_comments))
 
 
-def _override_input(source: DashboardOverrideInput) -> DashboardOverrideInput:
-    if isinstance(source, DashboardOverrideInput):
-        return source
-    raw = source if isinstance(source, Mapping) else {}
-    return DashboardOverrideInput(
-        normalize_issue_comments(raw.get("issue_comments"))
-    )
-
-
-def _issue_comment(comment: IssueComment) -> IssueComment:
-    if isinstance(comment, IssueComment):
-        return comment
-    return normalize_issue_comments((comment,))[0]
-
-
 def author_override_guidance(staleness_note: str = "") -> str:
     guidance = (
         "If you need reviewer or maintainer help, comment "
@@ -84,7 +69,6 @@ def parse_dashboard_command(comment: IssueComment) -> str | None:
     Returns the (possibly empty) subcommand token when the comment's first
     line is a `/dashboard` command, and None when it is not a command at all.
     """
-    comment = _issue_comment(comment)
     if comment.minimized:
         return None
     lines = comment.body.strip().splitlines()
@@ -104,7 +88,6 @@ def dashboard_command_body_remainder(comment: IssueComment) -> str | None:
     keep an author's explanation on the same or later lines while treating the
     command tokens themselves as control metadata.
     """
-    comment = _issue_comment(comment)
     if parse_dashboard_command(comment) is None:
         return None
     lines = comment.body.strip().splitlines()
@@ -122,7 +105,6 @@ def latest_authorized_command(
     author: str,
     reviewers: set[str] | None,
 ) -> tuple[int, str]:
-    source = _override_input(source)
     comments = source.issue_comments
     acknowledged_id = _acknowledged_override_command_id(comments)
     replied_ids = _replied_command_ids(comments)
@@ -149,7 +131,6 @@ def dashboard_override_facts(
     head_sha: str = "",
     previous_facts: DashboardFacts | None = None,
 ) -> DashboardOverrideFacts:
-    source = _override_input(source)
     command_id, command_user = latest_authorized_command(
         source,
         author,
@@ -257,7 +238,6 @@ def pending_command_replies(
     an unknown-command reply. Commands that already have a reply comment are
     skipped so replies are posted at most once.
     """
-    source = _override_input(source)
     comments = source.issue_comments
     replied_ids = _replied_command_ids(comments)
 
@@ -372,7 +352,6 @@ def append_command_ack_reply(
     authorized command gets a reply because the command forces the reviewer
     route even when no discussion or failing check was cleared.
     """
-    source = _override_input(source)
     command_id = facts.dashboard_override_command_id
     if not command_id:
         return facts
