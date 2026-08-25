@@ -335,8 +335,8 @@ def reviewer_handoff_feedback(
             comment
             for comment in (thread.get("comments") or [])
             if (
-            comment.get("actor_role") in ("approver", "outsider")
-            and after_cutoff(comment.get("timestamp") or "")
+                comment.get("actor_role") in ("approver", "outsider")
+                and after_cutoff(comment.get("timestamp") or "")
             )
         ]
         if not comments:
