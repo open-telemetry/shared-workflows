@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
@@ -19,6 +19,7 @@ from utils import actor_login, parse_ts, truncate
 
 
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
+_HUMAN_REVIEWER_ROLES = frozenset({"approver", "outsider"})
 
 
 class LifecycleMode(Enum):
@@ -315,6 +316,33 @@ def prepare_discussions(source: DiscussionInput) -> PreparedDiscussions:
     )
 
 
+def _filter_handoff_feedback(
+    discussion: dict[str, Any],
+    pr_author: str,
+    after_cutoff: Callable[[str], bool],
+) -> dict[str, Any] | None:
+    comments = [
+        comment
+        for comment in (discussion.get("comments") or [])
+        if (
+            comment.get("actor_role") in _HUMAN_REVIEWER_ROLES
+            and comment.get("actor") != pr_author
+            and after_cutoff(comment.get("timestamp") or "")
+        )
+    ]
+    if not comments:
+        return None
+    filtered = {**discussion, "comments": comments}
+    filtered["requester"] = comments[-1].get("actor") or ""
+    filtered["pr_author"] = pr_author
+    return _add_discussion_facts(
+        filtered,
+        comments,
+        (discussion.get("discussion_facts") or {}).get("current_conflicts")
+        or "unknown",
+    )
+
+
 def reviewer_handoff_feedback(
     prepared: PreparedDiscussions,
     override_since: str,
@@ -329,53 +357,20 @@ def reviewer_handoff_feedback(
         parsed = parse_ts(timestamp)
         return parsed is not None and parsed > cutoff
 
-    review_threads: list[dict[str, Any]] = []
-    for thread in prepared.review_threads:
-        comments = [
-            comment
-            for comment in (thread.get("comments") or [])
-            if (
-                comment.get("actor_role") in ("approver", "outsider")
-                and after_cutoff(comment.get("timestamp") or "")
-            )
-        ]
-        if not comments:
-            continue
-        filtered = {**thread, "comments": comments}
-        filtered["requester"] = comments[-1].get("actor") or ""
-        filtered["pr_author"] = pr_author
-        review_threads.append(
-            _add_discussion_facts(
-                filtered,
-                comments,
-                (thread.get("discussion_facts") or {}).get("current_conflicts")
-                or "unknown",
-            )
+    review_threads = [
+        filtered
+        for thread in prepared.review_threads
+        if (
+            filtered := _filter_handoff_feedback(thread, pr_author, after_cutoff)
         )
-    top_level_items: list[dict[str, Any]] = []
-    for item in prepared.top_level_items:
-        comments = [
-            comment
-            for comment in (item.get("comments") or [])
-            if (
-                comment.get("actor_role") in ("approver", "outsider")
-                and comment.get("actor") != pr_author
-                and after_cutoff(comment.get("timestamp") or "")
-            )
-        ]
-        if not comments:
-            continue
-        filtered = {**item, "comments": comments}
-        filtered["requester"] = comments[-1].get("actor") or ""
-        filtered["pr_author"] = pr_author
-        top_level_items.append(
-            _add_discussion_facts(
-                filtered,
-                comments,
-                (item.get("discussion_facts") or {}).get("current_conflicts")
-                or "unknown",
-            )
-        )
+        is not None
+    ]
+    top_level_items = [
+        filtered
+        for item in prepared.top_level_items
+        if (filtered := _filter_handoff_feedback(item, pr_author, after_cutoff))
+        is not None
+    ]
     return PreparedDiscussions(
         tuple(review_threads),
         tuple(top_level_items),
