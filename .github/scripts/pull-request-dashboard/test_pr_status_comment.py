@@ -1080,6 +1080,45 @@ class RolloutStateTest(unittest.TestCase):
         pr_status_comment,
         "load_status_comment_rollout_state",
         return_value={
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "completed_revision": 0,
+            "pending_pr_numbers": [7, 8],
+        },
+    )
+    def test_rollout_retains_excluded_pr_without_publishing_it(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {7, 8},
+            {7},
+        )
+
+        self.assertEqual([], errors)
+        publish_pr_status.assert_called_once_with(
+            "open-telemetry/example",
+            8,
+            dashboard_state(),
+        )
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([7], saved_state["pending_pr_numbers"])
+        self.assertEqual(0, saved_state["completed_revision"])
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
             "target_revision": 0,
             "completed_revision": 0,
             "pending_pr_numbers": [],

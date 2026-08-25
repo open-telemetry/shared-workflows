@@ -64,6 +64,7 @@ class DeliveryTest(unittest.TestCase):
         status_comments.assert_called_once_with(
             "open-telemetry/example",
             {7, 8},
+            set(),
         )
         slack.assert_called_once_with(
             "open-telemetry/example",
@@ -124,7 +125,8 @@ class DeliveryTest(unittest.TestCase):
         )
         status_comments.assert_called_once_with(
             "open-telemetry/example",
-            {8},
+            {7, 8},
+            {7},
         )
 
     @patch.object(delivery, "notify_slack_from_state", return_value=[])

@@ -530,6 +530,7 @@ def prepare_rollout_state(
 def update_status_comments_from_state(
     repo: str,
     open_pr_numbers: set[int],
+    excluded_pr_numbers: set[int] | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -547,7 +548,12 @@ def update_status_comments_from_state(
         for number in rollout_state["pending_pr_numbers"]
         if number not in queued_pr_number_set
     ]
-    rollout_pr_numbers = pending_pr_numbers[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    excluded_pr_numbers = excluded_pr_numbers or set()
+    rollout_pr_numbers = [
+        number
+        for number in pending_pr_numbers
+        if number not in excluded_pr_numbers
+    ][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
     deferred_pr_numbers: set[int] = set()
     errors: list[str] = []

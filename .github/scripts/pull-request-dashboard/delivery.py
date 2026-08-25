@@ -102,18 +102,15 @@ def deliver_from_state(
             errors,
         )
     elif open_prs is not None:
-        status_pr_numbers = {
-            pr["number"] for pr in open_prs
-        } - failed_command_reply_prs
-        if status_pr_numbers:
-            run_delivery_action(
-                "status comments",
-                lambda: update_status_comments_from_state(
-                    repo,
-                    status_pr_numbers,
-                ),
-                errors,
-            )
+        run_delivery_action(
+            "status comments",
+            lambda: update_status_comments_from_state(
+                repo,
+                {pr["number"] for pr in open_prs},
+                failed_command_reply_prs,
+            ),
+            errors,
+        )
     run_delivery_action(
         "Copilot reviews",
         lambda: deliver_copilot_review_requests(repo, now, copilot_retry_snapshot_path),
