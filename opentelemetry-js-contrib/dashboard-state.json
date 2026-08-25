@@ -2618,8 +2618,10 @@
         "author": "app/otelbot-js-contrib",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 6,
+        "author_nudge_episode_id": "3e110f26f9104e9cbee7e0c09c50e915",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-25T16:21:18+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "28f0d9af06e11ecf6a4f571086b6927bf14cb4fbb26b9e45b83606d77bdefa4b",
         "copilot_review_exists": false,
@@ -2640,7 +2642,7 @@
         "last_activity_at": "2026-08-25T15:28:08+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2744,14 +2746,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "47a0db33805dc01c135e04ebd004cb6a0512bb9dd7c14b9dec38c1ac378e603f",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-07-23T16:20:13+00:00"
+        "routing_input_fingerprint": "5a1cbaaf29cb7a8697a1ce585612ea5f0c18a2b109af1226ab3ce30f2512aae5",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-25T16:21:18+00:00"
       },
       "failed": false,
       "pr_number": 3638,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3638",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3644": {
