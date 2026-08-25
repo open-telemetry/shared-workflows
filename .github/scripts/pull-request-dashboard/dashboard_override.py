@@ -404,8 +404,8 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             message = "this pull request was routed to reviewers."
     elif kind == "cleared_by_feedback":
         message = (
-            "newer actionable reviewer feedback returned this pull request to "
-            "the author."
+            "newer actionable reviewer feedback ended the reviewer handoff, so "
+            "this pull request is routed normally again."
         )
     else:
         subcommand = reply.subcommand

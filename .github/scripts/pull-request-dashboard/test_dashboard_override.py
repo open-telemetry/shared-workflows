@@ -671,8 +671,8 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
         self.assertIn(
-            "newer actionable reviewer feedback returned this pull request to "
-            "the author",
+            "newer actionable reviewer feedback ended the reviewer handoff, so "
+            "this pull request is routed normally again",
             body,
         )
 

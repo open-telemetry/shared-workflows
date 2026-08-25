@@ -230,11 +230,11 @@ The dashboard binds an authorized command to the head it sees when it first
 reads that command, and records that head in its acknowledgement reply. The
 handoff stays active while the pull request head matches the recorded one, so a
 later push restores normal routing and gates. Actionable human reviewer feedback
-posted after the command timestamp also ends the handoff and returns the pull
-request to the author. Praise, informational comments, bot feedback,
-classification failures, and feedback posted at or before the command timestamp
-do not end it. A push between the command and the pass that reads it is part of
-the same handoff, because the dashboard binds to the head it can actually see.
+posted after the command timestamp also ends the handoff, so normal routing and
+gates apply again. Praise, informational comments, bot feedback, classification
+failures, and feedback posted at or before the command timestamp do not end it.
+A push between the command and the pass that reads it is part of the same
+handoff, because the dashboard binds to the head it can actually see.
 
 The dashboard replies to an unauthorized command explaining that only the author
 or an approver can use it, and replies to any unrecognized `/dashboard` command.
