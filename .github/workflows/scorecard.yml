@@ -55,7 +55,7 @@ jobs:
           results_file: results.sarif
           results_format: sarif
           publish_results: true
-          file_mode: ${{ inputs['file-mode'] }}
+          file_mode: ${{ inputs['file-mode'] || 'archive' }}
 
       # Also hands the results to the upload job below.
       # https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
