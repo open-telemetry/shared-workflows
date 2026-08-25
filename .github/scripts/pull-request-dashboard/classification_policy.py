@@ -1280,6 +1280,20 @@ def combine_author_comment_results(
         parts = tuple(
             partial_results.get(discussion.identity.discussion_id, ())
         )
+        if not parts:
+            results.append(
+                ClassificationFailure(
+                    discussion.identity,
+                    AuthorCommentDecision(),
+                    ClassificationDiagnostics(
+                        error=(
+                            "missing partial results for discussion_id "
+                            f"{discussion.identity.discussion_id!r}"
+                        )
+                    ),
+                )
+            )
+            continue
         failed_parts = tuple(
             part for part in parts if isinstance(part, ClassificationFailure)
         )

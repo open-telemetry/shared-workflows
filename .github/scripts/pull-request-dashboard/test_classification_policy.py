@@ -28,6 +28,7 @@ from classification_policy import (
     cached_classification_record,
     classification_result_from_cache_record,
     classification_result_to_record,
+    combine_author_comment_results,
     discussion_cache_key,
     make_author_comment_request,
     map_verdict_result,
@@ -388,6 +389,22 @@ class ResultProjectionCompatibilityTest(unittest.TestCase):
 
 
 class PreparationAndResolutionTest(unittest.TestCase):
+    def test_missing_author_comment_partials_fail(self) -> None:
+        reply = discussion(
+            "reply-1",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            "Fixed it.",
+        )
+
+        result = combine_author_comment_results([reply], {})[0]
+
+        self.assertIsInstance(result, ClassificationFailure)
+        assert isinstance(result, ClassificationFailure)
+        self.assertEqual(
+            result.diagnostics.error,
+            "missing partial results for discussion_id 'reply-1'",
+        )
+
     def test_invalid_feedback_keys_report_the_contract_field(self) -> None:
         _decision, errors = parse_author_comment_decision(
             json.dumps({
