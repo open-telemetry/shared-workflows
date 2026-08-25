@@ -1476,8 +1476,12 @@
         "assignees": [],
         "author": "aryansri05",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11074#issuecomment-5218299743"
+        ],
+        "author_nudge_episode_id": "466d6b83fc7e47e69b00ea2a561f2a9f",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-25T20:50:10+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "53d2551bc62c1691af7753a4c4ae0959dc71826126902438ca5fbf2543bec146",
@@ -1508,7 +1512,7 @@
             "login": "chalin",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": true,
@@ -1558,21 +1562,15 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8b86db0d541a4bb43ba3a8a9299cf6fbeb2e41e53374cc599c4a07bb9a658067",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-25T06:53:24+00:00"
+        "routing_input_fingerprint": "d2579995992e95868cc3cd7cfbcc69b6df6687481eb9fef9282711cf1d809cd7",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-07T18:57:20+00:00"
       },
       "failed": false,
       "pr_number": 11074,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11074",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
-        "pr-issue-comment-5218299743": {
-          "evidence": {
-            "reply": "2026-08-07T18:57:20Z"
-          },
-          "reply_source_id": 5220924948
-        },
         "pr-issue-comment-5269611697": {
           "evidence": {
             "reply": "2026-08-15T09:07:21Z"
