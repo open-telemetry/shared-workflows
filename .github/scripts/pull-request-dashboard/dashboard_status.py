@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pull_request_source import IssueComment
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
@@ -31,7 +35,9 @@ def is_dashboard_app_comment(comment: dict[str, Any]) -> bool:
     )
 
 
-def status_author_nudge_episode_id(comments: Any) -> str:
+def status_author_nudge_episode_id(
+    comments: Sequence[dict[str, Any] | IssueComment] | None,
+) -> str:
     for comment in comments or []:
         if isinstance(comment, dict):
             body = comment.get("body") or ""
