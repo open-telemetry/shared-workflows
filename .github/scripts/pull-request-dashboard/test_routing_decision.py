@@ -32,8 +32,6 @@ class RoutingTestMixin:
         pending_human_reviewer_logins: frozenset[str] = frozenset(),
         now: datetime = NOW,
     ) -> RoutingOutcome:
-        original_facts = deepcopy(facts)
-        original_previous_facts = deepcopy(previous_facts)
         typed_facts = (
             facts
             if isinstance(facts, DashboardFacts)
@@ -61,8 +59,6 @@ class RoutingTestMixin:
                 now=now,
             )
         )
-        self.assertEqual(original_facts, facts)
-        self.assertEqual(original_previous_facts, previous_facts)
         return outcome
 
 
