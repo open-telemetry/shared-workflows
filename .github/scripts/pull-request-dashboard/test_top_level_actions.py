@@ -1198,6 +1198,44 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
         self.assertEqual(len(cache), 23)
 
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache")
+    @patch("classification._run_author_comment_request")
+    def test_cached_deferred_author_reply_is_retried(
+        self,
+        run_author_batch,
+        load_cache,
+        save_cache,
+    ) -> None:
+        run_author_batch.side_effect = lambda request, _model: [
+            author_comment_result(discussion)
+            for discussion in request.discussions
+        ]
+        author_reply = {
+            **review_thread_discussion("author-reply"),
+            "discussion_kind": "top-level-author-reply",
+        }
+        cache: dict = {}
+        load_cache.side_effect = lambda _number: dict(cache)
+        save_cache.side_effect = lambda _number, records: cache.update(records)
+
+        classify_discussion_domains(123, [], [], [author_reply], "model")
+        for record in cache.values():
+            record["deferred"] = True
+        run_author_batch.reset_mock()
+
+        classifications = classify_discussion_domains(
+            123,
+            [],
+            [],
+            [author_reply],
+            "model",
+        ).top_level_author_comments
+
+        run_author_batch.assert_called_once()
+        self.assertFalse(classifications[0].deferred)
+        self.assertFalse(next(iter(cache.values())).get("deferred"))
+
     @patch("classification.MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR", 2)
     @patch("classification.author_comment_prompt_batches")
     @patch("classification.save_classification_cache")

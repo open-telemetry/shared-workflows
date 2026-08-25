@@ -296,6 +296,8 @@ def _cached_classification(
         verdict_contract=verdict_contract,
         author_comment=author_comment,
     )
+    if result.deferred:
+        return key, None
     cache_out[key] = cached_classification_record(result)
     return key, result
 
