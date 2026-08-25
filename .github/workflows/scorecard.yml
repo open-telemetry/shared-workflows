@@ -4,6 +4,16 @@ name: OSSF Scorecard
 on:
   workflow_call:
     inputs:
+      file-mode:
+        description: 'Method used by Scorecard to fetch repository files: archive or git.'
+        required: false
+        default: archive
+        type: string
+      use-harden-runner:
+        description: 'Audit outbound calls with step-security/harden-runner.'
+        required: false
+        default: false
+        type: boolean
       use-cncf-hosted-runner:
         description: 'Run Linux jobs on the standard CNCF-hosted x86 runner.'
         required: false
@@ -30,6 +40,12 @@ jobs:
       contents: read # for actions/checkout
       id-token: write # Needed for GitHub OIDC token since publish_results is true
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        if: inputs['use-harden-runner']
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -39,6 +55,7 @@ jobs:
           results_file: results.sarif
           results_format: sarif
           publish_results: true
+          file_mode: ${{ inputs['file-mode'] }}
 
       # Also hands the results to the upload job below.
       # https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
@@ -57,6 +74,12 @@ jobs:
       contents: read # for actions/checkout, so that upload-sarif can fingerprint results
       security-events: write # Needed for Code scanning upload
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        if: inputs['use-harden-runner']
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
