@@ -89,7 +89,7 @@
     },
     "309": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -97,7 +97,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "50e70ba7b9bd4fa4d3620754ba5950571b252161ad6420b5d00d1d5dd68aa1fa",
+        "copilot_request_fingerprint": "f42840eeb5d2eb3057f21238d2fe4ca4a9ade75489f47e312be38b3125285bf6",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -113,21 +113,31 @@
         "head_sha": "676be5e8354dbd375de389870276c4b3fb472b90",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-25T03:13:36+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T08:48:44+00:00",
+        "last_approver_activity_at": "2026-08-25T08:48:44+00:00",
         "last_author_activity_at": "2026-08-25T03:13:23+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mx-psi",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "531110f739e72a7ffcc6353163e12389f94f87ecf24b2a919720231c7582f181",
+        "routing_input_fingerprint": "6d37bdba308d522513bb1e584ad569be5380a5aec7db647f80676c4fd3ee45ba",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-25T03:13:23+00:00"
       },
       "failed": false,
       "pr_number": 309,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/309",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
