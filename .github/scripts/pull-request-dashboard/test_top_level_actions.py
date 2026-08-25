@@ -1242,8 +1242,13 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ],
             ["author-reply-0", "author-reply-1"],
         )
-        prompt_batches.assert_called_once()
-        self.assertEqual(len(prompt_batches.call_args.args[0]), 3)
+        self.assertEqual(
+            [
+                len(call.args[0])
+                for call in prompt_batches.call_args_list
+            ],
+            [3, 2],
+        )
         self.assertFalse(classifications[0].deferred)
         self.assertFalse(classifications[1].deferred)
         self.assertTrue(classifications[2].deferred)
@@ -1256,6 +1261,67 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(
             sum(bool(record.get("deferred")) for record in cached.values()),
             0,
+        )
+
+    @patch("classification.MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR", 3)
+    @patch("classification.TOP_LEVEL_CLASSIFICATION_BATCH_SIZE", 10)
+    @patch("classification.author_comment_prompt_batches")
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache", return_value={})
+    @patch("classification._run_author_comment_request")
+    def test_author_reply_sliced_prompt_calls_are_bounded(
+        self,
+        run_author_batch,
+        _load_cache,
+        _save_cache,
+        prompt_batches,
+    ) -> None:
+        def planned_requests(discussions):
+            if len(discussions) == 1:
+                partitions = (discussions,)
+            else:
+                partitions = (
+                    discussions[:1],
+                    discussions[1:2],
+                    discussions[2:],
+                )
+            return tuple(
+                AuthorCommentModelRequest(tuple(partition), "", ())
+                for partition in partitions
+            )
+
+        prompt_batches.side_effect = planned_requests
+        run_author_batch.side_effect = lambda request, _model: [
+            author_comment_result(discussion)
+            for discussion in request.discussions
+        ]
+        author_replies = [
+            {
+                **review_thread_discussion(f"author-reply-{index}"),
+                "discussion_kind": "top-level-author-reply",
+            }
+            for index in range(11)
+        ]
+
+        classifications = classify_discussion_domains(
+            123,
+            [],
+            [],
+            author_replies,
+            "model",
+        ).top_level_author_comments
+
+        self.assertEqual(run_author_batch.call_count, 3)
+        self.assertEqual(
+            [
+                len(call.args[0])
+                for call in prompt_batches.call_args_list
+            ],
+            [10, 1, 10],
+        )
+        self.assertEqual(
+            [record.deferred for record in classifications],
+            [False] * 10 + [True],
         )
 
     @patch("classification.save_classification_cache")

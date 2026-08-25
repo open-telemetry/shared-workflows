@@ -325,11 +325,7 @@ def _run_classification_batch(
             discussion.identity.discussion_id: []
             for discussion in discussions
         }
-        for request in prepare_author_comment_requests(
-            discussions,
-            batch_size=TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
-            max_prompt_chars=MAX_PROMPT_CHARS,
-        ):
+        for request in author_comment_prompt_batches(discussions):
             for result in _run_author_comment_request(request, model):
                 partial_results[result.identity.discussion_id].append(result)
         return combine_author_comment_results(
@@ -374,28 +370,40 @@ def _classification_limit_result(
 def _author_comment_budget_size(
     uncached: list[tuple[ClassificationDiscussion, str]],
 ) -> int:
-    discussions = tuple(discussion for discussion, _key in uncached)
-    try:
-        requests = author_comment_prompt_batches(discussions)
-    except ValueError:
-        return len(uncached)
-    if len(requests) <= MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR:
-        return len(uncached)
-    overflow_ids = {
-        discussion.identity.discussion_id
-        for request in requests[
-            MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR:
-        ]
-        for discussion in request.discussions
-    }
-    return next(
-        (
-            index
-            for index, (discussion, _key) in enumerate(uncached)
-            if discussion.identity.discussion_id in overflow_ids
-        ),
+    request_count = 0
+    for offset in range(
+        0,
         len(uncached),
-    )
+        TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
+    ):
+        batch = uncached[
+            offset:offset + TOP_LEVEL_CLASSIFICATION_BATCH_SIZE
+        ]
+        discussions = tuple(discussion for discussion, _key in batch)
+        try:
+            requests = author_comment_prompt_batches(discussions)
+        except ValueError:
+            return len(uncached)
+        remaining = (
+            MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR - request_count
+        )
+        if len(requests) <= remaining:
+            request_count += len(requests)
+            continue
+        overflow_ids = {
+            discussion.identity.discussion_id
+            for request in requests[remaining:]
+            for discussion in request.discussions
+        }
+        return offset + next(
+            (
+                index
+                for index, (discussion, _key) in enumerate(batch)
+                if discussion.identity.discussion_id in overflow_ids
+            ),
+            len(batch),
+        )
+    return len(uncached)
 
 
 def _cache_classified(
