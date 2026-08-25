@@ -27,8 +27,6 @@ class PreparedDashboardUpdate:
     pr_number: int
     starting_dashboard_state: DashboardState
     starting_result: StoredDashboardResult | None
-    starting_slot_present: bool
-    starting_slot: StoredDashboardResult | None
 
     def with_evaluated_result(
         self,
@@ -77,8 +75,6 @@ def prepare_dashboard_update(
         pr_number=pr_number,
         starting_dashboard_state=dashboard_state,
         starting_result=starting_result,
-        starting_slot_present=starting_result is not None,
-        starting_slot=starting_result,
     )
 
 
@@ -116,11 +112,7 @@ def accept_dashboard_update(
         else prepared.starting_dashboard_state
     )
     latest_result = dashboard_state.result_for(pr_number)
-    latest_slot_present = latest_result is not None
-    slot_changed = (
-        latest_slot_present != prepared.starting_slot_present
-        or latest_result != prepared.starting_slot
-    )
+    slot_changed = latest_result != prepared.starting_result
     evaluated_result = update.evaluated_result
 
     if evaluated_result is None:
@@ -130,7 +122,7 @@ def accept_dashboard_update(
                 dashboard_state,
                 pr_number,
             )
-        if not latest_slot_present:
+        if latest_result is None:
             return _acceptance(
                 DashboardUpdateDisposition.UNCHANGED,
                 dashboard_state,

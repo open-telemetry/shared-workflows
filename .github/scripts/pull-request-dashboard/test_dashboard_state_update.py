@@ -35,7 +35,7 @@ def evaluated(number: int, route: DashboardRoute | str):
 
 
 class DashboardStateUpdateTest(unittest.TestCase):
-    def test_prepared_update_is_frozen_and_records_the_starting_slot(self) -> None:
+    def test_prepared_update_is_frozen_and_records_the_starting_result(self) -> None:
         starting = stored(7, DashboardRoute.AUTHOR)
         prepared = prepare_dashboard_update(
             dashboard_state(starting),
@@ -44,8 +44,6 @@ class DashboardStateUpdateTest(unittest.TestCase):
         )
 
         self.assertEqual(starting, prepared.starting_result)
-        self.assertTrue(prepared.starting_slot_present)
-        self.assertEqual(starting, prepared.starting_slot)
         with self.assertRaises(FrozenInstanceError):
             prepared.pr_number = 8  # type: ignore[misc]
 
