@@ -1310,7 +1310,10 @@ def classify_reviewer_handoff_feedback(
         cache_in,
         cache_out,
     )
-    save_classification_cache(number, cache_out)
+    # This pass classifies only post-handoff feedback, so it merges rather than
+    # replaces. A full pass covers every current discussion and prunes the rest
+    # by replacing the file.
+    save_classification_cache(number, {**cache_in, **cache_out})
     return [classifications[item["discussion_id"]] for item in discussions]
 
 

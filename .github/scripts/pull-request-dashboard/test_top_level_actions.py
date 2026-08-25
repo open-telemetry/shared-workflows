@@ -413,6 +413,32 @@ class ReviewerHandoffFeedbackTest(unittest.TestCase):
             REVIEWER_FEEDBACK_VERDICTS,
         )
 
+    @patch("classification.save_classification_cache")
+    @patch(
+        "classification.load_classification_cache",
+        return_value={"unrelated-key": {"discussion_id": "other", "failed": False}},
+    )
+    @patch("classification.run_llm_for_verdict_batch")
+    def test_partial_classification_keeps_unrelated_cache_entries(
+        self,
+        run_verdict,
+        _load_cache,
+        save_cache,
+    ) -> None:
+        thread = review_thread_discussion("thread")
+        thread.update({
+            "requester": "reviewer",
+            "pr_author": "author",
+            "comments": [{"body": "Please rename this."}],
+        })
+        run_verdict.return_value = [verdict_record("thread")]
+
+        classify_reviewer_handoff_feedback(1, [thread], [], "model")
+
+        saved = save_cache.call_args.args[1]
+        self.assertIn("unrelated-key", saved)
+        self.assertEqual(2, len(saved))
+
 
 class AutomationCommandFeedbackTest(unittest.TestCase):
     def test_automation_command_comments_are_not_top_level_feedback(self) -> None:
