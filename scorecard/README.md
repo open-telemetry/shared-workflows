@@ -25,8 +25,6 @@ jobs:
       id-token: write # for Scorecard to publish results
       security-events: write # for the SARIF upload to code scanning
     uses: open-telemetry/shared-workflows/.github/workflows/scorecard.yml@<sha-or-tag>
-    with:
-      use-cncf-hosted-runner: true
 ```
 
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets are required.
@@ -39,16 +37,7 @@ change the commit or branch metadata available to checks.
 
 The optional Boolean `use-harden-runner` input defaults to `false`. When it is
 `true`, the analysis and upload jobs begin with `step-security/harden-runner`
-using `egress-policy: audit`. That audits outbound calls on `ubuntu-latest`. It
-does not audit those jobs when `use-cncf-hosted-runner: true`, because Harden
-Runner installs no agent on a self-hosted runner whose image does not already
-carry one.
-
-The optional Boolean `use-cncf-hosted-runner` input defaults to `false`. When
-it is `true`, all three jobs run on `cncf-ubuntu-2-8-x86`; when it is `false`
-or omitted, they run on `ubuntu-latest`. Runs triggered directly in this
-repository use `ubuntu-latest`. The mapping is fixed; callers cannot provide
-another runner label.
+using `egress-policy: audit`. That audits outbound calls on `ubuntu-latest`.
 
 ## What gets filtered
 
