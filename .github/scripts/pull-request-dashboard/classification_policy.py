@@ -19,6 +19,11 @@ TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10
 AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 PRAISE_MAX_CHARS = 80
 
+
+class _PromptTooLongError(ValueError):
+    pass
+
+
 _MENTION_PATTERN = (
     r"@([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:/[A-Za-z0-9._-]+)?)"
     r"(?![A-Za-z0-9-])"
@@ -778,10 +783,16 @@ def render_prompt_inputs(
                 DISCUSSION_COMMENT_BODY_MAX_CHARS,
             )
     discussions_text = json.dumps(rendered_inputs, indent=2, sort_keys=True)
-    return prompt_template.format(
+    prompt = prompt_template.format(
         discussions=discussions_text,
         **prompt_args,
     )
+    if len(prompt) > max_prompt_chars:
+        raise _PromptTooLongError(
+            "rendered prompt exceeds "
+            f"max_prompt_chars={max_prompt_chars} after truncation"
+        )
+    return prompt
 
 
 def render_verdict_prompt(
@@ -851,19 +862,16 @@ def _author_comment_candidate_chunks(
 ) -> list[ClassificationDiscussion]:
     candidates = discussion.candidate_feedback
     if not candidates:
-        if (
-            len(
-                make_author_comment_request(
-                    [discussion],
-                    max_prompt_chars=max_prompt_chars,
-                ).prompt
+        try:
+            make_author_comment_request(
+                [discussion],
+                max_prompt_chars=max_prompt_chars,
             )
-            > max_prompt_chars
-        ):
+        except _PromptTooLongError as error:
             raise ValueError(
                 "author-comment prompt exceeds "
                 f"max_prompt_chars={max_prompt_chars}"
-            )
+            ) from error
         return [discussion]
 
     chunks: list[ClassificationDiscussion] = []
@@ -878,19 +886,16 @@ def _author_comment_candidate_chunks(
                 discussion,
                 candidate_feedback=candidates[start:end],
             )
-            if (
-                len(
-                    make_author_comment_request(
-                        [trial],
-                        max_prompt_chars=max_prompt_chars,
-                    ).prompt
+            try:
+                make_author_comment_request(
+                    [trial],
+                    max_prompt_chars=max_prompt_chars,
                 )
-                <= max_prompt_chars
-            ):
+            except _PromptTooLongError:
+                high = end - 1
+            else:
                 best = end
                 low = end + 1
-                continue
-            high = end - 1
         if best == start:
             raise ValueError(
                 f"max_prompt_chars={max_prompt_chars} is too small "
@@ -949,11 +954,14 @@ def prepare_author_comment_requests(
                 max_prompt_chars=max_prompt_chars,
             )
         else:
-            trial_request = make_author_comment_request(
-                trial,
-                max_prompt_chars=max_prompt_chars,
-            )
-            if len(trial_request.prompt) <= max_prompt_chars:
+            try:
+                trial_request = make_author_comment_request(
+                    trial,
+                    max_prompt_chars=max_prompt_chars,
+                )
+            except _PromptTooLongError:
+                trial_request = None
+            if trial_request is not None:
                 current = trial
                 current_request = trial_request
                 continue
@@ -981,43 +989,50 @@ def prepare_verdict_requests(
 ) -> tuple[VerdictModelRequest, ...]:
     requests: list[VerdictModelRequest] = []
     current: list[ClassificationDiscussion] = []
+    current_prompt = ""
     for discussion in discussions:
+        if not current:
+            current = [discussion]
+            current_prompt = render_verdict_prompt(
+                current,
+                contract,
+                max_prompt_chars=max_prompt_chars,
+            )
+            continue
         trial = [*current, discussion]
-        if current and (
-            len(current) >= batch_size
-            or len(
-                render_verdict_prompt(
+        trial_prompt: str | None = None
+        if len(current) < batch_size:
+            try:
+                trial_prompt = render_verdict_prompt(
                     trial,
                     contract,
                     max_prompt_chars=max_prompt_chars,
                 )
-            )
-            > max_prompt_chars
-        ):
+            except _PromptTooLongError:
+                pass
+        if trial_prompt is None:
             requests.append(
                 VerdictModelRequest(
                     tuple(current),
                     contract,
-                    render_verdict_prompt(
-                        current,
-                        contract,
-                        max_prompt_chars=max_prompt_chars,
-                    ),
+                    current_prompt,
                 )
             )
             current = [discussion]
+            current_prompt = render_verdict_prompt(
+                current,
+                contract,
+                max_prompt_chars=max_prompt_chars,
+            )
         else:
             current = trial
+            current_prompt = trial_prompt
     if current:
         requests.append(
             VerdictModelRequest(
                 tuple(current),
                 contract,
-                render_verdict_prompt(
-                    current,
-                    contract,
-                    max_prompt_chars=max_prompt_chars,
-                ),
+                current_prompt,
             )
         )
     return tuple(requests)

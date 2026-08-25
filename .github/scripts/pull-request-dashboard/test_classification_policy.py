@@ -34,6 +34,7 @@ from classification_policy import (
     parse_author_comment_decision,
     prepare_author_comment_requests,
     prepare_praise_candidates,
+    render_prompt_inputs,
     render_verdict_prompt,
     resolve_author_comment_response,
     resolve_review_thread_policy,
@@ -211,6 +212,17 @@ class PromptCompatibilityTest(unittest.TestCase):
             prepare_author_comment_requests(
                 [self.reply],
                 max_prompt_chars=1,
+            )
+
+    def test_rendered_prompt_must_fit_after_truncation(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "rendered prompt exceeds max_prompt_chars=10 after truncation",
+        ):
+            render_prompt_inputs(
+                [],
+                "xxxxxxxxxxxxxxxxxxxx{discussions}",
+                max_prompt_chars=10,
             )
 
     def test_author_comment_request_planning_reuses_rendered_requests(
