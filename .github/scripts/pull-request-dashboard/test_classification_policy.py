@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import unittest
+from unittest.mock import patch
 
 from classification_policy import (
     ActionDecision,
@@ -29,6 +30,7 @@ from classification_policy import (
     make_author_comment_request,
     map_verdict_result,
     parse_author_comment_decision,
+    prepare_author_comment_requests,
     prepare_praise_candidates,
     render_verdict_prompt,
     resolve_author_comment_response,
@@ -162,6 +164,32 @@ class PromptCompatibilityTest(unittest.TestCase):
                 "discussion_id": "feedback-1",
                 "discussion_kind": "unknown-kind",
             })
+
+    @patch(
+        "classification_policy.make_author_comment_request",
+        wraps=make_author_comment_request,
+    )
+    def test_author_comment_chunking_uses_few_prompt_probes(
+        self,
+        make_request,
+    ) -> None:
+        reply = discussion(
+            "reply-1",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            "Fixed the requested items.",
+            candidate_feedback=tuple(
+                (f"feedback-{index}", f"Request {index}.")
+                for index in range(64)
+            ),
+        )
+
+        requests = prepare_author_comment_requests(
+            [reply],
+            max_prompt_chars=100_000,
+        )
+
+        self.assertEqual(len(requests), 1)
+        self.assertLess(make_request.call_count, 20)
 
 
 class ResultProjectionCompatibilityTest(unittest.TestCase):

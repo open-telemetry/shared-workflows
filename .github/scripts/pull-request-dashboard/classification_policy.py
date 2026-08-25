@@ -851,14 +851,29 @@ def _author_comment_candidate_chunks(
 ) -> list[ClassificationDiscussion]:
     candidates = discussion.candidate_feedback
     if not candidates:
-        chunks = [discussion]
-    else:
-        chunks: list[ClassificationDiscussion] = []
-        current: list[CandidateFeedback] = []
-        for candidate in candidates:
+        if (
+            len(
+                make_author_comment_request(
+                    [discussion],
+                    max_prompt_chars=max_prompt_chars,
+                ).prompt
+            )
+            > max_prompt_chars
+        ):
+            raise ValueError("author-comment prompt exceeds MAX_PROMPT_CHARS")
+        return [discussion]
+
+    chunks: list[ClassificationDiscussion] = []
+    start = 0
+    while start < len(candidates):
+        low = start + 1
+        high = len(candidates)
+        best = start
+        while low <= high:
+            end = (low + high) // 2
             trial = replace(
                 discussion,
-                candidate_feedback=tuple([*current, candidate]),
+                candidate_feedback=candidates[start:end],
             )
             if (
                 len(
@@ -869,40 +884,21 @@ def _author_comment_candidate_chunks(
                 )
                 <= max_prompt_chars
             ):
-                current.append(candidate)
+                best = end
+                low = end + 1
                 continue
-            if not current:
-                raise ValueError(
-                    "MAX_PROMPT_CHARS is too small for one author-comment candidate"
-                )
-            chunks.append(replace(discussion, candidate_feedback=tuple(current)))
-            current = [candidate]
-            single = replace(discussion, candidate_feedback=tuple(current))
-            if (
-                len(
-                    make_author_comment_request(
-                        [single],
-                        max_prompt_chars=max_prompt_chars,
-                    ).prompt
-                )
-                > max_prompt_chars
-            ):
-                raise ValueError(
-                    "MAX_PROMPT_CHARS is too small for one author-comment candidate"
-                )
-        if current:
-            chunks.append(replace(discussion, candidate_feedback=tuple(current)))
-    for chunk in chunks:
-        if (
-            len(
-                make_author_comment_request(
-                    [chunk],
-                    max_prompt_chars=max_prompt_chars,
-                ).prompt
+            high = end - 1
+        if best == start:
+            raise ValueError(
+                "MAX_PROMPT_CHARS is too small for one author-comment candidate"
             )
-            > max_prompt_chars
-        ):
-            raise ValueError("author-comment prompt exceeds MAX_PROMPT_CHARS")
+        chunks.append(
+            replace(
+                discussion,
+                candidate_feedback=candidates[start:best],
+            )
+        )
+        start = best
     return chunks
 
 
