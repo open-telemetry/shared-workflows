@@ -524,15 +524,15 @@
     },
     "84": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a8b888ac8debe0d42dd87d24627126fbb1dadc94da4f08d04b24f3770939d892",
+        "copilot_request_fingerprint": "4e480e079d50c8033378b683bef14cf0e04b628f9aa0df5cb97694927645861d",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -548,21 +548,31 @@
         "head_sha": "90c442a909dd3ac61a863d7789a71aa05a27e240",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-25T01:00:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T01:12:26+00:00",
+        "last_approver_activity_at": "2026-08-25T01:12:26+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "62fa56e6c8765a0b213800c72ba7c6d6e0c3fdf85dbe582e968107fcb5db3212",
+        "routing_input_fingerprint": "75b6b650aac88a31e3de0712dd07330464ee95172e1f12dff57bdddfbaf2174a",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-25T01:00:42+00:00"
       },
       "failed": false,
       "pr_number": 84,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/84",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "85": {
