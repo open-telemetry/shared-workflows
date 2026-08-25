@@ -567,7 +567,7 @@
     },
     "85": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -575,7 +575,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5d6f5d8f7a39668c057ac3483b3da2f08f86e5e1e1773ce216da4fa743e19726",
+        "copilot_request_fingerprint": "d838609b09c60a8d1f2cdb98c23fd94b7f813fc6fa947b44810c91f22c9467a6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -591,15 +591,26 @@
         "head_sha": "cb3a793226e98762b8835a3949084614c180306a",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-25T01:00:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T01:06:34+00:00",
+        "last_approver_activity_at": "2026-08-25T01:06:34+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-25T01:09:30.858619+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f81b25d84abe15eed1e03f455d57a739cc780a52f6e46f4565c72b94e3eaad0c",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "9deeff6392e940622e343a8003afb6dc01d5d6837670df83aaeeb1741b30ec99",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-25T01:00:52+00:00"
       },
       "failed": false,
