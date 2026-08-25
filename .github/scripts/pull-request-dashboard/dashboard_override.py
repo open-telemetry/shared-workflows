@@ -247,10 +247,6 @@ def acknowledged_override(
     return best_id, best_head, best_since
 
 
-def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
-    return acknowledged_override(comments)[1]
-
-
 def _override_command_created_at(
     comments: list[dict[str, Any]],
     command_id: int,
