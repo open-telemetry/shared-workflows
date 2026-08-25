@@ -2915,7 +2915,7 @@
     },
     "19790": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2923,7 +2923,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1f3bdb2ee7bd35b01abc23c89a5605899ee274f7dd1b51eecca33047a37a5322",
+        "copilot_request_fingerprint": "c499b7473bd9a09b756ee6290e92c3b296b36b0bc174f5169b417abd15cb29c4",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2939,15 +2939,26 @@
         "head_sha": "7e43e9f5b6a1ff0ecebf806d62044ca486a0e284",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-25T03:00:26+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T03:23:18+00:00",
+        "last_approver_activity_at": "2026-08-25T03:23:18+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-25T03:24:18.607218+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0d2384b35ee21b70a0ec3fb958051132e9c293cb32bc4621c6339622eab7eeaa",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "773b62614d7125a5884c02e63d99f2f8136ca61a589bf5195cc1ff6a750a4859",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-25T01:07:52+00:00"
       },
       "failed": false,
