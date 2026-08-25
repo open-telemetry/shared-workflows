@@ -5022,8 +5022,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "62da683a0a7044da9f867fef7a32404a",
-        "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-25T20:48:23+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "18c8637cbc87830ee03b724d355e49cec8ffc6c836b948898813b5d5d5714f36",
         "copilot_review_exists": false,
@@ -5038,13 +5039,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "9dffcf264912a47faf3890b445539c78271f1193",
+        "head_sha": "4ece9b0b5003e1b4f4d8e51bdbde662737020e82",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-25T19:40:09+00:00",
+        "last_activity_at": "2026-08-25T20:06:59+00:00",
         "last_approver_activity_at": "2026-08-25T17:58:22+00:00",
-        "last_author_activity_at": "2026-08-25T19:40:09+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-08-25T20:06:59+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -5065,12 +5066,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-25T19:55:24.366703+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "933518574f9acf4a48eb9dbc645ddb450fab7eac7d15416bae49e294cd746e23",
-        "waiting_age_basis": "last_approver_activity",
-        "waiting_since": "2026-08-25T17:58:22+00:00"
+        "routing_input_fingerprint": "e9dbd4af099c4acc032374115d507da178059adb80b59b010919491d479d857a",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-25T20:48:23+00:00"
       },
       "failed": false,
       "pr_number": 11436,
