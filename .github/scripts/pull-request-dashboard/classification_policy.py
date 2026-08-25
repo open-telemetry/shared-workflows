@@ -860,7 +860,10 @@ def _author_comment_candidate_chunks(
             )
             > max_prompt_chars
         ):
-            raise ValueError("author-comment prompt exceeds MAX_PROMPT_CHARS")
+            raise ValueError(
+                "author-comment prompt exceeds "
+                f"max_prompt_chars={max_prompt_chars}"
+            )
         return [discussion]
 
     chunks: list[ClassificationDiscussion] = []
@@ -890,7 +893,8 @@ def _author_comment_candidate_chunks(
             high = end - 1
         if best == start:
             raise ValueError(
-                "MAX_PROMPT_CHARS is too small for one author-comment candidate"
+                f"max_prompt_chars={max_prompt_chars} is too small "
+                "for one author-comment candidate"
             )
         chunks.append(
             replace(
@@ -951,7 +955,10 @@ def prepare_author_comment_requests(
             )
             > max_prompt_chars
         ):
-            raise ValueError("author-comment prompt exceeds MAX_PROMPT_CHARS")
+            raise ValueError(
+                "author-comment prompt exceeds "
+                f"max_prompt_chars={max_prompt_chars}"
+            )
     if current:
         requests.append(
             make_author_comment_request(

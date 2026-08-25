@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import json
 import unittest
@@ -190,6 +191,26 @@ class PromptCompatibilityTest(unittest.TestCase):
 
         self.assertEqual(len(requests), 1)
         self.assertLess(make_request.call_count, 20)
+
+    def test_author_comment_prompt_errors_name_the_actual_limit(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "author-comment prompt exceeds max_prompt_chars=1",
+        ):
+            prepare_author_comment_requests(
+                [replace(self.reply, candidate_feedback=())],
+                max_prompt_chars=1,
+            )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "max_prompt_chars=1 is too small "
+            "for one author-comment candidate",
+        ):
+            prepare_author_comment_requests(
+                [self.reply],
+                max_prompt_chars=1,
+            )
 
 
 class ResultProjectionCompatibilityTest(unittest.TestCase):
