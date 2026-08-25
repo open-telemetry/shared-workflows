@@ -868,7 +868,7 @@ class StateTest(unittest.TestCase):
             )
 
     def test_targeted_update_preserves_initial_backfill_marker(self) -> None:
-        state = DashboardState(initial_backfill_complete=True)
+        state = empty_state().with_initial_backfill_complete()
 
         updated = update_dashboard_state_for_pr(state, 123, None)
 
