@@ -321,19 +321,18 @@ def _classify_discussions(
 def _handoff_feedback_routes_to_author(
     feedback_classifications: list[dict[str, Any]],
 ) -> bool:
-    return bool(
-        feedback_classifications
-        and not any(
-            classification.get("failed")
-            for classification in feedback_classifications
+    if not feedback_classifications:
+        return False
+    if any(
+        classification.get("failed") for classification in feedback_classifications
+    ):
+        return False
+    return any(
+        normalize_discussion_action(
+            (classification.get("decision") or {}).get("discussion_action") or ""
         )
-        and any(
-            normalize_discussion_action(
-                (classification.get("decision") or {}).get("discussion_action") or ""
-            )
-            == "author"
-            for classification in feedback_classifications
-        )
+        == "author"
+        for classification in feedback_classifications
     )
 
 
