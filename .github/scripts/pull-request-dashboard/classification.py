@@ -47,6 +47,7 @@ from classification_policy import (
     is_automation_command_comment,
     is_conflict_resolution_comment,
     leading_mentions,
+    make_author_comment_request,
     map_verdict_result,
     normalize_discussion_action,
     prepare_author_comment_requests,
@@ -165,14 +166,10 @@ def render_top_level_batch_prompt(
 def top_level_author_comment_batch_prompt(
     discussions: list[dict[str, Any]],
 ) -> str:
-    requests = prepare_author_comment_requests(
+    return make_author_comment_request(
         _policy_discussions(discussions),
-        batch_size=TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
         max_prompt_chars=MAX_PROMPT_CHARS,
-    )
-    if len(requests) != 1:
-        raise ValueError("discussions require more than one prompt")
-    return requests[0].prompt
+    ).prompt
 
 
 def author_comment_prompt_batches(

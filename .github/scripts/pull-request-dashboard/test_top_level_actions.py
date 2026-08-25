@@ -10,6 +10,7 @@ from classification import (
     classify_review_threads,
     run_llm_for_verdict_batch,
     run_llm_for_top_level_author_comment_batch,
+    top_level_author_comment_batch_prompt,
     top_level_reviewer_feedback_prompt_input,
 )
 from classification_policy import (
@@ -521,6 +522,27 @@ class AutomationCommandFeedbackTest(unittest.TestCase):
 
 
 class TopLevelActionLedgerTest(unittest.TestCase):
+    def test_author_comment_prompt_supports_empty_input(self) -> None:
+        prompt = top_level_author_comment_batch_prompt([])
+
+        self.assertIn(
+            "---BEGIN AUTHOR FOLLOW-UPS---\n[]\n"
+            "---END AUTHOR FOLLOW-UPS---",
+            prompt,
+        )
+
+    def test_author_comment_prompt_does_not_apply_batching(self) -> None:
+        discussions = [
+            {
+                **review_thread_discussion(f"author-reply-{index}"),
+                "discussion_kind": "top-level-author-reply",
+            }
+            for index in range(11)
+        ]
+
+        prompt = top_level_author_comment_batch_prompt(discussions)
+
+        self.assertIn('"discussion_id": "author-reply-10"', prompt)
 
 
     @patch("classification.print_copilot_otel_file")
