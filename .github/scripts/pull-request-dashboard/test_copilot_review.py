@@ -18,7 +18,12 @@ from copilot_review_delivery import (
     deliver_copilot_review_requests,
     record_copilot_review_observation,
 )
+from dashboard_test_support import (
+    dashboard_facts,
+    stored_dashboard_result,
+)
 from routing_snapshot import build_routing_snapshot
+from pull_request_source import normalize_pull_request_source
 from utils import format_ts
 
 
@@ -36,141 +41,164 @@ def routing_snapshot(raw: dict | None = None, **changes):
                 "headRefOid": "current-head",
             },
         }
-    return replace(build_routing_snapshot(raw), **changes)
+    return replace(
+        build_routing_snapshot(normalize_pull_request_source(raw)),
+        **changes,
+    )
+
+
+def review_result(route: str = "approver", **fact_changes):
+    return stored_dashboard_result(
+        7,
+        route,
+        facts=dashboard_facts(**fact_changes),
+    )
 
 
 class CopilotFirstReviewMissingSinceTest(unittest.TestCase):
     def test_starts_clock_when_review_is_missing(self) -> None:
-        facts: dict = {}
-
-        set_copilot_first_review_missing_since(
-            facts, None, enabled=True, now=NOW
+        facts = set_copilot_first_review_missing_since(
+            dashboard_facts(),
+            dashboard_facts(),
+            enabled=True,
+            now=NOW,
         )
 
         self.assertEqual(
             "2026-07-20T02:00:00+00:00",
-            facts["copilot_first_review_missing_since"],
+            facts.copilot_first_review_missing_since,
         )
 
     def test_carries_clock_forward_across_passes(self) -> None:
-        facts: dict = {}
-        previous = {
-            "facts": {"copilot_first_review_missing_since": "2026-07-20T00:00:00+00:00"}
-        }
-
-        set_copilot_first_review_missing_since(
-            facts, previous, enabled=True, now=NOW
+        facts = set_copilot_first_review_missing_since(
+            dashboard_facts(),
+            dashboard_facts(
+                copilot_first_review_missing_since=(
+                    "2026-07-20T00:00:00+00:00"
+                )
+            ),
+            enabled=True,
+            now=NOW,
         )
 
         self.assertEqual(
             "2026-07-20T00:00:00+00:00",
-            facts["copilot_first_review_missing_since"],
+            facts.copilot_first_review_missing_since,
         )
 
     def test_push_does_not_restart_clock(self) -> None:
         # GitHub does not automatically review a PR it has never reviewed, so a
         # push must not reset the wait or an active PR would never recover.
-        facts: dict = {"head_sha": "new-head"}
-        previous = {
-            "facts": {
-                "head_sha": "old-head",
-                "copilot_first_review_missing_since": "2026-07-20T00:00:00+00:00",
-            }
-        }
-
-        set_copilot_first_review_missing_since(
-            facts, previous, enabled=True, now=NOW
+        facts = set_copilot_first_review_missing_since(
+            dashboard_facts(head_sha="new-head"),
+            dashboard_facts(
+                head_sha="old-head",
+                copilot_first_review_missing_since=(
+                    "2026-07-20T00:00:00+00:00"
+                ),
+            ),
+            enabled=True,
+            now=NOW,
         )
 
         self.assertEqual(
             "2026-07-20T00:00:00+00:00",
-            facts["copilot_first_review_missing_since"],
+            facts.copilot_first_review_missing_since,
         )
 
     def test_draft_clears_clock(self) -> None:
-        facts: dict = {"is_draft": True}
-        previous = {
-            "facts": {"copilot_first_review_missing_since": "2026-07-20T00:00:00+00:00"}
-        }
-
-        set_copilot_first_review_missing_since(
-            facts, previous, enabled=True, now=NOW
+        facts = set_copilot_first_review_missing_since(
+            dashboard_facts(is_draft=True),
+            dashboard_facts(
+                copilot_first_review_missing_since=(
+                    "2026-07-20T00:00:00+00:00"
+                )
+            ),
+            enabled=True,
+            now=NOW,
         )
 
-        self.assertNotIn("copilot_first_review_missing_since", facts)
+        self.assertIsNone(facts.copilot_first_review_missing_since)
 
     def test_existing_review_clears_clock(self) -> None:
-        facts: dict = {"copilot_review_exists": True}
-        previous = {
-            "facts": {"copilot_first_review_missing_since": "2026-07-20T00:00:00+00:00"}
-        }
-
-        set_copilot_first_review_missing_since(
-            facts, previous, enabled=True, now=NOW
+        facts = set_copilot_first_review_missing_since(
+            dashboard_facts(copilot_review_exists=True),
+            dashboard_facts(
+                copilot_first_review_missing_since=(
+                    "2026-07-20T00:00:00+00:00"
+                )
+            ),
+            enabled=True,
+            now=NOW,
         )
 
-        self.assertNotIn("copilot_first_review_missing_since", facts)
+        self.assertIsNone(facts.copilot_first_review_missing_since)
 
     def test_disabled_gate_clears_clock(self) -> None:
-        facts: dict = {}
-        previous = {
-            "facts": {"copilot_first_review_missing_since": "2026-07-20T00:00:00+00:00"}
-        }
-
-        set_copilot_first_review_missing_since(
-            facts, previous, enabled=False, now=NOW
+        facts = set_copilot_first_review_missing_since(
+            dashboard_facts(),
+            dashboard_facts(
+                copilot_first_review_missing_since=(
+                    "2026-07-20T00:00:00+00:00"
+                )
+            ),
+            enabled=False,
+            now=NOW,
         )
 
-        self.assertNotIn("copilot_first_review_missing_since", facts)
+        self.assertIsNone(facts.copilot_first_review_missing_since)
 
     def test_overdue_only_after_the_grace_period(self) -> None:
-        self.assertFalse(copilot_first_review_overdue({}, NOW))
+        self.assertFalse(copilot_first_review_overdue(dashboard_facts(), NOW))
         self.assertFalse(
             copilot_first_review_overdue(
-                {"copilot_first_review_missing_since": "2026-07-20T01:01:00+00:00"},
+                dashboard_facts(
+                    copilot_first_review_missing_since=(
+                        "2026-07-20T01:01:00+00:00"
+                    )
+                ),
                 NOW,
             )
         )
         self.assertTrue(
             copilot_first_review_overdue(
-                {"copilot_first_review_missing_since": "2026-07-20T01:00:00+00:00"},
+                dashboard_facts(
+                    copilot_first_review_missing_since=(
+                        "2026-07-20T01:00:00+00:00"
+                    )
+                ),
                 NOW,
             )
         )
 
 
 class CopilotFirstReviewRequestTest(unittest.TestCase):
-    def base_facts(self, **overrides) -> dict:
-        facts = {
-            "copilot_review_exists": False,
-            "copilot_review_stale": False,
-            "copilot_review_requested": False,
-            "ci_pending_count": 0,
-        }
-        facts.update(overrides)
-        return facts
+    def base_facts(self, **overrides):
+        values = {"ci_pending_count": 0}
+        values.update(overrides)
+        return dashboard_facts(**values)
 
     def test_within_grace_does_not_request(self) -> None:
         facts = self.base_facts(
             copilot_first_review_missing_since="2026-07-20T01:30:00+00:00",
         )
 
-        set_copilot_review_request_needed(
+        facts = set_copilot_review_request_needed(
             facts, "approver", enabled=True, now=NOW
         )
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
     def test_past_grace_requests_the_first_review(self) -> None:
         facts = self.base_facts(
             copilot_first_review_missing_since="2026-07-20T00:30:00+00:00",
         )
 
-        set_copilot_review_request_needed(
+        facts = set_copilot_review_request_needed(
             facts, "approver", enabled=True, now=NOW
         )
 
-        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertTrue(facts.copilot_review_request_needed)
 
     def test_pending_request_is_not_duplicated(self) -> None:
         facts = self.base_facts(
@@ -178,11 +206,11 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
             copilot_first_review_missing_since="2026-07-20T00:30:00+00:00",
         )
 
-        set_copilot_review_request_needed(
+        facts = set_copilot_review_request_needed(
             facts, "approver", enabled=True, now=NOW
         )
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
     def test_unsettled_checks_do_not_hold_the_first_review_request(self) -> None:
         facts = self.base_facts(
@@ -190,22 +218,22 @@ class CopilotFirstReviewRequestTest(unittest.TestCase):
             copilot_first_review_missing_since="2026-07-20T00:30:00+00:00",
         )
 
-        set_copilot_review_request_needed(
+        facts = set_copilot_review_request_needed(
             facts, "approver", enabled=True, now=NOW
         )
 
-        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertTrue(facts.copilot_review_request_needed)
 
     def test_author_route_does_not_request(self) -> None:
         facts = self.base_facts(
             copilot_first_review_missing_since="2026-07-20T00:30:00+00:00",
         )
 
-        set_copilot_review_request_needed(
+        facts = set_copilot_review_request_needed(
             facts, "author", enabled=True, now=NOW
         )
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
 
 class CopilotReviewRequestStateTest(unittest.TestCase):
@@ -217,14 +245,11 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     def test_records_request_for_current_head(self, _load_requests, save_requests) -> None:
         record_copilot_review_observation(
             7,
-            {
-                "route": "approver",
-                "facts": {
-                    "head_sha": "current-head",
-                    "copilot_review_request_needed": True,
-                    "copilot_request_fingerprint": "accepted-fingerprint",
-                },
-            },
+            review_result(
+                head_sha="current-head",
+                copilot_review_request_needed=True,
+                copilot_request_fingerprint="accepted-fingerprint",
+            ),
             NOW,
         )
 
@@ -250,14 +275,11 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     def test_new_head_replaces_previous_request(self, _load_requests, save_requests) -> None:
         record_copilot_review_observation(
             7,
-            {
-                "route": "approver",
-                "facts": {
-                    "head_sha": "current-head",
-                    "copilot_review_request_needed": True,
-                    "copilot_request_fingerprint": "accepted-fingerprint",
-                },
-            },
+            review_result(
+                head_sha="current-head",
+                copilot_review_request_needed=True,
+                copilot_request_fingerprint="accepted-fingerprint",
+            ),
             NOW,
         )
 
@@ -287,14 +309,11 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     ) -> None:
         record_copilot_review_observation(
             7,
-            {
-                "route": "approver",
-                "facts": {
-                    "head_sha": "current-head",
-                    "copilot_review_request_needed": True,
-                    "copilot_request_fingerprint": "accepted-fingerprint",
-                },
-            },
+            review_result(
+                head_sha="current-head",
+                copilot_review_request_needed=True,
+                copilot_request_fingerprint="accepted-fingerprint",
+            ),
             NOW,
         )
 
@@ -320,13 +339,11 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     def test_clears_request_when_no_longer_needed(self, _load_requests, save_requests) -> None:
         record_copilot_review_observation(
             7,
-            {
-                "route": "maintainer",
-                "facts": {
-                    "head_sha": "current-head",
-                    "copilot_review_request_needed": False,
-                },
-            },
+            review_result(
+                "maintainer",
+                head_sha="current-head",
+                copilot_review_request_needed=False,
+            ),
             NOW,
         )
 
@@ -344,14 +361,11 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
     ) -> None:
         record_copilot_review_observation(
             7,
-            {
-                "route": "approver",
-                "facts": {
-                    "head_sha": "current-head",
-                    "copilot_review_exists": False,
-                    "copilot_review_request_needed": False,
-                },
-            },
+            review_result(
+                head_sha="current-head",
+                copilot_review_exists=False,
+                copilot_review_request_needed=False,
+            ),
             NOW,
         )
 
@@ -567,7 +581,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
                 "copilot_request_fingerprint": build_routing_snapshot(
-                    observed_raw
+                    normalize_pull_request_source(observed_raw)
                 ).copilot_request_fingerprint,
             }
         }
@@ -581,7 +595,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             ) as save_requests,
             patch(
                 "copilot_review_delivery.fetch_routing_snapshot",
-                return_value=build_routing_snapshot(delivery_raw),
+                return_value=build_routing_snapshot(
+                    normalize_pull_request_source(delivery_raw)
+                ),
             ),
             patch("copilot_review_delivery.fetch_pr_reviews", return_value=[]),
             patch(
@@ -606,7 +622,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     "observed_at": "2026-07-20T01:00:00+00:00",
                     "requested_at": format_ts(NOW),
                     "copilot_request_fingerprint": build_routing_snapshot(
-                        observed_raw
+                        normalize_pull_request_source(observed_raw)
                     ).copilot_request_fingerprint,
                 }
             }
@@ -635,7 +651,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
                 "copilot_request_fingerprint": build_routing_snapshot(
-                    clean_raw
+                    normalize_pull_request_source(clean_raw)
                 ).copilot_request_fingerprint,
             }
         }
@@ -649,7 +665,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             ) as save_requests,
             patch(
                 "copilot_review_delivery.fetch_routing_snapshot",
-                return_value=build_routing_snapshot(conflicted_raw),
+                return_value=build_routing_snapshot(
+                    normalize_pull_request_source(conflicted_raw)
+                ),
             ),
             patch("copilot_review_delivery.fetch_pr_reviews") as fetch_reviews,
             patch(

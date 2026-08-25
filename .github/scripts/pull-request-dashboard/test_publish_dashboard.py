@@ -7,6 +7,10 @@ import unittest
 from unittest.mock import patch
 
 import publish_dashboard
+from dashboard_test_support import (
+    dashboard_state,
+    stored_dashboard_result,
+)
 
 
 class PublishablePrsTest(unittest.TestCase):
@@ -39,7 +43,10 @@ class PublishablePrsTest(unittest.TestCase):
         ]
 
         self.assertEqual(
-            publish_dashboard.publishable_prs(prs, {1: {"route": "author"}}),
+            publish_dashboard.publishable_prs(
+                prs,
+                (stored_dashboard_result(1),),
+            ),
             [prs[0], prs[2]],
         )
 
@@ -147,14 +154,14 @@ class PublishablePrsTest(unittest.TestCase):
                 "labels": ["size/L"],
             },
         ]
-        results = {1: {"route": "unknown"}}
+        results = (stored_dashboard_result(1),)
         with tempfile.TemporaryDirectory() as tmp:
             output_path = Path(tmp) / "dashboard.md"
             with (
                 patch.object(
                     publish_dashboard,
                     "load_dashboard_state_cache",
-                    return_value={"prs": {}},
+                    return_value=dashboard_state(),
                 ),
                 patch.object(publish_dashboard, "list_open_prs", return_value=prs),
                 patch.object(

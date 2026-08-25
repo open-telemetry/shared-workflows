@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pull_request_source import IssueComment
 
 
 STATUS_MARKER = "<!-- pull-request-dashboard-status -->"
@@ -45,15 +49,20 @@ def is_dashboard_app_comment(comment: dict[str, Any]) -> bool:
 
 
 def status_author_nudge_episode_id(
-    comments: list[dict[str, Any]] | None,
+    comments: Sequence[dict[str, Any] | IssueComment] | None,
 ) -> str:
     for comment in comments or []:
-        body = comment.get("body") or ""
+        if isinstance(comment, dict):
+            body = comment.get("body") or ""
+            from_dashboard_app = is_dashboard_app_comment(comment)
+        else:
+            body = comment.body
+            from_dashboard_app = comment.is_from_app(DASHBOARD_APP_SLUG)
         match = _AUTHOR_NUDGE_EPISODE_MARKER_RE.search(body)
         if (
             match
             and STATUS_MARKER in body
-            and is_dashboard_app_comment(comment)
+            and from_dashboard_app
         ):
             return match.group(1)
     return ""

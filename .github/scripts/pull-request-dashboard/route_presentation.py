@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from dashboard_contracts import DashboardFacts, DashboardRoute
 
 
 ROUTE_PRESENTATION = {
@@ -38,48 +38,61 @@ ROUTE_PRESENTATION = {
 ROUTE_ORDER = list(ROUTE_PRESENTATION)
 
 
-def route_label(route: str) -> str:
-    return ROUTE_PRESENTATION.get(route, ROUTE_PRESENTATION["unknown"])["dashboard_label"]
+def _route_value(route: DashboardRoute | str) -> str:
+    return route.value if isinstance(route, DashboardRoute) else route
 
 
-def route_status_summary(route: str) -> tuple[str, str]:
-    presentation = ROUTE_PRESENTATION.get(route, ROUTE_PRESENTATION["unknown"])
+def route_label(route: DashboardRoute | str) -> str:
+    return ROUTE_PRESENTATION.get(
+        _route_value(route),
+        ROUTE_PRESENTATION["unknown"],
+    )["dashboard_label"]
+
+
+def route_status_summary(route: DashboardRoute | str) -> tuple[str, str]:
+    presentation = ROUTE_PRESENTATION.get(
+        _route_value(route),
+        ROUTE_PRESENTATION["unknown"],
+    )
     return (
         presentation["status_waiting_on"],
         presentation["status_next_step"],
     )
 
 
-def status_headline(route: str) -> str:
-    return ROUTE_PRESENTATION.get(route, ROUTE_PRESENTATION["unknown"])["status_headline"]
+def status_headline(route: DashboardRoute | str) -> str:
+    return ROUTE_PRESENTATION.get(
+        _route_value(route),
+        ROUTE_PRESENTATION["unknown"],
+    )["status_headline"]
 
 
-def outstanding_gate_phrase(facts: dict[str, Any]) -> str:
+def outstanding_gate_phrase(facts: DashboardFacts) -> str:
     # Only one gate has to be outstanding for a PR to be held, and a branch
     # without the Copilot gate never has that one, so naming both would tell
     # the author to wait for work that is finished or never happens.
     gates = []
-    if not facts.get("required_checks_settled"):
+    if not facts.required_checks_settled:
         gates.append("the required status checks")
-    if facts.get("copilot_review_outstanding"):
+    if facts.copilot_review_outstanding:
         gates.append("the Copilot review")
     return " and ".join(gates)
 
 
-def unreported_gate_phrase(facts: dict[str, Any]) -> str:
+def unreported_gate_phrase(facts: DashboardFacts) -> str:
     # Which gate has said nothing at all about the current head. This is not
     # the same as the gate that is holding the PR: a Copilot review that left
     # findings holds it but has reported, so naming it would send the reader
     # after a gate that arrived.
     gates = []
-    if not facts.get("required_checks_settled"):
+    if not facts.required_checks_settled:
         gates.append("the required status checks")
-    if facts.get("copilot_review_unreported"):
+    if facts.copilot_review_unreported:
         gates.append("the Copilot review")
     return " and ".join(gates)
 
 
-def abandoned_gate_note(facts: dict[str, Any]) -> str:
+def abandoned_gate_note(facts: DashboardFacts) -> str:
     # Said once the dashboard has stopped waiting, so the reader knows the
     # missing gate is not something they are supposed to sit and wait for.
     gates = unreported_gate_phrase(facts)

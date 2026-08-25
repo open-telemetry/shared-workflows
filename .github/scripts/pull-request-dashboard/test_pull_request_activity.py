@@ -9,6 +9,13 @@ from pull_request_activity import (
     build_activity_timeline,
     is_substantive_activity,
 )
+from dashboard_test_support import pull_request_source
+from pull_request_source import (
+    normalize_commits,
+    normalize_issue_comments,
+    normalize_review_comments,
+    normalize_reviews,
+)
 
 
 def activity(
@@ -20,12 +27,12 @@ def activity(
 ):
     return build_activity_timeline(
         ActivityInput(
-            {
-                "commits": commits or [],
-                "issue_comments": issue_comments or [],
-                "review_comments": review_comments or [],
-                "reviews": reviews or [],
-            },
+            pull_request_source(
+                commits=normalize_commits(commits),
+                issue_comments=normalize_issue_comments(issue_comments),
+                review_comments=normalize_review_comments(review_comments),
+                reviews=normalize_reviews(reviews),
+            ),
             "author",
             frozenset({"reviewer"}),
         )

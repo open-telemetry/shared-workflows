@@ -11,6 +11,7 @@ from discussion_lifecycle import (
     reviewer_handoff_feedback,
     resolve_discussions,
 )
+from pull_request_source import normalize_review_threads
 
 
 ROOT_TIMESTAMP = "2026-07-14T01:00:00Z"
@@ -119,7 +120,7 @@ class PrepareDiscussionsTest(unittest.TestCase):
     def test_prepares_threads_feedback_and_author_replies(self) -> None:
         prepared = prepare_discussions(
             DiscussionInput(
-                (
+                normalize_review_threads((
                     {
                         "id": "thread-1",
                         "isResolved": False,
@@ -143,7 +144,7 @@ class PrepareDiscussionsTest(unittest.TestCase):
                             ]
                         },
                     },
-                ),
+                )),
                 (
                     {
                         "kind": "issue-comment",
@@ -210,7 +211,7 @@ class PrepareDiscussionsTest(unittest.TestCase):
     def test_orders_discussions_by_creation_time_not_edit_time(self) -> None:
         prepared = prepare_discussions(
             DiscussionInput(
-                (
+                normalize_review_threads((
                     {
                         "id": "later-thread",
                         "isResolved": False,
@@ -243,7 +244,7 @@ class PrepareDiscussionsTest(unittest.TestCase):
                             ]
                         },
                     },
-                ),
+                )),
                 (
                     {
                         "kind": "issue-comment",
@@ -286,7 +287,7 @@ class PrepareDiscussionsTest(unittest.TestCase):
     def test_ignores_author_only_review_threads(self) -> None:
         prepared = prepare_discussions(
             DiscussionInput(
-                (
+                normalize_review_threads((
                     {
                         "id": "author-note",
                         "isResolved": False,
@@ -302,7 +303,7 @@ class PrepareDiscussionsTest(unittest.TestCase):
                             ]
                         },
                     },
-                ),
+                )),
                 (),
                 "author",
                 frozenset({"reviewer"}),

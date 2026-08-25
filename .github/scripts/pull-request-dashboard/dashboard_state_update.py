@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
 
+from dashboard_contracts import (
+    DashboardState,
+    EvaluationFailure,
+    EvaluationResult,
+    StoredDashboardResult,
+)
 from state import (
-    results_from_dashboard_state,
     stored_result,
     update_dashboard_state_for_pr,
 )
@@ -21,14 +25,12 @@ class DashboardUpdateDisposition(Enum):
 @dataclass(frozen=True)
 class PreparedDashboardUpdate:
     pr_number: int
-    starting_dashboard_state: dict[str, Any]
-    starting_result: dict[str, Any] | None
-    starting_slot_present: bool
-    starting_slot: Any
+    starting_dashboard_state: DashboardState
+    starting_result: StoredDashboardResult | None
 
     def with_evaluated_result(
         self,
-        evaluated_result: dict[str, Any] | None,
+        evaluated_result: EvaluationResult | None,
     ) -> DashboardStateUpdate:
         return DashboardStateUpdate(self, evaluated_result)
 
@@ -36,7 +38,7 @@ class PreparedDashboardUpdate:
 @dataclass(frozen=True)
 class DashboardStateUpdate:
     prepared: PreparedDashboardUpdate
-    evaluated_result: dict[str, Any] | None
+    evaluated_result: EvaluationResult | None
 
 
 @dataclass(frozen=True)
@@ -50,8 +52,8 @@ class DashboardUpdateEffects:
 @dataclass(frozen=True)
 class DashboardUpdateAcceptance:
     disposition: DashboardUpdateDisposition
-    dashboard_state: dict[str, Any]
-    accepted_result: dict[str, Any] | None
+    dashboard_state: DashboardState
+    accepted_result: StoredDashboardResult | None
     effects: DashboardUpdateEffects
 
     @property
@@ -60,38 +62,35 @@ class DashboardUpdateAcceptance:
 
 
 def prepare_dashboard_update(
-    dashboard_state: dict[str, Any],
+    dashboard_state: DashboardState,
     open_pr_numbers: set[int],
     pr_number: int,
 ) -> PreparedDashboardUpdate:
-    prs = dashboard_state.get("prs") or {}
-    key = str(pr_number)
+    starting_result = (
+        dashboard_state.result_for(pr_number)
+        if pr_number in open_pr_numbers
+        else None
+    )
     return PreparedDashboardUpdate(
         pr_number=pr_number,
         starting_dashboard_state=dashboard_state,
-        starting_result=results_from_dashboard_state(
-            dashboard_state,
-            open_pr_numbers,
-        ).get(pr_number),
-        starting_slot_present=key in prs,
-        starting_slot=prs.get(key),
+        starting_result=starting_result,
     )
 
 
 def _acceptance(
     disposition: DashboardUpdateDisposition,
-    dashboard_state: dict[str, Any],
+    dashboard_state: DashboardState,
     pr_number: int,
     *,
     clear_backfill_failure: bool = False,
 ) -> DashboardUpdateAcceptance:
     changed = disposition is DashboardUpdateDisposition.APPLIED
     rejected = disposition is DashboardUpdateDisposition.FAILED_RESULT_REJECTED
-    result = (dashboard_state.get("prs") or {}).get(str(pr_number))
     return DashboardUpdateAcceptance(
         disposition=disposition,
         dashboard_state=dashboard_state,
-        accepted_result=result if isinstance(result, dict) else None,
+        accepted_result=dashboard_state.result_for(pr_number),
         effects=DashboardUpdateEffects(
             persist_dashboard_state=changed,
             enqueue_status_comment=changed,
@@ -103,7 +102,7 @@ def _acceptance(
 
 def accept_dashboard_update(
     update: DashboardStateUpdate,
-    latest_dashboard_state: dict[str, Any] | None,
+    latest_dashboard_state: DashboardState | None,
 ) -> DashboardUpdateAcceptance:
     prepared = update.prepared
     pr_number = prepared.pr_number
@@ -112,13 +111,8 @@ def accept_dashboard_update(
         if latest_dashboard_state is not None
         else prepared.starting_dashboard_state
     )
-    latest_prs = dashboard_state.get("prs") or {}
-    latest_slot_present = str(pr_number) in latest_prs
-    latest_result = latest_prs.get(str(pr_number))
-    slot_changed = (
-        latest_slot_present != prepared.starting_slot_present
-        or latest_result != prepared.starting_slot
-    )
+    latest_result = dashboard_state.result_for(pr_number)
+    slot_changed = latest_result != prepared.starting_result
     evaluated_result = update.evaluated_result
 
     if evaluated_result is None:
@@ -128,7 +122,7 @@ def accept_dashboard_update(
                 dashboard_state,
                 pr_number,
             )
-        if not latest_slot_present:
+        if latest_result is None:
             return _acceptance(
                 DashboardUpdateDisposition.UNCHANGED,
                 dashboard_state,
@@ -140,9 +134,18 @@ def accept_dashboard_update(
             pr_number,
         )
 
-    clear_backfill_failure = not bool(evaluated_result.get("failed"))
-    current_result = stored_result(evaluated_result)
-    if latest_dashboard_state is not None and latest_result == current_result:
+    failed = isinstance(evaluated_result, EvaluationFailure)
+    clear_backfill_failure = not failed
+    current_result = (
+        None
+        if failed
+        else stored_result(evaluated_result)
+    )
+    if (
+        latest_dashboard_state is not None
+        and current_result is not None
+        and latest_result == current_result
+    ):
         return _acceptance(
             DashboardUpdateDisposition.UNCHANGED,
             dashboard_state,
@@ -156,7 +159,7 @@ def accept_dashboard_update(
             pr_number,
             clear_backfill_failure=clear_backfill_failure,
         )
-    if evaluated_result.get("failed"):
+    if failed:
         return _acceptance(
             DashboardUpdateDisposition.FAILED_RESULT_REJECTED,
             dashboard_state,

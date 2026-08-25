@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dashboard_override import command_reply_exists, render_command_reply
 from github_cli import gh_api, run_gh
+from pull_request_source import normalize_issue_comments
 from state import load_dashboard_state_cache
 
 
@@ -12,24 +13,16 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
     if dashboard_state is None:
         return []
     errors: list[str] = []
-    for key, result in sorted(
-        (dashboard_state.get("prs") or {}).items(),
-        key=lambda item: int(item[0]),
-    ):
-        replies = (
-            ((result or {}).get("facts") or {}).get(
-                "dashboard_command_replies"
-            )
-            or []
-        )
+    for result in dashboard_state.results:
+        replies = result.facts.dashboard_command_replies
         if not replies:
             continue
-        pr_number = int(key)
+        pr_number = result.pr_number
         try:
-            comments = gh_api(
+            comments = normalize_issue_comments(gh_api(
                 f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
                 paginate=True,
-            )
+            ))
         except Exception as error:
             errors.append(f"PR #{pr_number}: {error}")
             continue
@@ -37,7 +30,7 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
             try:
                 if command_reply_exists(
                     comments,
-                    int(reply["comment_id"]),
+                    reply.comment_id,
                 ):
                     continue
                 run_gh([

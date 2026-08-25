@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contextlib import nullcontext, redirect_stdout
+from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from io import StringIO
 import json
 from pathlib import Path
@@ -8,6 +8,17 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from dashboard_contracts import (
+    DashboardCommandReply,
+    DashboardRoute,
+    DashboardState,
+)
+from dashboard_test_support import (
+    dashboard_facts,
+    dashboard_state,
+    evaluation_success,
+    stored_dashboard_result,
+)
 from state import (
     AUTHOR_NUDGE_STATE_VERSION,
     BACKFILL_STATE_VERSION,
@@ -21,7 +32,13 @@ from state import (
     claim_delivery_versions,
     current_delivery_versions,
     dashboard_state_path,
+    decode_dashboard_facts,
+    decode_dashboard_state,
+    decode_stored_result,
     empty_state,
+    encode_dashboard_facts,
+    encode_dashboard_state,
+    encode_stored_result,
     enqueue_status_comment_update,
     load_accepted_dashboard_state,
     load_author_nudges,
@@ -50,7 +67,7 @@ from state import (
 class StateTest(unittest.TestCase):
     @patch(
         "state.load_accepted_dashboard_state",
-        return_value={"initial_backfill_complete": True, "prs": {}},
+        return_value=DashboardState(initial_backfill_complete=True),
     )
     def test_cli_prints_initial_backfill_readiness(self, load_state: object) -> None:
         output = StringIO()
@@ -92,11 +109,15 @@ class StateTest(unittest.TestCase):
 
         self.assertEqual(
             dashboard_state,
-            {
-                "version": DASHBOARD_STATE_VERSION,
-                "initial_backfill_complete": True,
-                "prs": {"123": {"route": "author"}},
-            },
+            DashboardState(
+                initial_backfill_complete=True,
+                results=(
+                    decode_stored_result(
+                        {"route": "author"},
+                        pr_number_hint=123,
+                    ),
+                ),
+            ),
         )
         accepted_state_dir.assert_called_once_with("state-branch", required=False)
 
@@ -136,11 +157,7 @@ class StateTest(unittest.TestCase):
 
             self.assertEqual(
                 load_dashboard_state_cache(),
-                {
-                    "version": DASHBOARD_STATE_VERSION,
-                    "initial_backfill_complete": False,
-                    "prs": {},
-                },
+                DashboardState(),
             )
             self.assertEqual(load_notifications(), {})
             self.assertEqual(
@@ -150,7 +167,7 @@ class StateTest(unittest.TestCase):
 
     def test_dashboard_state_save_writes_explicit_shape(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):
-            save_dashboard_state_cache({"unknown": "discard me"})
+            save_dashboard_state_cache(DashboardState())
 
             self.assertEqual(
                 json.loads(dashboard_state_path().read_text(encoding="utf-8")),
@@ -160,6 +177,321 @@ class StateTest(unittest.TestCase):
                     "prs": {},
                 },
             )
+
+    def test_dashboard_facts_codec_round_trip(self) -> None:
+        facts = dashboard_facts(
+            author="alice",
+            assignees=("alice", "reviewer"),
+            head_sha="current-head",
+            routing_input_fingerprint="routing-fingerprint",
+            copilot_request_fingerprint="copilot-fingerprint",
+            dashboard_override_command_id=91,
+            dashboard_override_command_user="alice",
+            dashboard_override_head_sha="current-head",
+            dashboard_command_replies=(
+                DashboardCommandReply(
+                    91,
+                    "routed",
+                    "alice",
+                    head_sha="current-head",
+                    route=DashboardRoute.APPROVER,
+                    held_gates="the required checks",
+                ),
+                DashboardCommandReply(
+                    92,
+                    "unauthorized",
+                    "outsider",
+                    "route:reviewers",
+                ),
+            ),
+            copilot_review_requested=True,
+            copilot_review_exists=True,
+            copilot_review_stale=True,
+            copilot_review_needed=True,
+            is_maintenance_bot=False,
+            is_draft=False,
+            approval_count=2,
+            conflicts="no",
+            created_at="2026-08-16T08:00:00Z",
+            last_activity_at="2026-08-16T12:00:00Z",
+            last_author_activity_at="2026-08-16T11:00:00Z",
+            last_approver_activity_at="2026-08-16T10:00:00Z",
+            ci_failing_count=1,
+            ci_failing_since="2026-08-16T09:00:00Z",
+            ci_pending_count=2,
+            non_blocking_check_failures=("CodeQL",),
+            copilot_first_review_missing_since="2026-08-16T08:30:00Z",
+            copilot_review_outstanding=True,
+            copilot_review_unreported=True,
+            copilot_review_request_needed=True,
+            required_checks_settled=False,
+            route_held_since="2026-08-16T09:30:00Z",
+            route_hold_expired=True,
+            route_held_for_gates=True,
+            waiting_since="2026-08-16T08:00:00Z",
+            waiting_age_basis="oldest_pending_action",
+            author_nudge_episode_id="episode-1",
+            author_action_review_thread_urls=("https://example.test/thread/1",),
+            author_action_top_level_feedback_urls=(
+                "https://example.test/comment/2",
+            ),
+            reviewers=(
+                {
+                    "login": "reviewer",
+                    "approved": True,
+                    "open_thread": True,
+                },
+            ),
+        )
+
+        self.assertEqual(
+            facts,
+            decode_dashboard_facts(encode_dashboard_facts(facts)),
+        )
+
+    def test_stored_result_and_dashboard_state_codecs_round_trip(self) -> None:
+        first = stored_dashboard_result(
+            7,
+            route=DashboardRoute.APPROVER,
+            facts=dashboard_facts(author="alice", head_sha="first-head"),
+            top_level_history={
+                "feedback": {
+                    "kind": "commit",
+                    "timestamp": "2026-08-16T08:00:00Z",
+                }
+            },
+        )
+        second = stored_dashboard_result(
+            8,
+            route=DashboardRoute.MAINTAINER,
+            facts=dashboard_facts(author="bob", head_sha="second-head"),
+        )
+        state = dashboard_state(
+            second,
+            first,
+            initial_backfill_complete=True,
+        )
+
+        self.assertEqual(first, decode_stored_result(encode_stored_result(first)))
+        self.assertEqual(state, decode_dashboard_state(encode_dashboard_state(state)))
+
+    def test_stored_result_rejects_explicit_non_object_facts(self) -> None:
+        stored = {
+            "pr_number": 7,
+            "pr_url": "https://github.com/open-telemetry/example/pull/7",
+            "failed": False,
+            "route": "approver",
+        }
+
+        self.assertEqual(dashboard_facts(), decode_stored_result(stored).facts)
+        for facts in ([], "", 0, False, None):
+            with self.subTest(facts=facts):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "dashboard result facts must be an object",
+                ):
+                    decode_stored_result({**stored, "facts": facts})
+
+    def test_dashboard_facts_rejects_null_non_optional_fields(self) -> None:
+        cases = (
+            ({"author": None}, "facts.author must be a string"),
+            ({"assignees": None}, "facts.assignees must be an array of strings"),
+            ({"is_draft": None}, "facts.is_draft must be a boolean"),
+            ({"approval_count": None}, "facts.approval_count must be an integer"),
+            (
+                {"dashboard_command_replies": None},
+                "facts.dashboard_command_replies must be an array",
+            ),
+            ({"reviewers": None}, "facts.reviewers must be an array"),
+            (
+                {"reviewers": [{"login": None}]},
+                "facts.reviewers.login must be a string",
+            ),
+            (
+                {
+                    "dashboard_command_replies": [{
+                        "comment_id": None,
+                        "kind": "unauthorized",
+                    }]
+                },
+                "facts.dashboard_command_replies.comment_id must be an integer",
+            ),
+        )
+
+        for facts, message in cases:
+            with self.subTest(facts=facts):
+                with self.assertRaises(ValueError) as raised:
+                    decode_dashboard_facts(facts)
+                self.assertEqual(message, str(raised.exception))
+
+    def test_dashboard_facts_accepts_null_optional_fields(self) -> None:
+        self.assertEqual(
+            dashboard_facts(),
+            decode_dashboard_facts({
+                "ci_failing_count": None,
+                "ci_failing_since": None,
+                "ci_pending_count": None,
+                "copilot_first_review_missing_since": None,
+                "route_held_since": None,
+                "author_nudge_episode_id": None,
+            }),
+        )
+
+    def test_stored_result_rejects_null_non_optional_fields(self) -> None:
+        stored = {
+            "pr_number": 7,
+            "pr_url": "https://github.com/open-telemetry/example/pull/7",
+            "failed": False,
+            "route": "approver",
+        }
+        cases = (
+            ("pr_number", "dashboard result pr_number must be an integer"),
+            ("pr_url", "dashboard result pr_url must be a string"),
+            ("failed", "dashboard result failed must be a boolean"),
+            ("route", "dashboard result route must be a string"),
+            (
+                "top_level_history",
+                "dashboard result top_level_history must be an object",
+            ),
+        )
+
+        for field, message in cases:
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError) as raised:
+                    decode_stored_result({**stored, field: None})
+                self.assertEqual(message, str(raised.exception))
+
+    def test_malformed_persisted_results_are_rejected_individually(self) -> None:
+        persisted = {
+            "version": DASHBOARD_STATE_VERSION,
+            "initial_backfill_complete": True,
+            "prs": {
+                "1": encode_stored_result(
+                    stored_dashboard_result(
+                        1,
+                        facts=dashboard_facts(author="canonical"),
+                    )
+                ),
+                "01": encode_stored_result(
+                    stored_dashboard_result(
+                        1,
+                        facts=dashboard_facts(author="alias"),
+                    )
+                ),
+                "not-a-number": {},
+                "0": {},
+                "2": [],
+                "3": {"pr_number": 3, "failed": True, "route": "unknown"},
+                "4": {"pr_number": 40, "failed": False, "route": "author"},
+                "5": {"pr_number": 5, "failed": False, "route": "unknown"},
+                "6": {
+                    "pr_number": 6,
+                    "failed": False,
+                    "route": "author",
+                    "facts": {"reviewers": "not-an-array"},
+                },
+            },
+        }
+        sorted_persisted = json.loads(json.dumps(persisted, sort_keys=True))
+        warnings = StringIO()
+
+        with redirect_stderr(warnings):
+            decoded = decode_dashboard_state(sorted_persisted)
+
+        self.assertEqual(frozenset({1}), decoded.pr_numbers)
+        self.assertEqual("canonical", decoded.results[0].facts.author)
+        self.assertTrue(decoded.initial_backfill_complete)
+        self.assertEqual(8, warnings.getvalue().count(
+            "warning: ignoring malformed dashboard result"
+        ))
+
+    def test_current_persisted_dashboard_shape_is_byte_for_byte_compatible(self) -> None:
+        persisted = {
+            "version": 10,
+            "initial_backfill_complete": True,
+            "prs": {
+                "123": {
+                    "pr_number": 123,
+                    "pr_url": "https://github.com/open-telemetry/example/pull/123",
+                    "failed": False,
+                    "route": "approver",
+                    "facts": {
+                        "author": "alice",
+                        "assignees": ["alice"],
+                        "head_sha": "current-head",
+                        "routing_input_fingerprint": "routing-fingerprint",
+                        "copilot_request_fingerprint": "copilot-fingerprint",
+                        "dashboard_override_command_id": 91,
+                        "dashboard_override_command_user": "alice",
+                        "dashboard_override_head_sha": "current-head",
+                        "dashboard_command_replies": [{
+                            "comment_id": 91,
+                            "kind": "routed",
+                            "head_sha": "current-head",
+                            "user": "alice",
+                            "route": "approver",
+                            "held_gates": "",
+                        }],
+                        "copilot_review_requested": True,
+                        "copilot_review_exists": True,
+                        "copilot_review_stale": False,
+                        "copilot_review_needed": False,
+                        "is_maintenance_bot": False,
+                        "is_draft": False,
+                        "approval_count": 1,
+                        "conflicts": "no",
+                        "created_at": "2026-08-16T08:00:00Z",
+                        "last_activity_at": "2026-08-16T12:00:00Z",
+                        "last_author_activity_at": "2026-08-16T11:00:00Z",
+                        "last_approver_activity_at": "2026-08-16T10:00:00Z",
+                        "copilot_review_outstanding": True,
+                        "copilot_review_unreported": False,
+                        "copilot_review_request_needed": False,
+                        "required_checks_settled": True,
+                        "route_hold_expired": False,
+                        "route_held_for_gates": False,
+                        "waiting_since": "2026-08-16T08:00:00Z",
+                        "waiting_age_basis": "last_author_activity",
+                        "author_action_review_thread_urls": [
+                            "https://github.com/open-telemetry/example/pull/123"
+                            "#discussion_r1",
+                        ],
+                        "author_action_top_level_feedback_urls": [
+                            "https://github.com/open-telemetry/example/pull/123"
+                            "#pullrequestreview-2",
+                        ],
+                        "reviewers": [{
+                            "login": "reviewer",
+                            "approved": True,
+                            "approved_non_team": False,
+                            "pending_review": False,
+                            "changes_requested": False,
+                            "open_thread": False,
+                            "top_level_feedback": False,
+                        }],
+                        "ci_failing_count": 0,
+                        "ci_pending_count": 0,
+                        "non_blocking_check_failures": ["CodeQL"],
+                        "copilot_first_review_missing_since": (
+                            "2026-08-16T08:30:00Z"
+                        ),
+                        "route_held_since": "2026-08-16T09:30:00Z",
+                        "author_nudge_episode_id": "episode-1",
+                    },
+                    "top_level_history": {
+                        "feedback": {
+                            "kind": "commit",
+                            "timestamp": "2026-08-16T10:00:00Z",
+                        }
+                    },
+                },
+            },
+        }
+
+        self.assertEqual(
+            persisted,
+            encode_dashboard_state(decode_dashboard_state(persisted)),
+        )
 
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
@@ -536,20 +868,11 @@ class StateTest(unittest.TestCase):
             )
 
     def test_targeted_update_preserves_initial_backfill_marker(self) -> None:
-        state = empty_state()
-        state["initial_backfill_complete"] = True
-        state["unknown"] = "discard me"
+        state = empty_state().with_initial_backfill_complete()
 
         updated = update_dashboard_state_for_pr(state, 123, None)
 
-        self.assertEqual(
-            updated,
-            {
-                "version": DASHBOARD_STATE_VERSION,
-                "initial_backfill_complete": True,
-                "prs": {},
-            },
-        )
+        self.assertEqual(DashboardState(initial_backfill_complete=True), updated)
 
     def test_notification_state_write_ignores_dashboard_version(self) -> None:
         with (
@@ -564,15 +887,9 @@ class StateTest(unittest.TestCase):
 
     def test_stored_result_preserves_top_level_history(self) -> None:
         result = stored_result(
-            {
-                "pr_number": 123,
-                "pending_actions": {
-                    "inline-thread": {
-                        "action": "author",
-                        "since": "2026-07-14T02:00:00Z",
-                    },
-                },
-                "top_level_history": {
+            evaluation_success(
+                123,
+                top_level_history={
                     "pr-review-456": {
                         "evidence": {
                             "commit": "2026-07-14T03:00:00Z",
@@ -580,11 +897,23 @@ class StateTest(unittest.TestCase):
                         },
                     },
                 },
-            }
+                pending_actions={
+                    "inline-thread": {
+                        "action": "author",
+                        "since": "2026-07-14T02:00:00Z",
+                    },
+                },
+            )
         )
 
         self.assertEqual(
-            result["top_level_history"],
+            {
+                key: {
+                    nested_key: dict(nested_value)
+                    for nested_key, nested_value in value.items()
+                }
+                for key, value in result.top_level_history.items()
+            },
             {
                 "pr-review-456": {
                     "evidence": {
@@ -594,7 +923,6 @@ class StateTest(unittest.TestCase):
                 },
             },
         )
-        self.assertNotIn("pending_actions", result)
 
     def test_notification_state_survives_dashboard_version_bump(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

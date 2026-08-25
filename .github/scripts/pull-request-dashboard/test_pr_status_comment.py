@@ -8,7 +8,34 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pr_status_comment
+from dashboard_contracts import (
+    DashboardRoute,
+    EvaluationFailure,
+    StoredDashboardResult,
+)
+from dashboard_test_support import (
+    dashboard_facts,
+    dashboard_state,
+    evaluation_failure,
+    stored_dashboard_result,
+)
 from dashboard_status import status_reviewer_handoff_clearance
+
+
+def status_result(
+    route: DashboardRoute | str = DashboardRoute.APPROVER,
+    **facts: object,
+) -> StoredDashboardResult | EvaluationFailure:
+    route = DashboardRoute(route)
+    if route.is_failure:
+        return evaluation_failure(
+            route=route,
+            facts=dashboard_facts(**facts),
+        )
+    return stored_dashboard_result(
+        route=route,
+        facts=dashboard_facts(**facts),
+    )
 
 
 class RenderStatusCommentTest(unittest.TestCase):
@@ -26,19 +53,17 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_waiting_on_author_splits_review_feedback_links(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author": "alice",
-                    "author_nudge_episode_id": "abc123",
-                    "author_action_review_thread_urls": [
-                        "https://github.com/open-telemetry/example/pull/1#discussion_r1",
-                    ],
-                    "author_action_top_level_feedback_urls": [
-                        "https://github.com/open-telemetry/example/pull/1#pullrequestreview-2",
-                    ],
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                author_nudge_episode_id="abc123",
+                author_action_review_thread_urls=(
+                    "https://github.com/open-telemetry/example/pull/1#discussion_r1",
+                ),
+                author_action_top_level_feedback_urls=(
+                    "https://github.com/open-telemetry/example/pull/1#pullrequestreview-2",
+                ),
+            ),
         )
 
         self.assertIn("**Waiting on the author** · refreshed ", body)
@@ -89,14 +114,12 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_persists_feedback_cleared_handoff_in_status_comment(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "dashboard_override_bound_command_id": 12,
-                    "dashboard_override_head_sha": "abcdef123456",
-                    "dashboard_override_cleared_by_feedback": True,
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                dashboard_override_bound_command_id=12,
+                dashboard_override_head_sha="abcdef123456",
+                dashboard_override_cleared_by_feedback=True,
+            ),
         )
         comment = {
             "user": {"login": "opentelemetry-pr-dashboard[bot]"},
@@ -184,8 +207,14 @@ class RenderStatusCommentTest(unittest.TestCase):
         ],
     )
     def test_status_last_refreshed_changes_for_identical_status(self, _utc_now: Mock) -> None:
-        first_body = pr_status_comment.render_status_comment(self.pr(), {"route": "approver"})
-        second_body = pr_status_comment.render_status_comment(self.pr(), {"route": "approver"})
+        first_body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(),
+        )
+        second_body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(),
+        )
 
         self.assertIn("**Waiting on reviewers** · refreshed 2026-07-18 12:34 UTC", first_body)
         self.assertIn("**Waiting on reviewers** · refreshed 2026-07-18 12:35 UTC", second_body)
@@ -193,7 +222,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
     def test_accuracy_note_prefills_central_issue_for_every_status(self) -> None:
         cases = (
-            (self.pr(), {"route": "approver", "facts": {}}),
+            (self.pr(), status_result()),
             (self.pr(draft=True), None),
             (self.pr(merged=True), None),
             (self.pr(state="closed"), None),
@@ -221,7 +250,7 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_accuracy_note_prefills_quoted_live_status_comment(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {"route": "approver", "facts": {}},
+            status_result(),
         )
 
         status_comment, footer = body.split("\n\n<details>", maxsplit=1)
@@ -243,25 +272,23 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_accuracy_note_bounds_report_url_for_large_status(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "ci_failing_count": 1,
-                    "non_blocking_check_failures": [
+            status_result(
+                DashboardRoute.AUTHOR,
+                ci_failing_count=1,
+                non_blocking_check_failures=tuple(
                         "&" * pr_status_comment.NON_BLOCKING_CHECK_FAILURE_NAME_LIMIT
                         for _ in range(
                             pr_status_comment.NON_BLOCKING_CHECK_FAILURE_LIMIT
                         )
-                    ],
-                    "author_action_review_thread_urls": [
+                ),
+                author_action_review_thread_urls=tuple(
                         "https://github.com/open-telemetry/example/pull/1"
                         "#discussion_r1234567890"
                         for _ in range(
                             pr_status_comment.AUTHOR_ACTION_FEEDBACK_LINK_LIMIT
                         )
-                    ],
-                },
-            },
+                ),
+            ),
         )
 
         report_url = body.split("[Report it](", maxsplit=1)[1].split(
@@ -281,10 +308,11 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_waiting_on_author_names_required_ci_failure(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {"author": "alice", "ci_failing_count": 1},
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                ci_failing_count=1,
+            ),
         )
 
         self.assertIn("**Waiting on the author** · refreshed ", body)
@@ -295,14 +323,12 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_waiting_on_author_names_merge_conflicts(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author": "alice",
-                    "conflicts": "yes",
-                    "ci_failing_count": 1,
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                conflicts="yes",
+                ci_failing_count=1,
+            ),
         )
 
         self.assertIn("**Waiting on the author** · refreshed ", body)
@@ -313,16 +339,14 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_conflicted_held_pr_names_the_outstanding_gate(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author": "alice",
-                    "conflicts": "yes",
-                    "route_held_for_gates": True,
-                    "required_checks_settled": False,
-                    "copilot_review_outstanding": False,
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                conflicts="yes",
+                route_held_for_gates=True,
+                required_checks_settled=False,
+                copilot_review_outstanding=False,
+            ),
         )
 
         self.assertIn("Resolve merge conflicts.", body)
@@ -331,10 +355,11 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_waiting_on_maintainers_keeps_route_and_names_merge_conflicts(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "maintainer",
-                "facts": {"author": "alice", "conflicts": "yes"},
-            },
+            status_result(
+                DashboardRoute.MAINTAINER,
+                author="alice",
+                conflicts="yes",
+            ),
         )
 
         self.assertIn("**Waiting on maintainers** · refreshed ", body)
@@ -343,15 +368,13 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_held_pr_names_only_the_outstanding_check_gate(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author": "alice",
-                    "route_held_for_gates": True,
-                    "required_checks_settled": False,
-                    "copilot_review_outstanding": False,
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                route_held_for_gates=True,
+                required_checks_settled=False,
+                copilot_review_outstanding=False,
+            ),
         )
 
         self.assertIn("Wait for the required status checks to report;", body)
@@ -359,15 +382,13 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_held_pr_names_only_the_outstanding_copilot_gate(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author": "alice",
-                    "route_held_for_gates": True,
-                    "required_checks_settled": True,
-                    "copilot_review_outstanding": True,
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                route_held_for_gates=True,
+                required_checks_settled=True,
+                copilot_review_outstanding=True,
+            ),
         )
 
         self.assertIn("Wait for the Copilot review to report;", body)
@@ -375,17 +396,14 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_a_pr_released_from_a_stalled_gate_says_so(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "approver",
-                "facts": {
-                    "author": "alice",
-                    "route_held_for_gates": False,
-                    "route_hold_expired": True,
-                    "required_checks_settled": True,
-                    "copilot_review_outstanding": True,
-                    "copilot_review_unreported": True,
-                },
-            },
+            status_result(
+                author="alice",
+                route_held_for_gates=False,
+                route_hold_expired=True,
+                required_checks_settled=True,
+                copilot_review_outstanding=True,
+                copilot_review_unreported=True,
+            ),
         )
 
         self.assertIn(
@@ -397,16 +415,14 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_waiting_on_author_combines_ci_and_review_feedback_reasons(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author": "alice",
-                    "ci_failing_count": 2,
-                    "author_action_review_thread_urls": [
-                        "https://github.com/open-telemetry/example/pull/1#discussion_r1",
-                    ],
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                ci_failing_count=2,
+                author_action_review_thread_urls=(
+                    "https://github.com/open-telemetry/example/pull/1#discussion_r1",
+                ),
+            ),
         )
 
         self.assertIn("Two things need attention:", body)
@@ -417,16 +433,14 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_required_ci_action_notes_configured_non_blocking_failures(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "ci_failing_count": 2,
-                    "non_blocking_check_failures": [
-                        "CodeQL",
-                        "workflow-notification",
-                    ],
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                ci_failing_count=2,
+                non_blocking_check_failures=(
+                    "CodeQL",
+                    "workflow-notification",
+                ),
+            ),
         )
 
         self.assertIn(
@@ -438,16 +452,14 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_required_ci_action_escapes_non_blocking_failure_names(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "ci_failing_count": 1,
-                    "non_blocking_check_failures": [
-                        "[CodeQL] <script>\n@maintainers",
-                        r"pipe|slash\check & more",
-                    ],
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                ci_failing_count=1,
+                non_blocking_check_failures=(
+                    "[CodeQL] <script>\n@maintainers",
+                    r"pipe|slash\check & more",
+                ),
+            ),
         )
 
         self.assertIn(
@@ -468,13 +480,11 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "ci_failing_count": 1,
-                    "non_blocking_check_failures": failures,
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                ci_failing_count=1,
+                non_blocking_check_failures=tuple(failures),
+            ),
         )
 
         truncated_name = (
@@ -489,12 +499,7 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_non_author_route_names_non_blocking_failure(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "approver",
-                "facts": {
-                    "non_blocking_check_failures": ["codecov/patch"],
-                },
-            },
+            status_result(non_blocking_check_failures=("codecov/patch",)),
         )
 
         self.assertIn("**Waiting on reviewers** · refreshed ", body)
@@ -533,13 +538,11 @@ class RenderStatusCommentTest(unittest.TestCase):
             with self.subTest(route=route):
                 body = pr_status_comment.render_status_comment(
                     self.pr(),
-                    {
-                        "route": route,
-                        "facts": {
-                            "ci_failing_count": failing_count,
-                            "non_blocking_check_failures": non_blocking_failures,
-                        },
-                    },
+                    status_result(
+                        route,
+                        ci_failing_count=failing_count,
+                        non_blocking_check_failures=tuple(non_blocking_failures),
+                    ),
                 )
 
                 self.assertIn(f"**{waiting_on}** · refreshed ", body)
@@ -549,12 +552,7 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_reviewer_handoff_still_reports_a_check_failure_as_blocking(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "approver",
-                "facts": {
-                    "ci_failing_count": 1,
-                },
-            },
+            status_result(ci_failing_count=1),
         )
 
         self.assertIn("**Also blocked by:** 1 required status check is failing.", body)
@@ -571,14 +569,14 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author": "alice",
-                    "author_action_review_thread_urls": review_thread_urls,
-                    "author_action_top_level_feedback_urls": top_level_feedback_urls,
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                author_action_review_thread_urls=tuple(review_thread_urls),
+                author_action_top_level_feedback_urls=tuple(
+                    top_level_feedback_urls
+                ),
+            ),
         )
 
         self.assertIn("- **Inline threads:**", body)
@@ -598,15 +596,13 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {
-                "route": "author",
-                "facts": {
-                    "author_action_review_thread_urls": review_thread_urls,
-                    "author_action_top_level_feedback_urls": [
-                        "https://github.com/open-telemetry/example/pull/1#issuecomment-1",
-                    ],
-                },
-            },
+            status_result(
+                DashboardRoute.AUTHOR,
+                author_action_review_thread_urls=tuple(review_thread_urls),
+                author_action_top_level_feedback_urls=(
+                    "https://github.com/open-telemetry/example/pull/1#issuecomment-1",
+                ),
+            ),
         )
 
         self.assertNotIn("Top-level threads", body)
@@ -632,18 +628,16 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertNotIn(pr_status_comment.RESPONSE_EXAMPLES, body)
 
     def test_terminal_pr_has_no_author_feedback_links(self) -> None:
-        result = {
-            "route": "author",
-            "facts": {
-                "author": "alice",
-                "author_action_review_thread_urls": [
-                    "https://github.com/open-telemetry/example/pull/1#discussion_r1",
-                ],
-                "author_action_top_level_feedback_urls": [
-                    "https://github.com/open-telemetry/example/pull/1#pullrequestreview-2",
-                ],
-            },
-        }
+        result = status_result(
+            DashboardRoute.AUTHOR,
+            author="alice",
+            author_action_review_thread_urls=(
+                "https://github.com/open-telemetry/example/pull/1#discussion_r1",
+            ),
+            author_action_top_level_feedback_urls=(
+                "https://github.com/open-telemetry/example/pull/1#pullrequestreview-2",
+            ),
+        )
 
         for overrides in ({"state": "closed"}, {"state": "closed", "merged": True}):
             with self.subTest(overrides=overrides):
@@ -656,7 +650,7 @@ class RenderStatusCommentTest(unittest.TestCase):
     def test_author_login_is_not_mentioned(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
-            {"route": "author", "facts": {"author": "alice"}},
+            status_result(DashboardRoute.AUTHOR, author="alice"),
         )
 
         self.assertIn("**Waiting on the author** · refreshed ", body)
@@ -674,7 +668,7 @@ class RenderStatusCommentTest(unittest.TestCase):
             with self.subTest(route=route):
                 body = pr_status_comment.render_status_comment(
                     self.pr(),
-                    {"route": route, "facts": {}},
+                    status_result(route),
                 )
 
                 self.assertIn(f"**{headline}** · refreshed ", body)
@@ -800,7 +794,7 @@ class PublishPrStatusTest(unittest.TestCase):
         self, _gh_api: Mock, upsert: Mock
     ) -> None:
         pr_status_comment.publish_pr_status(
-            "open-telemetry/example", 1, {"prs": {}}
+            "open-telemetry/example", 1, dashboard_state()
         )
 
         self.assertFalse(upsert.call_args.kwargs["create"])
@@ -819,7 +813,7 @@ class PublishPrStatusTest(unittest.TestCase):
                 gh_api.return_value = pr
 
                 pr_status_comment.publish_pr_status(
-                    "open-telemetry/example", 1, {"prs": {}}
+                    "open-telemetry/example", 1, dashboard_state()
                 )
 
                 self.assertFalse(upsert.call_args.kwargs["create"])
@@ -833,7 +827,11 @@ class PublishPrStatusTest(unittest.TestCase):
     def test_open_pr_still_creates_a_status_comment(
         self, _gh_api: Mock, upsert: Mock
     ) -> None:
-        pr_status_comment.publish_pr_status("open-telemetry/example", 1, {"prs": {}})
+        pr_status_comment.publish_pr_status(
+            "open-telemetry/example",
+            1,
+            dashboard_state(),
+        )
 
         self.assertTrue(upsert.call_args.kwargs["create"])
 
@@ -877,7 +875,7 @@ class RolloutStateTest(unittest.TestCase):
     @patch.object(
         pr_status_comment,
         "load_dashboard_state_cache",
-        return_value={"prs": {}},
+        return_value=dashboard_state(),
     )
     @patch.object(
         pr_status_comment,
@@ -908,7 +906,7 @@ class RolloutStateTest(unittest.TestCase):
     @patch.object(
         pr_status_comment,
         "load_dashboard_state_cache",
-        return_value={"prs": {}},
+        return_value=dashboard_state(),
     )
     @patch.object(
         pr_status_comment,
@@ -932,7 +930,11 @@ class RolloutStateTest(unittest.TestCase):
         )
 
         self.assertEqual([], status)
-        publish_pr_status.assert_called_once_with("open-telemetry/example", 34, {"prs": {}})
+        publish_pr_status.assert_called_once_with(
+            "open-telemetry/example",
+            34,
+            dashboard_state(),
+        )
         saved_state = save_rollout.call_args.args[0]
         self.assertEqual(0, saved_state["target_revision"])
         self.assertEqual([56, 12], saved_state["pending_pr_numbers"])
@@ -942,7 +944,7 @@ class RolloutStateTest(unittest.TestCase):
     @patch.object(
         pr_status_comment,
         "load_dashboard_state_cache",
-        return_value={"prs": {}},
+        return_value=dashboard_state(),
     )
     @patch.object(
         pr_status_comment,
@@ -999,7 +1001,11 @@ class RolloutStateTest(unittest.TestCase):
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
     @patch.object(
         pr_status_comment,
         "load_status_comment_rollout_state",
@@ -1035,7 +1041,11 @@ class RolloutStateTest(unittest.TestCase):
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
     @patch.object(
         pr_status_comment,
         "load_status_comment_rollout_state",
@@ -1074,7 +1084,11 @@ class RolloutStateTest(unittest.TestCase):
         "publish_pr_status",
         side_effect=[RuntimeError("failed"), None],
     )
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
     @patch.object(
         pr_status_comment,
         "load_status_comment_rollout_state",
@@ -1114,7 +1128,11 @@ class RolloutStateTest(unittest.TestCase):
             None,
         ],
     )
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
     @patch.object(
         pr_status_comment,
         "load_status_comment_rollout_state",
@@ -1154,7 +1172,11 @@ class RolloutStateTest(unittest.TestCase):
             pr_status_comment.StatusCommentDeferred("PR #34 is locked"),
         ],
     )
-    @patch.object(pr_status_comment, "load_dashboard_state_cache", return_value={"prs": {}})
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
     def test_deferred_locked_prs_rotate_behind_unattempted_prs(
         self,
         _load_dashboard: object,

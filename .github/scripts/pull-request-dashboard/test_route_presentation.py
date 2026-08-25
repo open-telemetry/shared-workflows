@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from dashboard_test_support import dashboard_facts
 from route_presentation import (
     ROUTE_ORDER,
     ROUTE_PRESENTATION,
@@ -39,10 +40,10 @@ class RoutePresentationTest(unittest.TestCase):
     def test_both_outstanding_gates_are_named_in_one_phrase(self) -> None:
         self.assertEqual(
             "the required status checks and the Copilot review",
-            outstanding_gate_phrase({
-                "required_checks_settled": False,
-                "copilot_review_outstanding": True,
-            }),
+            outstanding_gate_phrase(dashboard_facts(
+                required_checks_settled=False,
+                copilot_review_outstanding=True,
+            )),
         )
 
 

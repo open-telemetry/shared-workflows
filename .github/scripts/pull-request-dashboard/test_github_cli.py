@@ -8,7 +8,6 @@ from github_cli import (
     code_scanning_tools,
     fetch_pr_issue_comments,
     fetch_pr_reviews,
-    fetch_pr_routing_raw,
     fetch_review_requests,
     fetch_latest_draft_transitions,
     gh_branch_rules,
@@ -24,6 +23,7 @@ from github_cli import (
     required_code_scanning_checks,
     settled_check_suite_app_ids,
 )
+from pull_request_source import fetch_pull_request_source
 
 
 def _review_requests_page(nodes, has_next=False, cursor=""):
@@ -1142,7 +1142,7 @@ class GithubCliTest(unittest.TestCase):
             "headRefOid": "current-head",
         }
 
-        raw = fetch_pr_routing_raw(
+        source = fetch_pull_request_source(
             "open-telemetry/example",
             "open-telemetry",
             "example",
@@ -1151,7 +1151,7 @@ class GithubCliTest(unittest.TestCase):
 
         self.assertEqual(
             [("build", "pass"), ("CodeQL", "fail")],
-            [(check["name"], check["bucket"]) for check in raw["checks"]],
+            [(check.name, check.bucket) for check in source.checks or ()],
         )
 
     @patch("github_cli.gh_branch_rules", return_value=[])
@@ -1187,14 +1187,14 @@ class GithubCliTest(unittest.TestCase):
             "headRefOid": "current-head",
         }
 
-        raw = fetch_pr_routing_raw(
+        source = fetch_pull_request_source(
             "open-telemetry/example",
             "open-telemetry",
             "example",
             7,
         )
 
-        self.assertIsNone(raw["checks"])
+        self.assertIsNone(source.checks)
 
     @patch("github_cli.settled_check_suite_app_ids", return_value=set())
     @patch(
@@ -1240,7 +1240,7 @@ class GithubCliTest(unittest.TestCase):
             "headRefOid": "current-head",
         }
 
-        raw = fetch_pr_routing_raw(
+        source = fetch_pull_request_source(
             "open-telemetry/example",
             "open-telemetry",
             "example",
@@ -1249,7 +1249,7 @@ class GithubCliTest(unittest.TestCase):
 
         self.assertEqual(
             [("build", "pass")],
-            [(check["name"], check["bucket"]) for check in raw["checks"]],
+            [(check.name, check.bucket) for check in source.checks or ()],
         )
         settled_app_ids.assert_not_called()
 
@@ -1300,7 +1300,7 @@ class GithubCliTest(unittest.TestCase):
             "headRefOid": "current-head",
         }
 
-        raw = fetch_pr_routing_raw(
+        source = fetch_pull_request_source(
             "open-telemetry/example",
             "open-telemetry",
             "example",
@@ -1309,7 +1309,7 @@ class GithubCliTest(unittest.TestCase):
 
         self.assertEqual(
             [("build", "pass")],
-            [(check["name"], check["bucket"]) for check in raw["checks"]],
+            [(check.name, check.bucket) for check in source.checks or ()],
         )
         settled_app_ids.assert_called_once_with(
             "open-telemetry/example", "current-head"

@@ -6,7 +6,14 @@ import unittest
 from unittest.mock import patch
 
 import author_nudge
+from dashboard_test_support import (
+    dashboard_facts,
+    dashboard_state as build_dashboard_state,
+    evaluation_failure,
+    stored_dashboard_result,
+)
 from routing_snapshot import build_routing_snapshot
+from pull_request_source import normalize_pull_request_source
 
 
 NOW = datetime(2026, 7, 17, tzinfo=timezone.utc)
@@ -19,27 +26,29 @@ def routing_snapshot(
     head_sha: str = "current-head",
     fingerprint: str = "current-fingerprint",
 ):
-    snapshot = build_routing_snapshot({
+    snapshot = build_routing_snapshot(normalize_pull_request_source({
         "checks": [],
         "pr": {
             "state": state,
             "isDraft": is_draft,
             "headRefOid": head_sha,
         },
-    })
+    }))
     return replace(snapshot, routing_input_fingerprint=fingerprint)
 
 
-def author_result(route: str = "author") -> dict:
-    return {
-        "route": route,
-        "facts": {
-            "author": "alice",
-            "author_nudge_episode_id": "episode-1",
-            "head_sha": "current-head",
-            "routing_input_fingerprint": "current-fingerprint",
-        },
+def author_result(route: str = "author", **fact_changes: object):
+    facts = {
+        "author": "alice",
+        "author_nudge_episode_id": "episode-1",
+        "head_sha": "current-head",
+        "routing_input_fingerprint": "current-fingerprint",
     }
+    facts.update(fact_changes)
+    return stored_dashboard_result(
+        route=route,
+        facts=dashboard_facts(**facts),
+    )
 
 
 class AuthorNudgePolicyTest(unittest.TestCase):
@@ -82,8 +91,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         )
 
     def test_conflict_starts_standard_nudge_clock(self) -> None:
-        result = author_result()
-        result["facts"]["conflicts"] = "yes"
+        result = author_result(conflicts="yes")
 
         due, entry = author_nudge.plan_nudge(result, None, NOW)
 
@@ -98,8 +106,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         )
 
     def test_conflict_nudge_is_due_after_standard_week(self) -> None:
-        result = author_result()
-        result["facts"]["conflicts"] = "yes"
+        result = author_result(conflicts="yes")
 
         due, _entry = author_nudge.plan_nudge(
             result,
@@ -161,8 +168,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         )
 
     def test_conflict_keeps_posted_nudge_active(self) -> None:
-        result = author_result()
-        result["facts"]["conflicts"] = "yes"
+        result = author_result(conflicts="yes")
 
         due, entry = author_nudge.plan_nudge(
             result,
@@ -235,8 +241,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
             "nudged_at": "2026-07-17T00:00:00+00:00",
             "episode_id": "episode-1",
         }
-        held = author_result()
-        held["facts"]["route_held_for_gates"] = True
+        held = author_result(route_held_for_gates=True)
 
         due, entry = author_nudge.plan_nudge(held, previous, NOW)
 
@@ -244,8 +249,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         self.assertEqual(previous, entry)
 
     def test_gate_held_route_uses_standard_nudge_deadline(self) -> None:
-        held = author_result()
-        held["facts"]["route_held_for_gates"] = True
+        held = author_result(route_held_for_gates=True)
 
         due, entry = author_nudge.plan_nudge(
             held,
@@ -292,8 +296,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         )
 
     def test_new_episode_id_closes_posted_reminder_before_resetting_clock(self) -> None:
-        next_episode = author_result()
-        next_episode["facts"]["author_nudge_episode_id"] = "episode-2"
+        next_episode = author_result(author_nudge_episode_id="episode-2")
 
         due, entry = author_nudge.plan_nudge(
             next_episode,
@@ -324,7 +327,7 @@ class AuthorNudgePolicyTest(unittest.TestCase):
         previous = {"waiting_since": "2026-07-10T00:00:00+00:00", "nudged_at": ""}
 
         due, entry = author_nudge.plan_nudge(
-            {"failed": True, "route": "unknown"},
+            evaluation_failure(),
             previous,
             NOW,
         )
@@ -428,7 +431,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     @patch.object(
         author_nudge,
         "load_dashboard_state_cache",
-        return_value={"prs": {"1": author_result()}},
+        return_value=build_dashboard_state(author_result()),
     )
     @patch.object(
         author_nudge,
@@ -479,7 +482,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     @patch.object(
         author_nudge,
         "load_dashboard_state_cache",
-        return_value={"prs": {"1": author_result("approver")}},
+        return_value=build_dashboard_state(author_result("approver")),
     )
     def test_delivery_completes_posted_nudge(
         self,
@@ -535,7 +538,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     @patch.object(
         author_nudge,
         "load_dashboard_state_cache",
-        return_value={"prs": {"1": author_result("approver")}},
+        return_value=build_dashboard_state(author_result("approver")),
     )
     def test_delivery_recovers_legacy_posted_nudge_episode(
         self,
@@ -590,7 +593,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     @patch.object(
         author_nudge,
         "load_dashboard_state_cache",
-        return_value={"prs": {"1": author_result("approver")}},
+        return_value=build_dashboard_state(author_result("approver")),
     )
     def test_missing_legacy_comment_discards_completion(
         self,
@@ -635,7 +638,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             patch.object(
                 author_nudge,
                 "load_dashboard_state_cache",
-                return_value={"prs": {"1": author_result()}},
+                return_value=build_dashboard_state(author_result()),
             ),
             patch.object(
                 author_nudge,
@@ -680,7 +683,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             patch.object(
                 author_nudge,
                 "load_dashboard_state_cache",
-                return_value={"prs": {"1": author_result()}},
+                return_value=build_dashboard_state(author_result()),
             ),
             patch.object(
                 author_nudge,
@@ -731,7 +734,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     @patch.object(
         author_nudge,
         "load_dashboard_state_cache",
-        return_value={"prs": {"1": author_result()}},
+        return_value=build_dashboard_state(author_result()),
     )
     @patch.object(
         author_nudge,
@@ -778,7 +781,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
     @patch.object(
         author_nudge,
         "load_dashboard_state_cache",
-        return_value={"prs": {"1": author_result()}},
+        return_value=build_dashboard_state(author_result()),
     )
     @patch.object(
         author_nudge,
@@ -827,7 +830,9 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "pending_at": "2026-07-17T00:00:00+00:00",
                 "head_sha": "current-head",
                 "routing_input_fingerprint": (
-                    build_routing_snapshot(clean_raw).routing_input_fingerprint
+                    build_routing_snapshot(
+                        normalize_pull_request_source(clean_raw)
+                    ).routing_input_fingerprint
                 ),
             }
         }
@@ -837,7 +842,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             patch.object(
                 author_nudge,
                 "load_dashboard_state_cache",
-                return_value={"prs": {"1": author_result()}},
+                return_value=build_dashboard_state(author_result()),
             ),
             patch.object(
                 author_nudge,
@@ -845,7 +850,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 return_value=replace(
                     routing_snapshot(),
                     routing_input_fingerprint=build_routing_snapshot(
-                        conflicted_raw
+                        normalize_pull_request_source(conflicted_raw)
                     ).routing_input_fingerprint,
                 ),
             ),
@@ -883,7 +888,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 patch.object(
                     author_nudge,
                     "load_dashboard_state_cache",
-                    return_value={"prs": {"1": author_result()}},
+                    return_value=build_dashboard_state(author_result()),
                 ),
                 patch.object(
                     author_nudge,
@@ -994,7 +999,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         minimization_reason,
         minimize_comment,
     ) -> None:
-        dashboard_state = {"prs": {"1": author_result("approver")}}
+        dashboard_state = build_dashboard_state(author_result("approver"))
 
         author_nudge.ensure_nudge_completed(
             "open-telemetry/example",
@@ -1056,7 +1061,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
                 "open-telemetry/example",
                 1,
                 "episode-1",
-                {"prs": {}},
+                build_dashboard_state(),
                 NOW,
             )
 
@@ -1095,7 +1100,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             "open-telemetry/example",
             1,
             "episode-1",
-            {"prs": {}},
+            build_dashboard_state(),
             NOW,
         )
 
@@ -1136,7 +1141,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             "open-telemetry/example",
             1,
             "episode-1",
-            {"prs": {}},
+            build_dashboard_state(),
             NOW,
         )
 
@@ -1179,7 +1184,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             "open-telemetry/example",
             1,
             "episode-1",
-            {"prs": {}},
+            build_dashboard_state(),
             NOW,
         )
 
@@ -1339,7 +1344,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
         managed_status_comments.return_value = [
             {"html_url": "https://example.test/status"}
         ]
-        dashboard_state = {"prs": {"1": author_result()}}
+        dashboard_state = build_dashboard_state(author_result())
 
         nudged_at = author_nudge.ensure_nudge(
             "open-telemetry/example",
@@ -1373,7 +1378,7 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             "open-telemetry/example",
             1,
             author_result(),
-            {"prs": {"1": author_result()}},
+            build_dashboard_state(author_result()),
             "2026-07-17T00:00:00+00:00",
             NOW,
         )

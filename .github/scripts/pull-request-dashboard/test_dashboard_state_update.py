@@ -3,50 +3,60 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError
 import unittest
 
+from dashboard_contracts import DashboardRoute
 from dashboard_state_update import (
     DashboardUpdateDisposition,
     accept_dashboard_update,
     prepare_dashboard_update,
 )
+from dashboard_test_support import (
+    dashboard_facts,
+    dashboard_state,
+    evaluation_failure,
+    evaluation_success,
+    stored_dashboard_result,
+)
 
 
-def result(number: int, route: str, *, failed: bool = False) -> dict[str, object]:
-    return {
-        "pr_number": number,
-        "pr_url": f"https://example.test/pull/{number}",
-        "route": route,
-        "failed": failed,
-        "facts": {"head_sha": route},
-        "top_level_history": {},
-    }
+def stored(number: int, route: DashboardRoute | str):
+    return stored_dashboard_result(
+        number,
+        route,
+        facts=dashboard_facts(head_sha=DashboardRoute(route).value),
+    )
 
 
-def state(*results: dict[str, object]) -> dict[str, object]:
-    return {
-        "version": 10,
-        "initial_backfill_complete": False,
-        "prs": {str(value["pr_number"]): value for value in results},
-    }
+def evaluated(number: int, route: DashboardRoute | str):
+    return evaluation_success(
+        number,
+        route,
+        facts=dashboard_facts(head_sha=DashboardRoute(route).value),
+    )
 
 
 class DashboardStateUpdateTest(unittest.TestCase):
-    def test_prepared_update_is_frozen_and_records_the_starting_slot(self) -> None:
-        starting = result(7, "author")
-        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+    def test_prepared_update_is_frozen_and_records_the_starting_result(self) -> None:
+        starting = stored(7, DashboardRoute.AUTHOR)
+        prepared = prepare_dashboard_update(
+            dashboard_state(starting),
+            {7},
+            7,
+        )
 
         self.assertEqual(starting, prepared.starting_result)
-        self.assertTrue(prepared.starting_slot_present)
-        self.assertEqual(starting, prepared.starting_slot)
         with self.assertRaises(FrozenInstanceError):
             prepared.pr_number = 8  # type: ignore[misc]
 
     def test_identical_current_result_is_unchanged(self) -> None:
-        starting = result(7, "author")
-        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+        starting = stored(7, DashboardRoute.AUTHOR)
+        state = dashboard_state(starting)
+        prepared = prepare_dashboard_update(state, {7}, 7)
 
         acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(dict(starting)),
-            state(starting),
+            prepared.with_evaluated_result(
+                evaluated(7, DashboardRoute.AUTHOR)
+            ),
+            state,
         )
 
         self.assertIs(acceptance.disposition, DashboardUpdateDisposition.UNCHANGED)
@@ -56,11 +66,17 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertTrue(acceptance.effects.clear_backfill_failure)
 
     def test_matching_result_is_applied_when_latest_state_is_missing(self) -> None:
-        starting = result(7, "author")
-        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+        starting = stored(7, DashboardRoute.AUTHOR)
+        prepared = prepare_dashboard_update(
+            dashboard_state(starting),
+            {7},
+            7,
+        )
 
         acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(dict(starting)),
+            prepared.with_evaluated_result(
+                evaluated(7, DashboardRoute.AUTHOR)
+            ),
             None,
         )
 
@@ -72,39 +88,46 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertTrue(acceptance.effects.clear_backfill_failure)
 
     def test_concurrent_other_slot_change_is_retained(self) -> None:
-        starting = result(7, "author")
-        other_starting = result(8, "author")
-        other_latest = result(8, "approver")
-        evaluated = result(7, "reviewer")
+        starting = stored(7, DashboardRoute.AUTHOR)
+        other_starting = stored(8, DashboardRoute.AUTHOR)
+        other_latest = stored(8, DashboardRoute.APPROVER)
         prepared = prepare_dashboard_update(
-            state(starting, other_starting),
+            dashboard_state(starting, other_starting),
             {7, 8},
             7,
         )
 
         acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(evaluated),
-            state(starting, other_latest),
+            prepared.with_evaluated_result(
+                evaluated(7, DashboardRoute.APPROVER)
+            ),
+            dashboard_state(starting, other_latest),
         )
 
         self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
-        self.assertEqual(
-            "approver",
-            acceptance.dashboard_state["prs"]["8"]["route"],
+        self.assertIs(
+            acceptance.dashboard_state.result_for(8).route,
+            DashboardRoute.APPROVER,
         )
-        self.assertEqual(
-            "reviewer",
-            acceptance.dashboard_state["prs"]["7"]["route"],
+        self.assertIs(
+            acceptance.dashboard_state.result_for(7).route,
+            DashboardRoute.APPROVER,
         )
 
     def test_concurrent_same_slot_change_wins(self) -> None:
-        starting = result(7, "author")
-        concurrent = result(7, "approver")
-        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+        starting = stored(7, DashboardRoute.AUTHOR)
+        concurrent = stored(7, DashboardRoute.APPROVER)
+        prepared = prepare_dashboard_update(
+            dashboard_state(starting),
+            {7},
+            7,
+        )
 
         acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(result(7, "reviewer")),
-            state(concurrent),
+            prepared.with_evaluated_result(
+                evaluated(7, DashboardRoute.MAINTAINER)
+            ),
+            dashboard_state(concurrent),
         )
 
         self.assertIs(
@@ -118,99 +141,72 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertTrue(acceptance.effects.clear_backfill_failure)
 
     def test_tracked_pr_removal_is_accepted(self) -> None:
-        starting = result(7, "author")
-        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+        starting = stored(7, DashboardRoute.AUTHOR)
+        state = dashboard_state(starting)
+        prepared = prepare_dashboard_update(state, {7}, 7)
 
         acceptance = accept_dashboard_update(
             prepared.with_evaluated_result(None),
-            state(starting),
+            state,
         )
 
         self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
         self.assertIsNone(acceptance.accepted_result)
-        self.assertEqual({}, acceptance.dashboard_state["prs"])
+        self.assertEqual((), acceptance.dashboard_state.results)
         self.assertTrue(acceptance.effects.persist_dashboard_state)
         self.assertTrue(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
         self.assertFalse(acceptance.effects.clear_backfill_failure)
 
     def test_untracked_dropped_pr_is_unchanged(self) -> None:
-        other = result(8, "author")
-        prepared = prepare_dashboard_update(state(other), {7, 8}, 7)
+        other = stored(8, DashboardRoute.AUTHOR)
+        state = dashboard_state(other)
+        prepared = prepare_dashboard_update(state, {7, 8}, 7)
 
         acceptance = accept_dashboard_update(
             prepared.with_evaluated_result(None),
-            state(other),
+            state,
         )
 
         self.assertIs(acceptance.disposition, DashboardUpdateDisposition.UNCHANGED)
-        self.assertEqual(state(other), acceptance.dashboard_state)
+        self.assertEqual(state, acceptance.dashboard_state)
         self.assertFalse(acceptance.effects.persist_dashboard_state)
         self.assertFalse(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
 
-    def test_malformed_tracked_pr_removal_is_accepted(self) -> None:
-        malformed_state = state()
-        malformed_state["prs"]["7"] = None
-        prepared = prepare_dashboard_update(malformed_state, {7}, 7)
-
-        acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(None),
-            malformed_state,
-        )
-
-        self.assertIsNone(prepared.starting_result)
-        self.assertTrue(prepared.starting_slot_present)
-        self.assertIsNone(prepared.starting_slot)
-        self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
-        self.assertEqual({}, acceptance.dashboard_state["prs"])
-        self.assertTrue(acceptance.effects.persist_dashboard_state)
-
-    def test_concurrent_malformed_slot_change_wins(self) -> None:
-        starting_state = state()
-        starting_state["prs"]["7"] = None
-        latest_state = state()
-        latest_state["prs"]["7"] = "malformed"
-        prepared = prepare_dashboard_update(starting_state, {7}, 7)
-
-        acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(None),
-            latest_state,
-        )
-
-        self.assertIs(
-            acceptance.disposition,
-            DashboardUpdateDisposition.CONCURRENT_UPDATE,
-        )
-        self.assertIsNone(acceptance.accepted_result)
-        self.assertEqual("malformed", acceptance.dashboard_state["prs"]["7"])
-        self.assertFalse(acceptance.effects.persist_dashboard_state)
-        self.assertTrue(acceptance.effects.record_observations)
-
     def test_successful_result_is_accepted_and_plans_all_effects(self) -> None:
-        starting = result(7, "author")
-        evaluated = result(7, "approver")
-        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+        starting = stored(7, DashboardRoute.AUTHOR)
+        prepared = prepare_dashboard_update(
+            dashboard_state(starting),
+            {7},
+            7,
+        )
 
         acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(evaluated),
-            state(starting),
+            prepared.with_evaluated_result(
+                evaluated(7, DashboardRoute.APPROVER)
+            ),
+            dashboard_state(starting),
         )
 
         self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
-        self.assertEqual("approver", acceptance.accepted_result["route"])
+        self.assertIs(
+            acceptance.accepted_result.route,
+            DashboardRoute.APPROVER,
+        )
         self.assertTrue(acceptance.effects.persist_dashboard_state)
         self.assertTrue(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
         self.assertTrue(acceptance.effects.clear_backfill_failure)
 
     def test_failed_result_is_rejected_and_previous_slot_is_retained(self) -> None:
-        starting = result(7, "author")
-        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+        starting = stored(7, DashboardRoute.AUTHOR)
+        state = dashboard_state(starting)
+        prepared = prepare_dashboard_update(state, {7}, 7)
 
         acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(result(7, "unknown", failed=True)),
-            state(starting),
+            prepared.with_evaluated_result(evaluation_failure(7)),
+            state,
         )
 
         self.assertIs(
@@ -223,14 +219,18 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertFalse(acceptance.effects.record_observations)
         self.assertFalse(acceptance.effects.clear_backfill_failure)
 
-    def test_failed_result_does_not_override_a_concurrent_same_slot_change(self) -> None:
-        starting = result(7, "author")
-        concurrent = result(7, "approver")
-        prepared = prepare_dashboard_update(state(starting), {7}, 7)
+    def test_failed_result_does_not_override_concurrent_update(self) -> None:
+        starting = stored(7, DashboardRoute.AUTHOR)
+        concurrent = stored(7, DashboardRoute.APPROVER)
+        prepared = prepare_dashboard_update(
+            dashboard_state(starting),
+            {7},
+            7,
+        )
 
         acceptance = accept_dashboard_update(
-            prepared.with_evaluated_result(result(7, "unknown", failed=True)),
-            state(concurrent),
+            prepared.with_evaluated_result(evaluation_failure(7)),
+            dashboard_state(concurrent),
         )
 
         self.assertIs(

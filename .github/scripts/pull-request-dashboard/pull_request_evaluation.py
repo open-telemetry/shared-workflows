@@ -5,7 +5,6 @@ from __future__ import annotations
 import sys
 import traceback
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,7 +14,20 @@ from classification import (
     normalize_discussion_action,
 )
 from copilot_review import copilot_review_status, is_copilot_reviewer
-from dashboard_override import append_command_ack_reply, dashboard_override_facts
+from dashboard_contracts import (
+    DashboardFacts,
+    DashboardRoute,
+    EvaluationDiagnostics,
+    EvaluationFailure,
+    EvaluationResult,
+    EvaluationSuccess,
+    StoredDashboardResult,
+)
+from dashboard_override import (
+    DashboardOverrideInput,
+    append_command_ack_reply,
+    dashboard_override_facts,
+)
 from dashboard_status import status_author_nudge_episode_id
 from discussion_lifecycle import (
     DiscussionClassifications,
@@ -27,7 +39,12 @@ from discussion_lifecycle import (
     reviewer_handoff_feedback,
     resolve_discussions,
 )
-from github_cli import TransientGhError, fetch_pr_routing_raw, gh_api
+from github_cli import TransientGhError
+from pull_request_source import (
+    IssueComment,
+    PullRequestSource,
+    fetch_pull_request_source,
+)
 from pull_request_activity import (
     ActivityInput,
     PullRequestActivity,
@@ -47,7 +64,7 @@ from routing_decision import (
     routing_failure_facts,
 )
 from routing_snapshot import build_routing_snapshot
-from utils import actor_login, compute_conflicts, format_ts, parse_ts
+from utils import format_ts, parse_ts
 
 
 # Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
@@ -73,12 +90,19 @@ class PullRequestEvaluationConfig:
 
 @dataclass(frozen=True)
 class PullRequestEvaluationInput:
-    pr_summary: dict[str, Any]
-    previous_result: dict[str, Any] | None = None
+    pr_number: int
+    previous_result: StoredDashboardResult | None = None
+
+    def __post_init__(self) -> None:
+        if self.pr_number <= 0:
+            raise ValueError("pull request number must be positive")
 
 
-def _human_author_for_copilot_pr(raw: dict[str, Any]) -> str:
-    assignees = [actor_login(a) for a in (raw["pr"].get("assignees") or [])]
+def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
+    assignees = [
+        assignee.login
+        for assignee in source.pull_request.assignees
+    ]
     for login in assignees:
         low = login.lower()
         if (
@@ -89,72 +113,54 @@ def _human_author_for_copilot_pr(raw: dict[str, Any]) -> str:
         ):
             return login
 
-    commits = raw["commits"]
+    commits = source.commits
     if not commits:
         return ""
-    login = actor_login(commits[0].get("committer") or {})
-    if not login or login.lower() in _COPILOT_COMMITTER_LOGINS:
+    committer = commits[0].committer
+    login = committer.login
+    if (
+        not login
+        or login.lower() in _COPILOT_COMMITTER_LOGINS
+        or committer.is_bot
+        or committer.is_copilot_reviewer
+    ):
         return ""
     return login
 
 
-def _effective_author(raw: dict[str, Any]) -> str:
-    pr = raw["pr"]
-    summary = raw["summary"]
-    author = actor_login(pr.get("author") or {}) or actor_login(
-        summary.get("author") or {}
-    )
+def _effective_author(source: PullRequestSource) -> str:
+    author = source.pull_request.author.login
     if author.lower() in _COPILOT_PR_AUTHORS:
-        human_author = _human_author_for_copilot_pr(raw)
+        human_author = _human_author_for_copilot_pr(source)
         if human_author:
             return human_author
     return author
 
 
-def _fetch_pr_raw(
-    config: PullRequestEvaluationConfig,
-    pr_summary: dict[str, Any],
-) -> dict[str, Any]:
-    number = pr_summary["number"]
-    with ThreadPoolExecutor() as pool:
-        commits_future = pool.submit(
-            gh_api,
-            (
-                f"/repos/{config.owner}/{config.repo_name}"
-                f"/pulls/{number}/commits?per_page=100"
-            ),
-            True,
-        )
-        raw = fetch_pr_routing_raw(
-            config.repo,
-            config.owner,
-            config.repo_name,
-            number,
-            list(config.non_blocking_check_patterns),
-        )
-        return {
-            **raw,
-            "summary": pr_summary,
-            "commits": commits_future.result() or [],
-        }
-
-
 def _compute_facts(
-    raw: dict[str, Any],
+    source: PullRequestSource,
     author: str,
     activity: PullRequestActivity,
     prepared_reviewers: PreparedReviewers,
     approver_logins: frozenset[str],
-    previous_facts: dict[str, Any],
-) -> dict[str, Any]:
-    pr = raw["pr"]
-    snapshot = build_routing_snapshot(raw)
+    previous_facts: DashboardFacts,
+) -> DashboardFacts:
+    pr = source.pull_request
+    snapshot = build_routing_snapshot(source)
     checks = snapshot.checks
-    failing = [c for c in checks or [] if c.get("bucket") in ("fail", "cancel")]
-    pending = [c for c in checks or [] if c.get("bucket") == "pending"]
-    failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
+    failing = [
+        check
+        for check in checks or ()
+        if check.bucket in ("fail", "cancel")
+    ]
+    pending = [
+        check
+        for check in checks or ()
+        if check.bucket == "pending"
+    ]
+    failing_timestamps = [parse_ts(check.completed_at) for check in failing]
     failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
-    created_ts = parse_ts(pr["createdAt"])
+    created_ts = parse_ts(pr.created_at)
     last_activity_ts = max(
         [
             ts
@@ -166,72 +172,76 @@ def _compute_facts(
         ],
         default=None,
     )
-    api_author = actor_login(pr.get("author") or {})
+    api_author = pr.author.login
     head_sha = snapshot.head_sha
     (
         copilot_review_exists,
         copilot_review_stale,
         copilot_review_findings,
     ) = copilot_review_status(
-        raw.get("reviews") or [],
+        source.reviews,
         head_sha,
         snapshot.review_threads,
     )
-    facts = {
-        "author": author,
-        "assignees": list(prepared_reviewers.assignee_logins),
-        "head_sha": head_sha,
-        "routing_input_fingerprint": snapshot.routing_input_fingerprint,
-        "copilot_request_fingerprint": snapshot.copilot_request_fingerprint,
-        **dashboard_override_facts(
-            raw,
-            author,
-            set(approver_logins),
-            head_sha,
-            previous_facts,
-        ),
-        "copilot_review_requested": any(
+    override = dashboard_override_facts(
+        DashboardOverrideInput(source.issue_comments),
+        author,
+        set(approver_logins),
+        head_sha,
+        previous_facts,
+    )
+    non_blocking_check_failures = tuple(sorted(
+        {
+            check.name
+            for check in source.non_blocking_failures
+            if check.name
+        },
+        key=lambda name: (name.casefold(), name),
+    ))
+    return DashboardFacts(
+        author=author,
+        assignees=prepared_reviewers.assignee_logins,
+        head_sha=head_sha,
+        routing_input_fingerprint=snapshot.routing_input_fingerprint,
+        copilot_request_fingerprint=snapshot.copilot_request_fingerprint,
+        dashboard_override_command_id=override.command_id,
+        dashboard_override_command_user=override.command_user,
+        dashboard_override_head_sha=override.head_sha,
+        dashboard_command_replies=override.command_replies,
+        copilot_review_requested=any(
             is_copilot_reviewer(request)
             for request in snapshot.review_requests
         ),
-        "copilot_review_exists": copilot_review_exists,
-        "copilot_review_stale": copilot_review_stale,
-        "copilot_review_needed": copilot_review_stale or copilot_review_findings,
-        "is_maintenance_bot": api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
-        "is_draft": bool(pr.get("isDraft")),
-        "approval_count": prepared_reviewers.approval_count,
-        "conflicts": compute_conflicts(pr),
-        "created_at": format_ts(created_ts),
-        "last_activity_at": format_ts(last_activity_ts),
-        "last_author_activity_at": format_ts(
+        copilot_review_exists=copilot_review_exists,
+        copilot_review_stale=copilot_review_stale,
+        copilot_review_needed=copilot_review_stale or copilot_review_findings,
+        is_maintenance_bot=api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
+        is_draft=pr.is_draft,
+        approval_count=prepared_reviewers.approval_count,
+        conflicts=pr.conflicts,
+        created_at=format_ts(created_ts),
+        last_activity_at=format_ts(last_activity_ts),
+        last_author_activity_at=format_ts(
             activity.latest_author_activity_at
         ),
-        "last_approver_activity_at": format_ts(
+        last_approver_activity_at=format_ts(
             activity.latest_approver_activity_at
         ),
-    }
-    if checks is not None:
-        facts["ci_failing_count"] = len(failing)
-        if failing_timestamps:
-            facts["ci_failing_since"] = format_ts(min(failing_timestamps))
-        facts["ci_pending_count"] = len(pending)
-    non_blocking_check_failures = sorted(
-        {
-            check.get("name") or ""
-            for check in raw.get("non_blocking_check_failures") or []
-            if check.get("name")
-        },
-        key=lambda name: (name.casefold(), name),
+        ci_failing_count=len(failing) if checks is not None else None,
+        ci_failing_since=(
+            format_ts(min(failing_timestamps))
+            if failing_timestamps
+            else None
+        ),
+        ci_pending_count=len(pending) if checks is not None else None,
+        non_blocking_check_failures=non_blocking_check_failures,
     )
-    if non_blocking_check_failures:
-        facts["non_blocking_check_failures"] = non_blocking_check_failures
-    return facts
 
 
 def _author_action_discussion_urls(
     discussions: list[dict[str, Any]],
     pending_actions: dict[str, dict[str, Any]],
-) -> list[str]:
+) -> tuple[str, ...]:
     by_id = {
         discussion["discussion_id"]: discussion for discussion in discussions
     }
@@ -244,22 +254,28 @@ def _author_action_discussion_urls(
         url = (discussion or {}).get("discussion_url") or ""
         if url and url not in urls:
             urls.append(url)
-    return urls
+    return tuple(urls)
 
 
 def _assign_author_nudge_episode(
-    facts: dict[str, Any],
-    route: str,
-    previous_result: dict[str, Any] | None,
-    issue_comments: list[dict[str, Any]],
-) -> None:
-    if route != "author":
-        facts.pop("author_nudge_episode_id", None)
-        return
-    previous_facts = (previous_result or {}).get("facts") or {}
+    facts: DashboardFacts,
+    route: DashboardRoute,
+    previous_result: StoredDashboardResult | None,
+    issue_comments: tuple[IssueComment, ...],
+) -> DashboardFacts:
+    if route is not DashboardRoute.AUTHOR:
+        return facts.with_changes(author_nudge_episode_id=None)
+    previous_facts = (
+        previous_result.facts
+        if previous_result is not None
+        else DashboardFacts()
+    )
     previous_episode_id = (
-        previous_facts.get("author_nudge_episode_id")
-        if (previous_result or {}).get("route") == "author"
+        previous_facts.author_nudge_episode_id
+        if (
+            previous_result is not None
+            and previous_result.route is DashboardRoute.AUTHOR
+        )
         else ""
     )
     recovered_episode_id = (
@@ -267,27 +283,42 @@ def _assign_author_nudge_episode(
         if previous_result is None
         else ""
     )
-    facts["author_nudge_episode_id"] = str(
-        previous_episode_id or recovered_episode_id or uuid.uuid4().hex
+    return facts.with_changes(
+        author_nudge_episode_id=str(
+            previous_episode_id or recovered_episode_id or uuid.uuid4().hex
+        )
     )
 
 
 def _failure_result(
     number: int,
-    route: str,
+    route: DashboardRoute,
     error: Exception,
-) -> dict[str, Any]:
-    return {
-        "pr_number": number,
-        "failed": True,
-        "facts": {},
-        "review_threads": [],
-        "top_level_items": [],
-        "review_thread_classifications": [],
-        "top_level_classifications": [],
-        "route": route,
-        "error": repr(error),
-    }
+) -> EvaluationFailure:
+    return EvaluationFailure(
+        pr_number=number,
+        route=route,
+        error=repr(error),
+    )
+
+
+def _evaluation_diagnostics(
+    lifecycle: Any,
+) -> EvaluationDiagnostics:
+    return EvaluationDiagnostics(
+        review_threads=lifecycle.prepared.review_threads,
+        top_level_items=lifecycle.prepared.top_level_items,
+        top_level_author_comment_items=(
+            lifecycle.prepared.top_level_author_comment_items
+        ),
+        review_thread_classifications=(
+            lifecycle.classifications.review_threads
+        ),
+        top_level_classifications=lifecycle.classifications.top_level_items,
+        top_level_author_comment_classifications=(
+            lifecycle.classifications.top_level_author_comments
+        ),
+    )
 
 
 def _classify_discussions(
@@ -339,31 +370,44 @@ def _handoff_feedback_routes_to_author(
 def evaluate_pull_request(
     config: PullRequestEvaluationConfig,
     source: PullRequestEvaluationInput,
-) -> dict[str, Any] | None:
+) -> EvaluationResult | None:
     """Fetch and evaluate one pull request without mutating dashboard state."""
-    number = source.pr_summary["number"]
+    number = source.pr_number
     previous_result = source.previous_result
-    previous_facts = (previous_result or {}).get("facts") or {}
+    previous_facts = (
+        previous_result.facts
+        if previous_result is not None
+        else DashboardFacts()
+    )
     previous_top_level_history = (
-        (previous_result or {}).get("top_level_history") or {}
+        previous_result.top_level_history
+        if previous_result is not None
+        else {}
     )
     try:
-        raw = _fetch_pr_raw(config, source.pr_summary)
-        if raw["pr"].get("state") != "OPEN" or raw["pr"].get("isDraft"):
+        pr_source = fetch_pull_request_source(
+            config.repo,
+            config.owner,
+            config.repo_name,
+            number,
+            config.non_blocking_check_patterns,
+        )
+        pr = pr_source.pull_request
+        if pr.state != "OPEN" or pr.is_draft:
             return None
-        author = _effective_author(raw)
+        author = _effective_author(pr_source)
         activity = build_activity_timeline(
-            ActivityInput(raw, author, config.approver_logins)
+            ActivityInput(pr_source, author, config.approver_logins)
         )
         prepared_reviewers = prepare_reviewers(
             ReviewerInput(
                 activity.events,
-                tuple(raw.get("review_requests") or []),
-                tuple(raw["pr"].get("assignees") or []),
+                pr_source.review_requests,
+                pr.assignees,
             )
         )
         facts = _compute_facts(
-            raw,
+            pr_source,
             author,
             activity,
             prepared_reviewers,
@@ -373,11 +417,11 @@ def evaluate_pull_request(
         manual_reviewer_handoff = reviewer_handoff_active(facts)
         prepared_discussions = prepare_discussions(
             DiscussionInput(
-                tuple(raw["review_threads"]),
+                pr_source.review_threads,
                 activity.events,
                 author,
                 config.approver_logins,
-                facts.get("conflicts") or "unknown",
+                facts.conflicts,
             )
         )
         if manual_reviewer_handoff:
@@ -429,21 +473,20 @@ def evaluate_pull_request(
                 config.classifier_model,
                 previous_top_level_history,
             )
-        lifecycle_fields = lifecycle.dashboard_fields()
+        diagnostics = _evaluation_diagnostics(lifecycle)
         if lifecycle.failed_classifications:
-            return {
-                "pr_number": number,
-                "pr_title": raw["pr"].get("title") or "",
-                "pr_url": raw["pr"].get("url") or "",
-                "failed": True,
-                "facts": routing_failure_facts(facts, previous_facts),
-                **lifecycle_fields,
-                "route": "unknown",
-                "error": (
+            return EvaluationFailure(
+                pr_number=number,
+                pr_title=pr.title,
+                pr_url=pr.url,
+                facts=routing_failure_facts(facts, previous_facts),
+                diagnostics=diagnostics,
+                route=DashboardRoute.UNKNOWN,
+                error=(
                     f"{len(lifecycle.failed_classifications)} "
                     "discussion classification(s) failed"
                 ),
-            }
+            )
         pending_actions = lifecycle.pending_actions
         review_threads = list(prepared_discussions.review_threads)
         top_level_items = list(prepared_discussions.top_level_items)
@@ -451,11 +494,15 @@ def evaluate_pull_request(
             RoutingInput(
                 facts=facts,
                 pending_actions=pending_actions,
-                previous_route=(previous_result or {}).get("route"),
+                previous_route=(
+                    previous_result.route
+                    if previous_result is not None
+                    else None
+                ),
                 previous_facts=previous_facts,
                 required_approvals=config.required_approvals,
                 require_clean_copilot_review=(
-                    (raw["pr"].get("baseRefName") or "")
+                    pr.base_branch
                     in config.require_clean_copilot_review_branches
                 ),
                 manual_reviewer_handoff=manual_reviewer_handoff,
@@ -466,45 +513,53 @@ def evaluate_pull_request(
         )
         route = routing_outcome.route
         facts = routing_outcome.facts
-        _assign_author_nudge_episode(
+        facts = _assign_author_nudge_episode(
             facts,
             route,
             previous_result,
-            raw.get("issue_comments") or [],
+            pr_source.issue_comments,
         )
-        append_command_ack_reply(raw, facts, route)
-        facts["author_action_review_thread_urls"] = (
-            _author_action_discussion_urls(review_threads, pending_actions)
+        facts = append_command_ack_reply(
+            DashboardOverrideInput(pr_source.issue_comments),
+            facts,
+            route,
         )
-        facts["author_action_top_level_feedback_urls"] = (
-            _author_action_discussion_urls(top_level_items, pending_actions)
-        )
-        facts["reviewers"] = [
-            reviewer.dashboard_dict()
-            for reviewer in resolve_reviewers(
+        facts = facts.with_changes(
+            author_action_review_thread_urls=(
+                _author_action_discussion_urls(review_threads, pending_actions)
+            ),
+            author_action_top_level_feedback_urls=(
+                _author_action_discussion_urls(top_level_items, pending_actions)
+            ),
+            reviewers=resolve_reviewers(
                 prepared_reviewers,
                 ReviewerDiscussionInput(
                     tuple(review_threads),
                     tuple(top_level_items),
                     pending_actions,
                 ),
-            )
-        ]
-        return {
-            "pr_number": number,
-            "pr_title": raw["pr"].get("title") or "",
-            "pr_url": raw["pr"].get("url") or "",
-            "failed": False,
-            "facts": facts,
-            **lifecycle_fields,
-            "route": route,
-        }
+            ),
+        )
+        return EvaluationSuccess(
+            pr_number=number,
+            pr_title=pr.title,
+            pr_url=pr.url,
+            facts=facts,
+            diagnostics=diagnostics,
+            pending_actions=pending_actions,
+            top_level_history=lifecycle.top_level_history,
+            route=route,
+        )
     except TransientGhError as error:
-        return _failure_result(number, "transient-failure", error)
+        return _failure_result(
+            number,
+            DashboardRoute.TRANSIENT_FAILURE,
+            error,
+        )
     except Exception as error:
         print(
             f"  warning: PR #{number} failed to build result:",
             file=sys.stderr,
         )
         traceback.print_exc()
-        return _failure_result(number, "unknown", error)
+        return _failure_result(number, DashboardRoute.UNKNOWN, error)

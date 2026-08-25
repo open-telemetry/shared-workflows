@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from dashboard_contracts import DashboardFacts
+
 
 DEFAULT_TRUNCATE_CHARS = 1200
 
@@ -67,6 +69,7 @@ def actor_login(obj: dict[str, Any] | None) -> str:
 # Every login GitHub has used for the Copilot reviewer, lowercased.
 COPILOT_REVIEWER_LOGINS = frozenset({
     "copilot",
+    "copilot[bot]",
     "copilot-pull-request-reviewer",
     "copilot-pull-request-reviewer[bot]",
 })
@@ -76,22 +79,12 @@ def is_copilot_reviewer_login(login: str) -> bool:
     return (login or "").strip().lower() in COPILOT_REVIEWER_LOGINS
 
 
-def compute_conflicts(pr: dict[str, Any]) -> str:
-    merge_state = pr.get("mergeStateStatus")
-    mergeable = pr.get("mergeable")
-    if mergeable == "CONFLICTING" or merge_state == "DIRTY":
-        return "yes"
-    if mergeable in (None, "", "UNKNOWN"):
-        return "unknown"
-    return "no"
-
-
-def required_checks_settled(facts: dict[str, Any]) -> bool:
+def required_checks_settled(facts: DashboardFacts) -> bool:
     # A route computed while checks are still running is provisional because a
     # failure becomes visible only after the check completes.
-    if "ci_pending_count" not in facts:
+    if facts.ci_pending_count is None:
         return False
-    return not facts.get("ci_pending_count", 0)
+    return not facts.ci_pending_count
 
 
 def format_ts(ts: datetime | None) -> str:

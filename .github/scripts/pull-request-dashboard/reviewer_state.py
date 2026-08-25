@@ -5,14 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from dashboard_contracts import ReviewerSummary
+from pull_request_source import Actor, ReviewRequest
 from pull_request_activity import reviewer_actor_login
 
 
 @dataclass(frozen=True)
 class ReviewerInput:
     events: tuple[Mapping[str, Any], ...]
-    review_requests: tuple[dict[str, Any], ...]
-    raw_assignees: tuple[dict[str, Any], ...]
+    review_requests: tuple[ReviewRequest, ...]
+    assignees: tuple[Actor, ...]
 
 
 @dataclass(frozen=True)
@@ -35,28 +37,6 @@ class ReviewerDiscussionInput:
     review_threads: tuple[dict[str, Any], ...]
     top_level_feedback: tuple[dict[str, Any], ...]
     pending_actions: Mapping[str, dict[str, Any]]
-
-
-@dataclass(frozen=True)
-class ReviewerSummary:
-    login: str
-    approved: bool
-    approved_non_team: bool
-    pending_review: bool
-    changes_requested: bool
-    open_thread: bool
-    top_level_feedback: bool
-
-    def dashboard_dict(self) -> dict[str, Any]:
-        return {
-            "login": self.login,
-            "approved": self.approved,
-            "approved_non_team": self.approved_non_team,
-            "pending_review": self.pending_review,
-            "changes_requested": self.changes_requested,
-            "open_thread": self.open_thread,
-            "top_level_feedback": self.top_level_feedback,
-        }
 
 
 _OPEN_DISCUSSION_ACTIONS = {"author", "reviewer"}
@@ -82,13 +62,12 @@ def _latest_review_states(events: tuple[Mapping[str, Any], ...]) -> dict[str, st
 
 
 def _human_request_logins(
-    review_requests: tuple[dict[str, Any], ...],
+    review_requests: tuple[ReviewRequest, ...],
 ) -> set[str]:
     return {
-        login
+        request.login
         for request in review_requests
-        if request.get("__typename") == "User"
-        and (login := reviewer_actor_login(request))
+        if request.is_human and request.login
     }
 
 
@@ -137,7 +116,7 @@ def prepare_reviewers(source: ReviewerInput) -> PreparedReviewers:
     )
     assignee_logins = tuple(
         login
-        for assignee in source.raw_assignees
+        for assignee in source.assignees
         if (login := reviewer_actor_login(assignee))
     )
     return PreparedReviewers(

@@ -3,18 +3,27 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from collections.abc import Sequence
 from typing import Any
 
+from dashboard_contracts import DashboardFacts
 from github_cli import (
     fetch_pr_reviews,
     fetch_review_requests,
     sleep_for_retry,
 )
 from routing_snapshot import RoutingSnapshot
+from pull_request_source import (
+    Actor,
+    Check,
+    Review,
+    ReviewRequest,
+    ReviewThread,
+    normalize_review_requests,
+    normalize_reviews,
+)
 from utils import (
-    actor_login,
     format_ts,
-    is_copilot_reviewer_login,
     parse_ts,
     utc_now,
 )
@@ -33,35 +42,42 @@ FIRST_REVIEW_GRACE = timedelta(hours=1)
 REQUEST_CONFIRMATION_ATTEMPTS = 3
 
 
-def is_copilot_reviewer(obj: dict[str, Any] | None) -> bool:
-    return is_copilot_reviewer_login(actor_login(obj))
+def is_copilot_reviewer(
+    value: Actor | ReviewRequest | Review,
+) -> bool:
+    if isinstance(value, ReviewRequest):
+        return value.is_copilot_reviewer
+    actor = value.actor if isinstance(value, Review) else value
+    return actor.is_copilot_reviewer
 
 
-def open_copilot_finding_count(review_threads: list[dict[str, Any]] | None) -> int:
+def open_copilot_finding_count(
+    review_threads: Sequence[ReviewThread],
+) -> int:
     # A review's own comment count never shrinks, so it still counts findings
     # the author has since addressed. Unresolved threads are the live ones:
     # GitHub marks a thread outdated once its anchor lines change, which is how
     # the rest of the dashboard already recognises a pushed fix.
     count = 0
-    for thread in review_threads or []:
-        if thread.get("isResolved") or thread.get("isOutdated"):
+    for thread in review_threads:
+        if thread.is_resolved or thread.is_outdated:
             continue
-        comments = (thread.get("comments") or {}).get("nodes") or []
-        if comments and is_copilot_reviewer(comments[0].get("author") or {}):
+        comments = thread.comments
+        if comments and is_copilot_reviewer(comments[0].actor):
             count += 1
     return count
 
 
 def copilot_review_status(
-    reviews: list[dict[str, Any]],
+    reviews: Sequence[Review],
     head_sha: str,
-    review_threads: list[dict[str, Any]],
+    review_threads: Sequence[ReviewThread],
 ) -> tuple[bool, bool, bool]:
     """Return (review exists, review is stale, review left open findings)."""
     copilot_reviews = [
         review
         for review in reviews
-        if is_copilot_reviewer(review.get("user"))
+        if is_copilot_reviewer(review)
     ]
     if not copilot_reviews:
         return False, False, False
@@ -70,21 +86,19 @@ def copilot_review_status(
         # acting on incomplete data would hold the pull request on a guess.
         return True, False, False
     stale = not any(
-        (review.get("commit_id") or "") == head_sha
+        review.commit_id == head_sha
         for review in copilot_reviews
     )
     return True, stale, open_copilot_finding_count(review_threads) > 0
 
 
-def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:
+def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:
     if not enabled:
         return False
-    return not facts.get("copilot_review_exists") or bool(
-        facts.get("copilot_review_needed")
-    )
+    return not facts.copilot_review_exists or facts.copilot_review_needed
 
 
-def copilot_review_unreported(facts: dict[str, Any], *, enabled: bool) -> bool:
+def copilot_review_unreported(facts: DashboardFacts, *, enabled: bool) -> bool:
     # Whether the gate is still waiting for Copilot to say anything about the
     # current head. Findings are an answer, not a silence: the threads they
     # leave are the author's to clear, and the dashboard already routes the
@@ -92,18 +106,16 @@ def copilot_review_unreported(facts: dict[str, Any], *, enabled: bool) -> bool:
     # that covers older code is a report that has not arrived.
     if not enabled:
         return False
-    return not facts.get("copilot_review_exists") or bool(
-        facts.get("copilot_review_stale")
-    )
+    return not facts.copilot_review_exists or facts.copilot_review_stale
 
 
 def set_copilot_first_review_missing_since(
-    facts: dict[str, Any],
-    previous_result: dict[str, Any] | None,
+    facts: DashboardFacts,
+    previous_facts: DashboardFacts,
     *,
     enabled: bool,
     now: datetime,
-) -> None:
+) -> DashboardFacts:
     # How long this pull request has been waiting on a first review that GitHub
     # was expected to start automatically. The clock runs only while the wait is
     # real: the gate applies, the pull request is out of draft, and Copilot has
@@ -112,29 +124,30 @@ def set_copilot_first_review_missing_since(
     # deliberately does not reset it, because GitHub does not automatically
     # review a pull request it has never reviewed, so restarting the wait on
     # every push would leave an actively developed pull request waiting forever.
-    previous_facts = (previous_result or {}).get("facts") or {}
-    if not enabled or facts.get("is_draft") or facts.get("copilot_review_exists"):
-        facts.pop("copilot_first_review_missing_since", None)
-        return
-    facts["copilot_first_review_missing_since"] = str(
-        previous_facts.get("copilot_first_review_missing_since") or format_ts(now)
+    if not enabled or facts.is_draft or facts.copilot_review_exists:
+        return facts.with_changes(copilot_first_review_missing_since=None)
+    return facts.with_changes(
+        copilot_first_review_missing_since=(
+            previous_facts.copilot_first_review_missing_since
+            or format_ts(now)
+        )
     )
 
 
-def copilot_first_review_overdue(facts: dict[str, Any], now: datetime) -> bool:
-    missing_since = parse_ts(facts.get("copilot_first_review_missing_since"))
+def copilot_first_review_overdue(facts: DashboardFacts, now: datetime) -> bool:
+    missing_since = parse_ts(facts.copilot_first_review_missing_since)
     if missing_since is None:
         return False
     return now - missing_since >= FIRST_REVIEW_GRACE
 
 
 def set_copilot_review_request_needed(
-    facts: dict[str, Any],
+    facts: DashboardFacts,
     route: str,
     *,
     enabled: bool,
     now: datetime | None = None,
-) -> None:
+) -> DashboardFacts:
     # Only two states are worth a request. A stale review means the author
     # pushed, which is the one change a re-review can respond to; findings on
     # the current head sit on unchanged code, so re-reviewing would reach the
@@ -147,23 +160,23 @@ def set_copilot_review_request_needed(
     # run at once. Failing checks still do, because they route the pull request
     # to its author and only a reviewer route reaches here.
     now = now or utc_now()
-    review_missing = not facts.get("copilot_review_exists")
-    facts["copilot_review_request_needed"] = (
+    review_missing = not facts.copilot_review_exists
+    return facts.with_changes(copilot_review_request_needed=(
         enabled
         and route in ("approver", "maintainer")
         and (
             (
-                bool(facts.get("copilot_review_exists"))
-                and bool(facts.get("copilot_review_stale"))
+                facts.copilot_review_exists
+                and facts.copilot_review_stale
             )
             or (review_missing and copilot_first_review_overdue(facts, now))
         )
-        and not facts.get("copilot_review_requested")
-    )
+        and not facts.copilot_review_requested
+    ))
 
 
-def named_checks(checks: list[dict[str, Any]]) -> str:
-    names = sorted(check.get("name") or "" for check in checks)
+def named_checks(checks: Sequence[Check]) -> str:
+    names = sorted(check.name for check in checks)
     if len(names) > 3:
         return f"{', '.join(names[:3])} and {len(names) - 3} more"
     return ", ".join(names)
@@ -187,7 +200,11 @@ def stale_request_reason(
     checks = snapshot.checks
     if checks is None:
         return "required check results are unavailable"
-    failing = [check for check in checks if check.get("bucket") in ("fail", "cancel")]
+    failing = [
+        check
+        for check in checks
+        if check.bucket in ("fail", "cancel")
+    ]
     if failing:
         return f"required checks are failing: {named_checks(failing)}"
     if not entry.get("copilot_request_fingerprint"):
@@ -216,14 +233,16 @@ def copilot_review_request_landed(
             sleep_for_retry(attempt - 1)
         if any(
             is_copilot_reviewer(request)
-            for request in fetch_review_requests(owner, repo_name, pr_number) or []
+            for request in normalize_review_requests(
+                fetch_review_requests(owner, repo_name, pr_number)
+            )
         ):
             return True
     # Copilot can finish a short review before the last read, which takes it
     # back out of the pending requests. A review of the current head proves the
     # request landed just as well as a pending one does.
     review_exists, review_stale, _findings = copilot_review_status(
-        fetch_pr_reviews(owner, repo_name, pr_number) or [],
+        normalize_reviews(fetch_pr_reviews(owner, repo_name, pr_number)),
         head_sha,
         [],
     )

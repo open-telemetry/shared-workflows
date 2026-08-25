@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import unittest
 
+from dashboard_contracts import ReviewerSummary
+from dashboard_test_support import dashboard_facts
 from notifications import reviewer_logins_for_notification
+from pull_request_source import normalize_actor, normalize_review_requests
 from render import reviewer_icon
 from reviewer_state import (
     ReviewerDiscussionInput,
@@ -45,8 +48,8 @@ def prepare(
     return prepare_reviewers(
         ReviewerInput(
             tuple(events or []),
-            tuple(review_requests or []),
-            tuple(assignees or []),
+            normalize_review_requests(review_requests),
+            tuple(normalize_actor(value) for value in assignees or []),
         )
     )
 
@@ -83,11 +86,13 @@ class ReviewerStateTest(unittest.TestCase):
         self.assertTrue(reviewers["team-reviewer"].approved)
         self.assertTrue(reviewers["outside-reviewer"].approved_non_team)
         self.assertTrue(reviewers["blocking-reviewer"].changes_requested)
-        blocking = reviewers["blocking-reviewer"].dashboard_dict()
+        blocking = reviewers["blocking-reviewer"]
         self.assertEqual("\U0001f534", reviewer_icon(blocking))
         self.assertEqual(
             ["blocking-reviewer"],
-            reviewer_logins_for_notification({"reviewers": [blocking]}),
+            reviewer_logins_for_notification(
+                dashboard_facts(reviewers=(blocking,))
+            ),
         )
 
     def test_outside_changes_requested_reviewer_remains_visible(self) -> None:
@@ -99,15 +104,17 @@ class ReviewerStateTest(unittest.TestCase):
             )
         ])
 
-        reviewer = resolve(prepared)[0].dashboard_dict()
+        reviewer = resolve(prepared)[0]
 
-        self.assertEqual("outside-reviewer", reviewer["login"])
-        self.assertTrue(reviewer["changes_requested"])
-        self.assertFalse(reviewer["top_level_feedback"])
+        self.assertEqual("outside-reviewer", reviewer.login)
+        self.assertTrue(reviewer.changes_requested)
+        self.assertFalse(reviewer.top_level_feedback)
         self.assertEqual("\U0001f534", reviewer_icon(reviewer))
         self.assertEqual(
             ["outside-reviewer"],
-            reviewer_logins_for_notification({"reviewers": [reviewer]}),
+            reviewer_logins_for_notification(
+                dashboard_facts(reviewers=(reviewer,))
+            ),
         )
 
     def test_individual_rerequest_invalidates_only_that_approval(self) -> None:
@@ -270,20 +277,16 @@ class ReviewerStateTest(unittest.TestCase):
             [reviewer.login for reviewer in reviewers],
         )
         self.assertEqual(
-            {
-                "login": "bob",
-                "approved": False,
-                "approved_non_team": False,
-                "pending_review": False,
-                "changes_requested": False,
-                "open_thread": True,
-                "top_level_feedback": True,
-            },
-            reviewers[1].dashboard_dict(),
+            ReviewerSummary(
+                login="bob",
+                open_thread=True,
+                top_level_feedback=True,
+            ),
+            reviewers[1],
         )
         self.assertEqual(
             "\U0001f4ac\u2060\U0001f4cc",
-            reviewer_icon(reviewers[1].dashboard_dict()),
+            reviewer_icon(reviewers[1]),
         )
 
 

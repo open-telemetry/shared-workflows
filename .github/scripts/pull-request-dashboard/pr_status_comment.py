@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlencode
 
@@ -12,6 +13,13 @@ from github_cli import (
     run_gh,
 )
 from dashboard_override import PRE_REVIEW_ROUTES
+from dashboard_contracts import (
+    DashboardFacts,
+    DashboardRoute,
+    DashboardState,
+    EvaluationFailure,
+    StoredDashboardResult,
+)
 from dashboard_status import (
     AUTHOR_NUDGE_EPISODE_MARKER_PREFIX,
     DASHBOARD_APP_SLUG,
@@ -129,7 +137,7 @@ def status_footer(
 
 
 def non_blocking_failure_summary(
-    non_blocking_check_failures: list[str], *, names_only: bool = False
+    non_blocking_check_failures: Sequence[str], *, names_only: bool = False
 ) -> str:
     if not non_blocking_check_failures:
         return ""
@@ -161,8 +169,8 @@ def author_body(
     feedback_count: int,
     failing_count: int,
     non_blocking_failure_note: str,
-    review_thread_urls: list[str],
-    top_level_feedback_urls: list[str],
+    review_thread_urls: Sequence[str],
+    top_level_feedback_urls: Sequence[str],
     held_gates: str = "",
 ) -> list[str]:
     noun = "item" if feedback_count == 1 else "items"
@@ -207,16 +215,20 @@ def is_terminal_pr(pr: dict[str, Any]) -> bool:
 
 def render_status_comment(
     pr: dict[str, Any],
-    result: dict[str, Any] | None,
+    result: StoredDashboardResult | EvaluationFailure | None,
 ) -> str:
     last_updated = utc_now().strftime("%Y-%m-%d %H:%M UTC")
     state = (pr.get("state") or "").lower()
-    facts = (result or {}).get("facts") or {}
-    review_thread_urls = facts.get("author_action_review_thread_urls") or []
-    top_level_feedback_urls = facts.get("author_action_top_level_feedback_urls") or []
+    facts = (
+        result.facts
+        if result is not None and result.facts is not None
+        else DashboardFacts()
+    )
+    review_thread_urls = facts.author_action_review_thread_urls
+    top_level_feedback_urls = facts.author_action_top_level_feedback_urls
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
-    failing_count = facts.get("ci_failing_count") or 0
-    non_blocking_check_failures = facts.get("non_blocking_check_failures") or []
+    failing_count = facts.ci_failing_count or 0
+    non_blocking_check_failures = facts.non_blocking_check_failures
 
     override_route = ""
     terminal = False
@@ -235,18 +247,18 @@ def render_status_comment(
         headline = "Waiting on the pull request dashboard"
         body = ["Finish refreshing this pull request."]
     else:
-        route = result.get("route") or "unknown"
-        conflicted = facts.get("conflicts") == "yes"
-        if route in PRE_REVIEW_ROUTES:
-            override_route = route
+        route = result.route
+        conflicted = facts.conflicts == "yes"
+        if route.value in PRE_REVIEW_ROUTES:
+            override_route = route.value
         headline = status_headline(route)
-        if route == "author":
+        if route is DashboardRoute.AUTHOR:
             body = ["Resolve merge conflicts."] if conflicted else []
             if (
                 not conflicted
                 or feedback_count
                 or failing_count
-                or facts.get("route_held_for_gates")
+                or facts.route_held_for_gates
             ):
                 author_actions = author_body(
                     feedback_count=feedback_count,
@@ -258,7 +270,7 @@ def render_status_comment(
                     top_level_feedback_urls=top_level_feedback_urls,
                     held_gates=(
                         outstanding_gate_phrase(facts)
-                        if facts.get("route_held_for_gates")
+                        if facts.route_held_for_gates
                         else ""
                     ),
                 )
@@ -269,12 +281,12 @@ def render_status_comment(
             _, next_step = route_status_summary(route)
             body = (
                 ["Resolve merge conflicts, then merge when ready."]
-                if conflicted and route == "maintainer"
+                if conflicted and route is DashboardRoute.MAINTAINER
                 else [next_step]
             )
             abandoned_gates = (
                 abandoned_gate_note(facts)
-                if facts.get("route_hold_expired")
+                if facts.route_hold_expired
                 else ""
             )
             if abandoned_gates:
@@ -296,7 +308,7 @@ def render_status_comment(
                     non_blocking_check_failures, names_only=True
                 )
                 body.extend(["", f"**{label}:** {names}"])
-            if conflicted and route != "maintainer":
+            if conflicted and route is not DashboardRoute.MAINTAINER:
                 body.extend(["", "**Also blocked by:** Merge conflicts."])
 
     lines = [
@@ -306,8 +318,12 @@ def render_status_comment(
         "",
         f"**{headline}** \u00b7 refreshed {last_updated}",
     ]
-    episode_id = str(facts.get("author_nudge_episode_id") or "")
-    if (result or {}).get("route") == "author" and episode_id:
+    episode_id = facts.author_nudge_episode_id or ""
+    if (
+        result is not None
+        and result.route is DashboardRoute.AUTHOR
+        and episode_id
+    ):
         lines.insert(2, author_nudge_episode_marker(episode_id))
     bound_command_id = int(facts.get("dashboard_override_bound_command_id") or 0)
     bound_head = str(facts.get("dashboard_override_head_sha") or "")
@@ -348,8 +364,8 @@ def format_list(values: list[str]) -> str:
 
 
 def feedback_breakdown_lines(
-    review_thread_urls: list[str],
-    top_level_feedback_urls: list[str],
+    review_thread_urls: Sequence[str],
+    top_level_feedback_urls: Sequence[str],
     indent: str = "",
 ) -> list[str]:
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
@@ -441,9 +457,13 @@ def upsert_status_comment(
     ])
 
 
-def publish_pr_status(repo: str, pr_number: int, dashboard_state: dict[str, Any]) -> None:
+def publish_pr_status(
+    repo: str,
+    pr_number: int,
+    dashboard_state: DashboardState,
+) -> None:
     pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
-    result = (dashboard_state.get("prs") or {}).get(str(pr_number))
+    result = dashboard_state.result_for(pr_number)
     # A terminal status only exists to move an already published comment to its
     # final state. Creating one instead would announce a merge or close on a
     # pull request the dashboard never commented on.
