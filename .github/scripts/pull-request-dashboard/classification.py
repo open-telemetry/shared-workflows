@@ -212,26 +212,6 @@ def _run_author_comment_request(
     return resolve_author_comment_response(request, _raw_model_response(proc))
 
 
-def run_llm_for_top_level_author_comment_batch(
-    discussions: list[dict[str, Any]],
-    model: str,
-) -> list[ClassificationResult]:
-    policy_discussions = _policy_discussions(discussions)
-    partial_results: dict[str, list[ClassificationResult]] = {
-        discussion.identity.discussion_id: []
-        for discussion in policy_discussions
-    }
-    for request in author_comment_prompt_batches(policy_discussions):
-        for result in _run_author_comment_request(request, model):
-            partial_results[result.identity.discussion_id].append(result)
-    return list(
-        combine_author_comment_results(
-            policy_discussions,
-            partial_results,
-        )
-    )
-
-
 def load_classification_cache(
     pr_number: int,
 ) -> dict[str, dict[str, Any]]:

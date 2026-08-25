@@ -6,10 +6,11 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from classification import (
+    _policy_discussions,
+    _run_classification_batch,
     classify_discussion_domains,
     classify_review_threads,
     run_llm_for_verdict_batch,
-    run_llm_for_top_level_author_comment_batch,
     top_level_author_comment_batch_prompt,
     top_level_reviewer_feedback_prompt_input,
 )
@@ -567,8 +568,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"discussion_id": "feedback", "body": "Please update the implementation."}
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(
-            [discussion], "model"
+        records = _run_classification_batch(
+            _policy_discussions([discussion]),
+            "model",
+            None,
+            author_comment=True,
         )
 
         self.assertEqual(run_copilot.call_count, 1)
@@ -593,8 +597,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"discussion_id": "feedback", "body": "Please update the implementation."}
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(
-            [discussion], "model"
+        records = _run_classification_batch(
+            _policy_discussions([discussion]),
+            "model",
+            None,
+            author_comment=True,
         )
 
         self.assertEqual(run_copilot.call_count, 1)
@@ -642,8 +649,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             }
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(
-            [discussion], "model"
+        records = _run_classification_batch(
+            _policy_discussions([discussion]),
+            "model",
+            None,
+            author_comment=True,
         )
 
         self.assertFalse(records[0].failed)
@@ -712,8 +722,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             for index in range(30)
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(
-            [discussion], "model"
+        records = _run_classification_batch(
+            _policy_discussions([discussion]),
+            "model",
+            None,
+            author_comment=True,
         )
 
         self.assertFalse(records[0].failed)
@@ -759,8 +772,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             }
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(
-            [discussion], "model"
+        records = _run_classification_batch(
+            _policy_discussions([discussion]),
+            "model",
+            None,
+            author_comment=True,
         )
 
         self.assertTrue(records[0].failed)
@@ -810,8 +826,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             for index in range(12)
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(
-            [discussion], "model"
+        records = _run_classification_batch(
+            _policy_discussions([discussion]),
+            "model",
+            None,
+            author_comment=True,
         )
 
         self.assertTrue(records[0].failed)
@@ -853,8 +872,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"discussion_id": "feedback", "body": "Please update the implementation."}
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(
-            [discussion], "model"
+        records = _run_classification_batch(
+            _policy_discussions([discussion]),
+            "model",
+            None,
+            author_comment=True,
         )
 
         self.assertTrue(records[0].failed)
@@ -889,8 +911,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"discussion_id": "feedback", "body": "Please update the implementation."}
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(
-            [discussion], "model"
+        records = _run_classification_batch(
+            _policy_discussions([discussion]),
+            "model",
+            None,
+            author_comment=True,
         )
 
         self.assertTrue(records[0].failed)
@@ -946,7 +971,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             },
         ]
 
-        records = run_llm_for_top_level_author_comment_batch(discussions, "model")
+        records = _run_classification_batch(
+            _policy_discussions(discussions),
+            "model",
+            None,
+            author_comment=True,
+        )
 
         self.assertTrue(records[0].failed)
         assert isinstance(records[0], ClassificationFailure)
