@@ -47,7 +47,7 @@ _GATE_HOLD_LIMIT = timedelta(hours=4)
 
 
 def reviewer_handoff_active(facts: dict[str, Any]) -> bool:
-    """Return whether the acknowledged reviewer handoff matches the current head."""
+    """Return whether the uncleared reviewer handoff matches the current head."""
     bound_head = facts.get("dashboard_override_head_sha") or ""
     return (
         bool(bound_head)
