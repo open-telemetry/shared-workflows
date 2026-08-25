@@ -328,6 +328,32 @@ class PrepareDiscussionsTest(unittest.TestCase):
 
 
 class ResolveDiscussionsTest(unittest.TestCase):
+    def test_invalid_review_decision_names_the_classification(self) -> None:
+        invalid = ClassificationSuccess(
+            DiscussionIdentity(
+                "thread-invalid",
+                DiscussionKind.REVIEW_THREAD,
+            ),
+            AuthorCommentDecision(),
+        )
+
+        with self.assertRaises(TypeError) as caught:
+            resolve_discussions(
+                PreparedDiscussions(
+                    (review_thread("thread-invalid"),),
+                    (),
+                    (),
+                ),
+                DiscussionClassifications((invalid,), (), ()),
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "review-thread classification 'thread-invalid' "
+            "(review-comment-thread) requires ActionDecision, "
+            "got AuthorCommentDecision",
+        )
+
     def test_projects_pending_actions_for_each_classification(self) -> None:
         prepared = PreparedDiscussions(
             (

@@ -548,7 +548,12 @@ def _review_thread_pending_actions(
     for classification in classifications:
         decision = classification.decision
         if not isinstance(decision, ActionDecision):
-            raise TypeError("review-thread classifications require ActionDecision")
+            raise TypeError(
+                "review-thread classification "
+                f"{classification.identity.discussion_id!r} "
+                f"({classification.identity.kind.value}) requires "
+                f"ActionDecision, got {type(decision).__name__}"
+            )
         action = decision.action
         discussion_id = classification.identity.discussion_id
         discussion = by_id.get(discussion_id)
