@@ -460,11 +460,10 @@ def _classify_items(
             deferrable=deferrable,
         )
         classifications_by_id[discussion.identity.discussion_id] = result
-        _cache_classified(cache_out, key, result)
 
     if author_comment:
         budget_size = _author_comment_budget_size(uncached)
-        for discussion, key in uncached[budget_size:]:
+        for discussion, _key in uncached[budget_size:]:
             result = _classification_limit_result(
                 discussion,
                 contract,
@@ -472,7 +471,6 @@ def _classify_items(
                 deferrable=deferrable,
             )
             classifications_by_id[discussion.identity.discussion_id] = result
-            _cache_classified(cache_out, key, result)
         uncached = uncached[:budget_size]
 
     for offset in range(
