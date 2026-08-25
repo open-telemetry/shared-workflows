@@ -330,6 +330,32 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual("2026-08-16T08:00:00Z", facts["dashboard_override_since"])
         self.assertEqual("bound-head", facts["dashboard_override_head_sha"])
 
+    def test_acknowledged_command_accepts_a_graphql_command_timestamp(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 5,
+                    "user": {"login": "author"},
+                    "body": "/dashboard route:reviewers",
+                    "createdAt": "2026-08-16T08:00:00Z",
+                },
+                {
+                    "id": 9,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": dashboard_override.override_ack_marker(5, "bound-head"),
+                },
+            ]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw,
+            "author",
+            None,
+            "current-head",
+        )
+
+        self.assertEqual("2026-08-16T08:00:00Z", facts["dashboard_override_since"])
+
     def test_deleted_command_keeps_previous_handoff_cutoff(self) -> None:
         raw = {
             "issue_comments": [{

@@ -259,7 +259,7 @@ def _override_command_created_at(
         except (TypeError, ValueError):
             continue
         if comment_id == command_id:
-            return comment.get("created_at") or ""
+            return comment.get("created_at") or comment.get("createdAt") or ""
     return ""
 
 
