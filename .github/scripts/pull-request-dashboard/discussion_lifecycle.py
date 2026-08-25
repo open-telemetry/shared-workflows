@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
@@ -333,7 +332,7 @@ def reviewer_handoff_feedback(
     review_threads: list[dict[str, Any]] = []
     for thread in prepared.review_threads:
         comments = [
-            deepcopy(comment)
+            comment
             for comment in (thread.get("comments") or [])
             if (
             comment.get("actor_role") in ("approver", "outsider")
@@ -342,8 +341,7 @@ def reviewer_handoff_feedback(
         ]
         if not comments:
             continue
-        filtered = deepcopy(thread)
-        filtered["comments"] = comments
+        filtered = {**thread, "comments": comments}
         filtered["requester"] = comments[-1].get("actor") or ""
         filtered["pr_author"] = pr_author
         review_threads.append(
