@@ -29,12 +29,29 @@ on:
 permissions: {}
 
 jobs:
+  validate-inputs:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate file mode
+        env:
+          FILE_MODE: ${{ inputs['file-mode'] || 'archive' }}
+        run: |
+          case "$FILE_MODE" in
+            archive|git) ;;
+            *)
+              echo "::error title=Invalid file-mode::file-mode must be 'archive' or 'git'."
+              exit 1
+              ;;
+          esac
+
   # Scorecard restricts what this job may contain while publish_results is true:
   # every step must be a `uses:` of an allow-listed action, and no other job may
   # request id-token. Filtering therefore happens in the upload job below.
   # https://github.com/ossf/scorecard-action#workflow-restrictions
   analysis:
     name: OSSF Scorecard Analysis
+    needs: validate-inputs
     runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
     permissions:
       contents: read # for actions/checkout
