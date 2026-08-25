@@ -131,9 +131,7 @@ def dashboard_override_facts(
             comments
         )
     previous_binding_matches = bool(
-        bound_command_id
-        and bound_command_id
-        == previous_facts.get("dashboard_override_bound_command_id")
+        bound_command_id == previous_facts.get("dashboard_override_bound_command_id")
         and bound_head
         and bound_head == previous_facts.get("dashboard_override_head_sha")
     )
