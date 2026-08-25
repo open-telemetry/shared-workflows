@@ -116,6 +116,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched, and excludes required
                                                   contexts whose app has already
                                                   finished reporting.
+    dashboard_override_bound_command_id
+                                      int         ID of the command bound to the
+                                                  reviewer handoff.
     dashboard_override_head_sha     str           Head an override is bound to;
                                                   the handoff is active while it
                                                   equals head_sha and has not
