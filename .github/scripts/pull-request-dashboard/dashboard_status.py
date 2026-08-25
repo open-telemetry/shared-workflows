@@ -70,6 +70,6 @@ def status_reviewer_handoff_clearance(
             continue
         for match in _REVIEWER_HANDOFF_CLEARED_MARKER_RE.finditer(body):
             command_id = int(match.group(1))
-            if command_id > best_id:
+            if command_id >= best_id:
                 best_id, best_head = command_id, match.group(2)
     return best_id, best_head

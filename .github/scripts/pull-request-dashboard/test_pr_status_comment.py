@@ -130,6 +130,25 @@ class RenderStatusCommentTest(unittest.TestCase):
             ]),
         )
 
+    def test_clearance_recovery_prefers_the_latest_marker_for_a_command(self) -> None:
+        def status_comment(head: str) -> dict[str, object]:
+            return {
+                "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                "body": (
+                    f"{pr_status_comment.STATUS_MARKER}\n"
+                    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                    f"12:{head} -->"
+                ),
+            }
+
+        self.assertEqual(
+            (12, "current-head"),
+            status_reviewer_handoff_clearance([
+                status_comment("old-head"),
+                status_comment("current-head"),
+            ]),
+        )
+
     def test_recovers_episode_from_normalized_dashboard_bot_comment(self) -> None:
         marker = pr_status_comment.author_nudge_episode_marker("abc123")
 
