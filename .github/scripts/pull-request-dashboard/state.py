@@ -405,12 +405,13 @@ def _decode_command_reply(value: Any) -> DashboardCommandReply:
 
 def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
     if reply.kind == "routed":
+        # DashboardCommandReply refuses a routed reply without a route.
         return {
             "comment_id": reply.comment_id,
             "kind": reply.kind,
             "head_sha": reply.head_sha,
             "user": reply.user,
-            "route": reply.route.value if reply.route is not None else "",
+            "route": reply.route.value,
             "held_gates": reply.held_gates,
         }
     return {

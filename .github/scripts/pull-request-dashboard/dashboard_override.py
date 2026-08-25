@@ -294,7 +294,8 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             "use `/dashboard route:reviewers`."
         )
     elif kind == "routed":
-        route = reply.route.value if reply.route is not None else ""
+        # DashboardCommandReply refuses a routed reply without a route.
+        route = reply.route.value
         held_gates = reply.held_gates
         if route in PRE_REVIEW_ROUTES:
             # An active handoff always routes to approvers, so a pre-review
