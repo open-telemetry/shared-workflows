@@ -26,13 +26,9 @@ jobs:
       contents: read # for actions/checkout
       security-events: write # for zizmor to upload SARIF results
     uses: open-telemetry/shared-workflows/.github/workflows/zizmor.yml@<sha-or-tag>
-    with:
-      use-cncf-hosted-runner: true
 ```
 
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets are required. The workflow uses zizmor's `regular` persona by default.
-
-The optional Boolean `use-cncf-hosted-runner` input defaults to `false`. When it is `true`, the Zizmor job runs on `cncf-ubuntu-2-8-x86`; when it is `false` or omitted, the job runs on `ubuntu-latest`. Runs triggered directly in this repository use `ubuntu-latest`. The mapping is fixed; callers cannot provide another runner label.
 
 To use a different persona, pass the `persona` input:
 
