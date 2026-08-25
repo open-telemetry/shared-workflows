@@ -13356,12 +13356,15 @@
         "assignees": [],
         "author": "mateenali66",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50495#issuecomment-5409678270"
+        ],
         "author_nudge_episode_id": "4ee287104378483789be083c82368f7b",
-        "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-25T11:20:59+00:00",
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "15bd2ece4993cf1eefe90c3aca5328fff5d380f3c34b146d849e56781e5382e7",
+        "copilot_request_fingerprint": "906334c808ba901b84e25c5648c0e2bc02609572c37325d3b4c803a8adb9c238",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13377,17 +13380,27 @@
         "head_sha": "11c634bbbf5f4f7d336d35cfb2ac33bc011fb441",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-25T11:19:25+00:00",
+        "last_activity_at": "2026-08-25T11:25:38+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-25T11:17:34+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "aarvee11",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
+        "route_held_for_gates": false,
         "route_held_since": "2026-08-25T11:20:28.673390+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "fb7c1930b32acd36d4c968104661de7b5abd63c2b62250b07ba10d09b2e703d9",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-08-25T11:19:25+00:00"
+        "routing_input_fingerprint": "a333a524bcd038eac5b7f444d3b3a5a716a3074e89b7475f19c48e1429c0f9b8",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-25T11:20:59+00:00"
       },
       "failed": false,
       "pr_number": 50495,
