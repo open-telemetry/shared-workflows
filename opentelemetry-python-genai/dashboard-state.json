@@ -1445,7 +1445,7 @@
     },
     "457": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1453,7 +1453,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b4a28806ffee406a695605522516da3097dca6a95eae867925218d6d13b13988",
+        "copilot_request_fingerprint": "ffb4dea0e0d9a970235d1613d36177e056c00fad893112843b89f940a1706844",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1469,15 +1469,26 @@
         "head_sha": "4f2db2d4089cd3e387773207218f7631d7bda7f8",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-25T04:09:31+00:00",
-        "last_approver_activity_at": "2026-08-25T04:09:31+00:00",
+        "last_activity_at": "2026-08-25T04:11:13+00:00",
+        "last_approver_activity_at": "2026-08-25T04:11:13+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-25T04:12:01.641637+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "dc1d93b1fd100c197885525d5f2bacf2b9b30fd72be0bf659414b35cdac551e5",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "c454262095e513f1d27186a4b03a7fab0e001e4144ba3a5a700a45e9a99a5ee2",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-24T04:05:53+00:00"
       },
       "failed": false,
