@@ -206,7 +206,10 @@ def _compute_facts(
         copilot_request_fingerprint=snapshot.copilot_request_fingerprint,
         dashboard_override_command_id=override.command_id,
         dashboard_override_command_user=override.command_user,
+        dashboard_override_bound_command_id=override.bound_command_id,
         dashboard_override_head_sha=override.head_sha,
+        dashboard_override_since=override.since,
+        dashboard_override_cleared_by_feedback=override.cleared_by_feedback,
         dashboard_command_replies=override.command_replies,
         copilot_review_requested=any(
             is_copilot_reviewer(request)
@@ -430,7 +433,7 @@ def evaluate_pull_request(
             # handed the pull request back to its author.
             handoff_feedback = reviewer_handoff_feedback(
                 prepared_discussions,
-                str(facts.get("dashboard_override_since") or ""),
+                facts.dashboard_override_since,
                 author,
             )
             has_handoff_feedback = bool(
@@ -451,7 +454,9 @@ def evaluate_pull_request(
                 feedback_classifications
             )
             if feedback_routes_to_author:
-                facts["dashboard_override_cleared_by_feedback"] = True
+                facts = facts.with_changes(
+                    dashboard_override_cleared_by_feedback=True
+                )
                 manual_reviewer_handoff = False
                 lifecycle = _classify_discussions(
                     number,

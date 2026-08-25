@@ -69,13 +69,18 @@ def status_author_nudge_episode_id(
 
 
 def status_reviewer_handoff_clearance(
-    comments: list[dict[str, Any]] | None,
+    comments: Sequence[dict[str, Any] | IssueComment] | None,
 ) -> tuple[int, str]:
     best_id = 0
     best_head = ""
     for comment in comments or []:
-        body = comment.get("body") or ""
-        if STATUS_MARKER not in body or not is_dashboard_app_comment(comment):
+        if isinstance(comment, dict):
+            body = comment.get("body") or ""
+            from_dashboard_app = is_dashboard_app_comment(comment)
+        else:
+            body = comment.body
+            from_dashboard_app = comment.is_from_app(DASHBOARD_APP_SLUG)
+        if STATUS_MARKER not in body or not from_dashboard_app:
             continue
         for match in _REVIEWER_HANDOFF_CLEARED_MARKER_RE.finditer(body):
             command_id = int(match.group(1))

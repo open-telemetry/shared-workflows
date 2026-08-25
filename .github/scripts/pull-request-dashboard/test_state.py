@@ -187,7 +187,10 @@ class StateTest(unittest.TestCase):
             copilot_request_fingerprint="copilot-fingerprint",
             dashboard_override_command_id=91,
             dashboard_override_command_user="alice",
+            dashboard_override_bound_command_id=91,
             dashboard_override_head_sha="current-head",
+            dashboard_override_since="2026-08-16T08:00:00Z",
+            dashboard_override_cleared_by_feedback=True,
             dashboard_command_replies=(
                 DashboardCommandReply(
                     91,
@@ -196,6 +199,14 @@ class StateTest(unittest.TestCase):
                     head_sha="current-head",
                     route=DashboardRoute.APPROVER,
                     held_gates="the required checks",
+                    since="2026-08-16T08:00:00Z",
+                ),
+                DashboardCommandReply(
+                    91,
+                    "cleared_by_feedback",
+                    "alice",
+                    head_sha="current-head",
+                    since="2026-08-16T08:00:00Z",
                 ),
                 DashboardCommandReply(
                     92,

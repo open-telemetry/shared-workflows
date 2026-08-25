@@ -325,10 +325,10 @@ def render_status_comment(
         and episode_id
     ):
         lines.insert(2, author_nudge_episode_marker(episode_id))
-    bound_command_id = int(facts.get("dashboard_override_bound_command_id") or 0)
-    bound_head = str(facts.get("dashboard_override_head_sha") or "")
+    bound_command_id = facts.dashboard_override_bound_command_id
+    bound_head = facts.dashboard_override_head_sha
     if (
-        facts.get("dashboard_override_cleared_by_feedback")
+        facts.dashboard_override_cleared_by_feedback
         and bound_command_id
         and bound_head
     ):
