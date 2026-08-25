@@ -352,21 +352,33 @@ def reviewer_handoff_feedback(
                 or "unknown",
             )
         )
-    top_level_items = tuple(
-        item
-        for item in prepared.top_level_items
-        if (
-            after_cutoff(item.get("root_timestamp") or "")
-            and any(
+    top_level_items: list[dict[str, Any]] = []
+    for item in prepared.top_level_items:
+        comments = [
+            comment
+            for comment in (item.get("comments") or [])
+            if (
                 comment.get("actor_role") in ("approver", "outsider")
                 and comment.get("actor") != pr_author
-                for comment in (item.get("comments") or [])
+                and after_cutoff(comment.get("timestamp") or "")
+            )
+        ]
+        if not comments:
+            continue
+        filtered = {**item, "comments": comments}
+        filtered["requester"] = comments[-1].get("actor") or ""
+        filtered["pr_author"] = pr_author
+        top_level_items.append(
+            _add_discussion_facts(
+                filtered,
+                comments,
+                (item.get("discussion_facts") or {}).get("current_conflicts")
+                or "unknown",
             )
         )
-    )
     return PreparedDiscussions(
         tuple(review_threads),
-        top_level_items,
+        tuple(top_level_items),
         (),
     )
 

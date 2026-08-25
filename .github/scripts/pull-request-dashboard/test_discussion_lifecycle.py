@@ -894,12 +894,23 @@ class LifecycleProjectionTest(unittest.TestCase):
             "actor": "reviewer[bot]",
             "actor_role": "bot",
         })
+        follow_up_item = top_level_item(
+            "follow-up-feedback",
+            "2026-07-14T01:00:00Z",
+        )
+        follow_up_item["comments"].append({
+            "timestamp": "2026-07-14T05:00:00Z",
+            "actor": "reviewer",
+            "actor_role": "approver",
+            "body": "Please also update the tests.",
+        })
         prepared = PreparedDiscussions(
             (old_thread, reopened_thread, bot_thread),
             (
                 top_level_item("old-feedback", "2026-07-14T01:00:00Z"),
                 author_item,
                 bot_item,
+                follow_up_item,
                 top_level_item("new-feedback", "2026-07-14T05:00:00Z"),
             ),
             (
@@ -939,8 +950,15 @@ class LifecycleProjectionTest(unittest.TestCase):
         self.assertEqual("reviewer", filtered.review_threads[0]["requester"])
         self.assertEqual("author", filtered.review_threads[0]["pr_author"])
         self.assertEqual(
-            ["new-feedback"],
+            ["follow-up-feedback", "new-feedback"],
             [item["discussion_id"] for item in filtered.top_level_items],
+        )
+        self.assertEqual(
+            ["Please also update the tests."],
+            [
+                comment["body"]
+                for comment in filtered.top_level_items[0]["comments"]
+            ],
         )
         self.assertEqual((), filtered.top_level_author_comment_items)
 
