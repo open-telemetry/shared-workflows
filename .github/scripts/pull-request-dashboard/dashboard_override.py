@@ -134,10 +134,7 @@ def latest_authorized_command(
         commenter = comment.actor.login
         if not is_authorized_commander(commenter, author, reviewers):
             continue
-        try:
-            comment_id = comment.database_id
-        except (TypeError, ValueError):
-            continue
+        comment_id = comment.database_id
         if comment_id <= acknowledged_id or comment_id in replied_ids:
             continue
         if comment_id > best_id:
@@ -269,10 +266,7 @@ def pending_command_replies(
         subcommand = parse_dashboard_command(comment)
         if subcommand is None:
             continue
-        try:
-            comment_id = comment.database_id
-        except (TypeError, ValueError):
-            continue
+        comment_id = comment.database_id
         if comment_id in replied_ids:
             continue
         commenter = comment.actor.login
