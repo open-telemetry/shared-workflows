@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
 
+from classification_policy import RawModelResponse  # noqa: E402
+from classification_test_support import FakeModelRunner  # noqa: E402
 import regenerate_baseline  # noqa: E402
 from regenerate_baseline import answers, rebuild, run_batch  # noqa: E402
 
@@ -162,12 +164,16 @@ class RunBatchCachingTest(unittest.TestCase):
     def entries(self) -> list[Path]:
         return list(self.cache.iterdir())
 
-    def run_with(self, proc) -> dict:
-        with patch.object(regenerate_baseline.classification, "run_copilot", proc):
-            return run_batch([case("a")], "model", "salt")
+    def run_with(self, response: RawModelResponse | Exception) -> dict:
+        return run_batch(
+            [case("a")],
+            "model",
+            "salt",
+            FakeModelRunner([response]),
+        )
 
     def test_a_successful_call_is_cached(self) -> None:
-        raw = self.run_with(lambda prompt, model: _Completed(0, "{}"))
+        raw = self.run_with(RawModelResponse(0, "{}"))
 
         self.assertEqual(0, raw["returncode"])
         self.assertEqual(1, len(self.entries()))
@@ -175,26 +181,16 @@ class RunBatchCachingTest(unittest.TestCase):
     def test_a_failed_call_is_not_cached(self) -> None:
         # Caching a failure would make every later run replay it instead of
         # retrying the call.
-        raw = self.run_with(lambda prompt, model: _Completed(1, ""))
+        raw = self.run_with(RawModelResponse(1, ""))
 
         self.assertEqual(1, raw["returncode"])
         self.assertEqual([], self.entries())
 
     def test_a_raising_call_is_not_cached(self) -> None:
-        def explode(prompt: str, model: str):
-            raise RuntimeError("throttled")
-
-        raw = self.run_with(explode)
+        raw = self.run_with(RuntimeError("throttled"))
 
         self.assertIn("throttled", raw["error"])
         self.assertEqual([], self.entries())
-
-
-class _Completed:
-    def __init__(self, returncode: int, stdout: str) -> None:
-        self.returncode = returncode
-        self.stdout = stdout
-
 
 if __name__ == "__main__":
     unittest.main()

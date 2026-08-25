@@ -7,8 +7,13 @@ import traceback
 import uuid
 from dataclasses import dataclass
 
-from classification import classify_discussion_domains
+from classification_execution import (
+    DEFAULT_CLASSIFICATION_SERVICE,
+    ClassificationExecutionRequest,
+    ClassificationOperation,
+)
 from classification_policy import (
+    ClassificationDiscussion,
     DiscussionAction,
     normalize_discussion_action,
 )
@@ -320,6 +325,9 @@ def _evaluation_diagnostics(
 def evaluate_pull_request(
     config: PullRequestEvaluationConfig,
     source: PullRequestEvaluationInput,
+    classification_service: ClassificationOperation = (
+        DEFAULT_CLASSIFICATION_SERVICE
+    ),
 ) -> EvaluationResult | None:
     """Fetch and evaluate one pull request without mutating dashboard state."""
     number = source.pr_number
@@ -382,12 +390,25 @@ def evaluate_pull_request(
                 mode=LifecycleMode.REVIEWER_HANDOFF,
             )
         else:
-            classifications = classify_discussion_domains(
-                number,
-                list(prepared_discussions.review_threads),
-                list(prepared_discussions.top_level_items),
-                list(prepared_discussions.top_level_author_comment_items),
-                config.classifier_model,
+            classifications = classification_service.classify(
+                ClassificationExecutionRequest(
+                    pr_number=number,
+                    model=config.classifier_model,
+                    review_threads=tuple(
+                        ClassificationDiscussion.from_record(discussion)
+                        for discussion in prepared_discussions.review_threads
+                    ),
+                    top_level_items=tuple(
+                        ClassificationDiscussion.from_record(discussion)
+                        for discussion in prepared_discussions.top_level_items
+                    ),
+                    top_level_author_comments=tuple(
+                        ClassificationDiscussion.from_record(discussion)
+                        for discussion in (
+                            prepared_discussions.top_level_author_comment_items
+                        )
+                    ),
+                )
             )
             lifecycle = resolve_discussions(
                 prepared_discussions,

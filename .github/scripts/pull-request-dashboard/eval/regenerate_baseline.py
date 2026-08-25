@@ -26,7 +26,11 @@ from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import classification  # noqa: E402
+from classification_execution import (  # noqa: E402
+    CopilotCliModelRunner,
+    ModelRunRequest,
+    ModelRunner,
+)
 import classification_policy as policy  # noqa: E402
 from score_reviewer_feedback import CASES, batch_cases  # noqa: E402
 
@@ -65,7 +69,12 @@ def cache_key(prompt: str, model: str, salt: str) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
 
 
-def run_batch(batch: list[dict], model: str, salt: str) -> dict:
+def run_batch(
+    batch: list[dict],
+    model: str,
+    salt: str,
+    runner: ModelRunner | None = None,
+) -> dict:
     """Return the raw Copilot result for one batch, from cache when present."""
     prompt = batch_prompt(batch)
     path = CACHE_DIR / f"{cache_key(prompt, model, salt)}.json"
@@ -73,8 +82,13 @@ def run_batch(batch: list[dict], model: str, salt: str) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
 
     try:
-        proc = classification.run_copilot(prompt, model)
-        raw = {"returncode": proc.returncode, "stdout": proc.stdout}
+        response = (runner or CopilotCliModelRunner()).run(
+            ModelRunRequest(prompt, model)
+        )
+        raw = {
+            "returncode": response.returncode,
+            "stdout": response.stdout,
+        }
     except Exception as e:  # noqa: BLE001 - one bad batch must not end the run
         raw = {"returncode": -1, "stdout": "", "error": f"{type(e).__name__}: {e}"}
     # A failure is not a result: caching it would make every later run replay it
@@ -118,8 +132,15 @@ def answers(raw: dict, batch: list[dict]) -> dict[str, str]:
     return out
 
 
-def measure(cases: list[dict], model: str, runs: int, workers: int) -> list[dict[str, str]]:
+def measure(
+    cases: list[dict],
+    model: str,
+    runs: int,
+    workers: int,
+    runner: ModelRunner | None = None,
+) -> list[dict[str, str]]:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    runner = runner or CopilotCliModelRunner()
     batches = batch_cases(cases)
     # A separate salt per run keeps the cache from replaying one trial as all of
     # them, which would report perfect stability no matter how the model behaves.
@@ -130,7 +151,7 @@ def measure(cases: list[dict], model: str, runs: int, workers: int) -> list[dict
     def work(task: tuple[list[dict], str]) -> tuple[str, dict[str, str]]:
         nonlocal done
         batch, salt = task
-        result = answers(run_batch(batch, model, salt), batch)
+        result = answers(run_batch(batch, model, salt, runner), batch)
         with _printed:
             done += 1
             if done % 20 == 0 or done == len(tasks):

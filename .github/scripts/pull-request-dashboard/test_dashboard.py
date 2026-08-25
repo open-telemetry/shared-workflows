@@ -57,6 +57,7 @@ from classification_policy import (
     DiscussionIdentity,
     DiscussionKind,
 )
+from classification_test_support import FakeClassificationOperation
 from pull_request_source import (
     PullRequestSource,
     fetch_pull_request_source,
@@ -129,6 +130,7 @@ def evaluate_pr(
     *,
     previous_result: StoredDashboardResult | None = None,
     require_clean_copilot_review_branches: list[str] | None = None,
+    classification_service: FakeClassificationOperation | None = None,
 ) -> EvaluationResult | None:
     return evaluate_pull_request(
         evaluation_config(
@@ -140,6 +142,7 @@ def evaluate_pr(
             pr_number=int(pr_summary["number"]),
             previous_result=previous_result,
         ),
+        classification_service or FakeClassificationOperation(),
     )
 
 
@@ -373,15 +376,10 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(1, facts.approval_count)
 
     @patch("pull_request_evaluation.resolve_routing", wraps=resolve_routing)
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=DiscussionClassifications.empty(),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(
         self,
         fetch_raw: Mock,
-        _classify: Mock,
         resolve: Mock,
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -411,13 +409,9 @@ class PullRequestEvaluationTest(unittest.TestCase):
             result.facts.reviewers,
         )
 
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        side_effect=AssertionError("classification must be bypassed"),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_override_binds_to_the_observed_head_before_classification(
-        self, fetch_raw: Mock, classify: Mock
+        self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = normalize_pull_request_source({
             "summary": {"author": {"login": "author"}},
@@ -466,9 +460,13 @@ class PullRequestEvaluationTest(unittest.TestCase):
             "non_blocking_check_failures": [],
         })
 
+        classifier = FakeClassificationOperation(
+            error=AssertionError("classification must be bypassed")
+        )
         result = evaluate_pr(
             {"number": 7},
             require_clean_copilot_review_branches=["main"],
+            classification_service=classifier,
         )
 
         self.assertIsNotNone(result)
@@ -492,15 +490,11 @@ class PullRequestEvaluationTest(unittest.TestCase):
             ),
             result.facts.dashboard_command_replies,
         )
-        classify.assert_not_called()
+        self.assertEqual(classifier.requests, [])
 
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=DiscussionClassifications.empty(),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_conflict_uses_normal_discussion_and_approval_routing(
-        self, fetch_raw: Mock, classify: Mock
+        self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = normalize_pull_request_source({
             "summary": {"author": {"login": "author"}},
@@ -547,8 +541,10 @@ class PullRequestEvaluationTest(unittest.TestCase):
             "non_blocking_check_failures": [],
         })
 
+        classifier = FakeClassificationOperation()
         result = evaluate_pr(
             {"number": 7},
+            classification_service=classifier,
         )
 
         self.assertIsNotNone(result)
@@ -558,22 +554,20 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(DashboardRoute.APPROVER, result.route)
         self.assertEqual({}, result.pending_actions)
         self.assertEqual("last_author_activity", result.facts.waiting_age_basis)
-        classify.assert_called_once()
+        self.assertEqual(len(classifier.requests), 1)
 
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=DiscussionClassifications.empty(),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_normal_routing_flows_through_evaluation(
-        self, fetch_raw: Mock, classify: Mock
+        self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = self.raw_pr(
             checks=[{"name": "required", "bucket": "pass"}]
         )
 
+        classifier = FakeClassificationOperation()
         result = evaluate_pr(
             {"number": 7},
+            classification_service=classifier,
         )
 
         self.assertIsNotNone(result)
@@ -582,22 +576,19 @@ class PullRequestEvaluationTest(unittest.TestCase):
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.APPROVER, result.route)
         self.assertFalse(result.facts.route_held_for_gates)
-        classify.assert_called_once()
+        self.assertEqual(len(classifier.requests), 1)
 
     @patch("routing_decision.utc_now")
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=DiscussionClassifications.empty(),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_running_required_check_keeps_integrated_route_held(
-        self, fetch_raw: Mock, classify: Mock, utc_now: Mock
+        self, fetch_raw: Mock, utc_now: Mock
     ) -> None:
         utc_now.return_value = datetime(2026, 8, 16, 12, 0, tzinfo=timezone.utc)
         fetch_raw.return_value = self.raw_pr(
             checks=[{"name": "required", "bucket": "pending"}]
         )
 
+        classifier = FakeClassificationOperation()
         result = evaluate_pr(
             {"number": 7},
             previous_result=stored_dashboard_result(
@@ -607,6 +598,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     waiting_since="2026-08-16T08:00:00+00:00",
                 ),
             ),
+            classification_service=classifier,
         )
 
         self.assertIsNotNone(result)
@@ -618,22 +610,21 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(
             "2026-08-16T12:00:00+00:00", result.facts.route_held_since
         )
-        classify.assert_called_once()
+        self.assertEqual(len(classifier.requests), 1)
 
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=DiscussionClassifications(
-            (),
-            (FAILED_CLASSIFICATION,),
-            (),
-        ),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_classification_failure_preserves_integrated_routing_failure_facts(
-        self, fetch_raw: Mock, classify: Mock
+        self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = self.raw_pr()
 
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications(
+                (),
+                (FAILED_CLASSIFICATION,),
+                (),
+            )
+        )
         result = evaluate_pr(
             {"number": 7},
             previous_result=stored_dashboard_result(
@@ -642,6 +633,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     copilot_first_review_missing_since="2026-08-11T12:00:00Z",
                 ),
             ),
+            classification_service=classifier,
         )
 
         self.assertIsNotNone(result)
@@ -653,7 +645,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             "2026-08-11T12:00:00Z",
             result.facts.copilot_first_review_missing_since if result.facts else None,
         )
-        classify.assert_called_once()
+        self.assertEqual(len(classifier.requests), 1)
 
 
 class ReviewThreadDiscussionUrlTest(unittest.TestCase):
@@ -1577,7 +1569,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
         with (
             patch("dashboard.list_open_prs", return_value=[{"number": 1}, {"number": 2}]),
-            patch("dashboard.prune_classification_cache"),
+            patch("classification_execution.FileClassificationCacheStore.prune"),
             patch("dashboard.load_reviewer_set", return_value={"reviewer"}),
             patch("dashboard.load_dashboard_state_cache", side_effect=load_dashboard_state),
             patch("dashboard.load_backfill_state", side_effect=load_backfill_state),

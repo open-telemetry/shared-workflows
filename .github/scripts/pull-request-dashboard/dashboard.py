@@ -261,8 +261,8 @@ from github_cli import (
     normalize_repo,
     repo_state_key,
 )
-from classification import (
-    prune_classification_cache,
+from classification_execution import (
+    DEFAULT_CLASSIFICATION_CACHE_STORE,
 )
 from classification_policy import (
     ActionDecision,
@@ -728,7 +728,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     prs = list_open_prs(repo)
     open_pr_numbers = {p["number"] for p in prs}
     open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
-    prune_classification_cache(open_pr_numbers)
+    DEFAULT_CLASSIFICATION_CACHE_STORE.prune(open_pr_numbers)
     reviewers = load_reviewer_set(owner, args.approver_team)
     state_branch.configure_git()
     state_branch.checkout_state(state_dir, args.state_branch, require_existing=False)

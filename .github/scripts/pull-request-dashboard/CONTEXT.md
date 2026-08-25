@@ -86,12 +86,23 @@ results. Policy resolution consumes a typed raw model response and returns typed
 classification results. Neither phase reads files, changes the environment, or
 starts a process.
 
-`classification.py` is the temporary operational adapter. It converts prepared
-discussion records to policy contracts, executes Copilot CLI requests, enforces
-per-pull-request call limits, attributes CLI calls, and manages classification
-cache files. It projects typed results to the existing cache JSON shape only at
-that persistence boundary. Subprocess, retry, and cache orchestration remain in
-the adapter until the execution layer is extracted.
+`classification_execution.py` owns operational classification. Its service
+accepts one immutable request containing typed policy discussions and returns
+typed `DiscussionClassifications`. The service coordinates deterministic
+review-thread results, cache hits, model requests, batching, per-pull-request
+limits, failures, and deferrals. It attributes each model call to the first
+result produced by that call.
+
+The model runner accepts an immutable rendered prompt and returns a typed
+`RawModelResponse`. The production runner owns the Copilot CLI command, timeout,
+model argument, telemetry environment and temporary file, and telemetry
+diagnostics. It has no cache dependency. The cache store owns the existing
+per-pull-request JSON files, validation, replacement, and pruning. It has no
+classification policy.
+
+`classification.py` is only a compatibility entrypoint. It converts legacy
+discussion records into the immutable execution request and delegates to the
+default service. Production evaluation builds the typed request directly.
 
 ### Review thread
 
