@@ -1553,7 +1553,7 @@
     },
     "465": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "DylanRussell",
         "author_action_review_thread_urls": [],
@@ -1561,7 +1561,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "133a96a9b6864e29e3b49f1a612368dcc4371abccea491c0adf9d2798ce005bb",
+        "copilot_request_fingerprint": "b7a598de810b4f396f48babde6831f488712b26ce83cdf319be6d684150e7122",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1577,21 +1577,31 @@
         "head_sha": "15b83520afbcd13bfe6903a4e686eead4ef41658",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T20:24:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T04:16:41+00:00",
+        "last_approver_activity_at": "2026-08-25T04:16:41+00:00",
         "last_author_activity_at": "2026-08-24T20:24:33+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e5a3e37db3c350939c6673eeeb0f37debd3f367e966bd5f3161ae4d26da78a48",
+        "routing_input_fingerprint": "5626d64e569a527874eeda29cb1809224b796a590b1b672c58d78f4f3fc55025",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-24T19:29:40+00:00"
       },
       "failed": false,
       "pr_number": 465,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/465",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "466": {
