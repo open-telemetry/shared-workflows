@@ -12735,7 +12735,7 @@
     },
     "50470": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "songy23",
         "author_action_review_thread_urls": [],
@@ -12743,7 +12743,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6cd1ee9154b71da935ecc5bb7ef883b69a8f254cde640faa6d779e2864d5b5ed",
+        "copilot_request_fingerprint": "05ca70205c67ec22a8e40530b3b767866ef219c44560c91588ecff27a64b0293",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12759,21 +12759,31 @@
         "head_sha": "8f0c9a77da480053b7be4c2b49608dc5a5d8c535",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T19:36:13+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T06:34:04+00:00",
+        "last_approver_activity_at": "2026-08-25T06:34:04+00:00",
         "last_author_activity_at": "2026-08-24T19:35:50+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "ChrsMark",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "77deda1e5824d43b0c271a654bf95b604d0330abd5e6a6a3ba7f8fb3cd073fab",
+        "routing_input_fingerprint": "28739c4898c6df04dd93a7bf7faf7c2ef548d7784ff741db713b58509f2b90bd",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-24T19:35:50+00:00"
       },
       "failed": false,
       "pr_number": 50470,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50470",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50472": {
