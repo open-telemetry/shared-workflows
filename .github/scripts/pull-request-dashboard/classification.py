@@ -451,26 +451,28 @@ def _classify_items(
         if len(uncached) < MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR:
             uncached.append((discussion, key))
             continue
-        classifications_by_id[discussion.identity.discussion_id] = (
-            _classification_limit_result(
-                discussion,
-                contract,
-                author_comment=author_comment,
-                deferrable=deferrable,
-            )
+        result = _classification_limit_result(
+            discussion,
+            contract,
+            author_comment=author_comment,
+            deferrable=deferrable,
         )
+        classifications_by_id[discussion.identity.discussion_id] = result
+        if not result.failed:
+            cache_out[key] = cached_classification_record(result)
 
     if author_comment:
         budget_size = _author_comment_budget_size(uncached)
-        for discussion, _key in uncached[budget_size:]:
-            classifications_by_id[discussion.identity.discussion_id] = (
-                _classification_limit_result(
-                    discussion,
-                    contract,
-                    author_comment=True,
-                    deferrable=deferrable,
-                )
+        for discussion, key in uncached[budget_size:]:
+            result = _classification_limit_result(
+                discussion,
+                contract,
+                author_comment=True,
+                deferrable=deferrable,
             )
+            classifications_by_id[discussion.identity.discussion_id] = result
+            if not result.failed:
+                cache_out[key] = cached_classification_record(result)
         uncached = uncached[:budget_size]
 
     for offset in range(
@@ -548,7 +550,7 @@ def _classify_items(
             strict=True,
         ):
             classifications_by_id[result.identity.discussion_id] = result
-            if isinstance(result, ClassificationSuccess):
+            if not result.failed:
                 cache_out[key] = cached_classification_record(result)
 
     if contract is None:

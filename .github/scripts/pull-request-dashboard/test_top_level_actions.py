@@ -1141,6 +1141,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [record.deferred for record in classifications],
             [False] * 20 + [True] * 3,
         )
+        cached = _save_cache.call_args.args[1]
+        self.assertEqual(len(cached), 23)
+        self.assertEqual(
+            sum(bool(record.get("deferred")) for record in cached.values()),
+            3,
+        )
 
     @patch("classification.MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR", 2)
     @patch("classification.author_comment_prompt_batches")

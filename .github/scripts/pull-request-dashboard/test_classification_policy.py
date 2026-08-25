@@ -26,6 +26,7 @@ from classification_policy import (
     VerdictDecision,
     VerdictModelRequest,
     cached_classification_record,
+    classification_result_from_cache_record,
     classification_result_to_record,
     discussion_cache_key,
     make_author_comment_request,
@@ -335,6 +336,42 @@ class ResultProjectionCompatibilityTest(unittest.TestCase):
                 "feedback_outcomes": [],
                 "reason": "Deferred by per-PR classification limit",
             },
+        )
+
+    def test_cache_round_trip_preserves_result_state(self) -> None:
+        discussion = self._discussion()
+        deferred = ClassificationDeferred(
+            discussion.identity,
+            AuthorCommentDecision(
+                reason="Deferred by per-PR classification limit"
+            ),
+            since="2026-01-02T03:04:05Z",
+        )
+        failure = ClassificationFailure(
+            discussion.identity,
+            VerdictDecision(Verdict.AUTHOR_ACTION, "Unreadable."),
+            ClassificationDiagnostics(error="model failed"),
+        )
+
+        restored_deferred = classification_result_from_cache_record(
+            cached_classification_record(deferred),
+            discussion,
+            author_comment=True,
+        )
+        restored_failure = classification_result_from_cache_record(
+            cached_classification_record(failure),
+            discussion,
+            verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
+        )
+
+        self.assertEqual(restored_deferred, deferred)
+        self.assertIsInstance(restored_failure, ClassificationFailure)
+
+    def _discussion(self) -> ClassificationDiscussion:
+        return discussion(
+            "feedback-1",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            "Please update this.",
         )
 
 

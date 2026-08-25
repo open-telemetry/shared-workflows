@@ -1568,9 +1568,30 @@ def classification_result_from_cache_record(
         )
     else:
         raise ValueError("cached results require a classification contract")
+    since = str(record.get("since") or "")
+    ignored_last_comment = bool(record.get("ignored_last_comment"))
+    if record.get("failed"):
+        return ClassificationFailure(
+            discussion.identity,
+            decision,
+            ClassificationDiagnostics(
+                error=str(record.get("error") or ""),
+                response_text=str(record.get("response_text") or ""),
+                stderr=str(record.get("stderr") or ""),
+            ),
+            since=since,
+            ignored_last_comment=ignored_last_comment,
+        )
+    if record.get("deferred"):
+        return ClassificationDeferred(
+            discussion.identity,
+            decision,
+            since=since,
+            ignored_last_comment=ignored_last_comment,
+        )
     return ClassificationSuccess(
         discussion.identity,
         decision,
-        since=str(record.get("since") or ""),
-        ignored_last_comment=bool(record.get("ignored_last_comment")),
+        since=since,
+        ignored_last_comment=ignored_last_comment,
     )
