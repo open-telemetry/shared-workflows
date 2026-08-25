@@ -4,7 +4,6 @@ import json
 import os
 import subprocess
 import time
-from concurrent.futures import ThreadPoolExecutor
 from fnmatch import fnmatchcase
 from typing import Any
 from urllib.parse import quote, urlparse
@@ -959,100 +958,3 @@ def fetch_review_requests(owner: str, repo_name: str, number: int) -> list[dict[
         if not page_info.get("hasNextPage"):
             return reviewers
         after = page_info.get("endCursor") or ""
-
-
-def fetch_pr_routing_raw(
-    repo: str,
-    owner: str,
-    repo_name: str,
-    number: int,
-    non_blocking_check_patterns: list[str] | None = None,
-) -> dict[str, Any]:
-    # Sole producer of every payload the routing fingerprint covers, so the
-    # update and delivery jobs cannot hash differently shaped data.
-    with ThreadPoolExecutor() as pool:
-        pr_future = pool.submit(gh_pr_view, repo, number)
-        issue_comments_future = pool.submit(
-            fetch_pr_issue_comments,
-            owner,
-            repo_name,
-            number,
-        )
-        review_comments_future = pool.submit(
-            gh_api,
-            f"/repos/{owner}/{repo_name}/pulls/{number}/comments?per_page=100",
-            True,
-        )
-        review_threads_future = pool.submit(
-            fetch_review_threads,
-            owner,
-            repo_name,
-            number,
-        )
-        reviews_future = pool.submit(fetch_pr_reviews, owner, repo_name, number)
-        review_requests_future = pool.submit(
-            fetch_review_requests,
-            owner,
-            repo_name,
-            number,
-        )
-        pr = pr_future.result() or {}
-        check_rollup_future = pool.submit(
-            gh_pr_check_rollup,
-            repo,
-            pr.get("id") or "",
-            non_blocking_check_patterns or [],
-        )
-        branch_rules_future = pool.submit(
-            gh_branch_rules,
-            repo,
-            pr.get("baseRefName") or "",
-        )
-        check_rollup = check_rollup_future.result()
-        branch_rules = branch_rules_future.result()
-        # commits(last: 1) can lag headRefOid, and the previous head's checks
-        # are already complete, so a mismatch has to read as no check data.
-        if check_rollup is not None and check_rollup["head_oid"] != (
-            pr.get("headRefOid") or ""
-        ):
-            check_rollup = None
-        required_contexts = required_check_contexts(branch_rules)
-        # The check suites only say whether an app-owned context that has not
-        # reported can still arrive, so nothing else has to pay for that read.
-        settled_app_ids: set[int] = set()
-        if check_rollup is not None and required_contexts is not None and any(
-            requirement.get("integration_id") is not None
-            for requirement in unreported_required_contexts(
-                check_rollup["required"], required_contexts
-            )
-        ):
-            settled_app_ids = settled_check_suite_app_ids(
-                repo,
-                pr.get("headRefOid") or "",
-            )
-        checks = include_missing_required_checks(
-            None if check_rollup is None else check_rollup["required"],
-            required_contexts,
-            settled_app_ids,
-        )
-        if checks is not None and check_rollup is not None:
-            checks = merge_code_scanning_checks(
-                checks,
-                required_code_scanning_checks(
-                    check_rollup["code_scanning"],
-                    code_scanning_tools(branch_rules),
-                    bool(check_rollup["pending"]),
-                ),
-            )
-        return {
-            "pr": pr,
-            "issue_comments": issue_comments_future.result() or [],
-            "review_comments": review_comments_future.result() or [],
-            "reviews": reviews_future.result() or [],
-            "review_requests": review_requests_future.result() or [],
-            "review_threads": review_threads_future.result() or [],
-            "checks": checks,
-            "non_blocking_check_failures": (
-                [] if check_rollup is None else check_rollup["non_blocking_failures"]
-            ),
-        }

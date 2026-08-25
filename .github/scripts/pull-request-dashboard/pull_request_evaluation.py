@@ -5,7 +5,6 @@ from __future__ import annotations
 import sys
 import traceback
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
@@ -23,7 +22,11 @@ from dashboard_contracts import (
     EvaluationSuccess,
     StoredDashboardResult,
 )
-from dashboard_override import append_command_ack_reply, dashboard_override_facts
+from dashboard_override import (
+    DashboardOverrideInput,
+    append_command_ack_reply,
+    dashboard_override_facts,
+)
 from dashboard_status import status_author_nudge_episode_id
 from discussion_lifecycle import (
     DiscussionClassifications,
@@ -32,7 +35,12 @@ from discussion_lifecycle import (
     prepare_discussions,
     resolve_discussions,
 )
-from github_cli import TransientGhError, fetch_pr_routing_raw, gh_api
+from github_cli import TransientGhError
+from pull_request_source import (
+    IssueComment,
+    PullRequestSource,
+    fetch_pull_request_source,
+)
 from pull_request_activity import (
     ActivityInput,
     PullRequestActivity,
@@ -52,7 +60,7 @@ from routing_decision import (
     routing_failure_facts,
 )
 from routing_snapshot import build_routing_snapshot
-from utils import actor_login, compute_conflicts, format_ts, parse_ts
+from utils import format_ts, parse_ts
 
 
 # Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
@@ -78,12 +86,19 @@ class PullRequestEvaluationConfig:
 
 @dataclass(frozen=True)
 class PullRequestEvaluationInput:
-    pr_summary: dict[str, Any]
+    pr_number: int
     previous_result: StoredDashboardResult | None = None
 
+    def __post_init__(self) -> None:
+        if self.pr_number <= 0:
+            raise ValueError("pull request number must be positive")
 
-def _human_author_for_copilot_pr(raw: dict[str, Any]) -> str:
-    assignees = [actor_login(a) for a in (raw["pr"].get("assignees") or [])]
+
+def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
+    assignees = [
+        assignee.login
+        for assignee in source.pull_request.assignees
+    ]
     for login in assignees:
         low = login.lower()
         if (
@@ -94,72 +109,54 @@ def _human_author_for_copilot_pr(raw: dict[str, Any]) -> str:
         ):
             return login
 
-    commits = raw["commits"]
+    commits = source.commits
     if not commits:
         return ""
-    login = actor_login(commits[0].get("committer") or {})
-    if not login or login.lower() in _COPILOT_COMMITTER_LOGINS:
+    committer = commits[0].committer
+    login = committer.login
+    if (
+        not login
+        or login.lower() in _COPILOT_COMMITTER_LOGINS
+        or committer.is_bot
+        or committer.is_copilot_reviewer
+    ):
         return ""
     return login
 
 
-def _effective_author(raw: dict[str, Any]) -> str:
-    pr = raw["pr"]
-    summary = raw["summary"]
-    author = actor_login(pr.get("author") or {}) or actor_login(
-        summary.get("author") or {}
-    )
+def _effective_author(source: PullRequestSource) -> str:
+    author = source.pull_request.author.login
     if author.lower() in _COPILOT_PR_AUTHORS:
-        human_author = _human_author_for_copilot_pr(raw)
+        human_author = _human_author_for_copilot_pr(source)
         if human_author:
             return human_author
     return author
 
 
-def _fetch_pr_raw(
-    config: PullRequestEvaluationConfig,
-    pr_summary: dict[str, Any],
-) -> dict[str, Any]:
-    number = pr_summary["number"]
-    with ThreadPoolExecutor() as pool:
-        commits_future = pool.submit(
-            gh_api,
-            (
-                f"/repos/{config.owner}/{config.repo_name}"
-                f"/pulls/{number}/commits?per_page=100"
-            ),
-            True,
-        )
-        raw = fetch_pr_routing_raw(
-            config.repo,
-            config.owner,
-            config.repo_name,
-            number,
-            list(config.non_blocking_check_patterns),
-        )
-        return {
-            **raw,
-            "summary": pr_summary,
-            "commits": commits_future.result() or [],
-        }
-
-
 def _compute_facts(
-    raw: dict[str, Any],
+    source: PullRequestSource,
     author: str,
     activity: PullRequestActivity,
     prepared_reviewers: PreparedReviewers,
     approver_logins: frozenset[str],
     previous_facts: DashboardFacts,
 ) -> DashboardFacts:
-    pr = raw["pr"]
-    snapshot = build_routing_snapshot(raw)
+    pr = source.pull_request
+    snapshot = build_routing_snapshot(source)
     checks = snapshot.checks
-    failing = [c for c in checks or [] if c.get("bucket") in ("fail", "cancel")]
-    pending = [c for c in checks or [] if c.get("bucket") == "pending"]
-    failing_timestamps = [parse_ts(c.get("completed_at") or "") for c in failing]
+    failing = [
+        check
+        for check in checks or ()
+        if check.bucket in ("fail", "cancel")
+    ]
+    pending = [
+        check
+        for check in checks or ()
+        if check.bucket == "pending"
+    ]
+    failing_timestamps = [parse_ts(check.completed_at) for check in failing]
     failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
-    created_ts = parse_ts(pr["createdAt"])
+    created_ts = parse_ts(pr.created_at)
     last_activity_ts = max(
         [
             ts
@@ -171,19 +168,19 @@ def _compute_facts(
         ],
         default=None,
     )
-    api_author = actor_login(pr.get("author") or {})
+    api_author = pr.author.login
     head_sha = snapshot.head_sha
     (
         copilot_review_exists,
         copilot_review_stale,
         copilot_review_findings,
     ) = copilot_review_status(
-        raw.get("reviews") or [],
+        source.reviews,
         head_sha,
         snapshot.review_threads,
     )
     override = dashboard_override_facts(
-        raw,
+        DashboardOverrideInput(source.issue_comments),
         author,
         set(approver_logins),
         head_sha,
@@ -191,9 +188,9 @@ def _compute_facts(
     )
     non_blocking_check_failures = tuple(sorted(
         {
-            check.get("name") or ""
-            for check in raw.get("non_blocking_check_failures") or []
-            if check.get("name")
+            check.name
+            for check in source.non_blocking_failures
+            if check.name
         },
         key=lambda name: (name.casefold(), name),
     ))
@@ -215,9 +212,9 @@ def _compute_facts(
         copilot_review_stale=copilot_review_stale,
         copilot_review_needed=copilot_review_stale or copilot_review_findings,
         is_maintenance_bot=api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
-        is_draft=bool(pr.get("isDraft")),
+        is_draft=pr.is_draft,
         approval_count=prepared_reviewers.approval_count,
-        conflicts=compute_conflicts(pr),
+        conflicts=pr.conflicts,
         created_at=format_ts(created_ts),
         last_activity_at=format_ts(last_activity_ts),
         last_author_activity_at=format_ts(
@@ -260,7 +257,7 @@ def _assign_author_nudge_episode(
     facts: DashboardFacts,
     route: DashboardRoute,
     previous_result: StoredDashboardResult | None,
-    issue_comments: list[dict[str, Any]],
+    issue_comments: tuple[IssueComment, ...],
 ) -> DashboardFacts:
     if route is not DashboardRoute.AUTHOR:
         return facts.with_changes(author_nudge_episode_id=None)
@@ -325,7 +322,7 @@ def evaluate_pull_request(
     source: PullRequestEvaluationInput,
 ) -> EvaluationResult | None:
     """Fetch and evaluate one pull request without mutating dashboard state."""
-    number = source.pr_summary["number"]
+    number = source.pr_number
     previous_result = source.previous_result
     previous_facts = (
         previous_result.facts
@@ -338,22 +335,29 @@ def evaluate_pull_request(
         else {}
     )
     try:
-        raw = _fetch_pr_raw(config, source.pr_summary)
-        if raw["pr"].get("state") != "OPEN" or raw["pr"].get("isDraft"):
+        pr_source = fetch_pull_request_source(
+            config.repo,
+            config.owner,
+            config.repo_name,
+            number,
+            config.non_blocking_check_patterns,
+        )
+        pr = pr_source.pull_request
+        if pr.state != "OPEN" or pr.is_draft:
             return None
-        author = _effective_author(raw)
+        author = _effective_author(pr_source)
         activity = build_activity_timeline(
-            ActivityInput(raw, author, config.approver_logins)
+            ActivityInput(pr_source, author, config.approver_logins)
         )
         prepared_reviewers = prepare_reviewers(
             ReviewerInput(
                 activity.events,
-                tuple(raw.get("review_requests") or []),
-                tuple(raw["pr"].get("assignees") or []),
+                pr_source.review_requests,
+                pr.assignees,
             )
         )
         facts = _compute_facts(
-            raw,
+            pr_source,
             author,
             activity,
             prepared_reviewers,
@@ -363,7 +367,7 @@ def evaluate_pull_request(
         manual_reviewer_handoff = reviewer_handoff_active(facts)
         prepared_discussions = prepare_discussions(
             DiscussionInput(
-                tuple(raw["review_threads"]),
+                pr_source.review_threads,
                 activity.events,
                 author,
                 config.approver_logins,
@@ -402,8 +406,8 @@ def evaluate_pull_request(
         if lifecycle.failed_classifications:
             return EvaluationFailure(
                 pr_number=number,
-                pr_title=raw["pr"].get("title") or "",
-                pr_url=raw["pr"].get("url") or "",
+                pr_title=pr.title,
+                pr_url=pr.url,
                 facts=routing_failure_facts(facts, previous_facts),
                 diagnostics=diagnostics,
                 route=DashboardRoute.UNKNOWN,
@@ -427,7 +431,7 @@ def evaluate_pull_request(
                 previous_facts=previous_facts,
                 required_approvals=config.required_approvals,
                 require_clean_copilot_review=(
-                    (raw["pr"].get("baseRefName") or "")
+                    pr.base_branch
                     in config.require_clean_copilot_review_branches
                 ),
                 manual_reviewer_handoff=manual_reviewer_handoff,
@@ -442,9 +446,13 @@ def evaluate_pull_request(
             facts,
             route,
             previous_result,
-            raw.get("issue_comments") or [],
+            pr_source.issue_comments,
         )
-        facts = append_command_ack_reply(raw, facts, route)
+        facts = append_command_ack_reply(
+            DashboardOverrideInput(pr_source.issue_comments),
+            facts,
+            route,
+        )
         facts = facts.with_changes(
             author_action_review_thread_urls=(
                 _author_action_discussion_urls(review_threads, pending_actions)
@@ -463,8 +471,8 @@ def evaluate_pull_request(
         )
         return EvaluationSuccess(
             pr_number=number,
-            pr_title=raw["pr"].get("title") or "",
-            pr_url=raw["pr"].get("url") or "",
+            pr_title=pr.title,
+            pr_url=pr.url,
             facts=facts,
             diagnostics=diagnostics,
             pending_actions=pending_actions,

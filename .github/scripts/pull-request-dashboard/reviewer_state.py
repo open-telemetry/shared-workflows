@@ -6,14 +6,15 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from dashboard_contracts import ReviewerSummary
+from pull_request_source import Actor, ReviewRequest
 from pull_request_activity import reviewer_actor_login
 
 
 @dataclass(frozen=True)
 class ReviewerInput:
     events: tuple[Mapping[str, Any], ...]
-    review_requests: tuple[dict[str, Any], ...]
-    raw_assignees: tuple[dict[str, Any], ...]
+    review_requests: tuple[ReviewRequest, ...]
+    assignees: tuple[Actor, ...]
 
 
 @dataclass(frozen=True)
@@ -61,13 +62,12 @@ def _latest_review_states(events: tuple[Mapping[str, Any], ...]) -> dict[str, st
 
 
 def _human_request_logins(
-    review_requests: tuple[dict[str, Any], ...],
+    review_requests: tuple[ReviewRequest, ...],
 ) -> set[str]:
     return {
-        login
+        request.login
         for request in review_requests
-        if request.get("__typename") == "User"
-        and (login := reviewer_actor_login(request))
+        if request.is_human and request.login
     }
 
 
@@ -116,7 +116,7 @@ def prepare_reviewers(source: ReviewerInput) -> PreparedReviewers:
     )
     assignee_logins = tuple(
         login
-        for assignee in source.raw_assignees
+        for assignee in source.assignees
         if (login := reviewer_actor_login(assignee))
     )
     return PreparedReviewers(

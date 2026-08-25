@@ -7,10 +7,19 @@ import dashboard_override
 import dashboard_override_delivery
 from dashboard_contracts import DashboardCommandReply, DashboardRoute
 from dashboard_test_support import (
+    actor,
     dashboard_facts,
     dashboard_state,
+    issue_comment,
     stored_dashboard_result,
 )
+from pull_request_source import IssueComment
+
+
+def override_input(
+    *comments: IssueComment,
+) -> dashboard_override.DashboardOverrideInput:
+    return dashboard_override.DashboardOverrideInput(comments)
 
 
 def result_facts(
@@ -38,83 +47,103 @@ class DashboardOverrideTest(unittest.TestCase):
     def test_dashboard_command_body_remainder(self) -> None:
         self.assertIsNone(
             dashboard_override.dashboard_command_body_remainder(
-                {"body": "just a normal comment"}
+                issue_comment(body="just a normal comment")
             )
         )
         self.assertEqual(
             "",
             dashboard_override.dashboard_command_body_remainder(
-                {"body": "/dashboard route:reviewers"}
+                issue_comment(body="/dashboard route:reviewers")
             ),
         )
         self.assertEqual(
             "I addressed everything by doing X.",
             dashboard_override.dashboard_command_body_remainder(
-                {"body": "/dashboard route:reviewers\n\nI addressed everything by doing X."}
+                issue_comment(
+                    body=(
+                        "/dashboard route:reviewers\n\n"
+                        "I addressed everything by doing X."
+                    )
+                )
             ),
         )
         self.assertEqual(
             "I addressed the feedback.\nAdditional context follows.",
-            dashboard_override.dashboard_command_body_remainder({
-                "body": (
-                    "/dashboard route:reviewers I addressed the feedback.\n"
-                    "Additional context follows."
+            dashboard_override.dashboard_command_body_remainder(
+                issue_comment(
+                    body=(
+                        "/dashboard route:reviewers I addressed the feedback.\n"
+                        "Additional context follows."
+                    )
                 )
-            }),
+            ),
         )
 
     def test_latest_authorized_command_accepts_author_and_approvers(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 1, "user": {"login": "outsider"}, "body": "/dashboard route:reviewers"},
-                {"id": 2, "user": {"login": "author"}, "body": "text /dashboard route:reviewers"},
-                {"id": 3, "user": {"login": "author"}, "body": "/dashboard route:reviewers\nplease review"},
-                {"id": 4, "user": {"login": "Approver"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=1,
+                actor=actor("outsider"),
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=2,
+                body="text /dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=3,
+                body="/dashboard route:reviewers\nplease review",
+            ),
+            issue_comment(
+                database_id=4,
+                actor=actor("Approver"),
+                body="/dashboard route:reviewers",
+            ),
+        )
 
         self.assertEqual(
             (4, "Approver"),
-            dashboard_override.latest_authorized_command(raw, "author", {"approver"}),
+            dashboard_override.latest_authorized_command(
+                source, "author", {"approver"}
+            ),
         )
 
     def test_latest_authorized_command_ignores_app_acknowledged_command(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 3, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 4,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.override_ack_marker(3),
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=3,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=4,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(3),
+            ),
+        )
 
         self.assertEqual(
             (0, ""),
-            dashboard_override.latest_authorized_command(raw, "author", set()),
+            dashboard_override.latest_authorized_command(source, "author", set()),
         )
 
     def test_latest_authorized_command_ignores_previously_rejected_command(self) -> None:
-        raw = {
-            "issue_comments": [
-                {
-                    "id": 3,
-                    "user": {"login": "new-approver"},
-                    "body": "/dashboard route:reviewers",
-                },
-                {
-                    "id": 4,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.command_reply_marker(3),
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=3,
+                actor=actor("new-approver"),
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=4,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.command_reply_marker(3),
+            ),
+        )
 
         self.assertEqual(
             (0, ""),
             dashboard_override.latest_authorized_command(
-                raw, "author", {"new-approver"}
+                source, "author", {"new-approver"}
             ),
         )
 
@@ -130,18 +159,37 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
     def test_pending_replies_for_unauthorized_and_unknown_commands(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 1, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {"id": 2, "user": {"login": "outsider"}, "body": "/dashboard route:reviewers"},
-                {"id": 3, "user": {"login": "reviewer"}, "body": "/dashboard frobnicate"},
-                {"id": 4, "user": {"login": "author"}, "body": "/dashboard"},
-                {"id": 5, "user": {"login": "reviewer"}, "body": "looks good to me"},
-                {"id": 6, "user": {"login": "approver"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=1,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=2,
+                actor=actor("outsider"),
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=3,
+                actor=actor("reviewer"),
+                body="/dashboard frobnicate",
+            ),
+            issue_comment(database_id=4, body="/dashboard"),
+            issue_comment(
+                database_id=5,
+                actor=actor("reviewer"),
+                body="looks good to me",
+            ),
+            issue_comment(
+                database_id=6,
+                actor=actor("approver"),
+                body="/dashboard route:reviewers",
+            ),
+        )
 
-        replies = dashboard_override.pending_command_replies(raw, "author", {"approver"})
+        replies = dashboard_override.pending_command_replies(
+            source, "author", {"approver"}
+        )
 
         self.assertEqual(
             (
@@ -153,32 +201,42 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
     def test_already_replied_commands_are_not_repeated(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 2, "user": {"login": "outsider"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 9,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.command_reply_marker(2) + "\n@outsider ...",
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=2,
+                actor=actor("outsider"),
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.command_reply_marker(2) + "\n@outsider ...",
+            ),
+        )
 
-        self.assertEqual((), dashboard_override.pending_command_replies(raw, "author"))
+        self.assertEqual(
+            (),
+            dashboard_override.pending_command_replies(source, "author"),
+        )
 
     def test_forged_marker_from_non_app_user_does_not_suppress_reply(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 2, "user": {"login": "outsider"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 9,
-                    "user": {"login": "outsider"},
-                    "body": dashboard_override.command_reply_marker(2) + "\nnothing to see here",
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=2,
+                actor=actor("outsider"),
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("outsider"),
+                body=(
+                    dashboard_override.command_reply_marker(2)
+                    + "\nnothing to see here"
+                ),
+            ),
+        )
 
-        replies = dashboard_override.pending_command_replies(raw, "author")
+        replies = dashboard_override.pending_command_replies(source, "author")
 
         self.assertEqual(
             (
@@ -289,73 +347,78 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
     def test_pending_command_binds_to_the_head_this_pass_observed(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            )
+        )
 
         facts = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "current-head"
+            source, "author", None, "current-head"
         )
 
         self.assertEqual(5, facts.command_id)
         self.assertEqual("current-head", facts.head_sha)
 
     def test_pending_command_keeps_its_first_observed_head(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            )
+        )
         first = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "first-head"
+            source, "author", None, "first-head"
         )
 
         retry = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "later-head", result_facts(first)
+            source, "author", None, "later-head", result_facts(first)
         )
 
         self.assertEqual(5, retry.command_id)
         self.assertEqual("first-head", retry.head_sha)
 
     def test_new_pending_command_binds_to_the_newly_observed_head(self) -> None:
-        previous_raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
-        previous_facts = dashboard_override.dashboard_override_facts(
-            previous_raw, "author", None, "first-head"
+        previous_source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            )
         )
-        raw = {
-            "issue_comments": [
-                *previous_raw["issue_comments"],
-                {"id": 6, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        previous_facts = dashboard_override.dashboard_override_facts(
+            previous_source, "author", None, "first-head"
+        )
+        source = override_input(
+            *previous_source.issue_comments,
+            issue_comment(
+                database_id=6,
+                body="/dashboard route:reviewers",
+            ),
+        )
 
         facts = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "later-head", result_facts(previous_facts)
+            source, "author", None, "later-head", result_facts(previous_facts)
         )
 
         self.assertEqual(6, facts.command_id)
         self.assertEqual("later-head", facts.head_sha)
 
     def test_acknowledged_command_keeps_its_bound_head(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 9,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.override_ack_marker(5, "bound-head"),
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5, "bound-head"),
+            ),
+        )
 
         facts = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "current-head"
+            source, "author", None, "current-head"
         )
 
         self.assertEqual(0, facts.command_id)
@@ -364,38 +427,40 @@ class DashboardOverrideTest(unittest.TestCase):
     def test_marker_without_a_head_still_retires_its_command(self) -> None:
         # Acknowledgements written before the dashboard recorded a head have to
         # keep retiring their command, or an old command would run again.
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 9,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.override_ack_marker(5),
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5),
+            ),
+        )
 
         facts = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "current-head"
+            source, "author", None, "current-head"
         )
 
         self.assertEqual(0, facts.command_id)
         self.assertEqual("", facts.head_sha)
 
     def test_forged_acknowledgement_does_not_bind_a_head(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 9,
-                    "user": {"login": "outsider"},
-                    "body": dashboard_override.override_ack_marker(5, "forged-head"),
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("outsider"),
+                body=dashboard_override.override_ack_marker(5, "forged-head"),
+            ),
+        )
 
         facts = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "current-head"
+            source, "author", None, "current-head"
         )
 
         self.assertEqual(5, facts.command_id)
@@ -409,7 +474,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         facts = dashboard_override.append_command_ack_reply(
-            {"issue_comments": []},
+            override_input(),
             facts,
             DashboardRoute.APPROVER,
         )
@@ -431,7 +496,7 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = dashboard_facts(author="author")
 
         updated = dashboard_override.append_command_ack_reply(
-            {"issue_comments": []},
+            override_input(),
             facts,
             DashboardRoute.AUTHOR,
         )
@@ -447,7 +512,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         facts = dashboard_override.append_command_ack_reply(
-            {"issue_comments": []},
+            override_input(),
             facts,
             DashboardRoute.AUTHOR,
         )
@@ -470,17 +535,15 @@ class DashboardOverrideTest(unittest.TestCase):
             dashboard_override_command_id=12,
             dashboard_override_head_sha="bound-head",
         )
-        raw = {
-            "issue_comments": [
-                {
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.command_reply_marker(12) + "\n@author ...",
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.command_reply_marker(12) + "\n@author ...",
+            )
+        )
 
         facts = dashboard_override.append_command_ack_reply(
-            raw,
+            source,
             facts,
             DashboardRoute.APPROVER,
         )
@@ -493,17 +556,15 @@ class DashboardOverrideTest(unittest.TestCase):
             dashboard_override_command_id=12,
             dashboard_override_head_sha="bound-head",
         )
-        raw = {
-            "issue_comments": [
-                {
-                    "user": {"login": "outsider"},
-                    "body": dashboard_override.command_reply_marker(12) + "\n@author ...",
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                actor=actor("outsider"),
+                body=dashboard_override.command_reply_marker(12) + "\n@author ...",
+            )
+        )
 
         facts = dashboard_override.append_command_ack_reply(
-            raw,
+            source,
             facts,
             DashboardRoute.APPROVER,
         )
@@ -587,26 +648,25 @@ class DashboardOverrideTest(unittest.TestCase):
         run_gh.assert_not_called()
 
     def test_command_stays_pending_until_app_acknowledges_it(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 3, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=3,
+                body="/dashboard route:reviewers",
+            )
+        )
 
-        first = dashboard_override.dashboard_override_facts(raw, "author")
-        retry = dashboard_override.dashboard_override_facts(raw, "author")
-        acknowledged_raw = {
-            "issue_comments": [
-                *raw["issue_comments"],
-                {
-                    "id": 4,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.override_ack_marker(3),
-                },
-            ]
-        }
+        first = dashboard_override.dashboard_override_facts(source, "author")
+        retry = dashboard_override.dashboard_override_facts(source, "author")
+        acknowledged_source = override_input(
+            *source.issue_comments,
+            issue_comment(
+                database_id=4,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(3),
+            ),
+        )
         acknowledged = dashboard_override.dashboard_override_facts(
-            acknowledged_raw,
+            acknowledged_source,
             "author",
         )
 
@@ -615,35 +675,40 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(0, acknowledged.command_id)
 
     def test_newer_command_reapplies_removed_override(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 3, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 4,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.override_ack_marker(3),
-                },
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=3,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=4,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(3),
+            ),
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            ),
+        )
 
-        facts = dashboard_override.dashboard_override_facts(raw, "author")
+        facts = dashboard_override.dashboard_override_facts(source, "author")
 
         self.assertEqual(5, facts.command_id)
 
     def test_rebuilds_unacknowledged_reply_across_refreshes(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            )
+        )
 
         for _ in range(2):
             override = dashboard_override.dashboard_override_facts(
-                raw, "author", None, "current-head"
+                source, "author", None, "current-head"
             )
             facts = dashboard_override.append_command_ack_reply(
-                raw,
+                source,
                 result_facts(override, author="author"),
                 DashboardRoute.APPROVER,
             )
@@ -662,52 +727,58 @@ class DashboardOverrideTest(unittest.TestCase):
             )
 
     def test_acknowledged_command_does_not_replay_after_cache_eviction(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 9,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.override_ack_marker(5) + "\n@author ...",
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5) + "\n@author ...",
+            ),
+        )
 
-        facts = dashboard_override.dashboard_override_facts(raw, "author")
+        facts = dashboard_override.dashboard_override_facts(source, "author")
 
         self.assertEqual(0, facts.command_id)
         self.assertEqual((), facts.command_replies)
 
     def test_newest_acknowledgement_consumes_older_authorized_commands(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 3, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-                {
-                    "id": 9,
-                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
-                    "body": dashboard_override.override_ack_marker(5),
-                },
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=3,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5),
+            ),
+        )
 
         self.assertEqual(
             (0, ""),
-            dashboard_override.latest_authorized_command(raw, "author", set()),
+            dashboard_override.latest_authorized_command(source, "author", set()),
         )
 
     def test_command_that_cleared_nothing_is_acknowledged_where_it_is_routed(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            )
+        )
         override = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "current-head"
+            source, "author", None, "current-head"
         )
 
         facts = dashboard_override.append_command_ack_reply(
-            raw,
+            source,
             result_facts(override, author="author"),
             DashboardRoute.AUTHOR,
         )
@@ -726,17 +797,18 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
     def test_conflict_does_not_defer_override_acknowledgement(self) -> None:
-        raw = {
-            "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
-            ]
-        }
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            )
+        )
         override = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "current-head"
+            source, "author", None, "current-head"
         )
 
         facts = dashboard_override.append_command_ack_reply(
-            raw,
+            source,
             result_facts(override, author="author", conflicts="yes"),
             DashboardRoute.APPROVER,
         )

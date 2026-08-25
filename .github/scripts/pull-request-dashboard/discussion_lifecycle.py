@@ -15,7 +15,8 @@ from pull_request_activity import (
     reviewer_actor_login,
     role_for,
 )
-from utils import actor_login, truncate
+from pull_request_source import ReviewThread, ReviewThreadComment
+from utils import truncate
 
 
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
@@ -28,7 +29,7 @@ class LifecycleMode(Enum):
 
 @dataclass(frozen=True)
 class DiscussionInput:
-    review_threads: tuple[dict[str, Any], ...]
+    review_threads: tuple[ReviewThread, ...]
     events: tuple[Mapping[str, Any], ...]
     author: str
     reviewers: frozenset[str]
@@ -126,13 +127,15 @@ def _add_discussion_facts(
     return discussion
 
 
-def _positive_reaction_logins(comment: dict[str, Any]) -> set[str]:
+def _positive_reaction_logins(
+    comment: ReviewThreadComment,
+) -> set[str]:
     logins: set[str] = set()
-    for group in comment.get("reactionGroups") or []:
-        if group.get("content") not in POSITIVE_ACK_REACTIONS:
+    for group in comment.reaction_groups:
+        if group.content not in POSITIVE_ACK_REACTIONS:
             continue
-        for user in ((group.get("users") or {}).get("nodes") or []):
-            login = actor_login(user).lower()
+        for user_login in group.user_logins:
+            login = user_login.lower()
             if login:
                 logins.add(login)
     return logins
@@ -142,18 +145,18 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
     discussions: list[dict[str, Any]] = []
     reviewers = set(source.reviewers)
     for discussion in source.review_threads:
-        if discussion.get("isResolved") or discussion.get("isOutdated"):
+        if discussion.is_resolved or discussion.is_outdated:
             continue
-        raw_comments = (discussion.get("comments") or {}).get("nodes") or []
-        thread_url = raw_comments[0].get("url") if raw_comments else ""
-        ordered = sorted(raw_comments, key=lambda comment: comment.get("createdAt") or "")
+        raw_comments = discussion.comments
+        thread_url = raw_comments[0].url if raw_comments else ""
+        ordered = sorted(raw_comments, key=lambda comment: comment.created_at)
         comments = [
             _discussion_comment(
-                comment.get("createdAt") or "",
-                reviewer_actor_login(comment.get("author") or {}),
+                comment.created_at,
+                reviewer_actor_login(comment.actor),
                 source.author,
                 reviewers,
-                comment.get("body") or "",
+                comment.body,
                 _positive_reaction_logins(comment),
             )
             for comment in ordered
@@ -167,12 +170,12 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
             _add_discussion_facts(
                 {
                     "discussion_id": (
-                        discussion.get("id")
+                        discussion.node_id
                         or f"review-discussion-{len(discussions) + 1}"
                     ),
                     "discussion_kind": "review-comment-thread",
-                    "path": discussion.get("path"),
-                    "line": discussion.get("line"),
+                    "path": discussion.path or None,
+                    "line": discussion.line,
                     "resolved": False,
                     "discussion_url": thread_url,
                     "comments": comments,

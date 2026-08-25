@@ -69,6 +69,7 @@ def actor_login(obj: dict[str, Any] | None) -> str:
 # Every login GitHub has used for the Copilot reviewer, lowercased.
 COPILOT_REVIEWER_LOGINS = frozenset({
     "copilot",
+    "copilot[bot]",
     "copilot-pull-request-reviewer",
     "copilot-pull-request-reviewer[bot]",
 })
@@ -76,16 +77,6 @@ COPILOT_REVIEWER_LOGINS = frozenset({
 
 def is_copilot_reviewer_login(login: str) -> bool:
     return (login or "").strip().lower() in COPILOT_REVIEWER_LOGINS
-
-
-def compute_conflicts(pr: dict[str, Any]) -> str:
-    merge_state = pr.get("mergeStateStatus")
-    mergeable = pr.get("mergeable")
-    if mergeable == "CONFLICTING" or merge_state == "DIRTY":
-        return "yes"
-    if mergeable in (None, "", "UNKNOWN"):
-        return "unknown"
-    return "no"
 
 
 def required_checks_settled(facts: DashboardFacts) -> bool:

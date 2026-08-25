@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dashboard_override import command_reply_exists, render_command_reply
 from github_cli import gh_api, run_gh
+from pull_request_source import normalize_issue_comments
 from state import load_dashboard_state_cache
 
 
@@ -18,10 +19,10 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
             continue
         pr_number = result.pr_number
         try:
-            comments = gh_api(
+            comments = normalize_issue_comments(gh_api(
                 f"/repos/{repo}/issues/{pr_number}/comments?per_page=100",
                 paginate=True,
-            )
+            ))
         except Exception as error:
             errors.append(f"PR #{pr_number}: {error}")
             continue

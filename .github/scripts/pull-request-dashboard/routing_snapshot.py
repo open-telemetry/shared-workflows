@@ -7,9 +7,13 @@ import hashlib
 import json
 from typing import Any
 
-from github_cli import fetch_pr_routing_raw
-from dashboard_status import DASHBOARD_APP_SLUG
-from utils import compute_conflicts
+from pull_request_source import (
+    Check,
+    PullRequestSource,
+    ReviewRequest,
+    ReviewThread,
+    fetch_pull_request_source,
+)
 
 
 @dataclass(frozen=True)
@@ -18,38 +22,12 @@ class RoutingSnapshot:
     is_draft: bool
     node_id: str
     head_sha: str
-    checks: list[dict[str, Any]] | None
-    review_requests: list[dict[str, Any]]
-    review_threads: list[dict[str, Any]]
+    checks: tuple[Check, ...] | None
+    review_requests: tuple[ReviewRequest, ...]
+    review_threads: tuple[ReviewThread, ...]
     routing_input_fingerprint: str
     copilot_request_fingerprint: str
     copilot_request_component_digests: dict[str, str]
-
-
-def _routing_inputs(raw: dict[str, Any]) -> dict[str, Any]:
-    dashboard_login = f"{DASHBOARD_APP_SLUG}[bot]"
-    pr = raw.get("pr") or {}
-    issue_comments = [
-        comment
-        for comment in raw.get("issue_comments") or []
-        if (comment.get("user") or {}).get("login") != dashboard_login
-    ]
-    return {
-        "base_branch": str(pr.get("baseRefName") or ""),
-        "checks": raw.get("checks"),
-        # Hash the derived state so equivalent mergeability values do not
-        # invalidate prepared delivery.
-        "conflicts": compute_conflicts(pr),
-        "issue_comments": issue_comments,
-        "pr_text": {
-            "body": str(pr.get("body") or "").replace("\r\n", "\n"),
-            "title": str(pr.get("title") or ""),
-        },
-        "review_comments": raw.get("review_comments") or [],
-        "review_requests": raw.get("review_requests") or [],
-        "reviews": raw.get("reviews") or [],
-        "review_threads": raw.get("review_threads") or [],
-    }
 
 
 def _digest(value: Any) -> str:
@@ -61,32 +39,29 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _copilot_request_inputs(raw: dict[str, Any]) -> dict[str, Any]:
-    # Review requests are sent while checks are running, so including checks in
-    # the fingerprint would invalidate queued requests as their status changes.
-    # Delivery separately rejects requests when check results are unavailable or
-    # a required check is failing or canceled.
-    inputs = _routing_inputs(raw)
-    inputs.pop("checks", None)
-    return inputs
-
-
 def _component_digests(inputs: dict[str, Any]) -> dict[str, str]:
     return {name: _digest(value)[:16] for name, value in inputs.items()}
 
 
-def build_routing_snapshot(raw: dict[str, Any]) -> RoutingSnapshot:
-    pr = raw.get("pr") or {}
-    routing_inputs = _routing_inputs(raw)
-    copilot_inputs = _copilot_request_inputs(raw)
+def build_routing_snapshot(source: PullRequestSource) -> RoutingSnapshot:
+    pr = source.pull_request
+    fingerprint = source.fingerprint
+    if fingerprint is None:
+        raise ValueError("pull request source is missing its fingerprint projection")
+    routing_inputs = fingerprint.routing_inputs()
+    # Review requests are sent while checks are running, so including checks in
+    # the fingerprint would invalidate queued requests as their status changes.
+    # Delivery separately rejects requests when check results are unavailable or
+    # a required check is failing or canceled.
+    copilot_inputs = fingerprint.copilot_request_inputs()
     return RoutingSnapshot(
-        state=str(pr.get("state") or ""),
-        is_draft=bool(pr.get("isDraft")),
-        node_id=str(pr.get("id") or ""),
-        head_sha=str(pr.get("headRefOid") or ""),
-        checks=raw.get("checks"),
-        review_requests=raw.get("review_requests") or [],
-        review_threads=raw.get("review_threads") or [],
+        state=pr.state,
+        is_draft=pr.is_draft,
+        node_id=pr.node_id,
+        head_sha=pr.head_sha,
+        checks=source.checks,
+        review_requests=source.review_requests,
+        review_threads=source.review_threads,
         routing_input_fingerprint=_digest(routing_inputs),
         copilot_request_fingerprint=_digest(copilot_inputs),
         copilot_request_component_digests=_component_digests(copilot_inputs),
@@ -96,5 +71,11 @@ def build_routing_snapshot(raw: dict[str, Any]) -> RoutingSnapshot:
 def fetch_routing_snapshot(repo: str, pr_number: int) -> RoutingSnapshot:
     owner, repo_name = repo.split("/", 1)
     return build_routing_snapshot(
-        fetch_pr_routing_raw(repo, owner, repo_name, pr_number)
+        fetch_pull_request_source(
+            repo,
+            owner,
+            repo_name,
+            pr_number,
+            include_commits=False,
+        )
     )

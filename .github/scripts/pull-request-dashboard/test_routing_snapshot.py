@@ -4,6 +4,7 @@ from dataclasses import FrozenInstanceError
 import unittest
 from unittest.mock import patch
 
+from pull_request_source import normalize_pull_request_source
 from routing_snapshot import build_routing_snapshot, fetch_routing_snapshot
 
 
@@ -38,7 +39,9 @@ def representative_raw() -> dict:
 
 class RoutingSnapshotTest(unittest.TestCase):
     def test_preserves_characterized_fingerprints_and_component_digests(self) -> None:
-        snapshot = build_routing_snapshot(representative_raw())
+        snapshot = build_routing_snapshot(
+            normalize_pull_request_source(representative_raw())
+        )
 
         self.assertEqual(
             "fc3243ccd8b9169e27ec128f80a7e46bacb8bc4a9a2b339d34c4033cc2115db2",
@@ -64,36 +67,40 @@ class RoutingSnapshotTest(unittest.TestCase):
 
     def test_exposes_delivery_state_and_is_frozen(self) -> None:
         raw = representative_raw()
-        snapshot = build_routing_snapshot(raw)
+        snapshot = build_routing_snapshot(normalize_pull_request_source(raw))
 
         self.assertEqual("OPEN", snapshot.state)
         self.assertFalse(snapshot.is_draft)
         self.assertEqual("PR_node", snapshot.node_id)
         self.assertEqual("0123456789abcdef", snapshot.head_sha)
         self.assertIsNone(snapshot.checks)
-        self.assertEqual(raw["review_requests"], snapshot.review_requests)
-        self.assertEqual(raw["review_threads"], snapshot.review_threads)
+        self.assertEqual("bob", snapshot.review_requests[0].login)
+        self.assertFalse(snapshot.review_threads[0].is_resolved)
         with self.assertRaises(FrozenInstanceError):
             snapshot.state = "CLOSED"  # type: ignore[misc]
 
     def test_dashboard_fingerprint_ignores_dashboard_comments(self) -> None:
         raw = representative_raw()
-        baseline = build_routing_snapshot(raw).routing_input_fingerprint
+        baseline = build_routing_snapshot(
+            normalize_pull_request_source(raw)
+        ).routing_input_fingerprint
 
         raw["issue_comments"][0]["body"] = "updated dashboard status"
 
         self.assertEqual(
             baseline,
-            build_routing_snapshot(raw).routing_input_fingerprint,
+            build_routing_snapshot(
+                normalize_pull_request_source(raw)
+            ).routing_input_fingerprint,
         )
 
     def test_dashboard_fingerprint_tracks_checks_but_copilot_does_not(self) -> None:
         raw = representative_raw()
         raw["checks"] = [{"name": "build", "bucket": "fail"}]
-        baseline = build_routing_snapshot(raw)
+        baseline = build_routing_snapshot(normalize_pull_request_source(raw))
 
         raw["checks"][0]["bucket"] = "pass"
-        updated = build_routing_snapshot(raw)
+        updated = build_routing_snapshot(normalize_pull_request_source(raw))
 
         self.assertNotEqual(
             baseline.routing_input_fingerprint,
@@ -120,9 +127,13 @@ class RoutingSnapshotTest(unittest.TestCase):
         for change in changes:
             with self.subTest(change=change):
                 raw = representative_raw()
-                baseline = build_routing_snapshot(raw)
+                baseline = build_routing_snapshot(
+                    normalize_pull_request_source(raw)
+                )
                 change(raw)
-                updated = build_routing_snapshot(raw)
+                updated = build_routing_snapshot(
+                    normalize_pull_request_source(raw)
+                )
                 self.assertNotEqual(
                     baseline.routing_input_fingerprint,
                     updated.routing_input_fingerprint,
@@ -138,8 +149,12 @@ class RoutingSnapshotTest(unittest.TestCase):
         lf["pr"]["body"] = "Line one\nLine two"
 
         self.assertEqual(
-            build_routing_snapshot(crlf).routing_input_fingerprint,
-            build_routing_snapshot(lf).routing_input_fingerprint,
+            build_routing_snapshot(
+                normalize_pull_request_source(crlf)
+            ).routing_input_fingerprint,
+            build_routing_snapshot(
+                normalize_pull_request_source(lf)
+            ).routing_input_fingerprint,
         )
 
     def test_preserves_unavailable_checks(self) -> None:
@@ -147,25 +162,41 @@ class RoutingSnapshotTest(unittest.TestCase):
         available = representative_raw()
         available["checks"] = []
 
-        self.assertIsNone(build_routing_snapshot(unavailable).checks)
-        self.assertEqual([], build_routing_snapshot(available).checks)
+        self.assertIsNone(
+            build_routing_snapshot(
+                normalize_pull_request_source(unavailable)
+            ).checks
+        )
+        self.assertEqual(
+            (),
+            build_routing_snapshot(
+                normalize_pull_request_source(available)
+            ).checks,
+        )
         self.assertNotEqual(
-            build_routing_snapshot(unavailable).routing_input_fingerprint,
-            build_routing_snapshot(available).routing_input_fingerprint,
+            build_routing_snapshot(
+                normalize_pull_request_source(unavailable)
+            ).routing_input_fingerprint,
+            build_routing_snapshot(
+                normalize_pull_request_source(available)
+            ).routing_input_fingerprint,
         )
 
-    @patch("routing_snapshot.fetch_pr_routing_raw")
-    def test_fetches_and_builds_one_snapshot(self, fetch_raw) -> None:
-        fetch_raw.return_value = representative_raw()
+    @patch("routing_snapshot.fetch_pull_request_source")
+    def test_fetches_and_builds_one_snapshot(self, fetch_source) -> None:
+        fetch_source.return_value = normalize_pull_request_source(
+            representative_raw()
+        )
 
         snapshot = fetch_routing_snapshot("open-telemetry/example", 7)
 
         self.assertEqual("PR_node", snapshot.node_id)
-        fetch_raw.assert_called_once_with(
+        fetch_source.assert_called_once_with(
             "open-telemetry/example",
             "open-telemetry",
             "example",
             7,
+            include_commits=False,
         )
 
 

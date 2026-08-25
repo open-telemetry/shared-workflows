@@ -23,6 +23,7 @@ from dashboard_test_support import (
     stored_dashboard_result,
 )
 from routing_snapshot import build_routing_snapshot
+from pull_request_source import normalize_pull_request_source
 from utils import format_ts
 
 
@@ -40,7 +41,10 @@ def routing_snapshot(raw: dict | None = None, **changes):
                 "headRefOid": "current-head",
             },
         }
-    return replace(build_routing_snapshot(raw), **changes)
+    return replace(
+        build_routing_snapshot(normalize_pull_request_source(raw)),
+        **changes,
+    )
 
 
 def review_result(route: str = "approver", **fact_changes):
@@ -577,7 +581,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
                 "copilot_request_fingerprint": build_routing_snapshot(
-                    observed_raw
+                    normalize_pull_request_source(observed_raw)
                 ).copilot_request_fingerprint,
             }
         }
@@ -591,7 +595,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             ) as save_requests,
             patch(
                 "copilot_review_delivery.fetch_routing_snapshot",
-                return_value=build_routing_snapshot(delivery_raw),
+                return_value=build_routing_snapshot(
+                    normalize_pull_request_source(delivery_raw)
+                ),
             ),
             patch("copilot_review_delivery.fetch_pr_reviews", return_value=[]),
             patch(
@@ -616,7 +622,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                     "observed_at": "2026-07-20T01:00:00+00:00",
                     "requested_at": format_ts(NOW),
                     "copilot_request_fingerprint": build_routing_snapshot(
-                        observed_raw
+                        normalize_pull_request_source(observed_raw)
                     ).copilot_request_fingerprint,
                 }
             }
@@ -645,7 +651,7 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
                 "observed_at": "2026-07-20T01:00:00+00:00",
                 "requested_at": "",
                 "copilot_request_fingerprint": build_routing_snapshot(
-                    clean_raw
+                    normalize_pull_request_source(clean_raw)
                 ).copilot_request_fingerprint,
             }
         }
@@ -659,7 +665,9 @@ class CopilotReviewRequestStateTest(unittest.TestCase):
             ) as save_requests,
             patch(
                 "copilot_review_delivery.fetch_routing_snapshot",
-                return_value=build_routing_snapshot(conflicted_raw),
+                return_value=build_routing_snapshot(
+                    normalize_pull_request_source(conflicted_raw)
+                ),
             ),
             patch("copilot_review_delivery.fetch_pr_reviews") as fetch_reviews,
             patch(

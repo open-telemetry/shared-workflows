@@ -32,6 +32,7 @@ from reviewer_state import (
 )
 from routing_decision import RoutingInput, resolve_routing
 from pull_request_activity import ActivityInput, build_activity_timeline
+from pull_request_source import normalize_pull_request_source
 
 
 ROOT_TIMESTAMP = "2026-07-14T01:00:00Z"
@@ -103,12 +104,13 @@ def top_level_items_from_raw(
 ) -> list[dict]:
     activity = build_activity_timeline(
         ActivityInput(
-            {
+            normalize_pull_request_source({
+                "pr": {},
                 "commits": [],
                 "issue_comments": raw.get("issue_comments") or [],
                 "review_comments": [],
                 "reviews": raw.get("reviews") or [],
-            },
+            }),
             "author",
             frozenset({"reviewer"}),
         )
@@ -1254,12 +1256,13 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         activity = build_activity_timeline(
             ActivityInput(
-                {
+                normalize_pull_request_source({
+                    "pr": {},
                     "commits": [],
                     "issue_comments": raw["issue_comments"],
                     "review_comments": [],
                     "reviews": raw["reviews"],
-                },
+                }),
                 "author",
                 frozenset({"reviewer"}),
             )

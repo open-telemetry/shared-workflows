@@ -337,7 +337,7 @@ def build_dashboard_update_for_pr(
             ),
         ),
         PullRequestEvaluationInput(
-            pr_summary={"number": pr_number},
+            pr_number=pr_number,
             previous_result=prepared_update.starting_result,
         ),
     )
