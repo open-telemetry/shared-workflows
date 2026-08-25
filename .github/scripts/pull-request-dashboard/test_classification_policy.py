@@ -519,6 +519,14 @@ class PreparationAndResolutionTest(unittest.TestCase):
             }),
         )
 
+        self.assertIs(
+            request.feedback_ids_for("reply-1"),
+            request.feedback_ids_for("reply-1"),
+        )
+        self.assertEqual(
+            request.feedback_ids_for("reply-1"),
+            {"f0001": "feedback-1"},
+        )
         result = resolve_author_comment_response(request, response)[0]
 
         self.assertIsInstance(result, ClassificationSuccess)

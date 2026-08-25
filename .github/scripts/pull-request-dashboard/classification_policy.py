@@ -6,8 +6,9 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from enum import Enum
+from types import MappingProxyType
 from typing import Any
 
 from utils import truncate
@@ -559,23 +560,37 @@ class AuthorCommentModelRequest:
     discussions: tuple[ClassificationDiscussion, ...]
     prompt: str
     feedback_ids: tuple[tuple[str, tuple[tuple[str, str], ...]], ...]
+    _feedback_ids_by_discussion: Mapping[str, Mapping[str, str]] = field(
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "discussions", tuple(self.discussions))
+        normalized_feedback_ids = tuple(
+            (discussion_id, tuple(items))
+            for discussion_id, items in self.feedback_ids
+        )
         object.__setattr__(
             self,
             "feedback_ids",
-            tuple(
-                (discussion_id, tuple(items))
-                for discussion_id, items in self.feedback_ids
-            ),
+            normalized_feedback_ids,
+        )
+        feedback_ids_by_discussion: dict[str, Mapping[str, str]] = {}
+        for discussion_id, items in normalized_feedback_ids:
+            feedback_ids_by_discussion.setdefault(
+                discussion_id,
+                MappingProxyType(dict(items)),
+            )
+        object.__setattr__(
+            self,
+            "_feedback_ids_by_discussion",
+            MappingProxyType(feedback_ids_by_discussion),
         )
 
-    def feedback_ids_for(self, discussion_id: str) -> dict[str, str]:
-        for candidate_id, items in self.feedback_ids:
-            if candidate_id == discussion_id:
-                return dict(items)
-        return {}
+    def feedback_ids_for(self, discussion_id: str) -> Mapping[str, str]:
+        return self._feedback_ids_by_discussion.get(discussion_id, {})
 
 
 @dataclass(frozen=True)
