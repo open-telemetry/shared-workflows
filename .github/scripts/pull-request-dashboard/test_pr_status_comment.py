@@ -154,9 +154,10 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
     def test_clearance_recovery_prefers_the_latest_marker_for_a_command(self) -> None:
-        def status_comment(head: str) -> dict[str, object]:
+        def status_comment(head: str, updated_at: str) -> dict[str, object]:
             return {
                 "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                "updated_at": updated_at,
                 "body": (
                     f"{pr_status_comment.STATUS_MARKER}\n"
                     "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
@@ -167,8 +168,8 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertEqual(
             (12, "current-head"),
             status_reviewer_handoff_clearance([
-                status_comment("old-head"),
-                status_comment("current-head"),
+                status_comment("current-head", "2026-08-25T09:00:00Z"),
+                status_comment("old-head", "2026-08-25T08:00:00Z"),
             ]),
         )
 

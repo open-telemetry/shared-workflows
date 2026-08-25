@@ -6,6 +6,8 @@ import re
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+from utils import parse_ts
+
 if TYPE_CHECKING:
     from pull_request_source import IssueComment
 
@@ -71,19 +73,40 @@ def status_author_nudge_episode_id(
 def status_reviewer_handoff_clearance(
     comments: Sequence[dict[str, Any] | IssueComment] | None,
 ) -> tuple[int, str]:
-    best_id = 0
+    best_key = (0, float("-inf"), -1)
     best_head = ""
-    for comment in comments or []:
+    for position, comment in enumerate(comments or []):
         if isinstance(comment, dict):
             body = comment.get("body") or ""
             from_dashboard_app = is_dashboard_app_comment(comment)
+            updated_at = (
+                comment.get("content_updated_at")
+                or comment.get("updated_at")
+                or comment.get("lastEditedAt")
+                or comment.get("updatedAt")
+                or comment.get("created_at")
+                or comment.get("createdAt")
+                or ""
+            )
         else:
             body = comment.body
             from_dashboard_app = comment.is_from_app(DASHBOARD_APP_SLUG)
+            updated_at = (
+                comment.content_updated_at
+                or comment.updated_at
+                or comment.created_at
+            )
         if STATUS_MARKER not in body or not from_dashboard_app:
             continue
         for match in _REVIEWER_HANDOFF_CLEARED_MARKER_RE.finditer(body):
             command_id = int(match.group(1))
-            if command_id >= best_id:
-                best_id, best_head = command_id, match.group(2)
-    return best_id, best_head
+            parsed_updated_at = parse_ts(str(updated_at))
+            timestamp = (
+                parsed_updated_at.timestamp()
+                if parsed_updated_at is not None
+                else float("-inf")
+            )
+            key = (command_id, timestamp, position)
+            if key >= best_key:
+                best_key, best_head = key, match.group(2)
+    return best_key[0], best_head
