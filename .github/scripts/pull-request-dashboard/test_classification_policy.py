@@ -281,6 +281,28 @@ class PreparationAndResolutionTest(unittest.TestCase):
         )
         self.assertIn("feedback_key is not a string: 42", errors[1])
 
+    def test_invalid_feedback_key_diagnostics_are_sorted(self) -> None:
+        _decision, errors = parse_author_comment_decision(
+            json.dumps({
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": "unknown",
+                        "discussion_action": "none",
+                    }
+                ]
+            }),
+            {
+                "f0002": "feedback-2",
+                "f0001": "feedback-1",
+            },
+        )
+
+        self.assertIn("expected keys ['f0001', 'f0002']", errors[0])
+        self.assertIn(
+            "canonical candidate IDs ['feedback-1', 'feedback-2']",
+            errors[0],
+        )
+
     def test_long_reviewer_comment_needs_no_model_request(self) -> None:
         thread = discussion(
             "thread-1",
