@@ -16,7 +16,6 @@ from github_cli import (
     merge_code_scanning_checks,
     required_check_contexts,
     required_code_scanning_checks,
-    settled_check_suite_app_ids,
     unreported_required_contexts,
 )
 from utils import is_copilot_reviewer_login
@@ -135,7 +134,6 @@ def _integer(value: Any) -> int:
 class Actor:
     login: str = ""
     kind: str = ""
-    app_slug: str = ""
 
     @property
     def reviewer_login(self) -> str:
@@ -429,15 +427,10 @@ def normalize_actor(value: Any) -> Actor:
         return Actor(login=value.strip())
     actor = _mapping(value)
     kind = _text(actor.get("__typename") or actor.get("type"))
-    app = _mapping(actor.get("performed_via_github_app"))
     login = _text(actor.get("login") or actor.get("slug"))
     if kind.lower() == "bot" and login and not login.endswith("[bot]"):
         login = f"{login}[bot]"
-    return Actor(
-        login=login,
-        kind=kind,
-        app_slug=_text(app.get("slug") or actor.get("app_slug")),
-    )
+    return Actor(login=login, kind=kind)
 
 
 def normalize_pull_request(

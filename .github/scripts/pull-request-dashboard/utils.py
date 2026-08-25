@@ -79,16 +79,6 @@ def is_copilot_reviewer_login(login: str) -> bool:
     return (login or "").strip().lower() in COPILOT_REVIEWER_LOGINS
 
 
-def compute_conflicts(pr: dict[str, Any]) -> str:
-    merge_state = pr.get("mergeStateStatus")
-    mergeable = pr.get("mergeable")
-    if mergeable == "CONFLICTING" or merge_state == "DIRTY":
-        return "yes"
-    if mergeable in (None, "", "UNKNOWN"):
-        return "unknown"
-    return "no"
-
-
 def required_checks_settled(facts: DashboardFacts) -> bool:
     # A route computed while checks are still running is provisional because a
     # failure becomes visible only after the check completes.
