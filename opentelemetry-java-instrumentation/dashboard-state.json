@@ -1753,17 +1753,19 @@
         "assignees": [],
         "author": "DhroovP",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526#issuecomment-5375110759"
+        ],
         "author_nudge_episode_id": "32f30f20b9d3447aabb761d3bee8ca9a",
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1fedbe2993a41018552a95a535457bb51b61b6e26ec0002fdf3f1994d8737564",
+        "copilot_request_fingerprint": "bdbcc72cfc627b7eabd6dec066c4b5dfdab89c087aa4e99964eceaf7697560cf",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
-        "copilot_review_request_needed": true,
-        "copilot_review_requested": false,
+        "copilot_review_request_needed": false,
+        "copilot_review_requested": true,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
         "created_at": "2026-08-12T04:20:43+00:00",
@@ -1795,15 +1797,15 @@
             "login": "trask",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "route_held_since": "2026-08-25T14:42:35.095894+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "18bc4bc2eb5ecca391b500c33fec4593b032504e56d8400917a84890a051d7ce",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-25T13:48:08+00:00"
+        "routing_input_fingerprint": "8eeca88a22b2d7568fe0c88b9722df2526680fddda7ed62c79b4a3f1da459f7e",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-21T20:40:01+00:00"
       },
       "failed": false,
       "pr_number": 19526,
@@ -1815,12 +1817,6 @@
             "reply": "2026-08-21T19:55:50Z"
           },
           "reply_source_id": 5374673303
-        },
-        "pr-issue-comment-5375110759": {
-          "evidence": {
-            "reply": "2026-08-22T00:36:24Z"
-          },
-          "reply_source_id": 5376811463
         }
       }
     },
