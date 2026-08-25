@@ -9,6 +9,7 @@ from github_cli import TransientGhError
 from pull_request_evaluation import (
     PullRequestEvaluationConfig,
     PullRequestEvaluationInput,
+    _handoff_feedback_routes_to_author,
     evaluate_pull_request,
 )
 
@@ -61,6 +62,18 @@ def raw_pr(
 
 
 class PullRequestEvaluationContractTest(unittest.TestCase):
+    def test_handoff_feedback_routes_to_author_only_after_successful_feedback(
+        self,
+    ) -> None:
+        author = {"failed": False, "decision": {"discussion_action": "author"}}
+        reviewer = {"failed": False, "decision": {"discussion_action": "reviewer"}}
+        failed = {"failed": True, "decision": {"discussion_action": "author"}}
+
+        self.assertFalse(_handoff_feedback_routes_to_author([]))
+        self.assertFalse(_handoff_feedback_routes_to_author([reviewer]))
+        self.assertFalse(_handoff_feedback_routes_to_author([author, failed]))
+        self.assertTrue(_handoff_feedback_routes_to_author([reviewer, author]))
+
     def test_inputs_are_frozen(self) -> None:
         config = evaluation_config()
         source = PullRequestEvaluationInput({"number": 7})

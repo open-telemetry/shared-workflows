@@ -318,6 +318,25 @@ def _classify_discussions(
     )
 
 
+def _handoff_feedback_routes_to_author(
+    feedback_classifications: list[dict[str, Any]],
+) -> bool:
+    return bool(
+        feedback_classifications
+        and not any(
+            classification.get("failed")
+            for classification in feedback_classifications
+        )
+        and any(
+            normalize_discussion_action(
+                (classification.get("decision") or {}).get("discussion_action") or ""
+            )
+            == "author"
+            for classification in feedback_classifications
+        )
+    )
+
+
 def evaluate_pull_request(
     config: PullRequestEvaluationConfig,
     source: PullRequestEvaluationInput,
@@ -385,22 +404,8 @@ def evaluate_pull_request(
                 if has_handoff_feedback
                 else []
             )
-            feedback_routes_to_author = bool(
+            feedback_routes_to_author = _handoff_feedback_routes_to_author(
                 feedback_classifications
-                and not any(
-                    classification.get("failed")
-                    for classification in feedback_classifications
-                )
-                and any(
-                    normalize_discussion_action(
-                        (classification.get("decision") or {}).get(
-                            "discussion_action"
-                        )
-                        or ""
-                    )
-                    == "author"
-                    for classification in feedback_classifications
-                )
             )
             if feedback_routes_to_author:
                 facts["dashboard_override_cleared_by_feedback"] = True
