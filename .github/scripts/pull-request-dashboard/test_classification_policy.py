@@ -212,6 +212,39 @@ class PromptCompatibilityTest(unittest.TestCase):
                 max_prompt_chars=1,
             )
 
+    def test_author_comment_request_planning_reuses_rendered_requests(
+        self,
+    ) -> None:
+        discussions = [
+            replace(
+                self.reply,
+                identity=DiscussionIdentity(
+                    f"reply-{index}",
+                    DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                ),
+            )
+            for index in range(3)
+        ]
+
+        with (
+            patch(
+                "classification_policy._author_comment_candidate_chunks",
+                side_effect=lambda item, **_kwargs: [item],
+            ),
+            patch(
+                "classification_policy.make_author_comment_request",
+                wraps=make_author_comment_request,
+            ) as make_request,
+        ):
+            requests = prepare_author_comment_requests(
+                discussions,
+                batch_size=2,
+                max_prompt_chars=100_000,
+            )
+
+        self.assertEqual(len(requests), 2)
+        self.assertEqual(make_request.call_count, 3)
+
 
 class ResultProjectionCompatibilityTest(unittest.TestCase):
     identity = DiscussionIdentity(

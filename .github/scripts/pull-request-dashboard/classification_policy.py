@@ -920,52 +920,55 @@ def prepare_author_comment_requests(
             max_prompt_chars=max_prompt_chars,
         )
     ]
+    if not chunks:
+        return ()
+
     requests: list[AuthorCommentModelRequest] = []
-    current: list[ClassificationDiscussion] = []
-    for chunk in chunks:
+    current = [chunks[0]]
+    current_request = make_author_comment_request(
+        current,
+        max_prompt_chars=max_prompt_chars,
+    )
+    if len(current_request.prompt) > max_prompt_chars:
+        raise ValueError(
+            "author-comment prompt exceeds "
+            f"max_prompt_chars={max_prompt_chars}"
+        )
+
+    for chunk in chunks[1:]:
         trial = [*current, chunk]
         duplicate_id = any(
             item.identity.discussion_id == chunk.identity.discussion_id
             for item in current
         )
-        prompt = make_author_comment_request(
-            trial,
-            max_prompt_chars=max_prompt_chars,
-        ).prompt
-        if current and (
-            len(current) >= batch_size
-            or duplicate_id
-            or len(prompt) > max_prompt_chars
-        ):
-            requests.append(
-                make_author_comment_request(
-                    current,
-                    max_prompt_chars=max_prompt_chars,
-                )
-            )
+        if len(current) >= batch_size or duplicate_id:
+            requests.append(current_request)
             current = [chunk]
-        else:
-            current = trial
-        if (
-            len(
-                make_author_comment_request(
-                    current,
-                    max_prompt_chars=max_prompt_chars,
-                ).prompt
+            current_request = make_author_comment_request(
+                current,
+                max_prompt_chars=max_prompt_chars,
             )
-            > max_prompt_chars
-        ):
+        else:
+            trial_request = make_author_comment_request(
+                trial,
+                max_prompt_chars=max_prompt_chars,
+            )
+            if len(trial_request.prompt) <= max_prompt_chars:
+                current = trial
+                current_request = trial_request
+                continue
+            requests.append(current_request)
+            current = [chunk]
+            current_request = make_author_comment_request(
+                current,
+                max_prompt_chars=max_prompt_chars,
+            )
+        if len(current_request.prompt) > max_prompt_chars:
             raise ValueError(
                 "author-comment prompt exceeds "
                 f"max_prompt_chars={max_prompt_chars}"
             )
-    if current:
-        requests.append(
-            make_author_comment_request(
-                current,
-                max_prompt_chars=max_prompt_chars,
-            )
-        )
+    requests.append(current_request)
     return tuple(requests)
 
 
