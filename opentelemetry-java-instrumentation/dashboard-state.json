@@ -2776,7 +2776,7 @@
     },
     "19788": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2785,7 +2785,7 @@
         "ci_failing_since": "2026-08-25T07:56:58+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6197cbf71cc5b0a4bb1955862b86bddf2c4a65d083b2a28274bee7edb299ce29",
+        "copilot_request_fingerprint": "6a7900b0dafa1f83bd20cac478fbd8b4a138d0f6f43944ecadb1a27c5cd98519",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2801,21 +2801,31 @@
         "head_sha": "93550d35dc782149b435954a59a113545c259a7c",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-25T05:44:07+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T08:01:23+00:00",
+        "last_approver_activity_at": "2026-08-25T08:01:23+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "25639af7db1e82c298dba7339ebabc3c7941805e88954a62bdfeb2fd0b57333d",
+        "routing_input_fingerprint": "6102e0df8587e915ec1b50075fbcfe45d7956b340dcc55f2ac608623efe4cc65",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-25T00:52:01+00:00"
       },
       "failed": false,
       "pr_number": 19788,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19788",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19793": {
