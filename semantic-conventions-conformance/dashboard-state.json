@@ -56,7 +56,7 @@
     },
     "104": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -64,7 +64,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4a2285ddd4cc0c115b77fce3845b5cddb8eab074e2cd1e95737917e67815493d",
+        "copilot_request_fingerprint": "2101a776bb62ed7da660793ee5132ccd18a06ebce6285bcbb58459f50d6f0a48",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -80,21 +80,31 @@
         "head_sha": "68362f0dbf395ee2d8789822e9a79cc3b7cb2713",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-25T03:32:17+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T03:52:17+00:00",
+        "last_approver_activity_at": "2026-08-25T03:52:17+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "40d86fd12ed7f81fc00bd91fbbfb2c47a1939f83254ab1fab8b165ad18f65607",
+        "routing_input_fingerprint": "5df6ef9a540e32475c980cc04e38739a3a028e48b40ffda8f7b73c0329060b26",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-25T03:32:17+00:00"
       },
       "failed": false,
       "pr_number": 104,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/104",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "40": {
