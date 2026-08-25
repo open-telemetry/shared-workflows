@@ -4901,7 +4901,7 @@
     },
     "11424": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "opentelemetrybot",
         "author_action_review_thread_urls": [],
@@ -4909,7 +4909,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6a29beb8a0ca9b60756c2851dc88a8e68f54beb732da96aeb071ee7027bb1981",
+        "copilot_request_fingerprint": "a5254d00e2bf6232ab73adce7419f6e9a1d5f458f38baf0f5a05dd89263cd83f",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4925,21 +4925,31 @@
         "head_sha": "e46b2799fca19d7a9b0ed23732ebade4d3468135",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-25T01:07:36+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T07:10:30+00:00",
+        "last_approver_activity_at": "2026-08-25T07:10:30+00:00",
         "last_author_activity_at": "2026-08-25T00:42:47+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "svrnm",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6d4811c09dcc038fecd3e118e545c9e93754dcc9604782a1801296f7f1172648",
+        "routing_input_fingerprint": "c298da65c85f23751db6ec3eebe199d5723d618a23156249855f6c35f2d723a0",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-25T00:42:47+00:00"
       },
       "failed": false,
       "pr_number": 11424,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11424",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11426": {
