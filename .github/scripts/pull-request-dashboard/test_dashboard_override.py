@@ -105,7 +105,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (4, "Approver"),
+            (4, "Approver", "2026-08-16T07:00:00Z"),
             dashboard_override.latest_authorized_command(
                 source, "author", {"approver"}
             ),
@@ -125,7 +125,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (0, ""),
+            (0, "", ""),
             dashboard_override.latest_authorized_command(source, "author", set()),
         )
 
@@ -144,7 +144,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (0, ""),
+            (0, "", ""),
             dashboard_override.latest_authorized_command(
                 source, "author", {"new-approver"}
             ),
@@ -947,7 +947,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (0, ""),
+            (0, "", ""),
             dashboard_override.latest_authorized_command(source, "author", set()),
         )
 

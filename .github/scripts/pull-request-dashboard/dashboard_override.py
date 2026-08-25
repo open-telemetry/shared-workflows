@@ -111,12 +111,13 @@ def latest_authorized_command(
     source: DashboardOverrideInput,
     author: str,
     reviewers: set[str] | None,
-) -> tuple[int, str]:
+) -> tuple[int, str, str]:
     comments = source.issue_comments
     acknowledged_id = _acknowledged_override_command_id(comments)
     replied_ids = _replied_command_ids(comments)
     best_id = 0
     best_user = ""
+    best_created_at = ""
     for comment in comments:
         if parse_dashboard_command(comment) != DASHBOARD_OVERRIDE_SUBCOMMAND:
             continue
@@ -127,8 +128,10 @@ def latest_authorized_command(
         if comment_id <= acknowledged_id or comment_id in replied_ids:
             continue
         if comment_id > best_id:
-            best_id, best_user = comment_id, commenter
-    return best_id, best_user
+            best_id = comment_id
+            best_user = commenter
+            best_created_at = comment.created_at
+    return best_id, best_user, best_created_at
 
 
 def dashboard_override_facts(
@@ -138,7 +141,7 @@ def dashboard_override_facts(
     head_sha: str = "",
     previous_facts: DashboardFacts | None = None,
 ) -> DashboardOverrideFacts:
-    command_id, command_user = latest_authorized_command(
+    command_id, command_user, command_created_at = latest_authorized_command(
         source,
         author,
         reviewers,
@@ -189,7 +192,8 @@ def dashboard_override_facts(
         and bound_head == previous_head_sha
     )
     override_since = (
-        _override_command_created_at(source.issue_comments, bound_command_id)
+        command_created_at
+        or _override_command_created_at(source.issue_comments, bound_command_id)
         or (previous_since if previous_binding_matches else "")
         or acknowledged_since
         or acknowledgement_created_at
