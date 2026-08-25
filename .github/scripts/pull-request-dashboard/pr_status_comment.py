@@ -318,13 +318,14 @@ def render_status_comment(
         "",
         f"**{headline}** \u00b7 refreshed {last_updated}",
     ]
+    optional_markers: list[str] = []
     episode_id = facts.author_nudge_episode_id or ""
     if (
         result is not None
         and result.route is DashboardRoute.AUTHOR
         and episode_id
     ):
-        lines.insert(2, author_nudge_episode_marker(episode_id))
+        optional_markers.append(author_nudge_episode_marker(episode_id))
     bound_command_id = facts.dashboard_override_bound_command_id
     bound_head = facts.dashboard_override_head_sha
     if (
@@ -332,10 +333,10 @@ def render_status_comment(
         and bound_command_id
         and bound_head
     ):
-        lines.insert(
-            2,
+        optional_markers.append(
             reviewer_handoff_cleared_marker(bound_command_id, bound_head),
         )
+    lines[2:2] = optional_markers
 
     if body:
         lines.append("")

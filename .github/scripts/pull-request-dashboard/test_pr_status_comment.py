@@ -153,6 +153,35 @@ class RenderStatusCommentTest(unittest.TestCase):
             ]),
         )
 
+    def test_optional_status_markers_have_stable_order(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.AUTHOR,
+                author_nudge_episode_id="abc123",
+                dashboard_override_bound_command_id=12,
+                dashboard_override_head_sha="abcdef123456",
+                dashboard_override_cleared_by_feedback=True,
+            ),
+        )
+
+        self.assertEqual(
+            [
+                pr_status_comment.STATUS_MARKER,
+                (
+                    "<!-- pull-request-dashboard-status-revision:"
+                    f"{pr_status_comment.STATUS_COMMENT_REVISION} -->"
+                ),
+                pr_status_comment.author_nudge_episode_marker("abc123"),
+                (
+                    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                    "12:abcdef123456 -->"
+                ),
+                "## Pull request dashboard status",
+            ],
+            body.splitlines()[:5],
+        )
+
     def test_clearance_recovery_prefers_the_latest_marker_for_a_command(self) -> None:
         def status_comment(head: str, updated_at: str) -> dict[str, object]:
             return {
