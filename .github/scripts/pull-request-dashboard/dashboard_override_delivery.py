@@ -8,7 +8,10 @@ from pull_request_source import normalize_issue_comments
 from state import load_dashboard_state_cache
 
 
-def deliver_dashboard_command_replies(repo: str) -> list[str]:
+def deliver_dashboard_command_replies(
+    repo: str,
+    failed_pr_numbers: set[int] | None = None,
+) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
         return []
@@ -25,6 +28,8 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
             ))
         except Exception as error:
             errors.append(f"PR #{pr_number}: {error}")
+            if failed_pr_numbers is not None:
+                failed_pr_numbers.add(pr_number)
             continue
         for reply in replies:
             try:
@@ -44,4 +49,6 @@ def deliver_dashboard_command_replies(repo: str) -> list[str]:
                 ])
             except Exception as error:
                 errors.append(f"PR #{pr_number}: {error}")
+                if failed_pr_numbers is not None:
+                    failed_pr_numbers.add(pr_number)
     return errors

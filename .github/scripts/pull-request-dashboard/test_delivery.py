@@ -75,6 +75,58 @@ class DeliveryTest(unittest.TestCase):
             ANY,
         )
 
+    def test_command_reply_failure_preserves_affected_status_comment(self) -> None:
+        def fail_reply(_repo: str, failed_pr_numbers: set[int]) -> list[str]:
+            failed_pr_numbers.add(7)
+            return ["PR #7: acknowledgement failed"]
+
+        with (
+            patch.object(
+                delivery,
+                "list_open_prs",
+                return_value=[
+                    {"number": 7, "isDraft": False, "title": "Seven"},
+                    {"number": 8, "isDraft": False, "title": "Eight"},
+                ],
+            ),
+            patch.object(
+                delivery,
+                "deliver_dashboard_command_replies",
+                side_effect=fail_reply,
+            ),
+            patch.object(
+                delivery,
+                "deliver_prepared_author_nudges",
+                return_value=[],
+            ),
+            patch.object(
+                delivery,
+                "update_status_comments_from_state",
+                return_value=[],
+            ) as status_comments,
+            patch.object(
+                delivery,
+                "deliver_copilot_review_requests",
+                return_value=[],
+            ),
+            patch.object(delivery, "notify_slack_from_state", return_value=[]),
+        ):
+            errors = delivery.deliver_from_state(
+                "open-telemetry/example",
+                Path("author"),
+                Path("copilot"),
+                Path("slack"),
+            )
+
+        self.assertEqual(
+            ["dashboard command replies: PR #7: acknowledgement failed"],
+            errors,
+        )
+        status_comments.assert_called_once_with(
+            "open-telemetry/example",
+            {8},
+        )
+
     @patch.object(delivery, "notify_slack_from_state", return_value=[])
     @patch.object(delivery, "deliver_copilot_review_requests", return_value=[])
     @patch.object(delivery, "deliver_prepared_author_nudges", return_value=[])

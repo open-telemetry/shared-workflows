@@ -831,6 +831,43 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual([], errors)
         run_gh.assert_not_called()
 
+    @patch.object(dashboard_override_delivery, "run_gh")
+    @patch.object(
+        dashboard_override_delivery,
+        "gh_api",
+        side_effect=RuntimeError("comments unavailable"),
+    )
+    @patch.object(
+        dashboard_override_delivery,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(stored_dashboard_result(
+            5,
+            facts=dashboard_facts(dashboard_command_replies=(
+                DashboardCommandReply(
+                    2,
+                    "unauthorized",
+                    "outsider",
+                    "route:reviewers",
+                ),
+            )),
+        )),
+    )
+    def test_delivery_reports_prs_with_failed_command_replies(
+        self,
+        _load_state,
+        _gh_api,
+        _run_gh,
+    ) -> None:
+        failed_pr_numbers: set[int] = set()
+
+        errors = dashboard_override_delivery.deliver_dashboard_command_replies(
+            "open-telemetry/example",
+            failed_pr_numbers,
+        )
+
+        self.assertEqual(["PR #5: comments unavailable"], errors)
+        self.assertEqual({5}, failed_pr_numbers)
+
     def test_command_stays_pending_until_app_acknowledges_it(self) -> None:
         source = override_input(
             issue_comment(

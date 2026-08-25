@@ -71,11 +71,21 @@ def deliver_from_state(
     except Exception as e:
         errors.append(f"open pull requests: {e}")
         open_prs = None
+    failed_command_reply_prs: set[int] = set()
+    reply_error_count = len(errors)
     run_delivery_action(
         "dashboard command replies",
-        lambda: deliver_dashboard_command_replies(repo),
+        lambda: deliver_dashboard_command_replies(
+            repo,
+            failed_command_reply_prs,
+        ),
         errors,
     )
+    if len(errors) > reply_error_count and not failed_command_reply_prs:
+        if pr_number is not None:
+            failed_command_reply_prs.add(pr_number)
+        elif open_prs is not None:
+            failed_command_reply_prs.update(pr["number"] for pr in open_prs)
     run_delivery_action(
         "author nudges",
         lambda: deliver_prepared_author_nudges(
@@ -85,21 +95,25 @@ def deliver_from_state(
         ),
         errors,
     )
-    if pr_number is not None:
+    if pr_number is not None and pr_number not in failed_command_reply_prs:
         run_delivery_action(
             "status comments",
             lambda: update_targeted_status_comment_from_state(repo, pr_number),
             errors,
         )
     elif open_prs is not None:
-        run_delivery_action(
-            "status comments",
-            lambda: update_status_comments_from_state(
-                repo,
-                {pr["number"] for pr in open_prs},
-            ),
-            errors,
-        )
+        status_pr_numbers = {
+            pr["number"] for pr in open_prs
+        } - failed_command_reply_prs
+        if status_pr_numbers:
+            run_delivery_action(
+                "status comments",
+                lambda: update_status_comments_from_state(
+                    repo,
+                    status_pr_numbers,
+                ),
+                errors,
+            )
     run_delivery_action(
         "Copilot reviews",
         lambda: deliver_copilot_review_requests(repo, now, copilot_retry_snapshot_path),
