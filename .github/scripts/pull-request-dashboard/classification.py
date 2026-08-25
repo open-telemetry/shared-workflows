@@ -348,56 +348,28 @@ def _run_classification_batch(
     author_comment: bool,
 ) -> tuple[ClassificationResult, ...]:
     if author_comment:
-        raw_discussions = [
-            _discussion_record(discussion) for discussion in discussions
-        ]
-        return tuple(
-            run_llm_for_top_level_author_comment_batch(
-                raw_discussions,
-                model,
-            )
+        partial_results: dict[str, list[ClassificationResult]] = {
+            discussion.identity.discussion_id: []
+            for discussion in discussions
+        }
+        for request in prepare_author_comment_requests(
+            discussions,
+            batch_size=TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
+            max_prompt_chars=MAX_PROMPT_CHARS,
+        ):
+            for result in _run_author_comment_request(request, model):
+                partial_results[result.identity.discussion_id].append(result)
+        return combine_author_comment_results(
+            discussions,
+            partial_results,
         )
     if contract is None:
         raise ValueError("classification requires a verdict contract")
     return tuple(
         result
         for request in verdict_prompt_batches(discussions, contract)
-        for result in run_llm_for_verdict_batch(
-            [
-                _discussion_record(discussion)
-                for discussion in request.discussions
-            ],
-            model,
-            request.prompt,
-            tuple(verdict.value for verdict in contract.verdicts),
-        )
+        for result in _run_verdict_request(request, model)
     )
-
-
-def _discussion_record(
-    discussion: ClassificationDiscussion,
-) -> dict[str, Any]:
-    return {
-        "discussion_id": discussion.identity.discussion_id,
-        "discussion_kind": discussion.identity.kind.value,
-        "requester": discussion.requester,
-        "pr_author": discussion.pr_author,
-        "comments": [
-            {
-                "timestamp": comment.timestamp,
-                "actor_role": comment.actor_role,
-                "body": comment.body,
-            }
-            for comment in discussion.comments
-        ],
-        "candidate_feedback": [
-            {
-                "discussion_id": feedback.discussion_id,
-                "body": feedback.body,
-            }
-            for feedback in discussion.candidate_feedback
-        ],
-    }
 
 
 def _classify_items(
