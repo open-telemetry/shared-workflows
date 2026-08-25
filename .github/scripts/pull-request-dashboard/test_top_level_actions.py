@@ -1121,7 +1121,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
 
     @patch("classification.MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR", 2)
-    @patch("classification.prepare_author_comment_requests")
+    @patch("classification.author_comment_prompt_batches")
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
     @patch("classification._run_author_comment_request")
@@ -1132,7 +1132,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         _save_cache,
         prompt_batches,
     ) -> None:
-        prompt_batches.side_effect = lambda discussions, **_kwargs: tuple(
+        prompt_batches.side_effect = lambda discussions: tuple(
             AuthorCommentModelRequest((discussion,), "", ())
             for discussion in discussions
         )
@@ -1164,6 +1164,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ],
             ["author-reply-0", "author-reply-1"],
         )
+        prompt_batches.assert_called_once()
+        self.assertEqual(len(prompt_batches.call_args.args[0]), 3)
         self.assertFalse(classifications[0].deferred)
         self.assertFalse(classifications[1].deferred)
         self.assertTrue(classifications[2].deferred)

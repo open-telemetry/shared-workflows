@@ -372,6 +372,59 @@ def _run_classification_batch(
     )
 
 
+def _classification_limit_result(
+    discussion: ClassificationDiscussion,
+    contract: VerdictContract | None,
+    *,
+    author_comment: bool,
+    deferrable: bool,
+) -> ClassificationResult:
+    reason = (
+        "Deferred by per-PR classification limit"
+        if deferrable
+        else "Exceeded per-PR classification limit"
+    )
+    decision = _fallback_decision(
+        reason,
+        contract,
+        author_comment=author_comment,
+    )
+    if deferrable:
+        return ClassificationDeferred(discussion.identity, decision)
+    return ClassificationFailure(
+        discussion.identity,
+        decision,
+        ClassificationDiagnostics(error=reason),
+    )
+
+
+def _author_comment_budget_size(
+    uncached: list[tuple[ClassificationDiscussion, str]],
+) -> int:
+    discussions = tuple(discussion for discussion, _key in uncached)
+    try:
+        requests = author_comment_prompt_batches(discussions)
+    except ValueError:
+        return len(uncached)
+    if len(requests) <= MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR:
+        return len(uncached)
+    overflow_ids = {
+        discussion.identity.discussion_id
+        for request in requests[
+            MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR:
+        ]
+        for discussion in request.discussions
+    }
+    return next(
+        (
+            index
+            for index, (discussion, _key) in enumerate(uncached)
+            if discussion.identity.discussion_id in overflow_ids
+        ),
+        len(uncached),
+    )
+
+
 def _classify_items(
     number: int,
     discussions: tuple[ClassificationDiscussion, ...],
@@ -398,45 +451,30 @@ def _classify_items(
         if cached is not None:
             classifications_by_id[discussion.identity.discussion_id] = cached
             continue
-        trial_discussions = tuple(
-            item for item, _key in uncached
-        ) + (discussion,)
-        try:
-            fits_budget = (
-                not author_comment
-                or len(author_comment_prompt_batches(trial_discussions))
-                <= MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR
-            )
-        except ValueError:
-            fits_budget = True
-        if (
-            len(uncached) < MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR
-            and fits_budget
-        ):
+        if len(uncached) < MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR:
             uncached.append((discussion, key))
             continue
-        reason = (
-            "Deferred by per-PR classification limit"
-            if deferrable
-            else "Exceeded per-PR classification limit"
-        )
-        decision = _fallback_decision(
-            reason,
-            contract,
-            author_comment=author_comment,
-        )
-        if deferrable:
-            result: ClassificationResult = ClassificationDeferred(
-                discussion.identity,
-                decision,
+        classifications_by_id[discussion.identity.discussion_id] = (
+            _classification_limit_result(
+                discussion,
+                contract,
+                author_comment=author_comment,
+                deferrable=deferrable,
             )
-        else:
-            result = ClassificationFailure(
-                discussion.identity,
-                decision,
-                ClassificationDiagnostics(error=reason),
+        )
+
+    if author_comment:
+        budget_size = _author_comment_budget_size(uncached)
+        for discussion, _key in uncached[budget_size:]:
+            classifications_by_id[discussion.identity.discussion_id] = (
+                _classification_limit_result(
+                    discussion,
+                    contract,
+                    author_comment=True,
+                    deferrable=deferrable,
+                )
             )
-        classifications_by_id[discussion.identity.discussion_id] = result
+        uncached = uncached[:budget_size]
 
     for offset in range(
         0,
