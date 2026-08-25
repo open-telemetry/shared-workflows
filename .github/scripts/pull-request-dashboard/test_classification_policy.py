@@ -152,6 +152,17 @@ class PromptCompatibilityTest(unittest.TestCase):
             "76e534a013fc212856acbebd3c1897aa2c27daa6a69c6c8bee02e2d11b7bb2fd",
         )
 
+    def test_unknown_discussion_kind_names_the_record(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "discussion 'feedback-1' has unknown "
+            "discussion_kind 'unknown-kind'",
+        ):
+            ClassificationDiscussion.from_record({
+                "discussion_id": "feedback-1",
+                "discussion_kind": "unknown-kind",
+            })
+
 
 class ResultProjectionCompatibilityTest(unittest.TestCase):
     identity = DiscussionIdentity(

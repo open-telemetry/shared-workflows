@@ -367,9 +367,18 @@ class ClassificationDiscussion:
 
     @classmethod
     def from_record(cls, record: Mapping[str, Any]) -> ClassificationDiscussion:
+        discussion_id = str(record.get("discussion_id") or "")
+        discussion_kind = str(record.get("discussion_kind") or "")
+        try:
+            kind = DiscussionKind(discussion_kind)
+        except ValueError as error:
+            raise ValueError(
+                f"discussion {discussion_id!r} has unknown "
+                f"discussion_kind {discussion_kind!r}"
+            ) from error
         identity = DiscussionIdentity(
-            str(record.get("discussion_id") or ""),
-            DiscussionKind(str(record.get("discussion_kind") or "")),
+            discussion_id,
+            kind,
         )
         comments = tuple(
             DiscussionComment(
