@@ -378,15 +378,18 @@
     },
     "87": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-conformance/pull/87#discussion_r3849232777"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "9de5fa19269346bf92fed086475a8143",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a8f8c4b60eed04be5b168481fcce2f7b0c536a9b2165f46a5afe5b8e7dcb9ce4",
+        "copilot_request_fingerprint": "b1d39a14c04f0077ce7c797bc5f201d4d5e3184c3267b8cfe60869f03de7723a",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -402,21 +405,31 @@
         "head_sha": "cdbd1cf4dbc29cac14bf61750bbd8d38f2db725c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-25T01:57:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T03:10:09+00:00",
+        "last_approver_activity_at": "2026-08-25T03:10:09+00:00",
         "last_author_activity_at": "2026-08-25T01:57:29+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "493f0dc69f21fbf81c826d02874dd8fc34d7e1e04eccab8a667f5828c8b377a1",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-25T01:57:29+00:00"
+        "routing_input_fingerprint": "6dace3ee672ddb38f864c28728864af472caa7ba4972740d761dac82e0f59949",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-25T03:02:58+00:00"
       },
       "failed": false,
       "pr_number": 87,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/87",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
