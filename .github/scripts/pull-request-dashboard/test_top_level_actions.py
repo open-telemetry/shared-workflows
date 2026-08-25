@@ -1142,11 +1142,61 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [False] * 20 + [True] * 3,
         )
         cached = _save_cache.call_args.args[1]
-        self.assertEqual(len(cached), 23)
+        self.assertEqual(len(cached), 20)
         self.assertEqual(
             sum(bool(record.get("deferred")) for record in cached.values()),
-            3,
+            0,
         )
+
+    @patch("classification.MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR", 20)
+    @patch("classification.TOP_LEVEL_CLASSIFICATION_BATCH_SIZE", 10)
+    @patch("classification.save_classification_cache")
+    @patch("classification.load_classification_cache")
+    @patch("classification._run_author_comment_request")
+    def test_deferred_author_replies_are_classified_on_the_next_refresh(
+        self,
+        run_author_batch,
+        load_cache,
+        save_cache,
+    ) -> None:
+        run_author_batch.side_effect = lambda request, _model: [
+            author_comment_result(discussion)
+            for discussion in request.discussions
+        ]
+        author_replies = [
+            {
+                **review_thread_discussion(f"author-reply-{index}"),
+                "discussion_kind": "top-level-author-reply",
+            }
+            for index in range(23)
+        ]
+        cache: dict = {}
+        load_cache.side_effect = lambda _number: dict(cache)
+        save_cache.side_effect = lambda _number, records: cache.update(records)
+
+        classify_discussion_domains(123, [], [], author_replies, "model")
+        run_author_batch.reset_mock()
+        classifications = classify_discussion_domains(
+            123,
+            [],
+            [],
+            author_replies,
+            "model",
+        ).top_level_author_comments
+
+        self.assertEqual(
+            [
+                discussion.identity.discussion_id
+                for call in run_author_batch.call_args_list
+                for discussion in call.args[0].discussions
+            ],
+            [f"author-reply-{index}" for index in range(20, 23)],
+        )
+        self.assertEqual(
+            [record.deferred for record in classifications],
+            [False] * 23,
+        )
+        self.assertEqual(len(cache), 23)
 
     @patch("classification.MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR", 2)
     @patch("classification.author_comment_prompt_batches")
@@ -1200,6 +1250,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(
             classifications[2].decision.reason,
             "Deferred by per-PR classification limit",
+        )
+        cached = _save_cache.call_args.args[1]
+        self.assertEqual(len(cached), 2)
+        self.assertEqual(
+            sum(bool(record.get("deferred")) for record in cached.values()),
+            0,
         )
 
     @patch("classification.save_classification_cache")

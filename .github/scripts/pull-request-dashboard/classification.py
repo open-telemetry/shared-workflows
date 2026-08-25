@@ -422,6 +422,22 @@ def _author_comment_budget_size(
     )
 
 
+def _cache_classified(
+    cache_out: dict[str, dict[str, Any]],
+    key: str,
+    result: ClassificationResult,
+) -> None:
+    """Persist a result only when it settles the discussion.
+
+    A deferred result means the per-PR budget ran out before the item was read.
+    Caching it would answer the next refresh from the cache and the item would
+    never be classified, so only a usable answer survives to the cache file.
+    """
+    if result.failed or result.deferred:
+        return
+    cache_out[key] = cached_classification_record(result)
+
+
 def _classify_items(
     number: int,
     discussions: tuple[ClassificationDiscussion, ...],
@@ -458,8 +474,7 @@ def _classify_items(
             deferrable=deferrable,
         )
         classifications_by_id[discussion.identity.discussion_id] = result
-        if not result.failed:
-            cache_out[key] = cached_classification_record(result)
+        _cache_classified(cache_out, key, result)
 
     if author_comment:
         budget_size = _author_comment_budget_size(uncached)
@@ -471,8 +486,7 @@ def _classify_items(
                 deferrable=deferrable,
             )
             classifications_by_id[discussion.identity.discussion_id] = result
-            if not result.failed:
-                cache_out[key] = cached_classification_record(result)
+            _cache_classified(cache_out, key, result)
         uncached = uncached[:budget_size]
 
     for offset in range(
@@ -550,8 +564,7 @@ def _classify_items(
             strict=True,
         ):
             classifications_by_id[result.identity.discussion_id] = result
-            if not result.failed:
-                cache_out[key] = cached_classification_record(result)
+            _cache_classified(cache_out, key, result)
 
     if contract is None:
         return classifications_by_id
