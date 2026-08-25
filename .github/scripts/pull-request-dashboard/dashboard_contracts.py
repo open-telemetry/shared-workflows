@@ -6,7 +6,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from classification_policy import ClassificationResult
 
 
 class DashboardRoute(str, Enum):
@@ -167,18 +170,15 @@ class EvaluationDiagnostics:
     review_threads: tuple[Mapping[str, Any], ...] = ()
     top_level_items: tuple[Mapping[str, Any], ...] = ()
     top_level_author_comment_items: tuple[Mapping[str, Any], ...] = ()
-    review_thread_classifications: tuple[Mapping[str, Any], ...] = ()
-    top_level_classifications: tuple[Mapping[str, Any], ...] = ()
-    top_level_author_comment_classifications: tuple[Mapping[str, Any], ...] = ()
+    review_thread_classifications: tuple[ClassificationResult, ...] = ()
+    top_level_classifications: tuple[ClassificationResult, ...] = ()
+    top_level_author_comment_classifications: tuple[ClassificationResult, ...] = ()
 
     def __post_init__(self) -> None:
         for name in (
             "review_threads",
             "top_level_items",
             "top_level_author_comment_items",
-            "review_thread_classifications",
-            "top_level_classifications",
-            "top_level_author_comment_classifications",
         ):
             values = getattr(self, name)
             object.__setattr__(
@@ -186,6 +186,12 @@ class EvaluationDiagnostics:
                 name,
                 tuple(freeze_json_object(value) for value in values),
             )
+        for name in (
+            "review_thread_classifications",
+            "top_level_classifications",
+            "top_level_author_comment_classifications",
+        ):
+            object.__setattr__(self, name, tuple(getattr(self, name)))
 
 
 @dataclass(frozen=True)

@@ -264,6 +264,10 @@ from github_cli import (
 from classification import (
     prune_classification_cache,
 )
+from classification_policy import (
+    ActionDecision,
+    ClassificationFailure,
+)
 from author_nudge import (
     record_author_nudge_observation,
 )
@@ -451,20 +455,30 @@ def log_multiline_value(label: str, value: Any) -> None:
 
 
 def log_failed_classification_diagnostics(
-    classification: dict[str, Any],
+    classification: ClassificationFailure,
     discussion: dict[str, Any] | None,
 ) -> None:
-    decision = classification.get("decision") or {}
+    decision = classification.decision
+    action = (
+        decision.action.value
+        if isinstance(decision, ActionDecision)
+        else ""
+    )
+    reason = decision.reason
     print(
         "    failed classification: "
-        f"discussion_id={classification.get('discussion_id') or '<unknown>'} "
-        f"kind={classification.get('discussion_kind') or '<unknown>'} "
-        f"action={decision.get('discussion_action') or '<unknown>'} "
-        f"reason={log_line_value(decision.get('reason')) or '<none>'}",
+        f"discussion_id={classification.identity.discussion_id} "
+        f"kind={classification.identity.kind.value} "
+        f"action={action or '<unknown>'} "
+        f"reason={log_line_value(reason) or '<none>'}",
         file=sys.stderr,
     )
-    if classification.get("error"):
-        print(f"      error: {log_line_value(classification.get('error'))}", file=sys.stderr)
+    diagnostics = classification.diagnostics
+    if diagnostics.error:
+        print(
+            f"      error: {log_line_value(diagnostics.error)}",
+            file=sys.stderr,
+        )
     if discussion:
         comments = discussion.get("comments") or []
         latest = comments[-1] if comments else {}
@@ -481,9 +495,12 @@ def log_failed_classification_diagnostics(
         )
         if latest.get("body"):
             print(f"      latest_body: {log_line_value(latest.get('body'))}", file=sys.stderr)
-    for key in ("response_text", "stderr"):
-        if classification.get(key):
-            log_multiline_value(key, classification.get(key))
+    for key, value in (
+        ("response_text", diagnostics.response_text),
+        ("stderr", diagnostics.stderr),
+    ):
+        if value:
+            log_multiline_value(key, value)
 
 
 def log_failed_result_diagnostics(result: EvaluationFailure) -> None:
@@ -512,12 +529,12 @@ def log_failed_result_diagnostics(result: EvaluationFailure) -> None:
             + result.diagnostics.top_level_classifications
             + result.diagnostics.top_level_author_comment_classifications
         )
-        if classification.get("failed")
+        if isinstance(classification, ClassificationFailure)
     ]
     for classification in failed_classifications:
         log_failed_classification_diagnostics(
             classification,
-            discussions.get(classification.get("discussion_id")),
+            discussions.get(classification.identity.discussion_id),
         )
 
 

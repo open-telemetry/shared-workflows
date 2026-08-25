@@ -48,6 +48,15 @@ from dashboard_test_support import (
     review_source,
     stored_dashboard_result,
 )
+from classification_policy import (
+    ActionDecision,
+    ClassificationDiagnostics,
+    ClassificationFailure,
+    DiscussionAction,
+    DiscussionClassifications,
+    DiscussionIdentity,
+    DiscussionKind,
+)
 from pull_request_source import (
     PullRequestSource,
     fetch_pull_request_source,
@@ -64,6 +73,13 @@ from pull_request_evaluation import (
 from pull_request_activity import PullRequestActivity
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
+
+
+FAILED_CLASSIFICATION = ClassificationFailure(
+    DiscussionIdentity("failed", DiscussionKind.TOP_LEVEL_FEEDBACK),
+    ActionDecision(DiscussionAction.AUTHOR, "model failed"),
+    ClassificationDiagnostics(error="model failed"),
+)
 
 
 def evaluation_facts(
@@ -359,7 +375,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
     @patch("pull_request_evaluation.resolve_routing", wraps=resolve_routing)
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
+        return_value=DiscussionClassifications.empty(),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(
@@ -480,7 +496,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
+        return_value=DiscussionClassifications.empty(),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_conflict_uses_normal_discussion_and_approval_routing(
@@ -546,7 +562,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
+        return_value=DiscussionClassifications.empty(),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_normal_routing_flows_through_evaluation(
@@ -571,7 +587,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
     @patch("routing_decision.utc_now")
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
+        return_value=DiscussionClassifications.empty(),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_running_required_check_keeps_integrated_route_held(
@@ -606,7 +622,11 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [{"failed": True, "error": "model failed"}], []),
+        return_value=DiscussionClassifications(
+            (),
+            (FAILED_CLASSIFICATION,),
+            (),
+        ),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_classification_failure_preserves_integrated_routing_failure_facts(

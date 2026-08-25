@@ -10,6 +10,7 @@ from dashboard_contracts import (
     EvaluationFailure,
     EvaluationSuccess,
 )
+from classification_policy import DiscussionClassifications
 from dashboard_test_support import (
     actor,
     commit_source,
@@ -68,7 +69,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
 
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
+        return_value=DiscussionClassifications.empty(),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_success_uses_the_effective_copilot_author(
@@ -100,7 +101,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
 
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
+        return_value=DiscussionClassifications.empty(),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_copilot_bot_committer_is_not_recovered_as_the_human_author(
@@ -132,7 +133,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
     )
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
+        return_value=DiscussionClassifications.empty(),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_cached_top_level_history_reaches_the_discussion_lifecycle(
@@ -223,7 +224,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
     )
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
+        return_value=DiscussionClassifications.empty(),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_mixed_metadata_shapes_produce_equivalent_typed_results(

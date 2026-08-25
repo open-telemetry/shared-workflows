@@ -6,17 +6,31 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from classification import (
-    PRAISE_VERDICTS,
-    REVIEWER_FEEDBACK_VERDICTS,
     classify_discussion_domains,
     classify_review_threads,
-    leading_mentions,
     run_llm_for_verdict_batch,
     run_llm_for_top_level_author_comment_batch,
     top_level_reviewer_feedback_prompt_input,
 )
-from discussion_lifecycle import (
+from classification_policy import (
+    PRAISE_VERDICTS,
+    REVIEWER_FEEDBACK_VERDICTS,
+    ActionDecision,
+    AuthorCommentDecision,
+    ClassificationDiagnostics,
+    ClassificationFailure,
+    ClassificationResult,
+    ClassificationSuccess,
+    DiscussionAction,
     DiscussionClassifications,
+    DiscussionIdentity,
+    DiscussionKind,
+    FeedbackOutcome,
+    Verdict,
+    VerdictDecision,
+    leading_mentions,
+)
+from discussion_lifecycle import (
     DiscussionInput,
     PreparedDiscussions,
     prepare_discussions,
@@ -67,26 +81,67 @@ def review_thread_discussion(discussion_id: str) -> dict:
     }
 
 
-def verdict_record(discussion_id: str, verdict: str = "author_action") -> dict:
-    return {
-        "discussion_id": discussion_id,
-        "discussion_kind": "top-level-feedback",
-        "failed": False,
-        "decision": {"verdict": verdict, "reason": "action requested"},
-    }
+def verdict_record(
+    discussion_id: str,
+    verdict: str = "author_action",
+    kind: DiscussionKind = DiscussionKind.TOP_LEVEL_FEEDBACK,
+) -> ClassificationSuccess:
+    return ClassificationSuccess(
+        DiscussionIdentity(discussion_id, kind),
+        VerdictDecision(Verdict(verdict), "action requested"),
+    )
 
 
-def author_comment_decision(*feedback_actions: tuple[str, str]) -> dict:
-    return {
-        "feedback_outcomes": [
-            {
-                "feedback_id": feedback_id,
-                "discussion_action": action,
-                "reason": "Test author-comment outcome.",
-            }
-            for feedback_id, action in feedback_actions
-        ]
-    }
+def verdict_record_for(
+    discussion: dict,
+    verdict: str,
+) -> ClassificationSuccess:
+    return verdict_record(
+        discussion["discussion_id"],
+        verdict,
+        DiscussionKind(discussion["discussion_kind"]),
+    )
+
+
+def failed_verdict_record_for(
+    discussion: dict,
+    verdict: str,
+    error: str,
+) -> ClassificationFailure:
+    return ClassificationFailure(
+        DiscussionIdentity(
+            discussion["discussion_id"],
+            DiscussionKind(discussion["discussion_kind"]),
+        ),
+        VerdictDecision(Verdict(verdict), "because"),
+        ClassificationDiagnostics(error=error),
+    )
+
+
+def author_comment_decision(
+    *feedback_actions: tuple[str, str],
+) -> AuthorCommentDecision:
+    return AuthorCommentDecision(tuple(
+        FeedbackOutcome(
+            feedback_id,
+            DiscussionAction(action),
+            "Test author-comment outcome.",
+        )
+        for feedback_id, action in feedback_actions
+    ))
+
+
+def author_comment_result(
+    discussion: dict,
+    *feedback_actions: tuple[str, str],
+) -> ClassificationSuccess:
+    return ClassificationSuccess(
+        DiscussionIdentity(
+            discussion["discussion_id"],
+            DiscussionKind(discussion["discussion_kind"]),
+        ),
+        author_comment_decision(*feedback_actions),
+    )
 
 
 def copilot_batch_response(*items: dict) -> CompletedProcess[str]:
@@ -130,7 +185,7 @@ def top_level_items_from_raw(
 
 def review_thread_pending_actions(
     review_threads: list[dict],
-    classifications: list[dict],
+    classifications: list[ClassificationResult],
 ) -> dict[str, dict]:
     return resolve_discussions(
         PreparedDiscussions(tuple(review_threads), (), ()),
@@ -143,17 +198,21 @@ def classify_feedback_domains(
     review_threads: list[dict],
     top_level_items: list[dict],
     model: str,
-) -> tuple[list[dict], list[dict]]:
-    review_classifications, top_level_classifications, _ = (
-        classify_discussion_domains(
-            number,
-            review_threads,
-            top_level_items,
-            [],
-            model,
-        )
+) -> tuple[
+    tuple[ClassificationResult, ...],
+    tuple[ClassificationResult, ...],
+]:
+    classifications = classify_discussion_domains(
+        number,
+        review_threads,
+        top_level_items,
+        [],
+        model,
     )
-    return review_classifications, top_level_classifications
+    return (
+        classifications.review_threads,
+        classifications.top_level_items,
+    )
 
 
 class VerdictBatchErrorTest(unittest.TestCase):
@@ -170,15 +229,23 @@ class VerdictBatchErrorTest(unittest.TestCase):
     def test_a_nonzero_exit_with_a_usable_verdict_is_not_called_unreadable(self) -> None:
         record = self.run_batch(1, '{"items": [{"discussion_id": "d", "verdict": "complete"}]}')
 
-        self.assertTrue(record["failed"])
-        self.assertIn("exited with status 1", record["error"])
-        self.assertNotIn("did not return a valid verdict", record["error"])
+        self.assertTrue(record.failed)
+        assert isinstance(record, ClassificationFailure)
+        self.assertIn("exited with status 1", record.diagnostics.error)
+        self.assertNotIn(
+            "did not return a valid verdict",
+            record.diagnostics.error,
+        )
 
     def test_an_unreadable_answer_still_says_so(self) -> None:
         record = self.run_batch(0, "not json")
 
-        self.assertTrue(record["failed"])
-        self.assertIn("did not return a valid verdict", record["error"])
+        self.assertTrue(record.failed)
+        assert isinstance(record, ClassificationFailure)
+        self.assertIn(
+            "did not return a valid verdict",
+            record.diagnostics.error,
+        )
 
 
 class IgnoredPraiseWaitAgeTest(unittest.TestCase):
@@ -199,12 +266,7 @@ class IgnoredPraiseWaitAgeTest(unittest.TestCase):
         def batch(items, _model, _prompt, verdicts):
             answer = "praise" if verdicts == PRAISE_VERDICTS else reply
             return [
-                {
-                    "discussion_id": item["discussion_id"],
-                    "discussion_kind": "review-comment-thread",
-                    "failed": False,
-                    "decision": {"verdict": answer, "reason": "because"},
-                }
+                verdict_record_for(item, answer)
                 for item in items
             ]
 
@@ -279,12 +341,7 @@ class ReviewThreadPraiseTest(unittest.TestCase):
         def batch(items, _model, _prompt, verdicts):
             answer = praise if verdicts == PRAISE_VERDICTS else reply
             return [
-                {
-                    "discussion_id": item["discussion_id"],
-                    "discussion_kind": "review-comment-thread",
-                    "failed": False,
-                    "decision": {"verdict": answer, "reason": "because"},
-                }
+                verdict_record_for(item, answer)
                 for item in items
             ]
 
@@ -296,7 +353,9 @@ class ReviewThreadPraiseTest(unittest.TestCase):
 
         records = classify_review_threads(1, [self.thread(("reviewer", "LGTM"))], "model", {}, {})
 
-        self.assertEqual(records["t"]["decision"]["discussion_action"], "none")
+        decision = records["t"].decision
+        assert isinstance(decision, ActionDecision)
+        self.assertEqual(decision.action, DiscussionAction.NONE)
 
     @patch("classification.run_llm_for_verdict_batch")
     def test_praise_falls_back_to_the_comment_before_it(self, run_verdict) -> None:
@@ -306,7 +365,9 @@ class ReviewThreadPraiseTest(unittest.TestCase):
             1, [self.thread(("reviewer", "please fix"), ("reviewer", "LGTM"))], "model", {}, {}
         )
 
-        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+        decision = records["t"].decision
+        assert isinstance(decision, ActionDecision)
+        self.assertEqual(decision.action, DiscussionAction.AUTHOR)
 
     @patch("classification.run_llm_for_verdict_batch")
     def test_praise_after_an_author_reply_hands_the_thread_back(self, run_verdict) -> None:
@@ -316,36 +377,36 @@ class ReviewThreadPraiseTest(unittest.TestCase):
             1, [self.thread(("author", "fixed it"), ("reviewer", "LGTM"))], "model", {}, {}
         )
 
-        self.assertEqual(records["t"]["decision"]["discussion_action"], "reviewer")
+        decision = records["t"].decision
+        assert isinstance(decision, ActionDecision)
+        self.assertEqual(decision.action, DiscussionAction.REVIEWER)
 
     @patch("classification.run_llm_for_verdict_batch")
     def test_a_failed_praise_call_keeps_the_thread_with_the_author(self, run_verdict) -> None:
         run_verdict.side_effect = lambda items, _m, _p, _v: [
-            {
-                "discussion_id": item["discussion_id"],
-                "discussion_kind": "review-comment-thread",
-                "failed": True,
-                "error": "Copilot CLI exited with status 1",
-                "decision": {"verdict": "praise", "reason": "because"},
-            }
+            failed_verdict_record_for(
+                item,
+                "praise",
+                "Copilot CLI exited with status 1",
+            )
             for item in items
         ]
 
         records = classify_review_threads(1, [self.thread(("reviewer", "LGTM"))], "model", {}, {})
 
-        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
-        self.assertTrue(records["t"]["failed"])
+        decision = records["t"].decision
+        assert isinstance(decision, ActionDecision)
+        self.assertEqual(decision.action, DiscussionAction.AUTHOR)
+        self.assertTrue(records["t"].failed)
 
     @patch("classification.run_llm_for_verdict_batch")
     def test_a_failed_deferral_call_keeps_the_thread_with_the_author(self, run_verdict) -> None:
         run_verdict.side_effect = lambda items, _m, _p, _v: [
-            {
-                "discussion_id": item["discussion_id"],
-                "discussion_kind": "review-comment-thread",
-                "failed": True,
-                "error": "Copilot CLI exited with status 1",
-                "decision": {"verdict": "complete", "reason": "because"},
-            }
+            failed_verdict_record_for(
+                item,
+                "complete",
+                "Copilot CLI exited with status 1",
+            )
             for item in items
         ]
 
@@ -357,8 +418,10 @@ class ReviewThreadPraiseTest(unittest.TestCase):
             {},
         )
 
-        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
-        self.assertTrue(records["t"]["failed"])
+        decision = records["t"].decision
+        assert isinstance(decision, ActionDecision)
+        self.assertEqual(decision.action, DiscussionAction.AUTHOR)
+        self.assertTrue(records["t"].failed)
 
     @patch("classification.run_llm_for_verdict_batch")
     def test_only_the_last_comment_is_checked_for_praise(self, run_verdict) -> None:
@@ -368,7 +431,9 @@ class ReviewThreadPraiseTest(unittest.TestCase):
             1, [self.thread(("reviewer", "Nice"), ("reviewer", "LGTM"))], "model", {}, {}
         )
 
-        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+        decision = records["t"].decision
+        assert isinstance(decision, ActionDecision)
+        self.assertEqual(decision.action, DiscussionAction.AUTHOR)
 
     @patch("classification.run_llm_for_verdict_batch")
     def test_a_comment_that_is_not_praise_stays_the_authors(self, run_verdict) -> None:
@@ -378,7 +443,9 @@ class ReviewThreadPraiseTest(unittest.TestCase):
             1, [self.thread(("author", "fixed it"), ("reviewer", "one more thing"))], "model", {}, {}
         )
 
-        self.assertEqual(records["t"]["decision"]["discussion_action"], "author")
+        decision = records["t"].decision
+        assert isinstance(decision, ActionDecision)
+        self.assertEqual(decision.action, DiscussionAction.AUTHOR)
 
 
 class AutomationCommandFeedbackTest(unittest.TestCase):
@@ -456,8 +523,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
 
         self.assertEqual(run_copilot.call_count, 1)
-        self.assertTrue(records[0]["failed"])
-        self.assertIn("duplicate discussion_id", records[0]["error"])
+        self.assertTrue(records[0].failed)
+        assert isinstance(records[0], ClassificationFailure)
+        self.assertIn(
+            "duplicate discussion_id",
+            records[0].diagnostics.error,
+        )
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
@@ -478,8 +549,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
 
         self.assertEqual(run_copilot.call_count, 1)
-        self.assertTrue(records[0]["failed"])
-        self.assertIn("this discussion_id", records[0]["error"])
+        self.assertTrue(records[0].failed)
+        assert isinstance(records[0], ClassificationFailure)
+        self.assertIn(
+            "this discussion_id",
+            records[0].diagnostics.error,
+        )
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
@@ -522,21 +597,23 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [discussion], "model"
         )
 
-        self.assertFalse(records[0]["failed"])
+        self.assertFalse(records[0].failed)
+        decision = records[0].decision
+        assert isinstance(decision, AuthorCommentDecision)
         self.assertEqual(
-            records[0]["decision"]["feedback_outcomes"],
-            [
-                {
-                    "feedback_id": "pr-review-3512552586",
-                    "discussion_action": "none",
-                    "reason": "The author answered the question.",
-                },
-                {
-                    "feedback_id": "pr-issue-comment-3578803688",
-                    "discussion_action": "author",
-                    "reason": "The author will add the test later.",
-                },
-            ],
+            decision.feedback_outcomes,
+            (
+                FeedbackOutcome(
+                    "pr-review-3512552586",
+                    DiscussionAction.NONE,
+                    "The author answered the question.",
+                ),
+                FeedbackOutcome(
+                    "pr-issue-comment-3578803688",
+                    DiscussionAction.AUTHOR,
+                    "The author will add the test later.",
+                ),
+            ),
         )
         prompt = run_copilot.call_args.args[0][2]
         self.assertIn("Please test this before merging.", prompt)
@@ -590,7 +667,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [discussion], "model"
         )
 
-        self.assertFalse(records[0]["failed"])
+        self.assertFalse(records[0].failed)
         self.assertGreater(run_copilot.call_count, 1)
         prompts = [call.args[0][2] for call in run_copilot.call_args_list]
         self.assertTrue(all(len(prompt) <= 5000 for prompt in prompts))
@@ -599,8 +676,8 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             self.assertNotIn(f'"discussion_id": "feedback-{index}"', combined_prompts)
         self.assertEqual(
             [
-                outcome["feedback_id"]
-                for outcome in records[0]["decision"]["feedback_outcomes"]
+                outcome.feedback_id
+                for outcome in records[0].decision.feedback_outcomes
             ],
             [f"feedback-{index}" for index in range(30)],
         )
@@ -637,16 +714,22 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [discussion], "model"
         )
 
-        self.assertTrue(records[0]["failed"])
-        self.assertEqual(records[0]["decision"]["feedback_outcomes"], [])
+        self.assertTrue(records[0].failed)
+        assert isinstance(records[0], ClassificationFailure)
+        decision = records[0].decision
+        assert isinstance(decision, AuthorCommentDecision)
+        self.assertEqual(decision.feedback_outcomes, ())
         self.assertIn(
             "unknown feedback_key 'pr-issue-comment-3841040831'",
-            records[0]["error"],
+            records[0].diagnostics.error,
         )
-        self.assertIn("expected keys ['f0001']", records[0]["error"])
+        self.assertIn(
+            "expected keys ['f0001']",
+            records[0].diagnostics.error,
+        )
         self.assertIn(
             "canonical candidate IDs ['pr-review-3841040831']",
-            records[0]["error"],
+            records[0].diagnostics.error,
         )
 
     @patch("classification.print_copilot_otel_file")
@@ -682,8 +765,9 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [discussion], "model"
         )
 
-        self.assertTrue(records[0]["failed"])
-        error = records[0]["error"]
+        self.assertTrue(records[0].failed)
+        assert isinstance(records[0], ClassificationFailure)
+        error = records[0].diagnostics.error
         self.assertEqual(error.count("(showing 10 of 12)"), 2)
         self.assertIn("'f0010'", error)
         self.assertNotIn("'f0011'", error)
@@ -724,8 +808,12 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [discussion], "model"
         )
 
-        self.assertTrue(records[0]["failed"])
-        self.assertIn("duplicate feedback_key 'f0001'", records[0]["error"])
+        self.assertTrue(records[0].failed)
+        assert isinstance(records[0], ClassificationFailure)
+        self.assertIn(
+            "duplicate feedback_key 'f0001'",
+            records[0].diagnostics.error,
+        )
 
     @patch("classification.print_copilot_otel_file")
     @patch("classification.subprocess.run")
@@ -756,10 +844,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [discussion], "model"
         )
 
-        self.assertTrue(records[0]["failed"])
+        self.assertTrue(records[0].failed)
+        assert isinstance(records[0], ClassificationFailure)
         self.assertIn(
             "invalid discussion_action 'reviewer' for feedback_key 'f0001'",
-            records[0]["error"],
+            records[0].diagnostics.error,
         )
 
     @patch("classification.print_copilot_otel_file")
@@ -810,11 +899,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
 
         records = run_llm_for_top_level_author_comment_batch(discussions, "model")
 
-        self.assertTrue(records[0]["failed"])
-        self.assertIn("expected keys ['f0001']", records[0]["error"])
-        self.assertFalse(records[1]["failed"])
+        self.assertTrue(records[0].failed)
+        assert isinstance(records[0], ClassificationFailure)
+        self.assertIn(
+            "expected keys ['f0001']",
+            records[0].diagnostics.error,
+        )
+        self.assertFalse(records[1].failed)
+        decision = records[1].decision
+        assert isinstance(decision, AuthorCommentDecision)
         self.assertEqual(
-            records[1]["decision"]["feedback_outcomes"][0]["feedback_id"],
+            decision.feedback_outcomes[0].feedback_id,
             "second-feedback",
         )
 
@@ -852,11 +947,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
 
         self.assertEqual([REVIEWER_FEEDBACK_VERDICTS], asked)
+        decision = review_thread_classifications[0].decision
+        assert isinstance(decision, ActionDecision)
         self.assertEqual(
-            review_thread_classifications[0]["decision"]["discussion_action"], "author"
+            decision.action,
+            DiscussionAction.AUTHOR,
         )
         self.assertEqual(
-            [record["discussion_id"] for record in top_level_classifications],
+            [
+                record.identity.discussion_id
+                for record in top_level_classifications
+            ],
             ["top-level"],
         )
     @patch("classification.save_classification_cache")
@@ -871,12 +972,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         for verdict, expected in (("deferral", "author"), ("complete", "reviewer")):
             with self.subTest(verdict=verdict):
                 run_verdict.side_effect = lambda items, _m, _p, _v, answer=verdict: [
-                    {
-                        "discussion_id": item["discussion_id"],
-                        "discussion_kind": "review-comment-thread",
-                        "failed": False,
-                        "decision": {"verdict": answer, "reason": "because"},
-                    }
+                    verdict_record_for(item, answer)
                     for item in items
                 ]
                 thread = review_thread_discussion("inline")
@@ -887,10 +983,9 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                     123, [thread], [], "model"
                 )
 
-                self.assertEqual(
-                    review_thread_classifications[0]["decision"]["discussion_action"],
-                    expected,
-                )
+                decision = review_thread_classifications[0].decision
+                assert isinstance(decision, ActionDecision)
+                self.assertEqual(decision.action.value, expected)
 
     @patch("classification.save_classification_cache")
     @patch("classification.load_classification_cache", return_value={})
@@ -902,12 +997,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         save_cache,
     ) -> None:
         run_author_batch.side_effect = lambda discussions, _model: [
-            {
-                "discussion_id": discussion["discussion_id"],
-                "discussion_kind": discussion["discussion_kind"],
-                "failed": False,
-                "decision": author_comment_decision(("feedback", "author")),
-            }
+            author_comment_result(
+                discussion,
+                ("feedback", "author"),
+            )
             for discussion in discussions
         ]
         author_reply = review_thread_discussion("author-reply")
@@ -916,24 +1009,28 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             {"discussion_id": "feedback", "body": "Please add a test."}
         ]
 
-        review_classifications, top_level_classifications, reply_classifications = (
-            classify_discussion_domains(
-                123,
-                [],
-                [],
-                [author_reply],
-                "model",
-            )
+        domain_classifications = classify_discussion_domains(
+            123,
+            [],
+            [],
+            [author_reply],
+            "model",
         )
+        review_classifications = domain_classifications.review_threads
+        top_level_classifications = domain_classifications.top_level_items
+        reply_classifications = domain_classifications.top_level_author_comments
 
-        self.assertEqual(review_classifications, [])
-        self.assertEqual(top_level_classifications, [])
-        self.assertEqual(reply_classifications[0]["discussion_id"], "author-reply")
+        self.assertEqual(review_classifications, ())
+        self.assertEqual(top_level_classifications, ())
         self.assertEqual(
-            reply_classifications[0]["decision"]["feedback_outcomes"][0][
-                "discussion_action"
-            ],
-            "author",
+            reply_classifications[0].identity.discussion_id,
+            "author-reply",
+        )
+        decision = reply_classifications[0].decision
+        assert isinstance(decision, AuthorCommentDecision)
+        self.assertEqual(
+            decision.feedback_outcomes[0].action,
+            DiscussionAction.AUTHOR,
         )
         self.assertEqual(len(save_cache.call_args.args[1]), 1)
 
@@ -949,12 +1046,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         _save_cache,
     ) -> None:
         run_author_batch.side_effect = lambda discussions, _model: [
-            {
-                "discussion_id": discussion["discussion_id"],
-                "discussion_kind": discussion["discussion_kind"],
-                "failed": False,
-                "decision": {"feedback_outcomes": []},
-            }
+            author_comment_result(discussion)
             for discussion in discussions
         ]
         author_replies = [
@@ -965,15 +1057,13 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             for index in range(23)
         ]
 
-        _review, _top_level, classifications = (
-            classify_discussion_domains(
-                123,
-                [],
-                [],
-                author_replies,
-                "model",
-            )
-        )
+        classifications = classify_discussion_domains(
+            123,
+            [],
+            [],
+            author_replies,
+            "model",
+        ).top_level_author_comments
 
         self.assertEqual(run_author_batch.call_count, 2)
         self.assertEqual(
@@ -981,21 +1071,20 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             [10, 10],
         )
         self.assertEqual(
-            [record["decision"] for record in classifications[:20]],
-            [{"feedback_outcomes": []}] * 20,
+            [record.decision for record in classifications[:20]],
+            [AuthorCommentDecision()] * 20,
         )
         self.assertEqual(
-            [record["decision"] for record in classifications[20:]],
+            [record.decision for record in classifications[20:]],
             [
-                {
-                    "feedback_outcomes": [],
-                    "reason": "Deferred by per-PR classification limit",
-                }
+                AuthorCommentDecision(
+                    reason="Deferred by per-PR classification limit"
+                )
             ] * 3,
         )
         self.assertEqual(
-            [record.get("deferred") for record in classifications],
-            [None] * 20 + [True] * 3,
+            [record.deferred for record in classifications],
+            [False] * 20 + [True] * 3,
         )
 
     @patch("classification.MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR", 2)
@@ -1014,12 +1103,7 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ([discussion], "prompt") for discussion in discussions
         ]
         run_author_batch.side_effect = lambda discussions, _model: [
-            {
-                "discussion_id": discussion["discussion_id"],
-                "discussion_kind": discussion["discussion_kind"],
-                "failed": False,
-                "decision": {"feedback_outcomes": []},
-            }
+            author_comment_result(discussion)
             for discussion in discussions
         ]
         author_replies = [
@@ -1030,23 +1114,23 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             for index in range(3)
         ]
 
-        _review, _top_level, classifications = classify_discussion_domains(
+        classifications = classify_discussion_domains(
             123,
             [],
             [],
             author_replies,
             "model",
-        )
+        ).top_level_author_comments
 
         self.assertEqual(
             [discussion["discussion_id"] for discussion in run_author_batch.call_args.args[0]],
             ["author-reply-0", "author-reply-1"],
         )
-        self.assertFalse(classifications[0].get("deferred"))
-        self.assertFalse(classifications[1].get("deferred"))
-        self.assertTrue(classifications[2]["deferred"])
+        self.assertFalse(classifications[0].deferred)
+        self.assertFalse(classifications[1].deferred)
+        self.assertTrue(classifications[2].deferred)
         self.assertEqual(
-            classifications[2]["decision"]["reason"],
+            classifications[2].decision.reason,
             "Deferred by per-PR classification limit",
         )
 
@@ -1063,12 +1147,17 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         missing = top_level_item("missing")
         run_batch.return_value = [
             verdict_record("valid"),
-            {
-                "discussion_id": "missing",
-                "discussion_kind": "top-level-feedback",
-                "failed": True,
-                "decision": {"verdict": "author_action", "reason": "Missing result"},
-            },
+            ClassificationFailure(
+                DiscussionIdentity(
+                    "missing",
+                    DiscussionKind.TOP_LEVEL_FEEDBACK,
+                ),
+                VerdictDecision(
+                    Verdict.AUTHOR_ACTION,
+                    "Missing result",
+                ),
+                ClassificationDiagnostics(error="Missing result"),
+            ),
         ]
 
         classify_feedback_domains(123, [], [valid, missing], "model")
@@ -1140,11 +1229,15 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual([len(call.args[0]) for call in run_batch.call_args_list], [10, 10])
         self.assertEqual(len(classifications), 23)
         self.assertEqual(
-            [record["decision"]["discussion_action"] for record in classifications],
+            [
+                record.decision.action.value
+                for record in classifications
+                if isinstance(record.decision, ActionDecision)
+            ],
             ["none"] * 20 + ["author"] * 3,
         )
         self.assertEqual(
-            [bool(record.get("failed")) for record in classifications],
+            [record.failed for record in classifications],
             [False] * 20 + [True] * 3,
         )
         self.assertEqual(len(save_cache.call_args.args[1]), 20)
@@ -1159,7 +1252,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         self.assertEqual(run_batch.call_count, 1)
         self.assertEqual(len(run_batch.call_args.args[0]), 3)
         self.assertEqual(
-            [record["decision"]["discussion_action"] for record in classifications],
+            [
+                record.decision.action.value
+                for record in classifications
+                if isinstance(record.decision, ActionDecision)
+            ],
             ["none"] * 23,
         )
         self.assertEqual(len(save_cache.call_args.args[1]), 23)
@@ -1183,13 +1280,15 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         )
 
         run_batch.assert_not_called()
-        self.assertTrue(classifications[0]["failed"])
+        self.assertTrue(classifications[0].failed)
+        decision = classifications[0].decision
+        assert isinstance(decision, ActionDecision)
         self.assertEqual(
-            classifications[0]["decision"],
-            {
-                "discussion_action": "author",
-                "reason": "Exceeded per-PR classification limit",
-            },
+            decision,
+            ActionDecision(
+                DiscussionAction.AUTHOR,
+                "Exceeded per-PR classification limit",
+            ),
         )
 
     def test_top_level_prompt_input_ignores_review_state(self) -> None:
@@ -1414,21 +1513,25 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             DiscussionClassifications(
                 (),
                 (
-                    {
-                        "discussion_id": "code",
-                        "discussion_kind": "top-level-feedback",
-                        "decision": {
-                            "discussion_action": "author",
-                            "reason": "action requested",
-                        },
-                    },
+                    ClassificationSuccess(
+                        DiscussionIdentity(
+                            "code",
+                            DiscussionKind.TOP_LEVEL_FEEDBACK,
+                        ),
+                        ActionDecision(
+                            DiscussionAction.AUTHOR,
+                            "action requested",
+                        ),
+                    ),
                 ),
                 (
-                    {
-                        "discussion_id": "pr-author-reply-102",
-                        "failed": False,
-                        "decision": author_comment_decision(("code", "none")),
-                    },
+                    ClassificationSuccess(
+                        DiscussionIdentity(
+                            "pr-author-reply-102",
+                            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                        ),
+                        author_comment_decision(("code", "none")),
+                    ),
                 ),
             ),
         )

@@ -5,10 +5,16 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
 
-from classification import (
+from classification_policy import (
+    ActionDecision,
+    AuthorCommentDecision,
+    ClassificationFailure,
+    ClassificationResult,
+    DiscussionAction,
+    DiscussionClassifications,
+    classification_result_to_record,
     is_automation_command_comment,
     is_conflict_resolution_comment,
-    normalize_discussion_action,
 )
 from pull_request_activity import (
     is_substantive_activity,
@@ -44,23 +50,12 @@ class PreparedDiscussions:
 
 
 @dataclass(frozen=True)
-class DiscussionClassifications:
-    review_threads: tuple[dict[str, Any], ...]
-    top_level_items: tuple[dict[str, Any], ...]
-    top_level_author_comments: tuple[dict[str, Any], ...]
-
-    @classmethod
-    def empty(cls) -> DiscussionClassifications:
-        return cls((), (), ())
-
-
-@dataclass(frozen=True)
 class DiscussionLifecycleOutcome:
     prepared: PreparedDiscussions
     classifications: DiscussionClassifications
     pending_actions: dict[str, dict[str, Any]]
     top_level_history: dict[str, dict[str, Any]]
-    failed_classifications: tuple[dict[str, Any], ...]
+    failed_classifications: tuple[ClassificationFailure, ...]
     mode: LifecycleMode
 
     def dashboard_fields(self) -> dict[str, Any]:
@@ -71,13 +66,22 @@ class DiscussionLifecycleOutcome:
                 self.prepared.top_level_author_comment_items
             ),
             "review_thread_classifications": list(
-                self.classifications.review_threads
+                map(
+                    classification_result_to_record,
+                    self.classifications.review_threads,
+                )
             ),
             "top_level_classifications": list(
-                self.classifications.top_level_items
+                map(
+                    classification_result_to_record,
+                    self.classifications.top_level_items,
+                )
             ),
             "top_level_author_comment_classifications": list(
-                self.classifications.top_level_author_comments
+                map(
+                    classification_result_to_record,
+                    self.classifications.top_level_author_comments,
+                )
             ),
         }
         if not self.failed_classifications:
@@ -326,7 +330,7 @@ def _discussions_by_id(
 
 def _author_comment_source_state(
     items: tuple[dict[str, Any], ...],
-    classifications: tuple[dict[str, Any], ...],
+    classifications: tuple[ClassificationResult, ...],
 ) -> AuthorCommentSourceState:
     by_id = _discussions_by_id(items)
     current = {
@@ -337,11 +341,11 @@ def _author_comment_source_state(
     classified = {
         source_id
         for classification in classifications
-        if not classification.get("failed")
-        and not classification.get("deferred")
+        if not classification.failed
+        and not classification.deferred
         and (
             source_id := (
-                by_id.get(classification.get("discussion_id") or "") or {}
+                by_id.get(classification.identity.discussion_id) or {}
             ).get("source_id")
         )
         in current
@@ -351,33 +355,37 @@ def _author_comment_source_state(
 
 def _author_comment_outcomes(
     items: tuple[dict[str, Any], ...],
-    classifications: tuple[dict[str, Any], ...],
+    classifications: tuple[ClassificationResult, ...],
 ) -> list[AuthorCommentOutcome]:
     by_id = _discussions_by_id(items)
     outcomes: list[AuthorCommentOutcome] = []
     for classification in classifications:
-        if classification.get("failed"):
+        if classification.failed:
             continue
-        decision = classification.get("decision") or {}
-        discussion = by_id.get(classification.get("discussion_id") or "")
+        decision = classification.decision
+        if not isinstance(decision, AuthorCommentDecision):
+            raise TypeError(
+                "author-comment classifications require AuthorCommentDecision"
+            )
+        discussion = by_id.get(classification.identity.discussion_id)
         comments = (discussion or {}).get("comments") or []
         timestamp = comments[-1].get("timestamp") if comments else ""
         source_id = (discussion or {}).get("source_id")
         if not isinstance(source_id, int) or not timestamp:
             continue
-        for feedback_outcome in decision.get("feedback_outcomes") or []:
-            action = normalize_discussion_action(
-                feedback_outcome.get("discussion_action") or ""
-            )
-            feedback_id = feedback_outcome.get("feedback_id")
-            if action not in ("author", "none", "unclear") or not isinstance(
-                feedback_id, str
+        for feedback_outcome in decision.feedback_outcomes:
+            action = feedback_outcome.action
+            feedback_id = feedback_outcome.feedback_id
+            if action not in (
+                DiscussionAction.AUTHOR,
+                DiscussionAction.NONE,
+                DiscussionAction.UNCLEAR,
             ):
                 continue
             outcomes.append(
                 {
                     "source_id": source_id,
-                    "action": action,
+                    "action": action.value,
                     "timestamp": timestamp,
                     "feedback_id": feedback_id,
                 }
@@ -529,34 +537,36 @@ def _pending_action_for(action: str) -> str:
 
 def _review_thread_pending_actions(
     review_threads: tuple[dict[str, Any], ...],
-    classifications: tuple[dict[str, Any], ...],
+    classifications: tuple[ClassificationResult, ...],
 ) -> dict[str, dict[str, Any]]:
     by_id = _discussions_by_id(review_threads)
     pending_actions: dict[str, dict[str, Any]] = {}
     for classification in classifications:
-        action = normalize_discussion_action(
-            (classification.get("decision") or {}).get("discussion_action") or ""
-        )
-        discussion = by_id.get(classification.get("discussion_id") or "")
+        decision = classification.decision
+        if not isinstance(decision, ActionDecision):
+            raise TypeError("review-thread classifications require ActionDecision")
+        action = decision.action
+        discussion_id = classification.identity.discussion_id
+        discussion = by_id.get(discussion_id)
         comments = (discussion or {}).get("comments") or []
-        if action != "none" and comments:
+        if action is not DiscussionAction.NONE and comments:
             entry = {
-                "action": _pending_action_for(action),
+                "action": _pending_action_for(action.value),
                 "since": (
-                    classification.get("since")
+                    classification.since
                     or comments[-1].get("timestamp")
                     or ""
                 ),
             }
-            if classification.get("ignored_last_comment"):
+            if classification.ignored_last_comment:
                 entry["ignored_last_comment"] = True
-            pending_actions[classification["discussion_id"]] = entry
+            pending_actions[discussion_id] = entry
     return pending_actions
 
 
 def _advance_top_level_actions(
     top_level_items: tuple[dict[str, Any], ...],
-    classifications: tuple[dict[str, Any], ...],
+    classifications: tuple[ClassificationResult, ...],
     previous_history: dict[str, dict[str, Any]],
     author_comment_outcomes: list[AuthorCommentOutcome],
     author_comment_source_state: AuthorCommentSourceState | None,
@@ -565,13 +575,20 @@ def _advance_top_level_actions(
     pending_actions: dict[str, dict[str, Any]] = {}
     top_level_history: dict[str, dict[str, Any]] = {}
     for classification in classifications:
-        discussion = by_id.get(classification.get("discussion_id") or "")
-        decision = classification.get("decision") or {}
+        discussion = by_id.get(classification.identity.discussion_id)
+        decision = classification.decision
         if not discussion:
             continue
-        action = normalize_discussion_action(decision.get("discussion_action") or "")
+        if not isinstance(decision, ActionDecision):
+            raise TypeError(
+                "top-level classifications require ActionDecision"
+            )
+        action = decision.action
         root_timestamp = discussion.get("root_timestamp") or ""
-        if action not in ("author", "unclear"):
+        if action not in (
+            DiscussionAction.AUTHOR,
+            DiscussionAction.UNCLEAR,
+        ):
             continue
         previous_entry = previous_history.get(discussion["discussion_id"]) or {}
         evidence, reply_source_id = _collect_author_evidence(
@@ -600,7 +617,7 @@ def _advance_top_level_actions(
             }
             continue
         pending_actions[discussion["discussion_id"]] = {
-            "action": _pending_action_for(action),
+            "action": _pending_action_for(action.value),
             "since": root_timestamp,
         }
     return pending_actions, top_level_history
@@ -635,7 +652,7 @@ def resolve_discussions(
             + classifications.top_level_items
             + classifications.top_level_author_comments
         )
-        if classification.get("failed")
+        if isinstance(classification, ClassificationFailure)
     )
     if failed_classifications:
         return DiscussionLifecycleOutcome(

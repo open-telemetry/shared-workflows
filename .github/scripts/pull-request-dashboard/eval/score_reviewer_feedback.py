@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import classification  # noqa: E402
+import classification_policy as policy  # noqa: E402
 
 CASES = Path(__file__).resolve().parent / "reviewer_feedback_cases.json"
 BATCH_SIZE = 10
@@ -42,7 +43,7 @@ VOCABULARIES = {
 def available_classifiers() -> list[str]:
     return [
         name for name, (template, _f, _m) in VOCABULARIES.items()
-        if hasattr(classification, template)
+        if hasattr(policy, template)
     ]
 
 
@@ -67,7 +68,7 @@ def classify(
 ) -> dict:
     batches = [
         [
-            classification.reviewer_feedback_prompt_item(
+            policy.reviewer_feedback_prompt_item(
                 c["id"], c["requester"], c["pr_author"], c["body"]
             )
             for c in group
@@ -76,8 +77,9 @@ def classify(
     ]
 
     def run(batch: list[dict]) -> dict[str, str]:
-        prompt = classification.render_top_level_batch_prompt(
-            batch, template, [dict(item) for item in batch]
+        prompt = policy.render_prompt_inputs(
+            [dict(item) for item in batch],
+            template,
         )
         # A batch that fails or answers unusably is unanswered, not fatal: one bad
         # response should not discard an evaluation of several hundred calls.
@@ -87,7 +89,7 @@ def classify(
             return {}
         if proc.returncode != 0:
             return {}
-        parsed = classification.extract_json_object(proc.stdout) or {}
+        parsed = policy.extract_json_object(proc.stdout) or {}
         items = parsed.get("items")
         if not isinstance(items, list):
             return {}
@@ -259,7 +261,7 @@ def main() -> None:
         parser.error("--trials must be at least 2 to measure stability")
 
     template_name, fields, mapping = VOCABULARIES[args.classifier]
-    template = getattr(classification, template_name, None)
+    template = getattr(policy, template_name, None)
     if template is None:
         raise SystemExit(
             f"{args.classifier} is not available in this checkout; "
