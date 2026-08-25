@@ -590,15 +590,18 @@
     },
     "7682": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7682#pullrequestreview-5022645373"
+        ],
+        "author_nudge_episode_id": "48cdd0f0734f485fbcc135b28798f0da",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8c1d857c213be3edce42027746c5bb22c30ad97ce26a10017df8ef20fceea7f9",
+        "copilot_request_fingerprint": "587bdc69fe9f32ff255c8c7ffebc05961653e6b177771bb8623a1c3949234ec3",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -614,8 +617,8 @@
         "head_sha": "7d9923f7962af9b89ceaac7a99cc60944d1fa002",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-22T14:43:09+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T18:42:11+00:00",
+        "last_approver_activity_at": "2026-08-25T18:42:11+00:00",
         "last_author_activity_at": "2026-08-22T12:58:59+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -627,18 +630,27 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "rajkumar-rangaraj",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b28b7efc79df6505ae20d6c52521f03d1dad9f0e518ea973dda3ea37838d2071",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-08-22T13:19:24.029405+00:00"
+        "routing_input_fingerprint": "103de1a06054bd5dbe4b176956a156fb4dd86decb4a6aa14085947e35e852424",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-25T18:42:11+00:00"
       },
       "failed": false,
       "pr_number": 7682,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7682",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "7687": {
