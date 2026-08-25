@@ -149,15 +149,10 @@ def top_level_author_comment_batch_prompt(
 
 
 def author_comment_prompt_batches(
-    discussions: list[dict[str, Any]] | tuple[ClassificationDiscussion, ...],
+    discussions: tuple[ClassificationDiscussion, ...],
 ) -> tuple[AuthorCommentModelRequest, ...]:
-    policy_discussions = (
-        discussions
-        if not discussions or isinstance(discussions[0], ClassificationDiscussion)
-        else _policy_discussions(discussions)
-    )
     return prepare_author_comment_requests(
-        policy_discussions,
+        discussions,
         batch_size=TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
         max_prompt_chars=MAX_PROMPT_CHARS,
     )
