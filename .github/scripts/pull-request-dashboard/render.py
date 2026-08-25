@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 from dataclasses import replace
 from datetime import datetime
 from fnmatch import fnmatchcase
@@ -9,9 +9,6 @@ from typing import Any
 from dashboard_contracts import (
     DashboardFacts,
     DashboardRoute,
-    EvaluationFailure,
-    EvaluationResult,
-    EvaluationSuccess,
     ReviewerSummary,
     StoredDashboardResult,
 )
@@ -212,110 +209,6 @@ def reviewers_cell_text(facts: DashboardFacts) -> str:
         # Join name and icon with a non-breaking space so they never wrap apart.
         parts.append(f"{login}&nbsp;{icon}" if icon else login)
     return "<br>".join(parts)
-
-
-def _neutralize_code_fence(s: str) -> str:
-    return (s or "").replace("```", "`\u200d`\u200d`")
-
-
-def render_diagnostics_section(
-    results: Iterable[EvaluationResult],
-    max_rows_per_section: int | None = None,
-) -> list[str]:
-    results_by_number = {
-        result.pr_number: result
-        for result in results
-    }
-    prs_with_content = [
-        number for number in sorted(results_by_number, reverse=True)
-        if (
-            results_by_number[number].diagnostics.review_thread_classifications
-            or results_by_number[number].diagnostics.top_level_classifications
-            or (
-                results_by_number[number]
-                .diagnostics.top_level_author_comment_classifications
-            )
-            or isinstance(results_by_number[number], EvaluationFailure)
-        )
-    ]
-    if not prs_with_content:
-        return []
-    prs_with_content, truncated = _limit_rows(prs_with_content, max_rows_per_section)
-    data_lines: list[str] = []
-    for number in prs_with_content:
-        result = results_by_number[number]
-        pending_actions = (
-            result.pending_actions
-            if isinstance(result, EvaluationSuccess)
-            else {}
-        )
-        data_lines.append(f"PR #{number}")
-        classifications = (
-            result.diagnostics.review_thread_classifications
-            + result.diagnostics.top_level_classifications
-            + result.diagnostics.top_level_author_comment_classifications
-        )
-        for c in classifications:
-            decision = c.get("decision") or {}
-            if c.get("discussion_kind") == "top-level-author-reply":
-                feedback_outcomes = [
-                    outcome
-                    for outcome in (decision.get("feedback_outcomes") or [])
-                    if isinstance(outcome, Mapping)
-                    and isinstance(outcome.get("feedback_id"), str)
-                ]
-                if not feedback_outcomes:
-                    reason = (decision.get("reason") or "").replace("\n", " ")
-                    data_lines.append(
-                        f"llm: {c.get('discussion_id')} -> no-associated-feedback, no-action ({reason})"
-                    )
-                    continue
-                for outcome in feedback_outcomes:
-                    feedback_id = outcome["feedback_id"]
-                    action = outcome.get("discussion_action")
-                    reason = (outcome.get("reason") or "").replace("\n", " ")
-                    pending_action = pending_actions.get(feedback_id)
-                    if pending_action:
-                        lifecycle_suffix = f", pending:{pending_action.get('action')}"
-                    elif action in ("none", "unclear"):
-                        lifecycle_suffix = ", no-action"
-                    else:
-                        lifecycle_suffix = ", addressed"
-                    data_lines.append(
-                        f"llm: {c.get('discussion_id')} -> {feedback_id}:{action}{lifecycle_suffix} ({reason})"
-                    )
-                continue
-            reason = (decision.get("reason") or "").replace("\n", " ")
-            pending_action = pending_actions.get(c.get("discussion_id"))
-            if pending_action:
-                lifecycle_suffix = f", pending:{pending_action.get('action')}"
-            elif decision.get("discussion_action") == "none":
-                lifecycle_suffix = ", no-action"
-            elif c.get("discussion_kind") == "top-level-feedback":
-                lifecycle_suffix = ", addressed"
-            else:
-                lifecycle_suffix = ", closed"
-            data_lines.append(
-                f"llm: {c.get('discussion_id')} -> {decision.get('discussion_action')}{lifecycle_suffix} ({reason})"
-            )
-        if isinstance(result, EvaluationFailure):
-            data_lines.append(f"error: {result.error}")
-        data_lines.append("")
-    section = [
-        "<details>",
-        "<summary>Diagnostics</summary>",
-        "",
-        "```text",
-        *(_neutralize_code_fence(line) for line in data_lines),
-        "```",
-        "",
-        "</details>",
-        "",
-    ]
-    if truncated:
-        section.append(_truncation_note(truncated))
-        section.append("")
-    return section
 
 
 def render_pr_tables(
