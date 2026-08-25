@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from dashboard_contracts import DashboardFacts
@@ -19,10 +19,7 @@ from pull_request_source import (
     Review,
     ReviewRequest,
     ReviewThread,
-    normalize_actor,
-    normalize_checks,
     normalize_review_requests,
-    normalize_review_threads,
     normalize_reviews,
 )
 from utils import (
@@ -48,12 +45,6 @@ REQUEST_CONFIRMATION_ATTEMPTS = 3
 def is_copilot_reviewer(
     value: Actor | ReviewRequest | Review,
 ) -> bool:
-    if isinstance(value, Mapping):
-        value = normalize_actor(
-            value.get("user")
-            or value.get("author")
-            or value
-        )
     if isinstance(value, ReviewRequest):
         return value.is_copilot_reviewer
     actor = value.actor if isinstance(value, Review) else value
@@ -67,8 +58,6 @@ def open_copilot_finding_count(
     # the author has since addressed. Unresolved threads are the live ones:
     # GitHub marks a thread outdated once its anchor lines change, which is how
     # the rest of the dashboard already recognises a pushed fix.
-    if review_threads and not isinstance(review_threads[0], ReviewThread):
-        review_threads = normalize_review_threads(review_threads)
     count = 0
     for thread in review_threads:
         if thread.is_resolved or thread.is_outdated:
@@ -85,10 +74,6 @@ def copilot_review_status(
     review_threads: Sequence[ReviewThread],
 ) -> tuple[bool, bool, bool]:
     """Return (review exists, review is stale, review left open findings)."""
-    if reviews and not isinstance(reviews[0], Review):
-        reviews = normalize_reviews(reviews)
-    if review_threads and not isinstance(review_threads[0], ReviewThread):
-        review_threads = normalize_review_threads(review_threads)
     copilot_reviews = [
         review
         for review in reviews
@@ -191,8 +176,6 @@ def set_copilot_review_request_needed(
 
 
 def named_checks(checks: Sequence[Check]) -> str:
-    if checks and not isinstance(checks[0], Check):
-        checks = normalize_checks(checks) or ()
     names = sorted(check.name for check in checks)
     if len(names) > 3:
         return f"{', '.join(names[:3])} and {len(names) - 3} more"
