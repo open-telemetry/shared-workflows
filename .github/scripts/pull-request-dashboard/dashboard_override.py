@@ -124,26 +124,18 @@ def dashboard_override_facts(
     author: str,
     reviewers: set[str] | None = None,
     head_sha: str = "",
-    previous_facts: DashboardFacts | DashboardOverrideFacts | None = None,
+    previous_facts: DashboardFacts | None = None,
 ) -> DashboardOverrideFacts:
     command_id, command_user = latest_authorized_command(raw, author, reviewers)
     previous_command_id = (
-        previous_facts.command_id
-        if isinstance(previous_facts, DashboardOverrideFacts)
-        else (
-            previous_facts.dashboard_override_command_id
-            if previous_facts is not None
-            else 0
-        )
+        previous_facts.dashboard_override_command_id
+        if previous_facts is not None
+        else 0
     )
     previous_head_sha = (
-        previous_facts.head_sha
-        if isinstance(previous_facts, DashboardOverrideFacts)
-        else (
-            previous_facts.dashboard_override_head_sha
-            if previous_facts is not None
-            else ""
-        )
+        previous_facts.dashboard_override_head_sha
+        if previous_facts is not None
+        else ""
     )
     if command_id:
         if command_id == previous_command_id:

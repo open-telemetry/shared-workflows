@@ -313,7 +313,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         retry = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "later-head", first
+            raw, "author", None, "later-head", result_facts(first)
         )
 
         self.assertEqual(5, retry.command_id)
@@ -336,7 +336,7 @@ class DashboardOverrideTest(unittest.TestCase):
         }
 
         facts = dashboard_override.dashboard_override_facts(
-            raw, "author", None, "later-head", previous_facts
+            raw, "author", None, "later-head", result_facts(previous_facts)
         )
 
         self.assertEqual(6, facts.command_id)
