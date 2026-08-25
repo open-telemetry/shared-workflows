@@ -239,12 +239,15 @@ class DashboardOverrideTest(unittest.TestCase):
             "comment_id": 7,
             "kind": "routed",
             "head_sha": "abcdef123456",
+            "since": "2026-08-16T08:00:00Z",
             "user": "author",
             "route": "approver",
         })
 
         self.assertIn(
-            "<!-- pull-request-dashboard-override-ack:7:abcdef123456 -->", body
+            "<!-- pull-request-dashboard-override-ack:"
+            "7:abcdef123456:2026-08-16T08:00:00Z -->",
+            body,
         )
 
     def test_pending_command_binds_to_the_head_this_pass_observed(self) -> None:
@@ -326,6 +329,54 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(5, facts["dashboard_override_bound_command_id"])
         self.assertEqual("2026-08-16T08:00:00Z", facts["dashboard_override_since"])
         self.assertEqual("bound-head", facts["dashboard_override_head_sha"])
+
+    def test_deleted_command_keeps_previous_handoff_cutoff(self) -> None:
+        raw = {
+            "issue_comments": [{
+                "id": 9,
+                "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                "body": dashboard_override.override_ack_marker(5, "bound-head"),
+            }]
+        }
+        previous_facts = {
+            "dashboard_override_bound_command_id": 5,
+            "dashboard_override_head_sha": "bound-head",
+            "dashboard_override_since": "2026-08-16T08:00:00Z",
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw,
+            "author",
+            None,
+            "bound-head",
+            previous_facts,
+        )
+
+        self.assertEqual("2026-08-16T08:00:00Z", facts["dashboard_override_since"])
+
+    def test_acknowledgement_recovers_cutoff_after_command_deletion(self) -> None:
+        raw = {
+            "issue_comments": [{
+                "id": 9,
+                "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                "body": dashboard_override.override_ack_marker(
+                    5,
+                    "bound-head",
+                    "2026-08-16T08:00:00Z",
+                ),
+            }]
+        }
+
+        facts = dashboard_override.dashboard_override_facts(
+            raw,
+            "author",
+            None,
+            "bound-head",
+        )
+
+        self.assertEqual(5, facts["dashboard_override_bound_command_id"])
+        self.assertEqual("bound-head", facts["dashboard_override_head_sha"])
+        self.assertEqual("2026-08-16T08:00:00Z", facts["dashboard_override_since"])
 
     def test_status_marker_clears_only_its_bound_handoff(self) -> None:
         raw = {
@@ -415,6 +466,7 @@ class DashboardOverrideTest(unittest.TestCase):
             "author": "author",
             "dashboard_override_command_id": 12,
             "dashboard_override_head_sha": "bound-head",
+            "dashboard_override_since": "2026-08-16T08:00:00Z",
         }
 
         dashboard_override.append_command_ack_reply({"issue_comments": []}, facts, "approver")
@@ -424,6 +476,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 "comment_id": 12,
                 "kind": "routed",
                 "head_sha": "bound-head",
+                "since": "2026-08-16T08:00:00Z",
                 "user": "author",
                 "route": "approver",
                 "held_gates": "",

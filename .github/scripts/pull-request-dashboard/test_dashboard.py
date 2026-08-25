@@ -486,6 +486,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     "user": "author",
                     "route": "approver",
                     "held_gates": "",
+                    "since": "2026-08-16T08:00:00Z",
                 }
             ],
             result["facts"]["dashboard_command_replies"],

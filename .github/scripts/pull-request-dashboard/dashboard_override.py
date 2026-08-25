@@ -21,12 +21,13 @@ _COMMAND_REPLY_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-command-reply:(\d+) -->"
 )
 OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
-# The acknowledgement records which head the command bound to, so the handoff is
-# a comparison against the current head rather than an inference from timestamps.
+# The acknowledgement records which head the command bound to and when it was
+# created. The head makes the handoff a direct comparison against the current one.
 # The head is optional because acknowledgements written before the dashboard
 # recorded it still have to retire their command.
 _OVERRIDE_ACK_MARKER_RE = re.compile(
-    r"<!-- pull-request-dashboard-override-ack:(\d+)(?::([^\s>]+))? -->"
+    r"<!-- pull-request-dashboard-override-ack:"
+    r"(\d+)(?::([^:\s>]+))?(?::([^\s>]+))? -->"
 )
 PRE_REVIEW_ROUTES = ("author",)
 
@@ -124,16 +125,30 @@ def dashboard_override_facts(
             bound_head = previous_facts.get("dashboard_override_head_sha") or ""
         else:
             bound_head = head_sha
+        acknowledged_since = ""
     else:
-        bound_command_id, bound_head = acknowledged_override(comments)
-    override_since = _override_command_created_at(comments, bound_command_id)
-    cleared_command_id, cleared_head = status_reviewer_handoff_clearance(comments)
-    previous_clearance_applies = (
+        bound_command_id, bound_head, acknowledged_since = acknowledged_override(
+            comments
+        )
+    previous_binding_matches = bool(
         bound_command_id
         and bound_command_id
         == previous_facts.get("dashboard_override_bound_command_id")
         and bound_head
         and bound_head == previous_facts.get("dashboard_override_head_sha")
+    )
+    override_since = (
+        _override_command_created_at(comments, bound_command_id)
+        or (
+            previous_facts.get("dashboard_override_since") or ""
+            if previous_binding_matches
+            else ""
+        )
+        or acknowledged_since
+    )
+    cleared_command_id, cleared_head = status_reviewer_handoff_clearance(comments)
+    previous_clearance_applies = (
+        previous_binding_matches
         and previous_facts.get("dashboard_override_cleared_by_feedback")
     )
     cleared_by_feedback = bool(
@@ -205,8 +220,8 @@ def _acknowledged_override_command_ids(
 
 def acknowledged_override(
     comments: list[dict[str, Any]] | None,
-) -> tuple[int, str]:
-    """Newest acknowledged override command id and bound head SHA.
+) -> tuple[int, str, str]:
+    """Newest acknowledged override command id, bound head SHA, and cutoff.
 
     The head is empty when the newest acknowledgement predates the dashboard
     recording it. An unknown head ends the handoff instead of guessing at one, so
@@ -214,14 +229,24 @@ def acknowledged_override(
     """
     best_id = 0
     best_head = ""
+    best_since = ""
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
         for match in _OVERRIDE_ACK_MARKER_RE.finditer(comment.get("body") or ""):
             comment_id = int(match.group(1))
-            if comment_id > best_id or (comment_id == best_id and not best_head):
-                best_id, best_head = comment_id, match.group(2) or ""
-    return best_id, best_head
+            head = match.group(2) or ""
+            since = match.group(3) or ""
+            if (
+                comment_id > best_id
+                or (
+                    comment_id == best_id
+                    and (bool(head), bool(since))
+                    > (bool(best_head), bool(best_since))
+                )
+            ):
+                best_id, best_head, best_since = comment_id, head, since
+    return best_id, best_head, best_since
 
 
 def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
@@ -297,9 +322,14 @@ def command_reply_marker(comment_id: int) -> str:
     return f"{COMMAND_REPLY_MARKER_PREFIX}{comment_id} -->"
 
 
-def override_ack_marker(comment_id: int, head_sha: str = "") -> str:
+def override_ack_marker(
+    comment_id: int,
+    head_sha: str = "",
+    override_since: str = "",
+) -> str:
     head = f":{head_sha}" if head_sha else ""
-    return f"{OVERRIDE_ACK_MARKER_PREFIX}{comment_id}{head} -->"
+    since = f":{override_since}" if head_sha and override_since else ""
+    return f"{OVERRIDE_ACK_MARKER_PREFIX}{comment_id}{head}{since} -->"
 
 
 def render_command_reply(reply: dict[str, Any]) -> str:
@@ -352,7 +382,13 @@ def render_command_reply(reply: dict[str, Any]) -> str:
     comment_id = int(reply["comment_id"])
     markers = [command_reply_marker(comment_id)]
     if kind in ("routed", "cleared_by_feedback"):
-        markers.append(override_ack_marker(comment_id, reply.get("head_sha") or ""))
+        markers.append(
+            override_ack_marker(
+                comment_id,
+                reply.get("head_sha") or "",
+                reply.get("since") or "",
+            )
+        )
     return "\n".join([
         *markers,
         f"{mention}{message}",
@@ -379,10 +415,10 @@ def append_command_ack_reply(
 ) -> None:
     """Queue the reply that acknowledges an override command.
 
-    The reply carries the acknowledgement marker, which records the head the
-    command bound to and stops the command from being processed again. Every
-    authorized command gets a reply because the command forces the reviewer
-    route even when no discussion or failing check was cleared.
+    The reply carries the acknowledgement marker, which records the bound head
+    and feedback cutoff and stops the command from being processed again. Every
+    authorized command gets a reply because the command forces the reviewer route
+    even when no discussion or failing check was cleared.
     """
     command_id = int(facts.get("dashboard_override_command_id") or 0)
     if not command_id:
@@ -392,7 +428,7 @@ def append_command_ack_reply(
     replies = facts.setdefault("dashboard_command_replies", [])
     if any(reply.get("comment_id") == command_id for reply in replies):
         return
-    replies.append({
+    reply = {
         "comment_id": command_id,
         "kind": (
             "cleared_by_feedback"
@@ -407,4 +443,8 @@ def append_command_ack_reply(
             if facts.get("route_held_for_gates")
             else ""
         ),
-    })
+    }
+    override_since = facts.get("dashboard_override_since") or ""
+    if override_since:
+        reply["since"] = override_since
+    replies.append(reply)
