@@ -13065,7 +13065,7 @@
     },
     "50486": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "odubajDT",
         "author_action_review_thread_urls": [],
@@ -13073,7 +13073,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4e44954c7540baf1ab07ef0f571585924ff75c6dab4224a728f88ade4e4097c8",
+        "copilot_request_fingerprint": "1fa58b4a470044f749a21ec30b6a5648d9d2fe3be80da9c9387d0cdbf0b87757",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13089,21 +13089,31 @@
         "head_sha": "a0aa9045a8da09b8855e9a6c8240dc4e73b9fa43",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-25T05:06:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T07:35:00+00:00",
+        "last_approver_activity_at": "2026-08-25T07:35:00+00:00",
         "last_author_activity_at": "2026-08-25T05:06:44+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "ChrsMark",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ce5d5857679702ce6a169508dd6b52e3db136be096329b2fa3f4fd817f19d387",
+        "routing_input_fingerprint": "b5e39f35616fb7329a56fefa824d4bf80ca856729ffda9b4ea059422af28ea9a",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-25T05:06:44+00:00"
       },
       "failed": false,
       "pr_number": 50486,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50486",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50488": {
