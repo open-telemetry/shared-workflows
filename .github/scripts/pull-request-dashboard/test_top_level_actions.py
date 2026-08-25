@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import unittest
 from subprocess import CompletedProcess
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from classification import (
     PRAISE_VERDICTS,
@@ -406,8 +406,10 @@ class ReviewerHandoffFeedbackTest(unittest.TestCase):
         )
 
         self.assertEqual(records[0]["decision"]["discussion_action"], "none")
-        self.assertEqual(
-            run_verdict.call_args.args[3],
+        run_verdict.assert_called_once_with(
+            [thread],
+            "model",
+            ANY,
             REVIEWER_FEEDBACK_VERDICTS,
         )
 
