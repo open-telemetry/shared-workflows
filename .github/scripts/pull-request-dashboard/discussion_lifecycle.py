@@ -365,7 +365,11 @@ def _author_comment_outcomes(
         decision = classification.decision
         if not isinstance(decision, AuthorCommentDecision):
             raise TypeError(
-                "author-comment classifications require AuthorCommentDecision"
+                "author-comment classification "
+                f"{classification.identity.discussion_id!r} "
+                f"({classification.identity.kind.value}) requires "
+                "AuthorCommentDecision, got "
+                f"{type(decision).__name__}"
             )
         discussion = by_id.get(classification.identity.discussion_id)
         comments = (discussion or {}).get("comments") or []

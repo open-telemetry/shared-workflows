@@ -407,6 +407,37 @@ class ResolveDiscussionsTest(unittest.TestCase):
             },
         )
 
+    def test_invalid_author_reply_decision_names_the_classification(
+        self,
+    ) -> None:
+        invalid = ClassificationSuccess(
+            DiscussionIdentity(
+                "pr-author-reply-102",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            ),
+            ActionDecision(
+                DiscussionAction.AUTHOR,
+                "Wrong decision type.",
+            ),
+        )
+
+        with self.assertRaises(TypeError) as caught:
+            resolve_discussions(
+                PreparedDiscussions(
+                    (),
+                    (),
+                    (author_reply(102, ROOT_TIMESTAMP),),
+                ),
+                DiscussionClassifications((), (), (invalid,)),
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "author-comment classification 'pr-author-reply-102' "
+            "(top-level-author-reply) requires AuthorCommentDecision, "
+            "got ActionDecision",
+        )
+
     def test_author_reply_applies_each_feedback_outcome(self) -> None:
         prepared = PreparedDiscussions(
             (),
