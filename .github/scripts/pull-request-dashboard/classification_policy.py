@@ -1041,7 +1041,7 @@ def parse_author_comment_decision(
     seen_feedback_keys: set[str] = set()
     errors: list[str] = []
     expected_keys = sorted(feedback_id_by_key)
-    expected_ids = sorted(feedback_id_by_key.values())
+    expected_ids = [feedback_id_by_key[key] for key in expected_keys]
     for index, raw_outcome in enumerate(raw_outcomes):
         if not isinstance(raw_outcome, dict):
             errors.append(f"feedback_outcomes[{index}] is not an object")
