@@ -1618,7 +1618,7 @@
     },
     "462": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1626,7 +1626,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0e90da18076f87fa54eda493a3bd76a9f3d7a6942d1e88ea4a586e0b22116b5f",
+        "copilot_request_fingerprint": "8a487b1a99d757ef37108c7074f92b255481fba0222df29e44b3cf1daf82f709",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1642,21 +1642,31 @@
         "head_sha": "685171038f1d68dd2f5f4aec4b445bc38214f940",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-24T07:02:09+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T01:45:11+00:00",
+        "last_approver_activity_at": "2026-08-25T01:45:11+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0da983d1329bf2b323d44589a104abf72f3fdbb450bcde09dd76276e33261702",
+        "routing_input_fingerprint": "865a8b0052f3d83fb36530ee3488a43d6b8f7ad28a09785f2bd39b0e2734a39a",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-24T07:02:09+00:00"
       },
       "failed": false,
       "pr_number": 462,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/462",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "463": {
