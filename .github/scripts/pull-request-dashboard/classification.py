@@ -43,7 +43,6 @@ from classification_policy import (
     is_automation_command_comment,
     is_conflict_resolution_comment,
     leading_mentions,
-    make_author_comment_request,
     map_verdict_result,
     normalize_discussion_action,
     prepare_author_comment_requests,
@@ -53,7 +52,6 @@ from classification_policy import (
     resolve_author_comment_response,
     resolve_review_thread_policy,
     resolve_verdict_response,
-    reviewer_feedback_prompt_input,
     reviewer_feedback_prompt_item,
     with_result_metadata,
 )
@@ -126,23 +124,6 @@ def _raw_model_response(
         stdout=proc.stdout,
         stderr=proc.stderr,
     )
-
-
-def top_level_reviewer_feedback_prompt_input(
-    discussion: dict[str, Any],
-) -> dict[str, Any]:
-    return reviewer_feedback_prompt_input(
-        ClassificationDiscussion.from_record(discussion)
-    )
-
-
-def top_level_author_comment_batch_prompt(
-    discussions: list[dict[str, Any]],
-) -> str:
-    return make_author_comment_request(
-        _policy_discussions(discussions),
-        max_prompt_chars=MAX_PROMPT_CHARS,
-    ).prompt
 
 
 def author_comment_prompt_batches(

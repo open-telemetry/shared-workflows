@@ -10,10 +10,9 @@ from classification import (
     _run_classification_batch,
     classify_discussion_domains,
     classify_review_threads,
-    top_level_author_comment_batch_prompt,
-    top_level_reviewer_feedback_prompt_input,
 )
 from classification_policy import (
+    MAX_PROMPT_CHARS,
     PRAISE_VERDICTS,
     REVIEWER_FEEDBACK_VERDICTS,
     ActionDecision,
@@ -33,6 +32,8 @@ from classification_policy import (
     VerdictContract,
     VerdictDecision,
     leading_mentions,
+    make_author_comment_request,
+    reviewer_feedback_prompt_input,
 )
 from discussion_lifecycle import (
     DiscussionInput,
@@ -525,7 +526,10 @@ class AutomationCommandFeedbackTest(unittest.TestCase):
 
 class TopLevelActionLedgerTest(unittest.TestCase):
     def test_author_comment_prompt_supports_empty_input(self) -> None:
-        prompt = top_level_author_comment_batch_prompt([])
+        prompt = make_author_comment_request(
+            _policy_discussions([]),
+            max_prompt_chars=MAX_PROMPT_CHARS,
+        ).prompt
 
         self.assertIn(
             "---BEGIN AUTHOR FOLLOW-UPS---\n[]\n"
@@ -542,7 +546,10 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             for index in range(11)
         ]
 
-        prompt = top_level_author_comment_batch_prompt(discussions)
+        prompt = make_author_comment_request(
+            _policy_discussions(discussions),
+            max_prompt_chars=MAX_PROMPT_CHARS,
+        ).prompt
 
         self.assertIn('"discussion_id": "author-reply-10"', prompt)
 
@@ -1570,7 +1577,9 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         discussion["comments"] = [{"body": "Please update the implementation."}]
 
         self.assertEqual(
-            top_level_reviewer_feedback_prompt_input(discussion),
+            reviewer_feedback_prompt_input(
+                ClassificationDiscussion.from_record(discussion)
+            ),
             {
                 "discussion_id": "change-request",
                 "requester": "reviewer",
@@ -1587,7 +1596,9 @@ class TopLevelActionLedgerTest(unittest.TestCase):
         ]
 
         self.assertEqual(
-            top_level_reviewer_feedback_prompt_input(discussion)["addressed_to"],
+            reviewer_feedback_prompt_input(
+                ClassificationDiscussion.from_record(discussion)
+            )["addressed_to"],
             ["maintainer", "open-telemetry/java-approvers"],
         )
 
