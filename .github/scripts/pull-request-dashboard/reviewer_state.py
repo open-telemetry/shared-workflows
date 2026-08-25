@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from dashboard_contracts import ReviewerSummary
 from pull_request_activity import reviewer_actor_login
 
 
@@ -35,28 +36,6 @@ class ReviewerDiscussionInput:
     review_threads: tuple[dict[str, Any], ...]
     top_level_feedback: tuple[dict[str, Any], ...]
     pending_actions: Mapping[str, dict[str, Any]]
-
-
-@dataclass(frozen=True)
-class ReviewerSummary:
-    login: str
-    approved: bool
-    approved_non_team: bool
-    pending_review: bool
-    changes_requested: bool
-    open_thread: bool
-    top_level_feedback: bool
-
-    def dashboard_dict(self) -> dict[str, Any]:
-        return {
-            "login": self.login,
-            "approved": self.approved,
-            "approved_non_team": self.approved_non_team,
-            "pending_review": self.pending_review,
-            "changes_requested": self.changes_requested,
-            "open_thread": self.open_thread,
-            "top_level_feedback": self.top_level_feedback,
-        }
 
 
 _OPEN_DISCUSSION_ACTIONS = {"author", "reviewer"}

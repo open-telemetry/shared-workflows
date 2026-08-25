@@ -4,6 +4,12 @@ from dataclasses import FrozenInstanceError
 import unittest
 from unittest.mock import patch
 
+from dashboard_contracts import (
+    DashboardRoute,
+    EvaluationFailure,
+    EvaluationSuccess,
+)
+from dashboard_test_support import stored_dashboard_result
 from discussion_lifecycle import resolve_discussions
 from github_cli import TransientGhError
 from pull_request_evaluation import (
@@ -68,7 +74,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             config.required_approvals = 2  # type: ignore[misc]
         with self.assertRaises(FrozenInstanceError):
-            source.previous_result = {}  # type: ignore[misc]
+            source.previous_result = stored_dashboard_result()  # type: ignore[misc]
 
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
@@ -90,12 +96,12 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         )
 
         self.assertIsNotNone(result)
-        assert result is not None
-        self.assertFalse(result["failed"])
-        self.assertEqual("human-author", result["facts"]["author"])
-        self.assertEqual(7, result["pr_number"])
-        self.assertEqual("Evaluation contract", result["pr_title"])
-        self.assertEqual("https://example.test/pull/7", result["pr_url"])
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual("human-author", result.facts.author)
+        self.assertEqual(7, result.pr_number)
+        self.assertEqual("Evaluation contract", result.pr_title)
+        self.assertEqual("https://example.test/pull/7", result.pr_url)
 
     @patch(
         "pull_request_evaluation.resolve_discussions",
@@ -121,15 +127,17 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             evaluation_config(),
             PullRequestEvaluationInput(
                 {"number": 7},
-                previous_result={"top_level_history": history},
+                previous_result=stored_dashboard_result(
+                    7,
+                    top_level_history=history,
+                ),
             ),
         )
 
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertFalse(result["failed"])
         resolve.assert_called_once()
-        self.assertEqual(history, resolve.call_args.args[2])
+        self.assertEqual(history, dict(resolve.call_args.args[2]))
 
     def test_closed_and_draft_pull_requests_are_not_results(self) -> None:
         for name, raw in (
@@ -158,20 +166,13 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
                 PullRequestEvaluationInput({"number": 7}),
             )
 
-        self.assertEqual(
-            {
-                "pr_number": 7,
-                "failed": True,
-                "facts": {},
-                "review_threads": [],
-                "top_level_items": [],
-                "review_thread_classifications": [],
-                "top_level_classifications": [],
-                "route": "transient-failure",
-                "error": repr(error),
-            },
-            result,
-        )
+        self.assertIsInstance(result, EvaluationFailure)
+        assert isinstance(result, EvaluationFailure)
+        self.assertEqual(7, result.pr_number)
+        self.assertIs(result.route, DashboardRoute.TRANSIENT_FAILURE)
+        self.assertEqual(repr(error), result.error)
+        self.assertIsNone(result.facts)
+        self.assertEqual((), result.diagnostics.review_threads)
 
     def test_unexpected_failure_is_contained_and_logged(self) -> None:
         error = ValueError("broken")
@@ -187,8 +188,10 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
                 PullRequestEvaluationInput({"number": 7}),
             )
 
-        self.assertEqual("unknown", result["route"])
-        self.assertEqual(repr(error), result["error"])
+        self.assertIsInstance(result, EvaluationFailure)
+        assert isinstance(result, EvaluationFailure)
+        self.assertIs(DashboardRoute.UNKNOWN, result.route)
+        self.assertEqual(repr(error), result.error)
         print_exc.assert_called_once_with()
 
 

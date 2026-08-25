@@ -270,6 +270,11 @@ from author_nudge import (
 from copilot_review_delivery import (
     record_copilot_review_observation,
 )
+from dashboard_contracts import (
+    DashboardState,
+    EvaluationFailure,
+    EvaluationResult,
+)
 from dashboard_state_update import (
     DashboardStateUpdate,
     DashboardUpdateAcceptance,
@@ -282,7 +287,6 @@ from pull_request_evaluation import (
     evaluate_pull_request,
 )
 from state import (
-    INITIAL_BACKFILL_COMPLETE_KEY,
     empty_state,
     enqueue_status_comment_update,
     initial_backfill_complete,
@@ -310,7 +314,7 @@ def build_dashboard_update_for_pr(
     model: str,
     required_approvals: int,
     non_blocking_check_patterns: list[str],
-    dashboard_state: dict[str, Any],
+    dashboard_state: DashboardState,
     require_clean_copilot_review_branches: list[str] | None = None,
 ) -> DashboardStateUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
@@ -340,28 +344,21 @@ def build_dashboard_update_for_pr(
     return prepared_update.with_evaluated_result(trigger_pr_result)
 
 
-def dashboard_state_pr_numbers(state: dict[str, Any]) -> set[int]:
-    numbers: set[int] = set()
-    for key in (state.get("prs") or {}):
-        try:
-            numbers.add(int(key))
-        except ValueError:
-            continue
-    return numbers
+def dashboard_state_pr_numbers(state: DashboardState) -> set[int]:
+    return set(state.pr_numbers)
 
 
 def complete_initial_backfill_if_ready(
-    state: dict[str, Any],
+    state: DashboardState,
     open_pr_numbers: set[int],
     failed_pr_numbers: set[int] | None = None,
-) -> bool:
+) -> DashboardState:
     if initial_backfill_complete(state):
-        return False
+        return state
     attempted_pr_numbers = dashboard_state_pr_numbers(state) | (failed_pr_numbers or set())
     if not open_pr_numbers.issubset(attempted_pr_numbers):
-        return False
-    state[INITIAL_BACKFILL_COMPLETE_KEY] = True
-    return True
+        return state
+    return state.with_initial_backfill_complete()
 
 
 def backfill_cursor_pr_number(backfill_state: dict[str, Any]) -> int | None:
@@ -422,7 +419,7 @@ class BackfillSelection:
 
 def select_backfill_prs(
     prs: list[dict[str, Any]],
-    dashboard_state: dict[str, Any],
+    dashboard_state: DashboardState,
     backfill_state: dict[str, Any],
     max_prs: int,
 ) -> BackfillSelection:
@@ -489,31 +486,31 @@ def log_failed_classification_diagnostics(
             log_multiline_value(key, classification.get(key))
 
 
-def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
+def log_failed_result_diagnostics(result: EvaluationFailure) -> None:
     print("dashboard failure diagnostics:", file=sys.stderr)
-    number = result.get("pr_number") or "?"
+    number = result.pr_number
     print(
-        f"  PR #{number}: route={result.get('route') or '<unknown>'} "
-        f"error={log_line_value(result.get('error')) or '<none>'}",
+        f"  PR #{number}: route={result.route.value} "
+        f"error={log_line_value(result.error) or '<none>'}",
         file=sys.stderr,
     )
-    if result.get("pr_url"):
-        print(f"    url: {result.get('pr_url')}", file=sys.stderr)
+    if result.pr_url:
+        print(f"    url: {result.pr_url}", file=sys.stderr)
     discussions = {
         discussion.get("discussion_id"): discussion
         for discussion in (
-            (result.get("review_threads") or [])
-            + (result.get("top_level_items") or [])
-            + (result.get("top_level_author_comment_items") or [])
+            result.diagnostics.review_threads
+            + result.diagnostics.top_level_items
+            + result.diagnostics.top_level_author_comment_items
         )
-        if isinstance(discussion, dict) and discussion.get("discussion_id")
+        if discussion.get("discussion_id")
     }
     failed_classifications = [
         classification
         for classification in (
-            (result.get("review_thread_classifications") or [])
-            + (result.get("top_level_classifications") or [])
-            + (result.get("top_level_author_comment_classifications") or [])
+            result.diagnostics.review_thread_classifications
+            + result.diagnostics.top_level_classifications
+            + result.diagnostics.top_level_author_comment_classifications
         )
         if classification.get("failed")
     ]
@@ -524,14 +521,14 @@ def log_failed_result_diagnostics(result: dict[str, Any]) -> None:
         )
 
 
-def has_failed_dashboard_result(result: dict[str, Any] | None) -> bool:
-    return bool(result and result.get("failed"))
+def has_failed_dashboard_result(result: EvaluationResult | None) -> bool:
+    return isinstance(result, EvaluationFailure)
 
 
-def reject_failed_dashboard_result(result: dict[str, Any] | None) -> bool:
-    if result is None or not has_failed_dashboard_result(result):
+def reject_failed_dashboard_result(result: EvaluationResult | None) -> bool:
+    if not isinstance(result, EvaluationFailure):
         return False
-    number = result.get("pr_number") or "?"
+    number = result.pr_number
     log_failed_result_diagnostics(result)
     print(
         f"dashboard refresh hit PR failure(s); refusing to publish failed state: #{number}",
@@ -542,7 +539,7 @@ def reject_failed_dashboard_result(result: dict[str, Any] | None) -> bool:
 
 def save_dashboard_update_state(
     args: argparse.Namespace,
-    dashboard_state: dict[str, Any],
+    dashboard_state: DashboardState,
     dashboard_state_unchanged: bool,
 ) -> int:
     if dashboard_state_unchanged:
@@ -755,8 +752,11 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     if not selection.selected_prs:
         def save_current_dashboard_state() -> int:
             dashboard_state = load_dashboard_state_cache() or empty_state()
-            complete_initial_backfill_if_ready(dashboard_state, open_non_draft_pr_numbers)
-            return save_dashboard_update_state(args, dashboard_state, False)
+            completed_state = complete_initial_backfill_if_ready(
+                dashboard_state,
+                open_non_draft_pr_numbers,
+            )
+            return save_dashboard_update_state(args, completed_state, False)
 
         return state_branch.push_state_changes(
             state_dir,
@@ -791,15 +791,15 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             if acceptance.failed_result_rejected:
                 reject_failed_dashboard_result(calculation.evaluated_result)
                 failed_pr_numbers = update_backfill_progress(pr_number, failed=True)
-                initial_backfill_completed = complete_initial_backfill_if_ready(
+                completed_state = complete_initial_backfill_if_ready(
                     acceptance.dashboard_state,
                     open_non_draft_pr_numbers,
                     failed_pr_numbers,
                 )
                 return save_dashboard_update_state(
                     args,
-                    acceptance.dashboard_state,
-                    not initial_backfill_completed,
+                    completed_state,
+                    completed_state == acceptance.dashboard_state,
                 )
             apply_dashboard_update_effects(
                 pr_number,
@@ -812,17 +812,17 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 ),
             )
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
-            initial_backfill_completed = complete_initial_backfill_if_ready(
+            completed_state = complete_initial_backfill_if_ready(
                 acceptance.dashboard_state,
                 open_non_draft_pr_numbers,
                 failed_pr_numbers,
             )
             return save_dashboard_update_state(
                 args,
-                acceptance.dashboard_state,
+                completed_state,
                 (
                     not acceptance.effects.persist_dashboard_state
-                    and not initial_backfill_completed
+                    and completed_state == acceptance.dashboard_state
                 ),
             )
 

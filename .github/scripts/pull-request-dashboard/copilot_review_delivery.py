@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 import sys
-from typing import Any
 
 from copilot_review import (
     copilot_review_request_landed,
@@ -13,6 +12,7 @@ from copilot_review import (
     is_copilot_reviewer,
     stale_request_reason,
 )
+from dashboard_contracts import StoredDashboardResult
 from github_cli import fetch_pr_reviews, request_copilot_review
 from routing_snapshot import fetch_routing_snapshot
 from state import load_copilot_review_requests, save_copilot_review_requests
@@ -21,20 +21,22 @@ from utils import format_ts
 
 def record_copilot_review_observation(
     pr_number: int,
-    result: dict[str, Any] | None,
+    result: StoredDashboardResult | None,
     observed_at: datetime,
 ) -> None:
     requests = dict(load_copilot_review_requests())
     key = str(pr_number)
-    facts = (result or {}).get("facts") or {}
-    head_sha = str(facts.get("head_sha") or "")
-    request_fingerprint = str(
-        facts.get("copilot_request_fingerprint") or ""
+    facts = result.facts if result is not None else None
+    head_sha = facts.head_sha if facts is not None else ""
+    request_fingerprint = (
+        facts.copilot_request_fingerprint
+        if facts is not None
+        else ""
     )
     if (
         not result
-        or result.get("failed")
-        or not facts.get("copilot_review_request_needed")
+        or facts is None
+        or not facts.copilot_review_request_needed
         or not head_sha
         or not request_fingerprint
     ):

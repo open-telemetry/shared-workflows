@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any
 
+from dashboard_contracts import (
+    DashboardCommandReply,
+    DashboardFacts,
+    DashboardRoute,
+)
 from dashboard_status import DASHBOARD_APP_SLUG
 from route_presentation import outstanding_gate_phrase
 from utils import actor_login
@@ -26,6 +32,14 @@ _OVERRIDE_ACK_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-override-ack:(\d+)(?::([^\s>]+))? -->"
 )
 PRE_REVIEW_ROUTES = ("author",)
+
+
+@dataclass(frozen=True)
+class DashboardOverrideFacts:
+    command_id: int
+    command_user: str
+    head_sha: str
+    command_replies: tuple[DashboardCommandReply, ...]
 
 
 def author_override_guidance(staleness_note: str = "") -> str:
@@ -110,26 +124,35 @@ def dashboard_override_facts(
     author: str,
     reviewers: set[str] | None = None,
     head_sha: str = "",
-    previous_facts: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+    previous_facts: DashboardFacts | None = None,
+) -> DashboardOverrideFacts:
     command_id, command_user = latest_authorized_command(raw, author, reviewers)
-    previous_facts = previous_facts or {}
+    previous_command_id = (
+        previous_facts.dashboard_override_command_id
+        if previous_facts is not None
+        else 0
+    )
+    previous_head_sha = (
+        previous_facts.dashboard_override_head_sha
+        if previous_facts is not None
+        else ""
+    )
     if command_id:
-        if command_id == previous_facts.get("dashboard_override_command_id"):
-            bound_head = previous_facts.get("dashboard_override_head_sha") or ""
+        if command_id == previous_command_id:
+            bound_head = previous_head_sha
         else:
             bound_head = head_sha
     else:
         bound_head = acknowledged_override_head(raw.get("issue_comments"))
-    return {
-        "dashboard_override_command_id": command_id,
-        "dashboard_override_command_user": command_user,
+    return DashboardOverrideFacts(
+        command_id=command_id,
+        command_user=command_user,
         # A pending command keeps its first observed binding until delivery
         # records it in the acknowledgement. An acknowledged command keeps the
         # binding from that acknowledgement.
-        "dashboard_override_head_sha": bound_head,
-        "dashboard_command_replies": pending_command_replies(raw, author, reviewers),
-    }
+        head_sha=bound_head,
+        command_replies=pending_command_replies(raw, author, reviewers),
+    )
 
 
 def _is_dashboard_app_comment(comment: dict[str, Any]) -> bool:
@@ -205,7 +228,7 @@ def pending_command_replies(
     raw: dict[str, Any],
     author: str,
     reviewers: set[str] | None = None,
-) -> list[dict[str, Any]]:
+) -> tuple[DashboardCommandReply, ...]:
     """Return replies owed to unsupported or unauthorized `/dashboard` commands.
 
     `/dashboard route:reviewers` from the author or an approver is handled by the
@@ -217,7 +240,7 @@ def pending_command_replies(
     comments = raw.get("issue_comments") or []
     replied_ids = _replied_command_ids(comments)
 
-    replies: list[dict[str, Any]] = []
+    replies: list[DashboardCommandReply] = []
     for comment in comments:
         subcommand = parse_dashboard_command(comment)
         if subcommand is None:
@@ -235,13 +258,13 @@ def pending_command_replies(
             kind = "unauthorized"
         else:
             kind = "unknown_command"
-        replies.append({
-            "comment_id": comment_id,
-            "kind": kind,
-            "user": commenter,
-            "subcommand": subcommand,
-        })
-    return replies
+        replies.append(DashboardCommandReply(
+            comment_id=comment_id,
+            kind=kind,
+            user=commenter,
+            subcommand=subcommand,
+        ))
+    return tuple(replies)
 
 
 def command_reply_marker(comment_id: int) -> str:
@@ -253,18 +276,19 @@ def override_ack_marker(comment_id: int, head_sha: str = "") -> str:
     return f"{OVERRIDE_ACK_MARKER_PREFIX}{comment_id}{head} -->"
 
 
-def render_command_reply(reply: dict[str, Any]) -> str:
-    user = reply.get("user") or ""
+def render_command_reply(reply: DashboardCommandReply) -> str:
+    user = reply.user
     mention = f"@{user}, " if user else ""
-    kind = reply.get("kind")
+    kind = reply.kind
     if kind == "unauthorized":
         message = (
             "only the pull request author or a member of an approving team can "
             "use `/dashboard route:reviewers`."
         )
     elif kind == "routed":
-        route = reply.get("route") or ""
-        held_gates = reply.get("held_gates") or ""
+        # DashboardCommandReply refuses a routed reply without a route.
+        route = reply.route.value
+        held_gates = reply.held_gates
         if route in PRE_REVIEW_ROUTES:
             # An active handoff always routes to approvers, so a pre-review
             # route means the command is bound to a head that has been pushed
@@ -287,7 +311,7 @@ def render_command_reply(reply: dict[str, Any]) -> str:
         else:
             message = "this pull request was routed to reviewers."
     else:
-        subcommand = reply.get("subcommand") or ""
+        subcommand = reply.subcommand
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
         message = (
             f"`{attempted}` is not a recognized dashboard command. The only "
@@ -295,10 +319,10 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             "request author can use to move a pull request from waiting on the "
             "author to waiting on reviewers."
         )
-    comment_id = int(reply["comment_id"])
+    comment_id = reply.comment_id
     markers = [command_reply_marker(comment_id)]
     if kind == "routed":
-        markers.append(override_ack_marker(comment_id, reply.get("head_sha") or ""))
+        markers.append(override_ack_marker(comment_id, reply.head_sha))
     return "\n".join([
         *markers,
         f"{mention}{message}",
@@ -320,9 +344,9 @@ def command_reply_exists(
 
 def append_command_ack_reply(
     raw: dict[str, Any],
-    facts: dict[str, Any],
-    route: str,
-) -> None:
+    facts: DashboardFacts,
+    route: DashboardRoute,
+) -> DashboardFacts:
     """Queue the reply that acknowledges an override command.
 
     The reply carries the acknowledgement marker, which records the head the
@@ -330,23 +354,24 @@ def append_command_ack_reply(
     authorized command gets a reply because the command forces the reviewer
     route even when no discussion or failing check was cleared.
     """
-    command_id = int(facts.get("dashboard_override_command_id") or 0)
+    command_id = facts.dashboard_override_command_id
     if not command_id:
-        return
+        return facts
     if command_id in _replied_command_ids(raw.get("issue_comments") or []):
-        return
-    replies = facts.setdefault("dashboard_command_replies", [])
-    if any(reply.get("comment_id") == command_id for reply in replies):
-        return
-    replies.append({
-        "comment_id": command_id,
-        "kind": "routed",
-        "head_sha": facts.get("dashboard_override_head_sha") or "",
-        "user": facts.get("dashboard_override_command_user") or facts.get("author") or "",
-        "route": route,
-        "held_gates": (
+        return facts
+    replies = facts.dashboard_command_replies
+    if any(reply.comment_id == command_id for reply in replies):
+        return facts
+    reply = DashboardCommandReply(
+        comment_id=command_id,
+        kind="routed",
+        head_sha=facts.dashboard_override_head_sha,
+        user=facts.dashboard_override_command_user or facts.author,
+        route=route,
+        held_gates=(
             outstanding_gate_phrase(facts)
-            if facts.get("route_held_for_gates")
+            if facts.route_held_for_gates
             else ""
         ),
-    })
+    )
+    return facts.with_changes(dashboard_command_replies=(*replies, reply))

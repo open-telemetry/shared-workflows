@@ -26,6 +26,23 @@ from dashboard_state_update import (
     accept_dashboard_update,
     prepare_dashboard_update,
 )
+from dashboard_contracts import (
+    DashboardCommandReply,
+    DashboardFacts,
+    DashboardRoute,
+    DashboardState,
+    EvaluationFailure,
+    EvaluationResult,
+    EvaluationSuccess,
+    ReviewerSummary,
+    StoredDashboardResult,
+)
+from dashboard_test_support import (
+    dashboard_facts,
+    dashboard_state,
+    evaluation_success,
+    stored_dashboard_result,
+)
 from pull_request_evaluation import (
     PullRequestEvaluationConfig,
     PullRequestEvaluationInput,
@@ -45,8 +62,8 @@ def evaluation_facts(
     author: str,
     events: list[dict[str, object]],
     reviewers: set[str] | None = None,
-    previous_facts: dict[str, object] | None = None,
-) -> dict[str, object]:
+    previous_facts: DashboardFacts | None = None,
+) -> DashboardFacts:
     prepared_reviewers = prepare_reviewers(
         ReviewerInput(
             tuple(events),
@@ -60,7 +77,7 @@ def evaluation_facts(
         PullRequestActivity(tuple(events), None, None, None),
         prepared_reviewers,
         frozenset(reviewers or set()),
-        previous_facts or {},
+        previous_facts or dashboard_facts(),
     )
 
 
@@ -84,9 +101,9 @@ def evaluation_config(
 def evaluate_pr(
     pr_summary: dict[str, object],
     *,
-    previous_result: dict[str, object] | None = None,
+    previous_result: StoredDashboardResult | None = None,
     require_clean_copilot_review_branches: list[str] | None = None,
-) -> dict[str, object] | None:
+) -> EvaluationResult | None:
     return evaluate_pull_request(
         evaluation_config(
             require_clean_copilot_review_branches=(
@@ -102,29 +119,24 @@ def evaluate_pr(
 
 class AuthorNudgeEpisodeTest(unittest.TestCase):
     def test_preserves_episode_while_route_remains_author(self) -> None:
-        facts: dict[str, object] = {}
-
-        _assign_author_nudge_episode(
-            facts,
-            "author",
-            {
-                "route": "author",
-                "facts": {"author_nudge_episode_id": "abc123"},
-            },
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(),
+            DashboardRoute.AUTHOR,
+            stored_dashboard_result(
+                facts=dashboard_facts(author_nudge_episode_id="abc123"),
+            ),
             [],
         )
 
-        self.assertEqual("abc123", facts["author_nudge_episode_id"])
+        self.assertEqual("abc123", facts.author_nudge_episode_id)
 
     @patch("pull_request_evaluation.uuid.uuid4")
     def test_starts_new_episode_after_known_route_departure(self, uuid4: Mock) -> None:
         uuid4.return_value.hex = "def456"
-        facts: dict[str, object] = {}
-
-        _assign_author_nudge_episode(
-            facts,
-            "author",
-            {"route": "approver", "facts": {}},
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(),
+            DashboardRoute.AUTHOR,
+            stored_dashboard_result(route=DashboardRoute.APPROVER),
             [{
                 "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
                 "body": (
@@ -134,14 +146,12 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
             }],
         )
 
-        self.assertEqual("def456", facts["author_nudge_episode_id"])
+        self.assertEqual("def456", facts.author_nudge_episode_id)
 
     def test_recovers_episode_from_status_comment_after_cache_loss(self) -> None:
-        facts: dict[str, object] = {}
-
-        _assign_author_nudge_episode(
-            facts,
-            "author",
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(),
+            DashboardRoute.AUTHOR,
             None,
             [{
                 "performed_via_github_app": {"slug": "opentelemetry-pr-dashboard"},
@@ -152,37 +162,31 @@ class AuthorNudgeEpisodeTest(unittest.TestCase):
             }],
         )
 
-        self.assertEqual("abc123", facts["author_nudge_episode_id"])
+        self.assertEqual("abc123", facts.author_nudge_episode_id)
 
     def test_preserves_episode_while_route_is_held_for_gates(self) -> None:
-        facts: dict[str, object] = {"route_held_for_gates": True}
-
-        _assign_author_nudge_episode(
-            facts,
-            "author",
-            {
-                "route": "author",
-                "facts": {"author_nudge_episode_id": "abc123"},
-            },
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(route_held_for_gates=True),
+            DashboardRoute.AUTHOR,
+            stored_dashboard_result(
+                facts=dashboard_facts(author_nudge_episode_id="abc123"),
+            ),
             [],
         )
 
-        self.assertEqual("abc123", facts["author_nudge_episode_id"])
+        self.assertEqual("abc123", facts.author_nudge_episode_id)
 
     def test_preserves_episode_while_pr_is_conflicted(self) -> None:
-        facts: dict[str, object] = {"conflicts": "yes"}
-
-        _assign_author_nudge_episode(
-            facts,
-            "author",
-            {
-                "route": "author",
-                "facts": {"author_nudge_episode_id": "abc123"},
-            },
+        facts = _assign_author_nudge_episode(
+            dashboard_facts(conflicts="yes"),
+            DashboardRoute.AUTHOR,
+            stored_dashboard_result(
+                facts=dashboard_facts(author_nudge_episode_id="abc123"),
+            ),
             [],
         )
 
-        self.assertEqual("abc123", facts["author_nudge_episode_id"])
+        self.assertEqual("abc123", facts.author_nudge_episode_id)
 
 class FetchPrRawTest(unittest.TestCase):
     def test_uses_graphql_issue_comments_without_rest_join(self) -> None:
@@ -258,24 +262,23 @@ class DashboardEvaluationHandoffTest(unittest.TestCase):
         self,
         evaluate: Mock,
     ) -> None:
-        starting_result = {
-            "pr_number": 7,
-            "route": "author",
-            "facts": {"head_sha": "old-head"},
-            "top_level_history": {
-                "feedback": {
-                    "kind": "commit",
-                    "timestamp": "2026-08-16T08:00:00Z",
-                }
-            },
+        top_level_history = {
+            "feedback": {
+                "kind": "commit",
+                "timestamp": "2026-08-16T08:00:00Z",
+            }
         }
-        evaluated_result = {
-            "pr_number": 7,
-            "route": "approver",
-            "failed": False,
-            "facts": {"head_sha": "new-head"},
-            "top_level_history": starting_result["top_level_history"],
-        }
+        starting_result = stored_dashboard_result(
+            7,
+            facts=dashboard_facts(head_sha="old-head"),
+            top_level_history=top_level_history,
+        )
+        evaluated_result = evaluation_success(
+            7,
+            route=DashboardRoute.APPROVER,
+            facts=dashboard_facts(head_sha="new-head"),
+            top_level_history=top_level_history,
+        )
         evaluate.return_value = evaluated_result
 
         update = build_dashboard_update_for_pr(
@@ -288,7 +291,7 @@ class DashboardEvaluationHandoffTest(unittest.TestCase):
             "model",
             1,
             ["optional-*"],
-            {"prs": {"7": starting_result}},
+            dashboard_state(starting_result),
             ["main"],
         )
 
@@ -354,10 +357,10 @@ class PullRequestEvaluationTest(unittest.TestCase):
             PullRequestActivity(tuple(events), None, None, None),
             prepared_reviewers,
             frozenset({"reviewer"}),
-            {},
+            dashboard_facts(),
         )
 
-        self.assertEqual(1, facts["approval_count"])
+        self.assertEqual(1, facts.approval_count)
 
     @patch("pull_request_evaluation.resolve_routing", wraps=resolve_routing)
     @patch(
@@ -397,16 +400,8 @@ class PullRequestEvaluationTest(unittest.TestCase):
             routing_input.pending_human_reviewer_logins,
         )
         self.assertEqual(
-            [{
-                "login": "reviewer",
-                "approved": False,
-                "approved_non_team": False,
-                "pending_review": True,
-                "changes_requested": False,
-                "open_thread": False,
-                "top_level_feedback": False,
-            }],
-            result["facts"]["reviewers"],
+            (ReviewerSummary(login="reviewer", pending_review=True),),
+            result.facts.reviewers,
         )
 
     @patch(
@@ -471,24 +466,24 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertFalse(result["failed"])
-        self.assertEqual("approver", result["route"])
-        self.assertEqual({}, result["pending_actions"])
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertEqual({}, result.pending_actions)
         self.assertEqual(
-            "abcdef123456", result["facts"]["dashboard_override_head_sha"]
+            "abcdef123456", result.facts.dashboard_override_head_sha
         )
         self.assertEqual(
-            [
-                {
-                    "comment_id": 102,
-                    "kind": "routed",
-                    "head_sha": "abcdef123456",
-                    "user": "author",
-                    "route": "approver",
-                    "held_gates": "",
-                }
-            ],
-            result["facts"]["dashboard_command_replies"],
+            (
+                DashboardCommandReply(
+                    102,
+                    "routed",
+                    "author",
+                    head_sha="abcdef123456",
+                    route=DashboardRoute.APPROVER,
+                ),
+            ),
+            result.facts.dashboard_command_replies,
         )
         classify.assert_not_called()
 
@@ -551,10 +546,11 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertFalse(result["failed"])
-        self.assertEqual("approver", result["route"])
-        self.assertEqual({}, result["pending_actions"])
-        self.assertEqual("last_author_activity", result["facts"]["waiting_age_basis"])
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertEqual({}, result.pending_actions)
+        self.assertEqual("last_author_activity", result.facts.waiting_age_basis)
         classify.assert_called_once()
 
     @patch(
@@ -575,9 +571,10 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertFalse(result["failed"])
-        self.assertEqual("approver", result["route"])
-        self.assertFalse(result["facts"]["route_held_for_gates"])
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertFalse(result.facts.route_held_for_gates)
         classify.assert_called_once()
 
     @patch("routing_decision.utc_now")
@@ -596,22 +593,23 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
         result = evaluate_pr(
             {"number": 7},
-            previous_result={
-                "route": "author",
-                "facts": {
-                    "head_sha": "abcdef123456",
-                    "waiting_since": "2026-08-16T08:00:00+00:00",
-                },
-            },
+            previous_result=stored_dashboard_result(
+                7,
+                facts=dashboard_facts(
+                    head_sha="abcdef123456",
+                    waiting_since="2026-08-16T08:00:00+00:00",
+                ),
+            ),
         )
 
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertFalse(result["failed"])
-        self.assertEqual("author", result["route"])
-        self.assertTrue(result["facts"]["route_held_for_gates"])
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertTrue(result.facts.route_held_for_gates)
         self.assertEqual(
-            "2026-08-16T12:00:00+00:00", result["facts"]["route_held_since"]
+            "2026-08-16T12:00:00+00:00", result.facts.route_held_since
         )
         classify.assert_called_once()
 
@@ -627,21 +625,22 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
         result = evaluate_pr(
             {"number": 7},
-            previous_result={
-                "route": "author",
-                "facts": {
-                    "copilot_first_review_missing_since": "2026-08-11T12:00:00Z"
-                },
-            },
+            previous_result=stored_dashboard_result(
+                7,
+                facts=dashboard_facts(
+                    copilot_first_review_missing_since="2026-08-11T12:00:00Z",
+                ),
+            ),
         )
 
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertTrue(result["failed"])
-        self.assertEqual("unknown", result["route"])
+        self.assertIsInstance(result, EvaluationFailure)
+        assert isinstance(result, EvaluationFailure)
+        self.assertEqual(DashboardRoute.UNKNOWN, result.route)
         self.assertEqual(
             "2026-08-11T12:00:00Z",
-            result["facts"]["copilot_first_review_missing_since"],
+            result.facts.copilot_first_review_missing_since if result.facts else None,
         )
         classify.assert_called_once()
 
@@ -662,7 +661,7 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            ["https://example.test/discussion/1", "https://example.test/discussion/2"],
+            ("https://example.test/discussion/1", "https://example.test/discussion/2"),
             _author_action_discussion_urls(discussions, pending_actions),
         )
 
@@ -712,9 +711,9 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
-        self.assertTrue(facts["copilot_review_requested"])
-        self.assertTrue(facts["copilot_review_exists"])
-        self.assertFalse(facts["copilot_review_needed"])
+        self.assertTrue(facts.copilot_review_requested)
+        self.assertTrue(facts.copilot_review_exists)
+        self.assertFalse(facts.copilot_review_needed)
 
     def test_late_stale_review_does_not_replace_clean_current_head_review(self) -> None:
         facts = evaluation_facts(
@@ -752,7 +751,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
-        self.assertFalse(facts["copilot_review_needed"])
+        self.assertFalse(facts.copilot_review_needed)
 
     def test_push_since_latest_clean_copilot_review_needs_rereview(self) -> None:
         facts = evaluation_facts(
@@ -783,8 +782,8 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
-        self.assertFalse(facts["copilot_review_requested"])
-        self.assertTrue(facts["copilot_review_needed"])
+        self.assertFalse(facts.copilot_review_requested)
+        self.assertTrue(facts.copilot_review_needed)
 
     def test_unresolved_copilot_thread_on_current_head_needs_rereview(self) -> None:
         facts = evaluation_facts(
@@ -840,8 +839,8 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
-        self.assertFalse(facts["copilot_review_stale"])
-        self.assertTrue(facts["copilot_review_needed"])
+        self.assertFalse(facts.copilot_review_stale)
+        self.assertTrue(facts.copilot_review_needed)
 
     def test_resolved_copilot_findings_on_current_head_are_clean(self) -> None:
         # A review's comment count never shrinks, so counting it would hold the
@@ -908,8 +907,8 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
-        self.assertFalse(facts["copilot_review_stale"])
-        self.assertFalse(facts["copilot_review_needed"])
+        self.assertFalse(facts.copilot_review_stale)
+        self.assertFalse(facts.copilot_review_needed)
 
     def test_human_thread_does_not_count_as_a_copilot_finding(self) -> None:
         facts = evaluation_facts(
@@ -958,7 +957,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
-        self.assertFalse(facts["copilot_review_needed"])
+        self.assertFalse(facts.copilot_review_needed)
 
     def test_findings_only_history_needs_rereview(self) -> None:
         facts = evaluation_facts(
@@ -989,7 +988,7 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
-        self.assertTrue(facts["copilot_review_needed"])
+        self.assertTrue(facts.copilot_review_needed)
 
     def test_waits_for_automatic_initial_copilot_review(self) -> None:
         facts = evaluation_facts(
@@ -1011,134 +1010,122 @@ class CopilotReviewGateTest(unittest.TestCase):
             [],
         )
 
-        self.assertFalse(facts["copilot_review_exists"])
-        self.assertFalse(facts["copilot_review_needed"])
+        self.assertFalse(facts.copilot_review_exists)
+        self.assertFalse(facts.copilot_review_needed)
 
     def test_pending_first_review_request_is_not_duplicated(self) -> None:
-        facts = {
-            "ci_pending_count": 0,
-            "copilot_review_requested": True,
-            "copilot_review_exists": False,
-            "copilot_review_stale": False,
-            "copilot_first_review_missing_since": "2020-01-01T00:00:00+00:00",
-        }
+        facts = dashboard_facts(
+            ci_pending_count=0,
+            copilot_review_requested=True,
+            copilot_first_review_missing_since="2020-01-01T00:00:00+00:00",
+        )
 
-        set_copilot_review_request_needed(facts, "approver", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "approver", enabled=True)
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
     def test_marks_re_review_needed_after_push_since_clean_review(self) -> None:
-        facts = {
-            "ci_pending_count": 0,
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-            "copilot_review_stale": True,
-        }
+        facts = dashboard_facts(
+            ci_pending_count=0,
+            copilot_review_exists=True,
+            copilot_review_stale=True,
+        )
 
-        set_copilot_review_request_needed(facts, "maintainer", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "maintainer", enabled=True)
 
-        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertTrue(facts.copilot_review_request_needed)
 
     def test_marks_re_review_needed_before_reviewer_handoff(self) -> None:
-        facts = {
-            "ci_pending_count": 0,
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-            "copilot_review_stale": True,
-        }
+        facts = dashboard_facts(
+            ci_pending_count=0,
+            copilot_review_exists=True,
+            copilot_review_stale=True,
+        )
 
-        set_copilot_review_request_needed(facts, "approver", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "approver", enabled=True)
 
-        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertTrue(facts.copilot_review_request_needed)
 
     def test_open_findings_on_current_head_request_no_re_review(self) -> None:
         # Re-reviewing unchanged code cannot resolve a thread the author owns,
         # so requesting one here would repeat on every pass.
-        facts = {
-            "ci_pending_count": 0,
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-            "copilot_review_stale": False,
-            "copilot_review_needed": True,
-        }
+        facts = dashboard_facts(
+            ci_pending_count=0,
+            copilot_review_exists=True,
+            copilot_review_needed=True,
+        )
 
-        set_copilot_review_request_needed(facts, "maintainer", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "maintainer", enabled=True)
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
     def test_pending_re_review_is_not_requested_twice(self) -> None:
-        facts = {
-            "ci_pending_count": 0,
-            "copilot_review_requested": True,
-            "copilot_review_exists": True,
-            "copilot_review_stale": True,
-        }
+        facts = dashboard_facts(
+            ci_pending_count=0,
+            copilot_review_requested=True,
+            copilot_review_exists=True,
+            copilot_review_stale=True,
+        )
 
-        set_copilot_review_request_needed(facts, "maintainer", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "maintainer", enabled=True)
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
     def test_current_head_clean_review_needs_no_request(self) -> None:
-        facts = {
-            "ci_pending_count": 0,
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-            "copilot_review_stale": False,
-        }
+        facts = dashboard_facts(
+            ci_pending_count=0,
+            copilot_review_exists=True,
+        )
 
-        set_copilot_review_request_needed(facts, "maintainer", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "maintainer", enabled=True)
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
     def test_running_checks_do_not_hold_a_re_review_request(self) -> None:
         # The review and the checks run at once, so a slow suite does not delay
         # the request. Checks that fail send the pull request to its author,
         # which is a route that never reaches here.
-        facts = {
-            "ci_pending_count": 1,
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-            "copilot_review_stale": True,
-        }
+        facts = dashboard_facts(
+            ci_pending_count=1,
+            copilot_review_exists=True,
+            copilot_review_stale=True,
+        )
 
-        set_copilot_review_request_needed(facts, "approver", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "approver", enabled=True)
 
-        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertTrue(facts.copilot_review_request_needed)
 
     def test_unavailable_check_results_do_not_hold_a_re_review_request(self) -> None:
-        facts = {
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-            "copilot_review_stale": True,
-        }
+        facts = dashboard_facts(
+            copilot_review_exists=True,
+            copilot_review_stale=True,
+        )
 
-        set_copilot_review_request_needed(facts, "approver", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "approver", enabled=True)
 
-        self.assertTrue(facts["copilot_review_request_needed"])
+        self.assertTrue(facts.copilot_review_request_needed)
 
     def test_author_route_does_not_request_a_re_review(self) -> None:
-        facts = {
-            "ci_pending_count": 0,
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-            "copilot_review_stale": True,
-        }
+        facts = dashboard_facts(
+            ci_pending_count=0,
+            copilot_review_exists=True,
+            copilot_review_stale=True,
+        )
 
-        set_copilot_review_request_needed(facts, "author", enabled=True)
+        facts = set_copilot_review_request_needed(facts, "author", enabled=True)
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
     def test_disabled_gate_requests_nothing(self) -> None:
-        facts = {
-            "ci_pending_count": 0,
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-            "copilot_review_stale": True,
-        }
+        facts = dashboard_facts(
+            ci_pending_count=0,
+            copilot_review_exists=True,
+            copilot_review_stale=True,
+        )
 
-        set_copilot_review_request_needed(facts, "maintainer", enabled=False)
+        facts = set_copilot_review_request_needed(facts, "maintainer", enabled=False)
 
-        self.assertFalse(facts["copilot_review_request_needed"])
+        self.assertFalse(facts.copilot_review_request_needed)
 
 
 class HeadShaSourceTest(unittest.TestCase):
@@ -1173,34 +1160,37 @@ class HeadShaSourceTest(unittest.TestCase):
             [],
         )
 
-        self.assertEqual(facts["head_sha"], "real-head")
-        self.assertTrue(facts["copilot_review_exists"])
-        self.assertFalse(facts["copilot_review_needed"])
+        self.assertEqual(facts.head_sha, "real-head")
+        self.assertTrue(facts.copilot_review_exists)
+        self.assertFalse(facts.copilot_review_needed)
 
 
 class InitialBackfillCompletionTest(unittest.TestCase):
     def test_marks_complete_only_after_all_open_prs_are_cached(self) -> None:
-        state = {"initial_backfill_complete": False, "prs": {"1": {}}}
+        state = dashboard_state(stored_dashboard_result(1))
 
-        self.assertFalse(complete_initial_backfill_if_ready(state, {1, 2}))
-        self.assertFalse(state["initial_backfill_complete"])
+        state = complete_initial_backfill_if_ready(state, {1, 2})
+        self.assertFalse(state.initial_backfill_complete)
 
-        state["prs"]["2"] = {}
-        self.assertTrue(complete_initial_backfill_if_ready(state, {1, 2}))
-        self.assertTrue(state["initial_backfill_complete"])
-        self.assertFalse(complete_initial_backfill_if_ready(state, {1, 2}))
+        state = state.with_result(2, stored_dashboard_result(2))
+        state = complete_initial_backfill_if_ready(state, {1, 2})
+        self.assertTrue(state.initial_backfill_complete)
+        self.assertIs(state, complete_initial_backfill_if_ready(state, {1, 2}))
 
     def test_empty_repository_completes_initial_backfill(self) -> None:
-        state = {"prs": {}}
+        state = complete_initial_backfill_if_ready(dashboard_state(), set())
 
-        self.assertTrue(complete_initial_backfill_if_ready(state, set()))
-        self.assertTrue(state["initial_backfill_complete"])
+        self.assertTrue(state.initial_backfill_complete)
 
     def test_writes_initial_backfill_status_to_github_output(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             for name, state, expected in (
                 ("incomplete", None, "false"),
-                ("complete", {"initial_backfill_complete": True, "prs": {}}, "true"),
+                (
+                    "complete",
+                    dashboard_state(initial_backfill_complete=True),
+                    "true",
+                ),
             ):
                 with self.subTest(name=name):
                     output_path = Path(temp_dir) / name
@@ -1219,7 +1209,11 @@ class StatusCommentQueueTest(unittest.TestCase):
     @patch("dashboard.enqueue_status_comment_update")
     @patch(
         "dashboard.load_dashboard_state_cache",
-        return_value={"prs": {"12": {}, "34": {}, "56": {}}},
+        return_value=dashboard_state(
+            stored_dashboard_result(12),
+            stored_dashboard_result(34),
+            stored_dashboard_result(56),
+        ),
     )
     def test_removed_dashboard_results_enqueue_status_comments(
         self,
@@ -1239,7 +1233,7 @@ class StatusCommentQueueTest(unittest.TestCase):
             sorted(enqueue_update.call_args_list, key=lambda call: call.args[0]),
         )
         saved_state = save_state.call_args.args[1]
-        self.assertEqual({"56": {}}, saved_state["prs"])
+        self.assertEqual(frozenset({56}), saved_state.pr_numbers)
         self.assertEqual(
             [
                 call(12, None, ANY, prepare_due=False),
@@ -1263,30 +1257,19 @@ class StatusCommentQueueTest(unittest.TestCase):
         record_nudge: Mock,
         record_copilot: Mock,
     ) -> None:
-        starting_result = {
-            "pr_number": 12,
-            "pr_url": "",
-            "route": "author",
-            "failed": False,
-            "facts": {},
-            "top_level_history": {},
-        }
-        evaluated_result = {"pr_number": 12, "route": "approver"}
-        dashboard_state = {"prs": {"12": starting_result}}
+        starting_result = stored_dashboard_result(12)
+        evaluated_result = evaluation_success(
+            12,
+            route=DashboardRoute.APPROVER,
+        )
+        state = dashboard_state(starting_result)
         calculation = prepare_dashboard_update(
-            dashboard_state,
+            state,
             {12},
             12,
         ).with_evaluated_result(evaluated_result)
-        accepted_result = {
-            "pr_number": 12,
-            "pr_url": "",
-            "route": "approver",
-            "failed": False,
-            "facts": {},
-            "top_level_history": {},
-        }
-        load_state.return_value = dashboard_state
+        accepted_result = StoredDashboardResult.from_evaluation(evaluated_result)
+        load_state.return_value = state
 
         with patch(
             "dashboard.accept_dashboard_update",
@@ -1327,21 +1310,20 @@ class StatusCommentQueueTest(unittest.TestCase):
         record_nudge: Mock,
         _record_copilot: Mock,
     ) -> None:
-        accepted_result = {
-            "pr_number": 12,
-            "pr_url": "",
-            "route": "approver",
-            "failed": False,
-            "facts": {},
-            "top_level_history": {},
-        }
-        dashboard_state = {"prs": {"12": accepted_result}}
+        accepted_result = stored_dashboard_result(
+            12,
+            route=DashboardRoute.APPROVER,
+        )
+        state = dashboard_state(accepted_result)
         calculation = prepare_dashboard_update(
-            dashboard_state,
+            state,
             {12},
             12,
-        ).with_evaluated_result(dict(accepted_result))
-        load_state.return_value = dashboard_state
+        ).with_evaluated_result(evaluation_success(
+            12,
+            route=DashboardRoute.APPROVER,
+        ))
+        load_state.return_value = state
 
         status = apply_targeted_dashboard_update(Namespace(pr_number=12), calculation)
 
@@ -1377,8 +1359,8 @@ class RequiredCiRoutingTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            ["CodeQL", "codeql"],
-            facts["non_blocking_check_failures"],
+            ("CodeQL", "codeql"),
+            facts.non_blocking_check_failures,
         )
 
     def test_required_check_buckets_control_ci_facts(self) -> None:
@@ -1412,11 +1394,11 @@ class RequiredCiRoutingTest(unittest.TestCase):
                     [],
                 )
 
-                self.assertEqual(failing, facts["ci_failing_count"])
-                self.assertEqual(pending, facts["ci_pending_count"])
+                self.assertEqual(failing, facts.ci_failing_count)
+                self.assertEqual(pending, facts.ci_pending_count)
                 self.assertEqual(
-                    ["workflow-notification"],
-                    facts["non_blocking_check_failures"],
+                    ("workflow-notification",),
+                    facts.non_blocking_check_failures,
                 )
 
     def test_override_command_does_not_clear_required_check_failures(self) -> None:
@@ -1448,8 +1430,8 @@ class RequiredCiRoutingTest(unittest.TestCase):
             [],
         )
 
-        self.assertEqual(3, facts["ci_failing_count"])
-        self.assertEqual("2026-07-17T01:00:00+00:00", facts["ci_failing_since"])
+        self.assertEqual(3, facts.ci_failing_count)
+        self.assertEqual("2026-07-17T01:00:00+00:00", facts.ci_failing_since)
 
 
 class ActivityFactsIntegrationTest(unittest.TestCase):
@@ -1483,17 +1465,17 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
             activity,
             prepared_reviewers,
             frozenset(),
-            {},
+            dashboard_facts(),
         )
 
-        self.assertEqual("2026-07-20T01:00:00+00:00", facts["last_activity_at"])
+        self.assertEqual("2026-07-20T01:00:00+00:00", facts.last_activity_at)
         self.assertEqual(
             "2026-07-20T02:00:00+00:00",
-            facts["last_author_activity_at"],
+            facts.last_author_activity_at,
         )
         self.assertEqual(
             "2026-07-20T03:00:00+00:00",
-            facts["last_approver_activity_at"],
+            facts.last_approver_activity_at,
         )
 
     def test_uses_creation_time_without_participant_activity(self) -> None:
@@ -1514,12 +1496,12 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
             PullRequestActivity((), None, None, None),
             prepare_reviewers(ReviewerInput((), (), ())),
             frozenset(),
-            {},
+            dashboard_facts(),
         )
 
         self.assertEqual(
             "2026-07-20T01:00:00+00:00",
-            facts["last_activity_at"],
+            facts.last_activity_at,
         )
 
 
@@ -1533,15 +1515,12 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             required_approvals=1,
             non_blocking_check_pattern=[],
         )
-        dashboard_state = {
-            "initial_backfill_complete": False,
-            "prs": {},
-        }
+        current_state = dashboard_state()
         backfill_state = {"cursor": {}}
         refreshed_pr_numbers: list[int] = []
 
-        def load_dashboard_state() -> dict:
-            return deepcopy(dashboard_state)
+        def load_dashboard_state() -> DashboardState:
+            return current_state
 
         def load_backfill_state() -> dict:
             return deepcopy(backfill_state)
@@ -1554,21 +1533,32 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             pr_number = call_args[5]
             starting_state = call_args[9]
             refreshed_pr_numbers.append(pr_number)
-            result = {
-                "pr_number": pr_number,
-                "failed": pr_number == 1,
-                "route": "unknown" if pr_number == 1 else "reviewer",
-            }
+            result = (
+                EvaluationFailure(
+                    pr_number=pr_number,
+                    route=DashboardRoute.UNKNOWN,
+                    error="failed",
+                )
+                if pr_number == 1
+                else evaluation_success(
+                    pr_number,
+                    route=DashboardRoute.APPROVER,
+                )
+            )
             return prepare_dashboard_update(
                 starting_state,
                 {1, 2},
                 pr_number,
             ).with_evaluated_result(result)
 
-        def save_dashboard_state(_args, state: dict, unchanged: bool) -> int:
+        def save_dashboard_state(
+            _args,
+            state: DashboardState,
+            unchanged: bool,
+        ) -> int:
+            nonlocal current_state
             if not unchanged:
-                dashboard_state.clear()
-                dashboard_state.update(deepcopy(state))
+                current_state = state
             return 0
 
         def push_state_changes(_state_dir, _message, update_state, **_kwargs) -> int:
@@ -1600,19 +1590,14 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         record_nudge.assert_called_once_with(2, ANY, ANY, prepare_due=False)
         self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
         self.assertEqual(
-            dashboard_state["prs"],
-            {
-                "2": {
-                    "pr_number": 2,
-                    "pr_url": "",
-                    "failed": False,
-                    "route": "reviewer",
-                    "facts": {},
-                    "top_level_history": {},
-                }
-            },
+            frozenset({2}),
+            current_state.pr_numbers,
         )
-        self.assertTrue(dashboard_state["initial_backfill_complete"])
+        self.assertEqual(
+            DashboardRoute.APPROVER,
+            current_state.result_for(2).route if current_state.result_for(2) else None,
+        )
+        self.assertTrue(current_state.initial_backfill_complete)
         self.assertEqual(backfill_state["cursor"], {"last_pr_number": 2})
         self.assertEqual(backfill_failed_pr_numbers(backfill_state), {1})
 
@@ -1624,21 +1609,14 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
     def test_successful_targeted_update_clears_recorded_failure(self) -> None:
         args = Namespace(pr_number=1)
-        starting_result = {
-            "pr_number": 1,
-            "pr_url": "",
-            "failed": False,
-            "route": "author",
-            "facts": {},
-            "top_level_history": {},
-        }
-        dashboard_state = {"prs": {"1": starting_result}}
+        starting_result = stored_dashboard_result(1)
+        state = dashboard_state(starting_result)
         calculation = prepare_dashboard_update(
-            dashboard_state,
+            state,
             {1},
             1,
         ).with_evaluated_result(
-            {"pr_number": 1, "failed": False, "route": "approver"}
+            evaluation_success(1, route=DashboardRoute.APPROVER)
         )
         backfill_state = {
             "cursor": {"last_pr_number": 7},
@@ -1649,7 +1627,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         with (
             patch(
                 "dashboard.load_dashboard_state_cache",
-                return_value=dashboard_state,
+                return_value=state,
             ),
             patch("dashboard.load_backfill_state", return_value=deepcopy(backfill_state)),
             patch(
@@ -1664,7 +1642,9 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         self.assertEqual(saved_backfill_state["cursor"], {"last_pr_number": 7})
         self.assertEqual(saved_backfill_state["failed_pr_numbers"], [2])
         saved_dashboard_state = save_dashboard.call_args.args[1]
-        self.assertEqual("approver", saved_dashboard_state["prs"]["1"]["route"])
+        saved_result = saved_dashboard_state.result_for(1)
+        self.assertIsNotNone(saved_result)
+        self.assertEqual(DashboardRoute.APPROVER, saved_result.route)
         self.assertFalse(save_dashboard.call_args.args[2])
 
     def test_emits_initial_backfill_status_only_for_accepted_state_outcomes(self) -> None:

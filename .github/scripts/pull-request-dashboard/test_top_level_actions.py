@@ -22,6 +22,8 @@ from discussion_lifecycle import (
     prepare_discussions,
     resolve_discussions,
 )
+from dashboard_contracts import DashboardRoute
+from dashboard_test_support import dashboard_facts
 from reviewer_state import (
     ReviewerDiscussionInput,
     ReviewerInput,
@@ -1427,12 +1429,11 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 ),
             ),
         )
-        facts = {
-            "approval_count": 1,
-            "ci_failing_count": 0,
-            "ci_pending_count": 0,
-            "is_maintenance_bot": False,
-        }
+        facts = dashboard_facts(
+            approval_count=1,
+            ci_failing_count=0,
+            ci_pending_count=0,
+        )
 
         self.assertEqual(outcome.pending_actions, {})
         self.assertEqual(
@@ -1444,14 +1445,14 @@ class TopLevelActionLedgerTest(unittest.TestCase):
                 facts=facts,
                 pending_actions=outcome.pending_actions,
                 previous_route=None,
-                previous_facts={},
+                previous_facts=dashboard_facts(),
                 required_approvals=1,
                 require_clean_copilot_review=False,
                 manual_reviewer_handoff=False,
                 pending_human_reviewer_logins=frozenset(),
             )
         )
-        self.assertEqual(routing.route, "maintainer")
+        self.assertEqual(routing.route, DashboardRoute.MAINTAINER)
 
 if __name__ == "__main__":
     unittest.main()

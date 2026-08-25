@@ -3,8 +3,11 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
+from dashboard_test_support import (
+    dashboard_facts,
+    stored_dashboard_result,
+)
 from render import (
-    render_diagnostics_section,
     render_draft_pr_section,
     render_pr_tables,
     reviewers_cell_text,
@@ -12,120 +15,8 @@ from render import (
 
 
 class RenderTest(unittest.TestCase):
-    def test_diagnostics_distinguish_addressed_top_level_items(self) -> None:
-        lines = render_diagnostics_section({
-            123: {
-                "review_thread_classifications": [
-                    {
-                        "discussion_id": "inline",
-                        "decision": {
-                            "discussion_action": "author",
-                            "reason": "Needs revision",
-                        },
-                    },
-                ],
-                "top_level_classifications": [
-                    {
-                        "discussion_id": "top_level",
-                        "discussion_kind": "top-level-feedback",
-                        "decision": {
-                            "discussion_action": "author",
-                            "reason": "Confirmed",
-                        },
-                    },
-                    {
-                        "discussion_id": "top_level_note",
-                        "discussion_kind": "top-level-feedback",
-                        "decision": {
-                            "discussion_action": "none",
-                            "reason": "Informational",
-                        },
-                    },
-                ],
-                "pending_actions": {
-                    "inline": {
-                        "action": "author",
-                        "since": "2026-07-14T01:00:00Z",
-                    },
-                },
-            },
-        })
-
-        markdown = "\n".join(lines)
-        self.assertIn("inline -> author, pending:author", markdown)
-        self.assertIn("top_level -> author, addressed", markdown)
-        self.assertIn("top_level_note -> none, no-action", markdown)
-
-    def test_diagnostics_render_author_comment_feedback_outcomes(self) -> None:
-        lines = render_diagnostics_section({
-            123: {
-                "top_level_author_comment_classifications": [
-                    {
-                        "discussion_id": "pr-author-reply-102",
-                        "discussion_kind": "top-level-author-reply",
-                        "decision": {
-                            "feedback_outcomes": [
-                                {
-                                    "feedback_id": "question",
-                                    "discussion_action": "none",
-                                    "reason": "The author answered it.",
-                                },
-                                {
-                                    "feedback_id": "test-request",
-                                    "discussion_action": "author",
-                                    "reason": "The author will add the test.",
-                                },
-                                {
-                                    "feedback_id": "dependency",
-                                    "discussion_action": "external",
-                                    "reason": "The dependency is blocked upstream.",
-                                },
-                                {
-                                    "feedback_id": "ambiguous",
-                                    "discussion_action": "unclear",
-                                    "reason": "The response is ambiguous.",
-                                },
-                            ],
-                        },
-                    },
-                ],
-                "pending_actions": {
-                    "test-request": {
-                        "action": "author",
-                        "since": "2026-07-14T01:00:00Z",
-                    },
-                    "dependency": {
-                        "action": "author",
-                        "since": "2026-07-14T01:00:00Z",
-                    },
-                    "ambiguous": {
-                        "action": "author",
-                        "since": "2026-07-14T01:00:00Z",
-                    },
-                },
-            },
-        })
-
-        markdown = "\n".join(lines)
-        self.assertIn(
-            "pr-author-reply-102 -> question:none, no-action ",
-            markdown,
-        )
-        self.assertIn(
-            "pr-author-reply-102 -> test-request:author, pending:author ",
-            markdown,
-        )
-        self.assertIn(
-            "pr-author-reply-102 -> dependency:external, pending:author ",
-            markdown,
-        )
-        self.assertIn(
-            "pr-author-reply-102 -> ambiguous:unclear, pending:author ",
-            markdown,
-        )
-
     def test_reviewer_legend_includes_top_level_feedback(self) -> None:
-        markdown = render_pr_tables([], {})
+        markdown = render_pr_tables([], ())
 
         self.assertIn(
             "⏳ review pending · 💬 open review thread · "
@@ -134,33 +25,33 @@ class RenderTest(unittest.TestCase):
         )
 
     def test_human_rereview_replaces_the_previous_approval_badge(self) -> None:
-        cell = reviewers_cell_text({
-            "reviewers": [{
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{
                 "login": "reviewer",
                 "approved": True,
                 "pending_review": True,
             }],
-        })
+        ))
 
         self.assertEqual("reviewer&nbsp;⏳", cell)
 
     def test_human_rereview_keeps_the_changes_requested_badge(self) -> None:
-        cell = reviewers_cell_text({
-            "reviewers": [{
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{
                 "login": "reviewer",
                 "changes_requested": True,
                 "pending_review": True,
             }],
-        })
+        ))
 
         self.assertEqual("reviewer&nbsp;⏳\u2060🔴", cell)
 
     def test_requested_copilot_review_is_listed_as_pending(self) -> None:
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_outstanding": True,
-            "copilot_review_requested": True,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "reviewer", "approved": True}],
+            copilot_review_outstanding=True,
+            copilot_review_requested=True,
+        ))
 
         self.assertEqual("Copilot&nbsp;⏳<br>reviewer&nbsp;✅", cell)
 
@@ -168,97 +59,100 @@ class RenderTest(unittest.TestCase):
         # Nothing holds the pull request there, and a requested human reviewer
         # who has not responded is left off the row, so Copilot gets no row
         # either. The gate is what makes the wait someone's turn.
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_outstanding": False,
-            "copilot_review_requested": True,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "reviewer", "approved": True}],
+            copilot_review_outstanding=False,
+            copilot_review_requested=True,
+        ))
 
         self.assertEqual("reviewer&nbsp;✅", cell)
 
     def test_requested_copilot_review_marks_its_existing_entry(self) -> None:
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "copilot-pull-request-reviewer", "open_thread": True}],
-            "copilot_review_outstanding": True,
-            "copilot_review_requested": True,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{
+                "login": "copilot-pull-request-reviewer",
+                "open_thread": True,
+            }],
+            copilot_review_outstanding=True,
+            copilot_review_requested=True,
+        ))
 
         self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
 
     def test_requested_copilot_review_marks_its_short_login_entry(self) -> None:
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "copilot", "open_thread": True}],
-            "copilot_review_outstanding": True,
-            "copilot_review_requested": True,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "copilot", "open_thread": True}],
+            copilot_review_outstanding=True,
+            copilot_review_requested=True,
+        ))
 
         self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
 
     def test_requested_copilot_review_marks_its_api_cased_entry(self) -> None:
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "Copilot", "open_thread": True}],
-            "copilot_review_outstanding": True,
-            "copilot_review_requested": True,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "Copilot", "open_thread": True}],
+            copilot_review_outstanding=True,
+            copilot_review_requested=True,
+        ))
 
         self.assertEqual("Copilot&nbsp;⏳\u2060💬", cell)
 
     def test_stale_copilot_review_without_a_request_is_not_pending(self) -> None:
         # Nothing is in flight, so the row would otherwise claim a wait that no
         # one is serving.
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_outstanding": True,
-            "copilot_review_exists": True,
-            "copilot_review_requested": False,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "reviewer", "approved": True}],
+            copilot_review_outstanding=True,
+            copilot_review_exists=True,
+            copilot_review_requested=False,
+        ))
 
         self.assertEqual("reviewer&nbsp;✅", cell)
 
     def test_held_pr_awaiting_the_automatic_first_review_is_pending(self) -> None:
         # The automatic first review is never requested, so the hold it causes
         # needs the icon to explain the row.
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_requested": False,
-            "copilot_review_exists": False,
-            "copilot_review_outstanding": True,
-            "route_held_for_gates": True,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "reviewer", "approved": True}],
+            copilot_review_requested=False,
+            copilot_review_exists=False,
+            copilot_review_outstanding=True,
+            route_held_for_gates=True,
+        ))
 
         self.assertEqual("Copilot&nbsp;⏳<br>reviewer&nbsp;✅", cell)
 
     def test_unheld_pr_awaiting_the_automatic_first_review_is_not_pending(self) -> None:
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_requested": False,
-            "copilot_review_exists": False,
-            "copilot_review_outstanding": True,
-            "route_held_for_gates": False,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "reviewer", "approved": True}],
+            copilot_review_requested=False,
+            copilot_review_exists=False,
+            copilot_review_outstanding=True,
+            route_held_for_gates=False,
+        ))
 
         self.assertEqual("reviewer&nbsp;✅", cell)
 
     def test_pr_held_only_by_unsettled_checks_is_not_copilot_pending(self) -> None:
         # Unsettled checks hold a route too, so the hold alone would put Copilot
         # on every row of a repository the gate does not cover.
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_requested": False,
-            "copilot_review_exists": False,
-            "copilot_review_outstanding": False,
-            "required_checks_settled": False,
-            "route_held_for_gates": True,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "reviewer", "approved": True}],
+            copilot_review_requested=False,
+            copilot_review_exists=False,
+            copilot_review_outstanding=False,
+            required_checks_settled=False,
+            route_held_for_gates=True,
+        ))
 
         self.assertEqual("reviewer&nbsp;✅", cell)
 
     def test_clean_copilot_review_is_not_listed_as_pending(self) -> None:
-        cell = reviewers_cell_text({
-            "reviewers": [{"login": "reviewer", "approved": True}],
-            "copilot_review_requested": False,
-            "copilot_review_exists": True,
-        })
+        cell = reviewers_cell_text(dashboard_facts(
+            reviewers=[{"login": "reviewer", "approved": True}],
+            copilot_review_requested=False,
+            copilot_review_exists=True,
+        ))
 
         self.assertEqual("reviewer&nbsp;✅", cell)
 
@@ -291,10 +185,10 @@ class RenderTest(unittest.TestCase):
                 "labels": ["documentation"],
             },
         ]
-        results = {
-            123: {"route": "unknown", "facts": {}},
-            124: {"route": "unknown", "facts": {}},
-        }
+        results = (
+            stored_dashboard_result(123),
+            stored_dashboard_result(124),
+        )
 
         markdown = render_pr_tables(
             prs,
@@ -323,7 +217,7 @@ class RenderTest(unittest.TestCase):
                     "labels": ["size/S"],
                 },
             ],
-            {},
+            (),
             labels_to_display=["size/*"],
         )
 
@@ -367,7 +261,7 @@ class RenderTest(unittest.TestCase):
                 "labels": ["size/L"],
             },
         ]
-        results = {126: {"route": "unknown", "facts": {}}}
+        results = (stored_dashboard_result(126),)
 
         self.assertEqual(
             render_pr_tables(prs, results),

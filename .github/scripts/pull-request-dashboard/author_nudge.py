@@ -9,6 +9,12 @@ import re
 import sys
 from typing import Any
 
+from dashboard_contracts import (
+    DashboardRoute,
+    DashboardState,
+    EvaluationFailure,
+    StoredDashboardResult,
+)
 from github_cli import (
     gh_api,
     gh_graphql,
@@ -104,21 +110,23 @@ def queue_completion(
         })
 
 
-def waiting_on_author(result: dict[str, Any] | None) -> bool:
-    return (result or {}).get("route") == "author"
+def waiting_on_author(
+    result: StoredDashboardResult | EvaluationFailure | None,
+) -> bool:
+    return (
+        isinstance(result, StoredDashboardResult)
+        and result.route is DashboardRoute.AUTHOR
+    )
 
 
 def plan_nudge(
-    result: dict[str, Any] | None,
+    result: StoredDashboardResult | EvaluationFailure | None,
     previous: dict[str, Any] | None,
     now: datetime,
 ) -> tuple[bool, dict[str, Any] | None]:
     entry = dict(previous or {})
     nudged_at = entry.get("nudged_at") or ""
-    if result and (
-        result.get("failed")
-        or result.get("route") in ("transient-failure", "unknown")
-    ):
+    if isinstance(result, EvaluationFailure):
         return False, entry or None
     if result is None:
         if nudged_at:
@@ -135,11 +143,13 @@ def plan_nudge(
             )
             return False, {"completions": completions}
         return False, completion_only(entry)
-    facts = (result or {}).get("facts") or {}
-    current_episode_id = str(facts.get("author_nudge_episode_id") or "")
+    facts = result.facts
+    current_episode_id = facts.author_nudge_episode_id or ""
     if not waiting_on_author(result):
-        route = result.get("route") or ""
-        if route in ("approver", "maintainer"):
+        if result.route in (
+            DashboardRoute.APPROVER,
+            DashboardRoute.MAINTAINER,
+        ):
             completion_kind = "left_author"
         else:
             return False, completion_only(entry)
@@ -331,14 +341,12 @@ def minimize_comment(node_id: str) -> None:
 def ensure_nudge(
     repo: str,
     pr_number: int,
-    result: dict[str, Any],
-    dashboard_state: dict[str, Any],
+    result: StoredDashboardResult,
+    dashboard_state: DashboardState,
     waiting_since: str,
     now: datetime,
 ) -> str | None:
-    episode_id = str(
-        ((result.get("facts") or {}).get("author_nudge_episode_id") or "")
-    )
+    episode_id = result.facts.author_nudge_episode_id or ""
     if not episode_id:
         raise RuntimeError(f"author nudge episode not found for PR #{pr_number}")
     existing = existing_nudge_comment(repo, pr_number, episode_id)
@@ -353,7 +361,7 @@ def ensure_nudge(
     status_comments = managed_status_comments(repo, pr_number)
     if not status_comments or not status_comments[0].get("html_url"):
         raise RuntimeError(f"dashboard status comment not found for PR #{pr_number}")
-    author = str(((result.get("facts") or {}).get("author") or "")).strip()
+    author = result.facts.author.strip()
     author = author or str((pr.get("user") or {}).get("login") or "").strip()
     if not author:
         raise RuntimeError(f"author not found for PR #{pr_number}")
@@ -370,7 +378,7 @@ def ensure_nudge_completed(
     repo: str,
     pr_number: int,
     episode_id: str,
-    dashboard_state: dict[str, Any],
+    dashboard_state: DashboardState,
     completed_at: datetime,
     kind: str = "left_author",
 ) -> None:
@@ -415,7 +423,7 @@ def ensure_nudge_completed(
 
 def record_author_nudge_observation(
     pr_number: int,
-    result: dict[str, Any] | None,
+    result: StoredDashboardResult | None,
     now: datetime,
     *,
     prepare_due: bool = False,
@@ -424,11 +432,15 @@ def record_author_nudge_observation(
     key = str(pr_number)
     due, entry = plan_nudge(result, updated.get(key), now)
     if due and prepare_due and entry is not None:
-        facts = (result or {}).get("facts") or {}
-        head_sha = facts.get("head_sha") or ""
-        routing_fingerprint = facts.get("routing_input_fingerprint") or ""
+        facts = result.facts if result is not None else None
+        head_sha = facts.head_sha if facts is not None else ""
+        routing_fingerprint = (
+            facts.routing_input_fingerprint
+            if facts is not None
+            else ""
+        )
         if head_sha and routing_fingerprint:
-            episode_id = str(facts.get("author_nudge_episode_id") or "")
+            episode_id = facts.author_nudge_episode_id or ""
             entry = {
                 **entry,
                 "pending_at": format_ts(now),
@@ -454,11 +466,10 @@ def deliver_prepared_author_nudges(
         print("dashboard state not found; skipping author nudges", file=sys.stderr)
         return []
     updated = dict(load_author_nudges(retry_snapshot_path))
-    dashboard_prs = dashboard_state.get("prs") or {}
     errors: list[str] = []
     for key, entry in sorted(updated.items(), key=lambda item: int(item[0])):
         pr_number = int(key)
-        result = dashboard_prs.get(key)
+        result = dashboard_state.result_for(pr_number)
         completions = list((entry or {}).get("completions") or [])
         remaining_completions: list[dict[str, Any]] = []
         for completion in completions:
@@ -569,7 +580,11 @@ def deliver_prepared_author_nudges(
             continue
         if nudged_at:
             episode_id = str(
-                ((result or {}).get("facts") or {}).get("author_nudge_episode_id")
+                (
+                    result.facts.author_nudge_episode_id
+                    if result is not None
+                    else ""
+                )
                 or entry.get("episode_id")
                 or ""
             )

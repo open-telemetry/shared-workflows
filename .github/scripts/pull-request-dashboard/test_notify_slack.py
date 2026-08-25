@@ -4,6 +4,11 @@ from datetime import datetime, timezone
 import unittest
 from unittest.mock import patch
 
+from dashboard_test_support import (
+    dashboard_facts,
+    dashboard_state,
+    stored_dashboard_result,
+)
 from notifications import next_notifications
 from notify_slack import notify_slack_from_state
 
@@ -11,17 +16,17 @@ from notify_slack import notify_slack_from_state
 class NotifySlackTest(unittest.TestCase):
     @patch("notifications.send_slack_notification")
     def test_gate_held_pr_does_not_notify_reviewers(self, send_notification) -> None:
-        results = {
-            7: {
-                "pr_number": 7,
-                "route": "approver",
-                "facts": {
-                    "route_held_for_gates": True,
-                    "reviewers": [{"login": "reviewer"}],
-                    "waiting_since": "2026-07-20T01:00:00Z",
-                },
-            },
-        }
+        results = (
+            stored_dashboard_result(
+                7,
+                "approver",
+                facts=dashboard_facts(
+                    route_held_for_gates=True,
+                    reviewers=({"login": "reviewer"},),
+                    waiting_since="2026-07-20T01:00:00Z",
+                ),
+            ),
+        )
 
         with patch.dict(
             "os.environ",
@@ -34,6 +39,7 @@ class NotifySlackTest(unittest.TestCase):
             updated, errors = next_notifications(
                 "open-telemetry/example",
                 results,
+                {7: "Example"},
                 {},
                 datetime(2026, 7, 20, 2, tzinfo=timezone.utc),
             )
@@ -51,15 +57,13 @@ class NotifySlackTest(unittest.TestCase):
         load_notifications,
         save_notifications,
     ) -> None:
-        load_dashboard_state_cache.return_value = {
-            "prs": {
-                "2": {
-                    "pr_number": 2,
-                    "failed": True,
-                    "route": "unknown",
-                },
-            }
-        }
+        load_dashboard_state_cache.return_value = dashboard_state(
+            stored_dashboard_result(
+                2,
+                "approver",
+                facts=dashboard_facts(route_held_for_gates=True),
+            )
+        )
         open_prs = [
             {"number": 2, "isDraft": False, "title": "Open PR"},
             {"number": 5, "isDraft": False, "title": "Not cached yet"},
@@ -107,9 +111,9 @@ class NotifySlackTest(unittest.TestCase):
         load_notifications,
         save_notifications,
     ) -> None:
-        load_dashboard_state_cache.return_value = {
-            "prs": {"2": {"pr_number": 2, "route": "author"}}
-        }
+        load_dashboard_state_cache.return_value = dashboard_state(
+            stored_dashboard_result(2, "author")
+        )
         load_notifications.return_value = {
             "2": {
                 "last_notified_at": "2026-07-14T03:00:00Z",
@@ -151,12 +155,10 @@ class NotifySlackTest(unittest.TestCase):
         _save_notifications,
         next_notifications,
     ) -> None:
-        load_dashboard_state_cache.return_value = {
-            "prs": {
-                "2": {"pr_number": 2, "route": "author"},
-                "3": {"pr_number": 3, "route": "approver"},
-            }
-        }
+        load_dashboard_state_cache.return_value = dashboard_state(
+            stored_dashboard_result(2, "author"),
+            stored_dashboard_result(3, "approver"),
+        )
 
         with patch.dict("os.environ", {"SLACK_CHANNEL": "dashboard"}, clear=True):
             errors = notify_slack_from_state(
@@ -172,7 +174,7 @@ class NotifySlackTest(unittest.TestCase):
 
         self.assertEqual(errors, [])
         results = next_notifications.call_args.args[1]
-        self.assertEqual({2}, set(results))
+        self.assertEqual({2}, {result.pr_number for result in results})
 
     @patch("notifications.send_slack_notification")
     @patch("notify_slack.save_notifications")
@@ -185,18 +187,16 @@ class NotifySlackTest(unittest.TestCase):
         save_notifications,
         send_notification,
     ) -> None:
-        load_dashboard_state_cache.return_value = {
-            "prs": {
-                "2": {
-                    "pr_number": 2,
-                    "route": "approver",
-                    "facts": {
-                        "reviewers": [{"login": "reviewer"}],
-                        "waiting_since": "2026-07-20T01:00:00Z",
-                    },
-                }
-            }
-        }
+        load_dashboard_state_cache.return_value = dashboard_state(
+            stored_dashboard_result(
+                2,
+                "approver",
+                facts=dashboard_facts(
+                    reviewers=({"login": "reviewer"},),
+                    waiting_since="2026-07-20T01:00:00Z",
+                ),
+            )
+        )
         load_notifications.return_value = None
 
         with patch.dict(

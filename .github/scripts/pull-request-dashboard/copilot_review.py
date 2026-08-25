@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 
+from dashboard_contracts import DashboardFacts
 from github_cli import (
     fetch_pr_reviews,
     fetch_review_requests,
@@ -76,15 +77,13 @@ def copilot_review_status(
     return True, stale, open_copilot_finding_count(review_threads) > 0
 
 
-def copilot_review_outstanding(facts: dict[str, Any], *, enabled: bool) -> bool:
+def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:
     if not enabled:
         return False
-    return not facts.get("copilot_review_exists") or bool(
-        facts.get("copilot_review_needed")
-    )
+    return not facts.copilot_review_exists or facts.copilot_review_needed
 
 
-def copilot_review_unreported(facts: dict[str, Any], *, enabled: bool) -> bool:
+def copilot_review_unreported(facts: DashboardFacts, *, enabled: bool) -> bool:
     # Whether the gate is still waiting for Copilot to say anything about the
     # current head. Findings are an answer, not a silence: the threads they
     # leave are the author's to clear, and the dashboard already routes the
@@ -92,18 +91,16 @@ def copilot_review_unreported(facts: dict[str, Any], *, enabled: bool) -> bool:
     # that covers older code is a report that has not arrived.
     if not enabled:
         return False
-    return not facts.get("copilot_review_exists") or bool(
-        facts.get("copilot_review_stale")
-    )
+    return not facts.copilot_review_exists or facts.copilot_review_stale
 
 
 def set_copilot_first_review_missing_since(
-    facts: dict[str, Any],
-    previous_result: dict[str, Any] | None,
+    facts: DashboardFacts,
+    previous_facts: DashboardFacts,
     *,
     enabled: bool,
     now: datetime,
-) -> None:
+) -> DashboardFacts:
     # How long this pull request has been waiting on a first review that GitHub
     # was expected to start automatically. The clock runs only while the wait is
     # real: the gate applies, the pull request is out of draft, and Copilot has
@@ -112,29 +109,30 @@ def set_copilot_first_review_missing_since(
     # deliberately does not reset it, because GitHub does not automatically
     # review a pull request it has never reviewed, so restarting the wait on
     # every push would leave an actively developed pull request waiting forever.
-    previous_facts = (previous_result or {}).get("facts") or {}
-    if not enabled or facts.get("is_draft") or facts.get("copilot_review_exists"):
-        facts.pop("copilot_first_review_missing_since", None)
-        return
-    facts["copilot_first_review_missing_since"] = str(
-        previous_facts.get("copilot_first_review_missing_since") or format_ts(now)
+    if not enabled or facts.is_draft or facts.copilot_review_exists:
+        return facts.with_changes(copilot_first_review_missing_since=None)
+    return facts.with_changes(
+        copilot_first_review_missing_since=(
+            previous_facts.copilot_first_review_missing_since
+            or format_ts(now)
+        )
     )
 
 
-def copilot_first_review_overdue(facts: dict[str, Any], now: datetime) -> bool:
-    missing_since = parse_ts(facts.get("copilot_first_review_missing_since"))
+def copilot_first_review_overdue(facts: DashboardFacts, now: datetime) -> bool:
+    missing_since = parse_ts(facts.copilot_first_review_missing_since)
     if missing_since is None:
         return False
     return now - missing_since >= FIRST_REVIEW_GRACE
 
 
 def set_copilot_review_request_needed(
-    facts: dict[str, Any],
+    facts: DashboardFacts,
     route: str,
     *,
     enabled: bool,
     now: datetime | None = None,
-) -> None:
+) -> DashboardFacts:
     # Only two states are worth a request. A stale review means the author
     # pushed, which is the one change a re-review can respond to; findings on
     # the current head sit on unchanged code, so re-reviewing would reach the
@@ -147,19 +145,19 @@ def set_copilot_review_request_needed(
     # run at once. Failing checks still do, because they route the pull request
     # to its author and only a reviewer route reaches here.
     now = now or utc_now()
-    review_missing = not facts.get("copilot_review_exists")
-    facts["copilot_review_request_needed"] = (
+    review_missing = not facts.copilot_review_exists
+    return facts.with_changes(copilot_review_request_needed=(
         enabled
         and route in ("approver", "maintainer")
         and (
             (
-                bool(facts.get("copilot_review_exists"))
-                and bool(facts.get("copilot_review_stale"))
+                facts.copilot_review_exists
+                and facts.copilot_review_stale
             )
             or (review_missing and copilot_first_review_overdue(facts, now))
         )
-        and not facts.get("copilot_review_requested")
-    )
+        and not facts.copilot_review_requested
+    ))
 
 
 def named_checks(checks: list[dict[str, Any]]) -> str:
