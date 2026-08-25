@@ -3,7 +3,7 @@
   "prs": {
     "105": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -11,7 +11,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "32df082cdfcc637e03052fe990b5bb386385257c4ec6e3bda3d942d70ef701f8",
+        "copilot_request_fingerprint": "815d4829efb687ca2cb0ff822d4aaec8c4c5491fc410c916ebf483cbd6638fac",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -27,21 +27,31 @@
         "head_sha": "da91013f8d06f1675d18e7d254faf21401917cfb",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-25T04:22:03+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T05:24:52+00:00",
+        "last_approver_activity_at": "2026-08-25T05:24:52+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6b464b936953250e9d9f02e8d6f4458b22850b08370614b6af360ba01eabc92d",
+        "routing_input_fingerprint": "718c6bfab23d14fd49ef333af51b124463e5c5927ae1499c1a015758f3634ca0",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-25T04:22:03+00:00"
       },
       "failed": false,
       "pr_number": 105,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/105",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "40": {
