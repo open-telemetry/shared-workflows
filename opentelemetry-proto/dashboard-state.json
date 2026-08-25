@@ -285,12 +285,15 @@
         "approval_count": 3,
         "assignees": [],
         "author": "brancz",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-proto/pull/848#discussion_r3850538275"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "f03050b432ae42ca8020d9b5fd2db085",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bd2faf3d884e7c2a26250a418dbf39a79c1b2abc31292471e05363edf4424d99",
+        "copilot_request_fingerprint": "f2ad3322defa29327d7e6bda0e39899e23d17d12300c0e88f29123b2c1736dc8",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -306,8 +309,8 @@
         "head_sha": "aff37447eaaa198aee32b05a78d50233b2bfed9c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T15:06:04+00:00",
-        "last_approver_activity_at": "2026-08-24T15:06:04+00:00",
+        "last_activity_at": "2026-08-25T07:34:26+00:00",
+        "last_approver_activity_at": "2026-08-25T07:34:26+00:00",
         "last_author_activity_at": "2026-08-21T18:16:23+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -330,6 +333,15 @@
             "top_level_feedback": false
           },
           {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
             "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
@@ -341,14 +353,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6efabdfe357a8e39bcb15010f87a2e7ee17fcaf346354c827f6ac7ae674f0986",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-21T18:16:23+00:00"
+        "routing_input_fingerprint": "bbccb602618054e2da8270b38a26666598d6f2d6d4fad8794788798355de7682",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-25T07:34:25+00:00"
       },
       "failed": false,
       "pr_number": 848,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/848",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5372782991": {
           "evidence": {
