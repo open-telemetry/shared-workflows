@@ -590,7 +590,10 @@ def _advance_top_level_actions(
             continue
         if not isinstance(decision, ActionDecision):
             raise TypeError(
-                "top-level classifications require ActionDecision"
+                "top-level classification "
+                f"{classification.identity.discussion_id!r} "
+                f"({classification.identity.kind.value}) requires "
+                f"ActionDecision, got {type(decision).__name__}"
             )
         action = decision.action
         root_timestamp = discussion.get("root_timestamp") or ""

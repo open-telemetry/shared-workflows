@@ -354,6 +354,34 @@ class ResolveDiscussionsTest(unittest.TestCase):
             "got AuthorCommentDecision",
         )
 
+    def test_invalid_top_level_decision_names_the_classification(
+        self,
+    ) -> None:
+        invalid = ClassificationSuccess(
+            DiscussionIdentity(
+                "feedback-invalid",
+                DiscussionKind.TOP_LEVEL_FEEDBACK,
+            ),
+            AuthorCommentDecision(),
+        )
+
+        with self.assertRaises(TypeError) as caught:
+            resolve_discussions(
+                PreparedDiscussions(
+                    (),
+                    (top_level_item("feedback-invalid"),),
+                    (),
+                ),
+                DiscussionClassifications((), (invalid,), ()),
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "top-level classification 'feedback-invalid' "
+            "(top-level-feedback) requires ActionDecision, "
+            "got AuthorCommentDecision",
+        )
+
     def test_projects_pending_actions_for_each_classification(self) -> None:
         prepared = PreparedDiscussions(
             (
