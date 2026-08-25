@@ -409,7 +409,6 @@ def _decode_command_reply(value: Any) -> DashboardCommandReply:
 
 def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
     if reply.kind in ("routed", "cleared_by_feedback"):
-        # DashboardCommandReply refuses a routed reply without a route.
         stored: dict[str, Any] = {
             "comment_id": reply.comment_id,
             "kind": reply.kind,
@@ -419,6 +418,7 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
         if reply.since:
             stored["since"] = reply.since
         if reply.kind == "routed":
+            # DashboardCommandReply refuses a routed reply without a route.
             stored["route"] = reply.route.value
             stored["held_gates"] = reply.held_gates
         return stored
