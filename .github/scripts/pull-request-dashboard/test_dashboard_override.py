@@ -504,6 +504,27 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual("bound-head", facts.head_sha)
         self.assertEqual("2026-08-16T08:00:00Z", facts.since)
 
+    def test_deleted_command_uses_acknowledgement_timestamp_as_cutoff(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5, "bound-head"),
+                created_at="2026-08-16T08:00:00Z",
+            )
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "bound-head",
+        )
+
+        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual("bound-head", facts.head_sha)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+
     def test_status_marker_clears_only_its_bound_handoff(self) -> None:
         source = override_input(
             issue_comment(

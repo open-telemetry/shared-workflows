@@ -175,10 +175,14 @@ def dashboard_override_facts(
         else:
             bound_head = head_sha
         acknowledged_since = ""
+        acknowledgement_created_at = ""
     else:
-        bound_command_id, bound_head, acknowledged_since = acknowledged_override(
-            source.issue_comments
-        )
+        (
+            bound_command_id,
+            bound_head,
+            acknowledged_since,
+            acknowledgement_created_at,
+        ) = acknowledged_override(source.issue_comments)
     previous_binding_matches = bool(
         bound_command_id == previous_bound_command_id
         and bound_head
@@ -188,6 +192,7 @@ def dashboard_override_facts(
         _override_command_created_at(source.issue_comments, bound_command_id)
         or (previous_since if previous_binding_matches else "")
         or acknowledged_since
+        or acknowledgement_created_at
     )
     cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
         source.issue_comments
@@ -254,8 +259,8 @@ def _acknowledged_override_command_ids(
 
 def acknowledged_override(
     comments: Sequence[IssueComment],
-) -> tuple[int, str, str]:
-    """Newest acknowledged override command id, bound head SHA, and cutoff.
+) -> tuple[int, str, str, str]:
+    """Newest acknowledged override command id, bound head SHA, and cutoff times.
 
     The head is empty when the newest acknowledgement predates the dashboard
     recording it. An unknown head ends the handoff instead of guessing at one, so
@@ -264,6 +269,7 @@ def acknowledged_override(
     best_id = 0
     best_head = ""
     best_since = ""
+    best_created_at = ""
     for comment in comments or []:
         if not _is_dashboard_app_comment(comment):
             continue
@@ -279,8 +285,11 @@ def acknowledged_override(
                     > (bool(best_head), bool(best_since))
                 )
             ):
-                best_id, best_head, best_since = comment_id, head, since
-    return best_id, best_head, best_since
+                best_id = comment_id
+                best_head = head
+                best_since = since
+                best_created_at = comment.created_at
+    return best_id, best_head, best_since, best_created_at
 
 
 def _override_command_created_at(
