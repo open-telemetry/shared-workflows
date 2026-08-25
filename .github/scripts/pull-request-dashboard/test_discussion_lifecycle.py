@@ -878,10 +878,28 @@ class LifecycleProjectionTest(unittest.TestCase):
             "actor_role": "bot",
             "body": "Automated feedback.",
         })
+        author_item = top_level_item(
+            "author-comment",
+            "2026-07-14T05:00:00Z",
+        )
+        author_item["comments"][0].update({
+            "actor": "author",
+            "actor_role": "author",
+        })
+        bot_item = top_level_item(
+            "bot-comment",
+            "2026-07-14T05:00:00Z",
+        )
+        bot_item["comments"][0].update({
+            "actor": "reviewer[bot]",
+            "actor_role": "bot",
+        })
         prepared = PreparedDiscussions(
             (old_thread, reopened_thread, bot_thread),
             (
                 top_level_item("old-feedback", "2026-07-14T01:00:00Z"),
+                author_item,
+                bot_item,
                 top_level_item("new-feedback", "2026-07-14T05:00:00Z"),
             ),
             (

@@ -355,7 +355,14 @@ def reviewer_handoff_feedback(
     top_level_items = tuple(
         item
         for item in prepared.top_level_items
-        if after_cutoff(item.get("root_timestamp") or "")
+        if (
+            after_cutoff(item.get("root_timestamp") or "")
+            and any(
+                comment.get("actor_role") in ("approver", "outsider")
+                and comment.get("actor") != pr_author
+                for comment in (item.get("comments") or [])
+            )
+        )
     )
     return PreparedDiscussions(
         tuple(review_threads),
