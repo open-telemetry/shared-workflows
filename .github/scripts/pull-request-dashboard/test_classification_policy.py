@@ -28,6 +28,7 @@ from classification_policy import (
     discussion_cache_key,
     make_author_comment_request,
     map_verdict_result,
+    parse_author_comment_decision,
     prepare_praise_candidates,
     render_verdict_prompt,
     resolve_author_comment_response,
@@ -245,6 +246,30 @@ class ResultProjectionCompatibilityTest(unittest.TestCase):
 
 
 class PreparationAndResolutionTest(unittest.TestCase):
+    def test_invalid_feedback_keys_report_the_contract_field(self) -> None:
+        _decision, errors = parse_author_comment_decision(
+            json.dumps({
+                "feedback_outcomes": [
+                    {
+                        "feedback_id": "legacy-id",
+                        "discussion_action": "none",
+                    },
+                    {
+                        "feedback_key": 42,
+                        "discussion_action": "none",
+                    },
+                ]
+            }),
+            {"f0001": "feedback-1"},
+        )
+
+        self.assertIn("missing feedback_key", errors[0])
+        self.assertIn(
+            "unexpected feedback_id field 'legacy-id'",
+            errors[0],
+        )
+        self.assertIn("feedback_key is not a string: 42", errors[1])
+
     def test_long_reviewer_comment_needs_no_model_request(self) -> None:
         thread = discussion(
             "thread-1",

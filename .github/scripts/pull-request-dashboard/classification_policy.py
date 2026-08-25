@@ -1046,13 +1046,19 @@ def parse_author_comment_decision(
             not isinstance(feedback_key, str)
             or feedback_key not in feedback_id_by_key
         ):
-            received = (
-                repr(feedback_key)
-                if isinstance(feedback_key, str)
-                else f"feedback_id={raw_outcome.get('feedback_id')!r}"
-            )
+            if "feedback_key" not in raw_outcome:
+                issue = "missing feedback_key"
+            elif not isinstance(feedback_key, str):
+                issue = f"feedback_key is not a string: {feedback_key!r}"
+            else:
+                issue = f"unknown feedback_key {feedback_key!r}"
+            if "feedback_id" in raw_outcome:
+                issue += (
+                    "; unexpected feedback_id field "
+                    f"{raw_outcome['feedback_id']!r}"
+                )
             errors.append(
-                f"unknown feedback_key {received}; expected keys "
+                f"{issue}; expected keys "
                 f"{_format_diagnostic_items(expected_keys)}; "
                 "canonical candidate IDs "
                 f"{_format_diagnostic_items(expected_ids)}"
