@@ -18,6 +18,7 @@ from dashboard_status import (
     STATUS_MARKER,
     author_nudge_episode_marker,
     is_dashboard_app_comment,
+    reviewer_handoff_cleared_marker,
     status_author_nudge_episode_id,
 )
 from route_presentation import (
@@ -308,6 +309,17 @@ def render_status_comment(
     episode_id = str(facts.get("author_nudge_episode_id") or "")
     if (result or {}).get("route") == "author" and episode_id:
         lines.insert(2, author_nudge_episode_marker(episode_id))
+    bound_command_id = int(facts.get("dashboard_override_bound_command_id") or 0)
+    bound_head = str(facts.get("dashboard_override_head_sha") or "")
+    if (
+        facts.get("dashboard_override_cleared_by_feedback")
+        and bound_command_id
+        and bound_head
+    ):
+        lines.insert(
+            2,
+            reviewer_handoff_cleared_marker(bound_command_id, bound_head),
+        )
 
     if body:
         lines.append("")

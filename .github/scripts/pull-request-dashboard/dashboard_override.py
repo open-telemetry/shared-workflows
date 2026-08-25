@@ -5,7 +5,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from dashboard_status import DASHBOARD_APP_SLUG
+from dashboard_status import (
+    DASHBOARD_APP_SLUG,
+    status_reviewer_handoff_clearance,
+)
 from route_presentation import outstanding_gate_phrase
 from utils import actor_login
 
@@ -112,22 +115,46 @@ def dashboard_override_facts(
     head_sha: str = "",
     previous_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    comments = raw.get("issue_comments") or []
     command_id, command_user = latest_authorized_command(raw, author, reviewers)
     previous_facts = previous_facts or {}
     if command_id:
+        bound_command_id = command_id
         if command_id == previous_facts.get("dashboard_override_command_id"):
             bound_head = previous_facts.get("dashboard_override_head_sha") or ""
         else:
             bound_head = head_sha
     else:
-        bound_head = acknowledged_override_head(raw.get("issue_comments"))
+        bound_command_id, bound_head = acknowledged_override(comments)
+    override_since = _override_command_created_at(comments, bound_command_id)
+    cleared_command_id, cleared_head = status_reviewer_handoff_clearance(comments)
+    previous_clearance_applies = (
+        bound_command_id
+        and bound_command_id
+        == previous_facts.get("dashboard_override_bound_command_id")
+        and bound_head
+        and bound_head == previous_facts.get("dashboard_override_head_sha")
+        and previous_facts.get("dashboard_override_cleared_by_feedback")
+    )
+    cleared_by_feedback = bool(
+        previous_clearance_applies
+        or (
+            bound_command_id
+            and bound_command_id == cleared_command_id
+            and bound_head
+            and bound_head == cleared_head
+        )
+    )
     return {
         "dashboard_override_command_id": command_id,
         "dashboard_override_command_user": command_user,
+        "dashboard_override_bound_command_id": bound_command_id,
+        "dashboard_override_since": override_since,
         # A pending command keeps its first observed binding until delivery
         # records it in the acknowledgement. An acknowledged command keeps the
         # binding from that acknowledgement.
         "dashboard_override_head_sha": bound_head,
+        "dashboard_override_cleared_by_feedback": cleared_by_feedback,
         "dashboard_command_replies": pending_command_replies(raw, author, reviewers),
     }
 
@@ -176,12 +203,14 @@ def _acknowledged_override_command_ids(
     return acknowledged_ids
 
 
-def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
-    """Head SHA the newest acknowledged override command bound to.
+def acknowledged_override(
+    comments: list[dict[str, Any]] | None,
+) -> tuple[int, str]:
+    """Newest acknowledged override command id and bound head SHA.
 
-    Empty when no command has been acknowledged, and also when the newest
-    acknowledgement predates the dashboard recording a head. An unknown head ends
-    the handoff instead of guessing at one, so the author runs the command again.
+    The head is empty when the newest acknowledgement predates the dashboard
+    recording it. An unknown head ends the handoff instead of guessing at one, so
+    the author runs the command again.
     """
     best_id = 0
     best_head = ""
@@ -192,7 +221,27 @@ def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
             comment_id = int(match.group(1))
             if comment_id > best_id or (comment_id == best_id and not best_head):
                 best_id, best_head = comment_id, match.group(2) or ""
-    return best_head
+    return best_id, best_head
+
+
+def acknowledged_override_head(comments: list[dict[str, Any]] | None) -> str:
+    return acknowledged_override(comments)[1]
+
+
+def _override_command_created_at(
+    comments: list[dict[str, Any]],
+    command_id: int,
+) -> str:
+    if not command_id:
+        return ""
+    for comment in comments:
+        try:
+            comment_id = int(comment.get("id"))
+        except (TypeError, ValueError):
+            continue
+        if comment_id == command_id:
+            return comment.get("created_at") or ""
+    return ""
 
 
 def _acknowledged_override_command_id(
@@ -286,6 +335,11 @@ def render_command_reply(reply: dict[str, Any]) -> str:
             )
         else:
             message = "this pull request was routed to reviewers."
+    elif kind == "cleared_by_feedback":
+        message = (
+            "newer actionable reviewer feedback returned this pull request to "
+            "the author."
+        )
     else:
         subcommand = reply.get("subcommand") or ""
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
@@ -297,7 +351,7 @@ def render_command_reply(reply: dict[str, Any]) -> str:
         )
     comment_id = int(reply["comment_id"])
     markers = [command_reply_marker(comment_id)]
-    if kind == "routed":
+    if kind in ("routed", "cleared_by_feedback"):
         markers.append(override_ack_marker(comment_id, reply.get("head_sha") or ""))
     return "\n".join([
         *markers,
@@ -340,7 +394,11 @@ def append_command_ack_reply(
         return
     replies.append({
         "comment_id": command_id,
-        "kind": "routed",
+        "kind": (
+            "cleared_by_feedback"
+            if facts.get("dashboard_override_cleared_by_feedback")
+            else "routed"
+        ),
         "head_sha": facts.get("dashboard_override_head_sha") or "",
         "user": facts.get("dashboard_override_command_user") or facts.get("author") or "",
         "route": route,

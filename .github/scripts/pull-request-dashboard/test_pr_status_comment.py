@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pr_status_comment
+from dashboard_status import status_reviewer_handoff_clearance
 
 
 class RenderStatusCommentTest(unittest.TestCase):
@@ -83,6 +84,50 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertEqual(
             "abc123",
             pr_status_comment.status_author_nudge_episode_id(comments),
+        )
+
+    def test_persists_feedback_cleared_handoff_in_status_comment(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            {
+                "route": "author",
+                "facts": {
+                    "dashboard_override_bound_command_id": 12,
+                    "dashboard_override_head_sha": "abcdef123456",
+                    "dashboard_override_cleared_by_feedback": True,
+                },
+            },
+        )
+        comment = {
+            "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+            "body": body,
+        }
+
+        self.assertIn(
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:abcdef123456 -->",
+            body,
+        )
+        self.assertEqual(
+            (12, "abcdef123456"),
+            status_reviewer_handoff_clearance([
+                {
+                    "user": {"login": "alice"},
+                    "body": (
+                        f"{pr_status_comment.STATUS_MARKER}\n"
+                        "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                        "99:forged -->"
+                    ),
+                },
+                {
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": (
+                        "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                        "98:no-status-marker -->"
+                    ),
+                },
+                comment,
+            ]),
         )
 
     def test_recovers_episode_from_normalized_dashboard_bot_comment(self) -> None:

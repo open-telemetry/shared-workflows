@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
@@ -15,7 +16,7 @@ from pull_request_activity import (
     reviewer_actor_login,
     role_for,
 )
-from utils import actor_login, truncate
+from utils import actor_login, parse_ts, truncate
 
 
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
@@ -312,6 +313,55 @@ def prepare_discussions(source: DiscussionInput) -> PreparedDiscussions:
         tuple(review_threads),
         tuple(top_level_items),
         tuple(top_level_author_comment_items),
+    )
+
+
+def reviewer_handoff_feedback(
+    prepared: PreparedDiscussions,
+    override_since: str,
+) -> PreparedDiscussions:
+    """Select human reviewer feedback created after a reviewer handoff command."""
+    cutoff = parse_ts(override_since)
+    if cutoff is None:
+        return PreparedDiscussions((), (), ())
+
+    def after_cutoff(timestamp: str) -> bool:
+        parsed = parse_ts(timestamp)
+        return parsed is not None and parsed > cutoff
+
+    review_threads = tuple(
+        thread
+        for thread in prepared.review_threads
+        if any(
+            comment.get("actor_role") in ("approver", "outsider")
+            and after_cutoff(comment.get("timestamp") or "")
+            for comment in (thread.get("comments") or [])
+        )
+    )
+    top_level_items = tuple(
+        item
+        for item in prepared.top_level_items
+        if after_cutoff(item.get("root_timestamp") or "")
+    )
+    top_level_ids = {
+        item.get("discussion_id") or "" for item in top_level_items
+    }
+    author_comment_items: list[dict[str, Any]] = []
+    for item in prepared.top_level_author_comment_items:
+        candidates = [
+            candidate
+            for candidate in (item.get("candidate_feedback") or [])
+            if candidate.get("discussion_id") in top_level_ids
+        ]
+        if not candidates:
+            continue
+        filtered = deepcopy(item)
+        filtered["candidate_feedback"] = candidates
+        author_comment_items.append(filtered)
+    return PreparedDiscussions(
+        review_threads,
+        top_level_items,
+        tuple(author_comment_items),
     )
 
 

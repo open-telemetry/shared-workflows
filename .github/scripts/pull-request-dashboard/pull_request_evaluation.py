@@ -19,8 +19,11 @@ from dashboard_status import status_author_nudge_episode_id
 from discussion_lifecycle import (
     DiscussionClassifications,
     DiscussionInput,
+    DiscussionLifecycleOutcome,
     LifecycleMode,
+    PreparedDiscussions,
     prepare_discussions,
+    reviewer_handoff_feedback,
     resolve_discussions,
 )
 from github_cli import TransientGhError, fetch_pr_routing_raw, gh_api
@@ -286,6 +289,34 @@ def _failure_result(
     }
 
 
+def _classify_discussions(
+    number: int,
+    prepared: PreparedDiscussions,
+    classifier_model: str,
+    previous_top_level_history: dict[str, dict[str, Any]],
+) -> DiscussionLifecycleOutcome:
+    (
+        review_thread_classifications,
+        top_level_classifications,
+        top_level_author_comment_classifications,
+    ) = classify_discussion_domains(
+        number,
+        list(prepared.review_threads),
+        list(prepared.top_level_items),
+        list(prepared.top_level_author_comment_items),
+        classifier_model,
+    )
+    return resolve_discussions(
+        prepared,
+        DiscussionClassifications(
+            tuple(review_thread_classifications),
+            tuple(top_level_classifications),
+            tuple(top_level_author_comment_classifications),
+        ),
+        previous_top_level_history,
+    )
+
+
 def evaluate_pull_request(
     config: PullRequestEvaluationConfig,
     source: PullRequestEvaluationInput,
@@ -331,31 +362,61 @@ def evaluate_pull_request(
             )
         )
         if manual_reviewer_handoff:
-            lifecycle = resolve_discussions(
+            # Old discussions cannot block a break-glass handoff. Only newer
+            # human feedback is classified to decide whether the reviewer has
+            # handed the pull request back to its author.
+            handoff_feedback = reviewer_handoff_feedback(
                 prepared_discussions,
-                None,
-                previous_top_level_history,
-                mode=LifecycleMode.REVIEWER_HANDOFF,
+                str(facts.get("dashboard_override_since") or ""),
             )
+            has_handoff_feedback = bool(
+                handoff_feedback.review_threads
+                or handoff_feedback.top_level_items
+            )
+            feedback_lifecycle = (
+                _classify_discussions(
+                    number,
+                    handoff_feedback,
+                    config.classifier_model,
+                    previous_top_level_history,
+                )
+                if has_handoff_feedback
+                else None
+            )
+            feedback_routes_to_author = bool(
+                feedback_lifecycle
+                and not feedback_lifecycle.failed_classifications
+                and any(
+                    normalize_discussion_action(entry.get("action") or "")
+                    == "author"
+                    for entry in feedback_lifecycle.pending_actions.values()
+                )
+            )
+            if feedback_routes_to_author:
+                facts["dashboard_override_cleared_by_feedback"] = True
+                manual_reviewer_handoff = False
+                lifecycle = (
+                    feedback_lifecycle
+                    if handoff_feedback == prepared_discussions
+                    else _classify_discussions(
+                        number,
+                        prepared_discussions,
+                        config.classifier_model,
+                        previous_top_level_history,
+                    )
+                )
+            else:
+                lifecycle = resolve_discussions(
+                    prepared_discussions,
+                    None,
+                    previous_top_level_history,
+                    mode=LifecycleMode.REVIEWER_HANDOFF,
+                )
         else:
-            (
-                review_thread_classifications,
-                top_level_classifications,
-                top_level_author_comment_classifications,
-            ) = classify_discussion_domains(
+            lifecycle = _classify_discussions(
                 number,
-                list(prepared_discussions.review_threads),
-                list(prepared_discussions.top_level_items),
-                list(prepared_discussions.top_level_author_comment_items),
-                config.classifier_model,
-            )
-            lifecycle = resolve_discussions(
                 prepared_discussions,
-                DiscussionClassifications(
-                    tuple(review_thread_classifications),
-                    tuple(top_level_classifications),
-                    tuple(top_level_author_comment_classifications),
-                ),
+                config.classifier_model,
                 previous_top_level_history,
             )
         lifecycle_fields = lifecycle.dashboard_fields()

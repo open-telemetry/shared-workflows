@@ -304,7 +304,12 @@ class DashboardOverrideTest(unittest.TestCase):
     def test_acknowledged_command_keeps_its_bound_head(self) -> None:
         raw = {
             "issue_comments": [
-                {"id": 5, "user": {"login": "author"}, "body": "/dashboard route:reviewers"},
+                {
+                    "id": 5,
+                    "user": {"login": "author"},
+                    "body": "/dashboard route:reviewers",
+                    "created_at": "2026-08-16T08:00:00Z",
+                },
                 {
                     "id": 9,
                     "user": {"login": "opentelemetry-pr-dashboard[bot]"},
@@ -318,7 +323,52 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(0, facts["dashboard_override_command_id"])
+        self.assertEqual(5, facts["dashboard_override_bound_command_id"])
+        self.assertEqual("2026-08-16T08:00:00Z", facts["dashboard_override_since"])
         self.assertEqual("bound-head", facts["dashboard_override_head_sha"])
+
+    def test_status_marker_clears_only_its_bound_handoff(self) -> None:
+        raw = {
+            "issue_comments": [
+                {
+                    "id": 5,
+                    "user": {"login": "author"},
+                    "body": "/dashboard route:reviewers",
+                    "created_at": "2026-08-16T08:00:00Z",
+                },
+                {
+                    "id": 9,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": dashboard_override.override_ack_marker(5, "bound-head"),
+                },
+                {
+                    "id": 10,
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": (
+                        "<!-- pull-request-dashboard-status -->\n"
+                        "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                        "5:bound-head -->"
+                    ),
+                },
+            ]
+        }
+
+        cleared = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "bound-head"
+        )
+        raw["issue_comments"].append({
+            "id": 11,
+            "user": {"login": "author"},
+            "body": "/dashboard route:reviewers",
+            "created_at": "2026-08-16T09:00:00Z",
+        })
+        reapplied = dashboard_override.dashboard_override_facts(
+            raw, "author", None, "bound-head", cleared
+        )
+
+        self.assertTrue(cleared["dashboard_override_cleared_by_feedback"])
+        self.assertEqual(11, reapplied["dashboard_override_bound_command_id"])
+        self.assertFalse(reapplied["dashboard_override_cleared_by_feedback"])
 
     def test_marker_without_a_head_still_retires_its_command(self) -> None:
         # Acknowledgements written before the dashboard recorded a head have to
@@ -379,6 +429,31 @@ class DashboardOverrideTest(unittest.TestCase):
                 "held_gates": "",
             }],
             facts["dashboard_command_replies"],
+        )
+
+    def test_acknowledges_feedback_that_superseded_a_pending_command(self) -> None:
+        facts = {
+            "author": "author",
+            "dashboard_override_command_id": 12,
+            "dashboard_override_head_sha": "bound-head",
+            "dashboard_override_cleared_by_feedback": True,
+        }
+
+        dashboard_override.append_command_ack_reply(
+            {"issue_comments": []}, facts, "author"
+        )
+        body = dashboard_override.render_command_reply(
+            facts["dashboard_command_replies"][0]
+        )
+
+        self.assertIn(
+            dashboard_override.override_ack_marker(12, "bound-head"),
+            body,
+        )
+        self.assertIn(
+            "newer actionable reviewer feedback returned this pull request to "
+            "the author",
+            body,
         )
 
     def test_no_ack_reply_without_a_pending_command(self) -> None:

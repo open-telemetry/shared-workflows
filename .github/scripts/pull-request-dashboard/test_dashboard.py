@@ -494,6 +494,155 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
     @patch(
         "pull_request_evaluation.classify_discussion_domains",
+        return_value=(
+            [],
+            [{
+                "discussion_id": "pr-review-501",
+                "failed": False,
+                "decision": {
+                    "discussion_action": "author",
+                    "reason": "The reviewer requested a change.",
+                },
+            }],
+            [],
+        ),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_actionable_review_after_override_ends_handoff(
+        self, fetch_raw: Mock, classify: Mock
+    ) -> None:
+        raw = self.raw_pr()
+        raw["issue_comments"] = [{
+            "id": 102,
+            "body": "/dashboard route:reviewers",
+            "created_at": "2026-08-16T08:00:00Z",
+            "user": {"login": "author"},
+        }]
+        raw["reviews"] = [{
+            "id": 501,
+            "url": "https://example.test/pull/7#pullrequestreview-501",
+            "user": {"login": "reviewer"},
+            "state": "COMMENTED",
+            "submitted_at": "2026-08-16T09:00:00Z",
+            "body": "Please update this.",
+        }]
+        fetch_raw.return_value = raw
+
+        result = evaluate_pr({"number": 7})
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertFalse(result["failed"])
+        self.assertEqual("author", result["route"])
+        self.assertTrue(
+            result["facts"]["dashboard_override_cleared_by_feedback"]
+        )
+        self.assertEqual(
+            {
+                "pr-review-501": {
+                    "action": "author",
+                    "since": "2026-08-16T09:00:00Z",
+                }
+            },
+            result["pending_actions"],
+        )
+        self.assertEqual(
+            "cleared_by_feedback",
+            result["facts"]["dashboard_command_replies"][0]["kind"],
+        )
+        classify.assert_called_once()
+
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=(
+            [],
+            [{
+                "discussion_id": "pr-review-501",
+                "failed": False,
+                "decision": {
+                    "discussion_action": "none",
+                    "reason": "The reviewer left praise.",
+                },
+            }],
+            [],
+        ),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_non_actionable_review_keeps_handoff(
+        self, fetch_raw: Mock, _classify: Mock
+    ) -> None:
+        raw = self.raw_pr()
+        raw["issue_comments"] = [{
+            "id": 102,
+            "body": "/dashboard route:reviewers",
+            "created_at": "2026-08-16T08:00:00Z",
+            "user": {"login": "author"},
+        }]
+        raw["reviews"] = [{
+            "id": 501,
+            "user": {"login": "reviewer"},
+            "state": "COMMENTED",
+            "submitted_at": "2026-08-16T09:00:00Z",
+            "body": "Nice work.",
+        }]
+        fetch_raw.return_value = raw
+
+        result = evaluate_pr({"number": 7})
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertFalse(result["failed"])
+        self.assertEqual("approver", result["route"])
+        self.assertFalse(
+            result["facts"]["dashboard_override_cleared_by_feedback"]
+        )
+        self.assertEqual({}, result["pending_actions"])
+
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=(
+            [],
+            [{
+                "discussion_id": "pr-review-501",
+                "failed": True,
+                "error": "model failed",
+                "decision": {},
+            }],
+            [],
+        ),
+    )
+    @patch("pull_request_evaluation._fetch_pr_raw")
+    def test_feedback_classification_failure_does_not_block_handoff(
+        self, fetch_raw: Mock, _classify: Mock
+    ) -> None:
+        raw = self.raw_pr()
+        raw["issue_comments"] = [{
+            "id": 102,
+            "body": "/dashboard route:reviewers",
+            "created_at": "2026-08-16T08:00:00Z",
+            "user": {"login": "author"},
+        }]
+        raw["reviews"] = [{
+            "id": 501,
+            "user": {"login": "reviewer"},
+            "state": "COMMENTED",
+            "submitted_at": "2026-08-16T09:00:00Z",
+            "body": "Please update this.",
+        }]
+        fetch_raw.return_value = raw
+
+        result = evaluate_pr({"number": 7})
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertFalse(result["failed"])
+        self.assertEqual("approver", result["route"])
+        self.assertFalse(
+            result["facts"]["dashboard_override_cleared_by_feedback"]
+        )
+
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
         return_value=([], [], []),
     )
     @patch("pull_request_evaluation._fetch_pr_raw")

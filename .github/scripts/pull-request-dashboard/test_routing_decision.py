@@ -288,6 +288,11 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
             {"dashboard_override_head_sha": "", "head_sha": "current-head"},
             {"head_sha": "current-head"},
             {"dashboard_override_head_sha": "current-head", "head_sha": ""},
+            {
+                "dashboard_override_head_sha": "current-head",
+                "head_sha": "current-head",
+                "dashboard_override_cleared_by_feedback": True,
+            },
         ):
             with self.subTest(facts=facts):
                 self.assertFalse(reviewer_handoff_active(facts))

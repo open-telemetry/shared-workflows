@@ -473,7 +473,17 @@ the implementation understandable and operationally cheap.
   Copilot review, merge conflicts, discussion actions, and approval routing. The
   author may be stuck or may need a person to explain a basic problem, so no
   automated blocker can prevent the handoff. A later push restores normal
-  routing and gates.
+  routing and gates. Actionable human reviewer feedback posted after the command
+  also ends the handoff, because a reviewer has answered the request for help and
+  assigned the next action to the author. Praise, informational comments, bot
+  feedback, and feedback posted before the command do not end it.
+- While a handoff is active, the dashboard classifies only newer human reviewer
+  feedback. Old discussions and classification failures therefore cannot block
+  the break-glass route. Once newer feedback produces an author action, normal
+  discussion classification and routing resume. The dashboard records that
+  transition in its live status comment so an author reply or a lost state cache
+  cannot reactivate the same command. A newer command can establish a new
+  handoff on the same head.
 - The dashboard binds a command to the head it sees when it first reads that
   command, and records that head in the acknowledgement comment. The handoff is
   then a comparison of two strings: the recorded head and the current one. The
