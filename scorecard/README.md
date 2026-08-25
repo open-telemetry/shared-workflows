@@ -32,8 +32,10 @@ jobs:
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets are required.
 
 The optional `file-mode` input accepts `archive` or `git` and defaults to
-`archive`. Add `file-mode: git` only when the repository's existing Scorecard
-workflow requires Git metadata that is unavailable in an archive.
+`archive`. Add `file-mode: git` when Scorecard must scan files excluded from
+repository archives by `.gitattributes` `export-ignore` rules. Git mode
+retrieves files from a Git clone instead of an export archive; it does not
+change the commit or branch metadata available to checks.
 
 The optional Boolean `use-harden-runner` input defaults to `false`. When it is
 `true`, both Scorecard jobs begin with `step-security/harden-runner` using
