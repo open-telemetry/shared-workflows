@@ -1304,10 +1304,6 @@ def map_verdict_result(
         )
     )
     decision = ActionDecision(action, result.decision.reason)
-    if isinstance(result, ClassificationFailure):
-        return replace(result, decision=decision)
-    if isinstance(result, ClassificationDeferred):
-        return replace(result, decision=decision)
     return replace(result, decision=decision)
 
 
