@@ -2463,7 +2463,7 @@
     },
     "19738": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2471,7 +2471,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "98aad7a0444ea86ed04537ae8c3be6f0a1fafb4b799d273abb008cd4c5bb76c5",
+        "copilot_request_fingerprint": "3429f14a1239e6f00538d45e9545c757ea58409b81c51766637e399730d628c5",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2487,21 +2487,31 @@
         "head_sha": "341393579445f413e0e218f9c8b54876793691f3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-25T02:56:45+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T05:58:37+00:00",
+        "last_approver_activity_at": "2026-08-25T05:58:37+00:00",
         "last_author_activity_at": "2026-08-25T02:56:45+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2b782f1da778aced5cd297a01a2c08a169a395c71ba462ab85cf4d0d9472e7ae",
+        "routing_input_fingerprint": "c3eb73fec7a447480d0592f550061e24b4e5ac69643cccbf52deda6ecfc4cf09",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-25T01:31:35.143821+00:00"
       },
       "failed": false,
       "pr_number": 19738,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19738",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19739": {
