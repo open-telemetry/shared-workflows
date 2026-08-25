@@ -2725,7 +2725,7 @@
     },
     "19785": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "walleseve",
         "author_action_review_thread_urls": [],
@@ -2733,7 +2733,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "dc65f0635b2a2a381b6d567073a4d84a8246fa4965e1a882a3ffd3927677a8dc",
+        "copilot_request_fingerprint": "777528af88a779c620094cc78ae4902360ef2b76c70f80d221aaeda6c7818570",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2749,21 +2749,31 @@
         "head_sha": "b606060f833544b653ff36cd439031c30fdbe413",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T19:39:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-25T01:25:39+00:00",
+        "last_approver_activity_at": "2026-08-25T01:25:39+00:00",
         "last_author_activity_at": "2026-08-24T19:39:44+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b36e25edb8b2c372c0f657b45d3101e22e9cf4cc7a46ea697166840c8e7e90fe",
+        "routing_input_fingerprint": "2e296861068968816a1fba56507f4b49c497b37175f053cd3bad5fd38af0e4d5",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-24T19:39:44+00:00"
       },
       "failed": false,
       "pr_number": 19785,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19785",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19788": {
