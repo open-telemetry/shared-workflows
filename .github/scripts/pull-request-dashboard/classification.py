@@ -13,12 +13,9 @@ from typing import Any
 
 from classification_policy import (
     AUTHOR_REPLY_PROMPT_TEMPLATE,
-    AUTHOR_REPLY_VERDICTS,
     MAX_PROMPT_CHARS,
     PRAISE_PROMPT_TEMPLATE,
-    PRAISE_VERDICTS,
     REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
-    REVIEWER_FEEDBACK_VERDICTS,
     TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE,
     TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
     ActionDecision,
@@ -176,27 +173,6 @@ def _run_verdict_request(
 ) -> tuple[ClassificationResult, ...]:
     proc = run_copilot(request.prompt, model)
     return resolve_verdict_response(request, _raw_model_response(proc))
-
-
-def run_llm_for_verdict_batch(
-    discussions: list[dict[str, Any]],
-    model: str,
-    prompt: str,
-    verdicts: tuple[str, str],
-) -> list[ClassificationResult]:
-    contract = {
-        REVIEWER_FEEDBACK_VERDICTS: VerdictContract.REVIEWER_FEEDBACK,
-        AUTHOR_REPLY_VERDICTS: VerdictContract.AUTHOR_REPLY,
-        PRAISE_VERDICTS: VerdictContract.PRAISE,
-    }.get(tuple(verdicts))
-    if contract is None:
-        raise ValueError(f"unknown verdict contract: {verdicts!r}")
-    request = VerdictModelRequest(
-        _policy_discussions(discussions),
-        contract,
-        prompt,
-    )
-    return list(_run_verdict_request(request, model))
 
 
 def _run_author_comment_request(

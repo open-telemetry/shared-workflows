@@ -10,7 +10,6 @@ from classification import (
     _run_classification_batch,
     classify_discussion_domains,
     classify_review_threads,
-    run_llm_for_verdict_batch,
     top_level_author_comment_batch_prompt,
     top_level_reviewer_feedback_prompt_input,
 )
@@ -237,14 +236,16 @@ def classify_feedback_domains(
 
 
 class VerdictBatchErrorTest(unittest.TestCase):
-    def run_batch(self, returncode: int, stdout: str) -> dict:
+    def run_batch(self, returncode: int, stdout: str) -> ClassificationResult:
         proc = CompletedProcess(["copilot"], returncode, stdout, "")
         with patch("classification.run_copilot", return_value=proc):
-            return run_llm_for_verdict_batch(
-                [{"discussion_id": "d", "discussion_kind": "review-comment-thread"}],
+            return _run_classification_batch(
+                _policy_discussions([
+                    {"discussion_id": "d", "discussion_kind": "review-comment-thread"}
+                ]),
                 "model",
-                "prompt",
-                ("deferral", "complete"),
+                VerdictContract.AUTHOR_REPLY,
+                author_comment=False,
             )[0]
 
     def test_a_nonzero_exit_with_a_usable_verdict_is_not_called_unreadable(self) -> None:
