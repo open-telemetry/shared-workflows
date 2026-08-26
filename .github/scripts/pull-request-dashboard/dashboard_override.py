@@ -205,9 +205,9 @@ def dashboard_override_facts(
     )
     override_since = (
         command_created_at
-        or _override_command_created_at(source.issue_comments, bound_command_id)
         or (previous_since if previous_binding_matches else "")
         or acknowledged_since
+        or _override_command_effective_at(source.issue_comments, bound_command_id)
         or acknowledgement_created_at
     )
     cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
@@ -308,7 +308,7 @@ def acknowledged_override(
     return best_id, best_head, best_since, best_created_at
 
 
-def _override_command_created_at(
+def _override_command_effective_at(
     comments: Sequence[IssueComment],
     command_id: int,
 ) -> str:
@@ -316,7 +316,7 @@ def _override_command_created_at(
         return ""
     for comment in comments:
         if comment.database_id == command_id:
-            return comment.created_at
+            return _effective_command_timestamp(comment)
     return ""
 
 
@@ -481,7 +481,7 @@ def append_command_ack_reply(
         return facts
     override_since = (
         facts.dashboard_override_since
-        or _override_command_created_at(source.issue_comments, command_id)
+        or _override_command_effective_at(source.issue_comments, command_id)
     )
     kind = (
         "cleared_by_feedback"

@@ -459,6 +459,47 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual("2026-08-16T08:00:00Z", facts.since)
         self.assertEqual("bound-head", facts.head_sha)
 
+    def test_acknowledged_command_keeps_its_recorded_cutoff(self) -> None:
+        for previous_facts, acknowledged_since in (
+            (
+                dashboard_facts(
+                    dashboard_override_bound_command_id=5,
+                    dashboard_override_head_sha="bound-head",
+                    dashboard_override_since="2026-08-16T09:00:00Z",
+                ),
+                "",
+            ),
+            (None, "2026-08-16T09:00:00Z"),
+        ):
+            with self.subTest(previous_facts=previous_facts):
+                source = override_input(
+                    issue_comment(
+                        database_id=5,
+                        body="/dashboard route:reviewers",
+                        created_at="2026-08-16T07:00:00Z",
+                        content_updated_at="2026-08-16T10:00:00Z",
+                    ),
+                    issue_comment(
+                        database_id=9,
+                        actor=actor("opentelemetry-pr-dashboard[bot]"),
+                        body=dashboard_override.override_ack_marker(
+                            5,
+                            "bound-head",
+                            acknowledged_since,
+                        ),
+                    ),
+                )
+
+                facts = dashboard_override.dashboard_override_facts(
+                    source,
+                    "author",
+                    None,
+                    "bound-head",
+                    previous_facts,
+                )
+
+                self.assertEqual("2026-08-16T09:00:00Z", facts.since)
+
     def test_acknowledged_command_accepts_a_graphql_command_timestamp(self) -> None:
         source = override_input(
             issue_comment(
