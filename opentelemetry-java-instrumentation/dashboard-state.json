@@ -897,14 +897,11 @@
         "assignees": [],
         "author": "zeitlinger",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19242#issuecomment-5395612261"
-        ],
-        "author_nudge_episode_id": "ba56948176364862af9a5eb3f3eb7f8b",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "5b863c8a3e973ca5cc0427a10d7faf0a9027e342fb57d93b801e79d1123ffa3d",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "9c6f10829055179ef4eb292067addea45720ac6b6ca168306596b08a3f949af1",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -932,7 +929,7 @@
             "login": "laurit",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           },
           {
             "approved": false,
@@ -946,15 +943,22 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "cdab2d49d5aef01b147048ead044df1ca27ca15d30839a369bffeca2c0b75e18",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-25T09:12:30+00:00"
+        "routing_input_fingerprint": "40ab333e8dee60f92e25b42ab236bef16414fdfed403b1b715b21e340fddb824",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-25T09:58:12+00:00"
       },
       "failed": false,
       "pr_number": 19242,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19242",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5395612261": {
+          "evidence": {
+            "reply": "2026-08-25T09:12:30Z"
+          },
+          "reply_source_id": 5408136868
+        }
+      }
     },
     "19258": {
       "facts": {
