@@ -604,6 +604,33 @@ class PreparationAndResolutionTest(unittest.TestCase):
             errors[0],
         )
 
+    def test_unknown_feedback_key_diagnostics_are_truncated(self) -> None:
+        _decision, errors = parse_author_comment_decision(
+            json.dumps({
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": "unknown",
+                        "discussion_action": "none",
+                    }
+                ]
+            }),
+            {
+                f"f{index + 1:04d}": f"feedback-{index}"
+                for index in range(12)
+            },
+        )
+
+        self.assertEqual(errors[0].count("(showing 10 of 12)"), 2)
+        self.assertIn("expected keys ['f0001', 'f0002',", errors[0])
+        self.assertIn("'f0010'] (showing 10 of 12)", errors[0])
+        self.assertNotIn("'f0011'", errors[0])
+        self.assertIn(
+            "canonical candidate IDs ['feedback-0', 'feedback-1',",
+            errors[0],
+        )
+        self.assertIn("'feedback-9'] (showing 10 of 12)", errors[0])
+        self.assertNotIn("'feedback-10'", errors[0])
+
     def test_long_reviewer_comment_needs_no_model_request(self) -> None:
         thread = discussion(
             "thread-1",

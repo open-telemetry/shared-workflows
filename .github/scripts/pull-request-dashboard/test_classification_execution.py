@@ -853,6 +853,39 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         self.assertEqual(len(cache.entries[123]), 23)
 
+    def test_over_limit_items_fail_to_the_author_without_a_model_call(
+        self,
+    ) -> None:
+        runner = FakeModelRunner(responder=successful_response)
+        service = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+            max_classifications_per_pr=0,
+        )
+
+        result = service.classify(
+            execution_request(
+                top_level_items=(discussion_record("feedback"),)
+            )
+        ).top_level_items[0]
+
+        self.assertEqual(runner.requests, [])
+        self.assertIsInstance(result, ClassificationFailure)
+        assert isinstance(result, ClassificationFailure)
+        self.assertTrue(result.failed)
+        self.assertEqual(
+            result.decision,
+            ActionDecision(
+                DiscussionAction.AUTHOR,
+                "Exceeded per-PR classification limit",
+            ),
+        )
+        self.assertEqual(
+            result.diagnostics.error,
+            "Exceeded per-PR classification limit",
+        )
+        self.assertFalse(result.cli_call)
+
     def test_cache_key_ignores_non_policy_facts_but_includes_comment_body(
         self,
     ) -> None:
