@@ -66,6 +66,12 @@ class DeliveryTest(unittest.TestCase):
             {7, 8},
             set(),
         )
+        author_nudges.assert_called_once_with(
+            "open-telemetry/example",
+            ANY,
+            Path("author"),
+            set(),
+        )
         slack.assert_called_once_with(
             "open-telemetry/example",
             ANY,
@@ -99,7 +105,7 @@ class DeliveryTest(unittest.TestCase):
                 delivery,
                 "deliver_prepared_author_nudges",
                 return_value=[],
-            ),
+            ) as author_nudges,
             patch.object(
                 delivery,
                 "update_status_comments_from_state",
@@ -126,6 +132,12 @@ class DeliveryTest(unittest.TestCase):
         status_comments.assert_called_once_with(
             "open-telemetry/example",
             {7, 8},
+            {7},
+        )
+        author_nudges.assert_called_once_with(
+            "open-telemetry/example",
+            ANY,
+            Path("author"),
             {7},
         )
 

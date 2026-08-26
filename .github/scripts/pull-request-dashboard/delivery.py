@@ -92,6 +92,7 @@ def deliver_from_state(
             repo,
             now,
             author_retry_snapshot_path,
+            failed_command_reply_prs,
         ),
         errors,
     )

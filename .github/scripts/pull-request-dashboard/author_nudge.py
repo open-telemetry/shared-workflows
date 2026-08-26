@@ -460,15 +460,19 @@ def deliver_prepared_author_nudges(
     repo: str,
     now: datetime,
     retry_snapshot_path: Path | None = None,
+    excluded_pr_numbers: set[int] | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
         print("dashboard state not found; skipping author nudges", file=sys.stderr)
         return []
+    excluded_pr_numbers = excluded_pr_numbers or set()
     updated = dict(load_author_nudges(retry_snapshot_path))
     errors: list[str] = []
     for key, entry in sorted(updated.items(), key=lambda item: int(item[0])):
         pr_number = int(key)
+        if pr_number in excluded_pr_numbers:
+            continue
         result = dashboard_state.result_for(pr_number)
         completions = list((entry or {}).get("completions") or [])
         remaining_completions: list[dict[str, Any]] = []
