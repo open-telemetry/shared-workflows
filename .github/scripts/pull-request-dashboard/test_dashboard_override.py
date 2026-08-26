@@ -671,10 +671,40 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
         self.assertIn(
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:bound-head -->",
+            body,
+        )
+        self.assertIn(
             "newer actionable reviewer feedback ended the reviewer handoff, so "
             "this pull request is routed normally again",
             body,
         )
+
+    def test_cleared_reply_recovers_clearance_after_cache_loss(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.render_command_reply(
+                    DashboardCommandReply(
+                        5,
+                        "cleared_by_feedback",
+                        "author",
+                        head_sha="bound-head",
+                        since="2026-08-16T08:00:00Z",
+                    )
+                ),
+            )
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source, "author", None, "bound-head"
+        )
+
+        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual("bound-head", facts.head_sha)
+        self.assertTrue(facts.cleared_by_feedback)
 
     def test_no_ack_reply_without_a_pending_command(self) -> None:
         facts = dashboard_facts(author="author")

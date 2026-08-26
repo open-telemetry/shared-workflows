@@ -13,6 +13,7 @@ from dashboard_contracts import (
 )
 from dashboard_status import (
     DASHBOARD_APP_SLUG,
+    reviewer_handoff_cleared_marker,
     status_reviewer_handoff_clearance,
 )
 from pull_request_source import IssueComment
@@ -426,6 +427,8 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 reply.since,
             )
         )
+    if kind == "cleared_by_feedback" and reply.head_sha:
+        markers.append(reviewer_handoff_cleared_marker(comment_id, reply.head_sha))
     return "\n".join([
         *markers,
         f"{mention}{message}",

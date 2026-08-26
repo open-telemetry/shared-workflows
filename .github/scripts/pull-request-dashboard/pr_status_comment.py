@@ -28,6 +28,7 @@ from dashboard_status import (
     is_dashboard_app_comment,
     reviewer_handoff_cleared_marker,
     status_author_nudge_episode_id,
+    status_reviewer_handoff_clearance,
 )
 from route_presentation import (
     abandoned_gate_note,
@@ -416,10 +417,18 @@ def upsert_status_comment(
     *,
     create: bool = True,
     locked: bool = False,
+    preserve_clearance: bool = False,
 ) -> None:
     comments = managed_status_comments(repo, pr_number)
     if comments:
         comment = comments[0]
+        if preserve_clearance:
+            command_id, head_sha = status_reviewer_handoff_clearance([comment])
+            marker = reviewer_handoff_cleared_marker(command_id, head_sha)
+            if command_id and head_sha and marker not in body:
+                lines = body.splitlines()
+                lines.insert(2, marker)
+                body = "\n".join(lines)
         if locked and (comment.get("body") != body or len(comments) > 1):
             raise StatusCommentDeferred(
                 f"PR #{pr_number} is locked; deferring terminal status comment"
@@ -465,6 +474,7 @@ def publish_pr_status(
 ) -> None:
     pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
     result = dashboard_state.result_for(pr_number)
+    terminal = is_terminal_pr(pr)
     # A terminal status only exists to move an already published comment to its
     # final state. Creating one instead would announce a merge or close on a
     # pull request the dashboard never commented on.
@@ -472,8 +482,9 @@ def publish_pr_status(
         repo,
         pr_number,
         render_status_comment(pr, result),
-        create=not is_terminal_pr(pr),
-        locked=is_terminal_pr(pr) and bool(pr.get("locked")),
+        create=not terminal,
+        locked=terminal and bool(pr.get("locked")),
+        preserve_clearance=terminal,
     )
 
 

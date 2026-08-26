@@ -96,7 +96,7 @@ def status_reviewer_handoff_clearance(
                 or comment.updated_at
                 or comment.created_at
             )
-        if STATUS_MARKER not in body or not from_dashboard_app:
+        if not from_dashboard_app:
             continue
         for match in _REVIEWER_HANDOFF_CLEARED_MARKER_RE.finditer(body):
             command_id = int(match.group(1))
