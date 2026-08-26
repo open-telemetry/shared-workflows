@@ -740,14 +740,40 @@ class UpsertStatusCommentTest(unittest.TestCase):
         pr_status_comment,
         "managed_status_comments",
         return_value=[
-            {"id": 7, "body": "<!-- pull-request-dashboard-status --> old"},
-            {"id": 8, "body": "<!-- pull-request-dashboard-status --> duplicate"},
+            {
+                "id": 7,
+                "performed_via_github_app": {
+                    "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+                },
+                "body": "<!-- pull-request-dashboard-status --> old",
+            },
+            {
+                "id": 8,
+                "performed_via_github_app": {
+                    "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+                },
+                "body": (
+                    "<!-- pull-request-dashboard-status -->\n"
+                    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                    "12:bound-head -->"
+                ),
+            },
         ],
     )
     def test_updates_comment_and_deletes_duplicates(self, _comments: object) -> None:
-        pr_status_comment.upsert_status_comment("open-telemetry/example", 1, "body")
+        pr_status_comment.upsert_status_comment(
+            "open-telemetry/example",
+            1,
+            "body",
+            preserve_clearance=True,
+        )
 
         self.assertEqual(["PATCH", "DELETE"], [command[3] for command in self.commands])
+        self.assertIn(
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:bound-head -->",
+            self.commands[0][-1],
+        )
 
     @patch.object(pr_status_comment, "managed_status_comments", return_value=[])
     def test_does_not_create_comment_when_creation_is_disabled(

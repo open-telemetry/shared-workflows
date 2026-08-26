@@ -423,7 +423,7 @@ def upsert_status_comment(
     if comments:
         comment = comments[0]
         if preserve_clearance:
-            command_id, head_sha = status_reviewer_handoff_clearance([comment])
+            command_id, head_sha = status_reviewer_handoff_clearance(comments)
             marker = reviewer_handoff_cleared_marker(command_id, head_sha)
             if command_id and head_sha and marker not in body:
                 lines = body.splitlines()
