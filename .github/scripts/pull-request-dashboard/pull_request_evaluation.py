@@ -6,10 +6,10 @@ import sys
 import traceback
 import uuid
 from dataclasses import dataclass
-from typing import Any
 
-from classification import (
-    classify_discussion_domains,
+from classification import classify_discussion_domains
+from classification_policy import (
+    DiscussionAction,
     normalize_discussion_action,
 )
 from copilot_review import copilot_review_status, is_copilot_reviewer
@@ -29,8 +29,8 @@ from dashboard_override import (
 )
 from dashboard_status import status_author_nudge_episode_id
 from discussion_lifecycle import (
-    DiscussionClassifications,
     DiscussionInput,
+    DiscussionLifecycleOutcome,
     LifecycleMode,
     prepare_discussions,
     resolve_discussions,
@@ -244,7 +244,7 @@ def _author_action_discussion_urls(
     urls: list[str] = []
     for discussion_id, entry in pending_actions.items():
         action = normalize_discussion_action(entry.get("action") or "")
-        if action != "author":
+        if action is not DiscussionAction.AUTHOR:
             continue
         discussion = by_id.get(discussion_id)
         url = (discussion or {}).get("discussion_url") or ""
@@ -299,7 +299,7 @@ def _failure_result(
 
 
 def _evaluation_diagnostics(
-    lifecycle: Any,
+    lifecycle: DiscussionLifecycleOutcome,
 ) -> EvaluationDiagnostics:
     return EvaluationDiagnostics(
         review_threads=lifecycle.prepared.review_threads,
@@ -382,11 +382,7 @@ def evaluate_pull_request(
                 mode=LifecycleMode.REVIEWER_HANDOFF,
             )
         else:
-            (
-                review_thread_classifications,
-                top_level_classifications,
-                top_level_author_comment_classifications,
-            ) = classify_discussion_domains(
+            classifications = classify_discussion_domains(
                 number,
                 list(prepared_discussions.review_threads),
                 list(prepared_discussions.top_level_items),
@@ -395,11 +391,7 @@ def evaluate_pull_request(
             )
             lifecycle = resolve_discussions(
                 prepared_discussions,
-                DiscussionClassifications(
-                    tuple(review_thread_classifications),
-                    tuple(top_level_classifications),
-                    tuple(top_level_author_comment_classifications),
-                ),
+                classifications,
                 previous_top_level_history,
             )
         diagnostics = _evaluation_diagnostics(lifecycle)

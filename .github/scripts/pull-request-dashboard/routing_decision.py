@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-from classification import normalize_discussion_action
+from classification_policy import normalize_discussion_action
 from copilot_review import (
     copilot_review_outstanding,
     copilot_review_unreported,
@@ -73,7 +73,7 @@ def _action_counts(
 ) -> dict[str, int]:
     counts = {"author": 0, "reviewer": 0, "none": 0, "unclear": 0}
     for entry in pending_actions.values():
-        counts[normalize_discussion_action(entry.get("action") or "")] += 1
+        counts[normalize_discussion_action(entry.get("action") or "").value] += 1
     return counts
 
 
@@ -196,7 +196,7 @@ def _oldest_pending_action_ts(
     timestamps = [
         parse_ts(entry.get("since") or "")
         for entry in pending_actions.values()
-        if normalize_discussion_action(entry.get("action") or "") in actions
+        if normalize_discussion_action(entry.get("action") or "").value in actions
     ]
     timestamps = [timestamp for timestamp in timestamps if timestamp is not None]
     return min(timestamps) if timestamps else None

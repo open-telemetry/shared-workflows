@@ -27,6 +27,7 @@ from uuid import uuid4
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import classification  # noqa: E402
+import classification_policy as policy  # noqa: E402
 from score_reviewer_feedback import CASES, batch_cases  # noqa: E402
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / ".cache" / "baseline"
@@ -42,7 +43,7 @@ _printed = Lock()
 def batch_prompt(batch: list[dict]) -> str:
     """The prompt the dashboard would send for one batch."""
     items = [
-        classification.reviewer_feedback_prompt_item(
+        policy.reviewer_feedback_prompt_item(
             c["id"], c["requester"], c["pr_author"], c["body"]
         )
         for c in batch
@@ -50,10 +51,9 @@ def batch_prompt(batch: list[dict]) -> str:
     # The cases already hold the joined comment body the pipeline would build,
     # so they are their own prompt input. Copies, because rendering truncates in
     # place when a batch runs long.
-    return classification.render_top_level_batch_prompt(
-        items,
-        classification.REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
+    return policy.render_prompt_inputs(
         [dict(item) for item in items],
+        policy.REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
     )
 
 
@@ -95,7 +95,7 @@ def answers(raw: dict, batch: list[dict]) -> dict[str, str]:
     """
     if raw.get("returncode") != 0:
         return {}
-    parsed = classification.extract_json_object(raw.get("stdout") or "") or {}
+    parsed = policy.extract_json_object(raw.get("stdout") or "") or {}
     items = parsed.get("items")
     if not isinstance(items, list):
         return {}
