@@ -11,12 +11,15 @@ from state import load_dashboard_state_cache
 def deliver_dashboard_command_replies(
     repo: str,
     failed_pr_numbers: set[int] | None = None,
+    only_pr_number: int | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
         return []
     errors: list[str] = []
     for result in dashboard_state.results:
+        if only_pr_number is not None and result.pr_number != only_pr_number:
+            continue
         replies = result.facts.dashboard_command_replies
         if not replies:
             continue

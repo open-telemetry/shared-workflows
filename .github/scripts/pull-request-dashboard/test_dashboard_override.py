@@ -895,6 +895,35 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertIn(dashboard_override.command_reply_marker(2), posted[-1])
 
     @patch.object(dashboard_override_delivery, "run_gh")
+    @patch.object(dashboard_override_delivery, "gh_api", return_value=[])
+    @patch.object(
+        dashboard_override_delivery,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(stored_dashboard_result(
+            5,
+            facts=dashboard_facts(dashboard_command_replies=(
+                DashboardCommandReply(
+                    2,
+                    "unauthorized",
+                    "outsider",
+                    "route:reviewers",
+                ),
+            )),
+        )),
+    )
+    def test_targeted_delivery_skips_other_prs(
+        self, _load_state, gh_api, run_gh
+    ) -> None:
+        errors = dashboard_override_delivery.deliver_dashboard_command_replies(
+            "open-telemetry/example",
+            only_pr_number=7,
+        )
+
+        self.assertEqual([], errors)
+        gh_api.assert_not_called()
+        run_gh.assert_not_called()
+
+    @patch.object(dashboard_override_delivery, "run_gh")
     @patch.object(
         dashboard_override_delivery,
         "gh_api",

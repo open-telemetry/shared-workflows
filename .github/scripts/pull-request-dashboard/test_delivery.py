@@ -83,7 +83,11 @@ class DeliveryTest(unittest.TestCase):
         )
 
     def test_command_reply_failure_preserves_affected_status_comment(self) -> None:
-        def fail_reply(_repo: str, failed_pr_numbers: set[int]) -> list[str]:
+        def fail_reply(
+            _repo: str,
+            failed_pr_numbers: set[int],
+            _pr_number: int | None,
+        ) -> list[str]:
             failed_pr_numbers.add(7)
             return ["PR #7: acknowledgement failed"]
 
@@ -256,7 +260,11 @@ class DeliveryTest(unittest.TestCase):
                 "gh_api",
                 return_value={"state": "open", "draft": False, "title": "Seven"},
             ) as gh_api,
-            patch.object(delivery, "deliver_dashboard_command_replies", return_value=[]),
+            patch.object(
+                delivery,
+                "deliver_dashboard_command_replies",
+                return_value=[],
+            ) as command_replies,
             patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]),
             patch.object(delivery, "update_status_comments_from_state") as bulk_status,
             patch.object(
@@ -278,6 +286,7 @@ class DeliveryTest(unittest.TestCase):
         self.assertEqual([], errors)
         list_open.assert_not_called()
         gh_api.assert_called_once_with("/repos/open-telemetry/example/pulls/7")
+        self.assertEqual(7, command_replies.call_args.args[2])
         bulk_status.assert_not_called()
         targeted_status.assert_called_once_with("open-telemetry/example", 7)
         slack.assert_called_once_with(

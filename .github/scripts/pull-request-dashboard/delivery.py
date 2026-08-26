@@ -78,6 +78,7 @@ def deliver_from_state(
         lambda: deliver_dashboard_command_replies(
             repo,
             failed_command_reply_prs,
+            pr_number,
         ),
         errors,
     )
