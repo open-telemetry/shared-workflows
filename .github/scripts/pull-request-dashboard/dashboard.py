@@ -123,8 +123,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   the handoff is active while it
                                                   equals head_sha and has not
                                                   been cleared by newer feedback.
-    dashboard_override_since        str (iso)     Creation time of the command
-                                                  bound to the handoff.
+    dashboard_override_since        str (iso)     Effective content timestamp of
+                                                  the command bound to the handoff.
     dashboard_override_cleared_by_feedback
                                       bool        Actionable human reviewer
                                                   feedback ended the handoff.

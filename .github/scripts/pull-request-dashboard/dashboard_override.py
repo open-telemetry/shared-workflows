@@ -29,8 +29,9 @@ _COMMAND_REPLY_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-command-reply:(\d+) -->"
 )
 OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
-# The acknowledgement records which head the command bound to and when it was
-# created. The head makes the handoff a direct comparison against the current one.
+# The acknowledgement records which head the command bound to and its effective
+# content timestamp. The head makes the handoff a direct comparison against the
+# current one.
 # The head is optional because acknowledgements written before the dashboard
 # recorded it still have to retire their command.
 _OVERRIDE_ACK_MARKER_RE = re.compile(
