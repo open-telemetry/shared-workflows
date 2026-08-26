@@ -449,9 +449,13 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
 
 def command_reply_exists(
     comments: Sequence[IssueComment],
-    comment_id: int,
+    reply: DashboardCommandReply,
 ) -> bool:
-    marker = command_reply_marker(comment_id)
+    marker = (
+        reviewer_handoff_cleared_marker(reply.comment_id, reply.head_sha)
+        if reply.kind == "cleared_by_feedback" and reply.head_sha
+        else command_reply_marker(reply.comment_id)
+    )
     return any(
         _is_dashboard_app_comment(comment)
         and marker in comment.body
@@ -471,22 +475,22 @@ def append_command_ack_reply(
     authorized command gets a reply because the command forces the reviewer route
     even when no discussion or failing check was cleared.
     """
-    command_id = facts.dashboard_override_command_id
+    cleared_by_feedback = facts.dashboard_override_cleared_by_feedback
+    command_id = (
+        facts.dashboard_override_command_id
+        or (
+            facts.dashboard_override_bound_command_id
+            if cleared_by_feedback
+            else 0
+        )
+    )
     if not command_id:
         return facts
-    if command_id in _replied_command_ids(source.issue_comments):
-        return facts
+    kind = "cleared_by_feedback" if cleared_by_feedback else "routed"
     replies = facts.dashboard_command_replies
-    if any(reply.comment_id == command_id for reply in replies):
-        return facts
     override_since = (
         facts.dashboard_override_since
         or _override_command_effective_at(source.issue_comments, command_id)
-    )
-    kind = (
-        "cleared_by_feedback"
-        if facts.dashboard_override_cleared_by_feedback
-        else "routed"
     )
     reply = DashboardCommandReply(
         comment_id=command_id,
@@ -501,6 +505,13 @@ def append_command_ack_reply(
         ),
         since=override_since,
     )
+    if command_reply_exists(source.issue_comments, reply):
+        return facts
+    if any(
+        queued.comment_id == command_id and queued.kind == kind
+        for queued in replies
+    ):
+        return facts
     return facts.with_changes(
         dashboard_override_since=override_since,
         dashboard_command_replies=(*replies, reply),

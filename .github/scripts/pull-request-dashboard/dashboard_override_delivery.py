@@ -38,7 +38,7 @@ def deliver_dashboard_command_replies(
             try:
                 if command_reply_exists(
                     comments,
-                    reply.comment_id,
+                    reply,
                 ):
                     continue
                 run_gh([

@@ -779,6 +779,57 @@ class DashboardOverrideTest(unittest.TestCase):
             body,
         )
 
+    def test_acknowledges_feedback_that_superseded_an_acknowledged_command(
+        self,
+    ) -> None:
+        routed_reply = issue_comment(
+            database_id=9,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body=(
+                dashboard_override.command_reply_marker(12)
+                + "\n"
+                + dashboard_override.override_ack_marker(
+                    12,
+                    "bound-head",
+                    "2026-08-16T08:00:00Z",
+                )
+            ),
+        )
+        facts = dashboard_facts(
+            author="author",
+            dashboard_override_bound_command_id=12,
+            dashboard_override_head_sha="bound-head",
+            dashboard_override_since="2026-08-16T08:00:00Z",
+            dashboard_override_cleared_by_feedback=True,
+        )
+
+        facts = dashboard_override.append_command_ack_reply(
+            override_input(routed_reply),
+            facts,
+            DashboardRoute.AUTHOR,
+        )
+
+        self.assertEqual("cleared_by_feedback", facts.dashboard_command_replies[0].kind)
+        self.assertFalse(
+            dashboard_override.command_reply_exists(
+                [routed_reply],
+                facts.dashboard_command_replies[0],
+            )
+        )
+        cleared_reply = issue_comment(
+            database_id=10,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body=dashboard_override.render_command_reply(
+                facts.dashboard_command_replies[0]
+            ),
+        )
+        self.assertTrue(
+            dashboard_override.command_reply_exists(
+                [routed_reply, cleared_reply],
+                facts.dashboard_command_replies[0],
+            )
+        )
+
     def test_cleared_reply_recovers_clearance_after_cache_loss(self) -> None:
         source = override_input(
             issue_comment(
