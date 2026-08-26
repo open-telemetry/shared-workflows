@@ -131,7 +131,7 @@ def latest_authorized_command(
         if comment_id > best_id:
             best_id = comment_id
             best_user = commenter
-            best_created_at = comment.created_at
+            best_created_at = comment.content_updated_at or comment.created_at
     return best_id, best_user, best_created_at
 
 
