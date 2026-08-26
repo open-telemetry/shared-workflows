@@ -86,16 +86,22 @@ def deliver_from_state(
             failed_command_reply_prs.add(pr_number)
         elif open_prs is not None:
             failed_command_reply_prs.update(pr["number"] for pr in open_prs)
-    run_delivery_action(
-        "author nudges",
-        lambda: deliver_prepared_author_nudges(
-            repo,
-            now,
-            author_retry_snapshot_path,
-            failed_command_reply_prs,
-        ),
-        errors,
+    reply_failure_scope_unknown = (
+        len(errors) > reply_error_count
+        and not failed_command_reply_prs
+        and open_prs is None
     )
+    if not reply_failure_scope_unknown:
+        run_delivery_action(
+            "author nudges",
+            lambda: deliver_prepared_author_nudges(
+                repo,
+                now,
+                author_retry_snapshot_path,
+                failed_command_reply_prs,
+            ),
+            errors,
+        )
     if pr_number is not None and pr_number not in failed_command_reply_prs:
         run_delivery_action(
             "status comments",

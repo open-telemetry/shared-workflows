@@ -180,7 +180,11 @@ class DeliveryTest(unittest.TestCase):
             patch.object(delivery, "deliver_prepared_author_nudges", return_value=[]) as nudges,
             patch.object(delivery, "update_status_comments_from_state", return_value=[]) as status,
             patch.object(delivery, "deliver_copilot_review_requests", return_value=[]) as copilot,
-            patch.object(delivery, "notify_slack_from_state", return_value=[]) as slack,
+            patch.object(
+                delivery,
+                "notify_slack_from_state",
+                return_value=[],
+            ) as slack,
         ):
             errors = delivery.deliver_from_state(
                 "open-telemetry/example",
@@ -194,6 +198,54 @@ class DeliveryTest(unittest.TestCase):
         nudges.assert_called_once()
         copilot.assert_called_once()
         status.assert_not_called()
+        slack.assert_not_called()
+
+    def test_unknown_reply_failure_scope_skips_author_nudges(self) -> None:
+        with (
+            patch.object(
+                delivery,
+                "list_open_prs",
+                side_effect=RuntimeError("open PRs unavailable"),
+            ),
+            patch.object(
+                delivery,
+                "deliver_dashboard_command_replies",
+                side_effect=RuntimeError("replies unavailable"),
+            ),
+            patch.object(
+                delivery,
+                "deliver_prepared_author_nudges",
+                return_value=[],
+            ) as nudges,
+            patch.object(
+                delivery,
+                "update_status_comments_from_state",
+                return_value=[],
+            ) as status,
+            patch.object(
+                delivery,
+                "deliver_copilot_review_requests",
+                return_value=[],
+            ) as copilot,
+            patch.object(delivery, "notify_slack_from_state", return_value=[]) as slack,
+        ):
+            errors = delivery.deliver_from_state(
+                "open-telemetry/example",
+                Path("author"),
+                Path("copilot"),
+                Path("slack"),
+            )
+
+        self.assertEqual(
+            [
+                "open pull requests: open PRs unavailable",
+                "dashboard command replies: replies unavailable",
+            ],
+            errors,
+        )
+        nudges.assert_not_called()
+        status.assert_not_called()
+        copilot.assert_called_once()
         slack.assert_not_called()
 
     def test_targeted_delivery_only_processes_triggering_pr(self) -> None:
