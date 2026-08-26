@@ -101,23 +101,25 @@ class CopilotCliModelRunner:
             env = os.environ.copy()
             env["COPILOT_OTEL_FILE_EXPORTER_PATH"] = str(otel_path)
             env.setdefault("COPILOT_OTEL_EXPORTER_TYPE", "file")
-            proc = subprocess.run(
-                [
-                    "copilot",
-                    "-p",
-                    request.prompt,
-                    "--model",
-                    request.model,
-                    "--silent",
-                ],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=self.timeout_seconds,
-                env=env,
-            )
-            _print_copilot_otel_file(otel_path)
+            try:
+                proc = subprocess.run(
+                    [
+                        "copilot",
+                        "-p",
+                        request.prompt,
+                        "--model",
+                        request.model,
+                        "--silent",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=self.timeout_seconds,
+                    env=env,
+                )
+            finally:
+                _print_copilot_otel_file(otel_path)
         return RawModelResponse(
             returncode=proc.returncode,
             stdout=proc.stdout,

@@ -173,7 +173,10 @@ class CopilotCliModelRunnerTest(unittest.TestCase):
             response,
             RawModelResponse(7, "response", "diagnostic"),
         )
-        self.assertIn("--- BEGIN COPILOT OTEL JSONL ---", stderr.getvalue())
+        self.assertEqual(
+            stderr.getvalue().count("--- BEGIN COPILOT OTEL JSONL ---"),
+            1,
+        )
         self.assertIn('{"event":"done"}', stderr.getvalue())
         assert observed_path is not None
         self.assertFalse(observed_path.parent.exists())
@@ -195,30 +198,61 @@ class CopilotCliModelRunnerTest(unittest.TestCase):
         )
 
     @patch("classification_execution.subprocess.run")
-    def test_timeout_propagates_after_cleaning_the_tempfile(
+    def test_timeout_prints_telemetry_and_propagates_after_cleaning_the_tempfile(
         self,
         run,
     ) -> None:
         observed_path: Path | None = None
+        expected_error = subprocess.TimeoutExpired(
+            "copilot",
+            LLM_DISCUSSION_TIMEOUT_SECONDS,
+            output="partial",
+            stderr="slow",
+        )
 
         def timeout(_command, **kwargs):
             nonlocal observed_path
             observed_path = Path(
                 kwargs["env"]["COPILOT_OTEL_FILE_EXPORTER_PATH"]
             )
-            raise subprocess.TimeoutExpired(
-                "copilot",
-                kwargs["timeout"],
-                output="partial",
-                stderr="slow",
-            )
+            observed_path.write_text('{"event":"timeout"}\n', encoding="utf-8")
+            raise expected_error
 
         run.side_effect = timeout
-        with self.assertRaises(subprocess.TimeoutExpired):
+        stderr = io.StringIO()
+        with (
+            redirect_stderr(stderr),
+            self.assertRaises(subprocess.TimeoutExpired) as raised,
+        ):
             CopilotCliModelRunner().run(ModelRunRequest("prompt", "model"))
 
+        self.assertIs(raised.exception, expected_error)
+        self.assertIn('{"event":"timeout"}', stderr.getvalue())
         assert observed_path is not None
         self.assertFalse(observed_path.parent.exists())
+
+    @patch("classification_execution.subprocess.run")
+    def test_subprocess_error_prints_telemetry_without_masking_error(
+        self,
+        run,
+    ) -> None:
+        expected_error = OSError("failed to launch Copilot")
+
+        def fail(_command, **kwargs):
+            otel_path = Path(kwargs["env"]["COPILOT_OTEL_FILE_EXPORTER_PATH"])
+            otel_path.write_text('{"event":"launch-error"}\n', encoding="utf-8")
+            raise expected_error
+
+        run.side_effect = fail
+        stderr = io.StringIO()
+        with (
+            redirect_stderr(stderr),
+            self.assertRaises(OSError) as raised,
+        ):
+            CopilotCliModelRunner().run(ModelRunRequest("prompt", "model"))
+
+        self.assertIs(raised.exception, expected_error)
+        self.assertIn('{"event":"launch-error"}', stderr.getvalue())
 
 
 class FileClassificationCacheStoreTest(unittest.TestCase):

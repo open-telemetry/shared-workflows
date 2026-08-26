@@ -1569,7 +1569,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
 
         with (
             patch("dashboard.list_open_prs", return_value=[{"number": 1}, {"number": 2}]),
-            patch("classification_execution.FileClassificationCacheStore.prune"),
+            patch("dashboard.DEFAULT_CLASSIFICATION_CACHE_STORE"),
             patch("dashboard.load_reviewer_set", return_value={"reviewer"}),
             patch("dashboard.load_dashboard_state_cache", side_effect=load_dashboard_state),
             patch("dashboard.load_backfill_state", side_effect=load_backfill_state),
