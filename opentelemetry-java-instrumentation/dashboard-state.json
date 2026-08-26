@@ -1756,18 +1756,17 @@
         "author": "DhroovP",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "32f30f20b9d3447aabb761d3bee8ca9a",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "2332efdfb94e9251e61e9c0c592a659315748a0e031fb66d2c8fe744ba64c527",
+        "copilot_request_fingerprint": "b59bae111dff55963c5befbbdeec1ee203cdb349dbf2fe2a87e83d2d19db28eb",
         "copilot_review_exists": true,
-        "copilot_review_needed": true,
-        "copilot_review_outstanding": true,
+        "copilot_review_needed": false,
+        "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
-        "copilot_review_stale": true,
-        "copilot_review_unreported": true,
+        "copilot_review_requested": false,
+        "copilot_review_stale": false,
+        "copilot_review_unreported": false,
         "created_at": "2026-08-12T04:20:43+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
@@ -1779,7 +1778,7 @@
         "last_activity_at": "2026-08-25T23:38:44+00:00",
         "last_approver_activity_at": "2026-08-25T14:17:21+00:00",
         "last_author_activity_at": "2026-08-25T23:38:44+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1800,17 +1799,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-26T00:09:40.348793+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "319dd306880c6f552b02815fab4488196b8634a33d31b0dec58e365b250e24d1",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-25T14:54:45+00:00"
+        "routing_input_fingerprint": "444803649986159e65ecb85f68ac09a22e61009b18d3068b2aedb466b3605baa",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-26T00:24:15.682242+00:00"
       },
       "failed": false,
       "pr_number": 19526,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-5374555757": {
           "evidence": {
