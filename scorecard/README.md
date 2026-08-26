@@ -29,6 +29,11 @@ jobs:
 
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets are required.
 
+The optional Boolean `skip-publication` input defaults to `false`. Set it to
+`true` for events such as pull requests that should retain the SARIF artifact
+and code scanning upload without publishing the full result to
+`api.scorecard.dev`.
+
 The optional `file-mode` input accepts `archive` or `git` and defaults to
 `archive`. Add `file-mode: git` when Scorecard must scan files excluded from
 repository archives by `.gitattributes` `export-ignore` rules. Git mode
@@ -48,4 +53,4 @@ Only these checks are uploaded to code scanning:
 - `PinnedDependenciesID`
 - `TokenPermissionsID`
 
-The full result is still published, so the badge and the public `api.scorecard.dev` entry are unaffected.
+By default, the full result is still published, so the badge and the public `api.scorecard.dev` entry are unaffected. Runs with `skip-publication: true` do not update the badge or public entry.
