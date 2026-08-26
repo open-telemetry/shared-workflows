@@ -13551,13 +13551,15 @@
         "approval_count": 0,
         "assignees": [],
         "author": "XSAM",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50535#discussion_r3859196014"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "17a46dd422294b0685ead794f5a5003b",
         "ci_failing_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bee759101b2150823b8f1e79b9f358392ff43e6bac755e34ad05ee94532f43a8",
+        "copilot_request_fingerprint": "7f0e35b0329eb1171b9918066b8c055f395beb76f14484580553c827698b75db",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13573,17 +13575,26 @@
         "head_sha": "88fc6c57d8161129a664d7975b1f3210718d948e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-26T00:36:09+00:00",
+        "last_activity_at": "2026-08-26T02:35:59+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-08-26T00:36:09+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-26T00:36:39.379528+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "36ea7349f45454e9d6cad2527ebf2de1df8a6123ece6b6944610704ed6597a0d",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-26T00:26:00+00:00"
+        "routing_input_fingerprint": "e17ba5bff22422dd56f5afa7171f2b86c745d381c078b603ec2fb7b89bf44491",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-26T02:35:41+00:00"
       },
       "failed": false,
       "pr_number": 50535,
