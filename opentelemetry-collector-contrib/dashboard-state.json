@@ -4281,17 +4281,18 @@
     },
     "49341": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "edmocosta",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49341#discussion_r3863355441"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "5b0e1d8a12af4302962c30dc122711c4",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-08-26T12:13:52+00:00",
-        "ci_pending_count": 4,
+        "ci_failing_count": 0,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b211b23f2fc10cf1dcaef2583f9f93fe5ab57b93586567b291ef8ccd2db34d02",
+        "copilot_request_fingerprint": "c8849e3405a0f1f5456a5a0f16cb3f1c9bbb51ffad236c96bb837e4fc1ab15ba",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4304,14 +4305,23 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "1394386a71259735d47d394d8404a6ede377eb03",
+        "head_sha": "316c8429adb032d824ed7e90452a76b29de03a64",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-26T12:07:21+00:00",
-        "last_approver_activity_at": "2026-08-12T16:13:19+00:00",
-        "last_author_activity_at": "2026-08-26T12:07:21+00:00",
-        "required_checks_settled": false,
+        "last_activity_at": "2026-08-26T20:27:21+00:00",
+        "last_approver_activity_at": "2026-08-26T20:27:21+00:00",
+        "last_author_activity_at": "2026-08-26T13:58:42+00:00",
+        "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "evan-bradley",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -4324,9 +4334,9 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bb09964405538f681b58d24db59fb6c008e0af699d8c26186e7c9cae2a4d8421",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-08-26T12:13:52+00:00"
+        "routing_input_fingerprint": "2198ed06f032e9854d24354f813df7b9b691ed91f1bac96117bbafa87ac2bce7",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-26T13:46:12+00:00"
       },
       "failed": false,
       "pr_number": 49341,
