@@ -163,10 +163,23 @@ class FileClassificationCacheStore:
 
     def write(self, pr_number: int, cache: Mapping[str, Any]) -> None:
         self.directory.mkdir(parents=True, exist_ok=True)
-        self._path(pr_number).write_text(
-            json.dumps(dict(cache), sort_keys=True, indent=2),
-            encoding="utf-8",
-        )
+        path = self._path(pr_number)
+        temporary_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=self.directory,
+                prefix=f".{path.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as output:
+                temporary_path = Path(output.name)
+                json.dump(dict(cache), output, sort_keys=True, indent=2)
+            temporary_path.replace(path)
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
 
     def prune(self, open_pr_numbers: set[int]) -> None:
         if not self.directory.exists():

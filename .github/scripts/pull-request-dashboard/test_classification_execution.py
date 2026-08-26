@@ -260,6 +260,23 @@ class FileClassificationCacheStoreTest(unittest.TestCase):
         self.assertIn("ignoring unreadable classification cache", stderr.getvalue())
         self.assertEqual(self.store.load(2), {})
 
+    def test_interrupted_write_preserves_the_existing_cache(self) -> None:
+        existing = {"existing": {"failed": False}}
+        self.store.write(1, existing)
+
+        def interrupt(_cache, output, **_kwargs) -> None:
+            output.write("{")
+            raise OSError("interrupted")
+
+        with (
+            patch("classification_execution.json.dump", side_effect=interrupt),
+            self.assertRaisesRegex(OSError, "interrupted"),
+        ):
+            self.store.write(1, {"replacement": {"failed": False}})
+
+        self.assertEqual(self.store.load(1), existing)
+        self.assertEqual(list(self.directory.glob("*.tmp")), [])
+
 
 class ClassificationServiceTest(unittest.TestCase):
     def test_cache_miss_hit_batching_order_and_cli_call_attribution(self) -> None:
