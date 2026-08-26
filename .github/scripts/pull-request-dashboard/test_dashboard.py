@@ -740,41 +740,48 @@ class PullRequestEvaluationTest(unittest.TestCase):
         return_value=([], [], []),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_resolved_inline_feedback_ends_handoff(
+    def test_inactive_inline_feedback_ends_handoff(
         self, fetch_raw: Mock, classify: Mock, handoff_classify: Mock
     ) -> None:
-        fetch_raw.return_value = pull_request_source(
-            pull_request=pull_request_metadata(title="Routing integration"),
-            issue_comments=(issue_comment(
-                database_id=102,
-                body="/dashboard route:reviewers",
-                created_at="2026-08-16T08:00:00Z",
-            ),),
-            review_threads=(review_thread(
-                node_id="thread-1",
-                is_resolved=True,
-                comments=(review_thread_comment(
-                    body="Please update this.",
-                    created_at="2026-08-16T09:00:00Z",
-                ),),
-            ),),
-        )
+        for state in ({"is_resolved": True}, {"is_outdated": True}):
+            with self.subTest(state=state):
+                fetch_raw.return_value = pull_request_source(
+                    pull_request=pull_request_metadata(title="Routing integration"),
+                    issue_comments=(issue_comment(
+                        database_id=102,
+                        body="/dashboard route:reviewers",
+                        created_at="2026-08-16T08:00:00Z",
+                    ),),
+                    review_threads=(review_thread(
+                        node_id="thread-1",
+                        **state,
+                        comments=(review_thread_comment(
+                            body="Please update this.",
+                            created_at="2026-08-16T09:00:00Z",
+                        ),),
+                    ),),
+                )
 
-        result = evaluate_pr({"number": 7})
+                result = evaluate_pr({"number": 7})
 
-        self.assertIsNotNone(result)
-        assert result is not None
-        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
-        handoff_classify.assert_called_once()
-        self.assertEqual(
-            ["Please update this."],
-            [
-                comment["body"]
-                for comment in handoff_classify.call_args.args[1][0]["comments"]
-            ],
-        )
-        classify.assert_called_once()
-        self.assertEqual([], classify.call_args.args[1])
+                self.assertIsNotNone(result)
+                assert result is not None
+                self.assertTrue(
+                    result.facts.dashboard_override_cleared_by_feedback
+                )
+                self.assertEqual(
+                    ["Please update this."],
+                    [
+                        comment["body"]
+                        for comment in (
+                            handoff_classify.call_args.args[1][0]["comments"]
+                        )
+                    ],
+                )
+                self.assertEqual([], classify.call_args.args[1])
+
+        self.assertEqual(2, handoff_classify.call_count)
+        self.assertEqual(2, classify.call_count)
 
     @patch(
         "pull_request_evaluation.classify_reviewer_handoff_feedback",

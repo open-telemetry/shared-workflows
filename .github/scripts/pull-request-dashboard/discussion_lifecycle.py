@@ -145,14 +145,14 @@ def _positive_reaction_logins(
 def _group_review_threads(
     source: DiscussionInput,
     *,
-    include_resolved: bool = False,
+    include_inactive: bool = False,
 ) -> list[dict[str, Any]]:
     discussions: list[dict[str, Any]] = []
     reviewers = set(source.reviewers)
     for discussion in source.review_threads:
         if (
-            discussion.is_resolved and not include_resolved
-        ) or discussion.is_outdated:
+            discussion.is_resolved or discussion.is_outdated
+        ) and not include_inactive:
             continue
         raw_comments = discussion.comments
         thread_url = raw_comments[0].url if raw_comments else ""
@@ -393,7 +393,7 @@ def prepare_reviewer_handoff_feedback(
     pr_author: str,
 ) -> PreparedDiscussions:
     prepared = PreparedDiscussions(
-        tuple(_group_review_threads(source, include_resolved=True)),
+        tuple(_group_review_threads(source, include_inactive=True)),
         tuple(_derive_top_level_items(source)),
         (),
     )
