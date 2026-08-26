@@ -4244,16 +4244,15 @@
     },
     "5585": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-08-26T01:08:03+00:00",
+        "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e57a5ca6db7ffc86c5019f6ca72e76c2e7ed5b144a6331e4b2194503f37f631c",
+        "copilot_request_fingerprint": "774ed78cfd478e0c9ae005fe9bd11d5209bf1ca1c2e3e8e5261ea36195411b98",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4269,21 +4268,31 @@
         "head_sha": "6671ed085bdb13e50f21d113a2ef30e42cee743e",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-26T01:04:11+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-26T15:01:37+00:00",
+        "last_approver_activity_at": "2026-08-26T15:01:37+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "emdneto",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b80bde7982ab1722531d6e910f3f32ea692aa906f6bd32e283fe84bec3a8f292",
+        "routing_input_fingerprint": "b6e0ee8f4237fd3d1e6b74d618a5babbdde0ad225c922aca15e288fcafb91740",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-26T01:04:11+00:00"
       },
       "failed": false,
       "pr_number": 5585,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5585",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
