@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from classification_policy import (
+    MAX_PROMPT_CHARS,
     ActionDecision,
     AuthorCommentDecision,
     AuthorCommentDiscussionPlan,
@@ -161,6 +162,37 @@ class PromptCompatibilityTest(unittest.TestCase):
             ),
             "76e534a013fc212856acbebd3c1897aa2c27daa6a69c6c8bee02e2d11b7bb2fd",
         )
+
+    def test_author_comment_prompt_supports_empty_input(self) -> None:
+        prompt = make_author_comment_request(
+            [],
+            max_prompt_chars=MAX_PROMPT_CHARS,
+        ).prompt
+
+        self.assertIn(
+            "---BEGIN AUTHOR FOLLOW-UPS---\n[]\n"
+            "---END AUTHOR FOLLOW-UPS---",
+            prompt,
+        )
+
+    def test_author_comment_prompt_does_not_apply_batching(self) -> None:
+        discussions = [
+            replace(
+                self.reply,
+                identity=DiscussionIdentity(
+                    f"author-reply-{index}",
+                    DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                ),
+            )
+            for index in range(11)
+        ]
+
+        prompt = make_author_comment_request(
+            discussions,
+            max_prompt_chars=MAX_PROMPT_CHARS,
+        ).prompt
+
+        self.assertIn('"discussion_id": "author-reply-10"', prompt)
 
     def test_unknown_discussion_kind_names_the_record(self) -> None:
         with self.assertRaisesRegex(
@@ -572,6 +604,33 @@ class PreparationAndResolutionTest(unittest.TestCase):
             errors[0],
         )
 
+    def test_unknown_feedback_key_diagnostics_are_truncated(self) -> None:
+        _decision, errors = parse_author_comment_decision(
+            json.dumps({
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": "unknown",
+                        "discussion_action": "none",
+                    }
+                ]
+            }),
+            {
+                f"f{index + 1:04d}": f"feedback-{index}"
+                for index in range(12)
+            },
+        )
+
+        self.assertEqual(errors[0].count("(showing 10 of 12)"), 2)
+        self.assertIn("expected keys ['f0001', 'f0002',", errors[0])
+        self.assertIn("'f0010'] (showing 10 of 12)", errors[0])
+        self.assertNotIn("'f0011'", errors[0])
+        self.assertIn(
+            "canonical candidate IDs ['feedback-0', 'feedback-1',",
+            errors[0],
+        )
+        self.assertIn("'feedback-9'] (showing 10 of 12)", errors[0])
+        self.assertNotIn("'feedback-10'", errors[0])
+
     def test_long_reviewer_comment_needs_no_model_request(self) -> None:
         thread = discussion(
             "thread-1",
@@ -663,6 +722,183 @@ class PreparationAndResolutionTest(unittest.TestCase):
             ),
         )
 
+    def test_author_comment_requests_are_hard_bounded_and_keep_all_feedback(
+        self,
+    ) -> None:
+        reply = discussion(
+            "reply-1",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            "Fixed the requested items.",
+            actor_role="author",
+            candidate_feedback=tuple(
+                (
+                    f"feedback-{index}",
+                    f"Request {index}: " + "x" * 1000,
+                )
+                for index in range(30)
+            ),
+        )
+
+        requests = prepare_author_comment_requests(
+            [reply],
+            max_prompt_chars=5000,
+        )
+
+        self.assertGreater(len(requests), 1)
+        self.assertTrue(
+            all(len(request.prompt) <= 5000 for request in requests)
+        )
+        self.assertEqual(
+            [
+                feedback_id
+                for request in requests
+                for _discussion_id, feedback in request.feedback_ids
+                for _feedback_key, feedback_id in feedback
+            ],
+            [f"feedback-{index}" for index in range(30)],
+        )
+
+
+class AuthorCommentMalformedResponseTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.first = discussion(
+            "reply-1",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            "Fixed the first item.",
+            actor_role="author",
+            candidate_feedback=(("feedback-1", "Please fix one."),),
+        )
+        self.second = discussion(
+            "reply-2",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            "Fixed the second item.",
+            actor_role="author",
+            candidate_feedback=(("feedback-2", "Please fix two."),),
+        )
+
+    def test_duplicate_and_missing_discussion_ids_fail(self) -> None:
+        request = make_author_comment_request([self.first, self.second])
+        item = {
+            "discussion_id": "reply-1",
+            "feedback_outcomes": [
+                {
+                    "feedback_key": "f0001",
+                    "discussion_action": "none",
+                    "reason": "Completed.",
+                }
+            ],
+        }
+
+        results = resolve_author_comment_response(
+            request,
+            RawModelResponse(
+                0,
+                json.dumps({"items": [item, item]}),
+            ),
+        )
+
+        self.assertIsInstance(results[0], ClassificationFailure)
+        self.assertIn(
+            "duplicate discussion_id",
+            results[0].diagnostics.error,
+        )
+        self.assertIsInstance(results[1], ClassificationFailure)
+        self.assertIn(
+            "this discussion_id",
+            results[1].diagnostics.error,
+        )
+
+    def test_feedback_keys_cannot_cross_discussions(self) -> None:
+        request = make_author_comment_request([self.first, self.second])
+        response = RawModelResponse(
+            0,
+            json.dumps({
+                "items": [
+                    {
+                        "discussion_id": "reply-1",
+                        "feedback_outcomes": [
+                            {
+                                "feedback_key": "f0002",
+                                "discussion_action": "none",
+                                "reason": "Wrong discussion.",
+                            }
+                        ],
+                    },
+                    {
+                        "discussion_id": "reply-2",
+                        "feedback_outcomes": [
+                            {
+                                "feedback_key": "f0002",
+                                "discussion_action": "none",
+                                "reason": "Completed.",
+                            }
+                        ],
+                    },
+                ]
+            }),
+        )
+
+        first, second = resolve_author_comment_response(request, response)
+
+        self.assertIsInstance(first, ClassificationFailure)
+        self.assertIn("expected keys ['f0001']", first.diagnostics.error)
+        self.assertIsInstance(second, ClassificationSuccess)
+        assert isinstance(second.decision, AuthorCommentDecision)
+        self.assertEqual(
+            second.decision.feedback_outcomes[0].feedback_id,
+            "feedback-2",
+        )
+
+    def test_duplicate_feedback_key_and_invalid_action_fail(self) -> None:
+        request = make_author_comment_request([self.first])
+        for name, outcomes, expected in (
+            (
+                "duplicate",
+                [
+                    {
+                        "feedback_key": "f0001",
+                        "discussion_action": "none",
+                        "reason": "Completed.",
+                    },
+                    {
+                        "feedback_key": "f0001",
+                        "discussion_action": "author",
+                        "reason": "Duplicate.",
+                    },
+                ],
+                "duplicate feedback_key 'f0001'",
+            ),
+            (
+                "invalid action",
+                [
+                    {
+                        "feedback_key": "f0001",
+                        "discussion_action": "reviewer",
+                        "reason": "Invalid.",
+                    }
+                ],
+                "invalid discussion_action 'reviewer'",
+            ),
+        ):
+            with self.subTest(name=name):
+                result = resolve_author_comment_response(
+                    request,
+                    RawModelResponse(
+                        0,
+                        json.dumps({
+                            "items": [
+                                {
+                                    "discussion_id": "reply-1",
+                                    "feedback_outcomes": outcomes,
+                                }
+                            ]
+                        }),
+                    ),
+                )[0]
+
+                self.assertIsInstance(result, ClassificationFailure)
+                self.assertIn(expected, result.diagnostics.error)
+
 
 class MalformedResponseTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -721,6 +957,31 @@ class MalformedResponseTest(unittest.TestCase):
 
         self.assertIsInstance(result, ClassificationFailure)
         self.assertTrue(result.cli_call)
+
+    def test_nonzero_exit_with_valid_verdict_reports_only_the_exit(self) -> None:
+        result = resolve_verdict_response(
+            self.request,
+            RawModelResponse(
+                1,
+                json.dumps({
+                    "items": [
+                        {
+                            "discussion_id": "feedback-1",
+                            "verdict": "no_author_action",
+                            "reason": "Done.",
+                        }
+                    ]
+                }),
+                "stderr",
+            ),
+        )[0]
+
+        self.assertIsInstance(result, ClassificationFailure)
+        self.assertIn("exited with status 1", result.diagnostics.error)
+        self.assertNotIn(
+            "did not return a valid verdict",
+            result.diagnostics.error,
+        )
 
 
 if __name__ == "__main__":

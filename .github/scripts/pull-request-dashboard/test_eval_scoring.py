@@ -3,10 +3,19 @@ import io
 import sys
 import unittest
 from pathlib import Path
+from threading import Barrier, BrokenBarrierError, Lock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
 
-from score_reviewer_feedback import batch_cases, majority, report, summarize  # noqa: E402
+from score_reviewer_feedback import (  # noqa: E402
+    batch_cases,
+    classify,
+    majority,
+    report,
+    summarize,
+)
+import classification_policy as policy  # noqa: E402
+from classification_policy import RawModelResponse  # noqa: E402
 
 
 def case(case_id: str, *, stability="stable", label="no_author_action", adjudicated=None) -> dict:
@@ -14,6 +23,8 @@ def case(case_id: str, *, stability="stable", label="no_author_action", adjudica
         "id": case_id,
         "repo": "repo",
         "pull_request": 1,
+        "requester": "reviewer",
+        "pr_author": "author",
         "body": "body",
         "role": "scored",
         "stability": stability,
@@ -161,6 +172,41 @@ class BatchCasesTest(unittest.TestCase):
         batches = batch_cases(cases)
 
         self.assertEqual([10, 10, 5], [len(b) for b in batches])
+
+
+class ClassifyTest(unittest.TestCase):
+    def test_injected_runner_calls_do_not_overlap(self) -> None:
+        barrier = Barrier(2)
+        state_lock = Lock()
+        state = {"active": 0, "calls": 0, "overlap": False}
+
+        class Runner:
+            def run(self, _request) -> RawModelResponse:
+                with state_lock:
+                    state["active"] += 1
+                    state["calls"] += 1
+                    if state["active"] > 1:
+                        state["overlap"] = True
+                try:
+                    barrier.wait(timeout=0.2)
+                except BrokenBarrierError:
+                    pass
+                finally:
+                    with state_lock:
+                        state["active"] -= 1
+                return RawModelResponse(0, '{"items":[]}', "")
+
+        classify(
+            [case(f"case-{index}") for index in range(20)],
+            policy.REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
+            ("verdict",),
+            {"author_action": "author_action"},
+            "model",
+            Runner(),
+        )
+
+        self.assertEqual(state["calls"], 2)
+        self.assertFalse(state["overlap"])
 
 
 if __name__ == "__main__":

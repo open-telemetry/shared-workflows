@@ -1,14 +1,19 @@
+import contextlib
+import io
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from threading import Barrier, BrokenBarrierError, Lock
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
 
+from classification_policy import RawModelResponse  # noqa: E402
+from classification_test_support import FakeModelRunner  # noqa: E402
 import regenerate_baseline  # noqa: E402
-from regenerate_baseline import answers, rebuild, run_batch  # noqa: E402
+from regenerate_baseline import answers, measure, rebuild, run_batch  # noqa: E402
 
 
 def case(case_id: str, *, adjudicated_label=None) -> dict:
@@ -162,12 +167,16 @@ class RunBatchCachingTest(unittest.TestCase):
     def entries(self) -> list[Path]:
         return list(self.cache.iterdir())
 
-    def run_with(self, proc) -> dict:
-        with patch.object(regenerate_baseline.classification, "run_copilot", proc):
-            return run_batch([case("a")], "model", "salt")
+    def run_with(self, response: RawModelResponse | Exception) -> dict:
+        return run_batch(
+            [case("a")],
+            "model",
+            "salt",
+            FakeModelRunner([response]),
+        )
 
     def test_a_successful_call_is_cached(self) -> None:
-        raw = self.run_with(lambda prompt, model: _Completed(0, "{}"))
+        raw = self.run_with(RawModelResponse(0, "{}"))
 
         self.assertEqual(0, raw["returncode"])
         self.assertEqual(1, len(self.entries()))
@@ -175,25 +184,56 @@ class RunBatchCachingTest(unittest.TestCase):
     def test_a_failed_call_is_not_cached(self) -> None:
         # Caching a failure would make every later run replay it instead of
         # retrying the call.
-        raw = self.run_with(lambda prompt, model: _Completed(1, ""))
+        raw = self.run_with(RawModelResponse(1, ""))
 
         self.assertEqual(1, raw["returncode"])
         self.assertEqual([], self.entries())
 
     def test_a_raising_call_is_not_cached(self) -> None:
-        def explode(prompt: str, model: str):
-            raise RuntimeError("throttled")
-
-        raw = self.run_with(explode)
+        raw = self.run_with(RuntimeError("throttled"))
 
         self.assertIn("throttled", raw["error"])
         self.assertEqual([], self.entries())
 
 
-class _Completed:
-    def __init__(self, returncode: int, stdout: str) -> None:
-        self.returncode = returncode
-        self.stdout = stdout
+class MeasureTest(unittest.TestCase):
+    def test_injected_runner_calls_do_not_overlap(self) -> None:
+        cache = tempfile.TemporaryDirectory()
+        self.addCleanup(cache.cleanup)
+        barrier = Barrier(2)
+        state_lock = Lock()
+        state = {"active": 0, "calls": 0, "overlap": False}
+
+        class Runner:
+            def run(self, _request) -> RawModelResponse:
+                with state_lock:
+                    state["active"] += 1
+                    state["calls"] += 1
+                    if state["active"] > 1:
+                        state["overlap"] = True
+                try:
+                    barrier.wait(timeout=0.2)
+                except BrokenBarrierError:
+                    pass
+                finally:
+                    with state_lock:
+                        state["active"] -= 1
+                return RawModelResponse(0, '{"items":[]}', "")
+
+        with (
+            patch.object(regenerate_baseline, "CACHE_DIR", Path(cache.name)),
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            measure(
+                [case(f"case-{index}") for index in range(20)],
+                "model",
+                1,
+                2,
+                Runner(),
+            )
+
+        self.assertEqual(state["calls"], 2)
+        self.assertFalse(state["overlap"])
 
 
 if __name__ == "__main__":

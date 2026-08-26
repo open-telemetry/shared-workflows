@@ -18,10 +18,15 @@ import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Lock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import classification  # noqa: E402
+from classification_execution import (  # noqa: E402
+    CopilotCliModelRunner,
+    ModelRunRequest,
+    ModelRunner,
+)
 import classification_policy as policy  # noqa: E402
 
 CASES = Path(__file__).resolve().parent / "reviewer_feedback_cases.json"
@@ -64,8 +69,15 @@ def batch_cases(cases: list[dict]) -> list[list[dict]]:
 
 
 def classify(
-    cases: list[dict], template: str, fields: tuple[str, ...], mapping: dict, model: str
+    cases: list[dict],
+    template: str,
+    fields: tuple[str, ...],
+    mapping: dict,
+    model: str,
+    runner: ModelRunner | None = None,
 ) -> dict:
+    runner_lock = Lock() if runner is not None else None
+    runner = runner or CopilotCliModelRunner()
     batches = [
         [
             policy.reviewer_feedback_prompt_item(
@@ -84,12 +96,16 @@ def classify(
         # A batch that fails or answers unusably is unanswered, not fatal: one bad
         # response should not discard an evaluation of several hundred calls.
         try:
-            proc = classification.run_copilot(prompt, model)
+            if runner_lock is None:
+                response = runner.run(ModelRunRequest(prompt, model))
+            else:
+                with runner_lock:
+                    response = runner.run(ModelRunRequest(prompt, model))
         except Exception:  # noqa: BLE001 - production also treats any batch failure as failed
             return {}
-        if proc.returncode != 0:
+        if response.returncode != 0:
             return {}
-        parsed = policy.extract_json_object(proc.stdout) or {}
+        parsed = policy.extract_json_object(response.stdout) or {}
         items = parsed.get("items")
         if not isinstance(items, list):
             return {}
