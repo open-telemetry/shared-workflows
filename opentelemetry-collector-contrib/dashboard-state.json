@@ -12808,16 +12808,15 @@
     },
     "50543": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "constanca-m",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "754d6e2a518a4107bcc0db6137ac9456",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4f0067537eff95715169ea7f078e662730a123f3279ab719b3feb4c0e3f8dac3",
+        "copilot_request_fingerprint": "2255c04f0ce5d630d981a4452577f06afb10785e10d31da2b3e1d4f522a5b34a",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12833,22 +12832,31 @@
         "head_sha": "314d392dea948c3a76e8fe27918a605f49817e3b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-26T10:59:39+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-26T11:35:06+00:00",
+        "last_approver_activity_at": "2026-08-26T11:35:06+00:00",
         "last_author_activity_at": "2026-08-26T10:54:51+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-26T11:13:51.065665+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e48d5fc60448c78426da24deb7b7c630b1355641cb996790c2e40784f7e418b2",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-08-26T10:59:39+00:00"
+        "routing_input_fingerprint": "37e267ac3183a44a88f8e601da0eb0ed7813d0ea56ab9392612bc93b3c6bc78c",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-26T19:59:30.008428+00:00"
       },
       "failed": false,
       "pr_number": 50543,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50543",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
