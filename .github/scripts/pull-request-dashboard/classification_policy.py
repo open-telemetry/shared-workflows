@@ -594,6 +594,62 @@ class AuthorCommentModelRequest:
 
 
 @dataclass(frozen=True)
+class AuthorCommentDiscussionPlan:
+    discussion: ClassificationDiscussion
+    requests: tuple[AuthorCommentModelRequest, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "requests", tuple(self.requests))
+        if not self.requests:
+            raise ValueError("author-comment discussion plan requires a request")
+        if any(
+            len(request.discussions) != 1
+            or request.discussions[0].identity != self.discussion.identity
+            for request in self.requests
+        ):
+            raise ValueError(
+                "author-comment discussion plan requests must contain "
+                "only that discussion"
+            )
+
+    @property
+    def request_count(self) -> int:
+        return len(self.requests)
+
+
+@dataclass(frozen=True)
+class AuthorCommentExecutionBatch:
+    discussions: tuple[ClassificationDiscussion, ...]
+    requests: tuple[AuthorCommentModelRequest, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "discussions", tuple(self.discussions))
+        object.__setattr__(self, "requests", tuple(self.requests))
+
+
+@dataclass(frozen=True)
+class AuthorCommentSelection:
+    batches: tuple[AuthorCommentExecutionBatch, ...]
+    deferred: tuple[ClassificationDiscussion, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "batches", tuple(self.batches))
+        object.__setattr__(self, "deferred", tuple(self.deferred))
+
+    @property
+    def admitted(self) -> tuple[ClassificationDiscussion, ...]:
+        return tuple(
+            discussion
+            for batch in self.batches
+            for discussion in batch.discussions
+        )
+
+    @property
+    def request_count(self) -> int:
+        return sum(len(batch.requests) for batch in self.batches)
+
+
+@dataclass(frozen=True)
 class ReviewThreadPlan:
     resolved: tuple[ClassificationResult, ...]
     author_replies: tuple[ClassificationDiscussion, ...]
@@ -870,15 +926,15 @@ def make_author_comment_request(
     )
 
 
-def _author_comment_candidate_chunks(
+def prepare_author_comment_discussion(
     discussion: ClassificationDiscussion,
     *,
-    max_prompt_chars: int,
-) -> list[ClassificationDiscussion]:
+    max_prompt_chars: int = MAX_PROMPT_CHARS,
+) -> AuthorCommentDiscussionPlan:
     candidates = discussion.candidate_feedback
     if not candidates:
         try:
-            make_author_comment_request(
+            request = make_author_comment_request(
                 [discussion],
                 max_prompt_chars=max_prompt_chars,
             )
@@ -887,14 +943,15 @@ def _author_comment_candidate_chunks(
                 "author-comment prompt exceeds "
                 f"max_prompt_chars={max_prompt_chars}"
             ) from error
-        return [discussion]
+        return AuthorCommentDiscussionPlan(discussion, (request,))
 
-    chunks: list[ClassificationDiscussion] = []
+    requests: list[AuthorCommentModelRequest] = []
     start = 0
     while start < len(candidates):
         low = start + 1
         high = len(candidates)
         best = start
+        best_request: AuthorCommentModelRequest | None = None
         while low <= high:
             end = (low + high) // 2
             trial = replace(
@@ -902,7 +959,7 @@ def _author_comment_candidate_chunks(
                 candidate_feedback=candidates[start:end],
             )
             try:
-                make_author_comment_request(
+                request = make_author_comment_request(
                     [trial],
                     max_prompt_chars=max_prompt_chars,
                 )
@@ -910,20 +967,101 @@ def _author_comment_candidate_chunks(
                 high = end - 1
             else:
                 best = end
+                best_request = request
                 low = end + 1
-        if best == start:
+        if best == start or best_request is None:
             raise ValueError(
                 f"max_prompt_chars={max_prompt_chars} is too small "
                 "for one author-comment candidate"
             )
-        chunks.append(
-            replace(
-                discussion,
-                candidate_feedback=candidates[start:best],
-            )
-        )
+        requests.append(best_request)
         start = best
-    return chunks
+    return AuthorCommentDiscussionPlan(discussion, tuple(requests))
+
+
+@dataclass(frozen=True)
+class _AuthorCommentRequestBuilder:
+    completed: tuple[AuthorCommentModelRequest, ...] = ()
+    current_discussions: tuple[ClassificationDiscussion, ...] = ()
+    current_request: AuthorCommentModelRequest | None = None
+
+    @property
+    def requests(self) -> tuple[AuthorCommentModelRequest, ...]:
+        if self.current_request is None:
+            return self.completed
+        return (*self.completed, self.current_request)
+
+    @property
+    def request_count(self) -> int:
+        return len(self.completed) + (self.current_request is not None)
+
+
+def _append_author_comment_plan(
+    builder: _AuthorCommentRequestBuilder,
+    plan: AuthorCommentDiscussionPlan,
+    *,
+    batch_size: int,
+    max_prompt_chars: int,
+) -> _AuthorCommentRequestBuilder:
+    for prepared_request in plan.requests:
+        chunk = prepared_request.discussions[0]
+        if builder.current_request is None:
+            builder = _AuthorCommentRequestBuilder(
+                builder.completed,
+                (chunk,),
+                prepared_request,
+            )
+            continue
+
+        duplicate_id = any(
+            item.identity.discussion_id == chunk.identity.discussion_id
+            for item in builder.current_discussions
+        )
+        if len(builder.current_discussions) >= batch_size or duplicate_id:
+            builder = _AuthorCommentRequestBuilder(
+                (*builder.completed, builder.current_request),
+                (chunk,),
+                prepared_request,
+            )
+            continue
+
+        try:
+            trial_request = make_author_comment_request(
+                (*builder.current_discussions, chunk),
+                max_prompt_chars=max_prompt_chars,
+            )
+        except _PromptTooLongError:
+            trial_request = None
+        if trial_request is not None:
+            builder = _AuthorCommentRequestBuilder(
+                builder.completed,
+                (*builder.current_discussions, chunk),
+                trial_request,
+            )
+            continue
+        builder = _AuthorCommentRequestBuilder(
+            (*builder.completed, builder.current_request),
+            (chunk,),
+            prepared_request,
+        )
+    return builder
+
+
+def _pack_author_comment_plans(
+    plans: Sequence[AuthorCommentDiscussionPlan],
+    *,
+    batch_size: int,
+    max_prompt_chars: int,
+) -> tuple[AuthorCommentModelRequest, ...]:
+    builder = _AuthorCommentRequestBuilder()
+    for plan in plans:
+        builder = _append_author_comment_plan(
+            builder,
+            plan,
+            batch_size=batch_size,
+            max_prompt_chars=max_prompt_chars,
+        )
+    return builder.requests
 
 
 def prepare_author_comment_requests(
@@ -932,67 +1070,92 @@ def prepare_author_comment_requests(
     batch_size: int = TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
     max_prompt_chars: int = MAX_PROMPT_CHARS,
 ) -> tuple[AuthorCommentModelRequest, ...]:
-    chunks = [
-        chunk
-        for discussion in discussions
-        for chunk in _author_comment_candidate_chunks(
-            discussion,
-            max_prompt_chars=max_prompt_chars,
-        )
-    ]
-    if not chunks:
-        return ()
-
-    requests: list[AuthorCommentModelRequest] = []
-    current = [chunks[0]]
-    current_request = make_author_comment_request(
-        current,
+    return _pack_author_comment_plans(
+        [
+            prepare_author_comment_discussion(
+                discussion,
+                max_prompt_chars=max_prompt_chars,
+            )
+            for discussion in discussions
+        ],
+        batch_size=batch_size,
         max_prompt_chars=max_prompt_chars,
     )
-    if len(current_request.prompt) > max_prompt_chars:
-        raise ValueError(
-            "author-comment prompt exceeds "
-            f"max_prompt_chars={max_prompt_chars}"
-        )
 
-    for chunk in chunks[1:]:
-        trial = [*current, chunk]
-        duplicate_id = any(
-            item.identity.discussion_id == chunk.identity.discussion_id
-            for item in current
-        )
-        if len(current) >= batch_size or duplicate_id:
-            requests.append(current_request)
-            current = [chunk]
-            current_request = make_author_comment_request(
-                current,
-                max_prompt_chars=max_prompt_chars,
-            )
-        else:
-            try:
-                trial_request = make_author_comment_request(
-                    trial,
-                    max_prompt_chars=max_prompt_chars,
+
+def select_author_comment_requests(
+    plans: Sequence[AuthorCommentDiscussionPlan],
+    *,
+    max_model_calls: int,
+    classification_batch_size: int = TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
+    request_batch_size: int = TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
+    max_prompt_chars: int = MAX_PROMPT_CHARS,
+) -> AuthorCommentSelection:
+    if max_model_calls < 0:
+        raise ValueError("max_model_calls must not be negative")
+    if classification_batch_size < 1 or request_batch_size < 1:
+        raise ValueError("author-comment batch sizes must be positive")
+
+    batches: list[AuthorCommentExecutionBatch] = []
+    deferred: list[ClassificationDiscussion] = []
+    current_plans: list[AuthorCommentDiscussionPlan] = []
+    builder = _AuthorCommentRequestBuilder()
+    committed_request_count = 0
+
+    for plan in plans:
+        if len(current_plans) >= classification_batch_size:
+            batches.append(
+                AuthorCommentExecutionBatch(
+                    tuple(item.discussion for item in current_plans),
+                    builder.requests,
                 )
-            except _PromptTooLongError:
-                trial_request = None
-            if trial_request is not None:
-                current = trial
-                current_request = trial_request
-                continue
-            requests.append(current_request)
-            current = [chunk]
-            current_request = make_author_comment_request(
-                current,
-                max_prompt_chars=max_prompt_chars,
             )
-        if len(current_request.prompt) > max_prompt_chars:
-            raise ValueError(
-                "author-comment prompt exceeds "
-                f"max_prompt_chars={max_prompt_chars}"
+            committed_request_count += builder.request_count
+            current_plans = []
+            builder = _AuthorCommentRequestBuilder()
+
+        can_share_first_request = (
+            builder.current_request is not None
+            and len(builder.current_discussions) < request_batch_size
+            and all(
+                item.identity.discussion_id
+                != plan.discussion.identity.discussion_id
+                for item in builder.current_discussions
             )
-    requests.append(current_request)
-    return tuple(requests)
+        )
+        minimum_increment = plan.request_count - int(can_share_first_request)
+        if (
+            committed_request_count
+            + builder.request_count
+            + minimum_increment
+            > max_model_calls
+        ):
+            deferred.append(plan.discussion)
+            continue
+
+        candidate = _append_author_comment_plan(
+            builder,
+            plan,
+            batch_size=request_batch_size,
+            max_prompt_chars=max_prompt_chars,
+        )
+        if (
+            committed_request_count + candidate.request_count
+            > max_model_calls
+        ):
+            deferred.append(plan.discussion)
+            continue
+        current_plans.append(plan)
+        builder = candidate
+
+    if current_plans:
+        batches.append(
+            AuthorCommentExecutionBatch(
+                tuple(item.discussion for item in current_plans),
+                builder.requests,
+            )
+        )
+    return AuthorCommentSelection(tuple(batches), tuple(deferred))
 
 
 def prepare_verdict_requests(

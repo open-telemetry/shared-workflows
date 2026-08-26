@@ -12,14 +12,10 @@ from pathlib import Path
 from typing import Any
 
 from classification_policy import (
-    AUTHOR_REPLY_PROMPT_TEMPLATE,
     MAX_PROMPT_CHARS,
-    PRAISE_PROMPT_TEMPLATE,
-    REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
-    TOP_LEVEL_AUTHOR_COMMENT_BATCH_PROMPT_TEMPLATE,
     TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
     ActionDecision,
-    AuthorCommentDecision,
+    AuthorCommentExecutionBatch,
     AuthorCommentModelRequest,
     ClassificationDecision,
     ClassificationDeferred,
@@ -37,22 +33,17 @@ from classification_policy import (
     classification_result_from_cache_record,
     combine_author_comment_results,
     discussion_cache_key,
-    extract_json_object,
     fallback_author_comment_decision,
     fallback_verdict_decision,
-    is_automation_command_comment,
-    is_conflict_resolution_comment,
-    leading_mentions,
     map_verdict_result,
-    normalize_discussion_action,
+    prepare_author_comment_discussion,
     prepare_author_comment_requests,
     prepare_praise_candidates,
     prepare_verdict_requests,
-    praise_prompt_input,
     resolve_author_comment_response,
     resolve_review_thread_policy,
     resolve_verdict_response,
-    reviewer_feedback_prompt_item,
+    select_author_comment_requests,
     with_result_metadata,
 )
 
@@ -253,13 +244,19 @@ def _run_classification_batch(
     contract: VerdictContract | None,
     *,
     author_comment: bool,
+    author_comment_requests: tuple[AuthorCommentModelRequest, ...] | None = None,
 ) -> tuple[ClassificationResult, ...]:
     if author_comment:
         partial_results: dict[str, list[ClassificationResult]] = {
             discussion.identity.discussion_id: []
             for discussion in discussions
         }
-        for request in author_comment_prompt_batches(discussions):
+        requests = (
+            author_comment_prompt_batches(discussions)
+            if author_comment_requests is None
+            else author_comment_requests
+        )
+        for request in requests:
             for result in _run_author_comment_request(request, model):
                 partial_results[result.identity.discussion_id].append(result)
         return combine_author_comment_results(
@@ -301,43 +298,32 @@ def _classification_limit_result(
     )
 
 
-def _author_comment_budget_size(
+def _author_comment_execution_batches(
     uncached: list[tuple[ClassificationDiscussion, str]],
-) -> int:
-    request_count = 0
-    for offset in range(
-        0,
-        len(uncached),
-        TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
-    ):
-        batch = uncached[
-            offset:offset + TOP_LEVEL_CLASSIFICATION_BATCH_SIZE
-        ]
-        discussions = tuple(discussion for discussion, _key in batch)
-        try:
-            requests = author_comment_prompt_batches(discussions)
-        except ValueError:
-            return len(uncached)
-        remaining = (
-            MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR - request_count
+) -> tuple[
+    tuple[AuthorCommentExecutionBatch, ...],
+    tuple[ClassificationDiscussion, ...],
+] | None:
+    try:
+        plans = tuple(
+            prepare_author_comment_discussion(
+                discussion,
+                max_prompt_chars=MAX_PROMPT_CHARS,
+            )
+            for discussion, _key in uncached
         )
-        if len(requests) <= remaining:
-            request_count += len(requests)
-            continue
-        overflow_ids = {
-            discussion.identity.discussion_id
-            for request in requests[remaining:]
-            for discussion in request.discussions
-        }
-        return offset + next(
-            (
-                index
-                for index, (discussion, _key) in enumerate(batch)
-                if discussion.identity.discussion_id in overflow_ids
+        selection = select_author_comment_requests(
+            plans,
+            max_model_calls=(
+                MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR
             ),
-            len(batch),
+            classification_batch_size=TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
+            request_batch_size=TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
+            max_prompt_chars=MAX_PROMPT_CHARS,
         )
-    return len(uncached)
+    except ValueError:
+        return None
+    return selection.batches, selection.deferred
 
 
 def _cache_classified(
@@ -393,26 +379,75 @@ def _classify_items(
         )
         classifications_by_id[discussion.identity.discussion_id] = result
 
-    if author_comment:
-        budget_size = _author_comment_budget_size(uncached)
-        for discussion, _key in uncached[budget_size:]:
-            result = _classification_limit_result(
-                discussion,
-                contract,
-                author_comment=True,
-                deferrable=deferrable,
-            )
-            classifications_by_id[discussion.identity.discussion_id] = result
-        uncached = uncached[:budget_size]
-
-    for offset in range(
-        0,
-        len(uncached),
-        TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
-    ):
-        batch = uncached[
-            offset:offset + TOP_LEVEL_CLASSIFICATION_BATCH_SIZE
+    prepared_requests_by_batch: list[
+        tuple[
+            list[tuple[ClassificationDiscussion, str]],
+            tuple[AuthorCommentModelRequest, ...] | None,
         ]
+    ] = []
+    if author_comment:
+        execution_plan = _author_comment_execution_batches(uncached)
+        if execution_plan is None:
+            prepared_requests_by_batch = [
+                (
+                    uncached[
+                        offset:offset + TOP_LEVEL_CLASSIFICATION_BATCH_SIZE
+                    ],
+                    None,
+                )
+                for offset in range(
+                    0,
+                    len(uncached),
+                    TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
+                )
+            ]
+        else:
+            execution_batches, deferred = execution_plan
+            for discussion in deferred:
+                result = _classification_limit_result(
+                    discussion,
+                    contract,
+                    author_comment=True,
+                    deferrable=deferrable,
+                )
+                classifications_by_id[
+                    discussion.identity.discussion_id
+                ] = result
+            key_by_discussion_id = {
+                discussion.identity.discussion_id: key
+                for discussion, key in uncached
+            }
+            prepared_requests_by_batch = [
+                (
+                    [
+                        (
+                            discussion,
+                            key_by_discussion_id[
+                                discussion.identity.discussion_id
+                            ],
+                        )
+                        for discussion in batch.discussions
+                    ],
+                    batch.requests,
+                )
+                for batch in execution_batches
+            ]
+    else:
+        prepared_requests_by_batch = [
+            (
+                uncached[
+                    offset:offset + TOP_LEVEL_CLASSIFICATION_BATCH_SIZE
+                ],
+                None,
+            )
+            for offset in range(
+                0,
+                len(uncached),
+                TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
+            )
+        ]
+
+    for batch, author_comment_requests in prepared_requests_by_batch:
         batch_discussions = tuple(
             discussion for discussion, _key in batch
         )
@@ -422,6 +457,7 @@ def _classify_items(
                 model,
                 contract,
                 author_comment=author_comment,
+                author_comment_requests=author_comment_requests,
             )
         except subprocess.TimeoutExpired as error:
             results = tuple(

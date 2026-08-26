@@ -9,6 +9,8 @@ from unittest.mock import patch
 from classification_policy import (
     ActionDecision,
     AuthorCommentDecision,
+    AuthorCommentDiscussionPlan,
+    AuthorCommentModelRequest,
     CandidateFeedback,
     ClassificationDeferred,
     ClassificationDiagnostics,
@@ -33,6 +35,7 @@ from classification_policy import (
     make_author_comment_request,
     map_verdict_result,
     parse_author_comment_decision,
+    prepare_author_comment_discussion,
     prepare_author_comment_requests,
     prepare_praise_candidates,
     render_prompt_inputs,
@@ -40,6 +43,7 @@ from classification_policy import (
     resolve_author_comment_response,
     resolve_review_thread_policy,
     resolve_verdict_response,
+    select_author_comment_requests,
 )
 
 
@@ -236,20 +240,15 @@ class PromptCompatibilityTest(unittest.TestCase):
                     f"reply-{index}",
                     DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
                 ),
+                candidate_feedback=(),
             )
             for index in range(3)
         ]
 
-        with (
-            patch(
-                "classification_policy._author_comment_candidate_chunks",
-                side_effect=lambda item, **_kwargs: [item],
-            ),
-            patch(
-                "classification_policy.make_author_comment_request",
-                wraps=make_author_comment_request,
-            ) as make_request,
-        ):
+        with patch(
+            "classification_policy.make_author_comment_request",
+            wraps=make_author_comment_request,
+        ) as make_request:
             requests = prepare_author_comment_requests(
                 discussions,
                 batch_size=2,
@@ -257,7 +256,129 @@ class PromptCompatibilityTest(unittest.TestCase):
             )
 
         self.assertEqual(len(requests), 2)
-        self.assertEqual(make_request.call_count, 3)
+        self.assertEqual(make_request.call_count, 4)
+
+
+class AuthorCommentBudgetSelectionTest(unittest.TestCase):
+    @staticmethod
+    def plan(
+        discussion_id: str,
+        request_count: int,
+    ) -> AuthorCommentDiscussionPlan:
+        item = discussion(
+            discussion_id,
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            f"Reply {discussion_id}",
+        )
+        return AuthorCommentDiscussionPlan(
+            item,
+            tuple(
+                AuthorCommentModelRequest(
+                    (item,),
+                    f"prompt-{discussion_id}-{index}",
+                    (),
+                )
+                for index in range(request_count)
+            ),
+        )
+
+    def test_skips_overflow_and_spends_remaining_budget_on_later_items(
+        self,
+    ) -> None:
+        plans = (
+            self.plan("expensive-1", 10),
+            self.plan("expensive-2", 10),
+            self.plan("overflow-1", 3),
+            self.plan("cheap", 2),
+            self.plan("overflow-2", 2),
+        )
+
+        selection = select_author_comment_requests(
+            plans,
+            max_model_calls=20,
+        )
+
+        self.assertEqual(
+            [
+                item.identity.discussion_id
+                for item in selection.admitted
+            ],
+            ["expensive-1", "expensive-2", "cheap"],
+        )
+        self.assertEqual(
+            [
+                item.identity.discussion_id
+                for item in selection.deferred
+            ],
+            ["overflow-1", "overflow-2"],
+        )
+        self.assertEqual(selection.request_count, 20)
+        self.assertEqual(
+            [
+                [
+                    item.identity.discussion_id
+                    for item in request.discussions
+                ]
+                for batch in selection.batches
+                for request in batch.requests
+            ],
+            (
+                [["expensive-1"]] * 9
+                + [["expensive-1", "expensive-2"]]
+                + [["expensive-2"]] * 8
+                + [["expensive-2", "cheap"], ["cheap"]]
+            ),
+        )
+
+    def test_oversized_first_item_does_not_block_later_items(
+        self,
+    ) -> None:
+        selection = select_author_comment_requests(
+            (
+                self.plan("oversized", 21),
+                self.plan("cheap-1", 1),
+                self.plan("cheap-2", 1),
+            ),
+            max_model_calls=20,
+        )
+
+        self.assertEqual(
+            [
+                item.identity.discussion_id
+                for item in selection.admitted
+            ],
+            ["cheap-1", "cheap-2"],
+        )
+        self.assertEqual(
+            [
+                item.identity.discussion_id
+                for item in selection.deferred
+            ],
+            ["oversized"],
+        )
+        self.assertEqual(selection.request_count, 1)
+        self.assertEqual(
+            [
+                item.identity.discussion_id
+                for item in selection.batches[0].requests[0].discussions
+            ],
+            ["cheap-1", "cheap-2"],
+        )
+
+    def test_preparation_retains_the_requests_used_for_execution(self) -> None:
+        item = discussion(
+            "reply",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            "Done",
+        )
+
+        plan = prepare_author_comment_discussion(item)
+        selection = select_author_comment_requests(
+            (plan,),
+            max_model_calls=20,
+        )
+
+        self.assertIs(selection.batches[0].requests[0], plan.requests[0])
 
 
 class ResultProjectionCompatibilityTest(unittest.TestCase):
