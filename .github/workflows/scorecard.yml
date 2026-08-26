@@ -9,6 +9,11 @@ on:
         required: false
         default: archive
         type: string
+      skip-publication:
+        description: 'Skip publishing the full Scorecard result to api.scorecard.dev.'
+        required: false
+        default: false
+        type: boolean
       use-harden-runner:
         description: 'Audit outbound calls with step-security/harden-runner.'
         required: false
@@ -71,7 +76,7 @@ jobs:
         with:
           results_file: results.sarif
           results_format: sarif
-          publish_results: true
+          publish_results: ${{ !inputs['skip-publication'] }}
           file_mode: ${{ inputs['file-mode'] || 'archive' }}
 
       # Also hands the results to the upload job below.
