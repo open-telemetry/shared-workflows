@@ -727,6 +727,58 @@ class PullRequestEvaluationTest(unittest.TestCase):
     @patch(
         "pull_request_evaluation.classify_reviewer_handoff_feedback",
         return_value=[{
+            "discussion_id": "thread-1",
+            "failed": False,
+            "decision": {
+                "discussion_action": "author",
+                "reason": "The reviewer requested a change.",
+            },
+        }],
+    )
+    @patch(
+        "pull_request_evaluation.classify_discussion_domains",
+        return_value=([], [], []),
+    )
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_resolved_inline_feedback_ends_handoff(
+        self, fetch_raw: Mock, classify: Mock, handoff_classify: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            issue_comments=(issue_comment(
+                database_id=102,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+            ),),
+            review_threads=(review_thread(
+                node_id="thread-1",
+                is_resolved=True,
+                comments=(review_thread_comment(
+                    body="Please update this.",
+                    created_at="2026-08-16T09:00:00Z",
+                ),),
+            ),),
+        )
+
+        result = evaluate_pr({"number": 7})
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        handoff_classify.assert_called_once()
+        self.assertEqual(
+            ["Please update this."],
+            [
+                comment["body"]
+                for comment in handoff_classify.call_args.args[1][0]["comments"]
+            ],
+        )
+        classify.assert_called_once()
+        self.assertEqual([], classify.call_args.args[1])
+
+    @patch(
+        "pull_request_evaluation.classify_reviewer_handoff_feedback",
+        return_value=[{
             "discussion_id": "pr-issue-comment-501",
             "failed": False,
             "decision": {

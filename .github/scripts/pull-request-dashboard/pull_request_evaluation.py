@@ -36,7 +36,7 @@ from discussion_lifecycle import (
     LifecycleMode,
     PreparedDiscussions,
     prepare_discussions,
-    reviewer_handoff_feedback,
+    prepare_reviewer_handoff_feedback,
     resolve_discussions,
 )
 from github_cli import TransientGhError
@@ -418,21 +418,20 @@ def evaluate_pull_request(
             previous_facts,
         )
         manual_reviewer_handoff = reviewer_handoff_active(facts)
-        prepared_discussions = prepare_discussions(
-            DiscussionInput(
-                pr_source.review_threads,
-                activity.events,
-                author,
-                config.approver_logins,
-                facts.conflicts,
-            )
+        discussion_input = DiscussionInput(
+            pr_source.review_threads,
+            activity.events,
+            author,
+            config.approver_logins,
+            facts.conflicts,
         )
+        prepared_discussions = prepare_discussions(discussion_input)
         if manual_reviewer_handoff:
             # Old discussions cannot block a break-glass handoff. Only newer
             # human feedback is classified to decide whether the reviewer has
             # handed the pull request back to its author.
-            handoff_feedback = reviewer_handoff_feedback(
-                prepared_discussions,
+            handoff_feedback = prepare_reviewer_handoff_feedback(
+                discussion_input,
                 facts.dashboard_override_since,
                 author,
             )
