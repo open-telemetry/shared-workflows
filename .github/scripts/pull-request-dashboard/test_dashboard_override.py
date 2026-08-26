@@ -124,6 +124,19 @@ class DashboardOverrideTest(unittest.TestCase):
             dashboard_override.latest_authorized_command(source, "author", set()),
         )
 
+    def test_latest_authorized_command_cutoff_never_predates_creation(self) -> None:
+        source = override_input(issue_comment(
+            database_id=4,
+            body="/dashboard route:reviewers",
+            created_at="2026-08-16T09:00:00Z",
+            content_updated_at="2026-08-16T07:00:00Z",
+        ))
+
+        self.assertEqual(
+            (4, "author", "2026-08-16T09:00:00Z"),
+            dashboard_override.latest_authorized_command(source, "author", set()),
+        )
+
     def test_latest_authorized_command_ignores_app_acknowledged_command(self) -> None:
         source = override_input(
             issue_comment(

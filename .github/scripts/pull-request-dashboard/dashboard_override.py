@@ -18,6 +18,7 @@ from dashboard_status import (
 )
 from pull_request_source import IssueComment
 from route_presentation import outstanding_gate_phrase
+from utils import parse_ts
 
 
 DASHBOARD_COMMAND_PREFIX = "/dashboard"
@@ -131,8 +132,18 @@ def latest_authorized_command(
         if comment_id > best_id:
             best_id = comment_id
             best_user = commenter
-            best_created_at = comment.content_updated_at or comment.created_at
+            best_created_at = _effective_command_timestamp(comment)
     return best_id, best_user, best_created_at
+
+
+def _effective_command_timestamp(comment: IssueComment) -> str:
+    created_at = parse_ts(comment.created_at)
+    content_updated_at = parse_ts(comment.content_updated_at)
+    if content_updated_at is not None and (
+        created_at is None or content_updated_at >= created_at
+    ):
+        return comment.content_updated_at
+    return comment.created_at
 
 
 def dashboard_override_facts(
