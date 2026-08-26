@@ -700,15 +700,18 @@
     },
     "365": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "rads-1996",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/365#discussion_r3866813685"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "07c6b83f6e03438d938771647f9508c3",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "e2468e50ef97e01f07d32157de3a39d4b772957baa7cb6396533b8dda5b7015b",
+        "conflicts": "unknown",
+        "copilot_request_fingerprint": "a18b8c2542d01cab7a5dad3b777f1ba38f5008383416b5252e9635e563a99079",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -724,11 +727,20 @@
         "head_sha": "853395f1b00c184b1b2e4a7a22f9a8ed3084caca",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-25T23:31:40+00:00",
-        "last_approver_activity_at": "2026-08-21T15:26:20+00:00",
+        "last_activity_at": "2026-08-26T21:20:39+00:00",
+        "last_approver_activity_at": "2026-08-26T21:20:39+00:00",
         "last_author_activity_at": "2026-08-25T23:31:40+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -741,14 +753,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d327dd424bbb4ff26995a3dc6d7acd0fabd4dd228277f3790bc5aa6d5a840752",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-25T23:31:40+00:00"
+        "routing_input_fingerprint": "a1fd850ac1a3e11534660889960bec827dea3394c3f372cddda975af195f0712",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-26T21:19:24+00:00"
       },
       "failed": false,
       "pr_number": 365,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/365",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "367": {
