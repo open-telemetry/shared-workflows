@@ -484,7 +484,7 @@ def publish_pr_status(
         render_status_comment(pr, result),
         create=not terminal,
         locked=terminal and bool(pr.get("locked")),
-        preserve_clearance=terminal,
+        preserve_clearance=True,
     )
 
 

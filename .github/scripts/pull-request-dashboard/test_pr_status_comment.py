@@ -803,7 +803,7 @@ class UpsertStatusCommentTest(unittest.TestCase):
             ),
         }],
     )
-    def test_terminal_update_preserves_handoff_clearance(
+    def test_status_update_preserves_handoff_clearance(
         self, _comments: object
     ) -> None:
         body = (
@@ -908,6 +908,7 @@ class PublishPrStatusTest(unittest.TestCase):
         )
 
         self.assertTrue(upsert.call_args.kwargs["create"])
+        self.assertTrue(upsert.call_args.kwargs["preserve_clearance"])
 
 
 class ManagedStatusCommentsTest(unittest.TestCase):
