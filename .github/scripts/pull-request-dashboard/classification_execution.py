@@ -211,12 +211,28 @@ class ClassificationExecutionRequest:
         )
 
 
+@dataclass(frozen=True)
+class ReviewerFeedbackClassificationRequest:
+    pr_number: int
+    model: str
+    discussions: tuple[ClassificationDiscussion, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "discussions", tuple(self.discussions))
+
+
 class ClassificationOperation(Protocol):
     def classify(
         self,
         request: ClassificationExecutionRequest,
     ) -> DiscussionClassifications:
         """Classify all prepared discussion domains for one pull request."""
+
+    def classify_reviewer_feedback(
+        self,
+        request: ReviewerFeedbackClassificationRequest,
+    ) -> tuple[ClassificationResult, ...]:
+        """Classify a subset of reviewer feedback without pruning the cache."""
 
 
 @dataclass(frozen=True)
@@ -276,6 +292,29 @@ class ClassificationService:
                 top_level_author_comments[discussion.identity.discussion_id]
                 for discussion in request.top_level_author_comments
             ),
+        )
+
+    def classify_reviewer_feedback(
+        self,
+        request: ReviewerFeedbackClassificationRequest,
+    ) -> tuple[ClassificationResult, ...]:
+        cache_in = self.cache_store.load(request.pr_number)
+        cache_out: ClassificationCache = {}
+        classifications = self._classify_items(
+            request.pr_number,
+            request.discussions,
+            request.model,
+            cache_in,
+            cache_out,
+            contract=VerdictContract.REVIEWER_FEEDBACK,
+            warning_label="reviewer_feedback",
+        )
+        merged_cache = {**cache_in, **cache_out}
+        if merged_cache != cache_in:
+            self.cache_store.write(request.pr_number, merged_cache)
+        return tuple(
+            classifications[discussion.identity.discussion_id]
+            for discussion in request.discussions
         )
 
     def _cached_classification(

@@ -17,6 +17,7 @@ from classification_execution import (
     CopilotCliModelRunner,
     FileClassificationCacheStore,
     ModelRunRequest,
+    ReviewerFeedbackClassificationRequest,
 )
 from classification_policy import (
     ActionDecision,
@@ -312,6 +313,74 @@ class FileClassificationCacheStoreTest(unittest.TestCase):
 
 
 class ClassificationServiceTest(unittest.TestCase):
+    def test_partial_reviewer_feedback_uses_the_actionable_feedback_contract(
+        self,
+    ) -> None:
+        runner = FakeModelRunner(responder=successful_response)
+        cache = MemoryClassificationCacheStore()
+        service = ClassificationService(runner, cache)
+        discussion = ClassificationDiscussion.from_record(
+            discussion_record(
+                "thread",
+                DiscussionKind.REVIEW_THREAD,
+                body="For context, this API is deprecated.",
+            )
+        )
+
+        result = service.classify_reviewer_feedback(
+            ReviewerFeedbackClassificationRequest(
+                123,
+                "model",
+                (discussion,),
+            )
+        )
+
+        self.assertEqual(
+            result[0].decision,
+            ActionDecision(
+                DiscussionAction.NONE,
+                "Test verdict.",
+            ),
+        )
+        self.assertIn("---BEGIN TOP-LEVEL FEEDBACK---", runner.requests[0].prompt)
+
+    def test_partial_reviewer_feedback_preserves_unrelated_cache_entries(
+        self,
+    ) -> None:
+        cache = MemoryClassificationCacheStore({
+            123: {"unrelated-key": {"discussion_id": "other", "failed": False}}
+        })
+        service = ClassificationService(
+            FakeModelRunner(responder=successful_response),
+            cache,
+        )
+        discussion = ClassificationDiscussion.from_record(
+            discussion_record("feedback")
+        )
+
+        service.classify_reviewer_feedback(
+            ReviewerFeedbackClassificationRequest(
+                123,
+                "model",
+                (discussion,),
+            )
+        )
+
+        self.assertIn("unrelated-key", cache.entries[123])
+        self.assertEqual(2, len(cache.entries[123]))
+
+    def test_empty_partial_reviewer_feedback_does_not_rewrite_cache(self) -> None:
+        existing = {"existing-key": {"discussion_id": "existing"}}
+        cache = MemoryClassificationCacheStore({123: existing})
+        service = ClassificationService(FakeModelRunner(), cache)
+
+        result = service.classify_reviewer_feedback(
+            ReviewerFeedbackClassificationRequest(123, "model")
+        )
+
+        self.assertEqual(result, ())
+        self.assertEqual(cache.writes, [])
+
     def test_cache_miss_hit_batching_order_and_cli_call_attribution(self) -> None:
         records = tuple(
             discussion_record(f"feedback-{index}")
