@@ -204,8 +204,8 @@ def dashboard_override_facts(
         and bound_head == previous_head_sha
     )
     override_since = (
-        command_created_at
-        or (previous_since if previous_binding_matches else "")
+        (previous_since if previous_binding_matches else "")
+        or command_created_at
         or acknowledged_since
         or _override_command_effective_at(source.issue_comments, bound_command_id)
         or acknowledgement_created_at

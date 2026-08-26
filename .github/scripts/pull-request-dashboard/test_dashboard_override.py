@@ -411,6 +411,37 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(5, retry.command_id)
         self.assertEqual("first-head", retry.head_sha)
 
+    def test_pending_command_keeps_its_first_observed_cutoff(self) -> None:
+        first_source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+                content_updated_at="2026-08-16T08:00:00Z",
+            )
+        )
+        first = dashboard_override.dashboard_override_facts(
+            first_source, "author", None, "bound-head"
+        )
+        edited_source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers with more context",
+                created_at="2026-08-16T08:00:00Z",
+                content_updated_at="2026-08-16T10:00:00Z",
+            )
+        )
+
+        retry = dashboard_override.dashboard_override_facts(
+            edited_source,
+            "author",
+            None,
+            "bound-head",
+            result_facts(first),
+        )
+
+        self.assertEqual("2026-08-16T08:00:00Z", retry.since)
+
     def test_new_pending_command_binds_to_the_newly_observed_head(self) -> None:
         previous_source = override_input(
             issue_comment(
