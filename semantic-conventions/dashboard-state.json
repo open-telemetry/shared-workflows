@@ -1637,10 +1637,7 @@
         "assignees": [],
         "author": "om7057",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/4012#issuecomment-5302768881"
-        ],
-        "author_nudge_episode_id": "2e2aceea43cb4b5c9599d743cd390bb6",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -1673,28 +1670,26 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "thompson-tomo",
-            "open_thread": false,
-            "pending_review": false,
-            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "36a1abd972494b68260c158a4f66cf39a479d183c50a9d36c3ced49720248770",
-        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-25T17:49:01+00:00"
       },
       "failed": false,
       "pr_number": 4012,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4012",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5302768881": {
+          "evidence": {
+            "reply": "2026-08-15T14:56:20Z"
+          },
+          "reply_source_id": 5302781701
+        }
+      }
     },
     "4019": {
       "facts": {
