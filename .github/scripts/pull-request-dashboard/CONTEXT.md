@@ -100,9 +100,8 @@ diagnostics. It has no cache dependency. The cache store owns the existing
 per-pull-request JSON files, validation, replacement, and pruning. It has no
 classification policy.
 
-`classification.py` is only a compatibility entrypoint. It converts legacy
-discussion records into the immutable execution request and delegates to the
-default service. Production evaluation builds the typed request directly.
+Production evaluation builds the typed request directly, and the dashboard
+prunes classification caches through the default cache store.
 
 ### Review thread
 
