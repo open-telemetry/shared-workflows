@@ -792,11 +792,11 @@ class ClassificationServiceTest(unittest.TestCase):
                 "timeout",
                 subprocess.TimeoutExpired(
                     "copilot",
-                    LLM_DISCUSSION_TIMEOUT_SECONDS,
+                    37,
                     output="partial response",
                     stderr="timeout stderr",
                 ),
-                "timed out after 180s",
+                "timed out after 37s",
                 "timeout stderr",
             ),
         )

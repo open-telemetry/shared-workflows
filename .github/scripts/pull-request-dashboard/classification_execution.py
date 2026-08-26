@@ -579,7 +579,7 @@ class ClassificationService:
                         ClassificationDiagnostics(
                             error=(
                                 "Copilot CLI timed out after "
-                                f"{LLM_DISCUSSION_TIMEOUT_SECONDS}s"
+                                f"{error.timeout}s"
                             ),
                             response_text=(
                                 error.stdout
