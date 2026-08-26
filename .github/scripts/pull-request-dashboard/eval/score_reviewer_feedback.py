@@ -18,6 +18,7 @@ import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Lock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -75,6 +76,7 @@ def classify(
     model: str,
     runner: ModelRunner | None = None,
 ) -> dict:
+    runner_lock = Lock() if runner is not None else None
     runner = runner or CopilotCliModelRunner()
     batches = [
         [
@@ -94,7 +96,11 @@ def classify(
         # A batch that fails or answers unusably is unanswered, not fatal: one bad
         # response should not discard an evaluation of several hundred calls.
         try:
-            response = runner.run(ModelRunRequest(prompt, model))
+            if runner_lock is None:
+                response = runner.run(ModelRunRequest(prompt, model))
+            else:
+                with runner_lock:
+                    response = runner.run(ModelRunRequest(prompt, model))
         except Exception:  # noqa: BLE001 - production also treats any batch failure as failed
             return {}
         if response.returncode != 0:
