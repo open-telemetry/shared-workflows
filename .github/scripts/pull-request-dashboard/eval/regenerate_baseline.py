@@ -140,6 +140,7 @@ def measure(
     runner: ModelRunner | None = None,
 ) -> list[dict[str, str]]:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    runner_lock = Lock() if runner is not None else None
     runner = runner or CopilotCliModelRunner()
     batches = batch_cases(cases)
     # A separate salt per run keeps the cache from replaying one trial as all of
@@ -151,7 +152,11 @@ def measure(
     def work(task: tuple[list[dict], str]) -> tuple[str, dict[str, str]]:
         nonlocal done
         batch, salt = task
-        result = answers(run_batch(batch, model, salt, runner), batch)
+        if runner_lock is None:
+            result = answers(run_batch(batch, model, salt, runner), batch)
+        else:
+            with runner_lock:
+                result = answers(run_batch(batch, model, salt, runner), batch)
         with _printed:
             done += 1
             if done % 20 == 0 or done == len(tasks):

@@ -1,8 +1,11 @@
+import contextlib
+import io
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from threading import Barrier, BrokenBarrierError, Lock
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
@@ -10,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
 from classification_policy import RawModelResponse  # noqa: E402
 from classification_test_support import FakeModelRunner  # noqa: E402
 import regenerate_baseline  # noqa: E402
-from regenerate_baseline import answers, rebuild, run_batch  # noqa: E402
+from regenerate_baseline import answers, measure, rebuild, run_batch  # noqa: E402
 
 
 def case(case_id: str, *, adjudicated_label=None) -> dict:
@@ -191,6 +194,47 @@ class RunBatchCachingTest(unittest.TestCase):
 
         self.assertIn("throttled", raw["error"])
         self.assertEqual([], self.entries())
+
+
+class MeasureTest(unittest.TestCase):
+    def test_injected_runner_calls_do_not_overlap(self) -> None:
+        cache = tempfile.TemporaryDirectory()
+        self.addCleanup(cache.cleanup)
+        barrier = Barrier(2)
+        state_lock = Lock()
+        state = {"active": 0, "calls": 0, "overlap": False}
+
+        class Runner:
+            def run(self, _request) -> RawModelResponse:
+                with state_lock:
+                    state["active"] += 1
+                    state["calls"] += 1
+                    if state["active"] > 1:
+                        state["overlap"] = True
+                try:
+                    barrier.wait(timeout=0.2)
+                except BrokenBarrierError:
+                    pass
+                finally:
+                    with state_lock:
+                        state["active"] -= 1
+                return RawModelResponse(0, '{"items":[]}', "")
+
+        with (
+            patch.object(regenerate_baseline, "CACHE_DIR", Path(cache.name)),
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            measure(
+                [case(f"case-{index}") for index in range(20)],
+                "model",
+                1,
+                2,
+                Runner(),
+            )
+
+        self.assertEqual(state["calls"], 2)
+        self.assertFalse(state["overlap"])
+
 
 if __name__ == "__main__":
     unittest.main()
