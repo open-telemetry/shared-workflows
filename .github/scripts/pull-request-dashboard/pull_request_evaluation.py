@@ -8,9 +8,17 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from classification import (
-    classify_discussion_domains,
-    classify_reviewer_handoff_feedback,
+from classification_execution import (
+    DEFAULT_CLASSIFICATION_SERVICE,
+    ClassificationExecutionRequest,
+    ClassificationOperation,
+    ReviewerFeedbackClassificationRequest,
+)
+from classification_policy import (
+    ActionDecision,
+    ClassificationDiscussion,
+    ClassificationResult,
+    DiscussionAction,
     normalize_discussion_action,
 )
 from copilot_review import copilot_review_status, is_copilot_reviewer
@@ -30,7 +38,6 @@ from dashboard_override import (
 )
 from dashboard_status import status_author_nudge_episode_id
 from discussion_lifecycle import (
-    DiscussionClassifications,
     DiscussionInput,
     DiscussionLifecycleOutcome,
     LifecycleMode,
@@ -251,7 +258,7 @@ def _author_action_discussion_urls(
     urls: list[str] = []
     for discussion_id, entry in pending_actions.items():
         action = normalize_discussion_action(entry.get("action") or "")
-        if action != "author":
+        if action is not DiscussionAction.AUTHOR:
             continue
         discussion = by_id.get(discussion_id)
         url = (discussion or {}).get("discussion_url") or ""
@@ -306,7 +313,7 @@ def _failure_result(
 
 
 def _evaluation_diagnostics(
-    lifecycle: Any,
+    lifecycle: DiscussionLifecycleOutcome,
 ) -> EvaluationDiagnostics:
     return EvaluationDiagnostics(
         review_threads=lifecycle.prepared.review_threads,
@@ -329,43 +336,43 @@ def _classify_discussions(
     prepared: PreparedDiscussions,
     classifier_model: str,
     previous_top_level_history: dict[str, dict[str, Any]],
+    classification_service: ClassificationOperation,
 ) -> DiscussionLifecycleOutcome:
-    (
-        review_thread_classifications,
-        top_level_classifications,
-        top_level_author_comment_classifications,
-    ) = classify_discussion_domains(
-        number,
-        list(prepared.review_threads),
-        list(prepared.top_level_items),
-        list(prepared.top_level_author_comment_items),
-        classifier_model,
+    classifications = classification_service.classify(
+        ClassificationExecutionRequest(
+            pr_number=number,
+            model=classifier_model,
+            review_threads=tuple(
+                ClassificationDiscussion.from_record(discussion)
+                for discussion in prepared.review_threads
+            ),
+            top_level_items=tuple(
+                ClassificationDiscussion.from_record(discussion)
+                for discussion in prepared.top_level_items
+            ),
+            top_level_author_comments=tuple(
+                ClassificationDiscussion.from_record(discussion)
+                for discussion in prepared.top_level_author_comment_items
+            ),
+        )
     )
     return resolve_discussions(
         prepared,
-        DiscussionClassifications(
-            tuple(review_thread_classifications),
-            tuple(top_level_classifications),
-            tuple(top_level_author_comment_classifications),
-        ),
+        classifications,
         previous_top_level_history,
     )
 
 
 def _handoff_feedback_routes_to_author(
-    feedback_classifications: list[dict[str, Any]],
+    feedback_classifications: tuple[ClassificationResult, ...],
 ) -> bool:
     if not feedback_classifications:
         return False
-    if any(
-        classification.get("failed") for classification in feedback_classifications
-    ):
+    if any(classification.failed for classification in feedback_classifications):
         return False
     return any(
-        normalize_discussion_action(
-            (classification.get("decision") or {}).get("discussion_action") or ""
-        )
-        == "author"
+        isinstance(classification.decision, ActionDecision)
+        and classification.decision.action is DiscussionAction.AUTHOR
         for classification in feedback_classifications
     )
 
@@ -373,6 +380,9 @@ def _handoff_feedback_routes_to_author(
 def evaluate_pull_request(
     config: PullRequestEvaluationConfig,
     source: PullRequestEvaluationInput,
+    classification_service: ClassificationOperation = (
+        DEFAULT_CLASSIFICATION_SERVICE
+    ),
 ) -> EvaluationResult | None:
     """Fetch and evaluate one pull request without mutating dashboard state."""
     number = source.pr_number
@@ -440,14 +450,21 @@ def evaluate_pull_request(
                 or handoff_feedback.top_level_items
             )
             feedback_classifications = (
-                classify_reviewer_handoff_feedback(
-                    number,
-                    list(handoff_feedback.review_threads),
-                    list(handoff_feedback.top_level_items),
-                    config.classifier_model,
+                classification_service.classify_reviewer_feedback(
+                    ReviewerFeedbackClassificationRequest(
+                        pr_number=number,
+                        model=config.classifier_model,
+                        discussions=tuple(
+                            ClassificationDiscussion.from_record(discussion)
+                            for discussion in (
+                                *handoff_feedback.review_threads,
+                                *handoff_feedback.top_level_items,
+                            )
+                        ),
+                    )
                 )
                 if has_handoff_feedback
-                else []
+                else ()
             )
             feedback_routes_to_author = _handoff_feedback_routes_to_author(
                 feedback_classifications
@@ -462,6 +479,7 @@ def evaluate_pull_request(
                     prepared_discussions,
                     config.classifier_model,
                     previous_top_level_history,
+                    classification_service,
                 )
             else:
                 lifecycle = resolve_discussions(
@@ -476,6 +494,7 @@ def evaluate_pull_request(
                 prepared_discussions,
                 config.classifier_model,
                 previous_top_level_history,
+                classification_service,
             )
         diagnostics = _evaluation_diagnostics(lifecycle)
         if lifecycle.failed_classifications:

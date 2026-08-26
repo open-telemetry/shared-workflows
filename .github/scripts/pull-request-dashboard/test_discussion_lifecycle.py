@@ -2,8 +2,20 @@ from __future__ import annotations
 
 import unittest
 
-from discussion_lifecycle import (
+from classification_policy import (
+    ActionDecision,
+    AuthorCommentDecision,
+    ClassificationDeferred,
+    ClassificationDiagnostics,
+    ClassificationFailure,
+    ClassificationSuccess,
+    DiscussionAction,
     DiscussionClassifications,
+    DiscussionIdentity,
+    DiscussionKind,
+    FeedbackOutcome,
+)
+from discussion_lifecycle import (
     DiscussionInput,
     LifecycleMode,
     PreparedDiscussions,
@@ -81,39 +93,41 @@ def author_reply(
 def classification(
     discussion_id: str,
     action: str,
-    **values: object,
-) -> dict:
-    return {
-        "discussion_id": discussion_id,
-        "failed": False,
-        "decision": {
-            "discussion_action": action,
-            "reason": "Test classification.",
-        },
-        **values,
-    }
+) -> ClassificationSuccess:
+    kind = (
+        DiscussionKind.REVIEW_THREAD
+        if discussion_id.startswith("thread-")
+        else DiscussionKind.TOP_LEVEL_FEEDBACK
+    )
+    return ClassificationSuccess(
+        DiscussionIdentity(discussion_id, kind),
+        ActionDecision(
+            DiscussionAction(action),
+            "Test classification.",
+        ),
+    )
 
 
 def author_reply_classification(
     source_id: int,
     *feedback_actions: tuple[str, str],
-    **values: object,
-) -> dict:
-    return {
-        "discussion_id": f"pr-author-reply-{source_id}",
-        "failed": False,
-        "decision": {
-            "feedback_outcomes": [
-                {
-                    "feedback_id": feedback_id,
-                    "discussion_action": action,
-                    "reason": "Test reply classification.",
-                }
-                for feedback_id, action in feedback_actions
-            ]
-        },
-        **values,
-    }
+    deferred: bool = False,
+) -> ClassificationSuccess | ClassificationDeferred:
+    identity = DiscussionIdentity(
+        f"pr-author-reply-{source_id}",
+        DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+    )
+    decision = AuthorCommentDecision(tuple(
+        FeedbackOutcome(
+            feedback_id,
+            DiscussionAction(action),
+            "Test reply classification.",
+        )
+        for feedback_id, action in feedback_actions
+    ))
+    if deferred:
+        return ClassificationDeferred(identity, decision)
+    return ClassificationSuccess(identity, decision)
 
 
 class PrepareDiscussionsTest(unittest.TestCase):
@@ -315,6 +329,60 @@ class PrepareDiscussionsTest(unittest.TestCase):
 
 
 class ResolveDiscussionsTest(unittest.TestCase):
+    def test_invalid_review_decision_names_the_classification(self) -> None:
+        invalid = ClassificationSuccess(
+            DiscussionIdentity(
+                "thread-invalid",
+                DiscussionKind.REVIEW_THREAD,
+            ),
+            AuthorCommentDecision(),
+        )
+
+        with self.assertRaises(TypeError) as caught:
+            resolve_discussions(
+                PreparedDiscussions(
+                    (review_thread("thread-invalid"),),
+                    (),
+                    (),
+                ),
+                DiscussionClassifications((invalid,), (), ()),
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "review-thread classification 'thread-invalid' "
+            "(review-comment-thread) requires ActionDecision, "
+            "got AuthorCommentDecision",
+        )
+
+    def test_invalid_top_level_decision_names_the_classification(
+        self,
+    ) -> None:
+        invalid = ClassificationSuccess(
+            DiscussionIdentity(
+                "feedback-invalid",
+                DiscussionKind.TOP_LEVEL_FEEDBACK,
+            ),
+            AuthorCommentDecision(),
+        )
+
+        with self.assertRaises(TypeError) as caught:
+            resolve_discussions(
+                PreparedDiscussions(
+                    (),
+                    (top_level_item("feedback-invalid"),),
+                    (),
+                ),
+                DiscussionClassifications((), (invalid,), ()),
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "top-level classification 'feedback-invalid' "
+            "(top-level-feedback) requires ActionDecision, "
+            "got AuthorCommentDecision",
+        )
+
     def test_projects_pending_actions_for_each_classification(self) -> None:
         prepared = PreparedDiscussions(
             (
@@ -392,6 +460,37 @@ class ResolveDiscussionsTest(unittest.TestCase):
                     "reply_source_id": 102,
                 }
             },
+        )
+
+    def test_invalid_author_reply_decision_names_the_classification(
+        self,
+    ) -> None:
+        invalid = ClassificationSuccess(
+            DiscussionIdentity(
+                "pr-author-reply-102",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            ),
+            ActionDecision(
+                DiscussionAction.AUTHOR,
+                "Wrong decision type.",
+            ),
+        )
+
+        with self.assertRaises(TypeError) as caught:
+            resolve_discussions(
+                PreparedDiscussions(
+                    (),
+                    (),
+                    (author_reply(102, ROOT_TIMESTAMP),),
+                ),
+                DiscussionClassifications((), (), (invalid,)),
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "author-comment classification 'pr-author-reply-102' "
+            "(top-level-author-reply) requires AuthorCommentDecision, "
+            "got ActionDecision",
         )
 
     def test_author_reply_applies_each_feedback_outcome(self) -> None:
@@ -782,9 +881,17 @@ class HistoryRestorationTest(unittest.TestCase):
 
 class LifecycleProjectionTest(unittest.TestCase):
     def test_failed_classification_omits_pending_actions_and_history(self) -> None:
-        failed = classification("question", "author")
-        failed["failed"] = True
-        failed["error"] = "model failed"
+        failed = ClassificationFailure(
+            DiscussionIdentity(
+                "question",
+                DiscussionKind.TOP_LEVEL_FEEDBACK,
+            ),
+            ActionDecision(
+                DiscussionAction.AUTHOR,
+                "Test classification.",
+            ),
+            ClassificationDiagnostics(error="model failed"),
+        )
         outcome = resolve_discussions(
             PreparedDiscussions((), (top_level_item("question"),), ()),
             DiscussionClassifications((), (failed,), ()),

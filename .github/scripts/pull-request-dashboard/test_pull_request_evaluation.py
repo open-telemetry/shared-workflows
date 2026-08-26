@@ -10,6 +10,7 @@ from dashboard_contracts import (
     EvaluationFailure,
     EvaluationSuccess,
 )
+from classification_test_support import FakeClassificationOperation
 from dashboard_test_support import (
     actor,
     commit_source,
@@ -79,15 +80,10 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             source.previous_result = stored_dashboard_result()  # type: ignore[misc]
 
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_success_uses_the_effective_copilot_author(
         self,
         fetch_raw,
-        _classify,
     ) -> None:
         source = raw_pr(author="app/copilot-swe-agent")
         fetch_raw.return_value = replace(
@@ -98,9 +94,11 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             ),
         )
 
+        classifier = FakeClassificationOperation()
         result = evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7),
+            classifier,
         )
 
         self.assertIsNotNone(result)
@@ -110,16 +108,14 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         self.assertEqual(7, result.pr_number)
         self.assertEqual("Evaluation contract", result.pr_title)
         self.assertEqual("https://example.test/pull/7", result.pr_url)
+        self.assertEqual(len(classifier.requests), 1)
+        self.assertEqual(classifier.requests[0].pr_number, 7)
+        self.assertEqual(classifier.requests[0].model, "model")
 
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_copilot_bot_committer_is_not_recovered_as_the_human_author(
         self,
         fetch_source,
-        _classify,
     ) -> None:
         fetch_source.return_value = pull_request_source(
             pull_request=pull_request_metadata(
@@ -133,6 +129,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         result = evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7),
+            FakeClassificationOperation(),
         )
 
         self.assertIsInstance(result, EvaluationSuccess)
@@ -143,15 +140,10 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         "pull_request_evaluation.resolve_discussions",
         wraps=resolve_discussions,
     )
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_cached_top_level_history_reaches_the_discussion_lifecycle(
         self,
         fetch_raw,
-        _classify,
         resolve,
     ) -> None:
         fetch_raw.return_value = raw_pr()
@@ -168,6 +160,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
                     top_level_history=history,
                 ),
             ),
+            FakeClassificationOperation(),
         )
 
         self.assertIsNotNone(result)
@@ -234,15 +227,10 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         "routing_decision.utc_now",
         return_value=datetime(2026, 8, 16, 9, tzinfo=timezone.utc),
     )
-    @patch(
-        "pull_request_evaluation.classify_discussion_domains",
-        return_value=([], [], []),
-    )
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_mixed_metadata_shapes_produce_equivalent_typed_results(
         self,
         fetch_source,
-        _classify,
         _utc_now,
     ) -> None:
         common = {
@@ -303,10 +291,12 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         gh_result = evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7, previous),
+            FakeClassificationOperation(),
         )
         rest_result = evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7, previous),
+            FakeClassificationOperation(),
         )
 
         self.assertIsInstance(gh_result, EvaluationSuccess)

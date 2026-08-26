@@ -24,8 +24,8 @@ cross into evaluation or domain modules.
 `dashboard_contracts.py` defines the immutable in-memory boundary. A
 `StoredDashboardResult` projects an evaluation success down to the fields that
 survive refreshes. `DashboardState` holds those projections and the initial
-backfill marker. Classifier payloads remain dictionaries only while they are
-diagnostic data.
+backfill marker. Evaluation diagnostics keep typed classification results and
+freeze only the source discussion records.
 
 `state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
 codecs translate the immutable contracts to the existing version 10
@@ -71,6 +71,37 @@ latest participant, author, and approver activity clocks.
 The discussion lifecycle turns current pull request discussion into the pending
 actions that drive routing. It covers the three discussion kinds below and
 tracks top-level feedback across refreshes.
+
+## Classification policy
+
+`classification_policy.py` is the pure classification boundary. It defines
+immutable discussion identities, decisions, feedback outcomes, successful
+results, failures, deferrals, diagnostics, model requests, and raw model
+responses. It also owns prompt inputs and rendering, deterministic review-thread
+shortcuts, prompt batching plans, response validation, verdict-to-action
+mapping, result projection, and cache-key computation.
+
+Policy preparation turns typed discussions into model requests or deterministic
+results. Policy resolution consumes a typed raw model response and returns typed
+classification results. Neither phase reads files, changes the environment, or
+starts a process.
+
+`classification_execution.py` owns operational classification. Its service
+accepts one immutable request containing typed policy discussions and returns
+typed `DiscussionClassifications`. The service coordinates deterministic
+review-thread results, cache hits, model requests, batching, per-pull-request
+limits, failures, and deferrals. It attributes each model call to the first
+result produced by that call.
+
+The model runner accepts an immutable rendered prompt and returns a typed
+`RawModelResponse`. The production runner owns the Copilot CLI command, timeout,
+model argument, telemetry environment and temporary file, and telemetry
+diagnostics. It has no cache dependency. The cache store owns the existing
+per-pull-request JSON files, validation, replacement, and pruning. It has no
+classification policy.
+
+Production evaluation builds the typed request directly, and the dashboard
+prunes classification caches through the default cache store.
 
 ### Review thread
 
