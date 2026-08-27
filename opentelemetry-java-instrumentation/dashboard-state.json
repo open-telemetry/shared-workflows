@@ -2356,14 +2356,11 @@
         "assignees": [],
         "author": "lymerin",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732#issuecomment-5414756155"
-        ],
-        "author_nudge_episode_id": "0fdf0272035c4b5c995aa79b6df8df40",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "288fb94feeb4a522f54a528023957eb8df6a5698b6f22793f7087fdf448f5e10",
+        "copilot_request_fingerprint": "c7d7afb11f1c8fc24d98cce63bee84e301f9ec232c8dbc75ab088ab9c986e217",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2372,27 +2369,30 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-08-20T21:19:29+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5444186398,
+            "head_sha": "f2b000bc27724c54a4f2457f0b40537da2d246cb",
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "since": "2026-08-27T19:26:41Z",
+            "user": "lymerin"
+          }
+        ],
+        "dashboard_override_bound_command_id": 5444186398,
+        "dashboard_override_command_id": 5444186398,
+        "dashboard_override_command_user": "lymerin",
+        "dashboard_override_head_sha": "f2b000bc27724c54a4f2457f0b40537da2d246cb",
+        "dashboard_override_since": "2026-08-27T19:26:41Z",
         "head_sha": "f2b000bc27724c54a4f2457f0b40537da2d246cb",
         "is_draft": false,
         "is_maintenance_bot": false,
         "last_activity_at": "2026-08-27T13:24:49+00:00",
         "last_approver_activity_at": "2026-08-21T20:47:22+00:00",
         "last_author_activity_at": "2026-08-27T13:24:49+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "leonard2901",
-            "open_thread": false,
-            "pending_review": false,
-            "top_level_feedback": true
-          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -2405,14 +2405,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "648d6db9c1f7b6c19d517a304b7e488087e0907bf3a3cc48a324ecd4e3302622",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-25T20:32:02+00:00"
+        "routing_input_fingerprint": "0b3828dc65c2b2f19f8cf884877fc1b150f04b7d01d1bf70e4613e2d8ff4df1e",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-27T13:24:49+00:00"
       },
       "failed": false,
       "pr_number": 19732,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "19745": {
