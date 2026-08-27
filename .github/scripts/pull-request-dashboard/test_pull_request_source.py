@@ -338,6 +338,29 @@ class PullRequestSourceFetchTest(unittest.TestCase):
             {call.args[0] for call in gh_api.call_args_list},
         )
 
+    @patch("pull_request_source.ThreadPoolExecutor")
+    @patch(
+        "pull_request_source.gh_pr_view",
+        return_value={
+            "id": "PR_7",
+            "number": 7,
+            "state": "OPEN",
+            "isDraft": True,
+            "title": "Draft",
+            "url": "https://example.test/pull/7",
+        },
+    )
+    def test_draft_skips_full_evaluation_fetches(
+        self,
+        _pr_view,
+        thread_pool,
+    ) -> None:
+        source = fetch_pull_request_source("owner/repo", "owner", "repo", 7)
+
+        self.assertTrue(source.pull_request.is_draft)
+        self.assertEqual("Draft", source.pull_request.title)
+        thread_pool.assert_not_called()
+
     @patch("pull_request_source.fetch_pr_issue_comments", return_value=[])
     @patch("pull_request_source.fetch_pr_reviews", return_value=[])
     @patch("pull_request_source.fetch_review_requests", return_value=[])
@@ -347,7 +370,7 @@ class PullRequestSourceFetchTest(unittest.TestCase):
     @patch("pull_request_source.gh_api", side_effect=TransientGhError("temporary"))
     @patch(
         "pull_request_source.gh_pr_view",
-        return_value={"id": "PR_7", "baseRefName": "main"},
+        return_value={"id": "PR_7", "state": "OPEN", "baseRefName": "main"},
     )
     def test_propagates_transient_transport_failures(
         self,

@@ -13,6 +13,10 @@ targeted refresh or coalesces the refresh in a site-wide Netlify Blobs store for
 the queue drain workflow. It does not run dashboard backfills or own dashboard
 state.
 
+An `opened` event for a draft pull request always uses direct targeted dispatch,
+including in `canary` and `all` queue modes. The central workflow still creates
+the managed status comment with the target repository GitHub App identity.
+
 Save the Netlify project ID as a GitHub Actions variable named
 `NETLIFY_PR_DASHBOARD_PROJECT_ID` in the `shared-workflows` repository.
 

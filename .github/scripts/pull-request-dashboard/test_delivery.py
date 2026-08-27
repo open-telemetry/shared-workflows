@@ -37,7 +37,7 @@ class DeliveryTest(unittest.TestCase):
             order(label)
             return []
 
-        status_comments.side_effect = lambda *_args: record("status")
+        status_comments.side_effect = lambda *_args, **_kwargs: record("status")
         dashboard_command_replies.side_effect = lambda *_args: record("replies")
         author_nudges.side_effect = lambda *_args: record("author")
         copilot_reviews.side_effect = lambda *_args: record("copilot")
@@ -65,6 +65,7 @@ class DeliveryTest(unittest.TestCase):
             "open-telemetry/example",
             {7, 8},
             set(),
+            open_draft_pr_numbers={8},
         )
         author_nudges.assert_called_once_with(
             "open-telemetry/example",
@@ -137,6 +138,7 @@ class DeliveryTest(unittest.TestCase):
             "open-telemetry/example",
             {7, 8},
             {7},
+            open_draft_pr_numbers=set(),
         )
         author_nudges.assert_called_once_with(
             "open-telemetry/example",

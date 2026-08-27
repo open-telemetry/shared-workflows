@@ -16,6 +16,11 @@ four repositories concurrently on one runner; pull requests from the same
 repository remain sequential. An event received while its pull request is being
 processed marks that item dirty and schedules one follow-up pass.
 
+New draft pull requests bypass the queue for their first targeted refresh so the
+dashboard status comment is created near the pull request description. Later
+events use the configured queue mode. The hourly publisher checks a bounded
+round-robin batch of open drafts and repairs only missing managed comments.
+
 Manual targeted runs and hourly backfills bypass the queue. Queue leases recover
 work after interrupted drain runs, and the hourly backfill remains the final
 correctness backstop. Canary and all-mode webhooks do not fall back to direct

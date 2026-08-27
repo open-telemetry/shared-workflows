@@ -7,6 +7,7 @@ from dashboard_contracts import (
     DashboardCommandReply,
     DashboardRoute,
     DashboardState,
+    EvaluationDraft,
     EvaluationFailure,
     StoredDashboardResult,
 )
@@ -68,14 +69,17 @@ class EvaluationResultContractTest(unittest.TestCase):
                 error="",
             )
 
-    def test_success_and_failure_results_are_immutable(self) -> None:
+    def test_evaluation_results_are_immutable(self) -> None:
         success = evaluation_success()
         failure = evaluation_failure()
+        draft = EvaluationDraft(1, "Draft", "https://example.test/pull/1")
 
         with self.assertRaises(FrozenInstanceError):
             success.route = DashboardRoute.MAINTAINER  # type: ignore[misc]
         with self.assertRaises(FrozenInstanceError):
             failure.error = "different"  # type: ignore[misc]
+        with self.assertRaises(FrozenInstanceError):
+            draft.pr_title = "different"  # type: ignore[misc]
 
 
 class StoredDashboardResultContractTest(unittest.TestCase):
@@ -121,6 +125,15 @@ class StoredDashboardResultContractTest(unittest.TestCase):
             "dashboard state contains duplicate pull requests",
         ):
             DashboardState(results=(result, result))
+
+    def test_dashboard_state_keeps_drafts_out_of_routed_results(self) -> None:
+        result = stored_dashboard_result(7)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "dashboard state cannot route a draft pull request",
+        ):
+            DashboardState(results=(result,), draft_pr_numbers=frozenset({7}))
 
 
 if __name__ == "__main__":

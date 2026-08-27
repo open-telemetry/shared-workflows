@@ -737,8 +737,12 @@ def fetch_pull_request_source(
     include_commits: bool = True,
 ) -> PullRequestSource:
     """Fetch one coherent pull request source snapshot."""
+    pr = gh_pr_view(repo, number) or {}
+    metadata = normalize_pull_request(pr, number=number)
+    if metadata.state != "OPEN" or metadata.is_draft:
+        return normalize_pull_request_source({"pr": pr}, number=number)
+
     with ThreadPoolExecutor() as pool:
-        pr_future = pool.submit(gh_pr_view, repo, number)
         issue_comments_future = pool.submit(
             fetch_pr_issue_comments,
             owner,
@@ -773,7 +777,6 @@ def fetch_pull_request_source(
             else None
         )
 
-        pr = pr_future.result() or {}
         check_rollup_future = pool.submit(
             gh_pr_check_rollup,
             repo,

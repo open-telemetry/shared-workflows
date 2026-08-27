@@ -26,6 +26,7 @@ from dashboard_contracts import (
     DashboardFacts,
     DashboardRoute,
     EvaluationDiagnostics,
+    EvaluationDraft,
     EvaluationFailure,
     EvaluationResult,
     EvaluationSuccess,
@@ -406,8 +407,14 @@ def evaluate_pull_request(
             config.non_blocking_check_patterns,
         )
         pr = pr_source.pull_request
-        if pr.state != "OPEN" or pr.is_draft:
+        if pr.state != "OPEN":
             return None
+        if pr.is_draft:
+            return EvaluationDraft(
+                pr_number=number,
+                pr_title=pr.title,
+                pr_url=pr.url,
+            )
         author = _effective_author(pr_source)
         activity = build_activity_timeline(
             ActivityInput(pr_source, author, config.approver_logins)

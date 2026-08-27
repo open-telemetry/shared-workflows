@@ -1138,6 +1138,7 @@ class GithubCliTest(unittest.TestCase):
     ) -> None:
         gh_pr_view.return_value = {
             "id": "PR_node",
+            "state": "OPEN",
             "baseRefName": "main",
             "headRefOid": "current-head",
         }
@@ -1183,6 +1184,7 @@ class GithubCliTest(unittest.TestCase):
     ) -> None:
         gh_pr_view.return_value = {
             "id": "PR_node",
+            "state": "OPEN",
             "baseRefName": "main",
             "headRefOid": "current-head",
         }
@@ -1236,6 +1238,7 @@ class GithubCliTest(unittest.TestCase):
     ) -> None:
         gh_pr_view.return_value = {
             "id": "PR_node",
+            "state": "OPEN",
             "baseRefName": "main",
             "headRefOid": "current-head",
         }
@@ -1296,6 +1299,7 @@ class GithubCliTest(unittest.TestCase):
     ) -> None:
         gh_pr_view.return_value = {
             "id": "PR_node",
+            "state": "OPEN",
             "baseRefName": "main",
             "headRefOid": "current-head",
         }

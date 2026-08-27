@@ -967,6 +967,118 @@ class ManagedStatusCommentsTest(unittest.TestCase):
 
 
 class RolloutStateTest(unittest.TestCase):
+    @patch.object(pr_status_comment, "STATUS_COMMENT_ROLLOUT_BATCH_SIZE", 2)
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(
+        pr_status_comment,
+        "managed_status_comments",
+        side_effect=[
+            [{"id": 34, "body": pr_status_comment.STATUS_MARKER}],
+            [],
+        ],
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "completed_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "pending_pr_numbers": [],
+            "draft_reconciliation_cursor": 12,
+        },
+    )
+    def test_hourly_reconciliation_queues_only_missing_draft_comments(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        managed_comments: Mock,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {12, 34, 56},
+            open_draft_pr_numbers={12, 34, 56},
+        )
+
+        self.assertEqual([], errors)
+        self.assertEqual(
+            [34, 56],
+            [call.args[1] for call in managed_comments.call_args_list],
+        )
+        publish_pr_status.assert_called_once_with(
+            "open-telemetry/example",
+            56,
+            dashboard_state(),
+        )
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([], saved_state["pending_pr_numbers"])
+        self.assertEqual(56, saved_state["draft_reconciliation_cursor"])
+
+    @patch.object(pr_status_comment, "STATUS_COMMENT_ROLLOUT_BATCH_SIZE", 3)
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(
+        pr_status_comment,
+        "managed_status_comments",
+        side_effect=[
+            RuntimeError("gh api failed"),
+            [],
+            [{"id": 56, "body": pr_status_comment.STATUS_MARKER}],
+        ],
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "completed_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "pending_pr_numbers": [],
+            "draft_reconciliation_cursor": 0,
+        },
+    )
+    def test_one_failed_draft_lookup_does_not_stop_the_rollout(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        managed_comments: Mock,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {12, 34, 56},
+            open_draft_pr_numbers={12, 34, 56},
+        )
+
+        self.assertEqual(
+            ["PR #12: draft comment lookup failed: gh api failed"],
+            errors,
+        )
+        self.assertEqual(
+            [12, 34, 56],
+            [call.args[1] for call in managed_comments.call_args_list],
+        )
+        publish_pr_status.assert_called_once_with(
+            "open-telemetry/example",
+            34,
+            dashboard_state(),
+        )
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([], saved_state["pending_pr_numbers"])
+        self.assertEqual(56, saved_state["draft_reconciliation_cursor"])
+
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(
         pr_status_comment,

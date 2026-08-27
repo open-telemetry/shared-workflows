@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from dashboard_contracts import (
     DashboardRoute,
+    EvaluationDraft,
     EvaluationFailure,
     EvaluationSuccess,
 )
@@ -191,21 +192,40 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         resolve.assert_called_once()
         self.assertEqual(history, dict(resolve.call_args.args[2]))
 
-    def test_closed_and_draft_pull_requests_are_not_results(self) -> None:
-        for name, raw in (
-            ("closed", raw_pr(state="CLOSED")),
-            ("draft", raw_pr(draft=True)),
-        ):
-            with self.subTest(name=name), patch(
-                "pull_request_evaluation.fetch_pull_request_source",
-                return_value=raw,
-            ):
-                self.assertIsNone(
-                    evaluate_pull_request(
-                        evaluation_config(),
-                        PullRequestEvaluationInput(7),
-                    )
-                )
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_open_draft_has_a_non_routed_result_without_classification(
+        self,
+        fetch_source,
+    ) -> None:
+        fetch_source.return_value = raw_pr(draft=True)
+        classifier = FakeClassificationOperation()
+
+        result = evaluate_pull_request(
+            evaluation_config(),
+            PullRequestEvaluationInput(7),
+            classifier,
+        )
+
+        self.assertEqual(
+            EvaluationDraft(
+                pr_number=7,
+                pr_title="Evaluation contract",
+                pr_url="https://example.test/pull/7",
+            ),
+            result,
+        )
+        self.assertEqual([], classifier.requests)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_closed_pull_request_has_no_result(self, fetch_source) -> None:
+        fetch_source.return_value = raw_pr(state="CLOSED")
+
+        self.assertIsNone(
+            evaluate_pull_request(
+                evaluation_config(),
+                PullRequestEvaluationInput(7),
+            )
+        )
 
     def test_transient_github_failure_has_the_stable_error_shape(self) -> None:
         error = TransientGhError("temporary")

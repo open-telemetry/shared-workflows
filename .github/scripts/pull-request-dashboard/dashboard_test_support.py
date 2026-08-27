@@ -9,6 +9,7 @@ from dashboard_contracts import (
     DashboardRoute,
     DashboardState,
     EvaluationDiagnostics,
+    EvaluationDraft,
     EvaluationFailure,
     EvaluationSuccess,
     ReviewerSummary,
@@ -382,6 +383,19 @@ def evaluation_failure(
     )
 
 
+def evaluation_draft(
+    pr_number: int = 1,
+    *,
+    pr_title: str = "Draft",
+    pr_url: str | None = None,
+) -> EvaluationDraft:
+    return EvaluationDraft(
+        pr_number=pr_number,
+        pr_title=pr_title,
+        pr_url=pr_url or f"https://example.test/pull/{pr_number}",
+    )
+
+
 def stored_dashboard_result(
     pr_number: int = 1,
     route: DashboardRoute | str = DashboardRoute.AUTHOR,
@@ -402,6 +416,7 @@ def stored_dashboard_result(
 def dashboard_state(
     *results: StoredDashboardResult | EvaluationSuccess,
     initial_backfill_complete: bool = False,
+    draft_pr_numbers: frozenset[int] = frozenset(),
 ) -> DashboardState:
     stored = tuple(
         result
@@ -412,4 +427,5 @@ def dashboard_state(
     return DashboardState(
         initial_backfill_complete=initial_backfill_complete,
         results=stored,
+        draft_pr_numbers=draft_pr_numbers,
     )

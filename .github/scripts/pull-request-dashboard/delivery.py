@@ -116,6 +116,9 @@ def deliver_from_state(
                 repo,
                 {pr["number"] for pr in open_prs},
                 failed_command_reply_prs,
+                open_draft_pr_numbers={
+                    pr["number"] for pr in open_prs if pr.get("isDraft")
+                },
             ),
             errors,
         )

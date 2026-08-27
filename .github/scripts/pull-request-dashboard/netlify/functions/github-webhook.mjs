@@ -116,9 +116,15 @@ export async function handleWebhookRequest(
     head_sha: dispatchHeadSha,
     trigger_event: eventName,
   };
+  const isOpenedDraft = (
+    eventName === "pull_request"
+    && action === "opened"
+    && payload.pull_request?.draft === true
+  );
   if (
-    config.queueMode === "off" ||
-    (
+    isOpenedDraft
+    || config.queueMode === "off"
+    || (
       config.queueMode === "canary" &&
       !QUEUE_CANARY_REPOSITORIES.has(repository.name)
     )
