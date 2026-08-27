@@ -1488,18 +1488,17 @@
         "author": "kejne",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "a656942d3e4a4aefa96265b7b599fe6f",
         "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bf9568fa60139305c08843327c427216795b9cd8640d36f116cc52613cca95b2",
+        "copilot_request_fingerprint": "24ec74efd028e13ba4f672d11f18cf1a87a5945c7c5c47aafb3983cae467e3f2",
         "copilot_review_exists": true,
-        "copilot_review_needed": true,
-        "copilot_review_outstanding": true,
-        "copilot_review_request_needed": true,
+        "copilot_review_needed": false,
+        "copilot_review_outstanding": false,
+        "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": true,
-        "copilot_review_unreported": true,
+        "copilot_review_stale": false,
+        "copilot_review_unreported": false,
         "created_at": "2026-08-04T13:54:55+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_bound_command_id": 5415533657,
@@ -1507,13 +1506,13 @@
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "4cd3d12da6863da5aefbef812e9383506bd0ae45",
         "dashboard_override_since": "2026-08-25T19:21:56Z",
-        "head_sha": "248fbe2edc50d7810319e5ca8ab9ad0ad5376d32",
+        "head_sha": "3411ca96c4921d7adebae30ee0c74f633299e93c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T14:50:04+00:00",
+        "last_activity_at": "2026-08-27T18:50:31+00:00",
         "last_approver_activity_at": "2026-08-26T15:13:41+00:00",
-        "last_author_activity_at": "2026-08-27T14:50:04+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-08-27T18:50:31+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -1543,18 +1542,24 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-27T15:16:03.741569+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "df23785049b4d2ae0e5460526bd5c9adc6ec933963ee677ccb693856a5b4be33",
-        "waiting_age_basis": "last_approver_activity",
-        "waiting_since": "2026-08-26T15:13:41+00:00"
+        "routing_input_fingerprint": "c6f6dccb940027fe2b39725f8feaf33d9ef8dffc44416da3987ea1fb688360ed",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-27T19:43:53.648850+00:00"
       },
       "failed": false,
       "pr_number": 19396,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-review-4862175605": {
+          "evidence": {
+            "reply": "2026-08-25T19:19:54Z"
+          },
+          "reply_source_id": 5415508027
+        }
+      }
     },
     "19438": {
       "facts": {
