@@ -159,7 +159,9 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertTrue(acceptance.effects.record_observations)
         self.assertFalse(acceptance.effects.clear_backfill_failure)
 
-    def test_untracked_closed_pr_is_unchanged(self) -> None:
+    def test_closed_pr_after_draft_reconciliation_queues_terminal_update(
+        self,
+    ) -> None:
         other = stored(8, DashboardRoute.AUTHOR)
         state = dashboard_state(other)
         prepared = prepare_dashboard_update(state, {7, 8}, 7)
@@ -172,7 +174,7 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertIs(acceptance.disposition, DashboardUpdateDisposition.UNCHANGED)
         self.assertEqual(state, acceptance.dashboard_state)
         self.assertFalse(acceptance.effects.persist_dashboard_state)
-        self.assertFalse(acceptance.effects.enqueue_status_comment)
+        self.assertTrue(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
 
     def test_opened_draft_queues_first_comment_without_stored_routing(self) -> None:

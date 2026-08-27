@@ -149,6 +149,7 @@ def accept_dashboard_update(
                 DashboardUpdateDisposition.UNCHANGED,
                 dashboard_state,
                 pr_number,
+                enqueue_status_comment=True,
             )
         return _acceptance(
             DashboardUpdateDisposition.APPLIED,
