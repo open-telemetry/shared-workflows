@@ -89,6 +89,9 @@ built up across stages, so not every field is present at every point.
     top_level action id.
 - ``error`` (``str``): Failure detail, present only on failure paths.
 
+Open drafts produce an explicit non-routed evaluation with only ``pr_number``,
+``pr_title``, and ``pr_url``. Closed or missing pull requests produce no result.
+
 Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
 ``top_level_history`` survives into the cached dashboard state (see
 ``stored_result``).
@@ -368,7 +371,11 @@ def complete_initial_backfill_if_ready(
 ) -> DashboardState:
     if initial_backfill_complete(state):
         return state
-    attempted_pr_numbers = dashboard_state_pr_numbers(state) | (failed_pr_numbers or set())
+    attempted_pr_numbers = (
+        dashboard_state_pr_numbers(state)
+        | set(state.draft_pr_numbers)
+        | (failed_pr_numbers or set())
+    )
     if not open_pr_numbers.issubset(attempted_pr_numbers):
         return state
     return state.with_initial_backfill_complete()
@@ -436,14 +443,27 @@ def select_backfill_prs(
     backfill_state: dict[str, Any],
     max_prs: int,
 ) -> BackfillSelection:
-    open_prs_by_number = {p["number"]: p for p in prs if not p.get("isDraft")}
-    open_numbers = sorted(open_prs_by_number)
-    open_number_set = set(open_numbers)
-    cached_numbers = dashboard_state_pr_numbers(dashboard_state)
-    cached_pr_numbers_to_remove = cached_numbers - open_number_set
-    selected_numbers = round_robin_numbers(open_numbers, backfill_cursor_pr_number(backfill_state))[:max_prs]
+    open_prs_by_number = {p["number"]: p for p in prs}
+    open_number_set = set(open_prs_by_number)
+    selected_prs_by_number = {
+        number: pr
+        for number, pr in open_prs_by_number.items()
+        if (
+            not pr.get("isDraft")
+            or not dashboard_state.is_draft(number)
+        )
+    }
+    tracked_numbers = (
+        dashboard_state_pr_numbers(dashboard_state)
+        | set(dashboard_state.draft_pr_numbers)
+    )
+    cached_pr_numbers_to_remove = tracked_numbers - open_number_set
+    selected_numbers = round_robin_numbers(
+        sorted(selected_prs_by_number),
+        backfill_cursor_pr_number(backfill_state),
+    )[:max_prs]
     return BackfillSelection(
-        [open_prs_by_number[number] for number in selected_numbers],
+        [selected_prs_by_number[number] for number in selected_numbers],
         cached_pr_numbers_to_remove,
     )
 
@@ -736,7 +756,6 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     owner, repo_name = repo.split("/", 1)
     prs = list_open_prs(repo)
     open_pr_numbers = {p["number"] for p in prs}
-    open_non_draft_pr_numbers = {p["number"] for p in prs if not p.get("isDraft")}
     DEFAULT_CLASSIFICATION_CACHE_STORE.prune(open_pr_numbers)
     reviewers = load_reviewer_set(owner, args.approver_team)
     state_branch.configure_git()
@@ -773,14 +792,14 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
         file=sys.stderr,
     )
 
-    # Empty or draft-only repositories still need accepted dashboard state for
-    # the publish job, even when there are no non-draft PRs to refresh.
+    # Empty repositories and repositories whose drafts are already tracked still
+    # need accepted dashboard state for the publish job.
     if not selection.selected_prs:
         def save_current_dashboard_state() -> int:
             dashboard_state = load_dashboard_state_cache() or empty_state()
             completed_state = complete_initial_backfill_if_ready(
                 dashboard_state,
-                open_non_draft_pr_numbers,
+                open_pr_numbers,
             )
             return save_dashboard_update_state(args, completed_state, False)
 
@@ -801,7 +820,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 repo,
                 owner,
                 repo_name,
-                open_non_draft_pr_numbers,
+                open_pr_numbers,
                 reviewers,
                 pr_number,
                 args.model,
@@ -819,7 +838,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 failed_pr_numbers = update_backfill_progress(pr_number, failed=True)
                 completed_state = complete_initial_backfill_if_ready(
                     acceptance.dashboard_state,
-                    open_non_draft_pr_numbers,
+                    open_pr_numbers,
                     failed_pr_numbers,
                 )
                 return save_dashboard_update_state(
@@ -840,7 +859,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
             completed_state = complete_initial_backfill_if_ready(
                 acceptance.dashboard_state,
-                open_non_draft_pr_numbers,
+                open_pr_numbers,
                 failed_pr_numbers,
             )
             return save_dashboard_update_state(
@@ -862,7 +881,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             return status
     unresolved_failed_pr_numbers = (
         backfill_failed_pr_numbers(load_backfill_state())
-        & open_non_draft_pr_numbers
+        & open_pr_numbers
     )
     if unresolved_failed_pr_numbers:
         failed_list = ", ".join(f"#{number}" for number in sorted(unresolved_failed_pr_numbers))

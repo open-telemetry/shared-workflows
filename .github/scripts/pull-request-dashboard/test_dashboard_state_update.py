@@ -12,6 +12,7 @@ from dashboard_state_update import (
 from dashboard_test_support import (
     dashboard_facts,
     dashboard_state,
+    evaluation_draft,
     evaluation_failure,
     evaluation_success,
     stored_dashboard_result,
@@ -158,7 +159,7 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertTrue(acceptance.effects.record_observations)
         self.assertFalse(acceptance.effects.clear_backfill_failure)
 
-    def test_untracked_dropped_pr_is_unchanged(self) -> None:
+    def test_untracked_closed_pr_is_unchanged(self) -> None:
         other = stored(8, DashboardRoute.AUTHOR)
         state = dashboard_state(other)
         prepared = prepare_dashboard_update(state, {7, 8}, 7)
@@ -173,6 +174,93 @@ class DashboardStateUpdateTest(unittest.TestCase):
         self.assertFalse(acceptance.effects.persist_dashboard_state)
         self.assertFalse(acceptance.effects.enqueue_status_comment)
         self.assertTrue(acceptance.effects.record_observations)
+
+    def test_opened_draft_queues_first_comment_without_stored_routing(self) -> None:
+        state = dashboard_state()
+        prepared = prepare_dashboard_update(state, {7}, 7)
+
+        acceptance = accept_dashboard_update(
+            prepared.with_evaluated_result(evaluation_draft(7)),
+            state,
+        )
+
+        self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
+        self.assertIsNone(acceptance.accepted_result)
+        self.assertTrue(acceptance.dashboard_state.is_draft(7))
+        self.assertTrue(acceptance.effects.persist_dashboard_state)
+        self.assertTrue(acceptance.effects.enqueue_status_comment)
+        self.assertTrue(acceptance.effects.record_observations)
+        self.assertTrue(acceptance.effects.clear_backfill_failure)
+
+    def test_converted_to_draft_removes_stale_routing_and_queues_update(self) -> None:
+        starting = stored(7, DashboardRoute.AUTHOR)
+        state = dashboard_state(starting)
+        prepared = prepare_dashboard_update(state, {7}, 7)
+
+        acceptance = accept_dashboard_update(
+            prepared.with_evaluated_result(evaluation_draft(7)),
+            state,
+        )
+
+        self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
+        self.assertIsNone(acceptance.accepted_result)
+        self.assertEqual((), acceptance.dashboard_state.results)
+        self.assertTrue(acceptance.dashboard_state.is_draft(7))
+        self.assertTrue(acceptance.effects.persist_dashboard_state)
+        self.assertTrue(acceptance.effects.enqueue_status_comment)
+
+    def test_ready_for_review_after_draft_stores_routing_and_queues_update(self) -> None:
+        state = dashboard_state(draft_pr_numbers=frozenset({7}))
+        prepared = prepare_dashboard_update(state, {7}, 7)
+
+        acceptance = accept_dashboard_update(
+            prepared.with_evaluated_result(
+                evaluated(7, DashboardRoute.APPROVER)
+            ),
+            state,
+        )
+
+        self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
+        self.assertIs(
+            acceptance.accepted_result.route,
+            DashboardRoute.APPROVER,
+        )
+        self.assertTrue(acceptance.effects.persist_dashboard_state)
+        self.assertTrue(acceptance.effects.enqueue_status_comment)
+        self.assertFalse(acceptance.dashboard_state.is_draft(7))
+
+    def test_closed_draft_removes_marker_and_queues_terminal_update(self) -> None:
+        state = dashboard_state(draft_pr_numbers=frozenset({7}))
+        prepared = prepare_dashboard_update(state, {7}, 7)
+
+        acceptance = accept_dashboard_update(
+            prepared.with_evaluated_result(None),
+            state,
+        )
+
+        self.assertIs(acceptance.disposition, DashboardUpdateDisposition.APPLIED)
+        self.assertFalse(acceptance.dashboard_state.is_draft(7))
+        self.assertTrue(acceptance.effects.persist_dashboard_state)
+        self.assertTrue(acceptance.effects.enqueue_status_comment)
+
+    def test_newer_draft_marker_rejects_stale_ready_evaluation(self) -> None:
+        starting = dashboard_state()
+        prepared = prepare_dashboard_update(starting, {7}, 7)
+        latest = dashboard_state(draft_pr_numbers=frozenset({7}))
+
+        acceptance = accept_dashboard_update(
+            prepared.with_evaluated_result(
+                evaluated(7, DashboardRoute.APPROVER)
+            ),
+            latest,
+        )
+
+        self.assertIs(
+            acceptance.disposition,
+            DashboardUpdateDisposition.CONCURRENT_UPDATE,
+        )
+        self.assertTrue(acceptance.dashboard_state.is_draft(7))
+        self.assertFalse(acceptance.effects.enqueue_status_comment)
 
     def test_successful_result_is_accepted_and_plans_all_effects(self) -> None:
         starting = stored(7, DashboardRoute.AUTHOR)

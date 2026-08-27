@@ -198,6 +198,23 @@ test("canary mode queues only configured canary repositories", async () => {
   );
 });
 
+test("opened drafts bypass all and canary queues", async () => {
+  for (const queueMode of ["all", "canary"]) {
+    const calls = [];
+    const response = await withQueueMode(queueMode, () => handleWebhookRequest(
+      webhookRequest("shared-workflows", 456, { draft: true }),
+      {
+        queue: queueMock(calls),
+        dispatchRefresh: async (inputs) => calls.push(["refresh", inputs]),
+        dispatchDrain: async (generation) => calls.push(["drain", generation]),
+      },
+    ));
+
+    assert.equal((await response.json()).status, "dispatched");
+    assert.deepEqual(calls.map(([name]) => name), ["refresh"]);
+  }
+});
+
 test("queued mode uses an internal dispatcher owner", async () => {
   const calls = [];
   await withQueueMode("all", () => handleWebhookRequest(
@@ -236,14 +253,18 @@ test("queue dispatch failure releases the dispatcher lease", async () => {
   ]);
 });
 
-function webhookRequest(repository, prNumber, delivery = "delivery-1") {
+function webhookRequest(
+  repository,
+  prNumber,
+  { delivery = "delivery-1", draft = false } = {},
+) {
   const body = JSON.stringify({
     action: "opened",
     repository: {
       full_name: `open-telemetry/${repository}`,
       owner: { login: "open-telemetry" },
     },
-    pull_request: { number: prNumber },
+    pull_request: { number: prNumber, draft },
   });
   const signature = crypto
     .createHmac("sha256", webhookSecret)

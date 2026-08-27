@@ -5,6 +5,7 @@ from enum import Enum
 
 from dashboard_contracts import (
     DashboardState,
+    EvaluationDraft,
     EvaluationFailure,
     EvaluationResult,
     StoredDashboardResult,
@@ -27,6 +28,7 @@ class PreparedDashboardUpdate:
     pr_number: int
     starting_dashboard_state: DashboardState
     starting_result: StoredDashboardResult | None
+    starting_is_draft: bool
 
     def with_evaluated_result(
         self,
@@ -71,10 +73,16 @@ def prepare_dashboard_update(
         if pr_number in open_pr_numbers
         else None
     )
+    starting_is_draft = (
+        dashboard_state.is_draft(pr_number)
+        if pr_number in open_pr_numbers
+        else False
+    )
     return PreparedDashboardUpdate(
         pr_number=pr_number,
         starting_dashboard_state=dashboard_state,
         starting_result=starting_result,
+        starting_is_draft=starting_is_draft,
     )
 
 
@@ -84,6 +92,8 @@ def _acceptance(
     pr_number: int,
     *,
     clear_backfill_failure: bool = False,
+    enqueue_status_comment: bool | None = None,
+    persist_dashboard_state: bool | None = None,
 ) -> DashboardUpdateAcceptance:
     changed = disposition is DashboardUpdateDisposition.APPLIED
     rejected = disposition is DashboardUpdateDisposition.FAILED_RESULT_REJECTED
@@ -92,8 +102,16 @@ def _acceptance(
         dashboard_state=dashboard_state,
         accepted_result=dashboard_state.result_for(pr_number),
         effects=DashboardUpdateEffects(
-            persist_dashboard_state=changed,
-            enqueue_status_comment=changed,
+            persist_dashboard_state=(
+                changed
+                if persist_dashboard_state is None
+                else persist_dashboard_state
+            ),
+            enqueue_status_comment=(
+                changed
+                if enqueue_status_comment is None
+                else enqueue_status_comment
+            ),
             record_observations=not rejected,
             clear_backfill_failure=clear_backfill_failure,
         ),
@@ -112,7 +130,11 @@ def accept_dashboard_update(
         else prepared.starting_dashboard_state
     )
     latest_result = dashboard_state.result_for(pr_number)
-    slot_changed = latest_result != prepared.starting_result
+    latest_is_draft = dashboard_state.is_draft(pr_number)
+    slot_changed = (
+        latest_result != prepared.starting_result
+        or latest_is_draft != prepared.starting_is_draft
+    )
     evaluated_result = update.evaluated_result
 
     if evaluated_result is None:
@@ -122,7 +144,7 @@ def accept_dashboard_update(
                 dashboard_state,
                 pr_number,
             )
-        if latest_result is None:
+        if latest_result is None and not latest_is_draft:
             return _acceptance(
                 DashboardUpdateDisposition.UNCHANGED,
                 dashboard_state,
@@ -132,6 +154,29 @@ def accept_dashboard_update(
             DashboardUpdateDisposition.APPLIED,
             update_dashboard_state_for_pr(dashboard_state, pr_number, None),
             pr_number,
+        )
+
+    if isinstance(evaluated_result, EvaluationDraft):
+        if latest_dashboard_state is not None and slot_changed:
+            return _acceptance(
+                DashboardUpdateDisposition.CONCURRENT_UPDATE,
+                dashboard_state,
+                pr_number,
+                clear_backfill_failure=True,
+            )
+        accepted_state = dashboard_state.with_draft(pr_number)
+        state_changed = accepted_state != dashboard_state
+        return _acceptance(
+            (
+                DashboardUpdateDisposition.APPLIED
+                if state_changed
+                else DashboardUpdateDisposition.UNCHANGED
+            ),
+            accepted_state,
+            pr_number,
+            clear_backfill_failure=True,
+            enqueue_status_comment=True,
+            persist_dashboard_state=state_changed,
         )
 
     failed = isinstance(evaluated_result, EvaluationFailure)

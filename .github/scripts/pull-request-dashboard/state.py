@@ -35,7 +35,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 11
+DASHBOARD_STATE_VERSION = 12
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -45,7 +45,7 @@ AUTHOR_NUDGE_STATE_VERSION = 3
 # copilot-review-request-state.json: pending and delivered review requests.
 COPILOT_REVIEW_REQUEST_STATE_VERSION = 6
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
-STATUS_COMMENT_ROLLOUT_STATE_VERSION = 1
+STATUS_COMMENT_ROLLOUT_STATE_VERSION = 2
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
 STATUS_COMMENT_REVISION = 16
@@ -114,6 +114,7 @@ def empty_status_comment_rollout_state() -> dict[str, Any]:
         "target_revision": 0,
         "completed_revision": 0,
         "pending_pr_numbers": [],
+        "draft_reconciliation_cursor": 0,
     }
 
 
@@ -182,6 +183,7 @@ def load_status_comment_rollout_state() -> dict[str, Any]:
     state = load_state_file(
         status_comment_rollout_state_path(),
         STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+        compatible_versions=(1,),
     )
     if state is None:
         return empty_status_comment_rollout_state()
@@ -189,12 +191,17 @@ def load_status_comment_rollout_state() -> dict[str, Any]:
     try:
         target_revision = max(int(state.get("target_revision") or 0), 0)
         completed_revision = max(int(state.get("completed_revision") or 0), 0)
+        draft_reconciliation_cursor = max(
+            int(state.get("draft_reconciliation_cursor") or 0),
+            0,
+        )
     except (TypeError, ValueError):
         return empty_status_comment_rollout_state()
     return {
         "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
         "target_revision": target_revision,
         "completed_revision": completed_revision,
+        "draft_reconciliation_cursor": draft_reconciliation_cursor,
         "pending_pr_numbers": (
             [
                 number
@@ -213,6 +220,9 @@ def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
         {
             "target_revision": int(state.get("target_revision") or 0),
             "completed_revision": int(state.get("completed_revision") or 0),
+            "draft_reconciliation_cursor": int(
+                state.get("draft_reconciliation_cursor") or 0
+            ),
             "pending_pr_numbers": list(
                 dict.fromkeys(state.get("pending_pr_numbers") or [])
             ),
@@ -760,11 +770,25 @@ def decode_dashboard_state(value: Mapping[str, Any]) -> DashboardState:
                 f"warning: ignoring malformed dashboard result {key!r}: {error}",
                 file=sys.stderr,
             )
+    raw_draft_pr_numbers = value.get("draft_pr_numbers")
+    draft_pr_numbers = frozenset(
+        number
+        for number in (
+            raw_draft_pr_numbers
+            if isinstance(raw_draft_pr_numbers, list)
+            else []
+        )
+        if isinstance(number, int)
+        and not isinstance(number, bool)
+        and number > 0
+        and number not in decoded_pr_numbers
+    )
     return DashboardState(
         initial_backfill_complete=(
             value.get(INITIAL_BACKFILL_COMPLETE_KEY) is True
         ),
         results=tuple(results),
+        draft_pr_numbers=draft_pr_numbers,
     )
 
 
@@ -772,6 +796,7 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
     return {
         "version": DASHBOARD_STATE_VERSION,
         INITIAL_BACKFILL_COMPLETE_KEY: state.initial_backfill_complete,
+        "draft_pr_numbers": sorted(state.draft_pr_numbers),
         "prs": {
             str(result.pr_number): encode_stored_result(result)
             for result in state.results
@@ -780,7 +805,11 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
 
 
 def load_dashboard_state_cache() -> DashboardState | None:
-    state = load_state_file(dashboard_state_path(), DASHBOARD_STATE_VERSION)
+    state = load_state_file(
+        dashboard_state_path(),
+        DASHBOARD_STATE_VERSION,
+        compatible_versions=(11,),
+    )
     if state is None:
         return None
     return decode_dashboard_state(state)

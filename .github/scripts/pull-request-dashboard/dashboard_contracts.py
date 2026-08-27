@@ -254,7 +254,18 @@ class EvaluationFailure:
             raise ValueError("failed evaluations require an error")
 
 
-EvaluationResult = EvaluationSuccess | EvaluationFailure
+@dataclass(frozen=True)
+class EvaluationDraft:
+    pr_number: int
+    pr_title: str
+    pr_url: str
+
+    def __post_init__(self) -> None:
+        if self.pr_number <= 0:
+            raise ValueError("draft evaluation pr_number must be positive")
+
+
+EvaluationResult = EvaluationSuccess | EvaluationFailure | EvaluationDraft
 
 
 @dataclass(frozen=True)
@@ -296,13 +307,25 @@ class StoredDashboardResult:
 class DashboardState:
     initial_backfill_complete: bool = False
     results: tuple[StoredDashboardResult, ...] = ()
+    draft_pr_numbers: frozenset[int] = frozenset()
 
     def __post_init__(self) -> None:
         results = tuple(sorted(self.results, key=lambda result: result.pr_number))
         numbers = [result.pr_number for result in results]
         if len(numbers) != len(set(numbers)):
             raise ValueError("dashboard state contains duplicate pull requests")
+        draft_pr_numbers = frozenset(self.draft_pr_numbers)
+        if any(
+            not isinstance(number, int)
+            or isinstance(number, bool)
+            or number <= 0
+            for number in draft_pr_numbers
+        ):
+            raise ValueError("dashboard state draft PR numbers must be positive integers")
+        if draft_pr_numbers.intersection(numbers):
+            raise ValueError("dashboard state cannot route a draft pull request")
         object.__setattr__(self, "results", results)
+        object.__setattr__(self, "draft_pr_numbers", draft_pr_numbers)
 
     @property
     def pr_numbers(self) -> frozenset[int]:
@@ -317,6 +340,9 @@ class DashboardState:
             ),
             None,
         )
+
+    def is_draft(self, pr_number: int) -> bool:
+        return pr_number in self.draft_pr_numbers
 
     def results_for(
         self,
@@ -343,6 +369,20 @@ class DashboardState:
         return replace(
             self,
             results=retained + ((result,) if result is not None else ()),
+            draft_pr_numbers=self.draft_pr_numbers - {pr_number},
+        )
+
+    def with_draft(self, pr_number: int) -> DashboardState:
+        if pr_number <= 0:
+            raise ValueError("draft pull request number must be positive")
+        return replace(
+            self,
+            results=tuple(
+                result
+                for result in self.results
+                if result.pr_number != pr_number
+            ),
+            draft_pr_numbers=self.draft_pr_numbers | {pr_number},
         )
 
     def with_initial_backfill_complete(self) -> DashboardState:

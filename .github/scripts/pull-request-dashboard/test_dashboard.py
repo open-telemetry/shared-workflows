@@ -17,6 +17,7 @@ from dashboard import (
     complete_initial_backfill_if_ready,
     main,
     remove_cached_dashboard_prs,
+    select_backfill_prs,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
     write_initial_backfill_output,
@@ -255,7 +256,11 @@ class PullRequestSourceFetchTest(unittest.TestCase):
         with (
             patch(
                 "pull_request_source.gh_pr_view",
-                return_value={"id": "PR_node", "baseRefName": "main"},
+                return_value={
+                    "id": "PR_node",
+                    "state": "OPEN",
+                    "baseRefName": "main",
+                },
             ),
             patch(
                 "pull_request_source.fetch_pr_issue_comments",
@@ -1510,7 +1515,42 @@ class HeadShaSourceTest(unittest.TestCase):
         self.assertFalse(facts.copilot_review_needed)
 
 
+class BackfillSelectionTest(unittest.TestCase):
+    def test_selects_untracked_drafts_once_and_removes_closed_markers(self) -> None:
+        selection = select_backfill_prs(
+            [
+                {"number": 1, "isDraft": False},
+                {"number": 2, "isDraft": True},
+                {"number": 3, "isDraft": True},
+            ],
+            dashboard_state(
+                stored_dashboard_result(4),
+                draft_pr_numbers=frozenset({3, 5}),
+            ),
+            {"cursor": {}},
+            50,
+        )
+
+        self.assertEqual(
+            [1, 2],
+            [pr["number"] for pr in selection.selected_prs],
+        )
+        self.assertEqual({4, 5}, selection.cached_pr_numbers_to_remove)
+
+
 class InitialBackfillCompletionTest(unittest.TestCase):
+    def test_open_drafts_must_be_tracked_before_backfill_completes(self) -> None:
+        state = dashboard_state(draft_pr_numbers=frozenset({1}))
+
+        state = complete_initial_backfill_if_ready(state, {1, 2})
+
+        self.assertFalse(state.initial_backfill_complete)
+        completed = complete_initial_backfill_if_ready(
+            dashboard_state(draft_pr_numbers=frozenset({1, 2})),
+            {1, 2},
+        )
+        self.assertTrue(completed.initial_backfill_complete)
+
     def test_marks_complete_only_after_all_open_prs_are_cached(self) -> None:
         state = dashboard_state(stored_dashboard_result(1))
 

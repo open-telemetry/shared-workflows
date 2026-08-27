@@ -525,6 +525,9 @@ def prepare_rollout_state(
             "target_revision": STATUS_COMMENT_REVISION,
             "completed_revision": int(rollout_state.get("completed_revision") or 0),
             "pending_pr_numbers": sorted(open_pr_numbers),
+            "draft_reconciliation_cursor": int(
+                rollout_state.get("draft_reconciliation_cursor") or 0
+            ),
         }
     pending = {
         number
@@ -535,13 +538,43 @@ def prepare_rollout_state(
         "target_revision": STATUS_COMMENT_REVISION,
         "completed_revision": int(rollout_state.get("completed_revision") or 0),
         "pending_pr_numbers": sorted(pending),
+        "draft_reconciliation_cursor": int(
+            rollout_state.get("draft_reconciliation_cursor") or 0
+        ),
     }
+
+
+def reconcile_missing_draft_status_comments(
+    repo: str,
+    rollout_state: dict[str, Any],
+    open_draft_pr_numbers: set[int],
+) -> None:
+    if not open_draft_pr_numbers:
+        return
+    cursor = int(rollout_state.get("draft_reconciliation_cursor") or 0)
+    ordered_numbers = sorted(open_draft_pr_numbers)
+    candidates = (
+        [number for number in ordered_numbers if number > cursor]
+        + [number for number in ordered_numbers if number <= cursor]
+    )[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    pending_pr_numbers = rollout_state["pending_pr_numbers"]
+    pending_set = set(pending_pr_numbers)
+    for number in candidates:
+        if number in pending_set:
+            continue
+        if not managed_status_comments(repo, number):
+            pending_pr_numbers.append(number)
+            pending_set.add(number)
+    if candidates:
+        rollout_state["draft_reconciliation_cursor"] = candidates[-1]
 
 
 def update_status_comments_from_state(
     repo: str,
     open_pr_numbers: set[int],
     excluded_pr_numbers: set[int] | None = None,
+    *,
+    open_draft_pr_numbers: set[int] | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -553,6 +586,11 @@ def update_status_comments_from_state(
         dict.fromkeys(saved_rollout_state.get("pending_pr_numbers") or [])
     )
     rollout_state = prepare_rollout_state(saved_rollout_state, open_pr_numbers)
+    reconcile_missing_draft_status_comments(
+        repo,
+        rollout_state,
+        open_draft_pr_numbers or set(),
+    )
     queued_pr_number_set = set(queued_pr_numbers)
     pending_pr_numbers = queued_pr_numbers + [
         number

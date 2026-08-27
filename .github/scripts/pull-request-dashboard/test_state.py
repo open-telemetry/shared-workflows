@@ -174,6 +174,7 @@ class StateTest(unittest.TestCase):
                 {
                     "version": DASHBOARD_STATE_VERSION,
                     "initial_backfill_complete": False,
+                    "draft_pr_numbers": [],
                     "prs": {},
                 },
             )
@@ -281,6 +282,7 @@ class StateTest(unittest.TestCase):
             second,
             first,
             initial_backfill_complete=True,
+            draft_pr_numbers=frozenset({9}),
         )
 
         self.assertEqual(first, decode_stored_result(encode_stored_result(first)))
@@ -416,7 +418,7 @@ class StateTest(unittest.TestCase):
             "warning: ignoring malformed dashboard result"
         ))
 
-    def test_current_persisted_dashboard_shape_is_byte_for_byte_compatible(self) -> None:
+    def test_version_eleven_dashboard_state_migrates_to_current_shape(self) -> None:
         persisted = {
             "version": 11,
             "initial_backfill_complete": True,
@@ -513,15 +515,19 @@ class StateTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            persisted,
+            {
+                **persisted,
+                "version": DASHBOARD_STATE_VERSION,
+                "draft_pr_numbers": [],
+            },
             encode_dashboard_state(decode_dashboard_state(persisted)),
         )
 
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 11)
-        self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 12)
+        self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)
 
@@ -807,6 +813,7 @@ class StateTest(unittest.TestCase):
                 "target_revision": 2,
                 "completed_revision": 1,
                 "pending_pr_numbers": [34, 12, 34],
+                "draft_reconciliation_cursor": 56,
             })
 
             self.assertEqual(
@@ -816,6 +823,7 @@ class StateTest(unittest.TestCase):
                     "target_revision": 2,
                     "completed_revision": 1,
                     "pending_pr_numbers": [34, 12],
+                    "draft_reconciliation_cursor": 56,
                 },
             )
 

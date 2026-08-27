@@ -24,11 +24,13 @@ cross into evaluation or domain modules.
 `dashboard_contracts.py` defines the immutable in-memory boundary. A
 `StoredDashboardResult` projects an evaluation success down to the fields that
 survive refreshes. `DashboardState` holds those projections and the initial
-backfill marker. Evaluation diagnostics keep typed classification results and
-freeze only the source discussion records.
+backfill marker. It also tracks draft PR numbers separately so drafts participate
+in concurrent update detection without becoming routed results. Evaluation
+diagnostics keep typed classification results and freeze only the source
+discussion records.
 
 `state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
-codecs translate the immutable contracts to the existing version 10
+codecs translate the immutable contracts to the version 12
 `dashboard-state.json` shape. Malformed pull request entries are discarded
 individually, so one bad entry does not prevent valid entries from loading.
 
