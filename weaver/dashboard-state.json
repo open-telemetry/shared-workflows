@@ -785,7 +785,7 @@
     },
     "1728": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -794,7 +794,7 @@
         "ci_failing_since": "2026-08-26T17:43:57+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9c0a3e6c759e58bfa480dff78aa1658f3264d83c46ceba77d95246ce3ba504e6",
+        "copilot_request_fingerprint": "93bf580e30956515c82cc3054ecc07e9c7a129fa12fef42fb2ff3d80e281d4c8",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -810,21 +810,31 @@
         "head_sha": "440df868beeb60a2cb4acf3359eacead5d68b7d3",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-26T15:06:20+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-27T22:20:30+00:00",
+        "last_approver_activity_at": "2026-08-27T22:20:30+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jsuereth",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "01d4cddc4bc6d2623669fa2cf586f5d345950a4c495d5e8b4d872e2b812cafcd",
+        "routing_input_fingerprint": "ee78dcd7910248b289779a8f38dc2291f636dfc480018b6f2c00279055ddd56d",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-26T01:08:36+00:00"
       },
       "failed": false,
       "pr_number": 1728,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1728",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1729": {
