@@ -35,7 +35,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 10
+DASHBOARD_STATE_VERSION = 11
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -400,20 +400,28 @@ def _decode_command_reply(value: Any) -> DashboardCommandReply:
             value.get("held_gates", _MISSING),
             "facts.dashboard_command_replies.held_gates",
         ),
+        since=_string(
+            value.get("since", _MISSING),
+            "facts.dashboard_command_replies.since",
+        ),
     )
 
 
 def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
-    if reply.kind == "routed":
-        # DashboardCommandReply refuses a routed reply without a route.
-        return {
+    if reply.kind in ("routed", "cleared_by_feedback"):
+        stored: dict[str, Any] = {
             "comment_id": reply.comment_id,
             "kind": reply.kind,
             "head_sha": reply.head_sha,
             "user": reply.user,
-            "route": reply.route.value,
-            "held_gates": reply.held_gates,
         }
+        if reply.since:
+            stored["since"] = reply.since
+        if reply.kind == "routed":
+            # DashboardCommandReply refuses a routed reply without a route.
+            stored["route"] = reply.route.value
+            stored["held_gates"] = reply.held_gates
+        return stored
     return {
         "comment_id": reply.comment_id,
         "kind": reply.kind,
@@ -458,9 +466,21 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("dashboard_override_command_user", _MISSING),
             "facts.dashboard_override_command_user",
         ),
+        dashboard_override_bound_command_id=_integer(
+            value.get("dashboard_override_bound_command_id", _MISSING),
+            "facts.dashboard_override_bound_command_id",
+        ),
         dashboard_override_head_sha=_string(
             value.get("dashboard_override_head_sha", _MISSING),
             "facts.dashboard_override_head_sha",
+        ),
+        dashboard_override_since=_string(
+            value.get("dashboard_override_since", _MISSING),
+            "facts.dashboard_override_since",
+        ),
+        dashboard_override_cleared_by_feedback=_boolean(
+            value.get("dashboard_override_cleared_by_feedback", _MISSING),
+            "facts.dashboard_override_cleared_by_feedback",
         ),
         dashboard_command_replies=tuple(
             _decode_command_reply(reply)
@@ -632,6 +652,14 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
             for reviewer in facts.reviewers
         ],
     }
+    if facts.dashboard_override_bound_command_id:
+        stored["dashboard_override_bound_command_id"] = (
+            facts.dashboard_override_bound_command_id
+        )
+    if facts.dashboard_override_since:
+        stored["dashboard_override_since"] = facts.dashboard_override_since
+    if facts.dashboard_override_cleared_by_feedback:
+        stored["dashboard_override_cleared_by_feedback"] = True
     if facts.ci_failing_count is not None:
         stored["ci_failing_count"] = facts.ci_failing_count
     if facts.ci_failing_since is not None:

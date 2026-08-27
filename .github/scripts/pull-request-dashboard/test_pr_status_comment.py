@@ -19,6 +19,7 @@ from dashboard_test_support import (
     evaluation_failure,
     stored_dashboard_result,
 )
+from dashboard_status import status_reviewer_handoff_clearance
 
 
 def status_result(
@@ -108,6 +109,97 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertEqual(
             "abc123",
             pr_status_comment.status_author_nudge_episode_id(comments),
+        )
+
+    def test_persists_feedback_cleared_handoff_in_status_comment(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.AUTHOR,
+                dashboard_override_bound_command_id=12,
+                dashboard_override_head_sha="abcdef123456",
+                dashboard_override_cleared_by_feedback=True,
+            ),
+        )
+        comment = {
+            "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+            "body": body,
+        }
+
+        self.assertIn(
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:abcdef123456 -->",
+            body,
+        )
+        self.assertEqual(
+            (98, "no-status-marker"),
+            status_reviewer_handoff_clearance([
+                {
+                    "user": {"login": "alice"},
+                    "body": (
+                        f"{pr_status_comment.STATUS_MARKER}\n"
+                        "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                        "99:forged -->"
+                    ),
+                },
+                {
+                    "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                    "body": (
+                        "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                        "98:no-status-marker -->"
+                    ),
+                },
+                comment,
+            ]),
+        )
+
+    def test_optional_status_markers_have_stable_order(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.AUTHOR,
+                author_nudge_episode_id="abc123",
+                dashboard_override_bound_command_id=12,
+                dashboard_override_head_sha="abcdef123456",
+                dashboard_override_cleared_by_feedback=True,
+            ),
+        )
+
+        self.assertEqual(
+            [
+                pr_status_comment.STATUS_MARKER,
+                (
+                    "<!-- pull-request-dashboard-status-revision:"
+                    f"{pr_status_comment.STATUS_COMMENT_REVISION} -->"
+                ),
+                pr_status_comment.author_nudge_episode_marker("abc123"),
+                (
+                    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                    "12:abcdef123456 -->"
+                ),
+                "## Pull request dashboard status",
+            ],
+            body.splitlines()[:5],
+        )
+
+    def test_clearance_recovery_prefers_the_latest_marker_for_a_command(self) -> None:
+        def status_comment(head: str, updated_at: str) -> dict[str, object]:
+            return {
+                "user": {"login": "opentelemetry-pr-dashboard[bot]"},
+                "updated_at": updated_at,
+                "body": (
+                    f"{pr_status_comment.STATUS_MARKER}\n"
+                    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                    f"12:{head} -->"
+                ),
+            }
+
+        self.assertEqual(
+            (12, "current-head"),
+            status_reviewer_handoff_clearance([
+                status_comment("current-head", "2026-08-25T09:00:00Z"),
+                status_comment("old-head", "2026-08-25T08:00:00Z"),
+            ]),
         )
 
     def test_recovers_episode_from_normalized_dashboard_bot_comment(self) -> None:
@@ -648,14 +740,40 @@ class UpsertStatusCommentTest(unittest.TestCase):
         pr_status_comment,
         "managed_status_comments",
         return_value=[
-            {"id": 7, "body": "<!-- pull-request-dashboard-status --> old"},
-            {"id": 8, "body": "<!-- pull-request-dashboard-status --> duplicate"},
+            {
+                "id": 7,
+                "performed_via_github_app": {
+                    "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+                },
+                "body": "<!-- pull-request-dashboard-status --> old",
+            },
+            {
+                "id": 8,
+                "performed_via_github_app": {
+                    "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+                },
+                "body": (
+                    "<!-- pull-request-dashboard-status -->\n"
+                    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                    "12:bound-head -->"
+                ),
+            },
         ],
     )
     def test_updates_comment_and_deletes_duplicates(self, _comments: object) -> None:
-        pr_status_comment.upsert_status_comment("open-telemetry/example", 1, "body")
+        pr_status_comment.upsert_status_comment(
+            "open-telemetry/example",
+            1,
+            "body",
+            preserve_clearance=True,
+        )
 
         self.assertEqual(["PATCH", "DELETE"], [command[3] for command in self.commands])
+        self.assertIn(
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:bound-head -->",
+            self.commands[0][-1],
+        )
 
     @patch.object(pr_status_comment, "managed_status_comments", return_value=[])
     def test_does_not_create_comment_when_creation_is_disabled(
@@ -694,6 +812,49 @@ class UpsertStatusCommentTest(unittest.TestCase):
         )
 
         self.assertEqual(["PATCH"], [command[3] for command in self.commands])
+
+    @patch.object(
+        pr_status_comment,
+        "managed_status_comments",
+        return_value=[{
+            "id": 7,
+            "performed_via_github_app": {
+                "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+            },
+            "body": (
+                f"{pr_status_comment.STATUS_MARKER}\n"
+                "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                "12:bound-head -->\n"
+                "old status"
+            ),
+        }],
+    )
+    def test_status_update_preserves_handoff_clearance(
+        self, _comments: object
+    ) -> None:
+        body = (
+            f"{pr_status_comment.STATUS_MARKER}\n"
+            "<!-- pull-request-dashboard-status-revision:4 -->\n"
+            "## Pull request dashboard status"
+        )
+
+        pr_status_comment.upsert_status_comment(
+            "open-telemetry/example",
+            1,
+            body,
+            create=False,
+            preserve_clearance=True,
+        )
+
+        self.assertIn(
+            "body="
+            f"{pr_status_comment.STATUS_MARKER}\n"
+            "<!-- pull-request-dashboard-status-revision:4 -->\n"
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:bound-head -->\n"
+            "## Pull request dashboard status",
+            self.commands[0],
+        )
 
     @patch.object(
         pr_status_comment,
@@ -737,6 +898,7 @@ class PublishPrStatusTest(unittest.TestCase):
 
         self.assertFalse(upsert.call_args.kwargs["create"])
         self.assertTrue(upsert.call_args.kwargs["locked"])
+        self.assertTrue(upsert.call_args.kwargs["preserve_clearance"])
 
     @patch.object(pr_status_comment, "upsert_status_comment")
     @patch.object(pr_status_comment, "gh_api")
@@ -772,6 +934,7 @@ class PublishPrStatusTest(unittest.TestCase):
         )
 
         self.assertTrue(upsert.call_args.kwargs["create"])
+        self.assertTrue(upsert.call_args.kwargs["preserve_clearance"])
 
 
 class ManagedStatusCommentsTest(unittest.TestCase):
@@ -976,6 +1139,45 @@ class RolloutStateTest(unittest.TestCase):
             pr_status_comment.STATUS_COMMENT_REVISION,
             saved_state["completed_revision"],
         )
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(pr_status_comment, "publish_pr_status")
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": pr_status_comment.STATUS_COMMENT_REVISION,
+            "completed_revision": 0,
+            "pending_pr_numbers": [7, 8],
+        },
+    )
+    def test_rollout_retains_excluded_pr_without_publishing_it(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {7, 8},
+            {7},
+        )
+
+        self.assertEqual([], errors)
+        publish_pr_status.assert_called_once_with(
+            "open-telemetry/example",
+            8,
+            dashboard_state(),
+        )
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([7], saved_state["pending_pr_numbers"])
+        self.assertEqual(0, saved_state["completed_revision"])
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")

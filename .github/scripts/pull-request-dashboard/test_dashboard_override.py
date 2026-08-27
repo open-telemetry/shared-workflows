@@ -29,7 +29,10 @@ def result_facts(
     values = {
         "dashboard_override_command_id": override.command_id,
         "dashboard_override_command_user": override.command_user,
+        "dashboard_override_bound_command_id": override.bound_command_id,
         "dashboard_override_head_sha": override.head_sha,
+        "dashboard_override_since": override.since,
+        "dashboard_override_cleared_by_feedback": override.cleared_by_feedback,
         "dashboard_command_replies": override.command_replies,
     }
     values.update(changes)
@@ -102,10 +105,36 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (4, "Approver"),
+            (4, "Approver", "2026-08-16T07:00:00Z"),
             dashboard_override.latest_authorized_command(
                 source, "author", {"approver"}
             ),
+        )
+
+    def test_latest_authorized_command_uses_content_update_time(self) -> None:
+        source = override_input(issue_comment(
+            database_id=4,
+            body="/dashboard route:reviewers",
+            created_at="2026-08-16T07:00:00Z",
+            content_updated_at="2026-08-16T09:00:00Z",
+        ))
+
+        self.assertEqual(
+            (4, "author", "2026-08-16T09:00:00Z"),
+            dashboard_override.latest_authorized_command(source, "author", set()),
+        )
+
+    def test_latest_authorized_command_cutoff_never_predates_creation(self) -> None:
+        source = override_input(issue_comment(
+            database_id=4,
+            body="/dashboard route:reviewers",
+            created_at="2026-08-16T09:00:00Z",
+            content_updated_at="2026-08-16T07:00:00Z",
+        ))
+
+        self.assertEqual(
+            (4, "author", "2026-08-16T09:00:00Z"),
+            dashboard_override.latest_authorized_command(source, "author", set()),
         )
 
     def test_latest_authorized_command_ignores_app_acknowledged_command(self) -> None:
@@ -122,7 +151,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (0, ""),
+            (0, "", ""),
             dashboard_override.latest_authorized_command(source, "author", set()),
         )
 
@@ -141,7 +170,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (0, ""),
+            (0, "", ""),
             dashboard_override.latest_authorized_command(
                 source, "author", {"new-approver"}
             ),
@@ -339,11 +368,14 @@ class DashboardOverrideTest(unittest.TestCase):
                 "author",
                 head_sha="abcdef123456",
                 route=DashboardRoute.APPROVER,
+                since="2026-08-16T08:00:00Z",
             )
         )
 
         self.assertIn(
-            "<!-- pull-request-dashboard-override-ack:7:abcdef123456 -->", body
+            "<!-- pull-request-dashboard-override-ack:"
+            "7:abcdef123456:2026-08-16T08:00:00Z -->",
+            body,
         )
 
     def test_pending_command_binds_to_the_head_this_pass_observed(self) -> None:
@@ -379,6 +411,37 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(5, retry.command_id)
         self.assertEqual("first-head", retry.head_sha)
 
+    def test_pending_command_keeps_its_first_observed_cutoff(self) -> None:
+        first_source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+                content_updated_at="2026-08-16T08:00:00Z",
+            )
+        )
+        first = dashboard_override.dashboard_override_facts(
+            first_source, "author", None, "bound-head"
+        )
+        edited_source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers with more context",
+                created_at="2026-08-16T08:00:00Z",
+                content_updated_at="2026-08-16T10:00:00Z",
+            )
+        )
+
+        retry = dashboard_override.dashboard_override_facts(
+            edited_source,
+            "author",
+            None,
+            "bound-head",
+            result_facts(first),
+        )
+
+        self.assertEqual("2026-08-16T08:00:00Z", retry.since)
+
     def test_new_pending_command_binds_to_the_newly_observed_head(self) -> None:
         previous_source = override_input(
             issue_comment(
@@ -409,6 +472,7 @@ class DashboardOverrideTest(unittest.TestCase):
             issue_comment(
                 database_id=5,
                 body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
             ),
             issue_comment(
                 database_id=9,
@@ -422,7 +486,188 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(0, facts.command_id)
+        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
         self.assertEqual("bound-head", facts.head_sha)
+
+    def test_acknowledged_command_keeps_its_recorded_cutoff(self) -> None:
+        for previous_facts, acknowledged_since in (
+            (
+                dashboard_facts(
+                    dashboard_override_bound_command_id=5,
+                    dashboard_override_head_sha="bound-head",
+                    dashboard_override_since="2026-08-16T09:00:00Z",
+                ),
+                "",
+            ),
+            (None, "2026-08-16T09:00:00Z"),
+        ):
+            with self.subTest(previous_facts=previous_facts):
+                source = override_input(
+                    issue_comment(
+                        database_id=5,
+                        body="/dashboard route:reviewers",
+                        created_at="2026-08-16T07:00:00Z",
+                        content_updated_at="2026-08-16T10:00:00Z",
+                    ),
+                    issue_comment(
+                        database_id=9,
+                        actor=actor("opentelemetry-pr-dashboard[bot]"),
+                        body=dashboard_override.override_ack_marker(
+                            5,
+                            "bound-head",
+                            acknowledged_since,
+                        ),
+                    ),
+                )
+
+                facts = dashboard_override.dashboard_override_facts(
+                    source,
+                    "author",
+                    None,
+                    "bound-head",
+                    previous_facts,
+                )
+
+                self.assertEqual("2026-08-16T09:00:00Z", facts.since)
+
+    def test_acknowledged_command_accepts_a_graphql_command_timestamp(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5, "bound-head"),
+            ),
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "current-head",
+        )
+
+        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+
+    def test_deleted_command_keeps_previous_handoff_cutoff(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5, "bound-head"),
+            )
+        )
+        previous_facts = dashboard_facts(
+            dashboard_override_bound_command_id=5,
+            dashboard_override_head_sha="bound-head",
+            dashboard_override_since="2026-08-16T08:00:00Z",
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "bound-head",
+            previous_facts,
+        )
+
+        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+
+    def test_acknowledgement_recovers_cutoff_after_command_deletion(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(
+                    5,
+                    "bound-head",
+                    "2026-08-16T08:00:00Z",
+                ),
+            )
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "bound-head",
+        )
+
+        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual("bound-head", facts.head_sha)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+
+    def test_deleted_command_uses_acknowledgement_timestamp_as_cutoff(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5, "bound-head"),
+                created_at="2026-08-16T08:00:00Z",
+            )
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "bound-head",
+        )
+
+        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual("bound-head", facts.head_sha)
+        self.assertEqual("2026-08-16T08:00:00Z", facts.since)
+
+    def test_status_marker_clears_only_its_bound_handoff(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+            ),
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5, "bound-head"),
+            ),
+            issue_comment(
+                database_id=10,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=(
+                    "<!-- pull-request-dashboard-status -->\n"
+                    "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                    "5:bound-head -->"
+                ),
+            ),
+        )
+
+        cleared = dashboard_override.dashboard_override_facts(
+            source, "author", None, "bound-head"
+        )
+        reapplied_source = override_input(
+            *source.issue_comments,
+            issue_comment(
+                database_id=11,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T09:00:00Z",
+            ),
+        )
+        reapplied = dashboard_override.dashboard_override_facts(
+            reapplied_source,
+            "author",
+            None,
+            "bound-head",
+            result_facts(cleared),
+        )
+
+        self.assertTrue(cleared.cleared_by_feedback)
+        self.assertEqual(11, reapplied.bound_command_id)
+        self.assertFalse(reapplied.cleared_by_feedback)
 
     def test_marker_without_a_head_still_retires_its_command(self) -> None:
         # Acknowledgements written before the dashboard recorded a head have to
@@ -471,6 +716,7 @@ class DashboardOverrideTest(unittest.TestCase):
             author="author",
             dashboard_override_command_id=12,
             dashboard_override_head_sha="bound-head",
+            dashboard_override_since="2026-08-16T08:00:00Z",
         )
 
         facts = dashboard_override.append_command_ack_reply(
@@ -487,10 +733,127 @@ class DashboardOverrideTest(unittest.TestCase):
                     "author",
                     head_sha="bound-head",
                     route=DashboardRoute.APPROVER,
+                    since="2026-08-16T08:00:00Z",
                 ),
             ),
             facts.dashboard_command_replies,
         )
+
+    def test_acknowledges_feedback_that_superseded_a_pending_command(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=12,
+                created_at="2026-08-16T08:00:00Z",
+            )
+        )
+        facts = dashboard_facts(
+            author="author",
+            dashboard_override_command_id=12,
+            dashboard_override_head_sha="bound-head",
+            dashboard_override_cleared_by_feedback=True,
+        )
+
+        facts = dashboard_override.append_command_ack_reply(
+            source, facts, DashboardRoute.AUTHOR
+        )
+        body = dashboard_override.render_command_reply(
+            facts.dashboard_command_replies[0]
+        )
+
+        self.assertIn(
+            dashboard_override.override_ack_marker(
+                12,
+                "bound-head",
+                "2026-08-16T08:00:00Z",
+            ),
+            body,
+        )
+        self.assertIn(
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:bound-head -->",
+            body,
+        )
+        self.assertIn(
+            "newer actionable reviewer feedback ended the reviewer handoff, so "
+            "this pull request is routed normally again",
+            body,
+        )
+
+    def test_acknowledges_feedback_that_superseded_an_acknowledged_command(
+        self,
+    ) -> None:
+        routed_reply = issue_comment(
+            database_id=9,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body=(
+                dashboard_override.command_reply_marker(12)
+                + "\n"
+                + dashboard_override.override_ack_marker(
+                    12,
+                    "bound-head",
+                    "2026-08-16T08:00:00Z",
+                )
+            ),
+        )
+        facts = dashboard_facts(
+            author="author",
+            dashboard_override_bound_command_id=12,
+            dashboard_override_head_sha="bound-head",
+            dashboard_override_since="2026-08-16T08:00:00Z",
+            dashboard_override_cleared_by_feedback=True,
+        )
+
+        facts = dashboard_override.append_command_ack_reply(
+            override_input(routed_reply),
+            facts,
+            DashboardRoute.AUTHOR,
+        )
+
+        self.assertEqual("cleared_by_feedback", facts.dashboard_command_replies[0].kind)
+        self.assertFalse(
+            dashboard_override.command_reply_exists(
+                [routed_reply],
+                facts.dashboard_command_replies[0],
+            )
+        )
+        cleared_reply = issue_comment(
+            database_id=10,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body=dashboard_override.render_command_reply(
+                facts.dashboard_command_replies[0]
+            ),
+        )
+        self.assertTrue(
+            dashboard_override.command_reply_exists(
+                [routed_reply, cleared_reply],
+                facts.dashboard_command_replies[0],
+            )
+        )
+
+    def test_cleared_reply_recovers_clearance_after_cache_loss(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.render_command_reply(
+                    DashboardCommandReply(
+                        5,
+                        "cleared_by_feedback",
+                        "author",
+                        head_sha="bound-head",
+                        since="2026-08-16T08:00:00Z",
+                    )
+                ),
+            )
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source, "author", None, "bound-head"
+        )
+
+        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual("bound-head", facts.head_sha)
+        self.assertTrue(facts.cleared_by_feedback)
 
     def test_no_ack_reply_without_a_pending_command(self) -> None:
         facts = dashboard_facts(author="author")
@@ -614,6 +977,35 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertIn(dashboard_override.command_reply_marker(2), posted[-1])
 
     @patch.object(dashboard_override_delivery, "run_gh")
+    @patch.object(dashboard_override_delivery, "gh_api", return_value=[])
+    @patch.object(
+        dashboard_override_delivery,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(stored_dashboard_result(
+            5,
+            facts=dashboard_facts(dashboard_command_replies=(
+                DashboardCommandReply(
+                    2,
+                    "unauthorized",
+                    "outsider",
+                    "route:reviewers",
+                ),
+            )),
+        )),
+    )
+    def test_targeted_delivery_skips_other_prs(
+        self, _load_state, gh_api, run_gh
+    ) -> None:
+        errors = dashboard_override_delivery.deliver_dashboard_command_replies(
+            "open-telemetry/example",
+            only_pr_number=7,
+        )
+
+        self.assertEqual([], errors)
+        gh_api.assert_not_called()
+        run_gh.assert_not_called()
+
+    @patch.object(dashboard_override_delivery, "run_gh")
     @patch.object(
         dashboard_override_delivery,
         "gh_api",
@@ -646,6 +1038,43 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual([], errors)
         run_gh.assert_not_called()
+
+    @patch.object(dashboard_override_delivery, "run_gh")
+    @patch.object(
+        dashboard_override_delivery,
+        "gh_api",
+        side_effect=RuntimeError("comments unavailable"),
+    )
+    @patch.object(
+        dashboard_override_delivery,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(stored_dashboard_result(
+            5,
+            facts=dashboard_facts(dashboard_command_replies=(
+                DashboardCommandReply(
+                    2,
+                    "unauthorized",
+                    "outsider",
+                    "route:reviewers",
+                ),
+            )),
+        )),
+    )
+    def test_delivery_reports_prs_with_failed_command_replies(
+        self,
+        _load_state,
+        _gh_api,
+        _run_gh,
+    ) -> None:
+        failed_pr_numbers: set[int] = set()
+
+        errors = dashboard_override_delivery.deliver_dashboard_command_replies(
+            "open-telemetry/example",
+            failed_pr_numbers,
+        )
+
+        self.assertEqual(["PR #5: comments unavailable"], errors)
+        self.assertEqual({5}, failed_pr_numbers)
 
     def test_command_stays_pending_until_app_acknowledges_it(self) -> None:
         source = override_input(
@@ -721,6 +1150,7 @@ class DashboardOverrideTest(unittest.TestCase):
                         "author",
                         head_sha="current-head",
                         route=DashboardRoute.APPROVER,
+                        since="2026-08-16T07:00:00Z",
                     ),
                 ),
                 facts.dashboard_command_replies,
@@ -762,7 +1192,7 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            (0, ""),
+            (0, "", ""),
             dashboard_override.latest_authorized_command(source, "author", set()),
         )
 
@@ -791,6 +1221,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     "author",
                     head_sha="current-head",
                     route=DashboardRoute.AUTHOR,
+                    since="2026-08-16T07:00:00Z",
                 ),
             ),
             facts.dashboard_command_replies,
@@ -821,6 +1252,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     "author",
                     head_sha="current-head",
                     route=DashboardRoute.APPROVER,
+                    since="2026-08-16T07:00:00Z",
                 ),
             ),
             facts.dashboard_command_replies,

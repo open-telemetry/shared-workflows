@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
@@ -22,10 +22,11 @@ from pull_request_activity import (
     role_for,
 )
 from pull_request_source import ReviewThread, ReviewThreadComment
-from utils import truncate
+from utils import parse_ts, truncate
 
 
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
+_HUMAN_REVIEWER_ROLES = frozenset({"approver", "outsider"})
 
 
 class LifecycleMode(Enum):
@@ -145,11 +146,17 @@ def _positive_reaction_logins(
     return logins
 
 
-def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
+def _group_review_threads(
+    source: DiscussionInput,
+    *,
+    include_inactive: bool = False,
+) -> list[dict[str, Any]]:
     discussions: list[dict[str, Any]] = []
     reviewers = set(source.reviewers)
     for discussion in source.review_threads:
-        if discussion.is_resolved or discussion.is_outdated:
+        if (
+            discussion.is_resolved or discussion.is_outdated
+        ) and not include_inactive:
             continue
         raw_comments = discussion.comments
         thread_url = raw_comments[0].url if raw_comments else ""
@@ -320,6 +327,81 @@ def prepare_discussions(source: DiscussionInput) -> PreparedDiscussions:
         tuple(top_level_items),
         tuple(top_level_author_comment_items),
     )
+
+
+def _filter_handoff_feedback(
+    discussion: dict[str, Any],
+    pr_author: str,
+    after_cutoff: Callable[[str], bool],
+) -> dict[str, Any] | None:
+    comments = [
+        comment
+        for comment in (discussion.get("comments") or [])
+        if (
+            comment.get("actor_role") in _HUMAN_REVIEWER_ROLES
+            and comment.get("actor") != pr_author
+            and after_cutoff(comment.get("timestamp") or "")
+        )
+    ]
+    if not comments:
+        return None
+    filtered = {**discussion, "comments": comments}
+    filtered["requester"] = comments[-1].get("actor") or ""
+    filtered["pr_author"] = pr_author
+    return _add_discussion_facts(
+        filtered,
+        comments,
+        (discussion.get("discussion_facts") or {}).get("current_conflicts")
+        or "unknown",
+    )
+
+
+def reviewer_handoff_feedback(
+    prepared: PreparedDiscussions,
+    override_since: str,
+    pr_author: str,
+) -> PreparedDiscussions:
+    """Select human reviewer feedback created after a reviewer handoff command."""
+    cutoff = parse_ts(override_since)
+    if cutoff is None:
+        return PreparedDiscussions((), (), ())
+
+    def after_cutoff(timestamp: str) -> bool:
+        parsed = parse_ts(timestamp)
+        return parsed is not None and parsed > cutoff
+
+    review_threads = [
+        filtered
+        for thread in prepared.review_threads
+        if (
+            filtered := _filter_handoff_feedback(thread, pr_author, after_cutoff)
+        )
+        is not None
+    ]
+    top_level_items = [
+        filtered
+        for item in prepared.top_level_items
+        if (filtered := _filter_handoff_feedback(item, pr_author, after_cutoff))
+        is not None
+    ]
+    return PreparedDiscussions(
+        tuple(review_threads),
+        tuple(top_level_items),
+        (),
+    )
+
+
+def prepare_reviewer_handoff_feedback(
+    source: DiscussionInput,
+    override_since: str,
+    pr_author: str,
+) -> PreparedDiscussions:
+    prepared = PreparedDiscussions(
+        tuple(_group_review_threads(source, include_inactive=True)),
+        tuple(_derive_top_level_items(source)),
+        (),
+    )
+    return reviewer_handoff_feedback(prepared, override_since, pr_author)
 
 
 def _discussions_by_id(

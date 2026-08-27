@@ -38,24 +38,31 @@ from dashboard_contracts import (
     StoredDashboardResult,
 )
 from dashboard_test_support import (
+    actor,
     check_source,
     dashboard_facts,
     dashboard_state,
     evaluation_success,
+    issue_comment,
     pull_request_metadata,
     pull_request_source,
     review_request,
     review_source,
+    review_thread,
+    review_thread_comment,
     stored_dashboard_result,
 )
 from classification_policy import (
     ActionDecision,
+    AuthorCommentDecision,
     ClassificationDiagnostics,
     ClassificationFailure,
+    ClassificationSuccess,
     DiscussionAction,
     DiscussionClassifications,
     DiscussionIdentity,
     DiscussionKind,
+    FeedbackOutcome,
 )
 from classification_test_support import FakeClassificationOperation
 from pull_request_source import (
@@ -81,6 +88,18 @@ FAILED_CLASSIFICATION = ClassificationFailure(
     ActionDecision(DiscussionAction.AUTHOR, "model failed"),
     ClassificationDiagnostics(error="model failed"),
 )
+
+
+def action_classification(
+    discussion_id: str,
+    kind: DiscussionKind,
+    action: DiscussionAction,
+    reason: str,
+) -> ClassificationSuccess:
+    return ClassificationSuccess(
+        DiscussionIdentity(discussion_id, kind),
+        ActionDecision(action, reason),
+    )
 
 
 def evaluation_facts(
@@ -486,11 +505,334 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     "author",
                     head_sha="abcdef123456",
                     route=DashboardRoute.APPROVER,
+                    since="2026-08-16T08:00:00Z",
                 ),
             ),
             result.facts.dashboard_command_replies,
         )
         self.assertEqual(classifier.requests, [])
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_actionable_review_after_override_ends_handoff(
+        self, fetch_raw: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            issue_comments=(issue_comment(
+                database_id=102,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+            ),),
+            reviews=(review_source(
+                database_id=501,
+                url="https://example.test/pull/7#pullrequestreview-501",
+                state="COMMENTED",
+                submitted_at="2026-08-16T09:00:00Z",
+                body="Please update this.",
+            ),),
+        )
+
+        classification = action_classification(
+            "pr-review-501",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            DiscussionAction.AUTHOR,
+            "The reviewer requested a change.",
+        )
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications((), (classification,), ()),
+            reviewer_feedback_result=(classification,),
+        )
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertEqual(
+            {
+                "pr-review-501": {
+                    "action": "author",
+                    "since": "2026-08-16T09:00:00Z",
+                }
+            },
+            result.pending_actions,
+        )
+        self.assertEqual(
+            "cleared_by_feedback",
+            result.facts.dashboard_command_replies[0].kind,
+        )
+        self.assertEqual(len(classifier.requests), 1)
+        self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_non_actionable_review_keeps_handoff(
+        self, fetch_raw: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            issue_comments=(issue_comment(
+                database_id=102,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+            ),),
+            reviews=(review_source(
+                database_id=501,
+                state="COMMENTED",
+                submitted_at="2026-08-16T09:00:00Z",
+                body="Nice work.",
+            ),),
+        )
+
+        classification = action_classification(
+            "pr-review-501",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            DiscussionAction.NONE,
+            "The reviewer left praise.",
+        )
+        classifier = FakeClassificationOperation(
+            reviewer_feedback_result=(classification,)
+        )
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertEqual({}, result.pending_actions)
+        self.assertEqual(classifier.requests, [])
+        self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_feedback_classification_failure_does_not_block_handoff(
+        self, fetch_raw: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            issue_comments=(issue_comment(
+                database_id=102,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+            ),),
+            reviews=(review_source(
+                database_id=501,
+                state="COMMENTED",
+                submitted_at="2026-08-16T09:00:00Z",
+                body="Please update this.",
+            ),),
+        )
+
+        failed = ClassificationFailure(
+            DiscussionIdentity(
+                "pr-review-501",
+                DiscussionKind.TOP_LEVEL_FEEDBACK,
+            ),
+            ActionDecision(
+                DiscussionAction.AUTHOR,
+                "The reviewer requested a change.",
+            ),
+            ClassificationDiagnostics(error="model failed"),
+        )
+        classifier = FakeClassificationOperation(
+            reviewer_feedback_result=(failed,)
+        )
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertEqual(classifier.requests, [])
+        self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_informational_inline_feedback_keeps_handoff(
+        self, fetch_raw: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            issue_comments=(issue_comment(
+                database_id=102,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+            ),),
+            review_threads=(review_thread(
+                node_id="thread-1",
+                path="src/example.py",
+                line=7,
+                comments=(
+                    review_thread_comment(
+                        node_id="old",
+                        url="https://example.test/thread/old",
+                        body="Please change this.",
+                        created_at="2026-08-16T07:30:00Z",
+                    ),
+                    review_thread_comment(
+                        node_id="new",
+                        url="https://example.test/thread/new",
+                        body="For context, this API is deprecated.",
+                        created_at="2026-08-16T09:00:00Z",
+                    ),
+                ),
+            ),),
+        )
+
+        classification = action_classification(
+            "thread-1",
+            DiscussionKind.REVIEW_THREAD,
+            DiscussionAction.NONE,
+            "The comment is informational.",
+        )
+        classifier = FakeClassificationOperation(
+            reviewer_feedback_result=(classification,)
+        )
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertEqual(classifier.requests, [])
+        request = classifier.reviewer_feedback_requests[0]
+        thread = request.discussions[0]
+        self.assertEqual(
+            ["For context, this API is deprecated."],
+            [comment.body for comment in thread.comments],
+        )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_inactive_inline_feedback_ends_handoff(
+        self, fetch_raw: Mock
+    ) -> None:
+        classification = action_classification(
+            "thread-1",
+            DiscussionKind.REVIEW_THREAD,
+            DiscussionAction.AUTHOR,
+            "The reviewer requested a change.",
+        )
+        classifier = FakeClassificationOperation(
+            reviewer_feedback_result=(classification,)
+        )
+        for state in ({"is_resolved": True}, {"is_outdated": True}):
+            with self.subTest(state=state):
+                fetch_raw.return_value = pull_request_source(
+                    pull_request=pull_request_metadata(title="Routing integration"),
+                    issue_comments=(issue_comment(
+                        database_id=102,
+                        body="/dashboard route:reviewers",
+                        created_at="2026-08-16T08:00:00Z",
+                    ),),
+                    review_threads=(review_thread(
+                        node_id="thread-1",
+                        **state,
+                        comments=(review_thread_comment(
+                            body="Please update this.",
+                            created_at="2026-08-16T09:00:00Z",
+                        ),),
+                    ),),
+                )
+
+                result = evaluate_pr(
+                    {"number": 7},
+                    classification_service=classifier,
+                )
+
+                self.assertIsNotNone(result)
+                assert result is not None
+                self.assertTrue(
+                    result.facts.dashboard_override_cleared_by_feedback
+                )
+                request = classifier.reviewer_feedback_requests[-1]
+                self.assertEqual(
+                    ["Please update this."],
+                    [comment.body for comment in request.discussions[0].comments],
+                )
+                self.assertEqual((), classifier.requests[-1].review_threads)
+
+        self.assertEqual(2, len(classifier.reviewer_feedback_requests))
+        self.assertEqual(2, len(classifier.requests))
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_author_reply_does_not_reactivate_cleared_handoff(
+        self, fetch_raw: Mock
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            issue_comments=(
+                issue_comment(
+                    database_id=102,
+                    body="/dashboard route:reviewers",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+                issue_comment(
+                    database_id=501,
+                    actor=actor("reviewer"),
+                    body="Please update this.",
+                    created_at="2026-08-16T09:00:00Z",
+                ),
+                issue_comment(
+                    database_id=502,
+                    body="Done in the latest commit.",
+                    created_at="2026-08-16T10:00:00Z",
+                ),
+            ),
+        )
+
+        feedback = action_classification(
+            "pr-issue-comment-501",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            DiscussionAction.AUTHOR,
+            "The reviewer requested a change.",
+        )
+        author_reply = ClassificationSuccess(
+            DiscussionIdentity(
+                "pr-author-reply-502",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            ),
+            AuthorCommentDecision((
+                FeedbackOutcome(
+                    "pr-issue-comment-501",
+                    DiscussionAction.NONE,
+                    "The author completed the work.",
+                ),
+            )),
+        )
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications((), (feedback,), (author_reply,)),
+            reviewer_feedback_result=(feedback,),
+        )
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertEqual({}, result.pending_actions)
+        self.assertEqual(len(classifier.requests), 1)
+        self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_conflict_uses_normal_discussion_and_approval_routing(

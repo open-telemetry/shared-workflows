@@ -6,14 +6,18 @@ import sys
 import traceback
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from classification_execution import (
     DEFAULT_CLASSIFICATION_SERVICE,
     ClassificationExecutionRequest,
     ClassificationOperation,
+    ReviewerFeedbackClassificationRequest,
 )
 from classification_policy import (
+    ActionDecision,
     ClassificationDiscussion,
+    ClassificationResult,
     DiscussionAction,
     normalize_discussion_action,
 )
@@ -37,7 +41,9 @@ from discussion_lifecycle import (
     DiscussionInput,
     DiscussionLifecycleOutcome,
     LifecycleMode,
+    PreparedDiscussions,
     prepare_discussions,
+    prepare_reviewer_handoff_feedback,
     resolve_discussions,
 )
 from github_cli import TransientGhError
@@ -207,7 +213,10 @@ def _compute_facts(
         copilot_request_fingerprint=snapshot.copilot_request_fingerprint,
         dashboard_override_command_id=override.command_id,
         dashboard_override_command_user=override.command_user,
+        dashboard_override_bound_command_id=override.bound_command_id,
         dashboard_override_head_sha=override.head_sha,
+        dashboard_override_since=override.since,
+        dashboard_override_cleared_by_feedback=override.cleared_by_feedback,
         dashboard_command_replies=override.command_replies,
         copilot_review_requested=any(
             is_copilot_reviewer(request)
@@ -322,6 +331,52 @@ def _evaluation_diagnostics(
     )
 
 
+def _classify_discussions(
+    number: int,
+    prepared: PreparedDiscussions,
+    classifier_model: str,
+    previous_top_level_history: dict[str, dict[str, Any]],
+    classification_service: ClassificationOperation,
+) -> DiscussionLifecycleOutcome:
+    classifications = classification_service.classify(
+        ClassificationExecutionRequest(
+            pr_number=number,
+            model=classifier_model,
+            review_threads=tuple(
+                ClassificationDiscussion.from_record(discussion)
+                for discussion in prepared.review_threads
+            ),
+            top_level_items=tuple(
+                ClassificationDiscussion.from_record(discussion)
+                for discussion in prepared.top_level_items
+            ),
+            top_level_author_comments=tuple(
+                ClassificationDiscussion.from_record(discussion)
+                for discussion in prepared.top_level_author_comment_items
+            ),
+        )
+    )
+    return resolve_discussions(
+        prepared,
+        classifications,
+        previous_top_level_history,
+    )
+
+
+def _handoff_feedback_routes_to_author(
+    feedback_classifications: tuple[ClassificationResult, ...],
+) -> bool:
+    if not feedback_classifications:
+        return False
+    if any(classification.failed for classification in feedback_classifications):
+        return False
+    return any(
+        isinstance(classification.decision, ActionDecision)
+        and classification.decision.action is DiscussionAction.AUTHOR
+        for classification in feedback_classifications
+    )
+
+
 def evaluate_pull_request(
     config: PullRequestEvaluationConfig,
     source: PullRequestEvaluationInput,
@@ -373,47 +428,73 @@ def evaluate_pull_request(
             previous_facts,
         )
         manual_reviewer_handoff = reviewer_handoff_active(facts)
-        prepared_discussions = prepare_discussions(
-            DiscussionInput(
-                pr_source.review_threads,
-                activity.events,
-                author,
-                config.approver_logins,
-                facts.conflicts,
-            )
+        discussion_input = DiscussionInput(
+            pr_source.review_threads,
+            activity.events,
+            author,
+            config.approver_logins,
+            facts.conflicts,
         )
+        prepared_discussions = prepare_discussions(discussion_input)
         if manual_reviewer_handoff:
-            lifecycle = resolve_discussions(
-                prepared_discussions,
-                None,
-                previous_top_level_history,
-                mode=LifecycleMode.REVIEWER_HANDOFF,
+            # Old discussions cannot block a break-glass handoff. Only newer
+            # human feedback is classified to decide whether the reviewer has
+            # handed the pull request back to its author.
+            handoff_feedback = prepare_reviewer_handoff_feedback(
+                discussion_input,
+                facts.dashboard_override_since,
+                author,
             )
-        else:
-            classifications = classification_service.classify(
-                ClassificationExecutionRequest(
-                    pr_number=number,
-                    model=config.classifier_model,
-                    review_threads=tuple(
-                        ClassificationDiscussion.from_record(discussion)
-                        for discussion in prepared_discussions.review_threads
-                    ),
-                    top_level_items=tuple(
-                        ClassificationDiscussion.from_record(discussion)
-                        for discussion in prepared_discussions.top_level_items
-                    ),
-                    top_level_author_comments=tuple(
-                        ClassificationDiscussion.from_record(discussion)
-                        for discussion in (
-                            prepared_discussions.top_level_author_comment_items
-                        )
-                    ),
+            has_handoff_feedback = bool(
+                handoff_feedback.review_threads
+                or handoff_feedback.top_level_items
+            )
+            feedback_classifications = (
+                classification_service.classify_reviewer_feedback(
+                    ReviewerFeedbackClassificationRequest(
+                        pr_number=number,
+                        model=config.classifier_model,
+                        discussions=tuple(
+                            ClassificationDiscussion.from_record(discussion)
+                            for discussion in (
+                                *handoff_feedback.review_threads,
+                                *handoff_feedback.top_level_items,
+                            )
+                        ),
+                    )
                 )
+                if has_handoff_feedback
+                else ()
             )
-            lifecycle = resolve_discussions(
+            feedback_routes_to_author = _handoff_feedback_routes_to_author(
+                feedback_classifications
+            )
+            if feedback_routes_to_author:
+                facts = facts.with_changes(
+                    dashboard_override_cleared_by_feedback=True
+                )
+                manual_reviewer_handoff = False
+                lifecycle = _classify_discussions(
+                    number,
+                    prepared_discussions,
+                    config.classifier_model,
+                    previous_top_level_history,
+                    classification_service,
+                )
+            else:
+                lifecycle = resolve_discussions(
+                    prepared_discussions,
+                    None,
+                    previous_top_level_history,
+                    mode=LifecycleMode.REVIEWER_HANDOFF,
+                )
+        else:
+            lifecycle = _classify_discussions(
+                number,
                 prepared_discussions,
-                classifications,
+                config.classifier_model,
                 previous_top_level_history,
+                classification_service,
             )
         diagnostics = _evaluation_diagnostics(lifecycle)
         if lifecycle.failed_classifications:

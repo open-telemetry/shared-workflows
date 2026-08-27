@@ -11,9 +11,11 @@ from classification_execution import (
     ClassificationCache,
     ClassificationExecutionRequest,
     ModelRunRequest,
+    ReviewerFeedbackClassificationRequest,
 )
 from classification_policy import (
     ClassificationDiscussion,
+    ClassificationResult,
     DiscussionClassifications,
     RawModelResponse,
 )
@@ -87,11 +89,16 @@ class FakeClassificationOperation:
         self,
         result: DiscussionClassifications | None = None,
         *,
+        reviewer_feedback_result: tuple[ClassificationResult, ...] = (),
         error: Exception | None = None,
     ) -> None:
         self.result = result or DiscussionClassifications.empty()
+        self.reviewer_feedback_result = tuple(reviewer_feedback_result)
         self.error = error
         self.requests: list[ClassificationExecutionRequest] = []
+        self.reviewer_feedback_requests: list[
+            ReviewerFeedbackClassificationRequest
+        ] = []
 
     def classify(
         self,
@@ -101,6 +108,15 @@ class FakeClassificationOperation:
         if self.error is not None:
             raise self.error
         return self.result
+
+    def classify_reviewer_feedback(
+        self,
+        request: ReviewerFeedbackClassificationRequest,
+    ) -> tuple[ClassificationResult, ...]:
+        self.reviewer_feedback_requests.append(request)
+        if self.error is not None:
+            raise self.error
+        return self.reviewer_feedback_result
 
 
 def prompt_items(request: ModelRunRequest) -> list[dict]:

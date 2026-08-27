@@ -155,7 +155,7 @@ reviewer routes keeps the existing wait.
 An acknowledged dashboard override binds a reviewer handoff to one head SHA.
 While that head remains current, the handoff routes directly to approvers and
 bypasses discussions, approvals, conflicts, required checks, and the Copilot
-gate. A push ends the handoff.
+gate. A push or newer actionable human reviewer feedback ends the handoff.
 
 ## Routing snapshot
 

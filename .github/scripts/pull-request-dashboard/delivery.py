@@ -71,21 +71,39 @@ def deliver_from_state(
     except Exception as e:
         errors.append(f"open pull requests: {e}")
         open_prs = None
+    failed_command_reply_prs: set[int] = set()
+    reply_error_count = len(errors)
     run_delivery_action(
         "dashboard command replies",
-        lambda: deliver_dashboard_command_replies(repo),
-        errors,
-    )
-    run_delivery_action(
-        "author nudges",
-        lambda: deliver_prepared_author_nudges(
+        lambda: deliver_dashboard_command_replies(
             repo,
-            now,
-            author_retry_snapshot_path,
+            failed_command_reply_prs,
+            pr_number,
         ),
         errors,
     )
-    if pr_number is not None:
+    if len(errors) > reply_error_count and not failed_command_reply_prs:
+        if pr_number is not None:
+            failed_command_reply_prs.add(pr_number)
+        elif open_prs is not None:
+            failed_command_reply_prs.update(pr["number"] for pr in open_prs)
+    reply_failure_scope_unknown = (
+        len(errors) > reply_error_count
+        and not failed_command_reply_prs
+        and open_prs is None
+    )
+    if not reply_failure_scope_unknown:
+        run_delivery_action(
+            "author nudges",
+            lambda: deliver_prepared_author_nudges(
+                repo,
+                now,
+                author_retry_snapshot_path,
+                failed_command_reply_prs,
+            ),
+            errors,
+        )
+    if pr_number is not None and pr_number not in failed_command_reply_prs:
         run_delivery_action(
             "status comments",
             lambda: update_targeted_status_comment_from_state(repo, pr_number),
@@ -97,6 +115,7 @@ def deliver_from_state(
             lambda: update_status_comments_from_state(
                 repo,
                 {pr["number"] for pr in open_prs},
+                failed_command_reply_prs,
             ),
             errors,
         )

@@ -187,7 +187,10 @@ class StateTest(unittest.TestCase):
             copilot_request_fingerprint="copilot-fingerprint",
             dashboard_override_command_id=91,
             dashboard_override_command_user="alice",
+            dashboard_override_bound_command_id=91,
             dashboard_override_head_sha="current-head",
+            dashboard_override_since="2026-08-16T08:00:00Z",
+            dashboard_override_cleared_by_feedback=True,
             dashboard_command_replies=(
                 DashboardCommandReply(
                     91,
@@ -196,6 +199,14 @@ class StateTest(unittest.TestCase):
                     head_sha="current-head",
                     route=DashboardRoute.APPROVER,
                     held_gates="the required checks",
+                    since="2026-08-16T08:00:00Z",
+                ),
+                DashboardCommandReply(
+                    91,
+                    "cleared_by_feedback",
+                    "alice",
+                    head_sha="current-head",
+                    since="2026-08-16T08:00:00Z",
                 ),
                 DashboardCommandReply(
                     92,
@@ -407,7 +418,7 @@ class StateTest(unittest.TestCase):
 
     def test_current_persisted_dashboard_shape_is_byte_for_byte_compatible(self) -> None:
         persisted = {
-            "version": 10,
+            "version": 11,
             "initial_backfill_complete": True,
             "prs": {
                 "123": {
@@ -423,15 +434,28 @@ class StateTest(unittest.TestCase):
                         "copilot_request_fingerprint": "copilot-fingerprint",
                         "dashboard_override_command_id": 91,
                         "dashboard_override_command_user": "alice",
+                        "dashboard_override_bound_command_id": 91,
                         "dashboard_override_head_sha": "current-head",
-                        "dashboard_command_replies": [{
-                            "comment_id": 91,
-                            "kind": "routed",
-                            "head_sha": "current-head",
-                            "user": "alice",
-                            "route": "approver",
-                            "held_gates": "",
-                        }],
+                        "dashboard_override_since": "2026-08-16T08:00:00Z",
+                        "dashboard_override_cleared_by_feedback": True,
+                        "dashboard_command_replies": [
+                            {
+                                "comment_id": 91,
+                                "kind": "routed",
+                                "head_sha": "current-head",
+                                "user": "alice",
+                                "since": "2026-08-16T08:00:00Z",
+                                "route": "approver",
+                                "held_gates": "",
+                            },
+                            {
+                                "comment_id": 91,
+                                "kind": "cleared_by_feedback",
+                                "head_sha": "current-head",
+                                "user": "alice",
+                                "since": "2026-08-16T08:00:00Z",
+                            },
+                        ],
                         "copilot_review_requested": True,
                         "copilot_review_exists": True,
                         "copilot_review_stale": False,
@@ -496,7 +520,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 10)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 11)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 1)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)

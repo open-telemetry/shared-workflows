@@ -20,6 +20,7 @@ from discussion_lifecycle import (
     LifecycleMode,
     PreparedDiscussions,
     prepare_discussions,
+    reviewer_handoff_feedback,
     resolve_discussions,
 )
 from pull_request_source import normalize_review_threads
@@ -958,6 +959,131 @@ class LifecycleProjectionTest(unittest.TestCase):
                 "top_level_history": history,
             },
         )
+
+    def test_handoff_feedback_keeps_only_post_command_human_feedback(self) -> None:
+        old_thread = review_thread("old-thread", "2026-07-14T01:00:00Z")
+        reopened_thread = review_thread(
+            "reopened-thread", "2026-07-14T01:00:00Z"
+        )
+        reopened_thread["comments"].extend([
+            {
+                "timestamp": "2026-07-14T03:00:00Z",
+                "actor": "author",
+                "actor_role": "author",
+                "body": "I handled this.",
+            },
+            {
+                "timestamp": "2026-07-14T05:00:00Z",
+                "actor": "reviewer",
+                "actor_role": "approver",
+                "body": "Thanks.",
+            },
+        ])
+        bot_thread = review_thread("bot-thread", "2026-07-14T01:00:00Z")
+        bot_thread["comments"].append({
+            "timestamp": "2026-07-14T05:00:00Z",
+            "actor": "reviewer[bot]",
+            "actor_role": "bot",
+            "body": "Automated feedback.",
+        })
+        author_item = top_level_item(
+            "author-comment",
+            "2026-07-14T05:00:00Z",
+        )
+        author_item["comments"][0].update({
+            "actor": "author",
+            "actor_role": "author",
+        })
+        bot_item = top_level_item(
+            "bot-comment",
+            "2026-07-14T05:00:00Z",
+        )
+        bot_item["comments"][0].update({
+            "actor": "reviewer[bot]",
+            "actor_role": "bot",
+        })
+        follow_up_item = top_level_item(
+            "follow-up-feedback",
+            "2026-07-14T01:00:00Z",
+        )
+        follow_up_item["comments"].append({
+            "timestamp": "2026-07-14T05:00:00Z",
+            "actor": "reviewer",
+            "actor_role": "approver",
+            "body": "Please also update the tests.",
+        })
+        prepared = PreparedDiscussions(
+            (old_thread, reopened_thread, bot_thread),
+            (
+                top_level_item("old-feedback", "2026-07-14T01:00:00Z"),
+                author_item,
+                bot_item,
+                follow_up_item,
+                top_level_item("new-feedback", "2026-07-14T05:00:00Z"),
+            ),
+            (
+                author_reply(
+                    102,
+                    "2026-07-14T06:00:00Z",
+                    "old-feedback",
+                    "new-feedback",
+                ),
+            ),
+        )
+
+        filtered = reviewer_handoff_feedback(
+            prepared,
+            "2026-07-14T04:00:00Z",
+            "author",
+        )
+
+        self.assertEqual(
+            ["reopened-thread"],
+            [thread["discussion_id"] for thread in filtered.review_threads],
+        )
+        self.assertEqual(
+            ["Thanks."],
+            [
+                comment["body"]
+                for comment in filtered.review_threads[0]["comments"]
+            ],
+        )
+        self.assertEqual(
+            {
+                "latest_comment_role": "approver",
+                "current_conflicts": "unknown",
+            },
+            filtered.review_threads[0]["discussion_facts"],
+        )
+        self.assertEqual("reviewer", filtered.review_threads[0]["requester"])
+        self.assertEqual("author", filtered.review_threads[0]["pr_author"])
+        self.assertEqual(
+            ["follow-up-feedback", "new-feedback"],
+            [item["discussion_id"] for item in filtered.top_level_items],
+        )
+        self.assertEqual(
+            ["Please also update the tests."],
+            [
+                comment["body"]
+                for comment in filtered.top_level_items[0]["comments"]
+            ],
+        )
+        self.assertEqual((), filtered.top_level_author_comment_items)
+
+    def test_handoff_feedback_keeps_same_second_feedback_out_of_scope(self) -> None:
+        prepared = PreparedDiscussions(
+            (),
+            (top_level_item("same-second", "2026-07-14T04:00:00+00:00"),),
+            (),
+        )
+
+        filtered = reviewer_handoff_feedback(
+            prepared,
+            "2026-07-14T04:00:00Z",
+            "author",
+        )
+
+        self.assertEqual(PreparedDiscussions((), (), ()), filtered)
 
 
 if __name__ == "__main__":

@@ -36,11 +36,17 @@ class DashboardCommandReply:
     head_sha: str = ""
     route: DashboardRoute | None = None
     held_gates: str = ""
+    since: str = ""
 
     def __post_init__(self) -> None:
         if self.comment_id <= 0:
             raise ValueError("dashboard command reply comment_id must be positive")
-        if self.kind not in ("routed", "unauthorized", "unknown_command"):
+        if self.kind not in (
+            "routed",
+            "cleared_by_feedback",
+            "unauthorized",
+            "unknown_command",
+        ):
             raise ValueError(f"unknown dashboard command reply kind: {self.kind!r}")
         if self.kind == "routed" and self.route is None:
             raise ValueError("routed dashboard command replies require a route")
@@ -76,7 +82,10 @@ class DashboardFacts:
     copilot_request_fingerprint: str = ""
     dashboard_override_command_id: int = 0
     dashboard_override_command_user: str = ""
+    dashboard_override_bound_command_id: int = 0
     dashboard_override_head_sha: str = ""
+    dashboard_override_since: str = ""
+    dashboard_override_cleared_by_feedback: bool = False
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False
     copilot_review_exists: bool = False

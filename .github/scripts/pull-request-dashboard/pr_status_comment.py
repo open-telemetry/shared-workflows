@@ -26,7 +26,9 @@ from dashboard_status import (
     STATUS_MARKER,
     author_nudge_episode_marker,
     is_dashboard_app_comment,
+    reviewer_handoff_cleared_marker,
     status_author_nudge_episode_id,
+    status_reviewer_handoff_clearance,
 )
 from route_presentation import (
     abandoned_gate_note,
@@ -317,13 +319,25 @@ def render_status_comment(
         "",
         f"**{headline}** \u00b7 refreshed {last_updated}",
     ]
+    optional_markers: list[str] = []
     episode_id = facts.author_nudge_episode_id or ""
     if (
         result is not None
         and result.route is DashboardRoute.AUTHOR
         and episode_id
     ):
-        lines.insert(2, author_nudge_episode_marker(episode_id))
+        optional_markers.append(author_nudge_episode_marker(episode_id))
+    bound_command_id = facts.dashboard_override_bound_command_id
+    bound_head = facts.dashboard_override_head_sha
+    if (
+        facts.dashboard_override_cleared_by_feedback
+        and bound_command_id
+        and bound_head
+    ):
+        optional_markers.append(
+            reviewer_handoff_cleared_marker(bound_command_id, bound_head),
+        )
+    lines[2:2] = optional_markers
 
     if body:
         lines.append("")
@@ -403,10 +417,18 @@ def upsert_status_comment(
     *,
     create: bool = True,
     locked: bool = False,
+    preserve_clearance: bool = False,
 ) -> None:
     comments = managed_status_comments(repo, pr_number)
     if comments:
         comment = comments[0]
+        if preserve_clearance:
+            command_id, head_sha = status_reviewer_handoff_clearance(comments)
+            marker = reviewer_handoff_cleared_marker(command_id, head_sha)
+            if command_id and head_sha and marker not in body:
+                lines = body.splitlines()
+                lines.insert(2, marker)
+                body = "\n".join(lines)
         if locked and (comment.get("body") != body or len(comments) > 1):
             raise StatusCommentDeferred(
                 f"PR #{pr_number} is locked; deferring terminal status comment"
@@ -452,6 +474,7 @@ def publish_pr_status(
 ) -> None:
     pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
     result = dashboard_state.result_for(pr_number)
+    terminal = is_terminal_pr(pr)
     # A terminal status only exists to move an already published comment to its
     # final state. Creating one instead would announce a merge or close on a
     # pull request the dashboard never commented on.
@@ -459,8 +482,9 @@ def publish_pr_status(
         repo,
         pr_number,
         render_status_comment(pr, result),
-        create=not is_terminal_pr(pr),
-        locked=is_terminal_pr(pr) and bool(pr.get("locked")),
+        create=not terminal,
+        locked=terminal and bool(pr.get("locked")),
+        preserve_clearance=True,
     )
 
 
@@ -517,6 +541,7 @@ def prepare_rollout_state(
 def update_status_comments_from_state(
     repo: str,
     open_pr_numbers: set[int],
+    excluded_pr_numbers: set[int] | None = None,
 ) -> list[str]:
     dashboard_state = load_dashboard_state_cache()
     if dashboard_state is None:
@@ -534,7 +559,12 @@ def update_status_comments_from_state(
         for number in rollout_state["pending_pr_numbers"]
         if number not in queued_pr_number_set
     ]
-    rollout_pr_numbers = pending_pr_numbers[:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
+    excluded_pr_numbers = excluded_pr_numbers or set()
+    rollout_pr_numbers = [
+        number
+        for number in pending_pr_numbers
+        if number not in excluded_pr_numbers
+    ][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
     deferred_pr_numbers: set[int] = set()
     errors: list[str] = []

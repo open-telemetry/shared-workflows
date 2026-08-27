@@ -10,6 +10,15 @@ from dashboard_contracts import (
     EvaluationFailure,
     EvaluationSuccess,
 )
+from classification_policy import (
+    ActionDecision,
+    ClassificationDiagnostics,
+    ClassificationFailure,
+    ClassificationSuccess,
+    DiscussionAction,
+    DiscussionIdentity,
+    DiscussionKind,
+)
 from classification_test_support import FakeClassificationOperation
 from dashboard_test_support import (
     actor,
@@ -25,6 +34,7 @@ from pull_request_source import normalize_pull_request_source
 from pull_request_evaluation import (
     PullRequestEvaluationConfig,
     PullRequestEvaluationInput,
+    _handoff_feedback_routes_to_author,
     evaluate_pull_request,
 )
 
@@ -58,6 +68,32 @@ def raw_pr(
 
 
 class PullRequestEvaluationContractTest(unittest.TestCase):
+    def test_handoff_feedback_routes_to_author_only_after_successful_feedback(
+        self,
+    ) -> None:
+        identity = DiscussionIdentity(
+            "feedback",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+        )
+        author = ClassificationSuccess(
+            identity,
+            ActionDecision(DiscussionAction.AUTHOR, "author action"),
+        )
+        reviewer = ClassificationSuccess(
+            identity,
+            ActionDecision(DiscussionAction.REVIEWER, "reviewer action"),
+        )
+        failed = ClassificationFailure(
+            identity,
+            ActionDecision(DiscussionAction.AUTHOR, "author action"),
+            ClassificationDiagnostics(error="model failed"),
+        )
+
+        self.assertFalse(_handoff_feedback_routes_to_author(()))
+        self.assertFalse(_handoff_feedback_routes_to_author((reviewer,)))
+        self.assertFalse(_handoff_feedback_routes_to_author((author, failed)))
+        self.assertTrue(_handoff_feedback_routes_to_author((reviewer, author)))
+
     def test_inputs_are_frozen(self) -> None:
         config = evaluation_config()
         source = PullRequestEvaluationInput(7)

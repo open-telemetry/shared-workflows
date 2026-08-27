@@ -462,6 +462,45 @@ class AuthorNudgeProcessingTest(unittest.TestCase):
             },
         })
 
+    @patch.object(author_nudge, "ensure_nudge")
+    @patch.object(author_nudge, "save_author_nudges")
+    @patch.object(
+        author_nudge,
+        "load_author_nudges",
+        return_value={
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "pending_at": "2026-07-17T00:00:00+00:00",
+            }
+        },
+    )
+    @patch.object(
+        author_nudge,
+        "load_dashboard_state_cache",
+        return_value=build_dashboard_state(author_result()),
+    )
+    def test_delivery_retains_excluded_nudge(
+        self,
+        _load_dashboard_state,
+        _load_nudges,
+        save_nudges,
+        ensure_nudge,
+    ) -> None:
+        errors = author_nudge.deliver_prepared_author_nudges(
+            "open-telemetry/example",
+            NOW,
+            excluded_pr_numbers={1},
+        )
+
+        self.assertEqual([], errors)
+        ensure_nudge.assert_not_called()
+        save_nudges.assert_called_once_with({
+            "1": {
+                "waiting_since": "2026-07-01T00:00:00+00:00",
+                "pending_at": "2026-07-17T00:00:00+00:00",
+            }
+        })
+
     @patch.object(author_nudge, "ensure_nudge_completed")
     @patch.object(author_nudge, "save_author_nudges")
     @patch.object(
