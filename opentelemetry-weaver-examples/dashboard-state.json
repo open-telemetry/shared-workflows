@@ -89,7 +89,7 @@
     },
     "95": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -97,7 +97,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8bea5939e2b0b9792196eed4453040b30a45091ee54bdd2c267635457aa76b33",
+        "copilot_request_fingerprint": "675012aedb51e0294403fd06e9f2b4439f6bc13e0a8305b6ce3a1cdbc730f388",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -110,24 +110,34 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "fc87a9df0dec47e288b36ff9e9cdebe7540155b3",
+        "head_sha": "7cc16751276e5d9908455af71f4c3d8f5bbdae48",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-08-25T16:41:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-27T19:10:02+00:00",
+        "last_approver_activity_at": "2026-08-27T19:10:02+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "da4e9d825e5f9a192c60ffd0bf89c561228e3bb15cb1a1988a55688a19f34bef",
+        "routing_input_fingerprint": "96b7d99143e9e178b5e804156ddf36923f64ee73de614165dcae8e7b9b770508",
         "waiting_age_basis": "created",
         "waiting_since": "2026-08-24T01:00:42+00:00"
       },
       "failed": false,
       "pr_number": 95,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-weaver-examples/pull/95",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
