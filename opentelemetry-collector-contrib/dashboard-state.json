@@ -10963,7 +10963,7 @@
     },
     "50391": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Harshit1259",
         "author_action_review_thread_urls": [],
@@ -10971,7 +10971,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "358ad5a2f6f5267240ee749d3a0bd618d4781fa38e0b87c1d1102e8369ba0dd5",
+        "copilot_request_fingerprint": "4488b5ca98cc1d5b5ddbb76a8f6745e4366806b7c5526067844f106704f998b2",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -10987,11 +10987,20 @@
         "head_sha": "6f4e391219ed8da68bf936920a5658183ef10fe3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T13:36:25+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-27T22:00:26+00:00",
+        "last_approver_activity_at": "2026-08-27T22:00:26+00:00",
         "last_author_activity_at": "2026-08-21T17:13:10+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -11004,14 +11013,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2c70a32709967a1ef2b222ae144a21483c84fbcce6514fa29bc4b30277810ebd",
+        "routing_input_fingerprint": "94c409a98c1f12e0308c57d3fc1de2b44f954a9baef1c53321b17afc1cda19e5",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-21T17:13:10+00:00"
       },
       "failed": false,
       "pr_number": 50391,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50391",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5358337972": {
           "evidence": {
