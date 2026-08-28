@@ -3116,7 +3116,7 @@
     },
     "19889": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "breedx-splk",
         "author_action_review_thread_urls": [],
@@ -3124,7 +3124,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e800d9cdd8c7ef0788895ce06eeae16fdaddd6eb4396ea2574e209aa111f3e58",
+        "copilot_request_fingerprint": "416b58d79c3d195b0654d51d59b81c26d96ea510bd86c78d4252dcf20e8efa05",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3140,21 +3140,31 @@
         "head_sha": "fb3ded8e48c2305f6c302a15245a3cf4bf34a08c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-28T00:12:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-28T07:21:34+00:00",
+        "last_approver_activity_at": "2026-08-28T07:21:34+00:00",
         "last_author_activity_at": "2026-08-28T00:12:33+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5a4df72a9f0cce9fb9ba9ba6bc8b8268672eba4f76a1c7e03cf7e6e4582d5a28",
+        "routing_input_fingerprint": "365b373b93ff981dafbfb11cbc37fd27238b9c63b97fca373106db2e3916fa56",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-28T01:51:15.195561+00:00"
       },
       "failed": false,
       "pr_number": 19889,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19889",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19890": {
