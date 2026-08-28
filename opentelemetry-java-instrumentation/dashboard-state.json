@@ -1466,7 +1466,7 @@
     },
     "19396": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "kejne",
         "author_action_review_thread_urls": [],
@@ -1474,7 +1474,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "24ec74efd028e13ba4f672d11f18cf1a87a5945c7c5c47aafb3983cae467e3f2",
+        "copilot_request_fingerprint": "4f63e2651e61b7fd44f8d3431b663126e8c5e399b5e57480dc564d3cc598052b",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1492,8 +1492,8 @@
         "head_sha": "3411ca96c4921d7adebae30ee0c74f633299e93c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T18:50:31+00:00",
-        "last_approver_activity_at": "2026-08-26T15:13:41+00:00",
+        "last_activity_at": "2026-08-28T22:27:53+00:00",
+        "last_approver_activity_at": "2026-08-28T22:27:53+00:00",
         "last_author_activity_at": "2026-08-27T18:50:31+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -1516,7 +1516,7 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "trask",
@@ -1527,15 +1527,22 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c6f6dccb940027fe2b39725f8feaf33d9ef8dffc44416da3987ea1fb688360ed",
+        "routing_input_fingerprint": "a2143e461547883994984619a14b663231220f82a9a1ed88977f50f2c6a89792",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-27T19:43:53.648850+00:00"
       },
       "failed": false,
       "pr_number": 19396,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19396",
-      "route": "approver",
-      "top_level_history": {}
+      "route": "maintainer",
+      "top_level_history": {
+        "pr-review-4862175605": {
+          "evidence": {
+            "reply": "2026-08-25T19:19:54Z"
+          },
+          "reply_source_id": 5415508027
+        }
+      }
     },
     "19438": {
       "facts": {
