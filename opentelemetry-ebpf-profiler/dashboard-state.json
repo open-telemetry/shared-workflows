@@ -1282,12 +1282,16 @@
         "approval_count": 0,
         "assignees": [],
         "author": "simonepri",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#discussion_r3879479034",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#discussion_r3879487131"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "98c7f9d43a8e48778bdfd356b4ed9c58",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "07cf4892701a3d13d3effbaf2b9a8b50adbb69c6f78cee4fd5988123a80619de",
+        "copilot_request_fingerprint": "6ac0555b64256b60547e74d07ad848bdefc718cc0e928c1f609679a68ac79d09",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1303,21 +1307,31 @@
         "head_sha": "4830c9f5d7b1669dea5058f4de58db18b951de3d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T16:26:55+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-28T09:27:50+00:00",
+        "last_approver_activity_at": "2026-08-28T09:27:50+00:00",
         "last_author_activity_at": "2026-08-27T16:26:55+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a6d174684c5244da8355e11e65d4d473cc9b4e17cb688f3b22ddcc63e2515a64",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-27T16:26:55+00:00"
+        "routing_input_fingerprint": "9f6972fe70bbda995baccec8624bb0c892fe6881a7e57068c8cd621257883d83",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-28T09:26:01+00:00"
       },
       "failed": false,
       "pr_number": 1801,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
