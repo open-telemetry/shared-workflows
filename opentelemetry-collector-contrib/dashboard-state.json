@@ -12632,15 +12632,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "XSAM",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50535#discussion_r3871252709"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "0fb9e62486394ccba7a183f705a5212e",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8e2b5d8deb9df7b71ba9e4da7bd27094870bcbd6651d3df0e19406dd02973a52",
+        "copilot_request_fingerprint": "d4168e0a8d6fc22d70d0139dfb506a3c2b3d8b2809ae142c821fae42f5830d91",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12653,23 +12651,14 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "afc94cdbaa90b28ec212d51616e2b3e6c3844748",
+        "head_sha": "2e542c3f3137176800b3f3fcb04b6488e969b18b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T11:26:07+00:00",
+        "last_activity_at": "2026-08-28T04:10:55+00:00",
         "last_approver_activity_at": "2026-08-26T02:35:59+00:00",
-        "last_author_activity_at": "2026-08-26T16:03:01+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-08-28T04:10:55+00:00",
+        "required_checks_settled": false,
         "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "akshays-19",
-            "open_thread": true,
-            "pending_review": false,
-            "top_level_feedback": false
-          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -12680,10 +12669,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-28T04:46:25.947576+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3455cdf93dad5b59cb02ccc0a344e73d6b9c03d7d2cb45c1e5aea6afe0237f6c",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "eb290729ac081488da318c8f68a4701b345ca20a70a94c3076d804d3c0a5d519",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-27T11:26:07+00:00"
       },
       "failed": false,
