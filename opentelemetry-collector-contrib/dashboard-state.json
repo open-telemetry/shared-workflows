@@ -11829,11 +11829,14 @@
         "assignees": [],
         "author": "constanca-m",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50506#issuecomment-5454667452"
+        ],
+        "author_nudge_episode_id": "b8ccaa1fcc6d42bf8e64efd657b15160",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "349358e4d9f254c1349572692d00066b561479f1b9a4893c6bc168b5bcd6d783",
+        "copilot_request_fingerprint": "56f487835f5f0aefe6a48b1ca701045543dc2d80dc57d059090e18abd9fac4fd",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -11849,22 +11852,39 @@
         "head_sha": "975b3bdf42819b29fb4306bc12e7c7c9388eb068",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-26T06:34:26+00:00",
+        "last_activity_at": "2026-08-28T15:51:59+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-26T06:34:26+00:00",
+        "last_author_activity_at": "2026-08-28T15:04:21+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "carsonip",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "39dae8ffebd067f16d0017621ee7fc266ad92070a5c6c947c89d610a98da057a",
+        "routing_input_fingerprint": "bca1d6c56448b068029c3f6be956e6c3f9cebcac44adb5da994f36a793d81fdf",
         "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-26T06:34:26+00:00"
+        "waiting_since": "2026-08-28T15:51:59+00:00"
       },
       "failed": false,
       "pr_number": 50506,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50506",
-      "route": "approver",
-      "top_level_history": {}
+      "route": "author",
+      "top_level_history": {
+        "pr-review-5051825401": {
+          "evidence": {
+            "reply": "2026-08-28T15:03:39Z"
+          },
+          "reply_source_id": 5454151782
+        }
+      }
     },
     "50507": {
       "facts": {
