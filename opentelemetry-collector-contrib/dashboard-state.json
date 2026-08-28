@@ -12785,12 +12785,18 @@
         "approval_count": 1,
         "assignees": [],
         "author": "constanca-m",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50543#discussion_r3875399084",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50543#discussion_r3875837779"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50543#pullrequestreview-5045132284"
+        ],
+        "author_nudge_episode_id": "60532a9859d84f03b4eb3bfce206946a",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "3c82367bcccb2f1f91eb8cab399a25f05f42b3663e407e458fa9d18d34683ad7",
+        "copilot_request_fingerprint": "a7330c45d48bab6758790d7796502496b984cfdf2e7ba5c181146465560e29e4",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12806,11 +12812,20 @@
         "head_sha": "314d392dea948c3a76e8fe27918a605f49817e3b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T12:38:09+00:00",
+        "last_activity_at": "2026-08-27T21:02:05+00:00",
         "last_approver_activity_at": "2026-08-26T11:35:06+00:00",
         "last_author_activity_at": "2026-08-26T10:54:51+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "carsonip",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -12832,14 +12847,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4eb554699dc4e2868f4927c5dc41a77a252726c82596912056f4fe41aa00a005",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-08-26T19:59:30.008428+00:00"
+        "routing_input_fingerprint": "1fdfd124d30828096081f0b540e2b5171dddaf4acdbdd90003a0936a11118114",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-27T20:01:03+00:00"
       },
       "failed": false,
       "pr_number": 50543,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50543",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "50548": {
