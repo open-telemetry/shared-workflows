@@ -1339,7 +1339,7 @@
     },
     "3865": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "cijothomas",
         "author_action_review_thread_urls": [],
@@ -1347,7 +1347,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "583dbbc110c5f888580140c2c500bafe671908de9cc74f37538d7363f9d62bcf",
+        "copilot_request_fingerprint": "925d89e983aa0b3db18750c91c8b139ac444b641d5d778061299646965b87e51",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1363,21 +1363,31 @@
         "head_sha": "deb42d4c4c5e5364f997ecf32632f31e96164ef6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-26T20:37:59+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-28T16:30:23+00:00",
+        "last_approver_activity_at": "2026-08-28T16:30:23+00:00",
         "last_author_activity_at": "2026-08-26T20:37:59+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "albertlockett",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7612bd436e74ea95c3655244ec566d4c741129428f46a062610a262fa3ff3c6d",
+        "routing_input_fingerprint": "bfc3db0ad86731ca35172f6fcb6379d60d0ad3eceb99c6f310fed9d161bfcda9",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-26T01:57:40+00:00"
       },
       "failed": false,
       "pr_number": 3865,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3865",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3874": {
