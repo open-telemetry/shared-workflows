@@ -2044,7 +2044,7 @@
     },
     "3912": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 2,
         "assignees": [],
         "author": "drewrelmas",
         "author_action_review_thread_urls": [],
@@ -2052,7 +2052,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ba8522a1c2e6fc63adaeca53f8e385793127bb21d4b647d3f0c8e5ecadcfab6e",
+        "copilot_request_fingerprint": "7d4cca3ccfade49f35f0c5fb900621e34776ead7068adc50675215f4a2c25d0c",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2068,21 +2068,40 @@
         "head_sha": "c3d1180eba9fd46c4b5629a077298fe47fdd561a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T19:29:35+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-28T01:53:53+00:00",
+        "last_approver_activity_at": "2026-08-28T01:53:53+00:00",
         "last_author_activity_at": "2026-08-27T19:29:35+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lquerel",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8efd02136a70f8f8bc621266b777cb084ba6ccf14185634cb7931512385b73c9",
+        "routing_input_fingerprint": "e425b4220ff21b649b5bcd994e4d1d55c42591b86be0847203906f0b21083757",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-27T19:29:35+00:00"
       },
       "failed": false,
       "pr_number": 3912,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3912",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3913": {
