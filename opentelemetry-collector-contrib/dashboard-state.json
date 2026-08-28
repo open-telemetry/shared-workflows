@@ -13209,22 +13209,17 @@
     },
     "50563": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "evan-bradley",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50563#discussion_r3866933699",
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50563#discussion_r3866933738",
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50563#discussion_r3866933768",
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50563#discussion_r3866933796",
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50563#discussion_r3870707375"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "6c31fae716e74d4dab021ede8faecc0b",
-        "ci_failing_count": 0,
+        "ci_failing_count": 2,
+        "ci_failing_since": "2026-08-27T18:31:47+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0cb081ed95777358a2ff3930731331912ce0aaa82f78be71152ffce45de7fa4c",
+        "copilot_request_fingerprint": "3f8c187b6cca7aefc5b85aa49451e91449aba931d1697bd8646710b82e696239",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -13237,12 +13232,12 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "f9f3ccda28ad54100f5db53bb2363772775be5f2",
+        "head_sha": "d7d7e97699c823249decfe9255ea80ad5dc03765",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T12:46:57+00:00",
-        "last_approver_activity_at": "2026-08-27T10:06:48+00:00",
-        "last_author_activity_at": "2026-08-27T12:46:57+00:00",
+        "last_activity_at": "2026-08-27T21:52:19+00:00",
+        "last_approver_activity_at": "2026-08-27T21:52:19+00:00",
+        "last_author_activity_at": "2026-08-27T18:21:19+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -13253,13 +13248,22 @@
             "open_thread": true,
             "pending_review": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "TylerHelmuth",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d72c9b380a968036b4b0dd0f8a2a0b4e631b243b271d81d2e37a86a7202c3b07",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-26T21:38:30+00:00"
+        "routing_input_fingerprint": "abece669a0496f734b581662fb35adaf75a63a9f7eee381fddee12b628f95715",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-27T18:31:47+00:00"
       },
       "failed": false,
       "pr_number": 50563,
