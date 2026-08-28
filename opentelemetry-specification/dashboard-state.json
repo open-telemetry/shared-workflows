@@ -2431,15 +2431,12 @@
           "jack-berg"
         ],
         "author": "mmanciop",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-specification/pull/5280#discussion_r3825271812"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "459428a1a7c147e0b2adde949b91f761",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "892e5169ab261fa2d164c5a892fbe2e22a7f8f87fc70276d48dd67929bf026d5",
+        "copilot_request_fingerprint": "822cf55163b602c83fdbf0d940247ef11c7790b76b28ab75d7cd5bb6ca514b61",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2448,10 +2445,19 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-08-19T09:29:22+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5448473491,
+            "head_sha": "6d6ddcbf040d17b702a329c9b1711d03cfb980cf",
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "user": "mmanciop"
+          }
+        ],
+        "dashboard_override_command_id": 5448473491,
+        "dashboard_override_command_user": "mmanciop",
+        "dashboard_override_head_sha": "6d6ddcbf040d17b702a329c9b1711d03cfb980cf",
         "head_sha": "6d6ddcbf040d17b702a329c9b1711d03cfb980cf",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -2474,7 +2480,7 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "dashpole",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
           },
@@ -2483,21 +2489,21 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "jack-berg",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d70cf52f63df32036f08fca9b4bc6e085296215344b0fde8889dae7c204cdf7c",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-27T14:24:36+00:00"
+        "routing_input_fingerprint": "6cdbdbc043b9635b73596daba1d1bf73f41559cee3bb967da173c4b32ff79d00",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-25T07:31:42+00:00"
       },
       "failed": false,
       "pr_number": 5280,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5280",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
