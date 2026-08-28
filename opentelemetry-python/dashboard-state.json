@@ -3440,15 +3440,17 @@
     },
     "5573": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "dwin-gharibi",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "f7447ca055204c45baf10d3628997169",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-08-28T08:40:46+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "08984e0daf75b6548a6dd7b51d136f8a5a798bfb5ff1ca504d01fb53c6ca6d33",
+        "copilot_request_fingerprint": "e0d57dc64a6948bfbedf5b2808bb30f345bcd946ba720a84aee03063a53f9bd9",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3464,8 +3466,8 @@
         "head_sha": "032d4b78cfa9fdd3f2ef128a704395e527dc1489",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-24T13:11:20+00:00",
-        "last_approver_activity_at": "2026-08-24T13:11:20+00:00",
+        "last_activity_at": "2026-08-28T08:34:00+00:00",
+        "last_approver_activity_at": "2026-08-28T08:34:00+00:00",
         "last_author_activity_at": "2026-08-23T15:59:43+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -3477,18 +3479,27 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "xrmx",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "39e5cd218393c034b8573fe1b4d2292e85c0be5d9e7ba4234a728ac14acec0a5",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-23T15:59:43+00:00"
+        "routing_input_fingerprint": "dd3ac73380f47407bb00df17bf3c0e30684d2221e050a02aea7f92fc59b2777e",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-08-28T08:40:46+00:00"
       },
       "failed": false,
       "pr_number": 5573,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5573",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "5575": {
