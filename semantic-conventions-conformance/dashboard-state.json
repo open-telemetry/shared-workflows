@@ -61,7 +61,7 @@
     },
     "102": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -69,7 +69,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bb7e938009f4452221e3dd998a8ac78a4066372bcd3d78283dc853012a4b0798",
+        "copilot_request_fingerprint": "68aa7f7f102cc303564254d96ba62559deca6746dca7229ab34a0fcbf681124d",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -85,21 +85,31 @@
         "head_sha": "c8598d68fd8d92c7ec4042f163a4ceb3fd80d7ca",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-28T15:56:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-28T18:44:39+00:00",
+        "last_approver_activity_at": "2026-08-28T18:44:39+00:00",
         "last_author_activity_at": "2026-08-28T15:56:06+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "02e00d92a37c2aa9d81b7f5137775dd19d91203d3e49b381b8e24325396e5c09",
+        "routing_input_fingerprint": "213c21e176fcc0008b11149dcd49850040523b026606f3f8574574580d672a49",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-28T15:56:06+00:00"
       },
       "failed": false,
       "pr_number": 102,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/102",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "116": {
