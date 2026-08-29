@@ -123,8 +123,8 @@ class PromptCompatibilityTest(unittest.TestCase):
             },
             {
                 "review": (
-                    5371,
-                    "615fe3b351ccb9b4de5366f0f6575090a3b09caa50a1d1dbcc1d1d8bc3525574",
+                    5359,
+                    "ea4f5a86153173cf98f1d3d21a097e18dd513ce52c8c119f563b016559376653",
                 ),
                 "author": (
                     3372,
@@ -144,7 +144,7 @@ class PromptCompatibilityTest(unittest.TestCase):
                 "gpt-test",
                 verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
             ),
-            "1e935dee0b1d54e7081996c06a7341b5f142ffccad6fe7c493abc28af7b4d360",
+            "c78a48290b695bf839eed8ba25a1481a95a7565309c86fd57bd15ce8395ec58b",
         )
         self.assertEqual(
             discussion_cache_key(

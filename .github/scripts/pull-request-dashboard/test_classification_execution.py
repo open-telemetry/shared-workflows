@@ -342,7 +342,7 @@ class ClassificationServiceTest(unittest.TestCase):
                 "Test verdict.",
             ),
         )
-        self.assertIn("---BEGIN TOP-LEVEL FEEDBACK---", runner.requests[0].prompt)
+        self.assertIn("---BEGIN REVIEWER FEEDBACK---", runner.requests[0].prompt)
 
     def test_partial_reviewer_feedback_preserves_unrelated_cache_entries(
         self,
