@@ -737,7 +737,7 @@ def reviewer_feedback_prompt_item(
     requester: str,
     pr_author: str,
     body: str,
-    feedback_kind: str = "top_level_comment",
+    feedback_kind: str,
 ) -> dict[str, Any]:
     return {
         "discussion_id": discussion_id,
