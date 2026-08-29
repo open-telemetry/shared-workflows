@@ -286,7 +286,7 @@
     },
     "125": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -294,7 +294,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "07da7b22163fc772879ad66f3956bfd95761d1cf29cddc7e3a7bbc03bc0f2157",
+        "copilot_request_fingerprint": "0edc2a747dff36beb1e40641154cc525c0da82564b96d11cff34416afee9905f",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -310,21 +310,31 @@
         "head_sha": "a006c77d775d0a816892c4283b63f8362422975d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-29T01:29:45+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-29T16:00:48+00:00",
+        "last_approver_activity_at": "2026-08-29T16:00:48+00:00",
         "last_author_activity_at": "2026-08-29T01:29:45+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "da45aef495d554fdfd4ab6a2628a32d83bf66f58309105f98a36e1a591b69386",
+        "routing_input_fingerprint": "01391fabf9c4f4248dd6906ea8ea2fc89754554498173b5c100c1ad27d6031b6",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-29T01:29:45+00:00"
       },
       "failed": false,
       "pr_number": 125,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/125",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "126": {
