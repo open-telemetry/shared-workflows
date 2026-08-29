@@ -152,11 +152,28 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             ),
             {
                 "discussion_id": "change-request",
+                "feedback_kind": "top_level_comment",
                 "requester": "reviewer",
                 "pr_author": "author",
                 "addressed_to": [],
                 "body": "Please update the implementation.",
             },
+        )
+
+    def test_review_body_is_identified_as_a_review_summary(self) -> None:
+        discussion = top_level_item(
+            "review-summary",
+            source_kind="review-state",
+        )
+        discussion["comments"] = [
+            {"body": "Looks good, just one comment about naming."}
+        ]
+
+        self.assertEqual(
+            reviewer_feedback_prompt_input(
+                ClassificationDiscussion.from_record(discussion)
+            )["feedback_kind"],
+            "review_summary",
         )
 
     def test_top_level_prompt_input_reports_who_a_comment_addresses(self) -> None:

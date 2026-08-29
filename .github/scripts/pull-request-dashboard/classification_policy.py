@@ -119,11 +119,13 @@ REVIEWER_FEEDBACK_PROMPT_TEMPLATE = (
     + BATCH_CONTRACT
     + """
 
-Each item contains the reviewer's login in `requester`, the PR author's login in
-`pr_author`, and the comment text in `body`. First-person statements in `body`
-are the reviewer speaking, never the PR author. `addressed_to` lists the logins
-and teams the comment opens by addressing, and is empty when it opens by
-addressing no one.
+Each item contains its `feedback_kind`, the reviewer's login in `requester`, the
+PR author's login in `pr_author`, and the comment text in `body`.
+`feedback_kind` is `review_summary` for the body submitted with a GitHub review,
+`top_level_comment` for a pull request conversation comment, or `review_thread`
+for an inline review thread. First-person statements in `body` are the reviewer
+speaking, never the PR author. `addressed_to` lists the logins and teams the
+comment opens by addressing, and is empty when it opens by addressing no one.
 
 Question: does this item leave something unresolved that `pr_author` must handle
 before this pull request can merge?
@@ -145,12 +147,21 @@ explicitly leaves for later ("we can clean this up post submission", "an
 opportunity to refactor after a point fix release", "left one small
 maintainability comment").
 
-A review preamble is no_author_action. It says only where the review's comments
-came from, how much weight to give them, or that the author is free to disagree
-with them ("AI-generated review", "lightly filtered AI-generated feedback, push
-back freely", "some nits below, take them or leave them"), and raises nothing
-itself. An invitation to push back on those comments is not a request. A
-preamble that also asks for something is author_action.
+A review preamble or summary is no_author_action. Inline comments submitted
+with a review are tracked separately as review_thread items, so the
+review_summary does not duplicate their action. This includes a summary that
+counts the comments, describes their severity, or names the topics they cover
+("a few nits below", "just one comment about naming", "left two requests to get
+checks passing"). The summary is still no_author_action even when the inline
+comments require author action. Classify a review_summary as author_action only
+when its body itself adds a distinct request, question, objection, or blocker
+beyond referring to the review's comments.
+
+A preamble may also say where the review's comments came from, how much weight
+to give them, or that the author is free to disagree with them ("AI-generated
+review", "lightly filtered AI-generated feedback, push back freely", "some nits
+below, take them or leave them"). An invitation to push back on those comments
+is not a request.
 
 Compare `addressed_to`, and every other login and team named in `body`, against
 `pr_author`. An item asking a different person or team to review, decide, or
@@ -361,6 +372,7 @@ class ClassificationDiscussion:
     comments: tuple[DiscussionComment, ...] = ()
     requester: str = ""
     pr_author: str = ""
+    source_kind: str = ""
     candidate_feedback: tuple[CandidateFeedback, ...] = ()
 
     def __post_init__(self) -> None:
@@ -406,6 +418,7 @@ class ClassificationDiscussion:
             comments=comments,
             requester=str(record.get("requester") or ""),
             pr_author=str(record.get("pr_author") or ""),
+            source_kind=str(record.get("source_kind") or ""),
             candidate_feedback=candidate_feedback,
         )
 
@@ -724,9 +737,11 @@ def reviewer_feedback_prompt_item(
     requester: str,
     pr_author: str,
     body: str,
+    feedback_kind: str = "top_level_comment",
 ) -> dict[str, Any]:
     return {
         "discussion_id": discussion_id,
+        "feedback_kind": feedback_kind,
         "requester": requester,
         "pr_author": pr_author,
         "addressed_to": leading_mentions(body),
@@ -737,11 +752,18 @@ def reviewer_feedback_prompt_item(
 def reviewer_feedback_prompt_input(
     discussion: ClassificationDiscussion,
 ) -> dict[str, Any]:
+    if discussion.identity.kind is DiscussionKind.REVIEW_THREAD:
+        feedback_kind = "review_thread"
+    elif discussion.source_kind == "review-state":
+        feedback_kind = "review_summary"
+    else:
+        feedback_kind = "top_level_comment"
     return reviewer_feedback_prompt_item(
         discussion.identity.discussion_id,
         discussion.requester,
         discussion.pr_author,
         "\n\n".join(comment.body for comment in discussion.comments),
+        feedback_kind,
     )
 
 
