@@ -12,7 +12,11 @@ from github_cli import (
     gh_api,
     run_gh,
 )
-from dashboard_override import PRE_REVIEW_ROUTES
+from dashboard_override import (
+    PRE_REVIEW_ROUTES,
+    acknowledged_override,
+    override_ack_marker,
+)
 from dashboard_contracts import (
     DashboardFacts,
     DashboardRoute,
@@ -30,6 +34,7 @@ from dashboard_status import (
     status_author_nudge_episode_id,
     status_reviewer_handoff_clearance,
 )
+from pull_request_source import normalize_issue_comments
 from route_presentation import (
     abandoned_gate_note,
     outstanding_gate_phrase,
@@ -335,6 +340,13 @@ def render_status_comment(
         and bound_head
     ):
         optional_markers.append(
+            override_ack_marker(
+                bound_command_id,
+                bound_head,
+                facts.dashboard_override_since,
+            ),
+        )
+        optional_markers.append(
             reviewer_handoff_cleared_marker(bound_command_id, bound_head),
         )
     lines[2:2] = optional_markers
@@ -424,10 +436,28 @@ def upsert_status_comment(
         comment = comments[0]
         if preserve_clearance:
             command_id, head_sha = status_reviewer_handoff_clearance(comments)
-            marker = reviewer_handoff_cleared_marker(command_id, head_sha)
-            if command_id and head_sha and marker not in body:
+            clearance_marker = reviewer_handoff_cleared_marker(command_id, head_sha)
+            acknowledged_id, acknowledged_head, since, _ = acknowledged_override(
+                normalize_issue_comments(comments)
+            )
+            acknowledgement_marker = override_ack_marker(
+                command_id,
+                head_sha,
+                (
+                    since
+                    if (acknowledged_id, acknowledged_head)
+                    == (command_id, head_sha)
+                    else ""
+                ),
+            )
+            preserved_markers = [
+                marker
+                for marker in (acknowledgement_marker, clearance_marker)
+                if command_id and head_sha and marker not in body
+            ]
+            if preserved_markers:
                 lines = body.splitlines()
-                lines.insert(2, marker)
+                lines[2:2] = preserved_markers
                 body = "\n".join(lines)
         if locked and (comment.get("body") != body or len(comments) > 1):
             raise StatusCommentDeferred(

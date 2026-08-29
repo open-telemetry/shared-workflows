@@ -20,7 +20,11 @@ def deliver_dashboard_command_replies(
     for result in dashboard_state.results:
         if only_pr_number is not None and result.pr_number != only_pr_number:
             continue
-        replies = result.facts.dashboard_command_replies
+        replies = tuple(
+            reply
+            for reply in result.facts.dashboard_command_replies
+            if reply.kind != "cleared_by_feedback"
+        )
         if not replies:
             continue
         pr_number = result.pr_number

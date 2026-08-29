@@ -472,9 +472,9 @@ def append_command_ack_reply(
     """Queue the reply that acknowledges an override command.
 
     The reply carries the acknowledgement marker, which records the bound head
-    and feedback cutoff and stops the command from being processed again. Every
-    authorized command gets a reply because the command forces the reviewer route
-    even when no discussion or failing check was cleared.
+    and feedback cutoff and stops the command from being processed again. A
+    command superseded by reviewer feedback is acknowledged in the status comment
+    instead of producing another top-level comment.
     """
     cleared_by_feedback = facts.dashboard_override_cleared_by_feedback
     command_id = (
@@ -487,21 +487,23 @@ def append_command_ack_reply(
     )
     if not command_id:
         return facts
-    kind = "cleared_by_feedback" if cleared_by_feedback else "routed"
-    replies = facts.dashboard_command_replies
     override_since = (
         facts.dashboard_override_since
         or _override_command_effective_at(source.issue_comments, command_id)
     )
+    if cleared_by_feedback:
+        return facts.with_changes(dashboard_override_since=override_since)
+    kind = "routed"
+    replies = facts.dashboard_command_replies
     reply = DashboardCommandReply(
         comment_id=command_id,
         kind=kind,
         head_sha=facts.dashboard_override_head_sha,
         user=facts.dashboard_override_command_user or facts.author,
-        route=route if kind == "routed" else None,
+        route=route,
         held_gates=(
             outstanding_gate_phrase(facts)
-            if kind == "routed" and facts.route_held_for_gates
+            if facts.route_held_for_gates
             else ""
         ),
         since=override_since,
