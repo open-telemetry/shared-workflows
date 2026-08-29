@@ -176,6 +176,22 @@ class TopLevelActionLedgerTest(unittest.TestCase):
             "review_summary",
         )
 
+    def test_review_thread_is_identified_as_a_review_thread(self) -> None:
+        discussion = {
+            "discussion_id": "inline-thread",
+            "discussion_kind": DiscussionKind.REVIEW_THREAD.value,
+            "pr_author": "author",
+            "requester": "reviewer",
+            "comments": [{"body": "Please rename this field."}],
+        }
+
+        self.assertEqual(
+            reviewer_feedback_prompt_input(
+                ClassificationDiscussion.from_record(discussion)
+            )["feedback_kind"],
+            "review_thread",
+        )
+
     def test_top_level_prompt_input_reports_who_a_comment_addresses(self) -> None:
         discussion = top_level_item("addressed")
         discussion["comments"] = [
