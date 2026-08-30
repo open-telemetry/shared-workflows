@@ -13,7 +13,6 @@ from dashboard_contracts import (
 )
 from dashboard_status import (
     DASHBOARD_APP_SLUG,
-    reviewer_handoff_cleared_marker,
     status_reviewer_handoff_clearance,
 )
 from pull_request_source import IssueComment
@@ -415,12 +414,7 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             )
         else:
             message = "this pull request was routed to reviewers."
-    elif kind == "cleared_by_feedback":
-        message = (
-            "newer actionable reviewer feedback ended the reviewer handoff, so "
-            "this pull request is routed normally again."
-        )
-    else:
+    elif kind == "unknown_command":
         subcommand = reply.subcommand
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
         message = (
@@ -429,9 +423,13 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             "request author can use to move a pull request from waiting on the "
             "author to waiting on reviewers."
         )
+    else:
+        # A reply the dashboard never posts, such as a cleared_by_feedback reply
+        # left in older cached state, must not be rendered as some other kind.
+        raise ValueError(f"undeliverable dashboard command reply kind: {kind!r}")
     comment_id = reply.comment_id
     markers = [command_reply_marker(comment_id)]
-    if kind in ("routed", "cleared_by_feedback"):
+    if kind == "routed":
         markers.append(
             override_ack_marker(
                 comment_id,
@@ -439,8 +437,6 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 reply.since,
             )
         )
-    if kind == "cleared_by_feedback" and reply.head_sha:
-        markers.append(reviewer_handoff_cleared_marker(comment_id, reply.head_sha))
     return "\n".join([
         *markers,
         f"{mention}{message}",
@@ -452,11 +448,7 @@ def command_reply_exists(
     comments: Sequence[IssueComment],
     reply: DashboardCommandReply,
 ) -> bool:
-    marker = (
-        reviewer_handoff_cleared_marker(reply.comment_id, reply.head_sha)
-        if reply.kind == "cleared_by_feedback" and reply.head_sha
-        else command_reply_marker(reply.comment_id)
-    )
+    marker = command_reply_marker(reply.comment_id)
     return any(
         _is_dashboard_app_comment(comment)
         and marker in comment.body
