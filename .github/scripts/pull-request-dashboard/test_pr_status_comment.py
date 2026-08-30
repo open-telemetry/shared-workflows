@@ -879,6 +879,57 @@ class UpsertStatusCommentTest(unittest.TestCase):
     @patch.object(
         pr_status_comment,
         "managed_status_comments",
+        return_value=[{
+            "id": 7,
+            "performed_via_github_app": {
+                "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+            },
+            "body": (
+                f"{pr_status_comment.STATUS_MARKER}\n"
+                "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                "12:bound-head -->\n"
+                "old status"
+            ),
+        }],
+    )
+    def test_status_update_keeps_one_acknowledgement_marker(
+        self, _comments: object
+    ) -> None:
+        # A status comment written before the dashboard recorded the
+        # acknowledgement carries no cutoff to recover, so preserving the
+        # acknowledgement must not duplicate the rendered one.
+        body = (
+            f"{pr_status_comment.STATUS_MARKER}\n"
+            "<!-- pull-request-dashboard-status-revision:4 -->\n"
+            "<!-- pull-request-dashboard-override-ack:"
+            "12:bound-head:2026-08-16T08:00:00Z -->\n"
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:bound-head -->\n"
+            "## Pull request dashboard status"
+        )
+
+        pr_status_comment.upsert_status_comment(
+            "open-telemetry/example",
+            1,
+            body,
+            create=False,
+            preserve_clearance=True,
+        )
+
+        patched_body = self.commands[0][-1]
+        self.assertEqual(
+            1,
+            patched_body.count("<!-- pull-request-dashboard-override-ack:"),
+        )
+        self.assertIn(
+            "<!-- pull-request-dashboard-override-ack:"
+            "12:bound-head:2026-08-16T08:00:00Z -->",
+            patched_body,
+        )
+
+    @patch.object(
+        pr_status_comment,
+        "managed_status_comments",
         return_value=[{"id": 7, "body": "<!-- pull-request-dashboard-status --> old"}],
     )
     def test_locked_pr_defers_existing_comment_update(self, _comments: object) -> None:

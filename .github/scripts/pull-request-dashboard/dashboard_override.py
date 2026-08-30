@@ -273,6 +273,18 @@ def _acknowledged_override_command_ids(
     return acknowledged_ids
 
 
+def acknowledges_override(text: str, command_id: int, head_sha: str) -> bool:
+    """Return whether the text already acknowledges this command and bound head.
+
+    The acknowledgement's cutoff timestamp is ignored, so a marker that records
+    a different cutoff for the same binding still counts as present.
+    """
+    return any(
+        int(match.group(1)) == command_id and (match.group(2) or "") == head_sha
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(text)
+    )
+
+
 def acknowledged_override(
     comments: Sequence[IssueComment],
 ) -> tuple[int, str, str, str]:

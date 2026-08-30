@@ -15,6 +15,7 @@ from github_cli import (
 from dashboard_override import (
     PRE_REVIEW_ROUTES,
     acknowledged_override,
+    acknowledges_override,
     override_ack_marker,
 )
 from dashboard_contracts import (
@@ -450,11 +451,12 @@ def upsert_status_comment(
                     else ""
                 ),
             )
-            preserved_markers = [
-                marker
-                for marker in (acknowledgement_marker, clearance_marker)
-                if command_id and head_sha and marker not in body
-            ]
+            preserved_markers = []
+            if command_id and head_sha:
+                if not acknowledges_override(body, command_id, head_sha):
+                    preserved_markers.append(acknowledgement_marker)
+                if clearance_marker not in body:
+                    preserved_markers.append(clearance_marker)
             if preserved_markers:
                 lines = body.splitlines()
                 lines[2:2] = preserved_markers
