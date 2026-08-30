@@ -2998,7 +2998,7 @@
     },
     "19914": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "mwimpelberg28",
         "author_action_review_thread_urls": [],
@@ -3006,7 +3006,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ee44d3d8406c91607d1381aa76e5552d3ca51e89e6b4b8a35fc94d5d1f62927b",
+        "copilot_request_fingerprint": "8e3f1a81daf789d449dbe9da8f162b8652133dfa94320a593ba2bf7fbcade22e",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3022,21 +3022,31 @@
         "head_sha": "0a7f8461e9dce496139b5f98d73031a0b500201c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-29T22:00:27+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-08-30T06:12:33+00:00",
+        "last_approver_activity_at": "2026-08-30T06:12:33+00:00",
         "last_author_activity_at": "2026-08-29T22:00:27+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3d8c090030bd3e1ef84d7b3bd52cd203e156f2450fd990ff900b32190641de45",
+        "routing_input_fingerprint": "d5c3de7c919bd99b4e3a28eaa6be92faaa39e5675c2d489d4462bf910e431ebc",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-08-29T23:08:41.451897+00:00"
       },
       "failed": false,
       "pr_number": 19914,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19914",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19918": {
