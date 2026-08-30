@@ -30,7 +30,7 @@ diagnostics keep typed classification results and freeze only the source
 discussion records.
 
 `state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
-codecs translate the immutable contracts to the version 12
+codecs translate the immutable contracts to the version 13
 `dashboard-state.json` shape. Malformed pull request entries are discarded
 individually, so one bad entry does not prevent valid entries from loading.
 
