@@ -1845,22 +1845,39 @@
         "approval_count": 0,
         "assignees": [],
         "author": "DhroovP",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526#discussion_r3887873685",
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526#discussion_r3887873686",
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526#discussion_r3887873689"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526#issuecomment-5374555757",
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526#pullrequestreview-5055589614"
+        ],
+        "author_nudge_episode_id": "f734d3f74e97438a9d269d5166887369",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "77bdd04ad916eafeb7429f8f4cdc728bc3e2c835b69716303de2d8039ef1088e",
+        "copilot_request_fingerprint": "d2b9ce7634585b2dee136c2c9a5f9e630984b26628ab4e8844d36ed77b0a5eb9",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
-        "copilot_review_outstanding": false,
+        "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
         "copilot_review_stale": true,
-        "copilot_review_unreported": false,
+        "copilot_review_unreported": true,
         "created_at": "2026-08-12T04:20:43+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5464273702,
+            "head_sha": "194844d45dbcd4a1ef8c59cf883b670dddbe0b21",
+            "kind": "cleared_by_feedback",
+            "since": "2026-08-29T19:01:34Z",
+            "user": "DhroovP"
+          }
+        ],
         "dashboard_override_bound_command_id": 5464273702,
+        "dashboard_override_cleared_by_feedback": true,
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "194844d45dbcd4a1ef8c59cf883b670dddbe0b21",
@@ -1868,8 +1885,8 @@
         "head_sha": "194844d45dbcd4a1ef8c59cf883b670dddbe0b21",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-29T17:58:47+00:00",
-        "last_approver_activity_at": "2026-08-29T17:24:58+00:00",
+        "last_activity_at": "2026-08-30T01:01:30+00:00",
+        "last_approver_activity_at": "2026-08-30T01:01:30+00:00",
         "last_author_activity_at": "2026-08-29T17:58:47+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -1887,33 +1904,27 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "trask",
-            "open_thread": false,
+            "open_thread": true,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bd3e72c4b19af985a9b4ead118b6be65e37f66336ecb154e8a53c798c0a99dee",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-29T17:58:47+00:00"
+        "routing_input_fingerprint": "8ecb97e9a15d51bcc59efe251e882852fad2f3663d5766fd7b80d8d499570ca6",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-08-28T22:45:02+00:00"
       },
       "failed": false,
       "pr_number": 19526,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19526",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
-        "pr-issue-comment-5374555757": {
-          "evidence": {
-            "reply": "2026-08-21T19:55:50Z"
-          },
-          "reply_source_id": 5374673303
-        },
         "pr-issue-comment-5375110759": {
           "evidence": {
-            "reply": "2026-08-26T02:20:39Z"
+            "reply": "2026-08-22T00:36:24Z"
           },
-          "reply_source_id": 5419693216
+          "reply_source_id": 5376811463
         }
       }
     },
