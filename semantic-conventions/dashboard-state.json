@@ -1841,7 +1841,7 @@
     },
     "4050": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -1849,7 +1849,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8685663551aebd72b1a123e9c37c77041acc2d06d1abe9c58aa07118acb6507a",
+        "copilot_request_fingerprint": "9043f405f24cd05982b3176d7564b773e27fdc61320f2a458204bde375ebcb37",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1865,11 +1865,20 @@
         "head_sha": "eaabc48e24655130fd7e73c7914ed68c0a816d69",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-31T15:33:58+00:00",
-        "last_approver_activity_at": "2026-08-31T15:33:58+00:00",
+        "last_activity_at": "2026-08-31T19:54:23+00:00",
+        "last_approver_activity_at": "2026-08-31T19:54:23+00:00",
         "last_author_activity_at": "2026-08-31T05:38:42+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -1882,14 +1891,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "331075de06581abc3b865d26b063e76facb1049117b2deff92d5af85e0740cc7",
+        "routing_input_fingerprint": "d024756cdc5dc661bd3580ddac73d0c47c83ddfa14134374a4e7a1802f14decb",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-31T05:38:42+00:00"
       },
       "failed": false,
       "pr_number": 4050,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4050",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4054": {
