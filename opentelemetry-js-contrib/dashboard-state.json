@@ -4734,15 +4734,25 @@
     "3716": {
       "facts": {
         "approval_count": 0,
-        "assignees": [],
+        "assignees": [
+          "david-luna",
+          "henrinormak",
+          "aabmass",
+          "dyladan",
+          "dashpole",
+          "DylanRussell",
+          "d4nyll",
+          "blumamir",
+          "hectorhdzg",
+          "aryamohanan"
+        ],
         "author": "app/otelbot-js-contrib",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "f312d92df2d44e00b93aac9167bc6ac7",
         "ci_failing_count": 0,
-        "ci_pending_count": 6,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5147f43c75a9a56e8e2685da42548228ec5629a5daabaf54dbfb6bcc2de76fbd",
+        "copilot_request_fingerprint": "d3e7555242cb08ea452d0fcf259d768b6dac7b29ae3d79a33a54c27101259707",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4755,14 +4765,104 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "2a243ba1d6fe5b645095a8ce5c2716a668164d8d",
+        "head_sha": "bc96facca22b68ab3e02ab36d8ac4eb566494060",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-31T17:08:32+00:00",
-        "last_approver_activity_at": "2026-08-31T17:08:32+00:00",
+        "last_activity_at": "2026-08-31T17:48:53+00:00",
+        "last_approver_activity_at": "2026-08-31T17:48:53+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "aabmass",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "aryamohanan",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "blumamir",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "d4nyll",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "david-luna",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dyladan",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "DylanRussell",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "hectorhdzg",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "henrinormak",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -4773,17 +4873,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-08-31T17:22:37.738310+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "26ade8e974f46c90d6b2031cda24777e2755d6a8ab725b57dd8deb143923fbab",
-        "waiting_age_basis": "last_approver_activity",
-        "waiting_since": "2026-08-31T17:08:32+00:00"
+        "routing_input_fingerprint": "2407127f8a19b67f8ef1541ba259b28ceec331d81afe6efd8094cf60f3c6b668",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-08-31T18:18:54.879991+00:00"
       },
       "failed": false,
       "pr_number": 3716,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3716",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
