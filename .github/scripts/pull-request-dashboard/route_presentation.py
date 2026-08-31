@@ -80,6 +80,22 @@ def unreported_gate_phrase(facts: DashboardFacts) -> str:
     return " and ".join(gates)
 
 
+def held_gate_phrase(facts: DashboardFacts) -> str:
+    # Which gate is keeping the pull request off the route it computed. A
+    # Copilot review that reported findings holds it just as a silent gate
+    # does, so name the findings the author still has to clear rather than the
+    # review, which has already arrived. A held route always has one of these,
+    # so the phrase is never empty while the pull request is held.
+    gates = []
+    if not facts.required_checks_settled:
+        gates.append("the required status checks")
+    if facts.copilot_review_unreported:
+        gates.append("the Copilot review")
+    elif facts.copilot_review_outstanding:
+        gates.append("the open Copilot review findings")
+    return " and ".join(gates)
+
+
 def abandoned_gate_note(facts: DashboardFacts) -> str:
     # Said once the dashboard has stopped waiting, so the reader knows the
     # missing gate is not something they are supposed to sit and wait for.

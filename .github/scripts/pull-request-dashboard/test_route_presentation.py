@@ -6,6 +6,7 @@ from dashboard_test_support import dashboard_facts
 from route_presentation import (
     ROUTE_ORDER,
     ROUTE_PRESENTATION,
+    held_gate_phrase,
     route_label,
     route_status_summary,
     unreported_gate_phrase,
@@ -42,6 +43,26 @@ class RoutePresentationTest(unittest.TestCase):
             "the required status checks and the Copilot review",
             unreported_gate_phrase(dashboard_facts(
                 required_checks_settled=False,
+                copilot_review_unreported=True,
+            )),
+        )
+
+    def test_reported_copilot_findings_are_named_as_the_held_gate(self) -> None:
+        self.assertEqual(
+            "the open Copilot review findings",
+            held_gate_phrase(dashboard_facts(
+                required_checks_settled=True,
+                copilot_review_outstanding=True,
+                copilot_review_unreported=False,
+            )),
+        )
+
+    def test_an_unreported_copilot_review_is_named_as_the_held_gate(self) -> None:
+        self.assertEqual(
+            "the required status checks and the Copilot review",
+            held_gate_phrase(dashboard_facts(
+                required_checks_settled=False,
+                copilot_review_outstanding=True,
                 copilot_review_unreported=True,
             )),
         )

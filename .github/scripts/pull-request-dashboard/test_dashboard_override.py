@@ -1258,6 +1258,38 @@ class DashboardOverrideTest(unittest.TestCase):
             facts.dashboard_command_replies,
         )
 
+    def test_ack_names_the_open_copilot_findings_holding_the_handoff(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=5,
+                body="/dashboard route:reviewers",
+            )
+        )
+        override = dashboard_override.dashboard_override_facts(
+            source, "author", None, "current-head"
+        )
+
+        facts = dashboard_override.append_command_ack_reply(
+            source,
+            result_facts(
+                override,
+                author="author",
+                route_held_for_gates=True,
+                required_checks_settled=True,
+                copilot_review_outstanding=True,
+                copilot_review_unreported=False,
+            ),
+            DashboardRoute.APPROVER,
+        )
+
+        reply = facts.dashboard_command_replies[0]
+        self.assertEqual("the open Copilot review findings", reply.held_gates)
+        self.assertIn(
+            "@author, your reviewer-routing request was recorded; the reviewer "
+            "handoff is waiting on the open Copilot review findings.",
+            dashboard_override.render_command_reply(reply),
+        )
+
     @patch.object(dashboard_override_delivery, "run_gh")
     @patch.object(dashboard_override_delivery, "gh_api", return_value=[])
     @patch.object(

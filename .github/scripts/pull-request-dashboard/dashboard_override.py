@@ -17,7 +17,7 @@ from dashboard_status import (
     status_reviewer_handoff_clearance,
 )
 from pull_request_source import IssueComment
-from route_presentation import unreported_gate_phrase
+from route_presentation import held_gate_phrase
 from utils import parse_ts
 
 
@@ -500,7 +500,7 @@ def append_command_ack_reply(
         user=facts.dashboard_override_command_user or facts.author,
         route=route if kind == "routed" else None,
         held_gates=(
-            unreported_gate_phrase(facts)
+            held_gate_phrase(facts)
             if kind == "routed" and facts.route_held_for_gates
             else ""
         ),
