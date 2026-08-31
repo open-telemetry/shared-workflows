@@ -434,6 +434,74 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_unresolved_copilot_thread_remains_an_author_action(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        thread_url = "https://example.test/review-comment/copilot"
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(),
+            reviews=(review_source(
+                actor=actor("copilot"),
+            ),),
+            review_threads=(review_thread(
+                comments=(
+                    review_thread_comment(
+                        url=thread_url,
+                        actor=actor("copilot"),
+                    ),
+                    review_thread_comment(
+                        node_id="PRRC_2",
+                        url="https://example.test/review-comment/author",
+                        body="Handled in a follow-up.",
+                        created_at="2026-08-16T07:30:00Z",
+                        actor=actor("author"),
+                    ),
+                ),
+            ),),
+        )
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications(
+                (
+                    action_classification(
+                        "PRRT_1",
+                        DiscussionKind.REVIEW_THREAD,
+                        DiscussionAction.NONE,
+                        "The author replied.",
+                    ),
+                ),
+                (),
+                (),
+            )
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            require_clean_copilot_review_branches=["main"],
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertEqual(
+            (thread_url,),
+            result.facts.author_action_review_thread_urls,
+        )
+
+        ungated_result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(ungated_result, EvaluationSuccess)
+        assert isinstance(ungated_result, EvaluationSuccess)
+        self.assertEqual(
+            (),
+            ungated_result.facts.author_action_review_thread_urls,
+        )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_override_binds_to_the_observed_head_before_classification(
         self, fetch_raw: Mock
     ) -> None:
@@ -1012,7 +1080,11 @@ class ReviewThreadDiscussionUrlTest(unittest.TestCase):
 
         self.assertEqual(
             ("https://example.test/discussion/1", "https://example.test/discussion/2"),
-            _author_action_discussion_urls(discussions, pending_actions),
+            _author_action_discussion_urls(
+                discussions,
+                pending_actions,
+                ("https://example.test/discussion/1",),
+            ),
         )
 
 

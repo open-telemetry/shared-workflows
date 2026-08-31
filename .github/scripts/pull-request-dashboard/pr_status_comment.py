@@ -32,9 +32,9 @@ from dashboard_status import (
 )
 from route_presentation import (
     abandoned_gate_note,
-    outstanding_gate_phrase,
     route_status_summary,
     status_headline,
+    unreported_gate_phrase,
 )
 from state import (
     STATUS_COMMENT_REVISION,
@@ -270,7 +270,7 @@ def render_status_comment(
                     review_thread_urls=review_thread_urls,
                     top_level_feedback_urls=top_level_feedback_urls,
                     held_gates=(
-                        outstanding_gate_phrase(facts)
+                        unreported_gate_phrase(facts)
                         if facts.route_held_for_gates
                         else ""
                     ),

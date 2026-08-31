@@ -51,21 +51,40 @@ def is_copilot_reviewer(
     return actor.is_copilot_reviewer
 
 
-def open_copilot_finding_count(
+def open_copilot_findings(
     review_threads: Sequence[ReviewThread],
-) -> int:
+) -> tuple[ReviewThread, ...]:
     # A review's own comment count never shrinks, so it still counts findings
     # the author has since addressed. Unresolved threads are the live ones:
     # GitHub marks a thread outdated once its anchor lines change, which is how
     # the rest of the dashboard already recognises a pushed fix.
-    count = 0
-    for thread in review_threads:
-        if thread.is_resolved or thread.is_outdated:
-            continue
-        comments = thread.comments
-        if comments and is_copilot_reviewer(comments[0].actor):
-            count += 1
-    return count
+    return tuple(
+        thread
+        for thread in review_threads
+        if (
+            not thread.is_resolved
+            and not thread.is_outdated
+            and thread.comments
+            and is_copilot_reviewer(thread.comments[0].actor)
+        )
+    )
+
+
+def open_copilot_finding_count(
+    review_threads: Sequence[ReviewThread],
+) -> int:
+    return len(open_copilot_findings(review_threads))
+
+
+def open_copilot_finding_urls(
+    review_threads: Sequence[ReviewThread],
+) -> tuple[str, ...]:
+    urls: list[str] = []
+    for thread in open_copilot_findings(review_threads):
+        url = thread.comments[0].url
+        if url and url not in urls:
+            urls.append(url)
+    return tuple(urls)
 
 
 def copilot_review_status(

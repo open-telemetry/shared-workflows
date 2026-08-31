@@ -67,18 +67,6 @@ def status_headline(route: DashboardRoute | str) -> str:
     )["status_headline"]
 
 
-def outstanding_gate_phrase(facts: DashboardFacts) -> str:
-    # Only one gate has to be outstanding for a PR to be held, and a branch
-    # without the Copilot gate never has that one, so naming both would tell
-    # the author to wait for work that is finished or never happens.
-    gates = []
-    if not facts.required_checks_settled:
-        gates.append("the required status checks")
-    if facts.copilot_review_outstanding:
-        gates.append("the Copilot review")
-    return " and ".join(gates)
-
-
 def unreported_gate_phrase(facts: DashboardFacts) -> str:
     # Which gate has said nothing at all about the current head. This is not
     # the same as the gate that is holding the PR: a Copilot review that left

@@ -409,7 +409,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("Wait for the required status checks to report;", body)
 
-    def test_held_pr_names_only_the_outstanding_copilot_gate(self) -> None:
+    def test_held_pr_names_only_the_unreported_copilot_gate(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),
             status_result(
@@ -418,10 +418,27 @@ class RenderStatusCommentTest(unittest.TestCase):
                 route_held_for_gates=True,
                 required_checks_settled=True,
                 copilot_review_outstanding=True,
+                copilot_review_unreported=True,
             ),
         )
 
         self.assertIn("Wait for the Copilot review to report;", body)
+
+    def test_reported_copilot_findings_are_not_described_as_waiting(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.AUTHOR,
+                author="alice",
+                route_held_for_gates=True,
+                required_checks_settled=True,
+                copilot_review_outstanding=True,
+                copilot_review_unreported=False,
+            ),
+        )
+
+        self.assertNotIn("Wait for the Copilot review to report;", body)
+        self.assertIn("Address or respond to review feedback.", body)
 
     def test_a_pr_released_from_a_stalled_gate_says_so(self) -> None:
         body = pr_status_comment.render_status_comment(
