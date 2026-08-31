@@ -785,18 +785,16 @@
         "assignees": [],
         "author": "YaoYingLong",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19152#issuecomment-5195604240"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "774cf7f1d3ce4c45b4dfe2294ff75483",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "ac75515237e4481cb78338b5987a799bda7957c3dd112c3e21121f9344cdc945",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
-        "copilot_review_request_needed": false,
+        "copilot_review_request_needed": true,
         "copilot_review_requested": false,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
@@ -813,7 +811,7 @@
         "last_activity_at": "2026-08-31T01:51:48+00:00",
         "last_approver_activity_at": "2026-08-29T16:36:35+00:00",
         "last_author_activity_at": "2026-08-31T01:51:48+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -822,13 +820,14 @@
             "login": "trask",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-08-31T06:24:51.266129+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "724a002faa683d863de2f4954946613a41a6a1737709bf9a37e53abf0d1118da",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "905703c0c137e1287f44ee0f70f7a5713e75692f1433c1145f89206da2ad9d67",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-05T18:19:11+00:00"
       },
       "failed": false,
