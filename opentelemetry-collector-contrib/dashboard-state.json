@@ -13412,7 +13412,7 @@
     },
     "50627": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "vasireddy99",
         "author_action_review_thread_urls": [],
@@ -13420,7 +13420,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "519c3df29c906f0b795a90ae01cd4d6d1941b027556242d0ae6bb1dcf931fe57",
+        "copilot_request_fingerprint": "971e7d71eb29cd4519ebbf6d475ada168e99cfeb91bd878fdccadcb581cf28ce",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -13433,24 +13433,34 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "b8572deb9f0cd6d6d4535b05ffdda793a95ad483",
+        "head_sha": "98bd19884fce201211e420ea50ce347766175b13",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-31T11:14:53+00:00",
-        "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-08-31T11:09:53+00:00",
+        "last_activity_at": "2026-08-31T21:10:55+00:00",
+        "last_approver_activity_at": "2026-08-31T21:10:55+00:00",
+        "last_author_activity_at": "2026-08-31T20:59:41+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "be70099e7555aa821c985ef3080b05763f0d28050d567dc82b49b70a1d8f98bb",
+        "routing_input_fingerprint": "e607091ee92203f311f4239bb964bdcb787cda0f6a62c85131a2ee2554a51f08",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-31T11:09:53+00:00"
       },
       "failed": false,
       "pr_number": 50627,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50627",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50628": {
