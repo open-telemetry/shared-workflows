@@ -31,7 +31,7 @@ permissions: {}
 jobs:
   validate-inputs:
     name: Validate inputs
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-slim # GitHub-hosted single-CPU runner
     steps:
       - name: Validate file mode
         env:
@@ -86,7 +86,7 @@ jobs:
   upload:
     name: Upload to code scanning
     needs: analysis
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-slim # GitHub-hosted single-CPU runner
     permissions:
       contents: read # for actions/checkout, so that upload-sarif can fingerprint results
       security-events: write # Needed for Code scanning upload
