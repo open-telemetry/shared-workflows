@@ -1272,7 +1272,17 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-01T17:22:10+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "302ea83ca636247f254eb9bbb70784d3506a554c48f753b185b93b4b10d0f6d3",
@@ -2486,5 +2496,5 @@
       "top_level_history": {}
     }
   },
-  "version": 12
+  "version": 13
 }
