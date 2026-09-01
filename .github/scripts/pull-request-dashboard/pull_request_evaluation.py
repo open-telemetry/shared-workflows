@@ -21,7 +21,11 @@ from classification_policy import (
     DiscussionAction,
     normalize_discussion_action,
 )
-from copilot_review import copilot_review_status, is_copilot_reviewer
+from copilot_review import (
+    copilot_review_status,
+    is_copilot_reviewer,
+    open_copilot_finding_urls,
+)
 from dashboard_contracts import (
     DashboardFacts,
     DashboardRoute,
@@ -252,6 +256,7 @@ def _compute_facts(
 def _author_action_discussion_urls(
     discussions: list[dict[str, Any]],
     pending_actions: dict[str, dict[str, Any]],
+    additional_urls: tuple[str, ...] = (),
 ) -> tuple[str, ...]:
     by_id = {
         discussion["discussion_id"]: discussion for discussion in discussions
@@ -263,6 +268,9 @@ def _author_action_discussion_urls(
             continue
         discussion = by_id.get(discussion_id)
         url = (discussion or {}).get("discussion_url") or ""
+        if url and url not in urls:
+            urls.append(url)
+    for url in additional_urls:
         if url and url not in urls:
             urls.append(url)
     return tuple(urls)
@@ -556,7 +564,15 @@ def evaluate_pull_request(
         )
         facts = facts.with_changes(
             author_action_review_thread_urls=(
-                _author_action_discussion_urls(review_threads, pending_actions)
+                _author_action_discussion_urls(
+                    review_threads,
+                    pending_actions,
+                    (
+                        open_copilot_finding_urls(pr_source.review_threads)
+                        if facts.copilot_review_outstanding
+                        else ()
+                    ),
+                )
             ),
             author_action_top_level_feedback_urls=(
                 _author_action_discussion_urls(top_level_items, pending_actions)

@@ -67,18 +67,6 @@ def status_headline(route: DashboardRoute | str) -> str:
     )["status_headline"]
 
 
-def outstanding_gate_phrase(facts: DashboardFacts) -> str:
-    # Only one gate has to be outstanding for a PR to be held, and a branch
-    # without the Copilot gate never has that one, so naming both would tell
-    # the author to wait for work that is finished or never happens.
-    gates = []
-    if not facts.required_checks_settled:
-        gates.append("the required status checks")
-    if facts.copilot_review_outstanding:
-        gates.append("the Copilot review")
-    return " and ".join(gates)
-
-
 def unreported_gate_phrase(facts: DashboardFacts) -> str:
     # Which gate has said nothing at all about the current head. This is not
     # the same as the gate that is holding the PR: a Copilot review that left
@@ -89,6 +77,22 @@ def unreported_gate_phrase(facts: DashboardFacts) -> str:
         gates.append("the required status checks")
     if facts.copilot_review_unreported:
         gates.append("the Copilot review")
+    return " and ".join(gates)
+
+
+def held_gate_phrase(facts: DashboardFacts) -> str:
+    # Which gate is keeping the pull request off the route it computed. A
+    # Copilot review that reported findings holds it just as a silent gate
+    # does, so name the findings the author still has to clear rather than the
+    # review, which has already arrived. A held route always has one of these,
+    # so the phrase is never empty while the pull request is held.
+    gates = []
+    if not facts.required_checks_settled:
+        gates.append("the required status checks")
+    if facts.copilot_review_unreported:
+        gates.append("the Copilot review")
+    elif facts.copilot_review_outstanding:
+        gates.append("the open Copilot review findings")
     return " and ".join(gates)
 
 
