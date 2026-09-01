@@ -29,7 +29,7 @@ concurrency:
 jobs:
   zizmor:
     name: Zizmor Security Analysis
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results
