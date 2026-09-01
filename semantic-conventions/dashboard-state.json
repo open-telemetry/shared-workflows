@@ -2121,7 +2121,7 @@
     },
     "4060": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2129,7 +2129,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7a52f76db5bb17a1bc9e786a1fd581e77ca03e9b93f166ddbef7ce2270b8eaf9",
+        "copilot_request_fingerprint": "b798115106803980a6cd04f0005def29e53386ad09e5e683d87739250069fd22",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2145,21 +2145,31 @@
         "head_sha": "5ab50c1122bd5bfa35cde68a2db74a753a122f43",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-01T00:52:03+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-01T11:17:35+00:00",
+        "last_approver_activity_at": "2026-09-01T11:17:35+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "arminru",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "69db83eff42bbfcdd7fc35e84fb0ce3404e1ad001b646604fa57ca0909ed7d31",
+        "routing_input_fingerprint": "bbb07d9ce0d9f359da8e79e042a878300f411f32101f3e37528123b674f41e05",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-01T00:52:03+00:00"
       },
       "failed": false,
       "pr_number": 4060,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4060",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4062": {
