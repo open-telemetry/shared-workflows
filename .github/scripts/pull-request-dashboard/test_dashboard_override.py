@@ -739,7 +739,7 @@ class DashboardOverrideTest(unittest.TestCase):
             facts.dashboard_command_replies,
         )
 
-    def test_acknowledges_feedback_that_superseded_a_pending_command(self) -> None:
+    def test_does_not_reply_when_feedback_supersedes_a_pending_command(self) -> None:
         source = override_input(
             issue_comment(
                 database_id=12,
@@ -756,30 +756,14 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = dashboard_override.append_command_ack_reply(
             source, facts, DashboardRoute.AUTHOR
         )
-        body = dashboard_override.render_command_reply(
-            facts.dashboard_command_replies[0]
-        )
 
-        self.assertIn(
-            dashboard_override.override_ack_marker(
-                12,
-                "bound-head",
-                "2026-08-16T08:00:00Z",
-            ),
-            body,
+        self.assertEqual(
+            "2026-08-16T08:00:00Z",
+            facts.dashboard_override_since,
         )
-        self.assertIn(
-            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
-            "12:bound-head -->",
-            body,
-        )
-        self.assertIn(
-            "newer actionable reviewer feedback ended the reviewer handoff, so "
-            "this pull request is routed normally again",
-            body,
-        )
+        self.assertEqual((), facts.dashboard_command_replies)
 
-    def test_acknowledges_feedback_that_superseded_an_acknowledged_command(
+    def test_does_not_reply_when_feedback_supersedes_an_acknowledged_command(
         self,
     ) -> None:
         routed_reply = issue_comment(
@@ -809,40 +793,26 @@ class DashboardOverrideTest(unittest.TestCase):
             DashboardRoute.AUTHOR,
         )
 
-        self.assertEqual("cleared_by_feedback", facts.dashboard_command_replies[0].kind)
-        self.assertFalse(
-            dashboard_override.command_reply_exists(
-                [routed_reply],
-                facts.dashboard_command_replies[0],
-            )
-        )
-        cleared_reply = issue_comment(
-            database_id=10,
-            actor=actor("opentelemetry-pr-dashboard[bot]"),
-            body=dashboard_override.render_command_reply(
-                facts.dashboard_command_replies[0]
-            ),
-        )
-        self.assertTrue(
-            dashboard_override.command_reply_exists(
-                [routed_reply, cleared_reply],
-                facts.dashboard_command_replies[0],
-            )
-        )
+        self.assertEqual((), facts.dashboard_command_replies)
 
-    def test_cleared_reply_recovers_clearance_after_cache_loss(self) -> None:
+    def test_status_markers_recover_clearance_after_cache_loss(self) -> None:
         source = override_input(
             issue_comment(
                 database_id=9,
                 actor=actor("opentelemetry-pr-dashboard[bot]"),
-                body=dashboard_override.render_command_reply(
-                    DashboardCommandReply(
-                        5,
-                        "cleared_by_feedback",
-                        "author",
-                        head_sha="bound-head",
-                        since="2026-08-16T08:00:00Z",
-                    )
+                body="\n".join(
+                    [
+                        "<!-- pull-request-dashboard-status -->",
+                        dashboard_override.override_ack_marker(
+                            5,
+                            "bound-head",
+                            "2026-08-16T08:00:00Z",
+                        ),
+                        (
+                            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                            "5:bound-head -->"
+                        ),
+                    ]
                 ),
             )
         )
@@ -1292,6 +1262,37 @@ class DashboardOverrideTest(unittest.TestCase):
             ],
             run_gh.call_args_list,
         )
+
+    @patch.object(dashboard_override_delivery, "run_gh")
+    @patch.object(dashboard_override_delivery, "gh_api")
+    @patch.object(
+        dashboard_override_delivery,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(stored_dashboard_result(
+            7,
+            facts=dashboard_facts(dashboard_command_replies=(
+                DashboardCommandReply(
+                    3,
+                    "cleared_by_feedback",
+                    "author",
+                    head_sha="current-head",
+                ),
+            )),
+        )),
+    )
+    def test_does_not_deliver_legacy_cleared_reply(
+        self,
+        _load_state,
+        gh_api,
+        run_gh,
+    ) -> None:
+        errors = dashboard_override_delivery.deliver_dashboard_command_replies(
+            "open-telemetry/example"
+        )
+
+        self.assertEqual([], errors)
+        gh_api.assert_not_called()
+        run_gh.assert_not_called()
 
 
 if __name__ == "__main__":

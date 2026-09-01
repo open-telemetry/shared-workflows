@@ -485,10 +485,11 @@ the implementation understandable and operationally cheap.
   cannot reactivate the same command. A newer command can establish a new
   handoff on the same head.
 - The dashboard binds a command to the head it sees when it first reads that
-  command, and records that head in the acknowledgement comment. The handoff is
-  then a comparison of two strings: the recorded head and the current one. The
-  earlier design instead ordered the command against the push by comparing the
-  comment timestamp with the head push time from `GET /repos/{repo}/activity`.
+  command, and records that head in an acknowledgement marker on either the
+  command reply or the live status comment. The handoff is then a comparison of
+  two strings: the recorded head and the current one. The earlier design
+  instead ordered the command against the push by comparing the comment
+  timestamp with the head push time from `GET /repos/{repo}/activity`.
   Do not reintroduce that. Both timestamps have one-second resolution and come
   from different APIs, so the ordering is sometimes unknowable, which forces a
   third "cannot tell" state that every later pass has to carry forward and every

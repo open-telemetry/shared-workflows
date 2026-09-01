@@ -13,7 +13,6 @@ from dashboard_contracts import (
 )
 from dashboard_status import (
     DASHBOARD_APP_SLUG,
-    reviewer_handoff_cleared_marker,
     status_reviewer_handoff_clearance,
 )
 from pull_request_source import IssueComment
@@ -274,6 +273,18 @@ def _acknowledged_override_command_ids(
     return acknowledged_ids
 
 
+def acknowledges_override(text: str, command_id: int, head_sha: str) -> bool:
+    """Return whether the text already acknowledges this command and bound head.
+
+    The acknowledgement's cutoff timestamp is ignored, so a marker that records
+    a different cutoff for the same binding still counts as present.
+    """
+    return any(
+        int(match.group(1)) == command_id and (match.group(2) or "") == head_sha
+        for match in _OVERRIDE_ACK_MARKER_RE.finditer(text)
+    )
+
+
 def acknowledged_override(
     comments: Sequence[IssueComment],
 ) -> tuple[int, str, str, str]:
@@ -415,12 +426,7 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             )
         else:
             message = "this pull request was routed to reviewers."
-    elif kind == "cleared_by_feedback":
-        message = (
-            "newer actionable reviewer feedback ended the reviewer handoff, so "
-            "this pull request is routed normally again."
-        )
-    else:
+    elif kind == "unknown_command":
         subcommand = reply.subcommand
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
         message = (
@@ -429,9 +435,13 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             "request author can use to move a pull request from waiting on the "
             "author to waiting on reviewers."
         )
+    else:
+        # A reply the dashboard never posts, such as a cleared_by_feedback reply
+        # left in older cached state, must not be rendered as some other kind.
+        raise ValueError(f"undeliverable dashboard command reply kind: {kind!r}")
     comment_id = reply.comment_id
     markers = [command_reply_marker(comment_id)]
-    if kind in ("routed", "cleared_by_feedback"):
+    if kind == "routed":
         markers.append(
             override_ack_marker(
                 comment_id,
@@ -439,8 +449,6 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 reply.since,
             )
         )
-    if kind == "cleared_by_feedback" and reply.head_sha:
-        markers.append(reviewer_handoff_cleared_marker(comment_id, reply.head_sha))
     return "\n".join([
         *markers,
         f"{mention}{message}",
@@ -452,11 +460,7 @@ def command_reply_exists(
     comments: Sequence[IssueComment],
     reply: DashboardCommandReply,
 ) -> bool:
-    marker = (
-        reviewer_handoff_cleared_marker(reply.comment_id, reply.head_sha)
-        if reply.kind == "cleared_by_feedback" and reply.head_sha
-        else command_reply_marker(reply.comment_id)
-    )
+    marker = command_reply_marker(reply.comment_id)
     return any(
         _is_dashboard_app_comment(comment)
         and marker in comment.body
@@ -472,9 +476,9 @@ def append_command_ack_reply(
     """Queue the reply that acknowledges an override command.
 
     The reply carries the acknowledgement marker, which records the bound head
-    and feedback cutoff and stops the command from being processed again. Every
-    authorized command gets a reply because the command forces the reviewer route
-    even when no discussion or failing check was cleared.
+    and feedback cutoff and stops the command from being processed again. A
+    command superseded by reviewer feedback is acknowledged in the status comment
+    instead of producing another top-level comment.
     """
     cleared_by_feedback = facts.dashboard_override_cleared_by_feedback
     command_id = (
@@ -487,21 +491,23 @@ def append_command_ack_reply(
     )
     if not command_id:
         return facts
-    kind = "cleared_by_feedback" if cleared_by_feedback else "routed"
-    replies = facts.dashboard_command_replies
     override_since = (
         facts.dashboard_override_since
         or _override_command_effective_at(source.issue_comments, command_id)
     )
+    if cleared_by_feedback:
+        return facts.with_changes(dashboard_override_since=override_since)
+    kind = "routed"
+    replies = facts.dashboard_command_replies
     reply = DashboardCommandReply(
         comment_id=command_id,
         kind=kind,
         head_sha=facts.dashboard_override_head_sha,
         user=facts.dashboard_override_command_user or facts.author,
-        route=route if kind == "routed" else None,
+        route=route,
         held_gates=(
             outstanding_gate_phrase(facts)
-            if kind == "routed" and facts.route_held_for_gates
+            if facts.route_held_for_gates
             else ""
         ),
         since=override_since,

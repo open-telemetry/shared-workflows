@@ -567,10 +567,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             },
             result.pending_actions,
         )
-        self.assertEqual(
-            "cleared_by_feedback",
-            result.facts.dashboard_command_replies[0].kind,
-        )
+        self.assertEqual((), result.facts.dashboard_command_replies)
         self.assertEqual(len(classifier.requests), 1)
         self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
 
