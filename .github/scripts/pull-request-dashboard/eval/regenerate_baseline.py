@@ -48,7 +48,15 @@ def batch_prompt(batch: list[dict]) -> str:
     """The prompt the dashboard would send for one batch."""
     items = [
         policy.reviewer_feedback_prompt_item(
-            c["id"], c["requester"], c["pr_author"], c["body"]
+            c["id"],
+            c["requester"],
+            c["pr_author"],
+            c["body"],
+            (
+                "review_summary"
+                if c["id"].startswith("pr-review-")
+                else "top_level_comment"
+            ),
         )
         for c in batch
     ]
