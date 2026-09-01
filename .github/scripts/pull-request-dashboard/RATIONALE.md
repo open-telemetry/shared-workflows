@@ -485,10 +485,11 @@ the implementation understandable and operationally cheap.
   cannot reactivate the same command. A newer command can establish a new
   handoff on the same head.
 - The dashboard binds a command to the head it sees when it first reads that
-  command, and records that head in the acknowledgement comment. The handoff is
-  then a comparison of two strings: the recorded head and the current one. The
-  earlier design instead ordered the command against the push by comparing the
-  comment timestamp with the head push time from `GET /repos/{repo}/activity`.
+  command, and records that head in an acknowledgement marker on either the
+  command reply or the live status comment. The handoff is then a comparison of
+  two strings: the recorded head and the current one. The earlier design
+  instead ordered the command against the push by comparing the comment
+  timestamp with the head push time from `GET /repos/{repo}/activity`.
   Do not reintroduce that. Both timestamps have one-second resolution and come
   from different APIs, so the ordering is sometimes unknowable, which forces a
   third "cannot tell" state that every later pass has to carry forward and every
@@ -608,10 +609,12 @@ the implementation understandable and operationally cheap.
   approval-based routing then decides whether the PR waits on reviewers or
   maintainers; ordinary items do not have a separate requester-confirmation
   phase.
-- Review summaries are classified like other top-level feedback, independently
-  of review state. A `CHANGES_REQUESTED` state affects only the reviewer's
-  badge; it does not affect dashboard actions or routing. Empty review summaries
-  are ignored; their inline comments, if any, define independent actions.
+- Review summaries follow the same lifecycle as other top-level feedback, but
+  the classifier is told which kind of item it is reading, so the summary rule
+  below applies only to them. Review state stays independent of that: a
+  `CHANGES_REQUESTED` state affects only the reviewer's badge; it does not
+  affect dashboard actions or routing. Empty review summaries are ignored;
+  their inline comments, if any, define independent actions.
 - Who a comment opens by addressing is extracted in code and passed to the
   classifier as `addressed_to`, rather than left for the model to find in the
   body. A reviewer routinely names other people, pull requests, and prior work
@@ -621,15 +624,20 @@ the implementation understandable and operationally cheap.
   that maintainer's, from feedback that merely mentions one. The item still
   waits on the author whenever it also requests, suggests, or directs a change,
   so the addressee never overrides real feedback.
-- A review summary that only introduces the review — where its comments came
-  from, how much weight to give them, or that the author is free to disagree
-  with them — needs nothing from the author. Those comments are already
-  independent items, so treating the preamble as feedback asks the author to
-  answer a note about comments each tracked on their own, and its invitation to
-  push back would outlive every one of them. The classifier's ambiguity
-  fail-safe otherwise sends these to the author whenever the wording reads as a
-  request, so the prompt names them; a preamble that also asks for something is
-  ordinary feedback.
+- A review summary that only refers to the review it introduces needs nothing
+  from the author. That covers where its comments came from, how much weight to
+  give them, and that the author is free to disagree with them, and it equally
+  covers a summary that counts those comments, describes their severity, or
+  names the topics they cover. Those comments are already independent items, so
+  treating the summary as feedback asks the author to answer a note about
+  comments each tracked on their own, and its invitation to push back would
+  outlive every one of them. The classifier's ambiguity fail-safe otherwise
+  sends these to the author whenever the wording reads as a request, so the
+  prompt names them. A summary is ordinary feedback only when its own body adds
+  a request, question, objection, or blocker beyond referring to those comments.
+  Accepted tradeoff: a summary stays non-blocking even when it says the review
+  contains requests, so a reviewer whose only actionable point is in the summary
+  should post it as its own comment.
 - The author reply that closed an item is retained in the cached PR result. It
   is reused only when it is newer than the item's creation time, which an edit
   never moves. Accepted tradeoff: a substantively rewritten request keeps the

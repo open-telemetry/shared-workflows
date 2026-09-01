@@ -157,7 +157,7 @@ def successful_response(
             }
             for item in items
         ])
-    if "---BEGIN TOP-LEVEL FEEDBACK---" in request.prompt:
+    if "---BEGIN REVIEWER FEEDBACK---" in request.prompt:
         verdict = reviewer_feedback
     elif "---BEGIN AUTHOR COMMENTS---" in request.prompt:
         verdict = author_reply

@@ -207,6 +207,36 @@ class ReviewerStateTest(unittest.TestCase):
         )
         self.assertTrue(all(reviewer.open_thread for reviewer in reviewers))
 
+    def test_inline_ownership_includes_bot_reviewers(self) -> None:
+        prepared = prepare()
+        thread = {
+            "discussion_id": "inline",
+            "comments": [
+                {
+                    "actor": "copilot-pull-request-reviewer[bot]",
+                    "actor_role": "bot",
+                },
+                {"actor": "reviewer[bot]", "actor_role": "bot"},
+            ],
+        }
+
+        reviewers = resolve(
+            prepared,
+            review_threads=[thread],
+            pending_actions={"inline": {"action": "author"}},
+        )
+
+        self.assertEqual(
+            [
+                ReviewerSummary(
+                    login="copilot-pull-request-reviewer[bot]",
+                    open_thread=True,
+                ),
+                ReviewerSummary(login="reviewer[bot]", open_thread=True),
+            ],
+            list(reviewers),
+        )
+
     def test_ignored_final_praise_does_not_add_its_author(self) -> None:
         prepared = prepare()
         thread = {

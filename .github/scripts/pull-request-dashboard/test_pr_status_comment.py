@@ -131,6 +131,11 @@ class RenderStatusCommentTest(unittest.TestCase):
             "12:abcdef123456 -->",
             body,
         )
+        self.assertIn(
+            "<!-- pull-request-dashboard-override-ack:"
+            "12:abcdef123456 -->",
+            body,
+        )
         self.assertEqual(
             (98, "no-status-marker"),
             status_reviewer_handoff_clearance([
@@ -174,12 +179,16 @@ class RenderStatusCommentTest(unittest.TestCase):
                 ),
                 pr_status_comment.author_nudge_episode_marker("abc123"),
                 (
+                    "<!-- pull-request-dashboard-override-ack:"
+                    "12:abcdef123456 -->"
+                ),
+                (
                     "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
                     "12:abcdef123456 -->"
                 ),
                 "## Pull request dashboard status",
             ],
-            body.splitlines()[:5],
+            body.splitlines()[:6],
         )
 
     def test_clearance_recovery_prefers_the_latest_marker_for_a_command(self) -> None:
@@ -771,6 +780,8 @@ class UpsertStatusCommentTest(unittest.TestCase):
                 },
                 "body": (
                     "<!-- pull-request-dashboard-status -->\n"
+                    "<!-- pull-request-dashboard-override-ack:"
+                    "12:bound-head:2026-08-16T08:00:00Z -->\n"
                     "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
                     "12:bound-head -->"
                 ),
@@ -786,6 +797,11 @@ class UpsertStatusCommentTest(unittest.TestCase):
         )
 
         self.assertEqual(["PATCH", "DELETE"], [command[3] for command in self.commands])
+        self.assertIn(
+            "<!-- pull-request-dashboard-override-ack:"
+            "12:bound-head:2026-08-16T08:00:00Z -->",
+            self.commands[0][-1],
+        )
         self.assertIn(
             "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
             "12:bound-head -->",
@@ -840,6 +856,8 @@ class UpsertStatusCommentTest(unittest.TestCase):
             },
             "body": (
                 f"{pr_status_comment.STATUS_MARKER}\n"
+                "<!-- pull-request-dashboard-override-ack:"
+                "12:bound-head:2026-08-16T08:00:00Z -->\n"
                 "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
                 "12:bound-head -->\n"
                 "old status"
@@ -867,10 +885,63 @@ class UpsertStatusCommentTest(unittest.TestCase):
             "body="
             f"{pr_status_comment.STATUS_MARKER}\n"
             "<!-- pull-request-dashboard-status-revision:4 -->\n"
+            "<!-- pull-request-dashboard-override-ack:"
+            "12:bound-head:2026-08-16T08:00:00Z -->\n"
             "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
             "12:bound-head -->\n"
             "## Pull request dashboard status",
             self.commands[0],
+        )
+
+    @patch.object(
+        pr_status_comment,
+        "managed_status_comments",
+        return_value=[{
+            "id": 7,
+            "performed_via_github_app": {
+                "slug": pr_status_comment.DASHBOARD_APP_SLUG,
+            },
+            "body": (
+                f"{pr_status_comment.STATUS_MARKER}\n"
+                "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+                "12:bound-head -->\n"
+                "old status"
+            ),
+        }],
+    )
+    def test_status_update_keeps_one_acknowledgement_marker(
+        self, _comments: object
+    ) -> None:
+        # A status comment written before the dashboard recorded the
+        # acknowledgement carries no cutoff to recover, so preserving the
+        # acknowledgement must not duplicate the rendered one.
+        body = (
+            f"{pr_status_comment.STATUS_MARKER}\n"
+            "<!-- pull-request-dashboard-status-revision:4 -->\n"
+            "<!-- pull-request-dashboard-override-ack:"
+            "12:bound-head:2026-08-16T08:00:00Z -->\n"
+            "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
+            "12:bound-head -->\n"
+            "## Pull request dashboard status"
+        )
+
+        pr_status_comment.upsert_status_comment(
+            "open-telemetry/example",
+            1,
+            body,
+            create=False,
+            preserve_clearance=True,
+        )
+
+        patched_body = self.commands[0][-1]
+        self.assertEqual(
+            1,
+            patched_body.count("<!-- pull-request-dashboard-override-ack:"),
+        )
+        self.assertIn(
+            "<!-- pull-request-dashboard-override-ack:"
+            "12:bound-head:2026-08-16T08:00:00Z -->",
+            patched_body,
         )
 
     @patch.object(
