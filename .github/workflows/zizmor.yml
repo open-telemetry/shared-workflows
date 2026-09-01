@@ -9,11 +9,6 @@ on:
         required: false
         default: regular
         type: string
-      use-cncf-hosted-runner:
-        description: 'Run Linux jobs on the standard CNCF-hosted x86 runner.'
-        required: false
-        default: false
-        type: boolean
   push:
     branches:
       - main
@@ -34,7 +29,7 @@ concurrency:
 jobs:
   zizmor:
     name: Zizmor Security Analysis
-    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       security-events: write  # for zizmor to upload SARIF results

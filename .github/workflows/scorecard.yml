@@ -19,11 +19,6 @@ on:
         required: false
         default: false
         type: boolean
-      use-cncf-hosted-runner:
-        description: 'Run Linux jobs on the standard CNCF-hosted x86 runner.'
-        required: false
-        default: false
-        type: boolean
   push:
     branches:
       - main
@@ -36,7 +31,7 @@ permissions: {}
 jobs:
   validate-inputs:
     name: Validate inputs
-    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
+    runs-on: ubuntu-slim
     steps:
       - name: Validate file mode
         env:
@@ -57,7 +52,7 @@ jobs:
   analysis:
     name: OSSF Scorecard Analysis
     needs: validate-inputs
-    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read # for actions/checkout
       id-token: write # Needed for GitHub OIDC token since publish_results is true
@@ -91,7 +86,7 @@ jobs:
   upload:
     name: Upload to code scanning
     needs: analysis
-    runs-on: ${{ inputs['use-cncf-hosted-runner'] && 'cncf-ubuntu-2-8-x86' || 'ubuntu-latest' }}
+    runs-on: ubuntu-slim
     permissions:
       contents: read # for actions/checkout, so that upload-sarif can fingerprint results
       security-events: write # Needed for Code scanning upload
