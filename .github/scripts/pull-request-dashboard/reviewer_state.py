@@ -146,7 +146,7 @@ def _reviewers_with_open_threads(
             comments = comments[:-1]
         for comment in comments:
             if (
-                comment.get("actor_role") in ("approver", "outsider")
+                comment.get("actor_role") in ("approver", "outsider", "bot")
                 and comment.get("actor")
             ):
                 logins.add(comment["actor"])
