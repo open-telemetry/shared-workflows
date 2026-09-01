@@ -42,7 +42,7 @@ change the commit or branch metadata available to checks.
 
 The optional Boolean `use-harden-runner` input defaults to `false`. When it is
 `true`, the analysis and upload jobs begin with `step-security/harden-runner`
-using `egress-policy: audit`. That audits outbound calls on the GitHub-hosted
+using `egress-policy: audit`. That audits outbound calls on GitHub-hosted Ubuntu
 runners.
 
 ## What gets filtered
