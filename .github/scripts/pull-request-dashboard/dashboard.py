@@ -196,9 +196,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   Copilot review are still
                                                   outstanding.
     required_checks_settled         bool          Every required check has
-                                                  completed without needing a
-                                                  maintainer-owned permission
-                                                  action.
+                                                  reported a final result, and
+                                                  none is waiting for
+                                                  maintainer action.
     route_held_since                str (iso)     When the gates first kept this
                                                   PR off its reviewers on this
                                                   head. Cleared once every gate
