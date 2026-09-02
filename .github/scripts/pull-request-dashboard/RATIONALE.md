@@ -400,15 +400,20 @@ the implementation understandable and operationally cheap.
   actionable one routes the PR to "waiting on author." In that common path the
   gate never fires and no re-review is requested.
 - Findings are counted from unresolved, non-outdated review threads Copilot
-  started, not from the comment count on its review. A review's comment count
-  never shrinks, so it keeps counting feedback the author has since addressed
-  and holds the PR on work that is already done.
+  started, not from the comment count on its review. A later clean review of
+  the current head supersedes findings from earlier Copilot reviews; review
+  database IDs order submissions when GitHub records them in the same second.
+  Missing bindings or timestamps keep findings active. A review's comment
+  count never shrinks, so using it would keep counting feedback the author has
+  since addressed and hold the PR on work that is already done.
 - The gate's re-request path covers two states. A stale review means the author
   pushed, which is the one change a re-review can respond to. Findings on the
   current head sit on unchanged code, so asking Copilot to look at it again
-  would reach the same verdict and be requested again on the next pass; those
-  threads clear when the author resolves them or pushes a fix, which is a
-  re-request in its own right.
+  would reach the same verdict and be requested again on the next pass. Those
+  threads stop counting when GitHub marks them resolved or outdated, or when a
+  later clean review of the current head supersedes them. A push makes the
+  review stale and triggers a re-request, but the push alone does not prove that
+  a finding was fixed.
 - The other state is a first review that never arrived. The gate otherwise
   relies entirely on automatic Copilot code review to produce it, so when GitHub
   silently never starts one, the pull request waits on its author forever for a
@@ -476,17 +481,19 @@ the implementation understandable and operationally cheap.
   Copilot review, merge conflicts, discussion actions, and approval routing. The
   author may be stuck or may need a person to explain a basic problem, so no
   automated blocker can prevent the handoff. A later push restores normal
-  routing and gates. Actionable human reviewer feedback posted after the command
-  also ends the handoff, because a reviewer has answered the request for help and
-  assigned the next action to the author. Praise, informational comments, bot
-  feedback, and feedback posted before the command do not end it.
-- While a handoff is active, the dashboard classifies only newer human reviewer
-  feedback. Old discussions and classification failures therefore cannot block
-  the break-glass route. Once newer feedback produces an author action, normal
-  discussion classification and routing resume. The dashboard records that
-  transition in its live status comment so an author reply or a lost state cache
-  cannot reactivate the same command. A newer command can establish a new
-  handoff on the same head.
+  routing and gates. Actionable human reviewer feedback with an effective
+  content timestamp after the command also ends the handoff, because a reviewer
+  has answered the request for help and assigned the next action to the author.
+  An edit to older feedback counts when its content-edit timestamp is after the
+  command. Praise, informational comments, bot feedback, and feedback last
+  changed at or before the command do not end it.
+- While a handoff is active, the dashboard classifies only human reviewer
+  feedback with content activity after the command. Older discussions and
+  classification failures therefore cannot block the break-glass route. Once
+  newer feedback produces an author action, normal discussion classification
+  and routing resume. The dashboard records that transition in its live status
+  comment so an author reply or a lost state cache cannot reactivate the same
+  command. A newer command can establish a new handoff on the same head.
 - The dashboard binds a command to the head it sees when it first reads that
   command, and records that head in an acknowledgement marker on either the
   command reply or the live status comment. The handoff is then a comparison of
