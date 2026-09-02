@@ -765,6 +765,7 @@ def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) ->
         "Update dashboard state",
         lambda: apply_targeted_dashboard_update(args, update, observed_at),
         state_branch=args.state_branch,
+        respect_publisher_lock=True,
     )
 
 
@@ -800,6 +801,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 observed_at,
             ),
             state_branch=args.state_branch,
+            respect_publisher_lock=True,
         )
         if status != 0:
             return status
@@ -825,6 +827,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             "Update dashboard state",
             save_current_dashboard_state,
             state_branch=args.state_branch,
+            respect_publisher_lock=True,
         )
 
     for pr_summary in selection.selected_prs:
@@ -893,6 +896,7 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             "Update dashboard state",
             update_selected_pr,
             state_branch=args.state_branch,
+            respect_publisher_lock=True,
         )
         if status != 0:
             return status
