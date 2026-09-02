@@ -210,6 +210,10 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
                         or f"review-discussion-{len(discussions) + 1}"
                     ),
                     "discussion_kind": "review-comment-thread",
+                    "strict_author_action": bool(
+                        raw_comments
+                        and raw_comments[0].actor.is_copilot_reviewer
+                    ),
                     "path": discussion.path or None,
                     "line": discussion.line,
                     "resolved": False,
@@ -724,9 +728,13 @@ def _review_thread_pending_actions(
                 f"({classification.identity.kind.value}) requires "
                 f"ActionDecision, got {type(decision).__name__}"
             )
-        action = decision.action
         discussion_id = classification.identity.discussion_id
         discussion = by_id.get(discussion_id)
+        action = (
+            DiscussionAction.AUTHOR
+            if (discussion or {}).get("strict_author_action")
+            else decision.action
+        )
         comments = (discussion or {}).get("comments") or []
         if action is not DiscussionAction.NONE and comments:
             entry = {

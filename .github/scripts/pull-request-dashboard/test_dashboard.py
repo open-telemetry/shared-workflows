@@ -491,7 +491,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_unresolved_copilot_thread_remains_an_author_action(
+    def test_unresolved_copilot_thread_with_completed_reply_remains_author_action(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -564,10 +564,78 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
         self.assertIsInstance(ungated_result, EvaluationSuccess)
         assert isinstance(ungated_result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, ungated_result.route)
         self.assertEqual(
-            (),
+            (thread_url,),
             ungated_result.facts.author_action_review_thread_urls,
         )
+        self.assertEqual(
+            {
+                "PRRT_1": {
+                    "action": "author",
+                    "since": "2026-08-16T07:30:00Z",
+                },
+            },
+            ungated_result.pending_actions,
+        )
+        self.assertIn(
+            ReviewerSummary(
+                login="copilot-pull-request-reviewer[bot]",
+                open_thread=True,
+            ),
+            ungated_result.facts.reviewers,
+        )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_resolved_or_outdated_copilot_thread_releases_author_hold(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        for state in ({"is_resolved": True}, {"is_outdated": True}):
+            with self.subTest(state=state):
+                fetch_raw.return_value = pull_request_source(
+                    pull_request=pull_request_metadata(),
+                    reviews=(
+                        review_source(
+                            actor=actor("copilot"),
+                            commit_id="old-head",
+                            finding_count=1,
+                            submitted_at="2026-08-16T07:00:00Z",
+                        ),
+                        review_source(
+                            actor=actor("copilot"),
+                            commit_id="abcdef123456",
+                            finding_count=0,
+                            submitted_at="2026-08-16T08:00:00Z",
+                        ),
+                    ),
+                    review_threads=(review_thread(
+                        comments=(
+                            review_thread_comment(actor=actor("copilot")),
+                            review_thread_comment(
+                                node_id="PRRC_2",
+                                body="Handled in a follow-up.",
+                                created_at="2026-08-16T07:30:00Z",
+                                actor=actor("author"),
+                            ),
+                        ),
+                        **state,
+                    ),),
+                )
+
+                result = evaluate_pr(
+                    {"number": 7},
+                    require_clean_copilot_review_branches=["main"],
+                )
+
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(DashboardRoute.APPROVER, result.route)
+                self.assertEqual({}, result.pending_actions)
+                self.assertEqual(
+                    (),
+                    result.facts.author_action_review_thread_urls,
+                )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_override_binds_to_the_observed_head_before_classification(

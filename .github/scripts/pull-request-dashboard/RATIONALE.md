@@ -400,10 +400,11 @@ the implementation understandable and operationally cheap.
   would hold every ready PR with its author waiting for a review that never
   runs, so only branches with automatic review are listed and PRs targeting
   other branches route normally.
-- Copilot findings normally return a PR to the author through ordinary
-  discussion routing: an inline finding is an unresolved review thread, and an
-  actionable one routes the PR to "waiting on author." In that common path the
-  gate never fires and no re-review is requested.
+- Every unresolved, non-outdated thread Copilot started is an author action,
+  even after an author reply or a later clean review. This ownership bypasses
+  generic praise and author-reply classification and ends only when the thread
+  is resolved or outdated. The gate therefore never needs its expiration path
+  to retain these findings.
 - Findings are counted from unresolved, non-outdated review threads Copilot
   started, not from the comment count on its review. A review's comment count
   never shrinks, so it keeps counting feedback the author has since addressed

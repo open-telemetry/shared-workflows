@@ -1063,6 +1063,20 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
 
+    def test_unresolved_copilot_finding_does_not_use_reply_classifier(self) -> None:
+        thread = self.thread(
+            ("bot", "Please fix this.", "2026-03-12T00:00:00Z"),
+            ("author", "Fixed it.", "2026-05-20T00:00:00Z"),
+        )
+        thread["strict_author_action"] = True
+
+        result, runner = self.classify(thread)
+
+        self.assertEqual(runner.requests, [])
+        assert isinstance(result.decision, ActionDecision)
+        self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
+        self.assertEqual(result.since, "2026-05-20T00:00:00Z")
+
     def test_praise_keeps_the_previous_request_and_wait_age(self) -> None:
         result, runner = self.classify(self.thread(
             ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
