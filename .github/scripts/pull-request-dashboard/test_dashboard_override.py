@@ -295,6 +295,16 @@ class DashboardOverrideTest(unittest.TestCase):
                 "routed",
                 "author",
                 route=DashboardRoute.APPROVER,
+                since="2026-08-16T08:00:00Z",
+                top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+            )
+        )
+        conservative = dashboard_override.render_command_reply(
+            DashboardCommandReply(
+                8,
+                "routed",
+                "author",
+                route=DashboardRoute.APPROVER,
             )
         )
         gate_held = dashboard_override.render_command_reply(
@@ -333,6 +343,11 @@ class DashboardOverrideTest(unittest.TestCase):
             "Top-level feedback through this request will not return; unresolved "
             "review threads remain open.",
             routed,
+        )
+        self.assertIn(
+            "No top-level feedback was retired because the dashboard could not "
+            "determine a safe command time; unresolved review threads remain open.",
+            conservative,
         )
         self.assertIn(dashboard_override.command_reply_marker(5), gate_held)
         self.assertIn(
@@ -449,6 +464,10 @@ class DashboardOverrideTest(unittest.TestCase):
         )
 
         self.assertEqual("2026-08-16T08:00:00Z", retry.since)
+        self.assertEqual(
+            "2026-08-16T08:00:00Z",
+            retry.top_level_feedback_cutoff,
+        )
 
     def test_new_pending_command_binds_to_the_newly_observed_head(self) -> None:
         previous_source = override_input(
@@ -505,6 +524,9 @@ class DashboardOverrideTest(unittest.TestCase):
                     dashboard_override_bound_command_id=5,
                     dashboard_override_head_sha="bound-head",
                     dashboard_override_since="2026-08-16T09:00:00Z",
+                    dashboard_top_level_feedback_cutoff=(
+                        "2026-08-16T09:00:00Z"
+                    ),
                 ),
                 "",
             ),
@@ -538,6 +560,10 @@ class DashboardOverrideTest(unittest.TestCase):
                 )
 
                 self.assertEqual("2026-08-16T09:00:00Z", facts.since)
+                self.assertEqual(
+                    "2026-08-16T09:00:00Z",
+                    facts.top_level_feedback_cutoff,
+                )
 
     def test_newer_command_advances_permanent_top_level_cutoff(self) -> None:
         source = override_input(
@@ -593,6 +619,66 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(
             "2026-08-16T08:00:00Z",
             facts.top_level_feedback_cutoff,
+        )
+
+    def test_acknowledgement_preserves_cutoff_across_cache_loss(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=6,
+                body="/dashboard route:reviewers",
+                created_at="",
+                updated_at="",
+                content_updated_at="",
+            ),
+        )
+        previous_facts = dashboard_facts(
+            dashboard_override_bound_command_id=5,
+            dashboard_override_head_sha="old-head",
+            dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+        )
+        override = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "new-head",
+            previous_facts,
+        )
+        facts = dashboard_override.append_command_ack_reply(
+            source,
+            result_facts(override, author="author"),
+            DashboardRoute.APPROVER,
+        )
+
+        reply = facts.dashboard_command_replies[0]
+        body = dashboard_override.render_command_reply(reply)
+        self.assertIn(
+            "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+            "6:2026-08-16T08:00:00Z -->",
+            body,
+        )
+        self.assertIn(
+            "The existing top-level feedback cutoff remains in effect, but no "
+            "additional top-level feedback was retired because the dashboard could "
+            "not determine a safe command time; unresolved review threads remain "
+            "open.",
+            body,
+        )
+
+        restored = dashboard_override.dashboard_override_facts(
+            override_input(issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=body,
+                created_at="2026-08-16T10:00:00Z",
+            )),
+            "author",
+            None,
+            "new-head",
+        )
+
+        self.assertEqual(
+            "2026-08-16T08:00:00Z",
+            restored.top_level_feedback_cutoff,
         )
 
     def test_acknowledged_command_accepts_a_graphql_command_timestamp(self) -> None:
@@ -1190,6 +1276,7 @@ class DashboardOverrideTest(unittest.TestCase):
                         head_sha="current-head",
                         route=DashboardRoute.APPROVER,
                         since="2026-08-16T07:00:00Z",
+                        top_level_feedback_cutoff="2026-08-16T07:00:00Z",
                     ),
                 ),
                 facts.dashboard_command_replies,
@@ -1261,6 +1348,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     head_sha="current-head",
                     route=DashboardRoute.AUTHOR,
                     since="2026-08-16T07:00:00Z",
+                    top_level_feedback_cutoff="2026-08-16T07:00:00Z",
                 ),
             ),
             facts.dashboard_command_replies,
@@ -1292,6 +1380,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     head_sha="current-head",
                     route=DashboardRoute.APPROVER,
                     since="2026-08-16T07:00:00Z",
+                    top_level_feedback_cutoff="2026-08-16T07:00:00Z",
                 ),
             ),
             facts.dashboard_command_replies,
@@ -1358,7 +1447,7 @@ class DashboardOverrideTest(unittest.TestCase):
                 call([
                     "gh", "api", "--method", "POST",
                     "repos/open-telemetry/example/issues/7/comments",
-                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author, your reviewer-routing request was recorded; the reviewer handoff is waiting on the Copilot review. Top-level feedback through this request will not return; unresolved review threads remain open.\n",
+                    "-f", "body=<!-- pull-request-dashboard-command-reply:3 -->\n<!-- pull-request-dashboard-override-ack:3 -->\n@author, your reviewer-routing request was recorded; the reviewer handoff is waiting on the Copilot review. No top-level feedback was retired because the dashboard could not determine a safe command time; unresolved review threads remain open.\n",
                 ]),
             ],
             run_gh.call_args_list,

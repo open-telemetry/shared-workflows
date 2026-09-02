@@ -497,11 +497,14 @@ the implementation understandable and operationally cheap.
   command can establish a new handoff on the same head and advance the cutoff.
 - The dashboard binds a command to the head it sees when it first reads that
   command, and records that head in an acknowledgement marker on either the
-  command reply or the live status comment. The marker also records the
-  effective command timestamp used for the permanent top-level feedback cutoff.
-  A legacy marker without that timestamp does not retire feedback when the
-  original command is unavailable. The handoff is then a comparison of two
-  strings: the recorded head and the current one. The earlier design
+  command reply or the live status comment. A companion marker records the
+  frozen timestamp used for the permanent top-level feedback cutoff. A legacy
+  acknowledgement without that cutoff does not retire feedback, because the
+  command's current edit timestamp cannot reconstruct the original cutoff. The
+  first observation freezes the cutoff for that command, so editing the command
+  later cannot retire intervening feedback; only a newer command advances it.
+  The handoff is then a comparison of two strings: the recorded head and the
+  current one. The earlier design
   instead ordered the command against the push by comparing the comment
   timestamp with the head push time from `GET /repos/{repo}/activity`.
   Do not reintroduce that. Both timestamps have one-second resolution and come

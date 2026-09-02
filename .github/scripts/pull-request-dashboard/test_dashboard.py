@@ -627,6 +627,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     head_sha="abcdef123456",
                     route=DashboardRoute.APPROVER,
                     since="2026-08-16T08:00:00Z",
+                    top_level_feedback_cutoff="2026-08-16T08:00:00Z",
                 ),
             ),
             result.facts.dashboard_command_replies,
@@ -652,6 +653,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     actor=actor("author"),
                     body="/dashboard route:reviewers",
                     created_at="2026-08-16T08:00:00Z",
+                    content_updated_at="2026-08-16T10:00:00Z",
                 ),
                 issue_comment(
                     database_id=103,

@@ -414,6 +414,10 @@ def _decode_command_reply(value: Any) -> DashboardCommandReply:
             value.get("since", _MISSING),
             "facts.dashboard_command_replies.since",
         ),
+        top_level_feedback_cutoff=_string(
+            value.get("top_level_feedback_cutoff", _MISSING),
+            "facts.dashboard_command_replies.top_level_feedback_cutoff",
+        ),
     )
 
 
@@ -427,6 +431,10 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
         }
         if reply.since:
             stored["since"] = reply.since
+        if reply.top_level_feedback_cutoff:
+            stored["top_level_feedback_cutoff"] = (
+                reply.top_level_feedback_cutoff
+            )
         if reply.kind == "routed":
             # DashboardCommandReply refuses a routed reply without a route.
             stored["route"] = reply.route.value

@@ -118,6 +118,7 @@ class RenderStatusCommentTest(unittest.TestCase):
                 DashboardRoute.AUTHOR,
                 dashboard_override_bound_command_id=12,
                 dashboard_override_head_sha="abcdef123456",
+                dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
                 dashboard_override_cleared_by_feedback=True,
             ),
         )
@@ -134,6 +135,11 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn(
             "<!-- pull-request-dashboard-override-ack:"
             "12:abcdef123456 -->",
+            body,
+        )
+        self.assertIn(
+            "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+            "12:2026-08-16T08:00:00Z -->",
             body,
         )
         self.assertEqual(
@@ -782,6 +788,8 @@ class UpsertStatusCommentTest(unittest.TestCase):
                     "<!-- pull-request-dashboard-status -->\n"
                     "<!-- pull-request-dashboard-override-ack:"
                     "12:bound-head:2026-08-16T08:00:00Z -->\n"
+                    "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+                    "12:2026-08-16T08:00:00Z -->\n"
                     "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
                     "12:bound-head -->"
                 ),
@@ -805,6 +813,11 @@ class UpsertStatusCommentTest(unittest.TestCase):
         self.assertIn(
             "<!-- pull-request-dashboard-reviewer-handoff-cleared:"
             "12:bound-head -->",
+            self.commands[0][-1],
+        )
+        self.assertIn(
+            "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+            "12:2026-08-16T08:00:00Z -->",
             self.commands[0][-1],
         )
 

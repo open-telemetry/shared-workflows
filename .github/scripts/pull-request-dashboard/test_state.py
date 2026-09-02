@@ -202,6 +202,7 @@ class StateTest(unittest.TestCase):
                     route=DashboardRoute.APPROVER,
                     held_gates="the required checks",
                     since="2026-08-16T08:00:00Z",
+                    top_level_feedback_cutoff="2026-08-16T08:00:00Z",
                 ),
                 DashboardCommandReply(
                     91,

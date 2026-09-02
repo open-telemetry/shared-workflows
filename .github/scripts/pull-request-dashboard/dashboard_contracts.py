@@ -37,6 +37,7 @@ class DashboardCommandReply:
     route: DashboardRoute | None = None
     held_gates: str = ""
     since: str = ""
+    top_level_feedback_cutoff: str = ""
 
     def __post_init__(self) -> None:
         if self.comment_id <= 0:

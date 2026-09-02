@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
 
 from dashboard_contracts import (
     DashboardCommandReply,
@@ -36,6 +37,13 @@ OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
 _OVERRIDE_ACK_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-override-ack:"
     r"(\d+)(?::([^:\s>]+))?(?::([^\s>]+))? -->"
+)
+TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_PREFIX = (
+    "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+)
+_TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE = re.compile(
+    r"<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+    r"(\d+):([^\s>]+) -->"
 )
 PRE_REVIEW_ROUTES = ("author",)
 
@@ -222,11 +230,15 @@ def dashboard_override_facts(
         or _override_command_effective_at(source.issue_comments, bound_command_id)
         or acknowledgement_created_at
     )
+    existing_command_binding = bool(
+        command_id
+        and command_id == previous_bound_command_id
+    )
     top_level_feedback_cutoff = _latest_valid_timestamp(
         previous_top_level_feedback_cutoff,
-        command_created_at,
+        command_created_at if command_id and not existing_command_binding else "",
         acknowledged_since,
-        _override_command_effective_at(source.issue_comments, bound_command_id),
+        acknowledged_top_level_feedback_cutoff(source.issue_comments),
     )
     cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
         source.issue_comments
@@ -302,6 +314,27 @@ def acknowledges_override(text: str, command_id: int, head_sha: str) -> bool:
         int(match.group(1)) == command_id and (match.group(2) or "") == head_sha
         for match in _OVERRIDE_ACK_MARKER_RE.finditer(text)
     )
+
+
+def acknowledged_top_level_feedback_cutoff(
+    comments: Sequence[IssueComment],
+    command_id: int = 0,
+) -> str:
+    candidates: list[tuple[datetime, int, str]] = []
+    for comment in comments or []:
+        if not _is_dashboard_app_comment(comment):
+            continue
+        for match in _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE.finditer(comment.body):
+            marker_command_id = int(match.group(1))
+            if command_id and marker_command_id != command_id:
+                continue
+            value = match.group(2)
+            parsed = parse_ts(value)
+            if parsed is not None:
+                candidates.append((parsed, marker_command_id, value))
+    if not candidates:
+        return ""
+    return max(candidates, key=lambda item: (item[0], item[1]))[2]
 
 
 def acknowledged_override(
@@ -411,6 +444,13 @@ def override_ack_marker(
     return f"{OVERRIDE_ACK_MARKER_PREFIX}{comment_id}{head}{since} -->"
 
 
+def top_level_feedback_cutoff_marker(
+    comment_id: int,
+    cutoff: str,
+) -> str:
+    return f"{TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_PREFIX}{comment_id}:{cutoff} -->"
+
+
 def render_command_reply(reply: DashboardCommandReply) -> str:
     user = reply.user
     mention = f"@{user}, " if user else ""
@@ -445,10 +485,28 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             )
         else:
             message = "this pull request was routed to reviewers."
-        message = (
-            f"{message} Top-level feedback through this request will not return; "
-            "unresolved review threads remain open."
+        has_top_level_feedback_cutoff = (
+            parse_ts(reply.top_level_feedback_cutoff) is not None
         )
+        has_handoff_timestamp = parse_ts(reply.since) is not None
+        if has_top_level_feedback_cutoff and has_handoff_timestamp:
+            message = (
+                f"{message} Top-level feedback through this request will not return; "
+                "unresolved review threads remain open."
+            )
+        elif has_top_level_feedback_cutoff:
+            message = (
+                f"{message} The existing top-level feedback cutoff remains in effect, "
+                "but no additional top-level feedback was retired because the "
+                "dashboard could not determine a safe command time; unresolved review "
+                "threads remain open."
+            )
+        else:
+            message = (
+                f"{message} No top-level feedback was retired because the dashboard "
+                "could not determine a safe command time; unresolved review threads "
+                "remain open."
+            )
     elif kind == "unknown_command":
         subcommand = reply.subcommand
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")
@@ -472,6 +530,13 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                 reply.since,
             )
         )
+        if has_top_level_feedback_cutoff:
+            markers.append(
+                top_level_feedback_cutoff_marker(
+                    comment_id,
+                    reply.top_level_feedback_cutoff,
+                )
+            )
     return "\n".join([
         *markers,
         f"{mention}{message}",
@@ -534,6 +599,9 @@ def append_command_ack_reply(
             else ""
         ),
         since=override_since,
+        top_level_feedback_cutoff=(
+            facts.dashboard_top_level_feedback_cutoff
+        ),
     )
     if command_reply_exists(source.issue_comments, reply):
         return facts
