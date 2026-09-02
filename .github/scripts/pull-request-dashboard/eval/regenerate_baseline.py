@@ -181,7 +181,6 @@ def measure(
 
 
 def rebuild(payload: dict, trials: list[dict[str, str]], model: str) -> dict:
-    measurement_date = datetime.now(UTC).strftime("%Y-%m-%d")
     cases = []
     for case in payload["cases"]:
         raw = [trial.get(case["id"]) for trial in trials]
@@ -198,7 +197,6 @@ def rebuild(payload: dict, trials: list[dict[str, str]], model: str) -> dict:
             **{k: case[k] for k in
                ("id", "repo", "pull_request", "requester", "pr_author", "review_state",
                 "root_timestamp", "body")},
-            "measurement_date": measurement_date,
             "role": role,
             "stability": stability,
             "recorded_label": recorded,
@@ -211,6 +209,7 @@ def rebuild(payload: dict, trials: list[dict[str, str]], model: str) -> dict:
     cases.sort(key=lambda c: (c["repo"], c["pull_request"], c["root_timestamp"]))
     roles = Counter(c["role"] for c in cases)
     stabilities = Counter(c["stability"] for c in cases)
+    measurement_date = datetime.now(UTC).strftime("%Y-%m-%d")
     return {
         **payload,
         "baseline_generated_at": measurement_date,
