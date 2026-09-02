@@ -131,7 +131,6 @@ def reaction_group(
 def review_thread_comment(**changes: Any) -> ReviewThreadComment:
     values = {
         "node_id": "PRRC_1",
-        "review_id": 0,
         "url": "https://example.test/review-comment/1",
         "body": "Please update this.",
         "created_at": "2026-08-16T07:00:00Z",
@@ -277,13 +276,6 @@ def pull_request_source(
                             "body": comment.body,
                             "createdAt": comment.created_at,
                             "lastEditedAt": comment.updated_at,
-                            "pullRequestReview": (
-                                {
-                                    "fullDatabaseId": comment.review_id,
-                                }
-                                if comment.review_id
-                                else None
-                            ),
                             "author": _actor_json(comment.actor),
                             "reactionGroups": [
                                 {

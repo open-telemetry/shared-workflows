@@ -160,11 +160,10 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   presumed lost and the
                                                   dashboard requests one.
     copilot_review_needed           bool          The review is stale or Copilot
-                                                  owns open review threads not
-                                                  superseded by a clean review
-                                                  of the current head, meaning
-                                                  unresolved threads GitHub has
-                                                  not marked outdated.
+                                                  owns open review threads,
+                                                  meaning unresolved threads
+                                                  GitHub has not marked
+                                                  outdated.
     created_at                      str (iso)
     last_activity_at                str (iso)     Latest substantive activity by a
                                                   PR participant, never earlier

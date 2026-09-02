@@ -293,7 +293,6 @@ class ReactionGroup:
 @dataclass(frozen=True)
 class ReviewThreadComment:
     node_id: str = ""
-    review_id: int = 0
     url: str = ""
     body: str = ""
     created_at: str = ""
@@ -665,12 +664,6 @@ def normalize_review_threads(values: Any) -> tuple[ReviewThread, ...]:
                 ))
             comments.append(ReviewThreadComment(
                 node_id=_text(comment.get("id") or comment.get("node_id")),
-                review_id=_integer(
-                    _mapping(comment.get("pullRequestReview")).get(
-                        "fullDatabaseId"
-                    )
-                    or comment.get("pull_request_review_id")
-                ),
                 url=_text(comment.get("url") or comment.get("html_url")),
                 body=str(comment.get("body") or ""),
                 created_at=_text(

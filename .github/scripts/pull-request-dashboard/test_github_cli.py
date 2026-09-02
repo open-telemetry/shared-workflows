@@ -272,9 +272,6 @@ class GithubCliTest(unittest.TestCase):
                                         "id": "PRRC_1",
                                         "createdAt": "2026-08-20T08:00:00Z",
                                         "lastEditedAt": "2026-08-20T08:30:00Z",
-                                        "pullRequestReview": {
-                                            "fullDatabaseId": "13",
-                                        },
                                     }],
                                     "pageInfo": {"hasNextPage": False},
                                 },
@@ -293,7 +290,6 @@ class GithubCliTest(unittest.TestCase):
             threads[0]["comments"]["nodes"][0]["lastEditedAt"],
         )
         self.assertIn("lastEditedAt", graphql.call_args.args[0])
-        self.assertIn("pullRequestReview", graphql.call_args.args[0])
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_rejects_missing_page_cursor(

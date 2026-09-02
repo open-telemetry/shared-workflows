@@ -125,9 +125,6 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
                             "nodes": [
                                 {
                                     "id": "PRRC_1",
-                                    "pullRequestReview": {
-                                        "fullDatabaseId": "13",
-                                    },
                                     "url": "https://example.test/thread/1",
                                     "body": "Please update this.",
                                     "createdAt": "2026-08-20T08:00:00Z",
@@ -195,7 +192,6 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
             "2026-08-20T08:30:00Z",
             source.review_threads[0].comments[0].updated_at,
         )
-        self.assertEqual(13, source.review_threads[0].comments[0].review_id)
         self.assertEqual(
             ("author",),
             source.review_threads[0]

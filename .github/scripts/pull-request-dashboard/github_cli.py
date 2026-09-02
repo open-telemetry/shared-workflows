@@ -814,9 +814,6 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                             body
                             createdAt
                             lastEditedAt
-                            pullRequestReview {
-                                fullDatabaseId
-                            }
                             author {
                                 login
                             }
@@ -854,9 +851,6 @@ query($thread_id: ID!, $after: String) {
                     body
                     createdAt
                     lastEditedAt
-                    pullRequestReview {
-                        fullDatabaseId
-                    }
                     author {
                         login
                     }

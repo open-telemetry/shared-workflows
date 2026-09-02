@@ -400,23 +400,17 @@ the implementation understandable and operationally cheap.
   actionable one routes the PR to "waiting on author." In that common path the
   gate never fires and no re-review is requested.
 - Findings are counted from unresolved, non-outdated review threads Copilot
-  started, not from the comment count on its review. A later clean review of
-  the current head supersedes findings from earlier Copilot reviews; review
-  database IDs order submissions when GitHub records them in the same second.
-  An unrecognized or missing binding falls back to the latest content activity
-  across every thread comment; any missing timestamp keeps the finding active.
-  The same supersession filter runs before discussion classification, so status
-  and routing cannot disagree. A review's comment count never shrinks, so using
-  it would keep counting feedback the author has since addressed and hold the
-  PR on work that is already done.
+  started, not from the comment count on its review. A review's comment count
+  never shrinks, so it keeps counting feedback the author has since addressed
+  and holds the PR on work that is already done.
 - The gate's re-request path covers two states. A stale review means the author
   pushed, which is the one change a re-review can respond to. Findings on the
   current head sit on unchanged code, so asking Copilot to look at it again
-  would reach the same verdict and be requested again on the next pass. Those
-  threads stop counting when GitHub marks them resolved or outdated, or when a
-  later clean review of the current head supersedes them. A push makes the
-  review stale and triggers a re-request, but the push alone does not prove that
-  a finding was fixed.
+  would reach the same verdict and be requested again on the next pass; those
+  threads stop counting only when the author resolves them or GitHub marks them
+  outdated after the referenced code moves. A later clean review does not close
+  an existing thread. A push makes the review stale and triggers a re-request,
+  but the push alone does not prove that a finding was fixed.
 - The other state is a first review that never arrived. The gate otherwise
   relies entirely on automatic Copilot code review to produce it, so when GitHub
   silently never starts one, the pull request waits on its author forever for a

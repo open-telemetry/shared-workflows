@@ -45,7 +45,7 @@ def representative_raw() -> dict:
 
 
 class RoutingSnapshotTest(unittest.TestCase):
-    def test_fixture_preserves_review_lifecycle_fingerprint_fields(self) -> None:
+    def test_fixture_preserves_review_activity_fingerprint_fields(self) -> None:
         source = pull_request_source(
             reviews=(review_source(
                 database_id=17,
@@ -53,7 +53,6 @@ class RoutingSnapshotTest(unittest.TestCase):
                 content_updated_at="2026-08-16T08:00:00Z",
             ),),
             review_threads=(review_thread(comments=(review_thread_comment(
-                review_id=17,
                 actor=actor("copilot"),
                 updated_at="2026-08-16T09:00:00Z",
             ),)),),
@@ -70,17 +69,12 @@ class RoutingSnapshotTest(unittest.TestCase):
             "2026-08-16T09:00:00Z",
             thread_comment["lastEditedAt"],
         )
-        self.assertEqual(
-            {"fullDatabaseId": 17},
-            thread_comment["pullRequestReview"],
-        )
 
-    def test_fixture_fingerprint_tracks_review_lifecycle_changes(self) -> None:
+    def test_fixture_fingerprint_tracks_review_activity_changes(self) -> None:
         def snapshot(
             *,
             review_edited_at: str = "2026-08-16T08:00:00Z",
             thread_edited_at: str = "2026-08-16T09:00:00Z",
-            review_id: int = 17,
         ):
             return build_routing_snapshot(pull_request_source(
                 reviews=(review_source(
@@ -90,7 +84,6 @@ class RoutingSnapshotTest(unittest.TestCase):
                 ),),
                 review_threads=(review_thread(
                     comments=(review_thread_comment(
-                        review_id=review_id,
                         actor=actor("copilot"),
                         updated_at=thread_edited_at,
                     ),),
@@ -105,7 +98,6 @@ class RoutingSnapshotTest(unittest.TestCase):
             snapshot(
                 thread_edited_at="2026-08-16T10:00:00Z"
             ).routing_input_fingerprint,
-            snapshot(review_id=18).routing_input_fingerprint,
         )
 
         for changed in changes:

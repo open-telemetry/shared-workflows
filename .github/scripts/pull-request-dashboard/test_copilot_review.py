@@ -62,7 +62,7 @@ def review_result(route: str = "approver", **fact_changes):
 
 
 class CopilotFindingLifecycleTest(unittest.TestCase):
-    def test_clean_current_review_supersedes_only_older_findings(self) -> None:
+    def test_clean_current_review_keeps_open_findings(self) -> None:
         reviews = (review_source(
             actor=actor("copilot"),
             commit_id="current-head",
@@ -71,30 +71,32 @@ class CopilotFindingLifecycleTest(unittest.TestCase):
         ),)
         threads = (
             review_thread(
-                node_id="old",
+                node_id="open",
                 comments=(review_thread_comment(
-                    url="https://example.test/old",
+                    url="https://example.test/open",
                     actor=actor("copilot"),
                     created_at="2026-07-20T01:00:00Z",
                     updated_at="2026-07-20T01:00:00Z",
                 ),),
             ),
             review_thread(
-                node_id="new",
+                node_id="resolved",
+                is_resolved=True,
                 comments=(review_thread_comment(
-                    url="https://example.test/new",
+                    url="https://example.test/resolved",
                     actor=actor("copilot"),
-                    created_at="2026-07-20T03:00:00Z",
-                    updated_at="2026-07-20T03:00:00Z",
+                    created_at="2026-07-20T01:00:00Z",
+                    updated_at="2026-07-20T01:00:00Z",
                 ),),
             ),
             review_thread(
-                node_id="unknown",
+                node_id="outdated",
+                is_outdated=True,
                 comments=(review_thread_comment(
-                    url="https://example.test/unknown",
+                    url="https://example.test/outdated",
                     actor=actor("copilot"),
-                    created_at="",
-                    updated_at="",
+                    created_at="2026-07-20T01:00:00Z",
+                    updated_at="2026-07-20T01:00:00Z",
                 ),),
             ),
         )
@@ -104,295 +106,9 @@ class CopilotFindingLifecycleTest(unittest.TestCase):
             copilot_review_status(reviews, "current-head", threads),
         )
         self.assertEqual(
-            (
-                "https://example.test/new",
-                "https://example.test/unknown",
-            ),
-            open_copilot_finding_urls(threads, reviews, "current-head"),
+            ("https://example.test/open",),
+            open_copilot_finding_urls(threads),
         )
-
-    def test_missing_clean_review_timestamp_does_not_supersede_findings(
-        self,
-    ) -> None:
-        reviews = (review_source(
-            actor=actor("copilot"),
-            commit_id="current-head",
-            finding_count=0,
-            submitted_at="",
-        ),)
-        threads = (review_thread(comments=(review_thread_comment(
-            actor=actor("copilot"),
-            created_at="2026-07-20T01:00:00Z",
-            updated_at="2026-07-20T01:00:00Z",
-        ),)),)
-
-        self.assertEqual(
-            (True, False, True),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_same_second_clean_review_supersedes_lower_review_id(self) -> None:
-        reviews = (
-            review_source(
-                database_id=10,
-                actor=actor("copilot"),
-                commit_id="current-head",
-                finding_count=1,
-                submitted_at="2026-07-20T02:00:00Z",
-            ),
-            review_source(
-                database_id=20,
-                actor=actor("copilot"),
-                commit_id="current-head",
-                finding_count=0,
-                submitted_at="2026-07-20T02:00:00Z",
-            ),
-        )
-        threads = (review_thread(comments=(review_thread_comment(
-            review_id=10,
-            actor=actor("copilot"),
-            created_at="2026-07-20T02:00:00Z",
-            updated_at="2026-07-20T02:00:00Z",
-        ),)),)
-
-        self.assertEqual(
-            (True, False, False),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_same_second_clean_review_preserves_higher_review_id(self) -> None:
-        reviews = (
-            review_source(
-                database_id=20,
-                actor=actor("copilot"),
-                commit_id="current-head",
-                finding_count=1,
-                submitted_at="2026-07-20T02:00:00Z",
-            ),
-            review_source(
-                database_id=10,
-                actor=actor("copilot"),
-                commit_id="current-head",
-                finding_count=0,
-                submitted_at="2026-07-20T02:00:00Z",
-            ),
-        )
-        threads = (review_thread(comments=(review_thread_comment(
-            review_id=20,
-            actor=actor("copilot"),
-            created_at="2026-07-20T02:00:00Z",
-            updated_at="2026-07-20T02:00:00Z",
-        ),)),)
-
-        self.assertEqual(
-            (True, False, True),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_same_second_clean_review_without_id_preserves_finding(self) -> None:
-        reviews = (
-            review_source(
-                database_id=20,
-                actor=actor("copilot"),
-                commit_id="current-head",
-                finding_count=1,
-                submitted_at="2026-07-20T02:00:00Z",
-            ),
-            review_source(
-                database_id=0,
-                actor=actor("copilot"),
-                commit_id="current-head",
-                finding_count=0,
-                submitted_at="2026-07-20T02:00:00Z",
-            ),
-        )
-        threads = (review_thread(comments=(review_thread_comment(
-            review_id=20,
-            actor=actor("copilot"),
-            created_at="2026-07-20T02:00:00Z",
-            updated_at="2026-07-20T02:00:00Z",
-        ),)),)
-
-        self.assertEqual(
-            (True, False, True),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_late_review_of_an_old_head_does_not_replace_current_clean_review(
-        self,
-    ) -> None:
-        reviews = (
-            review_source(
-                database_id=10,
-                actor=actor("copilot"),
-                commit_id="current-head",
-                finding_count=0,
-                submitted_at="2026-07-20T02:00:00Z",
-            ),
-            review_source(
-                database_id=20,
-                actor=actor("copilot"),
-                commit_id="old-head",
-                finding_count=1,
-                submitted_at="2026-07-20T03:00:00Z",
-            ),
-        )
-        threads = (review_thread(comments=(review_thread_comment(
-            review_id=20,
-            actor=actor("copilot"),
-            created_at="2026-07-20T03:00:00Z",
-            updated_at="2026-07-20T03:00:00Z",
-        ),)),)
-
-        self.assertEqual(
-            (True, False, False),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_unknown_review_binding_uses_timestamp_fallback(self) -> None:
-        reviews = (review_source(
-            database_id=10,
-            actor=actor("copilot"),
-            commit_id="current-head",
-            finding_count=0,
-            submitted_at="2026-07-20T02:00:00Z",
-        ),)
-        threads = (review_thread(comments=(review_thread_comment(
-            review_id=999,
-            actor=actor("copilot"),
-            created_at="2026-07-20T01:00:00Z",
-            updated_at="2026-07-20T01:00:00Z",
-        ),)),)
-
-        self.assertEqual(
-            (True, False, False),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_unknown_binding_edited_after_clean_preserves_finding(self) -> None:
-        reviews = (review_source(
-            database_id=10,
-            actor=actor("copilot"),
-            commit_id="current-head",
-            finding_count=0,
-            submitted_at="2026-07-20T02:00:00Z",
-        ),)
-        threads = (review_thread(comments=(review_thread_comment(
-            review_id=999,
-            actor=actor("copilot"),
-            created_at="2026-07-20T01:00:00Z",
-            updated_at="2026-07-20T03:00:00Z",
-        ),)),)
-
-        self.assertEqual(
-            (True, False, True),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_missing_binding_edited_before_clean_is_superseded(self) -> None:
-        reviews = (review_source(
-            database_id=10,
-            actor=actor("copilot"),
-            commit_id="current-head",
-            finding_count=0,
-            submitted_at="2026-07-20T02:00:00Z",
-        ),)
-        threads = (review_thread(comments=(review_thread_comment(
-            review_id=0,
-            actor=actor("copilot"),
-            created_at="2026-07-20T01:00:00Z",
-            updated_at="2026-07-20T01:30:00Z",
-        ),)),)
-
-        self.assertEqual(
-            (True, False, False),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_unknown_binding_uses_latest_comment_before_clean(self) -> None:
-        reviews = (review_source(
-            database_id=10,
-            actor=actor("copilot"),
-            commit_id="current-head",
-            finding_count=0,
-            submitted_at="2026-07-20T02:00:00Z",
-        ),)
-        threads = (review_thread(comments=(
-            review_thread_comment(
-                review_id=999,
-                actor=actor("copilot"),
-                created_at="2026-07-20T01:00:00Z",
-                updated_at="2026-07-20T01:00:00Z",
-            ),
-            review_thread_comment(
-                node_id="reply",
-                actor=actor("author"),
-                created_at="2026-07-20T01:30:00Z",
-                updated_at="2026-07-20T01:30:00Z",
-            ),
-        )),)
-
-        self.assertEqual(
-            (True, False, False),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_unknown_binding_preserves_reply_after_clean(self) -> None:
-        reviews = (review_source(
-            database_id=10,
-            actor=actor("copilot"),
-            commit_id="current-head",
-            finding_count=0,
-            submitted_at="2026-07-20T02:00:00Z",
-        ),)
-        threads = (review_thread(comments=(
-            review_thread_comment(
-                review_id=999,
-                actor=actor("copilot"),
-                created_at="2026-07-20T01:00:00Z",
-                updated_at="2026-07-20T01:00:00Z",
-            ),
-            review_thread_comment(
-                node_id="reply",
-                actor=actor("author"),
-                created_at="2026-07-20T03:00:00Z",
-                updated_at="2026-07-20T03:00:00Z",
-            ),
-        )),)
-
-        self.assertEqual(
-            (True, False, True),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
-    def test_missing_binding_preserves_thread_with_undated_reply(self) -> None:
-        reviews = (review_source(
-            database_id=10,
-            actor=actor("copilot"),
-            commit_id="current-head",
-            finding_count=0,
-            submitted_at="2026-07-20T02:00:00Z",
-        ),)
-        threads = (review_thread(comments=(
-            review_thread_comment(
-                review_id=0,
-                actor=actor("copilot"),
-                created_at="2026-07-20T01:00:00Z",
-                updated_at="2026-07-20T01:00:00Z",
-            ),
-            review_thread_comment(
-                node_id="reply",
-                actor=actor("author"),
-                created_at="",
-                updated_at="",
-            ),
-        )),)
-
-        self.assertEqual(
-            (True, False, True),
-            copilot_review_status(reviews, "current-head", threads),
-        )
-
 
 class CopilotFirstReviewMissingSinceTest(unittest.TestCase):
     def test_starts_clock_when_review_is_missing(self) -> None:
