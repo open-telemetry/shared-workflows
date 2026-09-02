@@ -29,12 +29,16 @@ PUBLISHER_LOCK_PATH = Path(".publisher-lock.json")
 DEFAULT_PUBLISHER_LOCK_LEASE_SECONDS = 60 * 60
 DEFAULT_PUBLISHER_LOCK_WAIT_SECONDS = 60 * 60
 PUBLISHER_LOCK_POLL_SECONDS = 5
-PUBLISHER_LOCK_DEADLINE_ENV = "PR_DASHBOARD_PUBLISHER_LOCK_DEADLINE"
+PUBLISHER_LOCK_BUSY_STATUS = 75
 
 
 class PublisherLock(TypedDict):
     owner: str
     expiresAt: float
+
+
+class PublisherLockTimeoutError(TimeoutError):
+    pass
 
 
 @contextmanager
@@ -258,22 +262,6 @@ def load_publisher_lock(state_dir: Path) -> PublisherLock | None:
     return {"owner": owner, "expiresAt": float(expires_at)}
 
 
-def publisher_lock_wait_deadline(wait_seconds: int, current_time: float) -> float:
-    if wait_seconds < 0:
-        raise ValueError("publisher lock wait must be non-negative")
-    deadline = current_time + wait_seconds
-    configured = os.environ.get(PUBLISHER_LOCK_DEADLINE_ENV)
-    if configured is None:
-        return deadline
-    try:
-        configured_deadline = int(configured)
-    except ValueError as error:
-        raise ValueError(f"{PUBLISHER_LOCK_DEADLINE_ENV} must be an integer") from error
-    if configured_deadline < 1:
-        raise ValueError(f"{PUBLISHER_LOCK_DEADLINE_ENV} must be positive")
-    return min(deadline, configured_deadline)
-
-
 def wait_for_publisher_unlock(
     state_dir: Path,
     state_branch: str,
@@ -282,7 +270,9 @@ def wait_for_publisher_unlock(
     now: Callable[[], float] = time.time,
     sleep: Callable[[float], None] = time.sleep,
 ) -> None:
-    deadline = publisher_lock_wait_deadline(wait_seconds, now())
+    if wait_seconds < 0:
+        raise ValueError("publisher lock wait must be non-negative")
+    deadline = now() + wait_seconds
     announced_owner: str | None = None
     while True:
         current_time = now()
@@ -297,7 +287,7 @@ def wait_for_publisher_unlock(
             announced_owner = lock["owner"]
         remaining = deadline - current_time
         if remaining <= 0:
-            raise TimeoutError(
+            raise PublisherLockTimeoutError(
                 f"timed out waiting for dashboard publisher lock {state_branch} "
                 f"held by {lock['owner']}"
             )
@@ -338,7 +328,7 @@ def acquire_publisher_lock(
         raise ValueError("publisher lock owner must not be empty")
     if lease_seconds < 1 or wait_seconds < 0:
         raise ValueError("publisher lock lease must be positive and wait must be non-negative")
-    deadline = publisher_lock_wait_deadline(wait_seconds, now())
+    deadline = now() + wait_seconds
     while True:
         current_time = now()
         with temporary_state_dir() as state_dir:
@@ -371,7 +361,9 @@ def acquire_publisher_lock(
                     return
         remaining = deadline - now()
         if remaining <= 0:
-            raise TimeoutError(f"timed out waiting for dashboard publisher lock {state_branch}")
+            raise PublisherLockTimeoutError(
+                f"timed out waiting for dashboard publisher lock {state_branch}"
+            )
         sleep(min(PUBLISHER_LOCK_POLL_SECONDS, remaining))
 
 
@@ -401,8 +393,13 @@ def release_publisher_lock(state_branch: str, owner: str) -> None:
 
 
 @contextmanager
-def publisher_lock(state_branch: str, owner: str) -> Iterator[None]:
-    acquire_publisher_lock(state_branch, owner)
+def publisher_lock(
+    state_branch: str,
+    owner: str,
+    *,
+    wait_seconds: int = DEFAULT_PUBLISHER_LOCK_WAIT_SECONDS,
+) -> Iterator[None]:
+    acquire_publisher_lock(state_branch, owner, wait_seconds=wait_seconds)
     try:
         yield
     finally:
@@ -425,6 +422,7 @@ def push_state_changes(
     add_paths: list[str] | None = None,
     retry_snapshots: list[tuple[Path, Path]] | None = None,
     respect_publisher_lock: bool = False,
+    publisher_lock_wait_seconds: int = DEFAULT_PUBLISHER_LOCK_WAIT_SECONDS,
 ) -> int:
     configure_git()
     checkout_state(state_dir, state_branch, require_existing=False)
@@ -433,7 +431,11 @@ def push_state_changes(
 
     for attempt in range(1, max_attempts + 1):
         if respect_publisher_lock:
-            wait_for_publisher_unlock(state_dir, state_branch)
+            wait_for_publisher_unlock(
+                state_dir,
+                state_branch,
+                wait_seconds=publisher_lock_wait_seconds,
+            )
         status = update_state()
         if status != 0:
             return status
