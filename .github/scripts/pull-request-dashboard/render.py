@@ -105,6 +105,8 @@ def ci_cell(facts: DashboardFacts) -> str:
         return "❌ 🔐"
     if failing:
         return "❌"
+    if (facts.ci_pending_count or 0) > 0 and write_access_required:
+        return "⏳ 🔐"
     if write_access_required:
         return "🔐"
     if (facts.ci_pending_count or 0) > 0:

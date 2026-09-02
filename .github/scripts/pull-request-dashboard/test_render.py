@@ -26,6 +26,16 @@ class RenderTest(unittest.TestCase):
             )),
         )
 
+    def test_pending_check_and_permission_action_show_both_icons(self) -> None:
+        self.assertEqual(
+            "⏳ 🔐",
+            ci_cell(dashboard_facts(
+                ci_failing_count=0,
+                ci_maintainer_action_required_count=1,
+                ci_pending_count=1,
+            )),
+        )
+
     def test_mixed_failure_and_permission_action_shows_both_icons(self) -> None:
         self.assertEqual(
             "❌ 🔐",

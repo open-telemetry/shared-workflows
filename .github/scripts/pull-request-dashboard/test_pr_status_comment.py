@@ -395,6 +395,30 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
         self.assertNotIn("status check is failing", body)
 
+    def test_pending_check_and_workflow_action_name_both_blockers(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.AUTHOR,
+                ci_failing_count=0,
+                ci_maintainer_action_required_count=1,
+                ci_pending_count=1,
+                required_checks_settled=False,
+                route_held_for_gates=True,
+            ),
+        )
+
+        self.assertIn(
+            "Wait for the required status checks to report; this pull request "
+            "moves to reviewers once the results are clean.",
+            body,
+        )
+        self.assertIn(
+            "**Workflow action required:** 1 required check needs action from someone "
+            "with write access to this repository.",
+            body,
+        )
+
     def test_waiting_on_maintainers_leads_with_permission_action(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

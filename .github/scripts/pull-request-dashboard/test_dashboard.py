@@ -80,6 +80,7 @@ from pull_request_evaluation import (
     evaluate_pull_request,
 )
 from pull_request_activity import PullRequestActivity
+from render import render_pr_tables
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
 
@@ -992,12 +993,18 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
     @patch("routing_decision.utc_now")
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_running_required_check_keeps_integrated_route_held(
+    def test_running_check_and_workflow_approval_keep_integrated_route_held(
         self, fetch_raw: Mock, utc_now: Mock
     ) -> None:
         utc_now.return_value = datetime(2026, 8, 16, 12, 0, tzinfo=timezone.utc)
         fetch_raw.return_value = self.raw_pr(
-            checks=[{"name": "required", "bucket": "pending"}]
+            checks=[
+                {"name": "required", "bucket": "pending"},
+                {
+                    "name": "workflow approval",
+                    "bucket": "maintainer_action_required",
+                },
+            ]
         )
 
         classifier = FakeClassificationOperation()
@@ -1022,6 +1029,22 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(
             "2026-08-16T12:00:00+00:00", result.facts.route_held_since
         )
+        self.assertEqual(1, result.facts.ci_pending_count)
+        self.assertEqual(1, result.facts.ci_maintainer_action_required_count)
+        markdown = render_pr_tables(
+            [{
+                "number": 7,
+                "title": "Pull request",
+                "author": {"login": "author"},
+                "isDraft": False,
+            }],
+            (stored_dashboard_result(
+                7,
+                route=result.route,
+                facts=result.facts,
+            ),),
+        )
+        self.assertIn("| ⏳ 🔐 |", markdown)
         self.assertEqual(len(classifier.requests), 1)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
