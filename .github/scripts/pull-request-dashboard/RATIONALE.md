@@ -624,8 +624,10 @@ the implementation understandable and operationally cheap.
   the classifier is told which kind of item it is reading, so the summary rule
   below applies only to them. Review state stays independent of that: a
   `CHANGES_REQUESTED` state affects only the reviewer's badge; it does not
-  affect dashboard actions or routing. Empty review summaries are ignored;
-  their inline comments, if any, define independent actions.
+  affect dashboard actions or routing. Formal review states are ordered by
+  submission time, while summary edits use their content timestamp for
+  lifecycle decisions. Empty review summaries are ignored; their inline
+  comments, if any, define independent actions.
 - Who a comment opens by addressing is extracted in code and passed to the
   classifier as `addressed_to`, rather than left for the model to find in the
   body. A reviewer routinely names other people, pull requests, and prior work
@@ -650,10 +652,9 @@ the implementation understandable and operationally cheap.
   contains requests, so a reviewer whose only actionable point is in the summary
   should post it as its own comment.
 - The author reply that closed an item is retained in the cached PR result. It
-  is reused only when it is newer than the item's creation time, which an edit
-  never moves. Accepted tradeoff: a substantively rewritten request keeps the
-  reply that answered its earlier text, so a reviewer who needs the new text
-  answered should post it as a new comment. Ordinary requester-confirmation
+  is reused only when it is newer than the item's effective content timestamp.
+  Editing an older request with new work therefore reopens the item when the
+  edit is newer than the completed author reply. Ordinary requester-confirmation
   timestamps are not persisted.
 - Reviewers should prefer inline comments when feedback needs explicit closure.
   Blocking PR-wide feedback should use GitHub's **Request changes** review state;

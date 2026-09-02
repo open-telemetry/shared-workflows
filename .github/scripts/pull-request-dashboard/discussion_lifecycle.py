@@ -224,7 +224,11 @@ def _derive_top_level_items(source: DiscussionInput) -> list[dict[str, Any]]:
             "body": body,
             "positive_reactors": [],
         }
-        activity_timestamp = event.get("timestamp") or root_timestamp
+        activity_timestamp = (
+            event.get("content_timestamp")
+            or event.get("timestamp")
+            or root_timestamp
+        )
         if activity_timestamp != root_timestamp:
             comment["activity_timestamp"] = activity_timestamp
         if (
@@ -611,13 +615,13 @@ def _collect_author_evidence(
     author_comment_outcomes: list[AuthorCommentOutcome],
     author_comment_source_state: AuthorCommentSourceState | None,
 ) -> tuple[dict[str, str], int | None]:
-    root_timestamp = discussion.get("root_timestamp") or ""
+    feedback_timestamp = _top_level_feedback_timestamp(discussion)
     evidence: dict[str, str] = {}
     reply_source_id: int | None = None
     previous_reply = (previous_entry.get("evidence") or {}).get("reply") or ""
     previous_reply_source_id = previous_entry.get("reply_source_id")
     if (
-        previous_reply > root_timestamp
+        previous_reply > feedback_timestamp
         and _should_restore_author_reply(
             author_comment_outcomes,
             author_comment_source_state,
@@ -633,7 +637,7 @@ def _collect_author_evidence(
 
     completed_reply = _completed_author_reply_after(
         discussion["discussion_id"],
-        root_timestamp,
+        feedback_timestamp,
         author_comment_outcomes,
     )
     if completed_reply:
@@ -646,6 +650,16 @@ def _collect_author_evidence(
             evidence["reply"] = timestamp
             reply_source_id = source_id
     return evidence, reply_source_id
+
+
+def _top_level_feedback_timestamp(discussion: dict[str, Any]) -> str:
+    comments = discussion.get("comments") or ()
+    root_comment = comments[0] if comments else {}
+    return (
+        root_comment.get("activity_timestamp")
+        or discussion.get("root_timestamp")
+        or ""
+    )
 
 
 def _pending_action_for(action: str) -> str:
@@ -710,6 +724,7 @@ def _advance_top_level_actions(
             )
         action = decision.action
         root_timestamp = discussion.get("root_timestamp") or ""
+        feedback_timestamp = _top_level_feedback_timestamp(discussion)
         if action not in (
             DiscussionAction.AUTHOR,
             DiscussionAction.UNCLEAR,
@@ -732,7 +747,7 @@ def _advance_top_level_actions(
             continue
         handoff = _latest_author_comment_handoff(
             discussion["discussion_id"],
-            root_timestamp,
+            feedback_timestamp,
             author_comment_outcomes,
         )
         if handoff is not None:

@@ -399,6 +399,43 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
         self.assertEqual(1, facts.approval_count)
 
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_edited_old_changes_request_does_not_displace_newer_approval(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(),
+            reviews=(
+                review_source(
+                    database_id=1,
+                    state="CHANGES_REQUESTED",
+                    body="",
+                    submitted_at="2026-08-16T07:00:00Z",
+                    content_updated_at="2026-08-16T09:00:00Z",
+                ),
+                review_source(
+                    database_id=2,
+                    state="APPROVED",
+                    body="",
+                    submitted_at="2026-08-16T08:00:00Z",
+                ),
+            ),
+        )
+
+        result = evaluate_pr({"number": 7})
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(1, result.facts.approval_count)
+        reviewer = next(
+            reviewer
+            for reviewer in result.facts.reviewers
+            if reviewer.login == "reviewer"
+        )
+        self.assertTrue(reviewer.approved)
+        self.assertFalse(reviewer.changes_requested)
+
     @patch("pull_request_evaluation.resolve_routing", wraps=resolve_routing)
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(

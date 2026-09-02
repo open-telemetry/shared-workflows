@@ -913,6 +913,51 @@ class HistoryRestorationTest(unittest.TestCase):
         self.assertEqual(outcome.pending_actions, {})
         self.assertEqual(outcome.top_level_history, legacy_history)
 
+    def test_edited_feedback_invalidates_legacy_history_without_source_id(
+        self,
+    ) -> None:
+        prepared = prepare_discussions(
+            DiscussionInput(
+                (),
+                ({
+                    "kind": "issue-comment",
+                    "source_id": 201,
+                    "created_timestamp": "2026-07-14T07:00:00Z",
+                    "timestamp": "2026-07-14T09:00:00Z",
+                    "actor": "reviewer",
+                    "actor_role": "approver",
+                    "body": "Please update this.",
+                },),
+                "author",
+                frozenset({"reviewer"}),
+                "no",
+            )
+        )
+        outcome = resolve_discussions(
+            prepared,
+            DiscussionClassifications(
+                (),
+                (classification("pr-issue-comment-201", "author"),),
+                (),
+            ),
+            {
+                "pr-issue-comment-201": {
+                    "evidence": {"reply": "2026-07-14T07:30:00Z"},
+                }
+            },
+        )
+
+        self.assertEqual(
+            outcome.pending_actions,
+            {
+                "pr-issue-comment-201": {
+                    "action": "author",
+                    "since": "2026-07-14T07:00:00Z",
+                }
+            },
+        )
+        self.assertEqual(outcome.top_level_history, {})
+
     def test_recovers_source_id_for_legacy_history(self) -> None:
         outcome = resolve_discussions(
             PreparedDiscussions(

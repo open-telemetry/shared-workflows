@@ -236,6 +236,24 @@ class CommentActivityTest(unittest.TestCase):
             ],
         )
 
+    def test_edited_review_keeps_submission_time_for_state_ordering(self) -> None:
+        event = activity(
+            reviews=[
+                {
+                    "database_id": 1,
+                    "submitted_at": "2026-07-14T01:00:00Z",
+                    "updated_at": "2026-07-14T03:00:00Z",
+                    "content_updated_at": "2026-07-14T03:00:00Z",
+                    "user": {"login": "reviewer"},
+                    "state": "CHANGES_REQUESTED",
+                    "body": "Please update this.",
+                }
+            ],
+        ).events[0]
+
+        self.assertEqual("2026-07-14T01:00:00Z", event["timestamp"])
+        self.assertEqual("2026-07-14T03:00:00Z", event["content_timestamp"])
+
     def test_copilot_identity_shapes_are_normalized(self) -> None:
         timeline = activity(
             issue_comments=[
@@ -326,6 +344,25 @@ class ActivityClockTest(unittest.TestCase):
         self.assertIsNone(timeline.latest_author_activity_at)
         self.assertEqual(
             datetime(2026, 7, 14, 4, tzinfo=timezone.utc),
+            timeline.latest_approver_activity_at,
+        )
+
+    def test_review_edit_updates_content_activity_clock(self) -> None:
+        timeline = activity(
+            reviews=[
+                {
+                    "id": 1,
+                    "submitted_at": "2026-07-14T01:00:00Z",
+                    "content_updated_at": "2026-07-14T03:00:00Z",
+                    "user": {"login": "reviewer"},
+                    "state": "CHANGES_REQUESTED",
+                    "body": "Please also update the tests.",
+                }
+            ],
+        )
+
+        self.assertEqual(
+            datetime(2026, 7, 14, 3, tzinfo=timezone.utc),
             timeline.latest_approver_activity_at,
         )
 
