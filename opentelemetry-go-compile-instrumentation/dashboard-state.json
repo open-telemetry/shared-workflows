@@ -1370,17 +1370,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "SSOHEB",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1127#discussion_r3915256817",
-          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1127#discussion_r3915259126",
-          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1127#discussion_r3915388855"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "88f67624fbb14643bb073b6e17e51ccc",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8c30eb9f7e43ec171d2b9251959a704eaa1501227782d0b9886e83aa3631a39b",
+        "copilot_request_fingerprint": "65724a6f288391dbcfb5eed2cb3410cb66ba4bc6bc25c685c6f21203de892f3d",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1393,13 +1389,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "67594ef87ffd19a47da5e84d76766dbc47067ab5",
+        "head_sha": "dbe11f74a4c09d0abb8b253dc7afdd568a6fc403",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-02T14:49:11+00:00",
+        "last_activity_at": "2026-09-02T18:50:56+00:00",
         "last_approver_activity_at": "2026-09-02T14:49:11+00:00",
-        "last_author_activity_at": "2026-08-23T19:41:38+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-09-02T18:50:56+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -1416,14 +1412,15 @@
             "changes_requested": true,
             "login": "darccio",
             "open_thread": true,
-            "pending_review": false,
+            "pending_review": true,
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-02T19:17:07.185830+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6a39096edeb87ef55e4ec4de8aa7868c688fd84aae32de0edeb345b4a8c926cd",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "6371b9fde8537ae8bd76f5af84bbee2a270f98ec19fa12c4959e4de0c6b4c720",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-02T14:36:12+00:00"
       },
       "failed": false,
@@ -1433,9 +1430,9 @@
       "top_level_history": {
         "pr-issue-comment-5337304613": {
           "evidence": {
-            "reply": "2026-08-21T10:16:28Z"
+            "reply": "2026-08-20T09:52:50Z"
           },
-          "reply_source_id": 5368550081
+          "reply_source_id": 5354294248
         },
         "pr-review-4986073870": {
           "evidence": {
