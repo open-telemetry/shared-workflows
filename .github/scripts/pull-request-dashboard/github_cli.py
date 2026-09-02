@@ -491,8 +491,7 @@ def gh_pr_check_rollup(
             check
             for check, is_required in checks
             if not is_required
-            and check.get("bucket")
-            in ("fail", "cancel", "maintainer_action_required")
+            and check.get("bucket") in ("fail", "cancel")
         ],
         "code_scanning": [
             check

@@ -280,7 +280,9 @@ the implementation understandable and operationally cheap.
   CI failure, including when review feedback also needs author action.
   Repository-configured `non_blocking_check_patterns` identify failed optional
   checks in a note alongside this action, without changing required-check facts
-  or routing.
+  or routing. An optional check in `ACTION_REQUIRED` is not included in that
+  failure-only note: it does not block merge and has neither failed nor been
+  cancelled.
 - A merge conflict does not decide who should act. Discussion, CI, and approval
   routing still identify the owner, while the conflict remains visible as a
   separate merge blocker. This lets maintainers handle routine conflicts, such
@@ -301,6 +303,13 @@ the implementation understandable and operationally cheap.
   author is never held, because a failing check or new author-owned discussion
   is evidence the gates cannot undo. Unavailable check results hold the handoff
   for the same reason a pending one does, and resolve on a later run.
+- `ACTION_REQUIRED` is the exception to that hold. It is a final, reported
+  result that still blocks merge because someone with repository write access
+  must approve or otherwise unblock the workflow. It remains unsettled and
+  appears as 🔐 in the CI column, but it does not hold routing with the author:
+  the PR routes to reviewers while approvals are outstanding, then to
+  maintainers once it has enough approvals. A genuine required-check failure,
+  including one alongside `ACTION_REQUIRED`, still routes to the author.
 - A held PR is presented as waiting on its author rather than on the robot it
   is waiting for, so a separate route would add a section that nobody is
   expected to act on. What it waits for is named in the columns instead: the CI

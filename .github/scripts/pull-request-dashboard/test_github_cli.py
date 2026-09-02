@@ -161,13 +161,7 @@ class GithubCliTest(unittest.TestCase):
 
         assert rollup is not None
         self.assertEqual([], rollup["required"])
-        self.assertEqual(
-            ["maintainer_action_required"],
-            [
-                check["bucket"]
-                for check in rollup["non_blocking_failures"]
-            ],
-        )
+        self.assertEqual([], rollup["non_blocking_failures"])
 
     @patch("github_cli.run_gh_json")
     def test_pr_view_fetches_body_for_routing_freshness(self, run_json) -> None:
