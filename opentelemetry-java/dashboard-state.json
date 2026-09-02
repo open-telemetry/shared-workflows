@@ -1501,13 +1501,15 @@
         "approval_count": 0,
         "assignees": [],
         "author": "Rajkaran-122",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8769#discussion_r3918892390"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "bbe0e39fdfba48909687063662baa6e0",
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a4bfe8d5a7ec2545107293fc9940fa7a0198b8bb1bd25ac943a78fde6ee52b7e",
+        "copilot_request_fingerprint": "56c8db8a37cfbbcb5b99467800b74bc60a75963a11ac33179477472d4ac06675",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1523,17 +1525,27 @@
         "head_sha": "b0884c5246840cb060655ad3a9f3a4b03c5c04bc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-02T21:30:50+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-02T21:35:09+00:00",
+        "last_approver_activity_at": "2026-09-02T21:35:09+00:00",
         "last_author_activity_at": "2026-09-02T21:30:50+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jkwatson",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-02T21:31:54.607586+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "06fad58819aa2e311053f9ae0769e6c28017bc9b8c9ee50e44aa0c4b39e33fd2",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-02T21:08:56+00:00"
+        "routing_input_fingerprint": "5d86801dfc25881b564ff6d857049eb3b9d971db7e9032eebb3f9743fbfa500e",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-02T21:35:09+00:00"
       },
       "failed": false,
       "pr_number": 8769,
