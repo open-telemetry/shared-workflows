@@ -87,17 +87,18 @@ from utils import (
 
 _COPILOT_COMMITTER_IDENTITIES = {"copilot"}
 _COPILOT_PR_AUTHOR_IDENTITIES = {"copilot-swe-agent", "copilot"}
-_MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES = {
-    "opentelemetrybot",
-    "otelbot",
-    "renovate",
-}
+_MAINTENANCE_APP_IDENTITIES = {"otelbot", "renovate"}
 
 
 def _is_maintenance_bot_author(login: str) -> bool:
-    return (
-        normalize_author_identity(login)
-        in _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES
+    normalized_login = (login or "").strip().casefold()
+    identity = normalize_author_identity(normalized_login)
+    return identity == "opentelemetrybot" or (
+        identity in _MAINTENANCE_APP_IDENTITIES
+        and (
+            normalized_login.startswith("app/")
+            or normalized_login.endswith("[bot]")
+        )
     )
 
 

@@ -204,7 +204,13 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             with self.subTest(author=author):
                 self.assertTrue(_is_maintenance_bot_author(author))
 
-        for author in ("human-author", "dependabot[bot]", "app/dependabot"):
+        for author in (
+            "human-author",
+            "otelbot",
+            "renovate",
+            "dependabot[bot]",
+            "app/dependabot",
+        ):
             with self.subTest(author=author):
                 self.assertFalse(_is_maintenance_bot_author(author))
 
