@@ -636,6 +636,66 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(classifier.requests, [])
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_override_without_head_uses_non_persistent_acknowledgement(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha=""),
+            issue_comments=(
+                issue_comment(
+                    database_id=102,
+                    body="/dashboard route:reviewers",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+            ),
+            review_threads=(
+                review_thread(
+                    node_id="thread-1",
+                    comments=(
+                        review_thread_comment(
+                            body="Please update this.",
+                            created_at="2026-08-16T09:00:00Z",
+                        ),
+                    ),
+                ),
+            ),
+        )
+        classification = action_classification(
+            "thread-1",
+            DiscussionKind.REVIEW_THREAD,
+            DiscussionAction.AUTHOR,
+            "The reviewer requested a change.",
+        )
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications((classification,), (), ())
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertEqual("", result.facts.dashboard_override_head_sha)
+        self.assertFalse(result.facts.dashboard_override_persistent)
+        self.assertEqual(
+            (
+                DashboardCommandReply(
+                    102,
+                    "routed",
+                    "author",
+                    route=DashboardRoute.AUTHOR,
+                    since="2026-08-16T08:00:00Z",
+                    top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+                ),
+            ),
+            result.facts.dashboard_command_replies,
+        )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_actionable_feedback_after_push_ends_persistent_handoff(
         self,
         fetch_raw: Mock,

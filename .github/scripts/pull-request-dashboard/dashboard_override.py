@@ -252,12 +252,15 @@ def dashboard_override_facts(
         acknowledged_top_level_feedback_cutoff(source.issue_comments),
     )
     persistent_handoff = bool(
-        command_id
-        or (previous_binding_matches and previous_persistent_handoff)
-        or acknowledges_persistent_handoff(
-            source.issue_comments,
-            bound_command_id,
-            bound_head,
+        bound_head
+        and (
+            command_id
+            or (previous_binding_matches and previous_persistent_handoff)
+            or acknowledges_persistent_handoff(
+                source.issue_comments,
+                bound_command_id,
+                bound_head,
+            )
         )
     )
     cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
