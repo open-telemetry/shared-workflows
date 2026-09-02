@@ -634,6 +634,127 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(classifier.requests, [])
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_push_keeps_old_top_level_feedback_retired_but_restores_threads(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="new-head"),
+            issue_comments=(
+                issue_comment(
+                    database_id=101,
+                    actor=actor("reviewer"),
+                    body="Please update the top-level documentation.",
+                    created_at="2026-08-16T07:00:00Z",
+                ),
+                issue_comment(
+                    database_id=102,
+                    actor=actor("author"),
+                    body="/dashboard route:reviewers",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+                issue_comment(
+                    database_id=103,
+                    actor=actor("opentelemetry-pr-dashboard[bot]"),
+                    body=(
+                        "<!-- pull-request-dashboard-override-ack:"
+                        "102:old-head:2026-08-16T08:00:00Z -->"
+                    ),
+                    created_at="2026-08-16T08:01:00Z",
+                ),
+                issue_comment(
+                    database_id=104,
+                    url="https://example.test/comment/new",
+                    actor=actor("reviewer"),
+                    body="Please add a current example.",
+                    created_at="2026-08-16T09:00:00Z",
+                ),
+            ),
+            review_threads=(review_thread(
+                node_id="old-thread",
+                comments=(review_thread_comment(
+                    url="https://example.test/review-comment/old",
+                    created_at="2026-08-16T07:00:00Z",
+                ),),
+            ),),
+        )
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications(
+                (
+                    action_classification(
+                        "old-thread",
+                        DiscussionKind.REVIEW_THREAD,
+                        DiscussionAction.AUTHOR,
+                        "The unresolved thread still needs author action.",
+                    ),
+                ),
+                (
+                    action_classification(
+                        "pr-issue-comment-104",
+                        DiscussionKind.TOP_LEVEL_FEEDBACK,
+                        DiscussionAction.AUTHOR,
+                        "The new top-level request needs author action.",
+                    ),
+                ),
+                (),
+            )
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            previous_result=stored_dashboard_result(
+                7,
+                route=DashboardRoute.AUTHOR,
+                top_level_history={
+                    "pr-issue-comment-101": {
+                        "evidence": {"reply": "2026-08-16T07:30:00Z"},
+                    }
+                },
+            ),
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertEqual(
+            {
+                "old-thread": {
+                    "action": "author",
+                    "since": "2026-08-16T07:00:00Z",
+                },
+                "pr-issue-comment-104": {
+                    "action": "author",
+                    "since": "2026-08-16T09:00:00Z",
+                },
+            },
+            result.pending_actions,
+        )
+        self.assertEqual(
+            ("https://example.test/comment/new",),
+            result.facts.author_action_top_level_feedback_urls,
+        )
+        self.assertEqual(
+            ("https://example.test/review-comment/old",),
+            result.facts.author_action_review_thread_urls,
+        )
+        self.assertEqual({}, result.top_level_history)
+        self.assertEqual(
+            ("pr-issue-comment-104",),
+            tuple(
+                discussion.identity.discussion_id
+                for discussion in classifier.requests[0].top_level_items
+            ),
+        )
+        self.assertEqual(
+            ("old-thread",),
+            tuple(
+                discussion.identity.discussion_id
+                for discussion in classifier.requests[0].review_threads
+            ),
+        )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_actionable_review_after_override_ends_handoff(
         self, fetch_raw: Mock
     ) -> None:

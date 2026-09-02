@@ -340,9 +340,43 @@ def _derive_top_level_author_comment_items(
     return items
 
 
-def prepare_discussions(source: DiscussionInput) -> PreparedDiscussions:
+def _top_level_feedback_timestamp(discussion: dict[str, Any]) -> str:
+    comments = discussion.get("comments") or ()
+    root_comment = comments[0] if comments else {}
+    return (
+        root_comment.get("activity_timestamp")
+        or discussion.get("root_timestamp")
+        or ""
+    )
+
+
+def _top_level_items_after_cutoff(
+    items: list[dict[str, Any]],
+    cutoff_value: str,
+) -> list[dict[str, Any]]:
+    cutoff = parse_ts(cutoff_value)
+    if cutoff is None:
+        return items
+    return [
+        item
+        for item in items
+        if (
+            (activity := parse_ts(_top_level_feedback_timestamp(item))) is None
+            or activity > cutoff
+        )
+    ]
+
+
+def prepare_discussions(
+    source: DiscussionInput,
+    *,
+    top_level_feedback_cutoff: str = "",
+) -> PreparedDiscussions:
     review_threads = _group_review_threads(source)
-    top_level_items = _derive_top_level_items(source)
+    top_level_items = _top_level_items_after_cutoff(
+        _derive_top_level_items(source),
+        top_level_feedback_cutoff,
+    )
     top_level_author_comment_items = _derive_top_level_author_comment_items(
         source,
         top_level_items,
@@ -396,7 +430,7 @@ def reviewer_handoff_feedback(
     override_since: str,
     pr_author: str,
 ) -> PreparedDiscussions:
-    """Select human reviewer feedback created after a reviewer handoff command."""
+    """Select human reviewer feedback changed after a reviewer handoff command."""
     cutoff = parse_ts(override_since)
     if cutoff is None:
         return PreparedDiscussions((), (), ())
@@ -650,16 +684,6 @@ def _collect_author_evidence(
             evidence["reply"] = timestamp
             reply_source_id = source_id
     return evidence, reply_source_id
-
-
-def _top_level_feedback_timestamp(discussion: dict[str, Any]) -> str:
-    comments = discussion.get("comments") or ()
-    root_comment = comments[0] if comments else {}
-    return (
-        root_comment.get("activity_timestamp")
-        or discussion.get("root_timestamp")
-        or ""
-    )
 
 
 def _pending_action_for(action: str) -> str:

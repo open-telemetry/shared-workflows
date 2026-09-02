@@ -128,6 +128,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   been cleared by newer feedback.
     dashboard_override_since        str (iso)     Effective content timestamp of
                                                   the command bound to the handoff.
+    dashboard_top_level_feedback_cutoff
+                                       str (iso)  Top-level feedback at or before
+                                                  this command timestamp is retired.
     dashboard_override_cleared_by_feedback
                                       bool        Actionable human reviewer
                                                   feedback ended the handoff.

@@ -85,6 +85,7 @@ class DashboardFacts:
     dashboard_override_bound_command_id: int = 0
     dashboard_override_head_sha: str = ""
     dashboard_override_since: str = ""
+    dashboard_top_level_feedback_cutoff: str = ""
     dashboard_override_cleared_by_feedback: bool = False
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False

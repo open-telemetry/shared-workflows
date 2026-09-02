@@ -47,6 +47,7 @@ class DashboardOverrideFacts:
     bound_command_id: int
     head_sha: str
     since: str
+    top_level_feedback_cutoff: str
     cleared_by_feedback: bool
     command_replies: tuple[DashboardCommandReply, ...]
 
@@ -64,8 +65,9 @@ def author_override_guidance(staleness_note: str = "") -> str:
         "If you need reviewer or maintainer help, comment "
         "`/dashboard route:reviewers` to request routing from waiting on the "
         "author to waiting on reviewers. The dashboard binds the request to "
-        "the head it sees when it reads the command, and a later push restores "
-        "normal routing."
+        "the head it sees when it reads the command. Top-level feedback through "
+        "that command is retired; unresolved review threads remain open. A later "
+        "push restores normal routing for the remaining work."
     )
     if staleness_note:
         guidance = f"{guidance} {staleness_note}"
@@ -140,6 +142,17 @@ def _effective_command_timestamp(comment: IssueComment) -> str:
     return comment.effective_content_timestamp
 
 
+def _latest_valid_timestamp(*values: str) -> str:
+    candidates = [
+        (parsed, value)
+        for value in values
+        if (parsed := parse_ts(value)) is not None
+    ]
+    if not candidates:
+        return ""
+    return max(candidates, key=lambda item: item[0])[1]
+
+
 def dashboard_override_facts(
     source: DashboardOverrideInput,
     author: str,
@@ -169,6 +182,11 @@ def dashboard_override_facts(
     )
     previous_since = (
         previous_facts.dashboard_override_since
+        if previous_facts is not None
+        else ""
+    )
+    previous_top_level_feedback_cutoff = (
+        previous_facts.dashboard_top_level_feedback_cutoff
         if previous_facts is not None
         else ""
     )
@@ -204,6 +222,12 @@ def dashboard_override_facts(
         or _override_command_effective_at(source.issue_comments, bound_command_id)
         or acknowledgement_created_at
     )
+    top_level_feedback_cutoff = _latest_valid_timestamp(
+        previous_top_level_feedback_cutoff,
+        command_created_at,
+        acknowledged_since,
+        _override_command_effective_at(source.issue_comments, bound_command_id),
+    )
     cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
         source.issue_comments
     )
@@ -226,6 +250,7 @@ def dashboard_override_facts(
         # binding from that acknowledgement.
         head_sha=bound_head,
         since=override_since,
+        top_level_feedback_cutoff=top_level_feedback_cutoff,
         cleared_by_feedback=cleared_by_feedback,
         command_replies=pending_command_replies(source, author, reviewers),
     )
@@ -420,6 +445,10 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             )
         else:
             message = "this pull request was routed to reviewers."
+        message = (
+            f"{message} Top-level feedback through this request will not return; "
+            "unresolved review threads remain open."
+        )
     elif kind == "unknown_command":
         subcommand = reply.subcommand
         attempted = DASHBOARD_COMMAND_PREFIX + (f" {subcommand}" if subcommand else "")

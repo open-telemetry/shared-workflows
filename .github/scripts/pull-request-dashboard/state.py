@@ -488,6 +488,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("dashboard_override_since", _MISSING),
             "facts.dashboard_override_since",
         ),
+        dashboard_top_level_feedback_cutoff=_string(
+            value.get("dashboard_top_level_feedback_cutoff", _MISSING),
+            "facts.dashboard_top_level_feedback_cutoff",
+        ),
         dashboard_override_cleared_by_feedback=_boolean(
             value.get("dashboard_override_cleared_by_feedback", _MISSING),
             "facts.dashboard_override_cleared_by_feedback",
@@ -668,6 +672,10 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         )
     if facts.dashboard_override_since:
         stored["dashboard_override_since"] = facts.dashboard_override_since
+    if facts.dashboard_top_level_feedback_cutoff:
+        stored["dashboard_top_level_feedback_cutoff"] = (
+            facts.dashboard_top_level_feedback_cutoff
+        )
     if facts.dashboard_override_cleared_by_feedback:
         stored["dashboard_override_cleared_by_feedback"] = True
     if facts.ci_failing_count is not None:

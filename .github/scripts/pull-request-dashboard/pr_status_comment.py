@@ -344,7 +344,7 @@ def render_status_comment(
             override_ack_marker(
                 bound_command_id,
                 bound_head,
-                facts.dashboard_override_since,
+                facts.dashboard_top_level_feedback_cutoff,
             ),
         )
         optional_markers.append(

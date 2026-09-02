@@ -478,23 +478,30 @@ the implementation understandable and operationally cheap.
   Copilot review, merge conflicts, discussion actions, and approval routing. The
   author may be stuck or may need a person to explain a basic problem, so no
   automated blocker can prevent the handoff. A later push restores normal
-  routing and gates. Actionable human reviewer feedback with an effective
-  content timestamp after the command also ends the handoff, because a reviewer
-  has answered the request for help and assigned the next action to the author.
-  An edit to older feedback counts when its content-edit timestamp is after the
-  command. Praise, informational comments, bot feedback, and feedback last
-  changed at or before the command do not end it.
+  routing and gates, but top-level feedback last changed at or before the
+  command stays retired. Review threads are not retired by the command; after a
+  push, unresolved and non-outdated threads return to normal routing. Actionable
+  human reviewer feedback with an effective content timestamp after the command
+  also ends the handoff, because a reviewer has answered the request for help
+  and assigned the next action to the author. An edit to older feedback counts
+  when its content-edit timestamp is after the command. Praise, informational
+  comments, bot feedback, and feedback last changed at or before the command do
+  not end it.
 - While a handoff is active, the dashboard classifies only human reviewer
   feedback with content activity after the command. Older discussions and
   classification failures therefore cannot block the break-glass route. Once
   newer feedback produces an author action, normal discussion classification
-  and routing resume. The dashboard records that transition in its live status
-  comment so an author reply or a lost state cache cannot reactivate the same
-  command. A newer command can establish a new handoff on the same head.
+  and routing resume, subject to the permanent top-level feedback cutoff.
+  The dashboard records that transition in its live status comment so an author
+  reply or a lost state cache cannot reactivate the same command. A newer
+  command can establish a new handoff on the same head and advance the cutoff.
 - The dashboard binds a command to the head it sees when it first reads that
   command, and records that head in an acknowledgement marker on either the
-  command reply or the live status comment. The handoff is then a comparison of
-  two strings: the recorded head and the current one. The earlier design
+  command reply or the live status comment. The marker also records the
+  effective command timestamp used for the permanent top-level feedback cutoff.
+  A legacy marker without that timestamp does not retire feedback when the
+  original command is unavailable. The handoff is then a comparison of two
+  strings: the recorded head and the current one. The earlier design
   instead ordered the command against the push by comparing the comment
   timestamp with the head push time from `GET /repos/{repo}/activity`.
   Do not reintroduce that. Both timestamps have one-second resolution and come
@@ -573,14 +580,16 @@ the implementation understandable and operationally cheap.
   deleted source comments authoritative without additional reconciliation.
   Cached classifications avoid repeated LLM calls, while dashboard state
   retains the author reply already observed for each item.
-- An explicit author reply is the only thing that closes a top-level item.
-  Commits, PR title edits, and PR description edits are not tied to the item
-  they would close, so any push after the feedback arrived would close every
-  open item at once and hide feedback nobody had answered. The status comment
-  lists the exact open discussions and explains how to give each one an outcome,
-  which makes an explicit reply both cheap and unambiguous. An author's explicit
-  commitment to future work in the current PR is a self-deferral, not a
-  completed reply, so the item continues waiting on the author.
+- In normal routing, an explicit author reply is the only thing that closes a
+  top-level item. Commits, PR title edits, and PR description edits are not tied
+  to the item they would close, so a push alone never closes feedback. The
+  break-glass reviewer command is the deliberate bulk exception: it retires
+  top-level items at or before its cutoff while leaving review threads open.
+  The status comment lists the exact open discussions and explains how to give
+  each one an outcome, which makes an explicit reply both cheap and unambiguous.
+  An author's explicit commitment to future work in the current PR is a
+  self-deferral, not a completed reply, so the item continues waiting on the
+  author.
 - Each model call classifies up to ten uncached top-level feedback items
   independently, while retaining a separate cache entry for every item. A
   refresh processes at most 200 such items per PR. Exceeding that cap means the

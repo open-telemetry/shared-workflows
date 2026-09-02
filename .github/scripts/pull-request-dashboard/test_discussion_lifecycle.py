@@ -382,6 +382,96 @@ class PrepareDiscussionsTest(unittest.TestCase):
             prepared.top_level_author_comment_items[0]["candidate_feedback"],
         )
 
+    def test_top_level_cutoff_retires_only_unchanged_old_feedback(self) -> None:
+        prepared = prepare_discussions(
+            DiscussionInput(
+                normalize_review_threads(({
+                    "id": "old-thread",
+                    "isResolved": False,
+                    "isOutdated": False,
+                    "comments": {
+                        "nodes": [{
+                            "url": "https://example.test/thread/old",
+                            "body": "Please update the implementation.",
+                            "createdAt": "2026-07-14T01:00:00Z",
+                            "author": {"login": "reviewer"},
+                        }],
+                    },
+                },)),
+                (
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 201,
+                        "created_timestamp": "2026-07-14T01:00:00Z",
+                        "timestamp": "2026-07-14T01:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Old top-level request.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 202,
+                        "created_timestamp": "2026-07-14T02:00:00Z",
+                        "timestamp": "2026-07-14T05:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Edited top-level request.",
+                    },
+                    {
+                        "kind": "review-state",
+                        "source_id": 203,
+                        "created_timestamp": "2026-07-14T03:00:00Z",
+                        "timestamp": "2026-07-14T03:00:00Z",
+                        "content_timestamp": "2026-07-14T05:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "state": "COMMENTED",
+                        "body": "Edited review summary.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 204,
+                        "created_timestamp": "2026-07-14T04:00:00Z",
+                        "timestamp": "2026-07-14T04:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Same-second top-level request.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 301,
+                        "created_timestamp": "2026-07-14T06:00:00Z",
+                        "timestamp": "2026-07-14T06:00:00Z",
+                        "actor": "author",
+                        "actor_role": "author",
+                        "body": "I addressed the current requests.",
+                    },
+                ),
+                "author",
+                frozenset({"reviewer"}),
+                "no",
+            ),
+            top_level_feedback_cutoff="2026-07-14T04:00:00Z",
+        )
+
+        self.assertEqual(
+            ["old-thread"],
+            [thread["discussion_id"] for thread in prepared.review_threads],
+        )
+        self.assertEqual(
+            ["pr-issue-comment-202", "pr-review-203"],
+            [item["discussion_id"] for item in prepared.top_level_items],
+        )
+        self.assertEqual(
+            ["pr-issue-comment-202", "pr-review-203"],
+            [
+                item["discussion_id"]
+                for item in prepared.top_level_author_comment_items[0][
+                    "candidate_feedback"
+                ]
+            ],
+        )
+
     def test_ignores_author_only_review_threads(self) -> None:
         prepared = prepare_discussions(
             DiscussionInput(

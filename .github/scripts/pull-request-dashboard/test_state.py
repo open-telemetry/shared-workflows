@@ -191,6 +191,7 @@ class StateTest(unittest.TestCase):
             dashboard_override_bound_command_id=91,
             dashboard_override_head_sha="current-head",
             dashboard_override_since="2026-08-16T08:00:00Z",
+            dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
             dashboard_override_cleared_by_feedback=True,
             dashboard_command_replies=(
                 DashboardCommandReply(
