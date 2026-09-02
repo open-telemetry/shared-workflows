@@ -367,7 +367,9 @@ def check_bucket(state: str) -> str:
         return "pass"
     if state in ("SKIPPED", "NEUTRAL"):
         return "skipping"
-    if state in ("ERROR", "FAILURE", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"):
+    if state == "ACTION_REQUIRED":
+        return "maintainer_action_required"
+    if state in ("ERROR", "FAILURE", "TIMED_OUT", "STARTUP_FAILURE"):
         return "fail"
     if state == "CANCELLED":
         return "cancel"
@@ -488,7 +490,9 @@ def gh_pr_check_rollup(
         "non_blocking_failures": [
             check
             for check, is_required in checks
-            if not is_required and check.get("bucket") in ("fail", "cancel")
+            if not is_required
+            and check.get("bucket")
+            in ("fail", "cancel", "maintainer_action_required")
         ],
         "code_scanning": [
             check

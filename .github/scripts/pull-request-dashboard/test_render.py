@@ -8,6 +8,7 @@ from dashboard_test_support import (
     stored_dashboard_result,
 )
 from render import (
+    ci_cell,
     render_draft_pr_section,
     render_pr_tables,
     reviewers_cell_text,
@@ -15,6 +16,16 @@ from render import (
 
 
 class RenderTest(unittest.TestCase):
+    def test_maintainer_owned_check_action_is_a_ci_blocker(self) -> None:
+        self.assertEqual(
+            "❌",
+            ci_cell(dashboard_facts(
+                ci_failing_count=0,
+                ci_maintainer_action_required_count=1,
+                ci_pending_count=0,
+            )),
+        )
+
     def test_reviewer_legend_includes_top_level_feedback(self) -> None:
         markdown = render_pr_tables([], ())
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dashboard_contracts import DashboardFacts, DashboardRoute
+from utils import required_checks_unreported
 
 
 ROUTE_PRESENTATION = {
@@ -73,7 +74,7 @@ def unreported_gate_phrase(facts: DashboardFacts) -> str:
     # findings holds it but has reported, so naming it would send the reader
     # after a gate that arrived.
     gates = []
-    if not facts.required_checks_settled:
+    if required_checks_unreported(facts):
         gates.append("the required status checks")
     if facts.copilot_review_unreported:
         gates.append("the Copilot review")
@@ -87,7 +88,7 @@ def held_gate_phrase(facts: DashboardFacts) -> str:
     # review, which has already arrived. A held route always has one of these,
     # so the phrase is never empty while the pull request is held.
     gates = []
-    if not facts.required_checks_settled:
+    if required_checks_unreported(facts):
         gates.append("the required status checks")
     if facts.copilot_review_unreported:
         gates.append("the Copilot review")

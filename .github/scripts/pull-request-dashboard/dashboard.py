@@ -114,6 +114,11 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   fetched.
     ci_failing_since                str (iso)     Earliest completion time among
                                                   current required failures.
+    ci_maintainer_action_required_count
+                                      int         Required checks that need a
+                                                  maintainer-owned permission
+                                                  action; absent when checks
+                                                  could not be fetched.
     ci_pending_count                int           Merge-blocking checks only;
                                                   absent when checks could not be
                                                   fetched, and excludes required
@@ -191,9 +196,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   Copilot review are still
                                                   outstanding.
     required_checks_settled         bool          Every required check has
-                                                  reported on the current head,
-                                                  so the computed route is not
-                                                  provisional.
+                                                  completed without needing a
+                                                  maintainer-owned permission
+                                                  action.
     route_held_since                str (iso)     When the gates first kept this
                                                   PR off its reviewers on this
                                                   head. Cleared once every gate

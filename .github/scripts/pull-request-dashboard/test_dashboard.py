@@ -1819,15 +1819,21 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
     def test_required_check_buckets_control_ci_facts(self) -> None:
         cases = (
-            ("TIMED_OUT", "fail", 1, 0),
-            ("ACTION_REQUIRED", "fail", 1, 0),
-            ("STARTUP_FAILURE", "fail", 1, 0),
-            ("CANCELLED", "cancel", 1, 0),
-            ("IN_PROGRESS", "pending", 0, 1),
-            ("SKIPPED", "skipping", 0, 0),
-            ("SUCCESS", "pass", 0, 0),
+            ("TIMED_OUT", "fail", 1, 0, 0),
+            (
+                "ACTION_REQUIRED",
+                "maintainer_action_required",
+                0,
+                1,
+                0,
+            ),
+            ("STARTUP_FAILURE", "fail", 1, 0, 0),
+            ("CANCELLED", "cancel", 1, 0, 0),
+            ("IN_PROGRESS", "pending", 0, 0, 1),
+            ("SKIPPED", "skipping", 0, 0, 0),
+            ("SUCCESS", "pass", 0, 0, 0),
         )
-        for state, bucket, failing, pending in cases:
+        for state, bucket, failing, maintainer_action, pending in cases:
             with self.subTest(state=state, bucket=bucket):
                 facts = evaluation_facts(
                     {
@@ -1849,6 +1855,10 @@ class RequiredCiRoutingTest(unittest.TestCase):
                 )
 
                 self.assertEqual(failing, facts.ci_failing_count)
+                self.assertEqual(
+                    maintainer_action,
+                    facts.ci_maintainer_action_required_count,
+                )
                 self.assertEqual(pending, facts.ci_pending_count)
                 self.assertEqual(
                     ("workflow-notification",),
@@ -1886,6 +1896,48 @@ class RequiredCiRoutingTest(unittest.TestCase):
 
         self.assertEqual(3, facts.ci_failing_count)
         self.assertEqual("2026-07-17T01:00:00+00:00", facts.ci_failing_since)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_permission_owned_blockers_route_like_audited_pull_requests(
+        self,
+        fetch_source: Mock,
+    ) -> None:
+        cases = (
+            (4998, "opentelemetry-python-contrib", (), DashboardRoute.APPROVER),
+            (
+                3706,
+                "opentelemetry-js-contrib",
+                (review_source(state="APPROVED", body=""),),
+                DashboardRoute.MAINTAINER,
+            ),
+        )
+        for number, repository, reviews, expected_route in cases:
+            with self.subTest(number=number, repository=repository):
+                fetch_source.return_value = pull_request_source(
+                    pull_request=pull_request_metadata(
+                        number=number,
+                        title=f"{repository} workflow approval",
+                    ),
+                    reviews=reviews,
+                    checks=(check_source(
+                        name="workflow approval",
+                        state="ACTION_REQUIRED",
+                        bucket="maintainer_action_required",
+                    ),),
+                )
+
+                result = evaluate_pr({"number": number})
+
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(expected_route, result.route)
+                self.assertEqual(0, result.facts.ci_failing_count)
+                self.assertEqual(
+                    1,
+                    result.facts.ci_maintainer_action_required_count,
+                )
+                self.assertFalse(result.facts.required_checks_settled)
+                self.assertFalse(result.facts.route_held_for_gates)
 
 
 class ActivityFactsIntegrationTest(unittest.TestCase):

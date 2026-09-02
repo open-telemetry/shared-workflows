@@ -359,6 +359,60 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertNotIn("### Review feedback", body)
         self.assertNotIn(pr_status_comment.RESPONSE_EXAMPLES, body)
 
+    def test_waiting_on_reviewers_names_maintainer_owned_blocker(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.APPROVER,
+                ci_failing_count=0,
+                ci_maintainer_action_required_count=1,
+                ci_pending_count=0,
+            ),
+        )
+
+        self.assertIn("**Waiting on reviewers** · refreshed ", body)
+        self.assertIn("Review the latest changes.", body)
+        self.assertIn(
+            "**Maintainer action required:** 1 required check needs a maintainer "
+            "to approve or otherwise unblock its workflow.",
+            body,
+        )
+        self.assertNotIn("status check is failing", body)
+
+    def test_waiting_on_maintainers_leads_with_permission_action(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.MAINTAINER,
+                approval_count=1,
+                ci_failing_count=0,
+                ci_maintainer_action_required_count=2,
+                ci_pending_count=0,
+            ),
+        )
+
+        self.assertIn("Approve or otherwise unblock the required workflow checks.", body)
+        self.assertIn(
+            "**Maintainer action required:** 2 required checks need a maintainer "
+            "to approve or otherwise unblock their workflows.",
+            body,
+        )
+        self.assertNotIn("Merge when ready.", body)
+
+    def test_mixed_failure_and_permission_action_names_both_blockers(self) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.AUTHOR,
+                ci_failing_count=1,
+                ci_maintainer_action_required_count=1,
+                ci_pending_count=0,
+            ),
+        )
+
+        self.assertIn("Investigate required status check failures.", body)
+        self.assertIn("**Maintainer action required:**", body)
+
     def test_waiting_on_author_names_merge_conflicts(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

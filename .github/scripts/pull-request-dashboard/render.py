@@ -91,9 +91,16 @@ def render_draft_pr_section(
 
 
 def ci_cell(facts: DashboardFacts) -> str:
-    if facts.ci_failing_count is None and facts.ci_pending_count is None:
+    if (
+        facts.ci_failing_count is None
+        and facts.ci_maintainer_action_required_count is None
+        and facts.ci_pending_count is None
+    ):
         return "?"
-    if (facts.ci_failing_count or 0) > 0:
+    if (
+        (facts.ci_failing_count or 0) > 0
+        or (facts.ci_maintainer_action_required_count or 0) > 0
+    ):
         return "❌"
     if (facts.ci_pending_count or 0) > 0:
         return "⏳"
