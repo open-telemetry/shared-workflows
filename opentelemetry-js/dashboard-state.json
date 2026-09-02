@@ -1881,18 +1881,15 @@
     },
     "6932": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "LarryHu0217",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-js/pull/6932#issuecomment-5220435041"
-        ],
-        "author_nudge_episode_id": "624f0ac27af1469a8a215a4f730c87e4",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e8baecf9a27348dbee3ec617f0b2909159e43458ee6f209948f30b04f3429981",
+        "copilot_request_fingerprint": "b5bfacfad944fb7c6b9100c822fdbc1153a661e8cf001dd94e61685abe2508b2",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1908,24 +1905,15 @@
         "head_sha": "0baf5e042b0bb696cde20e9bb7570a08d77ec9a8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-30T14:26:30+00:00",
-        "last_approver_activity_at": "2026-08-13T19:16:38+00:00",
+        "last_activity_at": "2026-09-02T21:49:42+00:00",
+        "last_approver_activity_at": "2026-09-02T21:49:42+00:00",
         "last_author_activity_at": "2026-08-30T14:26:30+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
-            "login": "pacocartones",
-            "open_thread": false,
-            "pending_review": false,
-            "top_level_feedback": true
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": true,
             "login": "raphael-theriault-swi",
             "open_thread": false,
             "pending_review": false,
@@ -1934,20 +1922,26 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "26c5834aaf6522b4d44a6d4886c8bbb09e785542170f45cb80a4e31df504ab3b",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-08-07T18:02:18+00:00"
+        "routing_input_fingerprint": "53d9e946658cc22ac053bb981c6bb671b87840dd8b03de35539a1a03ae67ff84",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-30T14:26:30+00:00"
       },
       "failed": false,
       "pr_number": 6932,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/6932",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5182643544": {
           "evidence": {
             "reply": "2026-08-04T17:52:52Z"
           },
           "reply_source_id": 5182692680
+        },
+        "pr-issue-comment-5220435041": {
+          "evidence": {
+            "reply": "2026-08-09T01:35:13Z"
+          },
+          "reply_source_id": 5229201563
         },
         "pr-review-4849395887": {
           "evidence": {
