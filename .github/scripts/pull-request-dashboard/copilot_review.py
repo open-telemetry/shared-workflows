@@ -60,7 +60,7 @@ def open_copilot_findings(
 ) -> tuple[ReviewThread, ...]:
     # A review's own comment count never shrinks, so it still counts findings
     # that a later clean review has superseded. A review binding gives the exact
-    # ordering; creation time is the fallback for older cached source shapes.
+    # ordering; content activity time is the fallback for older cached shapes.
     # GitHub also marks a thread outdated once its anchor lines change.
     def is_superseded(thread: ReviewThread) -> bool:
         review_id = thread.comments[0].review_id
@@ -70,8 +70,13 @@ def open_copilot_findings(
             return False
         if superseded_before is None:
             return False
-        created_at = parse_ts(thread.comments[0].created_at)
-        return created_at is not None and created_at < superseded_before
+        content_updated_at = parse_ts(
+            thread.comments[0].effective_content_timestamp
+        )
+        return (
+            content_updated_at is not None
+            and content_updated_at < superseded_before
+        )
 
     return tuple(
         thread

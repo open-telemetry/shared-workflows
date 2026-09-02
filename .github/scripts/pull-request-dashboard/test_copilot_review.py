@@ -269,6 +269,46 @@ class CopilotFindingLifecycleTest(unittest.TestCase):
             copilot_review_status(reviews, "current-head", threads),
         )
 
+    def test_unknown_binding_edited_after_clean_preserves_finding(self) -> None:
+        reviews = (review_source(
+            database_id=10,
+            actor=actor("copilot"),
+            commit_id="current-head",
+            finding_count=0,
+            submitted_at="2026-07-20T02:00:00Z",
+        ),)
+        threads = (review_thread(comments=(review_thread_comment(
+            review_id=999,
+            actor=actor("copilot"),
+            created_at="2026-07-20T01:00:00Z",
+            updated_at="2026-07-20T03:00:00Z",
+        ),)),)
+
+        self.assertEqual(
+            (True, False, True),
+            copilot_review_status(reviews, "current-head", threads),
+        )
+
+    def test_missing_binding_edited_before_clean_is_superseded(self) -> None:
+        reviews = (review_source(
+            database_id=10,
+            actor=actor("copilot"),
+            commit_id="current-head",
+            finding_count=0,
+            submitted_at="2026-07-20T02:00:00Z",
+        ),)
+        threads = (review_thread(comments=(review_thread_comment(
+            review_id=0,
+            actor=actor("copilot"),
+            created_at="2026-07-20T01:00:00Z",
+            updated_at="2026-07-20T01:30:00Z",
+        ),)),)
+
+        self.assertEqual(
+            (True, False, False),
+            copilot_review_status(reviews, "current-head", threads),
+        )
+
 
 class CopilotFirstReviewMissingSinceTest(unittest.TestCase):
     def test_starts_clock_when_review_is_missing(self) -> None:
