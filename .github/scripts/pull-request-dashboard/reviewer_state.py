@@ -143,7 +143,19 @@ def _reviewers_with_open_threads(
             continue
         comments = discussion.get("comments") or []
         if entry.get("ignored_last_comment"):
-            comments = comments[:-1]
+            ignored_index = entry.get("ignored_comment_index")
+            if (
+                isinstance(ignored_index, int)
+                and not isinstance(ignored_index, bool)
+                and 0 <= ignored_index < len(comments)
+            ):
+                comments = [
+                    comment
+                    for index, comment in enumerate(comments)
+                    if index != ignored_index
+                ]
+            else:
+                comments = comments[:-1]
         for comment in comments:
             if (
                 comment.get("actor_role") in ("approver", "outsider", "bot")

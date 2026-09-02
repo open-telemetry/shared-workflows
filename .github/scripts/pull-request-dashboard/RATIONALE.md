@@ -568,6 +568,12 @@ the implementation understandable and operationally cheap.
   author-reply classification, and removing praise leaves the remaining
   conversation order intact. Top-level feedback items still date from their
   creation time, so editing a comment cannot reorder that list.
+- The ignored praise index is a current-evaluation projection used for reviewer
+  attribution. Classification caches retain the praise verdict but not its
+  position, so each refresh recomputes the index from current thread activity.
+  Pending actions are not persisted in dashboard state, which keeps state
+  version 17 valid. Legacy projections with only `ignored_last_comment` retain
+  creation-last behavior.
 
 ## Top-Level Feedback
 

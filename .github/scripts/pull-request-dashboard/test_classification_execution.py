@@ -1126,6 +1126,33 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         self.assertEqual(result.since, "2026-05-20T00:00:00Z")
         self.assertTrue(result.ignored_last_comment)
 
+    def test_cached_praise_recomputes_ignored_comment_index(self) -> None:
+        thread = self.thread(
+            ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
+            ("approver", "LGTM", "2026-04-12T00:00:00Z"),
+            ("author", "Fixed it.", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][1]["activity_timestamp"] = "2026-06-20T00:00:00Z"
+        request = execution_request(review_threads=(thread,))
+        cache = MemoryClassificationCacheStore()
+        first_runner = FakeModelRunner(
+            responder=lambda model_request: successful_response(
+                model_request,
+                praise="praise",
+                author_reply="complete",
+            )
+        )
+        ClassificationService(first_runner, cache).classify(request)
+        cached_runner = FakeModelRunner()
+
+        result = ClassificationService(cached_runner, cache).classify(
+            request
+        ).review_threads[0]
+
+        self.assertEqual(cached_runner.requests, [])
+        self.assertTrue(result.ignored_last_comment)
+        self.assertEqual(result.ignored_comment_index, 1)
+
     def test_edited_older_author_reply_supplies_body_and_result_time(
         self,
     ) -> None:

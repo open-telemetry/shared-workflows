@@ -727,6 +727,7 @@ class ClassificationService:
                     )
                 ),
                 ignored_last_comment=(discussion_id in ignored),
+                ignored_comment_index=discussion.ignored_comment_index,
             )
         return by_id
 

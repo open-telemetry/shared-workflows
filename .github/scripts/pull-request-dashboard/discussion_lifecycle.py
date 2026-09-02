@@ -739,6 +739,10 @@ def _review_thread_pending_actions(
             }
             if classification.ignored_last_comment:
                 entry["ignored_last_comment"] = True
+            if classification.ignored_comment_index is not None:
+                entry["ignored_comment_index"] = (
+                    classification.ignored_comment_index
+                )
             pending_actions[discussion_id] = entry
     return pending_actions
 

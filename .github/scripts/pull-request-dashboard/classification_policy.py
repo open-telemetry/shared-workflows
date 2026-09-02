@@ -395,6 +395,7 @@ class ClassificationDiscussion:
     candidate_feedback: tuple[CandidateFeedback, ...] = ()
     selected_comment_index: int | None = None
     selected_activity_timestamp: str = ""
+    ignored_comment_index: int | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "comments", tuple(self.comments))
@@ -452,12 +453,14 @@ class ClassificationDiscussion:
         *,
         selected_comment_index: int | None = None,
         selected_activity_timestamp: str = "",
+        ignored_comment_index: int | None = None,
     ) -> ClassificationDiscussion:
         return replace(
             self,
             comments=tuple(comments),
             selected_comment_index=selected_comment_index,
             selected_activity_timestamp=selected_activity_timestamp,
+            ignored_comment_index=ignored_comment_index,
         )
 
 
@@ -510,6 +513,7 @@ class ClassificationSuccess:
     cli_call: bool = False
     since: str = ""
     ignored_last_comment: bool = False
+    ignored_comment_index: int | None = None
 
     @property
     def failed(self) -> bool:
@@ -528,6 +532,7 @@ class ClassificationFailure:
     cli_call: bool = False
     since: str = ""
     ignored_last_comment: bool = False
+    ignored_comment_index: int | None = None
 
     @property
     def failed(self) -> bool:
@@ -544,6 +549,7 @@ class ClassificationDeferred:
     decision: ClassificationDecision
     since: str = ""
     ignored_last_comment: bool = False
+    ignored_comment_index: int | None = None
 
     @property
     def failed(self) -> bool:
@@ -1662,6 +1668,7 @@ def resolve_review_thread_policy(
     resolved: dict[str, ClassificationResult] = dict(failed_praise)
     author_replies: list[ClassificationDiscussion] = []
     since_by_id: dict[str, str] = {}
+    ignored_comment_index_by_id: dict[str, int] = {}
     for discussion in discussions:
         discussion_id = discussion.identity.discussion_id
         if discussion_id in failed_praise:
@@ -1670,6 +1677,7 @@ def resolve_review_thread_policy(
         dropped = discussion_id in ignored
         selected = _latest_review_thread_comment(comments)
         if dropped and selected is not None:
+            ignored_comment_index_by_id[discussion_id] = selected.index
             comments.pop(selected.index)
             selected = _latest_review_thread_comment(comments)
         if selected is not None:
@@ -1694,6 +1702,9 @@ def resolve_review_thread_policy(
                     comments,
                     selected_comment_index=selected.index,
                     selected_activity_timestamp=selected.activity_timestamp,
+                    ignored_comment_index=(
+                        ignored_comment_index_by_id.get(discussion_id)
+                    ),
                 )
             )
         else:
@@ -1709,6 +1720,9 @@ def resolve_review_thread_policy(
             result,
             since=since_by_id.get(discussion_id, ""),
             ignored_last_comment=(discussion_id in ignored),
+            ignored_comment_index=ignored_comment_index_by_id.get(
+                discussion_id
+            ),
         )
         for discussion_id, result in resolved.items()
     }
@@ -1720,12 +1734,18 @@ def with_result_metadata(
     *,
     since: str = "",
     ignored_last_comment: bool = False,
+    ignored_comment_index: int | None = None,
 ) -> ClassificationResult:
     return replace(
         result,
         since=since or result.since,
         ignored_last_comment=(
             ignored_last_comment or result.ignored_last_comment
+        ),
+        ignored_comment_index=(
+            ignored_comment_index
+            if ignored_comment_index is not None
+            else result.ignored_comment_index
         ),
     )
 
@@ -1819,6 +1839,8 @@ def classification_result_to_record(
         record["since"] = result.since
     if result.ignored_last_comment:
         record["ignored_last_comment"] = True
+    if result.ignored_comment_index is not None:
+        record["ignored_comment_index"] = result.ignored_comment_index
     return record
 
 
@@ -1835,6 +1857,7 @@ def cached_classification_record(
             "response_text",
             "stderr",
             "usage",
+            "ignored_comment_index",
         )
     }
 

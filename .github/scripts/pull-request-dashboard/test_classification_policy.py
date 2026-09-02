@@ -483,6 +483,7 @@ class ResultProjectionCompatibilityTest(unittest.TestCase):
             cli_call=True,
             since="2026-01-02T03:04:05Z",
             ignored_last_comment=True,
+            ignored_comment_index=1,
         )
 
         self.assertEqual(
@@ -498,7 +499,12 @@ class ResultProjectionCompatibilityTest(unittest.TestCase):
                 "_copilot_cli_call": True,
                 "since": "2026-01-02T03:04:05Z",
                 "ignored_last_comment": True,
+                "ignored_comment_index": 1,
             },
+        )
+        self.assertNotIn(
+            "ignored_comment_index",
+            cached_classification_record(result),
         )
 
     def test_failure_and_cache_projections_preserve_the_old_shape(self) -> None:

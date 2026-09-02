@@ -53,7 +53,10 @@ from dashboard_test_support import (
     review_thread_comment,
     stored_dashboard_result,
 )
-from classification_execution import ClassificationExecutionRequest
+from classification_execution import (
+    ClassificationExecutionRequest,
+    ClassificationService,
+)
 from classification_policy import (
     ActionDecision,
     AuthorCommentDecision,
@@ -67,7 +70,12 @@ from classification_policy import (
     FeedbackOutcome,
     resolve_review_thread_policy,
 )
-from classification_test_support import FakeClassificationOperation
+from classification_test_support import (
+    FakeClassificationOperation,
+    FakeModelRunner,
+    MemoryClassificationCacheStore,
+    successful_response,
+)
 from pull_request_source import (
     PullRequestSource,
     fetch_pull_request_source,
@@ -1473,6 +1481,81 @@ class PullRequestEvaluationTest(unittest.TestCase):
                 "Handled in the latest commit.",
             ],
             [comment.body for comment in thread.comments],
+        )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_edited_older_praise_attributes_remaining_thread_participants(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            review_threads=(review_thread(
+                node_id="thread-1",
+                comments=(
+                    review_thread_comment(
+                        actor=actor("root-reviewer"),
+                        body="Please update the implementation and tests.",
+                        created_at="2026-08-16T07:00:00Z",
+                    ),
+                    review_thread_comment(
+                        actor=actor("praise-reviewer"),
+                        body="LGTM",
+                        created_at="2026-08-16T08:00:00Z",
+                        updated_at="2026-08-16T10:00:00Z",
+                    ),
+                    review_thread_comment(
+                        actor=actor("author"),
+                        body="Fixed it.",
+                        created_at="2026-08-16T09:00:00Z",
+                    ),
+                ),
+            ),),
+        )
+        classifier = ClassificationService(
+            FakeModelRunner(
+                responder=lambda request: successful_response(
+                    request,
+                    praise="praise",
+                    author_reply="complete",
+                )
+            ),
+            MemoryClassificationCacheStore(),
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertEqual(
+            {
+                "thread-1": {
+                    "action": "reviewer",
+                    "since": "2026-08-16T09:00:00Z",
+                    "ignored_last_comment": True,
+                    "ignored_comment_index": 1,
+                },
+            },
+            result.pending_actions,
+        )
+        self.assertEqual(
+            (ReviewerSummary(login="root-reviewer", open_thread=True),),
+            result.facts.reviewers,
+        )
+        self.assertEqual(
+            [
+                "Please update the implementation and tests.",
+                "LGTM",
+                "Fixed it.",
+            ],
+            [
+                comment["body"]
+                for comment in result.diagnostics.review_threads[0]["comments"]
+            ],
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
