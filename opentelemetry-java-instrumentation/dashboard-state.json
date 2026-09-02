@@ -1678,18 +1678,17 @@
         "author": "lymerin",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "a442eabe8cdb4501b185e990833fafb2",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "44e6262af262d7bea4b6af78de68e64c7c1514b28bcd3c33c3748689ceaf573c",
+        "copilot_request_fingerprint": "80dcb6a98bd39a09c745dcaa50cd9fbdf5e564db6ad7a8928ebe6bf684b8d9d1",
         "copilot_review_exists": true,
-        "copilot_review_needed": true,
-        "copilot_review_outstanding": true,
-        "copilot_review_request_needed": true,
+        "copilot_review_needed": false,
+        "copilot_review_outstanding": false,
+        "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": true,
-        "copilot_review_unreported": true,
+        "copilot_review_stale": false,
+        "copilot_review_unreported": false,
         "created_at": "2026-08-20T21:19:29+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_bound_command_id": 5444186398,
@@ -1704,7 +1703,7 @@
         "last_activity_at": "2026-09-02T16:54:51+00:00",
         "last_approver_activity_at": "2026-09-01T14:16:30+00:00",
         "last_author_activity_at": "2026-09-02T16:54:51+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -1725,17 +1724,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-02T18:19:14.952924+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e28a40061f38668b89d00b2f6603e76d8ac27015a19ff94eb7163c90dd0c93f3",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-01T14:16:18+00:00"
+        "routing_input_fingerprint": "e089608cced9499e15811d7c17bccf64318da0f1f731c1fe5bd4725d58fc877b",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-02T18:32:56.879175+00:00"
       },
       "failed": false,
       "pr_number": 19732,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19732",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5414756155": {
           "evidence": {
