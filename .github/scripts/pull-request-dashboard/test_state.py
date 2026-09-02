@@ -420,7 +420,7 @@ class StateTest(unittest.TestCase):
             "warning: ignoring malformed dashboard result"
         ))
 
-    def test_version_eleven_dashboard_state_migrates_to_current_shape(self) -> None:
+    def test_legacy_dashboard_state_payload_reencodes_to_current_shape(self) -> None:
         persisted = {
             "version": 11,
             "initial_backfill_complete": True,
