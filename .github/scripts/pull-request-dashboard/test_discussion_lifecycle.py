@@ -7,6 +7,7 @@ from classification_policy import (
     AuthorCommentDecision,
     ClassificationDeferred,
     ClassificationDiagnostics,
+    ClassificationDiscussion,
     ClassificationFailure,
     ClassificationSuccess,
     DiscussionAction,
@@ -14,6 +15,7 @@ from classification_policy import (
     DiscussionIdentity,
     DiscussionKind,
     FeedbackOutcome,
+    reviewer_feedback_prompt_input,
 )
 from discussion_lifecycle import (
     DiscussionInput,
@@ -1347,6 +1349,56 @@ class LifecycleProjectionTest(unittest.TestCase):
         self.assertEqual(
             ["pr-issue-comment-201"],
             [item["discussion_id"] for item in filtered.top_level_items],
+        )
+
+    def test_handoff_feedback_preserves_conversation_order_after_edit(self) -> None:
+        source = DiscussionInput(
+            normalize_review_threads(({
+                "id": "edited-thread",
+                "isResolved": False,
+                "isOutdated": False,
+                "comments": {
+                    "nodes": [
+                        {
+                            "url": "https://example.test/thread/edited",
+                            "body": "Root request, edited later.",
+                            "createdAt": "2026-07-14T02:00:00Z",
+                            "lastEditedAt": "2026-07-14T06:00:00Z",
+                            "author": {"login": "root-reviewer"},
+                        },
+                        {
+                            "url": "https://example.test/thread/follow-up",
+                            "body": "Newer follow-up.",
+                            "createdAt": "2026-07-14T05:00:00Z",
+                            "author": {"login": "follow-up-reviewer"},
+                        },
+                    ],
+                },
+            },)),
+            (),
+            "author",
+            frozenset({"root-reviewer"}),
+            "no",
+        )
+
+        filtered = reviewer_handoff_feedback(
+            prepare_discussions(source),
+            "2026-07-14T04:00:00Z",
+            "author",
+        )
+
+        discussion = filtered.review_threads[0]
+        prompt_input = reviewer_feedback_prompt_input(
+            ClassificationDiscussion.from_record(discussion)
+        )
+        self.assertEqual(
+            "Root request, edited later.\n\nNewer follow-up.",
+            prompt_input["body"],
+        )
+        self.assertEqual("root-reviewer", prompt_input["requester"])
+        self.assertEqual(
+            "approver",
+            discussion["discussion_facts"]["latest_comment_role"],
         )
 
 

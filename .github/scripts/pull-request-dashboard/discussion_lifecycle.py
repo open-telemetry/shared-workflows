@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, TypedDict
 
@@ -27,6 +28,7 @@ from utils import parse_ts, truncate
 
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
 _HUMAN_REVIEWER_ROLES = frozenset({"approver", "outsider"})
+_MIN_TIMESTAMP = datetime.min.replace(tzinfo=timezone.utc)
 
 
 class LifecycleMode(Enum):
@@ -128,9 +130,12 @@ def _add_discussion_facts(
     discussion: dict[str, Any],
     comments: list[dict[str, Any]],
     conflicts: str,
+    *,
+    latest_comment: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    latest = latest_comment if latest_comment is not None else comments[-1]
     discussion["discussion_facts"] = {
-        "latest_comment_role": comments[-1].get("actor_role"),
+        "latest_comment_role": latest.get("actor_role"),
         "current_conflicts": conflicts,
     }
     return discussion
@@ -408,20 +413,31 @@ def _filter_handoff_feedback(
     ]
     if not comments:
         return None
-    comments.sort(
-        key=lambda comment: (
-            comment.get("activity_timestamp") or comment.get("timestamp") or "",
-            comment.get("timestamp") or "",
-        )
-    )
+    latest_activity_comment = max(
+        enumerate(comments),
+        key=lambda item: (
+            (
+                parse_ts(
+                    item[1].get("activity_timestamp")
+                    or item[1].get("timestamp")
+                    or ""
+                )
+                or _MIN_TIMESTAMP
+            ),
+            parse_ts(item[1].get("timestamp") or "")
+            or _MIN_TIMESTAMP,
+            item[0],
+        ),
+    )[1]
     filtered = {**discussion, "comments": comments}
-    filtered["requester"] = comments[-1].get("actor") or ""
+    filtered["requester"] = latest_activity_comment.get("actor") or ""
     filtered["pr_author"] = pr_author
     return _add_discussion_facts(
         filtered,
         comments,
         (discussion.get("discussion_facts") or {}).get("current_conflicts")
         or "unknown",
+        latest_comment=latest_activity_comment,
     )
 
 
