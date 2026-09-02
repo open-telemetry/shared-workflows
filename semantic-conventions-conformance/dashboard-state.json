@@ -553,7 +553,7 @@
     },
     "171": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -561,7 +561,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "06c6284d1b4d3b5bf3011af906681da131cc9e3097f57520871de58de057223a",
+        "copilot_request_fingerprint": "e34ac61cdf801825415e9b34adacb742a2de94eb6aaeea06b9b487e87747d5e7",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -577,21 +577,31 @@
         "head_sha": "39c55e662a6d94bf7a2d25d8e9d2e21af9fed0a9",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-02T00:14:28+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-02T17:28:05+00:00",
+        "last_approver_activity_at": "2026-09-02T17:28:05+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c8b0f1ca6015bdb9aeb7b6b568e609a3c50e3583e11c0632967d6a092ba9c926",
+        "routing_input_fingerprint": "5071bbfb5e580e4f7b19c3515521a4f80add8b2f6b36dcf25089c4b531e1a8e6",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-02T00:14:28+00:00"
       },
       "failed": false,
       "pr_number": 171,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/171",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "172": {
