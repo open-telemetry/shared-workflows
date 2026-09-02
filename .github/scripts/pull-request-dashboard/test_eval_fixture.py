@@ -1,6 +1,7 @@
 import json
 import re
 import unittest
+from datetime import date
 from itertools import groupby
 from pathlib import Path
 
@@ -79,6 +80,19 @@ class EvalFixtureTest(unittest.TestCase):
         """The note instructs humans, so a stale field name there silently misfiles work."""
         for name in re.findall(r"`([^`]+)`", self.data["note"]):
             self.assertIn(name, self.cases[0], f"the note tells a human to use `{name}`")
+
+    def test_appended_measurements_record_their_date(self) -> None:
+        generated_at = date.fromisoformat(self.data["generated_at"])
+        for case in self.cases:
+            with self.subTest(case=case["id"]):
+                if date.fromisoformat(case["root_timestamp"][:10]) > generated_at:
+                    self.assertIn("measurement_date", case)
+                if "measurement_date" not in case:
+                    continue
+                self.assertGreater(
+                    date.fromisoformat(case["measurement_date"]),
+                    generated_at,
+                )
 
     def test_labels_are_known(self) -> None:
         for case in self.cases:
