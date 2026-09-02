@@ -157,6 +157,10 @@ class RebuildTest(unittest.TestCase):
             rebuilt["baseline_generated_at"],
             rebuilt["measurements_updated_at"],
         )
+        self.assertEqual(
+            {rebuilt["baseline_generated_at"]},
+            {case["measurement_date"] for case in rebuilt["cases"]},
+        )
         self.assertNotIn("generated_at", rebuilt)
 
 
