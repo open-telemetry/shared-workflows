@@ -7,11 +7,12 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
+from datetime import datetime, timezone
 from enum import Enum
 from types import MappingProxyType
 from typing import Any
 
-from utils import truncate
+from utils import parse_ts, truncate
 
 
 DISCUSSION_COMMENT_BODY_MAX_CHARS = 500
@@ -19,6 +20,7 @@ MAX_PROMPT_CHARS = 18_000
 TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10
 AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 PRAISE_MAX_CHARS = 80
+_MIN_TIMESTAMP = datetime.min.replace(tzinfo=timezone.utc)
 
 
 class _PromptTooLongError(ValueError):
@@ -364,6 +366,7 @@ class DiscussionComment:
     timestamp: str = ""
     actor_role: str = ""
     body: str = ""
+    activity_timestamp: str = ""
 
 
 @dataclass(frozen=True)
@@ -409,6 +412,9 @@ class ClassificationDiscussion:
                 timestamp=str(comment.get("timestamp") or ""),
                 actor_role=str(comment.get("actor_role") or ""),
                 body=str(comment.get("body") or ""),
+                activity_timestamp=str(
+                    comment.get("activity_timestamp") or ""
+                ),
             )
             for comment in _mapping_items(record.get("comments"))
         )
@@ -1580,6 +1586,27 @@ def _could_be_praise(discussion: ClassificationDiscussion) -> bool:
     )
 
 
+def _latest_review_thread_comment(
+    comments: Sequence[DiscussionComment],
+) -> DiscussionComment | None:
+    if not comments:
+        return None
+    return max(
+        enumerate(comments),
+        key=lambda item: (
+            (
+                parse_ts(
+                    item[1].activity_timestamp
+                    or item[1].timestamp
+                )
+                or _MIN_TIMESTAMP
+            ),
+            parse_ts(item[1].timestamp) or _MIN_TIMESTAMP,
+            item[0],
+        ),
+    )[1]
+
+
 def resolve_review_thread_policy(
     discussions: Sequence[ClassificationDiscussion],
     praise_results: Mapping[str, ClassificationResult],
@@ -1607,8 +1634,12 @@ def resolve_review_thread_policy(
         dropped = discussion_id in ignored
         if dropped:
             comments.pop()
-        if comments:
-            since_by_id[discussion_id] = comments[-1].timestamp
+        latest_comment = _latest_review_thread_comment(comments)
+        if latest_comment is not None:
+            since_by_id[discussion_id] = (
+                latest_comment.activity_timestamp
+                or latest_comment.timestamp
+            )
         if dropped and not comments:
             resolved[discussion_id] = ClassificationSuccess(
                 discussion.identity,
@@ -1617,14 +1648,14 @@ def resolve_review_thread_policy(
                     "This thread is only praise.",
                 ),
             )
-        elif comments and comments[-1].actor_role == "author":
+        elif latest_comment is not None and latest_comment.actor_role == "author":
             author_replies.append(discussion.with_comments(comments))
         else:
             resolved[discussion_id] = ClassificationSuccess(
                 discussion.identity,
                 ActionDecision(
                     DiscussionAction.AUTHOR,
-                    "The last comment on this unresolved thread is not the author's.",
+                    "The latest activity on this unresolved thread is not the author's.",
                 ),
             )
     resolved = {

@@ -485,11 +485,12 @@ the implementation understandable and operationally cheap.
   blocker can prevent the handoff. Top-level feedback last changed at or before
   the command stays retired. Review threads are not retired by the command, but
   their existing work does not override the handoff. Actionable human reviewer
-  feedback with an effective content timestamp after the command ends the
-  handoff, because a reviewer has answered the request for help and assigned the
-  next action to the author. That includes a new reply or edit on an older
-  review thread. Praise, informational comments, bot feedback, and feedback last
-  changed at or before the command do not end it.
+  feedback on an unresolved, non-outdated thread with an effective content
+  timestamp after the command ends the handoff, because a reviewer has answered
+  the request for help and assigned the next action to the author. That includes
+  a new reply or edit on an older active review thread. Praise, informational
+  comments, bot feedback, inactive threads, and feedback last changed at or
+  before the command do not end it.
 - While a handoff is active, the dashboard classifies only human reviewer
   feedback with content activity after the command. Older discussions and
   classification failures therefore cannot block the break-glass route. Once
@@ -559,12 +560,12 @@ the implementation understandable and operationally cheap.
   `actions/stale` reads, so no PR in a dashboard repository could go stale.
   The dashboard app is never a PR's author, so `role_for` always classifies its
   comments as `bot` and they never count.
-- An inline review thread's wait age and list position come from its last
-  comment's `createdAt`, never its edit time. Wait age is what makes a neglected
-  thread visible, so a reviewer fixing a typo in their own comment must not make
-  a weeks-old thread look freshly raised. Top-level feedback items date from
-  their creation time for the same reason, so editing a comment cannot reorder
-  the list or reset how long an item has been waiting.
+- An inline review thread's list position comes from its last comment's
+  `createdAt`, never its edit time. Effective content activity selects the
+  latest participant and requester and supplies the pending action timestamp,
+  so editing an older request can reactivate it without reordering the
+  classifier transcript or list. Top-level feedback items still date from their
+  creation time, so editing a comment cannot reorder that list.
 
 ## Top-Level Feedback
 

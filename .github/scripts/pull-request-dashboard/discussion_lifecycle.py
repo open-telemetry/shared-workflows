@@ -141,6 +141,26 @@ def _add_discussion_facts(
     return discussion
 
 
+def _latest_activity_comment(
+    comments: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return max(
+        enumerate(comments),
+        key=lambda item: (
+            (
+                parse_ts(
+                    item[1].get("activity_timestamp")
+                    or item[1].get("timestamp")
+                    or ""
+                )
+                or _MIN_TIMESTAMP
+            ),
+            parse_ts(item[1].get("timestamp") or "") or _MIN_TIMESTAMP,
+            item[0],
+        ),
+    )[1]
+
+
 def _positive_reaction_logins(
     comment: ReviewThreadComment,
 ) -> set[str]:
@@ -155,17 +175,11 @@ def _positive_reaction_logins(
     return logins
 
 
-def _group_review_threads(
-    source: DiscussionInput,
-    *,
-    include_inactive: bool = False,
-) -> list[dict[str, Any]]:
+def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
     discussions: list[dict[str, Any]] = []
     reviewers = set(source.reviewers)
     for discussion in source.review_threads:
-        if (
-            discussion.is_resolved or discussion.is_outdated
-        ) and not include_inactive:
+        if discussion.is_resolved or discussion.is_outdated:
             continue
         raw_comments = discussion.comments
         thread_url = raw_comments[0].url if raw_comments else ""
@@ -187,6 +201,7 @@ def _group_review_threads(
             comment["actor_role"] == "author" for comment in comments
         ):
             continue
+        latest_activity_comment = _latest_activity_comment(comments)
         discussions.append(
             _add_discussion_facts(
                 {
@@ -199,10 +214,13 @@ def _group_review_threads(
                     "line": discussion.line,
                     "resolved": False,
                     "discussion_url": thread_url,
+                    "requester": latest_activity_comment.get("actor") or "",
+                    "pr_author": source.author,
                     "comments": comments,
                 },
                 comments,
                 source.conflicts,
+                latest_comment=latest_activity_comment,
             )
         )
     discussions.sort(key=lambda thread: thread["comments"][-1]["timestamp"])
@@ -413,22 +431,7 @@ def _filter_handoff_feedback(
     ]
     if not comments:
         return None
-    latest_activity_comment = max(
-        enumerate(comments),
-        key=lambda item: (
-            (
-                parse_ts(
-                    item[1].get("activity_timestamp")
-                    or item[1].get("timestamp")
-                    or ""
-                )
-                or _MIN_TIMESTAMP
-            ),
-            parse_ts(item[1].get("timestamp") or "")
-            or _MIN_TIMESTAMP,
-            item[0],
-        ),
-    )[1]
+    latest_activity_comment = _latest_activity_comment(comments)
     filtered = {**discussion, "comments": comments}
     filtered["requester"] = latest_activity_comment.get("actor") or ""
     filtered["pr_author"] = pr_author
@@ -482,7 +485,7 @@ def prepare_reviewer_handoff_feedback(
     pr_author: str,
 ) -> PreparedDiscussions:
     prepared = PreparedDiscussions(
-        tuple(_group_review_threads(source, include_inactive=True)),
+        tuple(_group_review_threads(source)),
         tuple(_derive_top_level_items(source)),
         (),
     )

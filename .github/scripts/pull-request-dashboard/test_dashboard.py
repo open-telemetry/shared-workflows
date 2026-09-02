@@ -53,6 +53,7 @@ from dashboard_test_support import (
     review_thread_comment,
     stored_dashboard_result,
 )
+from classification_execution import ClassificationExecutionRequest
 from classification_policy import (
     ActionDecision,
     AuthorCommentDecision,
@@ -64,6 +65,7 @@ from classification_policy import (
     DiscussionIdentity,
     DiscussionKind,
     FeedbackOutcome,
+    resolve_review_thread_policy,
 )
 from classification_test_support import FakeClassificationOperation
 from pull_request_source import (
@@ -164,6 +166,16 @@ def evaluate_pr(
         ),
         classification_service or FakeClassificationOperation(),
     )
+
+
+class ReviewThreadPolicyOperation(FakeClassificationOperation):
+    def classify(
+        self,
+        request: ClassificationExecutionRequest,
+    ) -> DiscussionClassifications:
+        self.requests.append(request)
+        plan = resolve_review_thread_policy(request.review_threads, {})
+        return DiscussionClassifications(plan.resolved, (), ())
 
 
 class AuthorNudgeEpisodeTest(unittest.TestCase):
@@ -1351,17 +1363,11 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_inactive_inline_feedback_ends_handoff(
+    def test_inactive_edited_inline_feedback_keeps_handoff(
         self, fetch_raw: Mock
     ) -> None:
-        classification = action_classification(
-            "thread-1",
-            DiscussionKind.REVIEW_THREAD,
-            DiscussionAction.AUTHOR,
-            "The reviewer requested a change.",
-        )
         classifier = FakeClassificationOperation(
-            reviewer_feedback_result=(classification,)
+            error=AssertionError("inactive threads must not be classified")
         )
         for state in ({"is_resolved": True}, {"is_outdated": True}):
             with self.subTest(state=state):
@@ -1377,7 +1383,8 @@ class PullRequestEvaluationTest(unittest.TestCase):
                         **state,
                         comments=(review_thread_comment(
                             body="Please update this.",
-                            created_at="2026-08-16T09:00:00Z",
+                            created_at="2026-08-16T07:30:00Z",
+                            updated_at="2026-08-16T09:00:00Z",
                         ),),
                     ),),
                 )
@@ -1389,18 +1396,84 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
                 self.assertIsNotNone(result)
                 assert result is not None
-                self.assertTrue(
+                self.assertIsInstance(result, EvaluationSuccess)
+                assert isinstance(result, EvaluationSuccess)
+                self.assertEqual(DashboardRoute.APPROVER, result.route)
+                self.assertFalse(
                     result.facts.dashboard_override_cleared_by_feedback
                 )
-                request = classifier.reviewer_feedback_requests[-1]
-                self.assertEqual(
-                    ["Please update this."],
-                    [comment.body for comment in request.discussions[0].comments],
-                )
-                self.assertEqual((), classifier.requests[-1].review_threads)
+                self.assertEqual({}, result.pending_actions)
 
-        self.assertEqual(2, len(classifier.reviewer_feedback_requests))
-        self.assertEqual(2, len(classifier.requests))
+        self.assertEqual([], classifier.reviewer_feedback_requests)
+        self.assertEqual([], classifier.requests)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_edited_reviewer_request_after_author_reply_clears_to_author(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(title="Routing integration"),
+            issue_comments=(issue_comment(
+                database_id=102,
+                body="/dashboard route:reviewers",
+                created_at="2026-08-16T08:00:00Z",
+            ),),
+            review_threads=(review_thread(
+                node_id="thread-1",
+                comments=(
+                    review_thread_comment(
+                        actor=actor("root-reviewer"),
+                        body="Please update the implementation and tests.",
+                        created_at="2026-08-16T07:00:00Z",
+                        updated_at="2026-08-16T09:00:00Z",
+                    ),
+                    review_thread_comment(
+                        actor=actor("author"),
+                        body="Handled in the latest commit.",
+                        created_at="2026-08-16T07:30:00Z",
+                    ),
+                ),
+            ),),
+        )
+        classification = action_classification(
+            "thread-1",
+            DiscussionKind.REVIEW_THREAD,
+            DiscussionAction.AUTHOR,
+            "The edited request needs author action.",
+        )
+        classifier = ReviewThreadPolicyOperation(
+            reviewer_feedback_result=(classification,)
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertEqual(
+            {
+                "thread-1": {
+                    "action": "author",
+                    "since": "2026-08-16T09:00:00Z",
+                },
+            },
+            result.pending_actions,
+        )
+        self.assertEqual(1, len(classifier.requests))
+        thread = classifier.requests[0].review_threads[0]
+        self.assertEqual("root-reviewer", thread.requester)
+        self.assertEqual(
+            [
+                "Please update the implementation and tests.",
+                "Handled in the latest commit.",
+            ],
+            [comment.body for comment in thread.comments],
+        )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_author_reply_does_not_reactivate_cleared_handoff(
