@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from contextlib import contextmanager, nullcontext
 import json
-import os
 import subprocess
 import sys
 import tempfile
@@ -101,6 +100,53 @@ class QueueBatchTest(unittest.TestCase):
         self.assertEqual([item.pr_number for item in work], [1])
         self.assertEqual(completed[0]["itemKey"], head.item_key)
         self.assertEqual(completed[0]["outcome"], "retry")
+
+    def test_head_resolution_defers_publisher_lock_contention(self) -> None:
+        head = Claim(
+            "example#head:abc",
+            1,
+            "example",
+            None,
+            "a" * 40,
+            process_queue_batch.MAX_ATTEMPTS - 1,
+        )
+
+        def locked(_repository: str, _head_sha: str) -> int | None:
+            raise process_queue_batch.state_branch.PublisherLockTimeoutError(
+                "publisher lock is busy"
+            )
+
+        work, completed = resolve_work_items([head], locked)
+
+        self.assertEqual(work, [])
+        self.assertEqual(completed[0]["outcome"], "retry")
+        self.assertEqual(
+            completed[0]["retryAfterMs"],
+            process_queue_batch.PUBLISHER_LOCK_RETRY_AFTER_MS,
+        )
+
+    def test_head_resolution_checks_publisher_lock_before_github(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text("[]", encoding="utf-8")
+            run = mock.Mock()
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path,
+                run=run,
+            )
+            with mock.patch.object(
+                processor,
+                "_assert_publisher_unlocked",
+                side_effect=process_queue_batch.state_branch.PublisherLockTimeoutError(
+                    "publisher lock is busy"
+                ),
+            ):
+                with self.assertRaises(
+                    process_queue_batch.state_branch.PublisherLockTimeoutError
+                ):
+                    processor.resolve_head("example", "a" * 40)
+
+        run.assert_not_called()
 
     def test_prs_are_grouped_sequentially_by_repository(self) -> None:
         items = [
@@ -263,16 +309,128 @@ class QueueBatchTest(unittest.TestCase):
 
         self.assertTrue(slow_observed_report)
 
-    def test_queue_bounds_publisher_lock_waits_and_restores_environment(self) -> None:
-        name = process_queue_batch.state_branch.PUBLISHER_LOCK_DEADLINE_ENV
-
-        with mock.patch.dict(os.environ, {name: "50"}):
-            with process_queue_batch.queue_lock_wait_deadline(now=lambda: 100):
-                self.assertEqual(
-                    str(100 + process_queue_batch.QUEUE_LOCK_WAIT_BUDGET_SECONDS),
-                    os.environ[name],
+    def test_publisher_lock_busy_defers_the_repository_batch(self) -> None:
+        lifecycle: list[str] = []
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(
+                json.dumps([{"name": "example"}]),
+                encoding="utf-8",
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(config_path)
+            items = [
+                WorkItem(
+                    "example",
+                    number,
+                    (claim(f"example#pr:{number}", "example", pr_number=number),),
                 )
-            self.assertEqual("50", os.environ[name])
+                for number in (1, 2, 3)
+            ]
+
+            def update(_repo, number, *_args) -> None:
+                lifecycle.append(f"update-{number}")
+                if number == 2:
+                    raise process_queue_batch.CommandFailedError(
+                        ["dashboard.py"],
+                        process_queue_batch.state_branch.PUBLISHER_LOCK_BUSY_STATUS,
+                    )
+
+            with (
+                mock.patch.object(
+                    processor,
+                    "_initial_backfill_complete",
+                    return_value=True,
+                ),
+                mock.patch.object(processor, "_update_dashboard", side_effect=update),
+                mock.patch.object(
+                    processor,
+                    "_deliver",
+                    side_effect=lambda *_args: lifecycle.append("deliver"),
+                ),
+            ):
+                results = processor.process_repository("example", items)
+
+        self.assertEqual(["update-1", "update-2"], lifecycle)
+        self.assertEqual(
+            [result["itemKey"] for result in results],
+            ["example#pr:1", "example#pr:2", "example#pr:3"],
+        )
+        self.assertTrue(all(result["outcome"] == "retry" for result in results))
+        self.assertTrue(
+            all(
+                result["retryAfterMs"]
+                == process_queue_batch.PUBLISHER_LOCK_RETRY_AFTER_MS
+                for result in results
+            )
+        )
+
+    def test_publisher_lock_deferral_does_not_dead_letter_at_attempt_limit(self) -> None:
+        claim = Claim("example#pr:1", 1, "example", 1, "", 2)
+
+        [result] = process_queue_batch.publisher_lock_acknowledgments(
+            (claim,),
+            process_queue_batch.state_branch.PublisherLockTimeoutError("busy"),
+        )
+
+        self.assertEqual("retry", result["outcome"])
+        self.assertEqual(
+            process_queue_batch.PUBLISHER_LOCK_RETRY_AFTER_MS,
+            result["retryAfterMs"],
+        )
+
+    def test_queue_publisher_lock_does_not_wait(self) -> None:
+        with mock.patch.object(
+            process_queue_batch.state_branch,
+            "publisher_lock",
+            return_value=nullcontext(),
+        ) as publisher_lock:
+            with process_queue_batch.queue_publisher_lock("state", "worker"):
+                pass
+
+        publisher_lock.assert_called_once_with("state", "worker", wait_seconds=0)
+
+    def test_busy_publisher_defers_updates_that_are_ready_to_deliver(self) -> None:
+        @contextmanager
+        def busy_publisher_lock(_branch: str, _owner: str):
+            raise process_queue_batch.state_branch.PublisherLockTimeoutError("busy")
+            yield
+
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(
+                json.dumps([{"name": "example"}]),
+                encoding="utf-8",
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path,
+                publisher_lock=busy_publisher_lock,
+            )
+            items = [
+                WorkItem(
+                    "example",
+                    number,
+                    (claim(f"example#pr:{number}", "example", pr_number=number),),
+                )
+                for number in (1, 2)
+            ]
+            with (
+                mock.patch.object(
+                    processor,
+                    "_initial_backfill_complete",
+                    return_value=True,
+                ),
+                mock.patch.object(processor, "_update_dashboard"),
+            ):
+                results = processor.process_repository("example", items)
+
+        self.assertTrue(all(result["outcome"] == "retry" for result in results))
+        self.assertTrue(
+            all(
+                result["retryAfterMs"]
+                == process_queue_batch.PUBLISHER_LOCK_RETRY_AFTER_MS
+                for result in results
+            )
+        )
 
     def test_delivery_error_still_publishes_committed_active_state(self) -> None:
         commands: list[str] = []

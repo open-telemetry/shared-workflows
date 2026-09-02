@@ -536,8 +536,8 @@ test("a dead acknowledgment preserves a dirty follow-up generation", async () =>
   assert.equal(stats.deadLetters, 0);
 });
 
-test("a retry acknowledgment gives a dirty generation a fresh attempt budget", async () => {
-  const { queue } = fixture();
+test("a delayed retry gives a dirty generation a fresh attempt budget", async () => {
+  const { queue, advance } = fixture();
   await queue.enqueue({
     repository: "example",
     prNumber: 123,
@@ -577,13 +577,81 @@ test("a retry acknowledgment gives a dirty generation a fresh attempt budget", a
     claimGeneration: secondClaim.claimGeneration,
     workerId: "worker",
     outcome: "retry",
-    retryAfterMs: 10_000,
+    retryAfterMs: 500,
   }), { status: "follow_up", attempts: 0 });
+  assert.deepEqual(await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+  }), []);
+  assert.deepEqual(await queue.finishDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  }), { requested: false });
+  advance(500);
+  const recovery = await queue.recoverExpiredLeases();
+  assert.equal(recovery.requested, true);
+  await queue.activateDispatcher({
+    generation: recovery.generation,
+    workerId: "next-worker",
+  });
   const [followUp] = await queue.claimWave({
+    generation: recovery.generation,
+    workerId: "next-worker",
+  });
+  assert.equal(followUp.attempts, 0);
+});
+
+test("a delayed retry preserves the existing attempt budget", async () => {
+  const { queue, advance } = fixture();
+  await queue.enqueue({
+    repository: "example",
+    prNumber: 123,
+    headSha: "",
+    triggerEvent: "pull_request",
+  });
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
     generation: request.generation,
     workerId: "worker",
   });
-  assert.equal(followUp.attempts, 0);
+  const [firstClaim] = await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+  });
+  assert.deepEqual(await queue.acknowledge({
+    itemKey: firstClaim.itemKey,
+    claimGeneration: firstClaim.claimGeneration,
+    workerId: "worker",
+    outcome: "retry",
+  }), { status: "retry", attempts: 1 });
+  const [secondClaim] = await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+  });
+
+  assert.deepEqual(await queue.acknowledge({
+    itemKey: secondClaim.itemKey,
+    claimGeneration: secondClaim.claimGeneration,
+    workerId: "worker",
+    outcome: "retry",
+    retryAfterMs: 500,
+  }), { status: "retry", attempts: 1 });
+  assert.deepEqual(await queue.finishDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  }), { requested: false });
+  advance(500);
+  const recovery = await queue.recoverExpiredLeases();
+  assert.equal(recovery.requested, true);
+  await queue.activateDispatcher({
+    generation: recovery.generation,
+    workerId: "next-worker",
+  });
+  const [retried] = await queue.claimWave({
+    generation: recovery.generation,
+    workerId: "next-worker",
+  });
+  assert.equal(retried.attempts, 1);
 });
 
 test("expired recovery preserves a dirty generation at the attempt ceiling", async () => {

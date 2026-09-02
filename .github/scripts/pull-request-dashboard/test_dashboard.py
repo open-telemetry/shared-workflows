@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import ANY, Mock, call, patch
 
+import state_branch
 from copilot_review import set_copilot_review_request_needed
 from dashboard import (
     BACKFILL_RECORDED_FAILURE_STATUS,
@@ -2060,13 +2061,18 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         self.assertEqual(backfill_failed_pr_numbers(backfill_state), {1})
 
     def test_targeted_state_update_respects_publisher_lock(self) -> None:
-        args = Namespace(pr_number=1, state_branch="state")
+        args = Namespace(
+            pr_number=1,
+            state_branch="state",
+            publisher_lock_wait_seconds=0,
+        )
         update = object()
 
         with (
             patch("dashboard.state_branch.configure_git"),
             patch("dashboard.state_branch.checkout_state"),
             patch("dashboard.state_branch.remove_existing_state_dir"),
+            patch("dashboard.state_branch.wait_for_publisher_unlock") as wait_for_unlock,
             patch("dashboard.build_targeted_dashboard_update", return_value=update),
             patch(
                 "dashboard.state_branch.push_state_changes",
@@ -2076,7 +2082,38 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             status = update_dashboard_for_pr_number(args, Path("state"))
 
         self.assertEqual(0, status)
+        wait_for_unlock.assert_called_once_with(
+            Path("state"),
+            "state",
+            wait_seconds=0,
+        )
         self.assertTrue(push_state_changes.call_args.kwargs["respect_publisher_lock"])
+        self.assertEqual(
+            0,
+            push_state_changes.call_args.kwargs["publisher_lock_wait_seconds"],
+        )
+
+    def test_publisher_lock_busy_stops_targeted_calculation(self) -> None:
+        args = Namespace(
+            pr_number=1,
+            state_branch="state",
+            publisher_lock_wait_seconds=0,
+        )
+
+        with (
+            patch("dashboard.state_branch.configure_git"),
+            patch("dashboard.state_branch.checkout_state"),
+            patch("dashboard.state_branch.remove_existing_state_dir"),
+            patch(
+                "dashboard.state_branch.wait_for_publisher_unlock",
+                side_effect=state_branch.PublisherLockTimeoutError("busy"),
+            ),
+            patch("dashboard.build_targeted_dashboard_update") as build_update,
+            self.assertRaises(state_branch.PublisherLockTimeoutError),
+        ):
+            update_dashboard_for_pr_number(args, Path("state"))
+
+        build_update.assert_not_called()
 
     def test_successful_retry_clears_recorded_failure(self) -> None:
         state = {"failed_pr_numbers": [1, 2]}
@@ -2159,6 +2196,33 @@ class BackfillFailureIsolationTest(unittest.TestCase):
                 write_output.assert_called_once_with(Path(temp_dir) / "output")
             else:
                 write_output.assert_not_called()
+
+    def test_main_returns_busy_status_for_publisher_lock_timeout(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch(
+                "sys.argv",
+                [
+                    "dashboard.py",
+                    "--state-branch",
+                    "state",
+                    "--repo",
+                    "repo",
+                    "--approver-team",
+                    "approvers",
+                    "--publisher-lock-wait-seconds",
+                    "0",
+                ],
+            ),
+            patch("dashboard.state_branch.temporary_state_dir") as temporary_state_dir,
+            patch(
+                "dashboard.update_dashboard_via_state_branch",
+                side_effect=state_branch.PublisherLockTimeoutError("busy"),
+            ),
+        ):
+            temporary_state_dir.return_value.__enter__.return_value = Path(temp_dir)
+
+            self.assertEqual(main(), state_branch.PUBLISHER_LOCK_BUSY_STATUS)
 
 
 if __name__ == "__main__":

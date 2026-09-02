@@ -190,35 +190,6 @@ class PublisherWriteBarrierTest(unittest.TestCase):
                 now=lambda: 100,
             )
 
-    @patch.object(state_branch, "reset_state", return_value=True)
-    @patch.object(
-        state_branch,
-        "load_publisher_lock",
-        side_effect=[
-            {"owner": "publisher", "expiresAt": 200},
-            None,
-        ],
-    )
-    def test_shared_deadline_bounds_publisher_wait(
-        self,
-        _load_publisher_lock: object,
-        _reset_state: object,
-    ) -> None:
-        sleeps: list[float] = []
-
-        with patch.dict(
-            state_branch.os.environ,
-            {state_branch.PUBLISHER_LOCK_DEADLINE_ENV: "102"},
-        ):
-            state_branch.wait_for_publisher_unlock(
-                Path("state"),
-                "state-branch",
-                now=lambda: 100,
-                sleep=sleeps.append,
-            )
-
-        self.assertEqual([2], sleeps)
-
     def test_checks_barrier_before_each_cas_attempt(self) -> None:
         lifecycle: list[str] = []
 
@@ -246,7 +217,7 @@ class PublisherWriteBarrierTest(unittest.TestCase):
             patch.object(
                 state_branch,
                 "wait_for_publisher_unlock",
-                side_effect=lambda *_args: lifecycle.append("wait"),
+                side_effect=lambda *_args, **_kwargs: lifecycle.append("wait"),
             ) as wait_for_publisher_unlock,
         ):
             status = state_branch.push_state_changes(
