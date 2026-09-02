@@ -48,7 +48,7 @@ COPILOT_REVIEW_REQUEST_STATE_VERSION = 6
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 2
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 17
+STATUS_COMMENT_REVISION = 18
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 

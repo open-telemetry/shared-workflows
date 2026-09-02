@@ -216,15 +216,15 @@ def author_body(
     return [fallback_next_step]
 
 
-def maintainer_action_required_summary(count: int) -> str:
+def write_access_required_summary(count: int) -> str:
     if count == 1:
         return (
-            "1 required check needs a maintainer to approve or otherwise "
-            "unblock its workflow."
+            "1 required check needs action from someone with write access "
+            "to this repository."
         )
     return (
-        f"{count} required checks need a maintainer to approve or otherwise "
-        "unblock their workflows."
+        f"{count} required checks need action from someone with write access "
+        "to this repository."
     )
 
 
@@ -343,8 +343,8 @@ def render_status_comment(
             body.extend([
                 "",
                 (
-                    "**Maintainer action required:** "
-                    + maintainer_action_required_summary(
+                    "**Write access required:** "
+                    + write_access_required_summary(
                         maintainer_action_required_count
                     )
                 ),
