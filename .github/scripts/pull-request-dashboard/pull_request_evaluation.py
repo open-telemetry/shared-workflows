@@ -53,6 +53,7 @@ from discussion_lifecycle import (
 )
 from github_cli import TransientGhError
 from pull_request_source import (
+    Actor,
     IssueComment,
     PullRequestSource,
     fetch_pull_request_source,
@@ -92,6 +93,7 @@ def _author_identity(login: str) -> str:
 
 _COPILOT_COMMITTER_IDENTITIES = {"copilot"}
 _COPILOT_PR_AUTHOR_IDENTITIES = {"copilot-swe-agent", "copilot"}
+_UNATTENDED_AUTOMATION_USER_IDENTITIES = {"opentelemetrybot"}
 _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES = {
     "opentelemetrybot",
     "otelbot",
@@ -101,6 +103,19 @@ _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES = {
 
 def _is_maintenance_bot_author(login: str) -> bool:
     return _author_identity(login) in _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES
+
+
+def _author_can_act(api_author: Actor, effective_author: str) -> bool:
+    if (
+        _author_identity(api_author.login) in _UNATTENDED_AUTOMATION_USER_IDENTITIES
+        or _author_identity(effective_author)
+        in _UNATTENDED_AUTOMATION_USER_IDENTITIES
+    ):
+        return False
+    return (
+        not api_author.is_bot
+        or _author_identity(api_author.login) != _author_identity(effective_author)
+    )
 
 
 @dataclass(frozen=True)
@@ -135,6 +150,7 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
         if (
             login
             and identity not in _COPILOT_PR_AUTHOR_IDENTITIES
+            and identity not in _UNATTENDED_AUTOMATION_USER_IDENTITIES
             and identity == login.casefold()
         ):
             return login
@@ -147,6 +163,7 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
     if (
         not login
         or _author_identity(login) in _COPILOT_COMMITTER_IDENTITIES
+        or _author_identity(login) in _UNATTENDED_AUTOMATION_USER_IDENTITIES
         or committer.is_bot
         or committer.is_copilot_reviewer
     ):
@@ -245,6 +262,7 @@ def _compute_facts(
         copilot_review_stale=copilot_review_stale,
         copilot_review_needed=copilot_review_stale or copilot_review_findings,
         is_maintenance_bot=_is_maintenance_bot_author(api_author),
+        author_can_act=_author_can_act(pr.author, author),
         is_draft=pr.is_draft,
         approval_count=prepared_reviewers.approval_count,
         conflicts=pr.conflicts,

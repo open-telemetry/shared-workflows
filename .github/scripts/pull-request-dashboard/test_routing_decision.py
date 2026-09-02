@@ -254,6 +254,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                     "ci_failing_count": 1,
                     "ci_pending_count": 0,
                     "is_maintenance_bot": True,
+                    "author_can_act": False,
                 },
                 {},
                 2,
@@ -373,6 +374,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
             "ci_failing_count": 1,
             "ci_pending_count": 0,
             "is_maintenance_bot": True,
+            "author_can_act": False,
         }
         pending_actions = {
             "thread": {
@@ -395,6 +397,35 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertEqual("approver", awaiting_approval.route)
         self.assertEqual("maintainer", approved.route)
 
+    def test_other_automation_uses_the_configured_approval_threshold(self) -> None:
+        facts = {
+            "author": "app/dependabot",
+            "author_can_act": False,
+            "ci_failing_count": 1,
+            "ci_pending_count": 0,
+            "is_maintenance_bot": False,
+        }
+        pending_actions = {
+            "thread": {
+                "action": "author",
+                "since": "2026-08-11T13:44:18Z",
+            }
+        }
+
+        one_approval = self.resolve(
+            {**facts, "approval_count": 1},
+            pending_actions,
+            required_approvals=2,
+        )
+        two_approvals = self.resolve(
+            {**facts, "approval_count": 2},
+            pending_actions,
+            required_approvals=2,
+        )
+
+        self.assertEqual("approver", one_approval.route)
+        self.assertEqual("maintainer", two_approvals.route)
+
     def test_a_newly_classified_maintenance_bot_falls_back_to_approvers(self) -> None:
         # A cached result can still say "author" when the pull request author
         # was only classified as a maintenance bot after it was stored, and a
@@ -405,6 +436,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                 "ci_pending_count": 1,
                 "head_sha": "abc",
                 "is_maintenance_bot": True,
+                "author_can_act": False,
             },
             previous_route="author",
         )

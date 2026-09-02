@@ -92,6 +92,7 @@ class DashboardFacts:
     copilot_review_stale: bool = False
     copilot_review_needed: bool = False
     is_maintenance_bot: bool = False
+    author_can_act: bool = True
     is_draft: bool = False
     approval_count: int = 0
     conflicts: str = "unknown"

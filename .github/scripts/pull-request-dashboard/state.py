@@ -35,7 +35,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 13
+DASHBOARD_STATE_VERSION = 14
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -516,6 +516,11 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("is_maintenance_bot", _MISSING),
             "facts.is_maintenance_bot",
         ),
+        author_can_act=_boolean(
+            value.get("author_can_act", _MISSING),
+            "facts.author_can_act",
+            True,
+        ),
         is_draft=_boolean(
             value.get("is_draft", _MISSING),
             "facts.is_draft",
@@ -636,6 +641,7 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         "copilot_review_stale": facts.copilot_review_stale,
         "copilot_review_needed": facts.copilot_review_needed,
         "is_maintenance_bot": facts.is_maintenance_bot,
+        "author_can_act": facts.author_can_act,
         "is_draft": facts.is_draft,
         "approval_count": facts.approval_count,
         "conflicts": facts.conflicts,
@@ -808,7 +814,7 @@ def load_dashboard_state_cache() -> DashboardState | None:
     state = load_state_file(
         dashboard_state_path(),
         DASHBOARD_STATE_VERSION,
-        compatible_versions=(11, 12),
+        compatible_versions=(11, 12, 13),
     )
     if state is None:
         return None

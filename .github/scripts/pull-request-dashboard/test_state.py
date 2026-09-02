@@ -221,6 +221,7 @@ class StateTest(unittest.TestCase):
             copilot_review_stale=True,
             copilot_review_needed=True,
             is_maintenance_bot=False,
+            author_can_act=True,
             is_draft=False,
             approval_count=2,
             conflicts="no",
@@ -514,19 +515,20 @@ class StateTest(unittest.TestCase):
             },
         }
 
-        self.assertEqual(
-            {
-                **persisted,
-                "version": DASHBOARD_STATE_VERSION,
-                "draft_pr_numbers": [],
-            },
-            encode_dashboard_state(decode_dashboard_state(persisted)),
-        )
+        decoded = decode_dashboard_state(persisted)
+        self.assertTrue(decoded.results[0].facts.author_can_act)
+        expected = {
+            **persisted,
+            "version": DASHBOARD_STATE_VERSION,
+            "draft_pr_numbers": [],
+        }
+        expected["prs"]["123"]["facts"]["author_can_act"] = True
+        self.assertEqual(expected, encode_dashboard_state(decoded))
 
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 13)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 14)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)
