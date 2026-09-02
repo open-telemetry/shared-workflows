@@ -209,9 +209,11 @@ def rebuild(payload: dict, trials: list[dict[str, str]], model: str) -> dict:
     cases.sort(key=lambda c: (c["repo"], c["pull_request"], c["root_timestamp"]))
     roles = Counter(c["role"] for c in cases)
     stabilities = Counter(c["stability"] for c in cases)
+    measurement_date = datetime.now(UTC).strftime("%Y-%m-%d")
     return {
         **payload,
-        "generated_at": datetime.now(UTC).strftime("%Y-%m-%d"),
+        "baseline_generated_at": measurement_date,
+        "measurements_updated_at": measurement_date,
         "baseline_configuration": {
             **payload["baseline_configuration"],
             "model": model,
