@@ -23,7 +23,6 @@
     "run_labels": "the answers it did give, mapped through action_labels",
     "recorded_label": "the label the baseline settled on, null when it did not settle",
     "adjudicated_label": "the label a human decided, null until one has",
-    "measurement_date": "optional date for cases measured after generated_at; cases without it were measured in the baseline generated_at run",
     "root_timestamp": "the timestamp the dashboard orders a pull request's items by; cases are stored and measured in that order, so batches match the ones it sends"
   },
   "counts": {
@@ -10124,7 +10123,6 @@
       "review_state": null,
       "root_timestamp": "2026-09-01T19:45:40Z",
       "body": "@Shriprasad-P the test is unfortunately still failing here",
-      "measurement_date": "2026-09-02",
       "role": "scored",
       "stability": "stable",
       "recorded_label": "author_action",
@@ -13931,7 +13929,6 @@
       "review_state": "CHANGES_REQUESTED",
       "root_timestamp": "2026-08-07T08:38:43Z",
       "body": "@joaopgrassi @thompson-tomo - We need to land the main PR for the 1821 work first. With the latest security otel.io incident, #1821 just got bumped back, but we'll get to it.",
-      "measurement_date": "2026-09-02",
       "role": "scored",
       "stability": "stable",
       "recorded_label": "author_action",
