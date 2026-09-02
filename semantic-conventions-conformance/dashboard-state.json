@@ -215,7 +215,7 @@
     },
     "146": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -223,7 +223,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ae7eb60ed4b1ea307669942c28243cf36efdbff4ee759c82c177bbc6d18e5af2",
+        "copilot_request_fingerprint": "8cb6872e0dfc6a0d4f2b7caa93a23b5942e8aaca6ab1d7c37367981d071c9e6e",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -239,21 +239,31 @@
         "head_sha": "a9a13c4177bbdc7660cc5e795dc4ba35a7497147",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-31T17:02:30+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-01T23:48:09+00:00",
+        "last_approver_activity_at": "2026-09-01T23:48:09+00:00",
         "last_author_activity_at": "2026-08-31T17:02:30+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4fcb0699058ed5baae56c6023e8afb01098f77768d5bc7c790424d3c9c6322b4",
+        "routing_input_fingerprint": "198bc2b2e3b4ab7f6593e42412e37711acf2c39c8b37d7fd62d0944576bdb986",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-31T17:02:30+00:00"
       },
       "failed": false,
       "pr_number": 146,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/146",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "147": {
