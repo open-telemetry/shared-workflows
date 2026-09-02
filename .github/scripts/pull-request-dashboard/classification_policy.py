@@ -368,6 +368,16 @@ class DiscussionComment:
     body: str = ""
     activity_timestamp: str = ""
 
+    @property
+    def effective_activity_timestamp(self) -> str:
+        timestamp = parse_ts(self.timestamp)
+        activity_timestamp = parse_ts(self.activity_timestamp)
+        if activity_timestamp is not None and (
+            timestamp is None or activity_timestamp >= timestamp
+        ):
+            return self.activity_timestamp
+        return self.timestamp if timestamp is not None else ""
+
 
 @dataclass(frozen=True)
 class CandidateFeedback:
@@ -383,6 +393,8 @@ class ClassificationDiscussion:
     pr_author: str = ""
     source_kind: str = ""
     candidate_feedback: tuple[CandidateFeedback, ...] = ()
+    selected_comment_index: int | None = None
+    selected_activity_timestamp: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "comments", tuple(self.comments))
@@ -437,8 +449,16 @@ class ClassificationDiscussion:
     def with_comments(
         self,
         comments: Sequence[DiscussionComment],
+        *,
+        selected_comment_index: int | None = None,
+        selected_activity_timestamp: str = "",
     ) -> ClassificationDiscussion:
-        return replace(self, comments=tuple(comments))
+        return replace(
+            self,
+            comments=tuple(comments),
+            selected_comment_index=selected_comment_index,
+            selected_activity_timestamp=selected_activity_timestamp,
+        )
 
 
 @dataclass(frozen=True)
@@ -808,10 +828,17 @@ def review_thread_author_reply_input(
     discussion: ClassificationDiscussion,
 ) -> dict[str, Any]:
     body = ""
-    for comment in reversed(discussion.comments):
-        if comment.actor_role == "author":
-            body = comment.body
-            break
+    selected_index = discussion.selected_comment_index
+    if (
+        selected_index is not None
+        and 0 <= selected_index < len(discussion.comments)
+    ):
+        body = discussion.comments[selected_index].body
+    else:
+        for comment in reversed(discussion.comments):
+            if comment.actor_role == "author":
+                body = comment.body
+                break
     return {
         "discussion_id": discussion.identity.discussion_id,
         "body": body,
@@ -821,9 +848,10 @@ def review_thread_author_reply_input(
 def praise_prompt_input(
     discussion: ClassificationDiscussion,
 ) -> dict[str, Any]:
+    selected = _latest_review_thread_comment(discussion.comments)
     return {
         "discussion_id": discussion.identity.discussion_id,
-        "body": discussion.comments[-1].body if discussion.comments else "",
+        "body": selected.comment.body if selected is not None else "",
     }
 
 
@@ -1576,35 +1604,43 @@ def prepare_praise_candidates(
 
 
 def _could_be_praise(discussion: ClassificationDiscussion) -> bool:
-    comments = discussion.comments
-    role = comments[-1].actor_role if comments else ""
-    if not comments or role in ("author", "bot"):
+    selected = _latest_review_thread_comment(discussion.comments)
+    if selected is None or selected.comment.actor_role in ("author", "bot"):
         return False
     return (
-        len(" ".join(comments[-1].body.split()))
+        len(" ".join(selected.comment.body.split()))
         <= PRAISE_MAX_CHARS
     )
 
 
+@dataclass(frozen=True)
+class _ReviewThreadCommentSelection:
+    index: int
+    comment: DiscussionComment
+    activity_timestamp: str
+
+
 def _latest_review_thread_comment(
     comments: Sequence[DiscussionComment],
-) -> DiscussionComment | None:
+) -> _ReviewThreadCommentSelection | None:
     if not comments:
         return None
-    return max(
+    index, comment = max(
         enumerate(comments),
         key=lambda item: (
             (
-                parse_ts(
-                    item[1].activity_timestamp
-                    or item[1].timestamp
-                )
+                parse_ts(item[1].effective_activity_timestamp)
                 or _MIN_TIMESTAMP
             ),
             parse_ts(item[1].timestamp) or _MIN_TIMESTAMP,
             item[0],
         ),
-    )[1]
+    )
+    return _ReviewThreadCommentSelection(
+        index,
+        comment,
+        comment.effective_activity_timestamp,
+    )
 
 
 def resolve_review_thread_policy(
@@ -1632,13 +1668,14 @@ def resolve_review_thread_policy(
             continue
         comments = list(discussion.comments)
         dropped = discussion_id in ignored
-        if dropped:
-            comments.pop()
-        latest_comment = _latest_review_thread_comment(comments)
-        if latest_comment is not None:
+        selected = _latest_review_thread_comment(comments)
+        if dropped and selected is not None:
+            comments.pop(selected.index)
+            selected = _latest_review_thread_comment(comments)
+        if selected is not None:
             since_by_id[discussion_id] = (
-                latest_comment.activity_timestamp
-                or latest_comment.timestamp
+                selected.activity_timestamp
+                or selected.comment.timestamp
             )
         if dropped and not comments:
             resolved[discussion_id] = ClassificationSuccess(
@@ -1648,8 +1685,17 @@ def resolve_review_thread_policy(
                     "This thread is only praise.",
                 ),
             )
-        elif latest_comment is not None and latest_comment.actor_role == "author":
-            author_replies.append(discussion.with_comments(comments))
+        elif (
+            selected is not None
+            and selected.comment.actor_role == "author"
+        ):
+            author_replies.append(
+                discussion.with_comments(
+                    comments,
+                    selected_comment_index=selected.index,
+                    selected_activity_timestamp=selected.activity_timestamp,
+                )
+            )
         else:
             resolved[discussion_id] = ClassificationSuccess(
                 discussion.identity,

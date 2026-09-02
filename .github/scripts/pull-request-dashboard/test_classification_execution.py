@@ -1096,6 +1096,75 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         self.assertEqual(result.since, "2026-03-12T00:00:00Z")
         self.assertTrue(result.ignored_last_comment)
 
+    def test_edited_older_praise_is_classified_and_removed_by_identity(
+        self,
+    ) -> None:
+        thread = self.thread(
+            ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
+            ("approver", "LGTM", "2026-04-12T00:00:00Z"),
+            ("author", "Fixed it.", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][1]["activity_timestamp"] = "2026-06-20T00:00:00Z"
+
+        result, runner = self.classify(
+            thread,
+            responder=lambda request: successful_response(
+                request,
+                praise="praise",
+                author_reply="complete",
+            ),
+        )
+
+        self.assertEqual(len(runner.requests), 2)
+        self.assertEqual(prompt_items(runner.requests[0])[0]["body"], "LGTM")
+        self.assertEqual(
+            prompt_items(runner.requests[1])[0]["body"],
+            "Fixed it.",
+        )
+        assert isinstance(result.decision, ActionDecision)
+        self.assertIs(result.decision.action, DiscussionAction.REVIEWER)
+        self.assertEqual(result.since, "2026-05-20T00:00:00Z")
+        self.assertTrue(result.ignored_last_comment)
+
+    def test_edited_older_author_reply_supplies_body_and_result_time(
+        self,
+    ) -> None:
+        thread = self.thread(
+            (
+                "approver",
+                "Please update the implementation and tests.",
+                "2026-03-12T00:00:00Z",
+            ),
+            ("author", "The complete fix is ready.", "2026-04-12T00:00:00Z"),
+            ("author", "One part remains.", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][1]["activity_timestamp"] = "2026-06-20T00:00:00Z"
+
+        result, runner = self.classify(
+            thread,
+            responder=lambda request: successful_response(
+                request,
+                author_reply="deferral",
+            ),
+        )
+
+        self.assertEqual(len(runner.requests), 1)
+        self.assertEqual(
+            prompt_items(runner.requests[0])[0]["body"],
+            "The complete fix is ready.",
+        )
+        assert isinstance(result.decision, ActionDecision)
+        self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
+        self.assertEqual(result.since, "2026-06-20T00:00:00Z")
+        self.assertEqual(
+            [comment["body"] for comment in thread["comments"]],
+            [
+                "Please update the implementation and tests.",
+                "The complete fix is ready.",
+                "One part remains.",
+            ],
+        )
+
     def test_failed_praise_and_author_reply_calls_fail_safe_to_author(
         self,
     ) -> None:

@@ -564,7 +564,9 @@ the implementation understandable and operationally cheap.
   `createdAt`, never its edit time. Effective content activity selects the
   latest participant and requester and supplies the pending action timestamp,
   so editing an older request can reactivate it without reordering the
-  classifier transcript or list. Top-level feedback items still date from their
+  classifier transcript or list. The same selected comment supplies praise and
+  author-reply classification, and removing praise leaves the remaining
+  conversation order intact. Top-level feedback items still date from their
   creation time, so editing a comment cannot reorder that list.
 
 ## Top-Level Feedback
