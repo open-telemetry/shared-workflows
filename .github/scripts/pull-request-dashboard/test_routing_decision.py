@@ -248,8 +248,9 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                 "approver",
             ),
             (
-                "maintenance bot approval threshold",
+                "Dependabot approval threshold",
                 {
+                    "author": "app/dependabot",
                     "approval_count": 1,
                     "ci_failing_count": 1,
                     "ci_pending_count": 0,
@@ -399,7 +400,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
 
     def test_other_automation_uses_the_configured_approval_threshold(self) -> None:
         facts = {
-            "author": "app/dependabot",
+            "author": "app/custom-automation",
             "author_can_act": False,
             "ci_failing_count": 1,
             "ci_pending_count": 0,

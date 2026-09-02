@@ -87,7 +87,7 @@ from utils import (
 
 _COPILOT_COMMITTER_IDENTITIES = {"copilot"}
 _COPILOT_PR_AUTHOR_IDENTITIES = {"copilot-swe-agent", "copilot"}
-_MAINTENANCE_APP_IDENTITIES = {"otelbot", "renovate"}
+_MAINTENANCE_APP_IDENTITIES = {"dependabot", "otelbot", "renovate"}
 
 
 def _is_maintenance_bot_author(login: str) -> bool:
