@@ -41,7 +41,7 @@ class RenderTest(unittest.TestCase):
 
         self.assertIn(
             "CI column: ✅ passing · ⏳ running · ❌ failing · "
-            "🔐 write access required.",
+            "🔐 workflow action required.",
             markdown,
         )
 

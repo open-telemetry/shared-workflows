@@ -216,7 +216,7 @@ def author_body(
     return [fallback_next_step]
 
 
-def write_access_required_summary(count: int) -> str:
+def workflow_action_required_summary(count: int) -> str:
     if count == 1:
         return (
             "1 required check needs action from someone with write access "
@@ -343,8 +343,8 @@ def render_status_comment(
             body.extend([
                 "",
                 (
-                    "**Write access required:** "
-                    + write_access_required_summary(
+                    "**Workflow action required:** "
+                    + workflow_action_required_summary(
                         maintainer_action_required_count
                     )
                 ),

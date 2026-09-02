@@ -373,7 +373,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn("Investigate required status check failures.", body)
-        self.assertNotIn("Write access required", body)
+        self.assertNotIn("Workflow action required", body)
 
     def test_waiting_on_reviewers_names_maintainer_owned_blocker(self) -> None:
         body = pr_status_comment.render_status_comment(
@@ -389,7 +389,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertIn("**Waiting on reviewers** · refreshed ", body)
         self.assertIn("Review the latest changes.", body)
         self.assertIn(
-            "**Write access required:** 1 required check needs action from someone "
+            "**Workflow action required:** 1 required check needs action from someone "
             "with write access to this repository.",
             body,
         )
@@ -409,7 +409,7 @@ class RenderStatusCommentTest(unittest.TestCase):
 
         self.assertIn("Approve or otherwise unblock the required workflow checks.", body)
         self.assertIn(
-            "**Write access required:** 2 required checks need action from someone "
+            "**Workflow action required:** 2 required checks need action from someone "
             "with write access to this repository.",
             body,
         )
@@ -427,7 +427,7 @@ class RenderStatusCommentTest(unittest.TestCase):
         )
 
         self.assertIn("Investigate required status check failures.", body)
-        self.assertIn("**Write access required:**", body)
+        self.assertIn("**Workflow action required:**", body)
 
     def test_waiting_on_author_names_merge_conflicts(self) -> None:
         body = pr_status_comment.render_status_comment(

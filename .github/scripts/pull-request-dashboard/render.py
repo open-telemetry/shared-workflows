@@ -251,7 +251,7 @@ def render_pr_tables(
     )
     ci_note = (
         "CI column: ✅ passing · ⏳ running · ❌ failing · "
-        "🔐 write access required."
+        "🔐 workflow action required."
     )
     out: list[str] = [
         "> [!NOTE]",
