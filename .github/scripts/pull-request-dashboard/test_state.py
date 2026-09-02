@@ -282,6 +282,19 @@ class StateTest(unittest.TestCase):
                 "author_can_act": True,
             }).author_can_act
         )
+        self.assertEqual(
+            DashboardRoute.AUTHOR,
+            decode_stored_result(
+                {
+                    "route": "author",
+                    "facts": {
+                        "author": "app/dependabot",
+                        "author_can_act": True,
+                    },
+                },
+                pr_number_hint=123,
+            ).route,
+        )
 
     def test_version_thirteen_state_infers_author_capability(self) -> None:
         persisted = {
@@ -294,6 +307,27 @@ class StateTest(unittest.TestCase):
                     "route": "author",
                     "facts": {"author": "app/dependabot"},
                 },
+                "124": {
+                    "pr_number": 124,
+                    "failed": False,
+                    "route": "approver",
+                    "facts": {"author": "app/dependabot"},
+                },
+                "125": {
+                    "pr_number": 125,
+                    "failed": False,
+                    "route": "author",
+                    "facts": {"author": "alice"},
+                },
+                "126": {
+                    "pr_number": 126,
+                    "failed": False,
+                    "route": "author",
+                    "facts": {
+                        "author": "app/dependabot",
+                        "author_can_act": True,
+                    },
+                },
             },
         }
         with (
@@ -305,11 +339,30 @@ class StateTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            decoded = load_dashboard_state_cache()
+            warnings = StringIO()
+            with redirect_stderr(warnings):
+                decoded = load_dashboard_state_cache()
 
         self.assertIsNotNone(decoded)
         assert decoded is not None
-        self.assertFalse(decoded.results[0].facts.author_can_act)
+        self.assertEqual(frozenset({124, 125, 126}), decoded.pr_numbers)
+        decoded_by_number = {
+            result.pr_number: result
+            for result in decoded.results
+        }
+        self.assertFalse(decoded_by_number[124].facts.author_can_act)
+        self.assertEqual(
+            DashboardRoute.APPROVER,
+            decoded_by_number[124].route,
+        )
+        self.assertTrue(decoded_by_number[125].facts.author_can_act)
+        self.assertEqual(DashboardRoute.AUTHOR, decoded_by_number[125].route)
+        self.assertTrue(decoded_by_number[126].facts.author_can_act)
+        self.assertEqual(DashboardRoute.AUTHOR, decoded_by_number[126].route)
+        self.assertIn(
+            "dashboard result author route requires an actionable author",
+            warnings.getvalue(),
+        )
         self.assertEqual(
             DASHBOARD_STATE_VERSION,
             encode_dashboard_state(decoded)["version"],

@@ -727,6 +727,11 @@ def decode_stored_result(
         history = {}
     if not isinstance(history, dict):
         raise ValueError("dashboard result top_level_history must be an object")
+    facts = decode_dashboard_facts(
+        value["facts"] if "facts" in value else {}
+    )
+    if route is DashboardRoute.AUTHOR and not facts.author_can_act:
+        raise ValueError("dashboard result author route requires an actionable author")
     return StoredDashboardResult(
         pr_number=pr_number,
         pr_url=_string(
@@ -734,9 +739,7 @@ def decode_stored_result(
             "dashboard result pr_url",
         ),
         route=route,
-        facts=decode_dashboard_facts(
-            value["facts"] if "facts" in value else {}
-        ),
+        facts=facts,
         top_level_history=freeze_json_object(history),
     )
 
