@@ -35,6 +35,7 @@ def result_facts(
         "dashboard_top_level_feedback_cutoff": (
             override.top_level_feedback_cutoff
         ),
+        "dashboard_override_persistent": override.persistent_handoff,
         "dashboard_override_cleared_by_feedback": override.cleared_by_feedback,
         "dashboard_command_replies": override.command_replies,
     }
@@ -47,7 +48,7 @@ class DashboardOverrideTest(unittest.TestCase):
         guidance = dashboard_override.author_override_guidance()
 
         self.assertIn("waiting on the author to waiting on reviewers", guidance)
-        self.assertIn("the head it sees when it reads the command", guidance)
+        self.assertIn("remains active across pushes", guidance)
         self.assertNotIn("immediately", guidance)
 
     def test_dashboard_command_body_remainder(self) -> None:
@@ -392,12 +393,23 @@ class DashboardOverrideTest(unittest.TestCase):
                 head_sha="abcdef123456",
                 route=DashboardRoute.APPROVER,
                 since="2026-08-16T08:00:00Z",
+                persistent_handoff=True,
             )
         )
 
         self.assertIn(
             "<!-- pull-request-dashboard-override-ack:"
             "7:abcdef123456:2026-08-16T08:00:00Z -->",
+            body,
+        )
+        self.assertIn(
+            "<!-- pull-request-dashboard-persistent-reviewer-handoff:"
+            "7:abcdef123456 -->",
+            body,
+        )
+        self.assertIn(
+            "The handoff remains active across pushes until newer actionable "
+            "human feedback arrives.",
             body,
         )
 
@@ -415,6 +427,44 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual(5, facts.command_id)
         self.assertEqual("current-head", facts.head_sha)
+        self.assertTrue(facts.persistent_handoff)
+
+    def test_persistent_marker_restores_handoff_after_push(self) -> None:
+        source = override_input(issue_comment(
+            database_id=9,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body="\n".join([
+                dashboard_override.override_ack_marker(5, "bound-head"),
+                dashboard_override.persistent_handoff_marker(5, "bound-head"),
+            ]),
+        ))
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "later-head",
+        )
+
+        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual("bound-head", facts.head_sha)
+        self.assertTrue(facts.persistent_handoff)
+
+    def test_legacy_acknowledgement_remains_head_bound(self) -> None:
+        source = override_input(issue_comment(
+            database_id=9,
+            actor=actor("opentelemetry-pr-dashboard[bot]"),
+            body=dashboard_override.override_ack_marker(5, "bound-head"),
+        ))
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "later-head",
+        )
+
+        self.assertFalse(facts.persistent_handoff)
 
     def test_pending_command_keeps_its_first_observed_head(self) -> None:
         source = override_input(
@@ -864,6 +914,32 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(5, facts.command_id)
         self.assertEqual("current-head", facts.head_sha)
 
+    def test_forged_marker_does_not_persist_handoff(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.override_ack_marker(5, "bound-head"),
+            ),
+            issue_comment(
+                database_id=10,
+                actor=actor("outsider"),
+                body=dashboard_override.persistent_handoff_marker(
+                    5,
+                    "bound-head",
+                ),
+            ),
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "later-head",
+        )
+
+        self.assertFalse(facts.persistent_handoff)
+
     def test_appends_routed_reply_for_break_glass_command_that_cleared_nothing(self) -> None:
         facts = dashboard_facts(
             author="author",
@@ -1275,6 +1351,7 @@ class DashboardOverrideTest(unittest.TestCase):
                         route=DashboardRoute.APPROVER,
                         since="2026-08-16T07:00:00Z",
                         top_level_feedback_cutoff="2026-08-16T07:00:00Z",
+                        persistent_handoff=True,
                     ),
                 ),
                 facts.dashboard_command_replies,
@@ -1334,7 +1411,7 @@ class DashboardOverrideTest(unittest.TestCase):
         facts = dashboard_override.append_command_ack_reply(
             source,
             result_facts(override, author="author"),
-            DashboardRoute.AUTHOR,
+            DashboardRoute.APPROVER,
         )
 
         self.assertEqual(
@@ -1344,9 +1421,10 @@ class DashboardOverrideTest(unittest.TestCase):
                     "routed",
                     "author",
                     head_sha="current-head",
-                    route=DashboardRoute.AUTHOR,
+                    route=DashboardRoute.APPROVER,
                     since="2026-08-16T07:00:00Z",
                     top_level_feedback_cutoff="2026-08-16T07:00:00Z",
+                    persistent_handoff=True,
                 ),
             ),
             facts.dashboard_command_replies,
@@ -1379,6 +1457,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     route=DashboardRoute.APPROVER,
                     since="2026-08-16T07:00:00Z",
                     top_level_feedback_cutoff="2026-08-16T07:00:00Z",
+                    persistent_handoff=True,
                 ),
             ),
             facts.dashboard_command_replies,

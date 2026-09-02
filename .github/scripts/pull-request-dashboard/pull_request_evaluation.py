@@ -222,6 +222,7 @@ def _compute_facts(
         dashboard_override_head_sha=override.head_sha,
         dashboard_override_since=override.since,
         dashboard_top_level_feedback_cutoff=override.top_level_feedback_cutoff,
+        dashboard_override_persistent=override.persistent_handoff,
         dashboard_override_cleared_by_feedback=override.cleared_by_feedback,
         dashboard_command_replies=override.command_replies,
         copilot_review_requested=any(

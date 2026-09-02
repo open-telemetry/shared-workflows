@@ -628,6 +628,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     route=DashboardRoute.APPROVER,
                     since="2026-08-16T08:00:00Z",
                     top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+                    persistent_handoff=True,
                 ),
             ),
             result.facts.dashboard_command_replies,
@@ -635,7 +636,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(classifier.requests, [])
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_push_keeps_old_top_level_feedback_retired_but_restores_threads(
+    def test_actionable_feedback_after_push_ends_persistent_handoff(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -662,7 +663,9 @@ class PullRequestEvaluationTest(unittest.TestCase):
                         "<!-- pull-request-dashboard-override-ack:"
                         "102:old-head:2026-08-16T08:00:00Z -->\n"
                         "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
-                        "102:2026-08-16T08:00:00Z -->"
+                        "102:2026-08-16T08:00:00Z -->\n"
+                        "<!-- pull-request-dashboard-persistent-reviewer-handoff:"
+                        "102:old-head -->"
                     ),
                     created_at="2026-08-16T08:01:00Z",
                 ),
@@ -701,7 +704,15 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     ),
                 ),
                 (),
-            )
+            ),
+            reviewer_feedback_result=(
+                action_classification(
+                    "pr-issue-comment-104",
+                    DiscussionKind.TOP_LEVEL_FEEDBACK,
+                    DiscussionAction.AUTHOR,
+                    "The new top-level request needs author action.",
+                ),
+            ),
         )
 
         result = evaluate_pr(
@@ -721,6 +732,8 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertTrue(result.facts.dashboard_override_persistent)
+        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
         self.assertEqual(
             {
                 "old-thread": {
@@ -756,6 +769,141 @@ class PullRequestEvaluationTest(unittest.TestCase):
                 discussion.identity.discussion_id
                 for discussion in classifier.requests[0].review_threads
             ),
+        )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_push_does_not_end_persistent_handoff(self, fetch_raw: Mock) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="new-head"),
+            issue_comments=(
+                issue_comment(
+                    database_id=102,
+                    body="/dashboard route:reviewers",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+                issue_comment(
+                    database_id=103,
+                    actor=actor("opentelemetry-pr-dashboard[bot]"),
+                    body=(
+                        "<!-- pull-request-dashboard-override-ack:"
+                        "102:old-head:2026-08-16T08:00:00Z -->\n"
+                        "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+                        "102:2026-08-16T08:00:00Z -->\n"
+                        "<!-- pull-request-dashboard-persistent-reviewer-handoff:"
+                        "102:old-head -->"
+                    ),
+                ),
+            ),
+            review_threads=(review_thread(
+                node_id="old-thread",
+                comments=(review_thread_comment(
+                    body="Please update this.",
+                    created_at="2026-08-16T07:00:00Z",
+                ),),
+            ),),
+        )
+        classifier = FakeClassificationOperation(
+            error=AssertionError("old discussions must remain suppressed")
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertTrue(result.facts.dashboard_override_persistent)
+        self.assertFalse(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertEqual({}, result.pending_actions)
+        self.assertEqual([], classifier.requests)
+        self.assertEqual([], classifier.reviewer_feedback_requests)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_new_reply_on_old_thread_ends_persistent_handoff(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="new-head"),
+            issue_comments=(
+                issue_comment(
+                    database_id=102,
+                    body="/dashboard route:reviewers",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+                issue_comment(
+                    database_id=103,
+                    actor=actor("opentelemetry-pr-dashboard[bot]"),
+                    body=(
+                        "<!-- pull-request-dashboard-override-ack:"
+                        "102:old-head:2026-08-16T08:00:00Z -->\n"
+                        "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+                        "102:2026-08-16T08:00:00Z -->\n"
+                        "<!-- pull-request-dashboard-persistent-reviewer-handoff:"
+                        "102:old-head -->"
+                    ),
+                ),
+            ),
+            review_threads=(review_thread(
+                node_id="thread-1",
+                comments=(
+                    review_thread_comment(
+                        body="Please update this.",
+                        created_at="2026-08-16T07:00:00Z",
+                    ),
+                    review_thread_comment(
+                        body="This still needs the requested update.",
+                        created_at="2026-08-16T09:00:00Z",
+                    ),
+                ),
+            ),),
+        )
+        classification = action_classification(
+            "thread-1",
+            DiscussionKind.REVIEW_THREAD,
+            DiscussionAction.AUTHOR,
+            "The reviewer renewed the request.",
+        )
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications((classification,), (), ()),
+            reviewer_feedback_result=(classification,),
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertTrue(result.facts.dashboard_override_cleared_by_feedback)
+        self.assertEqual(("thread-1",), tuple(result.pending_actions))
+        self.assertEqual(
+            "author",
+            result.pending_actions["thread-1"]["action"],
+        )
+        self.assertEqual(
+            "2026-08-16T09:00:00Z",
+            result.pending_actions["thread-1"]["since"],
+        )
+        self.assertEqual(
+            ["This still needs the requested update."],
+            [
+                comment.body
+                for comment in classifier.reviewer_feedback_requests[0]
+                .discussions[0]
+                .comments
+            ],
+        )
+        self.assertEqual(
+            ["Please update this.", "This still needs the requested update."],
+            [
+                comment.body
+                for comment in classifier.requests[0].review_threads[0].comments
+            ],
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")

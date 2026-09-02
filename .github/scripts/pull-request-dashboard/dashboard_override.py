@@ -29,9 +29,9 @@ _COMMAND_REPLY_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-command-reply:(\d+) -->"
 )
 OVERRIDE_ACK_MARKER_PREFIX = "<!-- pull-request-dashboard-override-ack:"
-# The acknowledgement records which head the command bound to and its effective
-# content timestamp. The head makes the handoff a direct comparison against the
-# current one.
+# The acknowledgement records the head observed with the command and its
+# effective content timestamp. The head identifies the command binding used by
+# durable clearance markers.
 # The head is optional because acknowledgements written before the dashboard
 # recorded it still have to retire their command.
 _OVERRIDE_ACK_MARKER_RE = re.compile(
@@ -45,6 +45,13 @@ _TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_RE = re.compile(
     r"<!-- pull-request-dashboard-top-level-feedback-cutoff:"
     r"(\d+):([^\s>]+) -->"
 )
+PERSISTENT_HANDOFF_MARKER_PREFIX = (
+    "<!-- pull-request-dashboard-persistent-reviewer-handoff:"
+)
+_PERSISTENT_HANDOFF_MARKER_RE = re.compile(
+    r"<!-- pull-request-dashboard-persistent-reviewer-handoff:"
+    r"(\d+):([^:\s>]+) -->"
+)
 PRE_REVIEW_ROUTES = ("author",)
 
 
@@ -56,6 +63,7 @@ class DashboardOverrideFacts:
     head_sha: str
     since: str
     top_level_feedback_cutoff: str
+    persistent_handoff: bool
     cleared_by_feedback: bool
     command_replies: tuple[DashboardCommandReply, ...]
 
@@ -72,10 +80,9 @@ def author_override_guidance(staleness_note: str = "") -> str:
     guidance = (
         "If you need reviewer or maintainer help, comment "
         "`/dashboard route:reviewers` to request routing from waiting on the "
-        "author to waiting on reviewers. The dashboard binds the request to "
-        "the head it sees when it reads the command. Top-level feedback through "
-        "that command is retired; unresolved review threads remain open. A later "
-        "push restores normal routing for the remaining work."
+        "author to waiting on reviewers. Top-level feedback through that command "
+        "is retired; unresolved review threads remain open. The handoff remains "
+        "active across pushes until newer actionable human feedback arrives."
     )
     if staleness_note:
         guidance = f"{guidance} {staleness_note}"
@@ -198,6 +205,11 @@ def dashboard_override_facts(
         if previous_facts is not None
         else ""
     )
+    previous_persistent_handoff = (
+        previous_facts.dashboard_override_persistent
+        if previous_facts is not None
+        else False
+    )
     previous_cleared = (
         previous_facts.dashboard_override_cleared_by_feedback
         if previous_facts is not None
@@ -239,6 +251,15 @@ def dashboard_override_facts(
         command_created_at if command_id and not existing_command_binding else "",
         acknowledged_top_level_feedback_cutoff(source.issue_comments),
     )
+    persistent_handoff = bool(
+        command_id
+        or (previous_binding_matches and previous_persistent_handoff)
+        or acknowledges_persistent_handoff(
+            source.issue_comments,
+            bound_command_id,
+            bound_head,
+        )
+    )
     cleared_command_id, cleared_head = status_reviewer_handoff_clearance(
         source.issue_comments
     )
@@ -262,6 +283,7 @@ def dashboard_override_facts(
         head_sha=bound_head,
         since=override_since,
         top_level_feedback_cutoff=top_level_feedback_cutoff,
+        persistent_handoff=persistent_handoff,
         cleared_by_feedback=cleared_by_feedback,
         command_replies=pending_command_replies(source, author, reviewers),
     )
@@ -334,6 +356,24 @@ def acknowledged_top_level_feedback_cutoff(
     if not candidates:
         return ""
     return max(candidates, key=lambda item: (item[0], item[1]))[2]
+
+
+def acknowledges_persistent_handoff(
+    comments: Sequence[IssueComment],
+    command_id: int,
+    head_sha: str,
+) -> bool:
+    if not command_id or not head_sha:
+        return False
+    return any(
+        _is_dashboard_app_comment(comment)
+        and any(
+            int(match.group(1)) == command_id
+            and match.group(2) == head_sha
+            for match in _PERSISTENT_HANDOFF_MARKER_RE.finditer(comment.body)
+        )
+        for comment in comments or []
+    )
 
 
 def acknowledged_override(
@@ -450,6 +490,13 @@ def top_level_feedback_cutoff_marker(
     return f"{TOP_LEVEL_FEEDBACK_CUTOFF_MARKER_PREFIX}{comment_id}:{cutoff} -->"
 
 
+def persistent_handoff_marker(
+    comment_id: int,
+    head_sha: str,
+) -> str:
+    return f"{PERSISTENT_HANDOFF_MARKER_PREFIX}{comment_id}:{head_sha} -->"
+
+
 def render_command_reply(reply: DashboardCommandReply) -> str:
     user = reply.user
     mention = f"@{user}, " if user else ""
@@ -464,9 +511,8 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
         route = reply.route.value
         held_gates = reply.held_gates
         if route in PRE_REVIEW_ROUTES:
-            # An active handoff always routes to approvers, so a pre-review
-            # route means the command is bound to a head that has been pushed
-            # over.
+            # New handoffs persist across pushes. A pre-review route can remain
+            # only for a legacy acknowledgement without the persistence marker.
             message = (
                 "your reviewer-routing request is not active for the current "
                 "pull request head; comment `/dashboard route:reviewers` again "
@@ -484,6 +530,11 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
             )
         else:
             message = "this pull request was routed to reviewers."
+        if reply.persistent_handoff:
+            message = (
+                f"{message} The handoff remains active across pushes until newer "
+                "actionable human feedback arrives."
+            )
         has_top_level_feedback_cutoff = (
             parse_ts(reply.top_level_feedback_cutoff) is not None
         )
@@ -536,6 +587,10 @@ def render_command_reply(reply: DashboardCommandReply) -> str:
                     reply.top_level_feedback_cutoff,
                 )
             )
+        if reply.persistent_handoff and reply.head_sha:
+            markers.append(
+                persistent_handoff_marker(comment_id, reply.head_sha)
+            )
     return "\n".join([
         *markers,
         f"{mention}{message}",
@@ -562,10 +617,10 @@ def append_command_ack_reply(
 ) -> DashboardFacts:
     """Queue the reply that acknowledges an override command.
 
-    The reply carries the acknowledgement marker, which records the bound head
-    and feedback cutoff and stops the command from being processed again. A
-    command superseded by reviewer feedback is acknowledged in the status comment
-    instead of producing another top-level comment.
+    The reply carries markers that record the command binding, permanent
+    feedback cutoff, and persistent handoff. A command superseded by reviewer
+    feedback is acknowledged in the status comment instead of producing another
+    top-level comment.
     """
     cleared_by_feedback = facts.dashboard_override_cleared_by_feedback
     command_id = (
@@ -601,6 +656,7 @@ def append_command_ack_reply(
         top_level_feedback_cutoff=(
             facts.dashboard_top_level_feedback_cutoff
         ),
+        persistent_handoff=facts.dashboard_override_persistent,
     )
     if command_reply_exists(source.issue_comments, reply):
         return facts

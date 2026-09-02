@@ -74,10 +74,11 @@ the implementation understandable and operationally cheap.
   reminders and re-review requests already sent; the delivery version check
   makes it skip delivery instead. Rolling forward is the way out, and a paused
   dashboard is the cheaper failure.
-- Dashboard state version 16 reads production versions 11 through 13. Versions
-  14 and 15 describe incompatible state shapes from parallel work, so this
-  version regenerates them rather than guessing at compatibility. An integration
-  that combines those shapes must allocate a newer state version.
+- Dashboard state version 17 reads production versions 11 through 13 and the
+  pre-persistent-handoff version 16. Versions 14 and 15 describe incompatible
+  state shapes from parallel work, so this version regenerates them rather than
+  guessing at compatibility. An integration that combines those shapes must
+  allocate a newer state version.
 
 ## Queue and Workflow Concurrency
 
@@ -477,20 +478,18 @@ the implementation understandable and operationally cheap.
   stale review is the ordinary state between a push and the next re-review, and
   an icon that is always present says nothing about which PRs are actually
   waiting.
-- An effective reviewer-routing override is a break-glass handoff for the
-  current head. It forces the reviewer route and bypasses required checks,
-  Copilot review, merge conflicts, discussion actions, and approval routing. The
-  author may be stuck or may need a person to explain a basic problem, so no
-  automated blocker can prevent the handoff. A later push restores normal
-  routing and gates, but top-level feedback last changed at or before the
-  command stays retired. Review threads are not retired by the command; after a
-  push, unresolved and non-outdated threads return to normal routing. Actionable
-  human reviewer feedback with an effective content timestamp after the command
-  also ends the handoff, because a reviewer has answered the request for help
-  and assigned the next action to the author. An edit to older feedback counts
-  when its content-edit timestamp is after the command. Praise, informational
-  comments, bot feedback, and feedback last changed at or before the command do
-  not end it.
+- An effective reviewer-routing override is a break-glass handoff. It forces the
+  reviewer route across later pushes and bypasses required checks, Copilot
+  review, merge conflicts, discussion actions, and approval routing. The author
+  may be stuck or may need a person to explain a basic problem, so no automated
+  blocker can prevent the handoff. Top-level feedback last changed at or before
+  the command stays retired. Review threads are not retired by the command, but
+  their existing work does not override the handoff. Actionable human reviewer
+  feedback with an effective content timestamp after the command ends the
+  handoff, because a reviewer has answered the request for help and assigned the
+  next action to the author. That includes a new reply or edit on an older
+  review thread. Praise, informational comments, bot feedback, and feedback last
+  changed at or before the command do not end it.
 - While a handoff is active, the dashboard classifies only human reviewer
   feedback with content activity after the command. Older discussions and
   classification failures therefore cannot block the break-glass route. Once
@@ -501,27 +500,22 @@ the implementation understandable and operationally cheap.
   command can establish a new handoff on the same head and advance the cutoff.
 - The dashboard binds a command to the head it sees when it first reads that
   command, and records that head in an acknowledgement marker on either the
-  command reply or the live status comment. A companion marker records the
-  frozen timestamp used for the permanent top-level feedback cutoff. A legacy
-  acknowledgement without that cutoff does not retire feedback, because the
-  command's current edit timestamp cannot reconstruct the original cutoff. The
-  first observation freezes the cutoff for that command, so editing the command
-  later cannot retire intervening feedback; only a newer command advances it.
-  The handoff is then a comparison of two strings: the recorded head and the
-  current one. The earlier design
-  instead ordered the command against the push by comparing the comment
-  timestamp with the head push time from `GET /repos/{repo}/activity`.
-  Do not reintroduce that. Both timestamps have one-second resolution and come
-  from different APIs, so the ordering is sometimes unknowable, which forces a
-  third "cannot tell" state that every later pass has to carry forward and every
-  failure path has to preserve by hand. It also fails unsafely in the case the
-  handoff exists for: when the activity lookup returns nothing, the command
-  hangs unacknowledged. Binding to the observed head removes the extra API call
-  and keeps the answer in GitHub rather than in `dashboard-state.json`, so a
-  failed pass or a dropped cache cannot corrupt it. The cost is that a push
-  between the command and the pass that reads it belongs to the handoff instead
-  of ending it, which is the safer direction: the author asked for help, and the
-  worst case is one extra handoff the author can end with another push.
+  command reply or the live status comment. A persistence marker makes the
+  cross-push behavior explicit. Legacy acknowledgements without that marker
+  remain head-bound, so deployment cannot reactivate old handoffs that had
+  already expired. A separate companion marker records the frozen timestamp
+  used for the permanent top-level feedback cutoff. A legacy acknowledgement
+  without that cutoff does not retire feedback, because the command's current
+  edit timestamp cannot reconstruct the original cutoff. The first observation
+  freezes the cutoff for that command, so editing the command later cannot
+  retire intervening feedback; only a newer command advances it.
+- Recording the observed head also avoids ordering the command against a push by
+  comparing the comment timestamp with the head push time from
+  `GET /repos/{repo}/activity`. Both timestamps have one-second resolution and
+  come from different APIs, so the ordering is sometimes unknowable. Binding to
+  the observed head removes that extra API call. A push between the command and
+  the pass that first reads it belongs to the handoff, as does any later push
+  after the persistence marker is recorded.
 - The gate does not wait for the required checks before requesting the review,
   so the two run at once. A route computed while checks are still running is
   provisional, but the only outcome that matters here is a failure, and a
