@@ -103,5 +103,17 @@
     "name": "opentelemetry-ebpf-profiler",
     "approver_teams": ["ebpf-profiler-approvers"],
     "required_approvals": 2
+  },
+  {
+    "name": "opentelemetry-go-compile-instrumentation",
+    "approver_teams": ["go-compile-instrumentation-approvers"],
+    "labels_to_display": ["scope:*", "effort:*", "dependencies", "AI/ML *"],
+    "non_blocking_check_patterns": [
+      "codecov/*",
+      "govulncheck (*)",
+      "Done (Check Consistency)",
+      "Done (Verify Bundle)",
+      "Done (LatestLibBuild Tests)"
+    ]
   }
 ]
