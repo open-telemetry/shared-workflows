@@ -222,7 +222,7 @@ def stale_request_reason(
     failing = [
         check
         for check in checks
-        if check.bucket in ("fail", "cancel")
+        if check.bucket in ("fail", "cancel", "action_required")
     ]
     if failing:
         return f"required checks are failing: {named_checks(failing)}"
