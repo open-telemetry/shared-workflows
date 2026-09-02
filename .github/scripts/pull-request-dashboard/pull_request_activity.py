@@ -119,11 +119,7 @@ def _issue_comment_event(
         else comment.body
     )
     login = reviewer_actor_login(comment.actor)
-    timestamp = (
-    comment.content_updated_at
-    or comment.created_at
-    or comment.updated_at
-    )
+    timestamp = comment.effective_content_timestamp
     return {
     "source_id": comment.database_id or None,
     "discussion_url": comment.url,
@@ -173,7 +169,7 @@ def _review_event(
         "source_id": review.database_id or None,
         "discussion_url": review.url,
         "kind": "review-state",
-        "timestamp": review.submitted_at,
+        "timestamp": review.effective_content_timestamp,
         "created_timestamp": review.submitted_at,
         "actor": login,
         "actor_role": role_for(login, author, approver_logins),

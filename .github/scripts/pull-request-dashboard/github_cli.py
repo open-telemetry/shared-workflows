@@ -178,6 +178,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                     state
                     submittedAt
                     updatedAt
+                    lastEditedAt
                     author {
                         login
                     }
@@ -295,6 +296,11 @@ def fetch_pr_reviews(owner: str, repo_name: str, number: int) -> list[dict[str, 
                 "body": review.get("body") or "",
                 "submitted_at": review.get("submittedAt") or "",
                 "updated_at": review.get("updatedAt") or "",
+                "content_updated_at": (
+                    review.get("lastEditedAt")
+                    or review.get("submittedAt")
+                    or ""
+                ),
             })
         page_info = connection.get("pageInfo") or {}
         if not page_info.get("hasNextPage"):
@@ -807,6 +813,10 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                             url
                             body
                             createdAt
+                            lastEditedAt
+                            pullRequestReview {
+                                fullDatabaseId
+                            }
                             author {
                                 login
                             }
@@ -843,6 +853,10 @@ query($thread_id: ID!, $after: String) {
                     url
                     body
                     createdAt
+                    lastEditedAt
+                    pullRequestReview {
+                        fullDatabaseId
+                    }
                     author {
                         login
                     }

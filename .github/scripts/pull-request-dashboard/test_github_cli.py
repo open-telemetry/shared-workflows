@@ -9,6 +9,7 @@ from github_cli import (
     fetch_pr_issue_comments,
     fetch_pr_reviews,
     fetch_review_requests,
+    fetch_review_threads,
     fetch_latest_draft_transitions,
     gh_branch_rules,
     gh_pr_check_rollup,
@@ -257,6 +258,42 @@ class GithubCliTest(unittest.TestCase):
         self.assertIn("isMinimized", graphql.call_args_list[0].args[0])
         self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
         self.assertEqual(graphql.call_count, 2)
+    @patch("github_cli.gh_graphql")
+    def test_requests_and_preserves_comment_edit_timestamps(self, graphql) -> None:
+        graphql.return_value = {
+            "data": {
+                "repository": {
+                    "pullRequest": {
+                        "reviewThreads": {
+                            "nodes": [{
+                                "id": "PRRT_1",
+                                "comments": {
+                                    "nodes": [{
+                                        "id": "PRRC_1",
+                                        "createdAt": "2026-08-20T08:00:00Z",
+                                        "lastEditedAt": "2026-08-20T08:30:00Z",
+                                        "pullRequestReview": {
+                                            "fullDatabaseId": "13",
+                                        },
+                                    }],
+                                    "pageInfo": {"hasNextPage": False},
+                                },
+                            }],
+                            "pageInfo": {"hasNextPage": False},
+                        }
+                    }
+                }
+            }
+        }
+
+        threads = fetch_review_threads("open-telemetry", "example", 7)
+
+        self.assertEqual(
+            "2026-08-20T08:30:00Z",
+            threads[0]["comments"]["nodes"][0]["lastEditedAt"],
+        )
+        self.assertIn("lastEditedAt", graphql.call_args.args[0])
+        self.assertIn("pullRequestReview", graphql.call_args.args[0])
 
     @patch("github_cli.gh_graphql")
     def test_fetch_pr_issue_comments_rejects_missing_page_cursor(
@@ -1468,6 +1505,7 @@ class GithubCliTest(unittest.TestCase):
                                         "body": "Please clarify this.",
                                         "submittedAt": "2026-07-15T03:55:00Z",
                                         "updatedAt": "2026-07-15T03:57:33Z",
+                                        "lastEditedAt": "2026-07-15T03:56:00Z",
                                     }
                                 ],
                                 "pageInfo": {
@@ -1495,6 +1533,7 @@ class GithubCliTest(unittest.TestCase):
                                         "body": "Looks good.",
                                         "submittedAt": "2026-07-15T04:00:00Z",
                                         "updatedAt": "2026-07-15T04:00:00Z",
+                                        "lastEditedAt": None,
                                     }
                                 ],
                                 "pageInfo": {"hasNextPage": False},
@@ -1518,6 +1557,7 @@ class GithubCliTest(unittest.TestCase):
                     "body": "Please clarify this.",
                     "submitted_at": "2026-07-15T03:55:00Z",
                     "updated_at": "2026-07-15T03:57:33Z",
+                    "content_updated_at": "2026-07-15T03:56:00Z",
                 },
                 {
                     "id": 5000000000,
@@ -1529,12 +1569,14 @@ class GithubCliTest(unittest.TestCase):
                     "body": "Looks good.",
                     "submitted_at": "2026-07-15T04:00:00Z",
                     "updated_at": "2026-07-15T04:00:00Z",
+                    "content_updated_at": "2026-07-15T04:00:00Z",
                 },
             ],
         )
         review_query = graphql.call_args_list[0].args[0]
         self.assertIn("comments {", review_query)
         self.assertIn("totalCount", review_query)
+        self.assertIn("lastEditedAt", review_query)
         self.assertEqual(graphql.call_args_list[1].args[1]["after"], "cursor-1")
         self.assertEqual(graphql.call_count, 2)
 

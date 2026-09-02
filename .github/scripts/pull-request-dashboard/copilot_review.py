@@ -53,11 +53,26 @@ def is_copilot_reviewer(
 
 def open_copilot_findings(
     review_threads: Sequence[ReviewThread],
+    *,
+    known_review_ids: frozenset[int] = frozenset(),
+    superseded_review_ids: frozenset[int] = frozenset(),
+    superseded_before: datetime | None = None,
 ) -> tuple[ReviewThread, ...]:
     # A review's own comment count never shrinks, so it still counts findings
-    # the author has since addressed. Unresolved threads are the live ones:
-    # GitHub marks a thread outdated once its anchor lines change, which is how
-    # the rest of the dashboard already recognises a pushed fix.
+    # that a later clean review has superseded. A review binding gives the exact
+    # ordering; creation time is the fallback for older cached source shapes.
+    # GitHub also marks a thread outdated once its anchor lines change.
+    def is_superseded(thread: ReviewThread) -> bool:
+        review_id = thread.comments[0].review_id
+        if review_id in superseded_review_ids:
+            return True
+        if review_id in known_review_ids:
+            return False
+        if superseded_before is None:
+            return False
+        created_at = parse_ts(thread.comments[0].created_at)
+        return created_at is not None and created_at < superseded_before
+
     return tuple(
         thread
         for thread in review_threads
@@ -66,6 +81,7 @@ def open_copilot_findings(
             and not thread.is_outdated
             and thread.comments
             and is_copilot_reviewer(thread.comments[0].actor)
+            and not is_superseded(thread)
         )
     )
 
@@ -78,13 +94,77 @@ def open_copilot_finding_count(
 
 def open_copilot_finding_urls(
     review_threads: Sequence[ReviewThread],
+    reviews: Sequence[Review] = (),
+    head_sha: str = "",
 ) -> tuple[str, ...]:
     urls: list[str] = []
-    for thread in open_copilot_findings(review_threads):
+    (
+        known_review_ids,
+        superseded_review_ids,
+        superseded_before,
+    ) = _copilot_finding_supersession(
+        reviews,
+        head_sha,
+    )
+    for thread in open_copilot_findings(
+        review_threads,
+        known_review_ids=known_review_ids,
+        superseded_review_ids=superseded_review_ids,
+        superseded_before=superseded_before,
+    ):
         url = thread.comments[0].url
         if url and url not in urls:
             urls.append(url)
     return tuple(urls)
+
+
+def _copilot_finding_supersession(
+    reviews: Sequence[Review],
+    head_sha: str,
+) -> tuple[frozenset[int], frozenset[int], datetime | None]:
+    clean_review_timestamps = [
+        parse_ts(review.submitted_at)
+        for review in reviews
+        if (
+            is_copilot_reviewer(review)
+            and review.commit_id == head_sha
+            and review.finding_count == 0
+        )
+    ]
+    latest_clean_review_at = max(
+        (
+            timestamp
+            for timestamp in clean_review_timestamps
+            if timestamp is not None
+        ),
+        default=None,
+    )
+    if latest_clean_review_at is None:
+        return frozenset(), frozenset(), None
+    known_review_ids = frozenset(
+        review.database_id
+        for review in reviews
+        if review.database_id and is_copilot_reviewer(review)
+    )
+    superseded_review_ids = frozenset(
+        review.database_id
+        for review in reviews
+        if (
+            review.database_id
+            and is_copilot_reviewer(review)
+            and (
+                (
+                    bool(review.commit_id)
+                    and review.commit_id != head_sha
+                )
+                or (
+                    (submitted_at := parse_ts(review.submitted_at)) is not None
+                    and submitted_at < latest_clean_review_at
+                )
+            )
+        )
+    )
+    return known_review_ids, superseded_review_ids, latest_clean_review_at
 
 
 def copilot_review_status(
@@ -108,7 +188,24 @@ def copilot_review_status(
         review.commit_id == head_sha
         for review in copilot_reviews
     )
-    return True, stale, open_copilot_finding_count(review_threads) > 0
+    (
+        known_review_ids,
+        superseded_review_ids,
+        superseded_before,
+    ) = _copilot_finding_supersession(
+        copilot_reviews,
+        head_sha,
+    )
+    return (
+        True,
+        stale,
+        bool(open_copilot_findings(
+            review_threads,
+            known_review_ids=known_review_ids,
+            superseded_review_ids=superseded_review_ids,
+            superseded_before=superseded_before,
+        )),
+    )
 
 
 def copilot_review_outstanding(facts: DashboardFacts, *, enabled: bool) -> bool:

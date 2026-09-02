@@ -137,13 +137,7 @@ def latest_authorized_command(
 
 
 def _effective_command_timestamp(comment: IssueComment) -> str:
-    created_at = parse_ts(comment.created_at)
-    content_updated_at = parse_ts(comment.content_updated_at)
-    if content_updated_at is not None and (
-        created_at is None or content_updated_at >= created_at
-    ):
-        return comment.content_updated_at
-    return comment.created_at
+    return comment.effective_content_timestamp
 
 
 def dashboard_override_facts(

@@ -568,7 +568,11 @@ def evaluate_pull_request(
                     review_threads,
                     pending_actions,
                     (
-                        open_copilot_finding_urls(pr_source.review_threads)
+                        open_copilot_finding_urls(
+                            pr_source.review_threads,
+                            pr_source.reviews,
+                            facts.head_sha,
+                        )
                         if facts.copilot_review_outstanding
                         else ()
                     ),

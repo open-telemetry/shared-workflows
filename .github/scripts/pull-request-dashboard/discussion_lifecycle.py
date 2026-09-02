@@ -110,14 +110,18 @@ def _discussion_comment(
     reviewers: set[str],
     body: str,
     positive_reactors: set[str] | None = None,
+    activity_timestamp: str = "",
 ) -> dict[str, Any]:
-    return {
+    comment = {
         "timestamp": timestamp,
         "actor": actor,
         "actor_role": role_for(actor, author, reviewers),
         "body": truncate(body),
         "positive_reactors": sorted(positive_reactors or set()),
     }
+    if activity_timestamp and activity_timestamp != timestamp:
+        comment["activity_timestamp"] = activity_timestamp
+    return comment
 
 
 def _add_discussion_facts(
@@ -169,6 +173,7 @@ def _group_review_threads(
                 reviewers,
                 comment.body,
                 _positive_reaction_logins(comment),
+                comment.effective_content_timestamp,
             )
             for comment in ordered
         ]
@@ -219,6 +224,9 @@ def _derive_top_level_items(source: DiscussionInput) -> list[dict[str, Any]]:
             "body": body,
             "positive_reactors": [],
         }
+        activity_timestamp = event.get("timestamp") or root_timestamp
+        if activity_timestamp != root_timestamp:
+            comment["activity_timestamp"] = activity_timestamp
         if (
             event.get("source_id") is not None
             and comment["actor"]
@@ -272,7 +280,7 @@ def _derive_top_level_author_comment_items(
     )
     items: list[dict[str, Any]] = []
     for event in source.events:
-        timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
+        timestamp = event.get("timestamp") or event.get("created_timestamp") or ""
         if (
             event.get("kind") != "issue-comment"
             or event.get("actor_role") != "author"
@@ -288,17 +296,30 @@ def _derive_top_level_author_comment_items(
             "body": truncate(event.get("body") or ""),
             "positive_reactors": [],
         }
-        candidate_feedback = [
-            {
+        author_timestamp = parse_ts(timestamp)
+        candidate_feedback = []
+        for item in top_level_items:
+            item_comments = item.get("comments") or []
+            feedback_timestamp = parse_ts(
+                (item_comments[-1] if item_comments else {}).get(
+                    "activity_timestamp"
+                )
+                or item.get("root_timestamp")
+                or ""
+            )
+            if (
+                author_timestamp is None
+                or feedback_timestamp is None
+                or feedback_timestamp >= author_timestamp
+            ):
+                continue
+            candidate_feedback.append({
                 "discussion_id": item["discussion_id"],
                 "body": "\n\n".join(
                     item_comment.get("body") or ""
-                    for item_comment in (item.get("comments") or [])
+                    for item_comment in item_comments
                 ),
-            }
-            for item in top_level_items
-            if (item.get("root_timestamp") or "") < timestamp
-        ]
+            })
         items.append(
             _add_discussion_facts(
                 {
@@ -340,11 +361,21 @@ def _filter_handoff_feedback(
         if (
             comment.get("actor_role") in _HUMAN_REVIEWER_ROLES
             and comment.get("actor") != pr_author
-            and after_cutoff(comment.get("timestamp") or "")
+            and after_cutoff(
+                comment.get("activity_timestamp")
+                or comment.get("timestamp")
+                or ""
+            )
         )
     ]
     if not comments:
         return None
+    comments.sort(
+        key=lambda comment: (
+            comment.get("activity_timestamp") or comment.get("timestamp") or "",
+            comment.get("timestamp") or "",
+        )
+    )
     filtered = {**discussion, "comments": comments}
     filtered["requester"] = comments[-1].get("actor") or ""
     filtered["pr_author"] = pr_author
