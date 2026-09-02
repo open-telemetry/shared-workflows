@@ -123,8 +123,8 @@ class PromptCompatibilityTest(unittest.TestCase):
             },
             {
                 "review": (
-                    5359,
-                    "ea4f5a86153173cf98f1d3d21a097e18dd513ce52c8c119f563b016559376653",
+                    6912,
+                    "d35ebd00b3bb136ddbca0c2eaf5de6aca088071abcf059a8f92ebb121264d260",
                 ),
                 "author": (
                     3372,
@@ -144,7 +144,7 @@ class PromptCompatibilityTest(unittest.TestCase):
                 "gpt-test",
                 verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
             ),
-            "c78a48290b695bf839eed8ba25a1481a95a7565309c86fd57bd15ce8395ec58b",
+            "e6f20cae76395000ec22f2244a206b060581eec47903f146afa9c4590b256835",
         )
         self.assertEqual(
             discussion_cache_key(
@@ -162,6 +162,86 @@ class PromptCompatibilityTest(unittest.TestCase):
             ),
             "76e534a013fc212856acbebd3c1897aa2c27daa6a69c6c8bee02e2d11b7bb2fd",
         )
+
+    def test_reviewer_feedback_prompt_assigns_reviewer_owned_work_to_reviewers(
+        self,
+    ) -> None:
+        item = discussion(
+            "reviewer-prerequisite",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            "We need to land the prerequisite first, but we'll get to it.",
+            requester="reviewer",
+            pr_author="author",
+        )
+
+        prompt = render_verdict_prompt(
+            [item],
+            VerdictContract.REVIEWER_FEEDBACK,
+        )
+
+        self.assertIn(
+            "A reviewer statement that the reviewers,\n"
+            "maintainers, or project must review, decide, land a prerequisite",
+            prompt,
+        )
+        self.assertIn('"body": "We need to land the prerequisite first,', prompt)
+
+    def test_reviewer_feedback_prompt_assigns_unresolved_defects_to_author(
+        self,
+    ) -> None:
+        item = discussion(
+            "still-failing",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            "The test is unfortunately still failing here.",
+            requester="reviewer",
+            pr_author="author",
+        )
+
+        prompt = render_verdict_prompt(
+            [item],
+            VerdictContract.REVIEWER_FEEDBACK,
+        )
+
+        self.assertIn(
+            "A concrete report that tests still fail, CI still reproduces the defect",
+            prompt,
+        )
+        self.assertIn(
+            '"body": "The test is unfortunately still failing here."',
+            prompt,
+        )
+
+    def test_reviewer_prompt_change_invalidates_only_its_cached_verdicts(
+        self,
+    ) -> None:
+        review_key = discussion_cache_key(
+            self.review,
+            "gpt-test",
+            verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
+        )
+        praise_key = discussion_cache_key(
+            self.thread,
+            "gpt-test",
+            verdict_contract=VerdictContract.PRAISE,
+        )
+
+        with patch(
+            "classification_policy.REVIEWER_FEEDBACK_PROMPT_TEMPLATE",
+            "changed reviewer policy",
+        ):
+            changed_review_key = discussion_cache_key(
+                self.review,
+                "gpt-test",
+                verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
+            )
+            unchanged_praise_key = discussion_cache_key(
+                self.thread,
+                "gpt-test",
+                verdict_contract=VerdictContract.PRAISE,
+            )
+
+        self.assertNotEqual(review_key, changed_review_key)
+        self.assertEqual(praise_key, unchanged_praise_key)
 
     def test_author_comment_prompt_supports_empty_input(self) -> None:
         prompt = make_author_comment_request(

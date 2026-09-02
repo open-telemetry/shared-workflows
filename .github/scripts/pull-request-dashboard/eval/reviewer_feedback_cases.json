@@ -1,6 +1,6 @@
 {
   "note": "`recorded_label` is how the shipped classifier behaved when this file was generated, not an adjudicated correct answer. A run matching it has not regressed; it has not been shown to be right. Set `adjudicated_label` on a case once a human has decided it.",
-  "generated_at": "2026-08-01",
+  "generated_at": "2026-09-02",
   "baseline_configuration": {
     "model": "gpt-5.4-mini",
     "prompt": "REVIEWER_FEEDBACK_PROMPT_TEMPLATE",
@@ -26,12 +26,12 @@
     "root_timestamp": "the timestamp the dashboard orders a pull request's items by; cases are stored and measured in that order, so batches match the ones it sends"
   },
   "counts": {
-    "cases": 616,
-    "scored": 613,
+    "cases": 618,
+    "scored": 615,
     "context": 3,
-    "stable": 529,
+    "stable": 531,
     "flaky": 84,
-    "adjudicated": 5
+    "adjudicated": 7
   },
   "cases": [
     {
@@ -10115,6 +10115,34 @@
       ]
     },
     {
+      "id": "pr-issue-comment-5499477518",
+      "repo": "opentelemetry-python-contrib",
+      "pull_request": 5018,
+      "requester": "aabmass",
+      "pr_author": "Shriprasad-P",
+      "review_state": null,
+      "root_timestamp": "2026-09-01T19:45:40Z",
+      "body": "@Shriprasad-P the test is unfortunately still failing here",
+      "role": "scored",
+      "stability": "stable",
+      "recorded_label": "author_action",
+      "adjudicated_label": "author_action",
+      "run_actions": [
+        "author_action",
+        "author_action",
+        "author_action",
+        "author_action",
+        "author_action"
+      ],
+      "run_labels": [
+        "author_action",
+        "author_action",
+        "author_action",
+        "author_action",
+        "author_action"
+      ]
+    },
+    {
       "id": "pr-issue-comment-4906053988",
       "repo": "opentelemetry-python-genai",
       "pull_request": 100,
@@ -13890,6 +13918,34 @@
         "no_author_action",
         "no_author_action",
         "no_author_action"
+      ]
+    },
+    {
+      "id": "pr-review-4881272095",
+      "repo": "semantic-conventions",
+      "pull_request": 3671,
+      "requester": "chalin",
+      "pr_author": "thompson-tomo",
+      "review_state": "CHANGES_REQUESTED",
+      "root_timestamp": "2026-08-07T08:38:43Z",
+      "body": "@joaopgrassi @thompson-tomo - We need to land the main PR for the 1821 work first. With the latest security otel.io incident, #1821 just got bumped back, but we'll get to it.",
+      "role": "scored",
+      "stability": "stable",
+      "recorded_label": "author_action",
+      "adjudicated_label": "no_author_action",
+      "run_actions": [
+        "author_action",
+        "author_action",
+        "author_action",
+        "author_action",
+        "author_action"
+      ],
+      "run_labels": [
+        "author_action",
+        "author_action",
+        "author_action",
+        "author_action",
+        "author_action"
       ]
     },
     {

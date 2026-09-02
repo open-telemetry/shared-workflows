@@ -133,12 +133,14 @@ before this pull request can merge?
   - author_action: anything the author would answer or act on, including
     questions, requests, objections, remarks that reject the pull request's
     premise or necessity without asking for anything, an answer to a question
-    the author asked, and a statement that this pull request is blocked on
-    another pull request, release, or decision
+    the author asked, a concrete report that this pull request's tests still
+    fail or its proposed fix remains broken, and a statement that the author
+    must resolve or wait on another pull request, release, or decision
   - no_author_action: the item needs nothing from the PR author, such as pure
     approval, thanks, a status summary, a preamble that only describes the
-    review it introduces, or a repository automation command (for example
-    "/workflow-approve", "/rerun", or "/easycla")
+    review it introduces, a prerequisite owned by reviewers or maintainers, or
+    a repository automation command (for example "/workflow-approve",
+    "/rerun", or "/easycla")
 
 Read the whole item before deciding. Approval is no_author_action however it is
 phrased ("LGTM", "I'm fine with the API changes", "looks good to me, feel free
@@ -162,6 +164,27 @@ to give them, or that the author is free to disagree with them ("AI-generated
 review", "lightly filtered AI-generated feedback, push back freely", "some nits
 below, take them or leave them"). An invitation to push back on those comments
 is not a request.
+
+Assign action to the actor who owns it. A reviewer statement that the reviewers,
+maintainers, or project must review, decide, land a prerequisite, or otherwise
+act is no_author_action when it asks the author for nothing. This includes
+first-person reviewer statements such as "we need to land the main pull request
+first, but we'll get to it." Do not assign that prerequisite to the author
+merely because it blocks this pull request or the comment mentions the author.
+Reviewer ownership requires a concrete action those reviewers, maintainers, or
+the project will perform. Collaborative wording such as "we should", "we need
+to align", or "our concern" does not make a question, objection, proposal, or
+change request reviewer-owned. If the same item asks the author to answer,
+change, investigate, or otherwise act, it is author_action. A statement that
+the author says their own pull request remains blocked on an external dependency
+is also author_action. Questions, objections, proposals, reviewer preferences,
+change requests, and dependency blockers with no explicit reviewer-owned action
+remain author_action under the rules above.
+
+A concrete report that tests still fail, CI still reproduces the defect, or the
+proposed fix remains broken is author_action even when phrased only as a
+statement, without polite request wording. This is unresolved defect evidence,
+not a status summary.
 
 Compare `addressed_to`, and every other login and team named in `body`, against
 `pr_author`. An item asking a different person or team to review, decide, or
