@@ -926,10 +926,11 @@
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-02T11:40:44+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "70dd114730eccd76579977996f7ea37b4969ddaed1d05c68084741e5539b409d",
+        "copilot_request_fingerprint": "81a6f532da32740b03f0b94f196d9a84fbff2d2a333e683625aae2a5284f8c7b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -948,7 +949,7 @@
         "last_activity_at": "2026-09-02T11:06:11+00:00",
         "last_approver_activity_at": "2026-09-02T09:09:56+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -960,17 +961,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-02T11:11:43.288789+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0b42c54ae6446c5f1cd6dd3c0efe5c153fe0272ef2d04b45ac2dde2688f67bea",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "69ff5b0fb6b56854d5a1085dd14358a935631f6ea33d5f608299abd21e3b87e9",
+        "waiting_age_basis": "created",
         "waiting_since": "2026-09-02T09:07:36+00:00"
       },
       "failed": false,
       "pr_number": 5158,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5158",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5159": {
