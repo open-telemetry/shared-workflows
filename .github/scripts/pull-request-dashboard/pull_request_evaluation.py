@@ -79,13 +79,28 @@ from routing_snapshot import build_routing_snapshot
 from utils import format_ts, parse_ts
 
 
-# Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
-# `app/<slug>` form, while the Pulls/commits endpoint's `committer.login`
-# field can return the bare `copilot` slug. Do not treat either form as the
-# human author behind a Copilot-authored PR.
-_COPILOT_COMMITTER_LOGINS = {"copilot"}
-_COPILOT_PR_AUTHORS = {"app/copilot-swe-agent", "copilot"}
-_MAINTENANCE_BOT_PR_AUTHORS = {"app/otelbot", "app/renovate"}
+# GitHub uses `app/<slug>` for app-authored PRs and `<slug>[bot]` for bot
+# actors in GraphQL results. Bare user logins need no wrapper.
+def _author_identity(login: str) -> str:
+    normalized = (login or "").strip().casefold()
+    if normalized.startswith("app/"):
+        return normalized.removeprefix("app/")
+    if normalized.endswith("[bot]"):
+        return normalized.removesuffix("[bot]")
+    return normalized
+
+
+_COPILOT_COMMITTER_IDENTITIES = {"copilot"}
+_COPILOT_PR_AUTHOR_IDENTITIES = {"copilot-swe-agent", "copilot"}
+_MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES = {
+    "opentelemetrybot",
+    "otelbot",
+    "renovate",
+}
+
+
+def _is_maintenance_bot_author(login: str) -> bool:
+    return _author_identity(login) in _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES
 
 
 @dataclass(frozen=True)
@@ -116,12 +131,11 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
         for assignee in source.pull_request.assignees
     ]
     for login in assignees:
-        low = login.lower()
+        identity = _author_identity(login)
         if (
             login
-            and low not in _COPILOT_PR_AUTHORS
-            and not low.startswith("app/")
-            and not low.endswith("[bot]")
+            and identity not in _COPILOT_PR_AUTHOR_IDENTITIES
+            and identity == login.casefold()
         ):
             return login
 
@@ -132,7 +146,7 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
     login = committer.login
     if (
         not login
-        or login.lower() in _COPILOT_COMMITTER_LOGINS
+        or _author_identity(login) in _COPILOT_COMMITTER_IDENTITIES
         or committer.is_bot
         or committer.is_copilot_reviewer
     ):
@@ -142,7 +156,7 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
 
 def _effective_author(source: PullRequestSource) -> str:
     author = source.pull_request.author.login
-    if author.lower() in _COPILOT_PR_AUTHORS:
+    if _author_identity(author) in _COPILOT_PR_AUTHOR_IDENTITIES:
         human_author = _human_author_for_copilot_pr(source)
         if human_author:
             return human_author
@@ -230,7 +244,7 @@ def _compute_facts(
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,
         copilot_review_needed=copilot_review_stale or copilot_review_findings,
-        is_maintenance_bot=api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
+        is_maintenance_bot=_is_maintenance_bot_author(api_author),
         is_draft=pr.is_draft,
         approval_count=prepared_reviewers.approval_count,
         conflicts=pr.conflicts,

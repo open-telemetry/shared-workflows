@@ -23,10 +23,12 @@ from classification_policy import (
 from classification_test_support import FakeClassificationOperation
 from dashboard_test_support import (
     actor,
+    check_source,
     commit_source,
     dashboard_facts,
     pull_request_metadata,
     pull_request_source,
+    review_source,
     stored_dashboard_result,
 )
 from discussion_lifecycle import resolve_discussions
@@ -36,6 +38,7 @@ from pull_request_evaluation import (
     PullRequestEvaluationConfig,
     PullRequestEvaluationInput,
     _handoff_feedback_routes_to_author,
+    _is_maintenance_bot_author,
     evaluate_pull_request,
 )
 
@@ -159,6 +162,65 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
         self.assertEqual("app/copilot-swe-agent", result.facts.author)
+
+    def test_maintenance_author_recognition_uses_known_github_shapes(self) -> None:
+        for author in (
+            "opentelemetrybot",
+            "app/opentelemetrybot",
+            "opentelemetrybot[bot]",
+            "app/otelbot",
+            "otelbot[bot]",
+            "app/renovate",
+            "renovate[bot]",
+        ):
+            with self.subTest(author=author):
+                self.assertTrue(_is_maintenance_bot_author(author))
+
+        for author in ("human-author", "dependabot[bot]", "app/dependabot"):
+            with self.subTest(author=author):
+                self.assertFalse(_is_maintenance_bot_author(author))
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_opentelemetrybot_pr_routes_to_reviewers_then_maintainers(
+        self,
+        fetch_source,
+    ) -> None:
+        source = raw_pr(author="opentelemetrybot")
+        approved_source = replace(
+            source,
+            reviews=(review_source(state="APPROVED"),),
+        )
+        fetch_source.side_effect = (
+            replace(
+                source,
+                checks=(check_source(state="FAILURE", bucket="fail"),),
+            ),
+            replace(
+                approved_source,
+                checks=(check_source(state="FAILURE", bucket="fail"),),
+            ),
+        )
+
+        awaiting_approval = evaluate_pull_request(
+            evaluation_config(),
+            PullRequestEvaluationInput(7715),
+            FakeClassificationOperation(),
+        )
+        approved = evaluate_pull_request(
+            evaluation_config(),
+            PullRequestEvaluationInput(7715),
+            FakeClassificationOperation(),
+        )
+
+        self.assertIsInstance(awaiting_approval, EvaluationSuccess)
+        self.assertIsInstance(approved, EvaluationSuccess)
+        assert isinstance(awaiting_approval, EvaluationSuccess)
+        assert isinstance(approved, EvaluationSuccess)
+        self.assertEqual("opentelemetrybot", awaiting_approval.facts.author)
+        self.assertTrue(awaiting_approval.facts.is_maintenance_bot)
+        self.assertEqual(DashboardRoute.APPROVER, awaiting_approval.route)
+        self.assertEqual(1, approved.facts.approval_count)
+        self.assertEqual(DashboardRoute.MAINTAINER, approved.route)
 
     @patch(
         "pull_request_evaluation.resolve_discussions",
