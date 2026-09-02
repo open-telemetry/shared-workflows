@@ -66,6 +66,24 @@ def actor_login(obj: dict[str, Any] | None) -> str:
     return ((obj or {}).get("login") or "").strip()
 
 
+def normalize_author_identity(login: str) -> str:
+    normalized = (login or "").strip().casefold()
+    if normalized.startswith("app/"):
+        return normalized.removeprefix("app/")
+    if normalized.endswith("[bot]"):
+        return normalized.removesuffix("[bot]")
+    return normalized
+
+
+def is_unattended_author_login(login: str) -> bool:
+    normalized = (login or "").strip().casefold()
+    return (
+        normalized == "opentelemetrybot"
+        or normalized.startswith("app/")
+        or normalized.endswith("[bot]")
+    )
+
+
 # Every login GitHub has used for the Copilot reviewer, lowercased.
 COPILOT_REVIEWER_LOGINS = frozenset({
     "copilot",

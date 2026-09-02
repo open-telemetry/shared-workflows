@@ -77,23 +77,16 @@ from routing_decision import (
     routing_failure_facts,
 )
 from routing_snapshot import build_routing_snapshot
-from utils import format_ts, parse_ts
-
-
-# GitHub uses `app/<slug>` for app-authored PRs and `<slug>[bot]` for bot
-# actors in GraphQL results. Bare user logins need no wrapper.
-def _author_identity(login: str) -> str:
-    normalized = (login or "").strip().casefold()
-    if normalized.startswith("app/"):
-        return normalized.removeprefix("app/")
-    if normalized.endswith("[bot]"):
-        return normalized.removesuffix("[bot]")
-    return normalized
+from utils import (
+    format_ts,
+    is_unattended_author_login,
+    normalize_author_identity,
+    parse_ts,
+)
 
 
 _COPILOT_COMMITTER_IDENTITIES = {"copilot"}
 _COPILOT_PR_AUTHOR_IDENTITIES = {"copilot-swe-agent", "copilot"}
-_UNATTENDED_AUTOMATION_USER_IDENTITIES = {"opentelemetrybot"}
 _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES = {
     "opentelemetrybot",
     "otelbot",
@@ -102,19 +95,19 @@ _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES = {
 
 
 def _is_maintenance_bot_author(login: str) -> bool:
-    return _author_identity(login) in _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES
+    return (
+        normalize_author_identity(login)
+        in _MAINTENANCE_BOT_PR_AUTHOR_IDENTITIES
+    )
 
 
 def _author_can_act(api_author: Actor, effective_author: str) -> bool:
-    if (
-        _author_identity(api_author.login) in _UNATTENDED_AUTOMATION_USER_IDENTITIES
-        or _author_identity(effective_author)
-        in _UNATTENDED_AUTOMATION_USER_IDENTITIES
-    ):
+    if is_unattended_author_login(effective_author):
         return False
     return (
         not api_author.is_bot
-        or _author_identity(api_author.login) != _author_identity(effective_author)
+        or normalize_author_identity(api_author.login)
+        != normalize_author_identity(effective_author)
     )
 
 
@@ -146,12 +139,11 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
         for assignee in source.pull_request.assignees
     ]
     for login in assignees:
-        identity = _author_identity(login)
+        identity = normalize_author_identity(login)
         if (
             login
             and identity not in _COPILOT_PR_AUTHOR_IDENTITIES
-            and identity not in _UNATTENDED_AUTOMATION_USER_IDENTITIES
-            and identity == login.casefold()
+            and not is_unattended_author_login(login)
         ):
             return login
 
@@ -162,8 +154,8 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
     login = committer.login
     if (
         not login
-        or _author_identity(login) in _COPILOT_COMMITTER_IDENTITIES
-        or _author_identity(login) in _UNATTENDED_AUTOMATION_USER_IDENTITIES
+        or normalize_author_identity(login) in _COPILOT_COMMITTER_IDENTITIES
+        or is_unattended_author_login(login)
         or committer.is_bot
         or committer.is_copilot_reviewer
     ):
@@ -173,7 +165,7 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
 
 def _effective_author(source: PullRequestSource) -> str:
     author = source.pull_request.author.login
-    if _author_identity(author) in _COPILOT_PR_AUTHOR_IDENTITIES:
+    if normalize_author_identity(author) in _COPILOT_PR_AUTHOR_IDENTITIES:
         human_author = _human_author_for_copilot_pr(source)
         if human_author:
             return human_author

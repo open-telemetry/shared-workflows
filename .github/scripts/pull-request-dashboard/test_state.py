@@ -262,6 +262,27 @@ class StateTest(unittest.TestCase):
             decode_dashboard_facts(encode_dashboard_facts(facts)),
         )
 
+    def test_legacy_facts_infer_whether_the_author_can_act(self) -> None:
+        cases = (
+            ("alice", True),
+            ("app/dependabot", False),
+            ("renovate[bot]", False),
+            ("opentelemetrybot", False),
+        )
+        for author, expected in cases:
+            with self.subTest(author=author):
+                self.assertEqual(
+                    expected,
+                    decode_dashboard_facts({"author": author}).author_can_act,
+                )
+
+        self.assertTrue(
+            decode_dashboard_facts({
+                "author": "app/dependabot",
+                "author_can_act": True,
+            }).author_can_act
+        )
+
     def test_stored_result_and_dashboard_state_codecs_round_trip(self) -> None:
         first = stored_dashboard_result(
             7,
@@ -528,7 +549,7 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 14)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 13)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)

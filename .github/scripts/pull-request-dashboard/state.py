@@ -20,6 +20,7 @@ from dashboard_contracts import (
 )
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
+from utils import is_unattended_author_login
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
@@ -35,7 +36,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 14
+DASHBOARD_STATE_VERSION = 13
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -453,8 +454,9 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         raw_reviewers = []
     if not isinstance(raw_reviewers, list):
         raise ValueError("facts.reviewers must be an array")
+    author = _string(value.get("author", _MISSING), "facts.author")
     return DashboardFacts(
-        author=_string(value.get("author", _MISSING), "facts.author"),
+        author=author,
         assignees=_string_tuple(
             value.get("assignees", _MISSING),
             "facts.assignees",
@@ -519,7 +521,7 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         author_can_act=_boolean(
             value.get("author_can_act", _MISSING),
             "facts.author_can_act",
-            True,
+            not is_unattended_author_login(author),
         ),
         is_draft=_boolean(
             value.get("is_draft", _MISSING),
@@ -814,7 +816,7 @@ def load_dashboard_state_cache() -> DashboardState | None:
     state = load_state_file(
         dashboard_state_path(),
         DASHBOARD_STATE_VERSION,
-        compatible_versions=(11, 12, 13),
+        compatible_versions=(11, 12),
     )
     if state is None:
         return None
