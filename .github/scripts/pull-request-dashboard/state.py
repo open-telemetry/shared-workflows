@@ -35,7 +35,11 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 13
+# Versions 14 and 15 describe incompatible state shapes from parallel changes.
+# Do not accept them here; an integration that combines those shapes must assign
+# another version.
+DASHBOARD_STATE_VERSION = 16
+DASHBOARD_STATE_COMPATIBLE_VERSIONS = (11, 12, 13)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -824,7 +828,7 @@ def load_dashboard_state_cache() -> DashboardState | None:
     state = load_state_file(
         dashboard_state_path(),
         DASHBOARD_STATE_VERSION,
-        compatible_versions=(11, 12),
+        compatible_versions=DASHBOARD_STATE_COMPATIBLE_VERSIONS,
     )
     if state is None:
         return None

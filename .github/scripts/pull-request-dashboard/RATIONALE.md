@@ -74,6 +74,10 @@ the implementation understandable and operationally cheap.
   reminders and re-review requests already sent; the delivery version check
   makes it skip delivery instead. Rolling forward is the way out, and a paused
   dashboard is the cheaper failure.
+- Dashboard state version 16 reads production versions 11 through 13. Versions
+  14 and 15 describe incompatible state shapes from parallel work, so this
+  version regenerates them rather than guessing at compatibility. An integration
+  that combines those shapes must allocate a newer state version.
 
 ## Queue and Workflow Concurrency
 

@@ -660,7 +660,9 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     actor=actor("opentelemetry-pr-dashboard[bot]"),
                     body=(
                         "<!-- pull-request-dashboard-override-ack:"
-                        "102:old-head:2026-08-16T08:00:00Z -->"
+                        "102:old-head:2026-08-16T08:00:00Z -->\n"
+                        "<!-- pull-request-dashboard-top-level-feedback-cutoff:"
+                        "102:2026-08-16T08:00:00Z -->"
                     ),
                     created_at="2026-08-16T08:01:00Z",
                 ),

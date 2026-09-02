@@ -237,7 +237,6 @@ def dashboard_override_facts(
     top_level_feedback_cutoff = _latest_valid_timestamp(
         previous_top_level_feedback_cutoff,
         command_created_at if command_id and not existing_command_binding else "",
-        acknowledged_since,
         acknowledged_top_level_feedback_cutoff(source.issue_comments),
     )
     cleared_command_id, cleared_head = status_reviewer_handoff_clearance(

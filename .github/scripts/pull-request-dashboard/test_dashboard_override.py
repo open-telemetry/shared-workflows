@@ -517,8 +517,8 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual("2026-08-16T08:00:00Z", facts.since)
         self.assertEqual("bound-head", facts.head_sha)
 
-    def test_acknowledged_command_keeps_its_recorded_cutoff(self) -> None:
-        for previous_facts, acknowledged_since in (
+    def test_acknowledged_command_keeps_only_a_durable_cutoff(self) -> None:
+        for previous_facts, acknowledged_since, expected_cutoff in (
             (
                 dashboard_facts(
                     dashboard_override_bound_command_id=5,
@@ -529,8 +529,9 @@ class DashboardOverrideTest(unittest.TestCase):
                     ),
                 ),
                 "",
+                "2026-08-16T09:00:00Z",
             ),
-            (None, "2026-08-16T09:00:00Z"),
+            (None, "2026-08-16T09:00:00Z", ""),
         ):
             with self.subTest(previous_facts=previous_facts):
                 source = override_input(
@@ -561,7 +562,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
                 self.assertEqual("2026-08-16T09:00:00Z", facts.since)
                 self.assertEqual(
-                    "2026-08-16T09:00:00Z",
+                    expected_cutoff,
                     facts.top_level_feedback_cutoff,
                 )
 
@@ -728,7 +729,7 @@ class DashboardOverrideTest(unittest.TestCase):
 
         self.assertEqual("2026-08-16T08:00:00Z", facts.since)
 
-    def test_acknowledgement_recovers_cutoff_after_command_deletion(self) -> None:
+    def test_legacy_acknowledgement_does_not_recover_permanent_cutoff(self) -> None:
         source = override_input(
             issue_comment(
                 database_id=9,
@@ -751,12 +752,9 @@ class DashboardOverrideTest(unittest.TestCase):
         self.assertEqual(5, facts.bound_command_id)
         self.assertEqual("bound-head", facts.head_sha)
         self.assertEqual("2026-08-16T08:00:00Z", facts.since)
-        self.assertEqual(
-            "2026-08-16T08:00:00Z",
-            facts.top_level_feedback_cutoff,
-        )
+        self.assertEqual("", facts.top_level_feedback_cutoff)
 
-    def test_deleted_command_uses_acknowledgement_timestamp_as_cutoff(self) -> None:
+    def test_acknowledgement_timestamp_restores_only_handoff_since(self) -> None:
         source = override_input(
             issue_comment(
                 database_id=9,
