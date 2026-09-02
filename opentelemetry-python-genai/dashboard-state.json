@@ -902,8 +902,10 @@
         "author": "AgentGymLeader",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "author_nudge_episode_id": "3a7842007597444b92530940928a9778",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-02T21:40:31+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "35f2a4012beef5b5613b8c46246d2de0a9ad7b2a931887a29d71c9033bb3b316",
         "copilot_review_exists": true,
@@ -924,7 +926,7 @@
         "last_activity_at": "2026-09-02T11:33:23+00:00",
         "last_approver_activity_at": "2026-08-31T23:42:07+00:00",
         "last_author_activity_at": "2026-09-02T11:33:23+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -938,14 +940,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bcf9d48b828d577abbc79edd007146431e8d74c40b50328837aa61099119837e",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-02T11:33:23+00:00"
+        "routing_input_fingerprint": "3a358025564268c3ccfb93be054eab27b18e0d0a237dca237db7fd6f36cc08aa",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-02T21:40:31+00:00"
       },
       "failed": false,
       "pr_number": 391,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/391",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-review-5000503299": {
           "evidence": {
