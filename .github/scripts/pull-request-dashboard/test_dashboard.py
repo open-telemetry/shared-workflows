@@ -20,6 +20,7 @@ from dashboard import (
     select_backfill_prs,
     set_backfill_pr_failed,
     update_dashboard_for_backfill,
+    update_dashboard_for_pr_number,
     write_initial_backfill_output,
 )
 from dashboard_state_update import (
@@ -1972,6 +1973,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         current_state = dashboard_state()
         backfill_state = {"cursor": {}}
         refreshed_pr_numbers: list[int] = []
+        respects_publisher_lock: list[bool] = []
 
         def load_dashboard_state() -> DashboardState:
             return current_state
@@ -2016,6 +2018,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             return 0
 
         def push_state_changes(_state_dir, _message, update_state, **_kwargs) -> int:
+            respects_publisher_lock.append(_kwargs.get("respect_publisher_lock", False))
             return update_state()
 
         with (
@@ -2040,6 +2043,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             status = update_dashboard_for_backfill(args, Path("state"))
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
+        self.assertEqual(respects_publisher_lock, [True, True])
         self.assertEqual(2, accept_update.call_count)
         record_nudge.assert_called_once_with(2, ANY, ANY, prepare_due=False)
         self.assertEqual(status, BACKFILL_RECORDED_FAILURE_STATUS)
@@ -2054,6 +2058,25 @@ class BackfillFailureIsolationTest(unittest.TestCase):
         self.assertTrue(current_state.initial_backfill_complete)
         self.assertEqual(backfill_state["cursor"], {"last_pr_number": 2})
         self.assertEqual(backfill_failed_pr_numbers(backfill_state), {1})
+
+    def test_targeted_state_update_respects_publisher_lock(self) -> None:
+        args = Namespace(pr_number=1, state_branch="state")
+        update = object()
+
+        with (
+            patch("dashboard.state_branch.configure_git"),
+            patch("dashboard.state_branch.checkout_state"),
+            patch("dashboard.state_branch.remove_existing_state_dir"),
+            patch("dashboard.build_targeted_dashboard_update", return_value=update),
+            patch(
+                "dashboard.state_branch.push_state_changes",
+                return_value=0,
+            ) as push_state_changes,
+        ):
+            status = update_dashboard_for_pr_number(args, Path("state"))
+
+        self.assertEqual(0, status)
+        self.assertTrue(push_state_changes.call_args.kwargs["respect_publisher_lock"])
 
     def test_successful_retry_clears_recorded_failure(self) -> None:
         state = {"failed_pr_numbers": [1, 2]}

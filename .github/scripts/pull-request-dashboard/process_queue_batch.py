@@ -8,9 +8,10 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from collections import defaultdict
-from collections.abc import Callable
-from contextlib import AbstractContextManager
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 OWNER = "open-telemetry"
 STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-state"
 MAX_ATTEMPTS = 3
+QUEUE_LOCK_WAIT_BUDGET_SECONDS = 40 * 60
 
 
 class LeaseMonitor:
@@ -89,6 +91,22 @@ class WorkItem:
     repository: str
     pr_number: int
     claims: tuple[Claim, ...]
+
+
+@contextmanager
+def queue_lock_wait_deadline(
+    now: Callable[[], float] = time.time,
+) -> Iterator[None]:
+    name = state_branch.PUBLISHER_LOCK_DEADLINE_ENV
+    previous = os.environ.get(name)
+    os.environ[name] = str(int(now()) + QUEUE_LOCK_WAIT_BUDGET_SECONDS)
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = previous
 
 
 def load_claims(path: Path) -> list[Claim]:
@@ -582,24 +600,25 @@ def main() -> int:
         args.results.write_text(json.dumps(completed, indent=2) + "\n", encoding="utf-8")
         acknowledge_all(client, args.results, common)
 
-    try:
-        monitor.start()
-        processor = DashboardBatchProcessor(
-            args.config,
-            lease_check=monitor.assert_valid,
-            publisher_lock_owner=args.worker_id,
-        )
-        work_items, resolved = resolve_work_items(claims, processor.resolve_head)
-        record_and_acknowledge(resolved)
-        process_batch(
-            work_items,
-            processor.process_repository,
-            max_repositories=args.max_repositories,
-            on_results=record_and_acknowledge,
-        )
-    finally:
-        args.results.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
-        monitor.close()
+    with queue_lock_wait_deadline():
+        try:
+            monitor.start()
+            processor = DashboardBatchProcessor(
+                args.config,
+                lease_check=monitor.assert_valid,
+                publisher_lock_owner=args.worker_id,
+            )
+            work_items, resolved = resolve_work_items(claims, processor.resolve_head)
+            record_and_acknowledge(resolved)
+            process_batch(
+                work_items,
+                processor.process_repository,
+                max_repositories=args.max_repositories,
+                on_results=record_and_acknowledge,
+            )
+        finally:
+            args.results.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
+            monitor.close()
     dead_letters = sum(result["outcome"] == "dead" for result in results)
     retries = sum(result["outcome"] == "retry" for result in results)
     print(

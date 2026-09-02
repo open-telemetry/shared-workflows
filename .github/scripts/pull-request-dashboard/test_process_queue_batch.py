@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager, nullcontext
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -261,6 +262,17 @@ class QueueBatchTest(unittest.TestCase):
         process_batch(items, process, max_repositories=2, on_results=report)
 
         self.assertTrue(slow_observed_report)
+
+    def test_queue_bounds_publisher_lock_waits_and_restores_environment(self) -> None:
+        name = process_queue_batch.state_branch.PUBLISHER_LOCK_DEADLINE_ENV
+
+        with mock.patch.dict(os.environ, {name: "50"}):
+            with process_queue_batch.queue_lock_wait_deadline(now=lambda: 100):
+                self.assertEqual(
+                    str(100 + process_queue_batch.QUEUE_LOCK_WAIT_BUDGET_SECONDS),
+                    os.environ[name],
+                )
+            self.assertEqual("50", os.environ[name])
 
     def test_delivery_error_still_publishes_committed_active_state(self) -> None:
         commands: list[str] = []
