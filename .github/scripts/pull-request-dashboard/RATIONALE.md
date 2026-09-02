@@ -340,8 +340,10 @@ the implementation understandable and operationally cheap.
   cannot respond to a dashboard action. Pending required checks affect the CI
   column, and a bot PR whose handoff is held waits on reviewers instead. Known
   maintenance bots use a one-approval threshold; other automation uses the
-  repository's configured threshold. Merge conflicts remain visible without
-  overriding that routing.
+  repository's configured threshold. Compatible cached state derives a missing
+  author-capability fact from the effective author identity, while an explicit
+  stored value wins. Merge conflicts remain visible without overriding that
+  routing.
 - A hold has a time limit, and past it the PR routes anyway. Every gate waits on
   something outside the dashboard, and each one has been seen never to arrive: a
   required check with no check run on the head, a Copilot review GitHub never
