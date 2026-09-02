@@ -600,12 +600,11 @@ the implementation understandable and operationally cheap.
   the same second cannot be confused.
 - "Unclear" remains classifier vocabulary but is not a route. It collapses onto
   the author when a pending action is built: when the classifier cannot tell
-  what a discussion needs, the author is the one who can clarify it. Feedback
-  that leaves the author or their PR blocked on a dependency, decision, or event
-  outside this repository also stays with the author because they still have to
-  drive it. A prerequisite explicitly owned by reviewers, maintainers, or the
-  project needs nothing from the author unless the same feedback also asks them
-  to act.
+  what a discussion needs, the author is the one who can clarify it. There is no
+  separate label for feedback blocked on a dependency, decision, or event
+  outside this repository, because the author still has to drive it. A route for
+  that case would name nobody, could not be nudged, and would outrank approvals,
+  leaving blocked PRs unowned.
 - A concrete reviewer report that tests still fail, CI still reproduces the
   defect, or the proposed fix remains broken is an author action even without
   request wording. It is evidence that the change is not ready, not a status

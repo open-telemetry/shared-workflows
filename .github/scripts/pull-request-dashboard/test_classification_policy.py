@@ -123,8 +123,8 @@ class PromptCompatibilityTest(unittest.TestCase):
             },
             {
                 "review": (
-                    6912,
-                    "d35ebd00b3bb136ddbca0c2eaf5de6aca088071abcf059a8f92ebb121264d260",
+                    5714,
+                    "d5960f93e1b5963a6355061281f4e418e807eaa17b8a0a101dfc2b4cc4277a67",
                 ),
                 "author": (
                     3372,
@@ -144,7 +144,7 @@ class PromptCompatibilityTest(unittest.TestCase):
                 "gpt-test",
                 verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
             ),
-            "e6f20cae76395000ec22f2244a206b060581eec47903f146afa9c4590b256835",
+            "c0bae7b1e460f5d7edd0b23e6193f5413a4dd2aee05cffe9d9c8ebc40ca0c8fb",
         )
         self.assertEqual(
             discussion_cache_key(
@@ -162,29 +162,6 @@ class PromptCompatibilityTest(unittest.TestCase):
             ),
             "76e534a013fc212856acbebd3c1897aa2c27daa6a69c6c8bee02e2d11b7bb2fd",
         )
-
-    def test_reviewer_feedback_prompt_assigns_reviewer_owned_work_to_reviewers(
-        self,
-    ) -> None:
-        item = discussion(
-            "reviewer-prerequisite",
-            DiscussionKind.TOP_LEVEL_FEEDBACK,
-            "We need to land the prerequisite first, but we'll get to it.",
-            requester="reviewer",
-            pr_author="author",
-        )
-
-        prompt = render_verdict_prompt(
-            [item],
-            VerdictContract.REVIEWER_FEEDBACK,
-        )
-
-        self.assertIn(
-            "A reviewer statement that the reviewers,\n"
-            "maintainers, or project must review, decide, land a prerequisite",
-            prompt,
-        )
-        self.assertIn('"body": "We need to land the prerequisite first,', prompt)
 
     def test_reviewer_feedback_prompt_assigns_unresolved_defects_to_author(
         self,
