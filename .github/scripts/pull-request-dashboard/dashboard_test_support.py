@@ -247,6 +247,7 @@ def pull_request_source(
                 "body": value.body,
                 "submitted_at": value.submitted_at,
                 "updated_at": value.updated_at,
+                "content_updated_at": value.content_updated_at,
             }
             for value in reviews
         ],
@@ -275,6 +276,14 @@ def pull_request_source(
                             "url": comment.url,
                             "body": comment.body,
                             "createdAt": comment.created_at,
+                            "lastEditedAt": comment.updated_at,
+                            "pullRequestReview": (
+                                {
+                                    "fullDatabaseId": comment.review_id,
+                                }
+                                if comment.review_id
+                                else None
+                            ),
                             "author": _actor_json(comment.actor),
                             "reactionGroups": [
                                 {
