@@ -85,6 +85,13 @@ from utils import (
 )
 
 
+# Copilot appears under two slugs: `gh pr view`'s `author` field reports
+# `app/copilot-swe-agent`, while the Pulls/commits endpoint's `committer.login`
+# field can report the bare `copilot` slug. Either slug can name Copilot as the
+# author, so the author set carries both while the committer set carries only
+# the bare slug. These sets hold the identities `normalize_author_identity`
+# returns, without the `app/` prefix or the `[bot]` suffix. Do not treat either
+# slug as the human author behind a Copilot-authored PR.
 _COPILOT_COMMITTER_IDENTITIES = {"copilot"}
 _COPILOT_PR_AUTHOR_IDENTITIES = {"copilot-swe-agent", "copilot"}
 _MAINTENANCE_APP_IDENTITIES = {"dependabot", "otelbot", "renovate"}
