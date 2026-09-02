@@ -23,6 +23,7 @@ from classification_policy import (
 )
 from copilot_review import (
     copilot_review_status,
+    filter_superseded_copilot_findings,
     is_copilot_reviewer,
     open_copilot_finding_urls,
 )
@@ -443,8 +444,13 @@ def evaluate_pull_request(
             previous_facts,
         )
         manual_reviewer_handoff = reviewer_handoff_active(facts)
-        discussion_input = DiscussionInput(
+        discussion_review_threads = filter_superseded_copilot_findings(
             pr_source.review_threads,
+            pr_source.reviews,
+            facts.head_sha,
+        )
+        discussion_input = DiscussionInput(
+            discussion_review_threads,
             activity.events,
             author,
             config.approver_logins,

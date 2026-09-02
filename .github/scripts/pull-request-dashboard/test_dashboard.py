@@ -502,6 +502,52 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_superseded_copilot_thread_does_not_route_to_author(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="current-head"),
+            reviews=(
+                review_source(
+                    database_id=10,
+                    actor=actor("copilot"),
+                    commit_id="old-head",
+                    finding_count=1,
+                    submitted_at="2026-08-16T07:00:00Z",
+                ),
+                review_source(
+                    database_id=20,
+                    actor=actor("copilot"),
+                    commit_id="current-head",
+                    finding_count=0,
+                    submitted_at="2026-08-16T08:00:00Z",
+                ),
+            ),
+            review_threads=(review_thread(comments=(review_thread_comment(
+                review_id=10,
+                actor=actor("copilot"),
+                created_at="2026-08-16T07:00:00Z",
+                updated_at="2026-08-16T07:00:00Z",
+            ),)),),
+        )
+        classifier = FakeClassificationOperation()
+
+        result = evaluate_pr(
+            {"number": 7},
+            require_clean_copilot_review_branches=["main"],
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, result.route)
+        self.assertEqual({}, result.pending_actions)
+        self.assertEqual((), result.facts.author_action_review_thread_urls)
+        self.assertFalse(result.facts.copilot_review_needed)
+        self.assertEqual((), classifier.requests[0].review_threads)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_override_binds_to_the_observed_head_before_classification(
         self, fetch_raw: Mock
     ) -> None:

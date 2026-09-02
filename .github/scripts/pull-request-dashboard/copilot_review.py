@@ -53,56 +53,38 @@ def is_copilot_reviewer(
 
 def open_copilot_findings(
     review_threads: Sequence[ReviewThread],
-    *,
-    known_review_ids: frozenset[int] = frozenset(),
-    superseded_review_ids: frozenset[int] = frozenset(),
-    superseded_before: datetime | None = None,
+    reviews: Sequence[Review] = (),
+    head_sha: str = "",
+) -> tuple[ReviewThread, ...]:
+    return tuple(
+        thread
+        for thread in filter_superseded_copilot_findings(
+            review_threads,
+            reviews,
+            head_sha,
+        )
+        if _is_open_copilot_finding(thread)
+    )
+
+
+def _is_open_copilot_finding(thread: ReviewThread) -> bool:
+    return (
+        not thread.is_resolved
+        and not thread.is_outdated
+        and bool(thread.comments)
+        and is_copilot_reviewer(thread.comments[0].actor)
+    )
+
+
+def filter_superseded_copilot_findings(
+    review_threads: Sequence[ReviewThread],
+    reviews: Sequence[Review] = (),
+    head_sha: str = "",
 ) -> tuple[ReviewThread, ...]:
     # A review's own comment count never shrinks, so it still counts findings
     # that a later clean review has superseded. A review binding gives the exact
     # ordering; content activity time is the fallback for older cached shapes.
     # GitHub also marks a thread outdated once its anchor lines change.
-    def is_superseded(thread: ReviewThread) -> bool:
-        review_id = thread.comments[0].review_id
-        if review_id in superseded_review_ids:
-            return True
-        if review_id in known_review_ids:
-            return False
-        if superseded_before is None:
-            return False
-        content_updated_at = parse_ts(
-            thread.comments[0].effective_content_timestamp
-        )
-        return (
-            content_updated_at is not None
-            and content_updated_at < superseded_before
-        )
-
-    return tuple(
-        thread
-        for thread in review_threads
-        if (
-            not thread.is_resolved
-            and not thread.is_outdated
-            and thread.comments
-            and is_copilot_reviewer(thread.comments[0].actor)
-            and not is_superseded(thread)
-        )
-    )
-
-
-def open_copilot_finding_count(
-    review_threads: Sequence[ReviewThread],
-) -> int:
-    return len(open_copilot_findings(review_threads))
-
-
-def open_copilot_finding_urls(
-    review_threads: Sequence[ReviewThread],
-    reviews: Sequence[Review] = (),
-    head_sha: str = "",
-) -> tuple[str, ...]:
-    urls: list[str] = []
     (
         known_review_ids,
         superseded_review_ids,
@@ -111,11 +93,50 @@ def open_copilot_finding_urls(
         reviews,
         head_sha,
     )
+
+    def is_superseded(thread: ReviewThread) -> bool:
+        if not _is_open_copilot_finding(thread):
+            return False
+        review_id = thread.comments[0].review_id
+        if review_id in superseded_review_ids:
+            return True
+        if review_id in known_review_ids:
+            return False
+        if superseded_before is None:
+            return False
+        content_timestamps: list[datetime] = []
+        for comment in thread.comments:
+            content_timestamp = parse_ts(comment.effective_content_timestamp)
+            if content_timestamp is None:
+                return False
+            content_timestamps.append(content_timestamp)
+        return max(content_timestamps) < superseded_before
+
+    return tuple(
+        thread
+        for thread in review_threads
+        if not is_superseded(thread)
+    )
+
+
+def open_copilot_finding_count(
+    review_threads: Sequence[ReviewThread],
+    reviews: Sequence[Review] = (),
+    head_sha: str = "",
+) -> int:
+    return len(open_copilot_findings(review_threads, reviews, head_sha))
+
+
+def open_copilot_finding_urls(
+    review_threads: Sequence[ReviewThread],
+    reviews: Sequence[Review] = (),
+    head_sha: str = "",
+) -> tuple[str, ...]:
+    urls: list[str] = []
     for thread in open_copilot_findings(
         review_threads,
-        known_review_ids=known_review_ids,
-        superseded_review_ids=superseded_review_ids,
-        superseded_before=superseded_before,
+        reviews,
+        head_sha,
     ):
         url = thread.comments[0].url
         if url and url not in urls:
@@ -191,23 +212,10 @@ def copilot_review_status(
         review.commit_id == head_sha
         for review in copilot_reviews
     )
-    (
-        known_review_ids,
-        superseded_review_ids,
-        superseded_before,
-    ) = _copilot_finding_supersession(
-        copilot_reviews,
-        head_sha,
-    )
     return (
         True,
         stale,
-        bool(open_copilot_findings(
-            review_threads,
-            known_review_ids=known_review_ids,
-            superseded_review_ids=superseded_review_ids,
-            superseded_before=superseded_before,
-        )),
+        bool(open_copilot_findings(review_threads, copilot_reviews, head_sha)),
     )
 
 

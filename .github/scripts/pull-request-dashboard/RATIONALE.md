@@ -403,10 +403,12 @@ the implementation understandable and operationally cheap.
   started, not from the comment count on its review. A later clean review of
   the current head supersedes findings from earlier Copilot reviews; review
   database IDs order submissions when GitHub records them in the same second.
-  An unrecognized or missing binding falls back to the thread timestamp; a
-  missing timestamp keeps the finding active. A review's comment count never
-  shrinks, so using it would keep counting feedback the author has since
-  addressed and hold the PR on work that is already done.
+  An unrecognized or missing binding falls back to the latest content activity
+  across every thread comment; any missing timestamp keeps the finding active.
+  The same supersession filter runs before discussion classification, so status
+  and routing cannot disagree. A review's comment count never shrinks, so using
+  it would keep counting feedback the author has since addressed and hold the
+  PR on work that is already done.
 - The gate's re-request path covers two states. A stale review means the author
   pushed, which is the one change a re-review can respond to. Findings on the
   current head sit on unchanged code, so asking Copilot to look at it again
