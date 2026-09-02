@@ -163,7 +163,7 @@ def _compute_facts(
     failing = [
         check
         for check in checks or ()
-        if check.bucket in ("fail", "cancel")
+        if check.bucket in ("fail", "cancel", "action_required")
     ]
     pending = [
         check

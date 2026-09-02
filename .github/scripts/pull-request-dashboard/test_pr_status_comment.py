@@ -359,6 +359,22 @@ class RenderStatusCommentTest(unittest.TestCase):
         self.assertNotIn("### Review feedback", body)
         self.assertNotIn(pr_status_comment.RESPONSE_EXAMPLES, body)
 
+    def test_generic_action_required_renders_as_an_author_owned_failure(
+        self,
+    ) -> None:
+        body = pr_status_comment.render_status_comment(
+            self.pr(),
+            status_result(
+                DashboardRoute.AUTHOR,
+                ci_failing_count=1,
+                ci_maintainer_action_required_count=0,
+                ci_pending_count=0,
+            ),
+        )
+
+        self.assertIn("Investigate required status check failures.", body)
+        self.assertNotIn("Write access required", body)
+
     def test_waiting_on_reviewers_names_maintainer_owned_blocker(self) -> None:
         body = pr_status_comment.render_status_comment(
             self.pr(),

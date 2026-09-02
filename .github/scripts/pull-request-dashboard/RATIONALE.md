@@ -303,13 +303,16 @@ the implementation understandable and operationally cheap.
   author is never held, because a failing check or new author-owned discussion
   is evidence the gates cannot undo. Unavailable check results hold the handoff
   for the same reason a pending one does, and resolve on a later run.
-- `ACTION_REQUIRED` is the exception to that hold. It is a final, reported
-  result that still blocks merge because someone with repository write access
-  must approve or otherwise unblock the workflow. It remains unsettled and
-  appears as 🔐 in the CI column, but it does not hold routing with the author:
-  the PR routes to reviewers while approvals are outstanding, then to
-  maintainers once it has enough approvals. A genuine required-check failure,
-  including one alongside `ACTION_REQUIRED`, still routes to the author.
+- An `ACTION_REQUIRED` check from the GitHub Actions app with an attached
+  workflow run is the exception to that hold. That metadata identifies a
+  workflow approval: a final, reported result that still blocks merge because
+  someone with repository write access must unblock the workflow. It remains
+  unsettled and appears as 🔐 in the CI column, but it does not hold routing
+  with the author. The PR routes to reviewers while approvals are outstanding,
+  then to maintainers once it has enough approvals. `ACTION_REQUIRED` from
+  another app, or without a workflow run, has unknown ownership and routes
+  conservatively as a failure. A genuine or unknown-owner required-check
+  failure alongside a workflow approval also routes to the author.
 - A held PR is presented as waiting on its author rather than on the robot it
   is waiting for, so a separate route would add a section that nobody is
   expected to act on. What it waits for is named in the columns instead: the CI

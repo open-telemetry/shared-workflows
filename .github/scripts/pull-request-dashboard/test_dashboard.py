@@ -1822,9 +1822,9 @@ class RequiredCiRoutingTest(unittest.TestCase):
             ("TIMED_OUT", "fail", 1, 0, 0),
             (
                 "ACTION_REQUIRED",
-                "maintainer_action_required",
-                0,
+                "action_required",
                 1,
+                0,
                 0,
             ),
             ("STARTUP_FAILURE", "fail", 1, 0, 0),
@@ -1864,6 +1864,55 @@ class RequiredCiRoutingTest(unittest.TestCase):
                     ("workflow-notification",),
                     facts.non_blocking_check_failures,
                 )
+
+    def test_workflow_approval_is_distinct_from_generic_action_required(
+        self,
+    ) -> None:
+        facts = evaluation_facts(
+            {
+                "pr": {
+                    "createdAt": "2026-07-14T01:00:00Z",
+                    "author": {"login": "author"},
+                    "mergeStateStatus": "CLEAN",
+                    "mergeable": "MERGEABLE",
+                },
+                "checks": [
+                    {"state": "ACTION_REQUIRED", "bucket": "action_required"},
+                    {
+                        "state": "ACTION_REQUIRED",
+                        "bucket": "maintainer_action_required",
+                    },
+                ],
+            },
+            "author",
+            [],
+        )
+
+        self.assertEqual(1, facts.ci_failing_count)
+        self.assertEqual(1, facts.ci_maintainer_action_required_count)
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_generic_action_required_routes_to_author(
+        self,
+        fetch_source: Mock,
+    ) -> None:
+        fetch_source.return_value = pull_request_source(
+            checks=(check_source(
+                state="ACTION_REQUIRED",
+                bucket="action_required",
+            ),),
+        )
+
+        result = evaluate_pr({"number": 7})
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertEqual(1, result.facts.ci_failing_count)
+        self.assertEqual(
+            0,
+            result.facts.ci_maintainer_action_required_count,
+        )
 
     def test_override_command_does_not_clear_required_check_failures(self) -> None:
         facts = evaluation_facts(
