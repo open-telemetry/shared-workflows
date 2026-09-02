@@ -230,10 +230,10 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix: ${{ fromJSON(needs.resolve-targets.outputs.stable_matrix) }}
-    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@d9b812f9924a121c6a8276ea2f9e6f5b622cdd4d # v0.10.0
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@03559ef555db0eae5d85c3c6347d1530243e7aa7 # v0.13.0
     with:
       repository: ${{ matrix.name }}
-      code_ref: d9b812f9924a121c6a8276ea2f9e6f5b622cdd4d # v0.10.0
+      code_ref: 03559ef555db0eae5d85c3c6347d1530243e7aa7 # v0.13.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -269,11 +269,11 @@ jobs:
     permissions:
       contents: write
       copilot-requests: write
-    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@d9b812f9924a121c6a8276ea2f9e6f5b622cdd4d # v0.10.0
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@03559ef555db0eae5d85c3c6347d1530243e7aa7 # v0.13.0
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ inputs.pr_number }}
-      code_ref: d9b812f9924a121c6a8276ea2f9e6f5b622cdd4d # v0.10.0
+      code_ref: 03559ef555db0eae5d85c3c6347d1530243e7aa7 # v0.13.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -304,11 +304,11 @@ jobs:
     permissions:
       contents: write
       copilot-requests: write
-    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@d9b812f9924a121c6a8276ea2f9e6f5b622cdd4d # v0.10.0
+    uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@03559ef555db0eae5d85c3c6347d1530243e7aa7 # v0.13.0
     with:
       repository: ${{ inputs.repository }}
       pr_number: ${{ needs.resolve-head-sha.outputs.pr_number }}
-      code_ref: d9b812f9924a121c6a8276ea2f9e6f5b622cdd4d # v0.10.0
+      code_ref: 03559ef555db0eae5d85c3c6347d1530243e7aa7 # v0.13.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
