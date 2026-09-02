@@ -122,25 +122,20 @@ def _copilot_finding_supersession(
     reviews: Sequence[Review],
     head_sha: str,
 ) -> tuple[frozenset[int], frozenset[int], datetime | None]:
-    clean_review_timestamps = [
-        parse_ts(review.submitted_at)
+    clean_review_order_keys = [
+        (submitted_at, review.database_id or 0)
         for review in reviews
         if (
             is_copilot_reviewer(review)
             and review.commit_id == head_sha
             and review.finding_count == 0
+            and (submitted_at := parse_ts(review.submitted_at)) is not None
         )
     ]
-    latest_clean_review_at = max(
-        (
-            timestamp
-            for timestamp in clean_review_timestamps
-            if timestamp is not None
-        ),
-        default=None,
-    )
-    if latest_clean_review_at is None:
+    if not clean_review_order_keys:
         return frozenset(), frozenset(), None
+    latest_clean_review_key = max(clean_review_order_keys)
+    latest_clean_review_at = latest_clean_review_key[0]
     known_review_ids = frozenset(
         review.database_id
         for review in reviews
@@ -159,7 +154,10 @@ def _copilot_finding_supersession(
                 )
                 or (
                     (submitted_at := parse_ts(review.submitted_at)) is not None
-                    and submitted_at < latest_clean_review_at
+                    and (
+                        submitted_at,
+                        review.database_id,
+                    ) < latest_clean_review_key
                 )
             )
         )
