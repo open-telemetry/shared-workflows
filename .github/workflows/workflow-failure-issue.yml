@@ -31,19 +31,15 @@ jobs:
           set -euo pipefail
 
           tracking_label="workflow-failure-$(printf '%s' "$GITHUB_WORKFLOW" | sha256sum | cut -c1-16)"
-          issue_endpoint="repos/$GITHUB_REPOSITORY/issues?state=open&labels=$tracking_label&per_page=100"
-          migrate_issue=false
           if ! gh api "repos/$GITHUB_REPOSITORY/labels/$tracking_label" >/dev/null 2>&1; then
             gh label create "$tracking_label" \
                             --color D93F0B \
                             --description "Managed by the shared workflow failure issue"
-            issue_endpoint="repos/$GITHUB_REPOSITORY/issues?state=open&creator=github-actions%5Bbot%5D&per_page=100"
-            migrate_issue=true
           fi
 
-          numbers=$(
+          label_numbers=$(
             gh api --paginate \
-              "$issue_endpoint" \
+              "repos/$GITHUB_REPOSITORY/issues?state=open&labels=$tracking_label&per_page=100" \
               --jq '
                 .[]
                 | select(
@@ -53,14 +49,34 @@ jobs:
                 | .number
               '
           )
+          search_query="repo:$GITHUB_REPOSITORY is:issue is:open \"Workflow failed\" in:title"
+          unlabelled_numbers=$(
+            TRACKING_LABEL="$tracking_label" gh api --paginate --method GET search/issues \
+              -f q="$search_query" \
+              -f per_page=100 \
+              --jq '
+                .items[]
+                | select(
+                    (.title | startswith("Workflow failed: " + env.GITHUB_WORKFLOW + " (#"))
+                    and ((.labels | map(.name) | index(env.TRACKING_LABEL)) == null)
+                  )
+                | .number
+              '
+          )
+          numbers=$(
+            printf '%s\n%s\n' "$label_numbers" "$unlabelled_numbers" \
+              | sed '/^$/d' \
+              | sort -n -u
+          )
           if [[ -n "$numbers" ]]; then
             mapfile -t issue_numbers <<< "$numbers"
           else
             issue_numbers=()
           fi
 
-          if [[ "$migrate_issue" == "true" ]]; then
-            for number in "${issue_numbers[@]}"; do
+          if [[ -n "$unlabelled_numbers" ]]; then
+            mapfile -t unlabelled_issue_numbers <<< "$unlabelled_numbers"
+            for number in "${unlabelled_issue_numbers[@]}"; do
               gh issue edit "$number" --add-label "$tracking_label"
             done
           fi
