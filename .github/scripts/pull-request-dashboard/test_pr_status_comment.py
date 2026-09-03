@@ -1290,15 +1290,15 @@ class RolloutStateTest(unittest.TestCase):
     def test_new_revision_queues_every_open_pr(self) -> None:
         state = pr_status_comment.prepare_rollout_state(
             {
-                "target_revision": 0,
-                "completed_revision": 0,
+                "target_revision": 16,
+                "completed_revision": 16,
                 "pending_pr_numbers": [],
             },
             {12, 34},
         )
 
         self.assertEqual(pr_status_comment.STATUS_COMMENT_REVISION, state["target_revision"])
-        self.assertEqual(0, state["completed_revision"])
+        self.assertEqual(16, state["completed_revision"])
         self.assertEqual([12, 34], state["pending_pr_numbers"])
 
     def test_current_revision_drops_closed_prs_from_queue(self) -> None:

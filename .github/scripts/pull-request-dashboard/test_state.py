@@ -27,6 +27,7 @@ from state import (
     DASHBOARD_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
     STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+    STATUS_COMMENT_REVISION,
     author_nudge_state_path,
     backfill_state_path,
     copilot_review_request_state_path,
@@ -673,6 +674,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(DASHBOARD_STATE_VERSION, 17)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (11, 12, 13, 16))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
+        self.assertEqual(STATUS_COMMENT_REVISION, 17)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)
 
