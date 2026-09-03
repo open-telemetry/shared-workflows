@@ -2738,7 +2738,7 @@
     },
     "479": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 0,
         "assignees": [],
         "author": "tishachawla-jg",
         "author_action_review_thread_urls": [],
@@ -2746,7 +2746,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5e1afd3480d9ad5d67b559294747ab925ae5e29346318a0b1811f4ce75e2265f",
+        "copilot_request_fingerprint": "08271613f1c65b613cccbd5f8b891ad93978e63bf08f222e863490c9fbe5fda6",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2768,18 +2768,18 @@
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": true,
+            "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "lmolkova",
             "open_thread": false,
-            "pending_review": false,
+            "pending_review": true,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4e16e8e7e8eb2459fc53d65b42f0923d39786be146135c53a65a896a0bc43f62",
+        "routing_input_fingerprint": "4a1c2d51beccf96d0b0c49432c1b676d6092b07c7160840bfed835420245ee42",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-01T23:40:42+00:00"
       },
@@ -2787,7 +2787,14 @@
       "pr_number": 479,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/479",
       "route": "approver",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-5072663161": {
+          "evidence": {
+            "reply": "2026-09-01T16:32:48Z"
+          },
+          "reply_source_id": 5497161932
+        }
+      }
     },
     "481": {
       "facts": {
