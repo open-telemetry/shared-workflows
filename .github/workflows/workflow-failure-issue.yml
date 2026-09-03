@@ -10,10 +10,15 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: shared-workflow-failure-issue-${{ github.workflow }}
+  cancel-in-progress: false
+  queue: max
+
 jobs:
   workflow-failure-issue:
     name: Open or close workflow failure issue
-    if: github.repository_owner == 'open-telemetry'
+    if: github.repository_owner == 'open-telemetry' && !cancelled()
     permissions:
       issues: write # needed to open, comment on, and close workflow failure issues
     runs-on: ubuntu-slim
@@ -26,8 +31,19 @@ jobs:
         run: |
           set -euo pipefail
 
-          # TODO (trask) search doesn't support exact phrases, so it's possible that this could grab the wrong issue
-          number=$(gh issue list --search "in:title Workflow failed: $GITHUB_WORKFLOW" --limit 1 --json number -q .[].number)
+          numbers=$(
+            gh api --paginate \
+              "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
+              --jq '
+                .[]
+                | select(
+                    .pull_request == null
+                    and (.title | startswith("Workflow failed: " + env.GITHUB_WORKFLOW + " (#"))
+                  )
+                | .number
+              '
+          )
+          number=${numbers%%$'\n'*}
 
           echo "$number"
           echo "$INPUT_SUCCESS"

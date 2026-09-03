@@ -21,6 +21,9 @@ Behavior:
 - On a subsequent failure while an issue is already open, a comment linking to
   the failing run is added.
 - On success, any open tracking issue is closed.
+- On cancellation, any open tracking issue is left unchanged.
+- Updates for the same caller workflow are serialized so concurrent runs cannot
+  create duplicate tracking issues.
 
 ## How to use
 
@@ -49,4 +52,4 @@ Pin `<sha-or-tag>` to a commit SHA or release tag in this repository.
 
 | Name | Type | Required | Description |
 | ---- | ---- | -------- | ----------- |
-| `success` | boolean | yes | Whether the monitored jobs succeeded. Pass `true` to close any open tracking issue, `false` to open or comment on one. |
+| `success` | boolean | yes | Whether the monitored jobs succeeded. On a non-cancelled run, pass `true` to close any open tracking issue or `false` to open or comment on one. |
