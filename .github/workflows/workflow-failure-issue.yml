@@ -32,7 +32,7 @@ jobs:
 
           numbers=$(
             gh api --paginate \
-              "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
+              "repos/$GITHUB_REPOSITORY/issues?state=open&creator=github-actions%5Bbot%5D&per_page=100" \
               --jq '
                 .[]
                 | select(
