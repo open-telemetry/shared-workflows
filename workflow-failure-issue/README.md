@@ -18,6 +18,9 @@ Behavior:
 
 - On failure, if no tracking issue is open, a new issue titled
   `Workflow failed: <workflow name> (#<run number>)` is created.
+- Each tracking issue carries a `workflow-failure-<hash>` label that identifies
+  the monitored workflow. The workflow creates that label in the calling
+  repository when it is missing, and later runs use it to find the issue again.
 - On a subsequent failure while an issue is already open, a comment linking to
   the failing run is added.
 - On success, any open tracking issue is closed.
