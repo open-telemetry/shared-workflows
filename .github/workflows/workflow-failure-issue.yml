@@ -19,6 +19,7 @@ jobs:
     name: Open or close workflow failure issue
     if: github.repository_owner == 'open-telemetry' && !cancelled()
     permissions:
+      actions: read # needed to identify the caller workflow for legacy issues
       issues: write # needed to open, comment on, and close workflow failure issues
     runs-on: ubuntu-slim
     steps:

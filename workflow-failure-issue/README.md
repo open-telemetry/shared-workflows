@@ -33,7 +33,7 @@ Behavior:
 
 Add a final job to the workflow you want to monitor. It must run after the jobs
 you care about, use `if: always()` so it also runs when they fail, and grant
-`issues: write`:
+`actions: read` and `issues: write`:
 
 ```yaml
 jobs:
@@ -41,6 +41,7 @@ jobs:
 
   workflow-failure-issue:
     permissions:
+      actions: read
       issues: write
     needs:
       - build
@@ -51,6 +52,10 @@ jobs:
 ```
 
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository.
+
+The `actions: read` permission lets the reusable workflow verify the caller of
+legacy tracking issues before adding the per-workflow label. The `issues: write`
+permission lets it create, update, and close those issues.
 
 The `success` input is required, so callers must always provide it. Set it from
 the `needs` results of the monitored jobs, as shown above. A status check
