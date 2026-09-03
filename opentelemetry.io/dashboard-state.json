@@ -4635,7 +4635,7 @@
     },
     "11550": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "juliafmorgado",
         "author_action_review_thread_urls": [],
@@ -4643,7 +4643,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8f15fac25567948e804d124f960578be4a0db8f823f2b0f184c8f5410548c62f",
+        "copilot_request_fingerprint": "9b9d7ebf0f70e37483c33e7e5bf1d8869a4172b017b5ea4bd3b757ba4f72e86b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4659,21 +4659,31 @@
         "head_sha": "5338073d26fb42b9e4dbfb46a926e762b7a4790e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-01T13:36:49+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-03T04:57:47+00:00",
+        "last_approver_activity_at": "2026-09-03T04:57:47+00:00",
         "last_author_activity_at": "2026-09-01T13:32:50+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "eda795b545d0497f5252783eaf7fc31273d0fd00f34c08ebdd73a68ca549a269",
+        "routing_input_fingerprint": "054f05b990339e7e2f4127f8279a05bb67cef294f7a619931bd831582a975785",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-01T13:32:50+00:00"
       },
       "failed": false,
       "pr_number": 11550,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11550",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11552": {
