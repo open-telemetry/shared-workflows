@@ -11,7 +11,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: shared-workflow-failure-issue-${{ github.workflow }}
+  group: shared-workflow-failure-issue-${{ github.workflow_ref }}
   cancel-in-progress: false
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          tracking_label="workflow-failure-$(printf '%s' "$GITHUB_WORKFLOW" | sha256sum | cut -c1-16)"
+          tracking_label="workflow-failure-$(printf '%s' "$GITHUB_WORKFLOW_REF" | sha256sum | cut -c1-16)"
           if ! gh api "repos/$GITHUB_REPOSITORY/labels/$tracking_label" >/dev/null 2>&1; then
             gh label create "$tracking_label" \
                             --color D93F0B \
@@ -42,16 +42,14 @@ jobs:
               "repos/$GITHUB_REPOSITORY/issues?state=open&labels=$tracking_label&per_page=100" \
               --jq '
                 .[]
-                | select(
-                    .pull_request == null
-                    and (.title | startswith("Workflow failed: " + env.GITHUB_WORKFLOW + " (#"))
-                  )
+                | select(.pull_request == null)
                 | .number
               '
           )
           search_query="repo:$GITHUB_REPOSITORY is:issue is:open \"Workflow failed\" in:title"
-          unlabelled_numbers=$(
-            TRACKING_LABEL="$tracking_label" gh api --paginate --method GET search/issues \
+          unlabelled_candidates=$(
+            TRACKING_LABEL="$tracking_label" WORKFLOW_REF="$GITHUB_WORKFLOW_REF" \
+              gh api --paginate --method GET search/issues \
               -f q="$search_query" \
               -f per_page=100 \
               --jq '
@@ -60,8 +58,37 @@ jobs:
                     (.title | startswith("Workflow failed: " + env.GITHUB_WORKFLOW + " (#"))
                     and ((.labels | map(.name) | index(env.TRACKING_LABEL)) == null)
                   )
-                | .number
+                | [
+                    .number,
+                    (
+                      if ((.body // "") | contains("<!-- workflow-failure-ref: " + env.WORKFLOW_REF + " -->"))
+                      then "match"
+                      else ((.body // "") | capture("/actions/runs/(?<id>[0-9]+)")?.id // "unknown")
+                      end
+                    )
+                  ]
+                | @tsv
               '
+          )
+          unlabelled_numbers=$(
+            while IFS=$'\t' read -r number run_id; do
+              if [[ -z "$number" ]]; then
+                continue
+              elif [[ "$run_id" == "match" ]]; then
+                echo "$number"
+              elif [[ "$run_id" != "unknown" ]]; then
+                if candidate_ref=$(
+                  gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" \
+                    --jq '"\(.repository.full_name)/\(.path)@refs/heads/\(.head_branch)"'
+                ); then
+                  if [[ "$candidate_ref" == "$GITHUB_WORKFLOW_REF" ]]; then
+                    echo "$number"
+                  fi
+                else
+                  echo "Unable to verify workflow identity for issue #$number from run $run_id" >&2
+                fi
+              fi
+            done <<< "$unlabelled_candidates"
           )
           numbers=$(
             printf '%s\n%s\n' "$label_numbers" "$unlabelled_numbers" \
@@ -100,6 +127,7 @@ jobs:
             fi
           elif [[ "$INPUT_SUCCESS" == "false" ]]; then
             gh issue create --title "Workflow failed: $GITHUB_WORKFLOW (#$GITHUB_RUN_NUMBER)" \
-                            --body "See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)." \
+                            --body "<!-- workflow-failure-ref: $GITHUB_WORKFLOW_REF -->
+          See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)." \
                             --label "$tracking_label"
           fi
