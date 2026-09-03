@@ -2251,12 +2251,9 @@
         "assignees": [],
         "author": "swashtek",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/otel-arrow/pull/3963#pullrequestreview-5095585812"
-        ],
-        "author_nudge_episode_id": "ca773bfead3b4a99849596b946629e20",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "c2dd40bd2842ea8994dcae95bd379681892f46ab2a4b74a220649012a49bbf6d",
         "copilot_review_exists": true,
@@ -2277,7 +2274,7 @@
         "last_activity_at": "2026-09-03T06:56:08+00:00",
         "last_approver_activity_at": "2026-09-02T22:03:37+00:00",
         "last_author_activity_at": "2026-09-03T06:56:08+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2286,20 +2283,27 @@
             "login": "cijothomas",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c0d37fc44c36bcd1d1270ec195c4c28d0674a1c12d66aefc06a0ba3888930d8b",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-09-03T06:55:46+00:00"
+        "routing_input_fingerprint": "290cb9166166ec69f49707f9494d76d53ccde268f5e06165d11b19ac52fcc276",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-03T06:56:08+00:00"
       },
       "failed": false,
       "pr_number": 3963,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3963",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-review-5095585812": {
+          "evidence": {
+            "reply": "2026-09-03T06:55:46Z"
+          },
+          "reply_source_id": 5521808932
+        }
+      }
     },
     "3966": {
       "facts": {
