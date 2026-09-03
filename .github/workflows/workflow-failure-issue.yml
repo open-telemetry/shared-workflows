@@ -71,17 +71,30 @@ jobs:
               '
           )
           unlabelled_numbers=$(
+            caller_identity="${GITHUB_WORKFLOW_REF%@*}"
+            caller_ref="${GITHUB_WORKFLOW_REF##*@}"
             while IFS=$'\t' read -r number run_id; do
               if [[ -z "$number" ]]; then
                 continue
               elif [[ "$run_id" == "match" ]]; then
                 echo "$number"
               elif [[ "$run_id" != "unknown" ]]; then
-                if candidate_ref=$(
+                if candidate_run=$(
                   gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" \
-                    --jq '"\(.repository.full_name)/\(.path)@refs/heads/\(.head_branch)"'
+                    --jq '[
+                      (.repository.full_name + "/" + .path),
+                      (.head_branch // ""),
+                      ((.pull_requests[0].number // "") | tostring)
+                    ] | @tsv'
                 ); then
-                  if [[ "$candidate_ref" == "$GITHUB_WORKFLOW_REF" ]]; then
+                  IFS=$'\t' read -r candidate_identity candidate_ref_name candidate_pr_number \
+                    <<< "$candidate_run"
+                  if [[ "$candidate_identity" != "$caller_identity" ]]; then
+                    continue
+                  elif [[ "$caller_ref" == "refs/heads/$candidate_ref_name" ||
+                          "$caller_ref" == "refs/tags/$candidate_ref_name" ||
+                          (-n "$candidate_pr_number" &&
+                           "$caller_ref" == refs/pull/"$candidate_pr_number"/*) ]]; then
                     echo "$number"
                   fi
                 else
