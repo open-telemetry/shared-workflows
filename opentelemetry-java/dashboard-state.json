@@ -1124,7 +1124,7 @@
     },
     "8752": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "thswlsqls",
         "author_action_review_thread_urls": [],
@@ -1132,7 +1132,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4674c2897d296f94ffdbd27452c169ec23f26e6f5f1d098c23606c5ed4f845cd",
+        "copilot_request_fingerprint": "005f23e7e7af97b5583a49fa18eb33071eacd2a512103e1786b1dffcf02b339e",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1148,21 +1148,31 @@
         "head_sha": "d6996ab1e9ed05d06156a16e1364ef69efea44db",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T13:45:56+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-03T16:18:54+00:00",
+        "last_approver_activity_at": "2026-09-03T16:18:54+00:00",
         "last_author_activity_at": "2026-08-27T13:24:06+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jkwatson",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a43fe9974f118ca924fd6aeea0e40b29ea5dc0295371aa0119d1b0b8b2b3b931",
+        "routing_input_fingerprint": "2a6a081b0d75cf80b6b4a2c91752b1fa660ae3e441e9fea154e31e5093bace12",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-27T13:24:06+00:00"
       },
       "failed": false,
       "pr_number": 8752,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8752",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "8753": {
