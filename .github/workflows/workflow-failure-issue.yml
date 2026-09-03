@@ -13,7 +13,6 @@ permissions: {}
 concurrency:
   group: shared-workflow-failure-issue-${{ github.workflow }}
   cancel-in-progress: false
-  queue: max
 
 jobs:
   workflow-failure-issue:
