@@ -53,21 +53,34 @@ jobs:
                 | .number
               '
           )
-          number=${numbers%%$'\n'*}
-
-          if [[ "$migrate_issue" == "true" && -n "$number" ]]; then
-            gh issue edit "$number" --add-label "$tracking_label"
+          if [[ -n "$numbers" ]]; then
+            mapfile -t issue_numbers <<< "$numbers"
+          else
+            issue_numbers=()
           fi
 
-          echo "$number"
+          if [[ "$migrate_issue" == "true" ]]; then
+            for number in "${issue_numbers[@]}"; do
+              gh issue edit "$number" --add-label "$tracking_label"
+            done
+          fi
+
+          echo "$numbers"
           echo "$INPUT_SUCCESS"
 
-          if [[ -n "$number" ]]; then
+          if (( ${#issue_numbers[@]} > 0 )); then
             if [[ "$INPUT_SUCCESS" == "true" ]]; then
-              gh issue close "$number"
+              for number in "${issue_numbers[@]}"; do
+                gh issue close "$number"
+              done
             else
-              gh issue comment "$number" \
+              gh issue comment "${issue_numbers[0]}" \
                                --body "See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+              for number in "${issue_numbers[@]:1}"; do
+                gh issue close "$number" \
+                               --reason duplicate \
+                               --comment "Superseded by #${issue_numbers[0]}."
+              done
             fi
           elif [[ "$INPUT_SUCCESS" == "false" ]]; then
             gh issue create --title "Workflow failed: $GITHUB_WORKFLOW (#$GITHUB_RUN_NUMBER)" \
