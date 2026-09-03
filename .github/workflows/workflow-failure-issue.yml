@@ -47,7 +47,7 @@ jobs:
                 | .number
               '
           )
-          search_query="repo:$GITHUB_REPOSITORY is:issue is:open \"Workflow failed\" in:title"
+          search_query="repo:$GITHUB_REPOSITORY is:issue is:open author:app/github-actions \"Workflow failed\" in:title"
           unlabelled_candidates=$(
             TRACKING_LABEL="$tracking_label" WORKFLOW_REF="$GITHUB_WORKFLOW_REF" \
               gh api --paginate --method GET search/issues \
@@ -56,7 +56,8 @@ jobs:
               --jq '
                 .items[]
                 | select(
-                    (.title | startswith("Workflow failed: " + env.GITHUB_WORKFLOW + " (#"))
+                    .user.login == "github-actions[bot]"
+                    and (.title | startswith("Workflow failed: " + env.GITHUB_WORKFLOW + " (#"))
                     and ((.labels | map(.name) | index(env.TRACKING_LABEL)) == null)
                   )
                 | [
