@@ -7589,7 +7589,9 @@
         "author": "SrikarChittemsetty",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "5b6ce9b58e2d418b9f6af07b4fd88a7f",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-03T21:59:48+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "302af4e38c09f9b09ee7742ed463705d8872f67c20c0fa8b2eb2290995fd059e",
@@ -7605,12 +7607,12 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "88db7c34d22648134e944ef102c1c3e2e3970cc8",
+        "head_sha": "032aecdbbe5e60d4478e8d836c85646c296baede",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-18T05:24:14+00:00",
+        "last_activity_at": "2026-09-03T20:57:35+00:00",
         "last_approver_activity_at": "2026-08-10T08:45:18+00:00",
-        "last_author_activity_at": "2026-08-18T05:24:14+00:00",
+        "last_author_activity_at": "2026-09-03T20:57:35+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -7625,14 +7627,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "00072dd44457db1580d922f4e4aa9f4c702fcfa81db5d354b946c21e2b6d6e47",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-18T05:24:14+00:00"
+        "routing_input_fingerprint": "43e9718a6bdf5e26e801b6b4f97d06f7f527dc984e16e5ef700f142a0b355fb8",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-03T21:59:48+00:00"
       },
       "failed": false,
       "pr_number": 50135,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50135",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5237915520": {
           "evidence": {
