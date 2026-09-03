@@ -1000,7 +1000,7 @@
     },
     "1821": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1008,7 +1008,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "01a286b3660605d8443d7e939d7eee397d225a725276b4817341d24b97d618a8",
+        "copilot_request_fingerprint": "d082731e67c3616a6640f6bdcb2158da8ac95db424829ad1629c22d629db4d99",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1024,21 +1024,31 @@
         "head_sha": "6d92435b17d0030fec3d889e5b8ca54bcf1b074f",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-03T07:12:58+00:00",
-        "last_approver_activity_at": "2026-09-03T07:12:58+00:00",
+        "last_activity_at": "2026-09-03T07:29:57+00:00",
+        "last_approver_activity_at": "2026-09-03T07:29:57+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "aa41abe2c508c629402d89d207e8e115c43d951cf180273e41d74296a0b708d9",
+        "routing_input_fingerprint": "e1606ed2b4adc4dce85294505ccbdb5e70226297c8251eb8ec5ac4db17cf7cec",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-02T03:12:17+00:00"
       },
       "failed": false,
       "pr_number": 1821,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1821",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1824": {
