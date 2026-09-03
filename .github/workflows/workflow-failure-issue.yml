@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          tracking_label="workflow-failure-$(printf '%s' "$GITHUB_WORKFLOW_REF" | sha256sum | cut -c1-16)"
+          tracking_label="workflow-failure-$(printf '%s' "$GITHUB_WORKFLOW_REF" | sha256sum | cut -c1-32)"
           if ! gh api "repos/$GITHUB_REPOSITORY/labels/$tracking_label" >/dev/null 2>&1; then
             gh label create "$tracking_label" \
                             --color D93F0B \
