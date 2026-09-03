@@ -115,5 +115,11 @@
       "Done (Verify Bundle)",
       "Done (LatestLibBuild Tests)"
     ]
+  },
+  {
+    "name": "opentelemetry-ebpf-instrumentation",
+    "approver_teams": ["ebpf-instrumentation-approvers"],
+    "labels_to_display": ["breaking change", "dependencies", "do-not-merge", "blocked"],
+    "non_blocking_check_patterns": ["codecov/*"]
   }
 ]
