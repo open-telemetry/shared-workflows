@@ -1654,7 +1654,7 @@
     },
     "3270": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "mifisignal",
         "author_action_review_thread_urls": [],
@@ -1662,7 +1662,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d3a8db88eb425a3b1a9a6b652fa163250073ab25222cf3aa64b54576947855db",
+        "copilot_request_fingerprint": "3d31376de299fdab09cd6bea815bec6219ae80abb2c71b84e64ad864663e994e",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1678,21 +1678,31 @@
         "head_sha": "15282b9221b99227eb8fe636da4c348f0eab23bd",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-01T18:26:18+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-03T20:08:40+00:00",
+        "last_approver_activity_at": "2026-09-03T20:08:40+00:00",
         "last_author_activity_at": "2026-09-01T14:12:56+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "MrAlias",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1b577e10337919c454514c50aed47fb0102dce7925c759e3afa8e80f17d1e50a",
+        "routing_input_fingerprint": "2ce1fe7657c26bad7c09475b16ae588bae15a8f82306cfc29c46d3f4e45fa1a6",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-01T14:12:56+00:00"
       },
       "failed": false,
       "pr_number": 3270,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3270",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3272": {
