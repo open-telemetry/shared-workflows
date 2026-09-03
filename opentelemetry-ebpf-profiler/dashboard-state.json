@@ -917,9 +917,8 @@
         "author": "rogercoll",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "f6b731226b1a456a9211e2abcd670e68",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "cfb3fb8b16f2a6cdf6225c9b905c440e543409907629bd1ba3017d93183b9adc",
         "copilot_review_exists": false,
@@ -940,7 +939,7 @@
         "last_activity_at": "2026-09-03T13:28:41+00:00",
         "last_approver_activity_at": "2026-09-03T10:29:01+00:00",
         "last_author_activity_at": "2026-09-03T13:28:41+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -979,17 +978,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-03T13:28:50.969832+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bbc2e2add6833009a69798a6a9ee8d9de5d9409cbfa9db7972c2d0d343f4644c",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-03T10:15:47+00:00"
+        "routing_input_fingerprint": "a4493b57e7f4481c3880387c3a140f2d2a36ee11be3a3b7deb2398bc8ce388fd",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-03T13:31:51.639927+00:00"
       },
       "failed": false,
       "pr_number": 1806,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1806",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-review-5061750547": {
           "evidence": {
