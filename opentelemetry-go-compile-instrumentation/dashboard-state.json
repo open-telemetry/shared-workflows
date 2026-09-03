@@ -3738,7 +3738,7 @@
     },
     "1302": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "darccio",
         "author_action_review_thread_urls": [],
@@ -3746,7 +3746,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "60e7c3075c30833fb14aa45143acde2eabdd2556365e9b61f349f67eb0fc79ff",
+        "copilot_request_fingerprint": "47221e1f379bd8ecd47326fa9bb3c4befd45dbf9361d725f3f1e56bca6b52978",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3762,21 +3762,31 @@
         "head_sha": "6cd00adb02d413c30bcb611dcea5463f2648a0b7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-02T06:25:24+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-03T02:12:19+00:00",
+        "last_approver_activity_at": "2026-09-03T02:12:19+00:00",
         "last_author_activity_at": "2026-09-02T06:24:50+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "y1yang0",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3f316cba868854cbb2f91f676d6d7909e436fdc9d6262d7a870c852879f9c3d1",
+        "routing_input_fingerprint": "4300012a6c9af585d1e3870cf0e5a9edaf0acf16271f10f0f7ea36ed7042e02c",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-02T06:24:50+00:00"
       },
       "failed": false,
       "pr_number": 1302,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1302",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1304": {
