@@ -2433,15 +2433,15 @@
     },
     "6982": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "sansynx",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 6,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bae955268d271cdb31deb3016a9b02cb20385b0eb07fdc688e5c673de0fbcbc0",
+        "copilot_request_fingerprint": "810eeecd850e999fedbae339622c2062211e47574063fbf17a13ecfa7f491eb7",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2457,10 +2457,10 @@
         "head_sha": "4e0e664193d3177f9d388f88613bde2f5c54a094",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-27T12:45:52+00:00",
-        "last_approver_activity_at": "2026-08-27T11:20:12+00:00",
+        "last_activity_at": "2026-09-03T08:26:54+00:00",
+        "last_approver_activity_at": "2026-09-03T08:26:54+00:00",
         "last_author_activity_at": "2026-08-27T12:45:52+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -2472,19 +2472,20 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "pichlermarc",
             "open_thread": false,
-            "pending_review": true,
+            "pending_review": false,
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-03T08:28:15.389700+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3eca257583fa8315d0b3ed66ec5e3a5ba99c98e72ed863238f2e298c7f1ea428",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "ba7293e5b13483cf76bfec2ff0d2113ef24a5397778248a0f1f8d792707fd8e5",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-27T12:45:52+00:00"
       },
       "failed": false,
@@ -2494,9 +2495,9 @@
       "top_level_history": {
         "pr-issue-comment-5314283520": {
           "evidence": {
-            "reply": "2026-08-18T03:16:35Z"
+            "reply": "2026-08-17T09:34:07Z"
           },
-          "reply_source_id": 5323116217
+          "reply_source_id": 5314317230
         },
         "pr-review-4875899146": {
           "evidence": {
