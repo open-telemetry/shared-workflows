@@ -139,8 +139,14 @@ jobs:
               done
             fi
           elif [[ "$INPUT_SUCCESS" == "false" ]]; then
+            printf -v issue_body \
+              '<!-- workflow-failure-ref: %s -->\nSee [%s #%s](https://github.com/%s/actions/runs/%s).' \
+              "$GITHUB_WORKFLOW_REF" \
+              "$GITHUB_WORKFLOW" \
+              "$GITHUB_RUN_NUMBER" \
+              "$GITHUB_REPOSITORY" \
+              "$GITHUB_RUN_ID"
             gh issue create --title "Workflow failed: $GITHUB_WORKFLOW (#$GITHUB_RUN_NUMBER)" \
-                            --body "<!-- workflow-failure-ref: $GITHUB_WORKFLOW_REF -->
-          See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)." \
+                            --body "$issue_body" \
                             --label "$tracking_label"
           fi
