@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import call, patch
 
 import dashboard_override
 import dashboard_override_delivery
+import state
 from dashboard_contracts import DashboardCommandReply, DashboardRoute
 from dashboard_test_support import (
     actor,
@@ -14,6 +18,7 @@ from dashboard_test_support import (
     stored_dashboard_result,
 )
 from pull_request_source import IssueComment
+from routing_decision import reviewer_handoff_active
 
 
 def override_input(
@@ -616,6 +621,46 @@ class DashboardOverrideTest(unittest.TestCase):
                     facts.top_level_feedback_cutoff,
                 )
 
+    def test_cutoff_marker_is_bound_to_the_acknowledged_command(self) -> None:
+        source = override_input(
+            issue_comment(
+                database_id=9,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body="\n".join((
+                    dashboard_override.override_ack_marker(
+                        5,
+                        "bound-head",
+                        "2026-08-16T08:00:00Z",
+                    ),
+                    dashboard_override.top_level_feedback_cutoff_marker(
+                        5,
+                        "2026-08-16T08:00:00Z",
+                    ),
+                )),
+            ),
+            issue_comment(
+                database_id=10,
+                actor=actor("opentelemetry-pr-dashboard[bot]"),
+                body=dashboard_override.top_level_feedback_cutoff_marker(
+                    6,
+                    "2026-08-16T10:00:00Z",
+                ),
+            ),
+        )
+
+        facts = dashboard_override.dashboard_override_facts(
+            source,
+            "author",
+            None,
+            "current-head",
+        )
+
+        self.assertEqual(5, facts.bound_command_id)
+        self.assertEqual(
+            "2026-08-16T08:00:00Z",
+            facts.top_level_feedback_cutoff,
+        )
+
     def test_newer_command_advances_permanent_top_level_cutoff(self) -> None:
         source = override_input(
             issue_comment(
@@ -642,6 +687,103 @@ class DashboardOverrideTest(unittest.TestCase):
             "2026-08-16T10:00:00Z",
             facts.top_level_feedback_cutoff,
         )
+
+    def test_legacy_pending_binding_does_not_gain_persistence(self) -> None:
+        source = override_input(issue_comment(
+            database_id=5,
+            body="/dashboard route:reviewers",
+            created_at="2026-08-16T08:00:00Z",
+            content_updated_at="2026-08-16T10:00:00Z",
+        ))
+        for version in (13, 16):
+            with (
+                self.subTest(version=version),
+                tempfile.TemporaryDirectory() as temp_dir,
+            ):
+                legacy_facts = dashboard_facts(
+                    dashboard_override_command_id=5,
+                    dashboard_override_command_user="author",
+                    dashboard_override_bound_command_id=(
+                        5 if version == 16 else 0
+                    ),
+                    dashboard_override_head_sha="bound-head",
+                    dashboard_override_since="2026-08-16T08:00:00Z",
+                    dashboard_top_level_feedback_cutoff=(
+                        "2026-08-16T08:00:00Z"
+                        if version == 16
+                        else ""
+                    ),
+                )
+                stored = state.encode_dashboard_state(dashboard_state(
+                    stored_dashboard_result(7, facts=legacy_facts)
+                ))
+                stored["version"] = version
+                with patch("state._state_dir", Path(temp_dir)):
+                    state.dashboard_state_path().write_text(
+                        json.dumps(stored),
+                        encoding="utf-8",
+                    )
+                    loaded = state.load_dashboard_state_cache()
+                self.assertIsNotNone(loaded)
+                assert loaded is not None
+                previous_facts = loaded.results[0].facts
+
+                migrated = dashboard_override.dashboard_override_facts(
+                    source,
+                    "author",
+                    None,
+                    "bound-head",
+                    previous_facts,
+                )
+
+                self.assertFalse(migrated.persistent_handoff)
+                self.assertEqual(
+                    "2026-08-16T08:00:00Z",
+                    migrated.since,
+                )
+                self.assertEqual(
+                    (
+                        "2026-08-16T08:00:00Z"
+                        if version == 16
+                        else ""
+                    ),
+                    migrated.top_level_feedback_cutoff,
+                )
+                acknowledgement = dashboard_override.append_command_ack_reply(
+                    source,
+                    result_facts(migrated, author="author"),
+                    DashboardRoute.APPROVER,
+                ).dashboard_command_replies[0]
+                self.assertFalse(acknowledgement.persistent_handoff)
+                acknowledgement_body = dashboard_override.render_command_reply(
+                    acknowledgement
+                )
+                self.assertNotIn(
+                    dashboard_override.PERSISTENT_HANDOFF_MARKER_PREFIX,
+                    acknowledgement_body,
+                )
+                delivered_source = override_input(
+                    *source.issue_comments,
+                    issue_comment(
+                        database_id=9,
+                        actor=actor("opentelemetry-pr-dashboard[bot]"),
+                        body=acknowledgement_body,
+                    ),
+                )
+
+                after_push = dashboard_override.dashboard_override_facts(
+                    delivered_source,
+                    "author",
+                    None,
+                    "new-head",
+                    result_facts(migrated),
+                )
+                self.assertFalse(after_push.persistent_handoff)
+                self.assertFalse(
+                    reviewer_handoff_active(
+                        result_facts(after_push, head_sha="new-head")
+                    )
+                )
 
     def test_missing_new_command_time_preserves_permanent_cutoff(self) -> None:
         source = override_input(

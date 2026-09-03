@@ -230,8 +230,11 @@ def dashboard_override_facts(
             acknowledged_since,
             acknowledgement_created_at,
         ) = acknowledged_override(source.issue_comments)
+    previous_binding_command_id = (
+        previous_bound_command_id or previous_command_id
+    )
     previous_binding_matches = bool(
-        bound_command_id == previous_bound_command_id
+        bound_command_id == previous_binding_command_id
         and bound_head
         and bound_head == previous_head_sha
     )
@@ -244,17 +247,25 @@ def dashboard_override_facts(
     )
     existing_command_binding = bool(
         command_id
-        and command_id == previous_bound_command_id
+        and command_id == previous_binding_command_id
     )
+    new_command_binding = bool(command_id and not existing_command_binding)
     top_level_feedback_cutoff = _latest_valid_timestamp(
         previous_top_level_feedback_cutoff,
         command_created_at if command_id and not existing_command_binding else "",
-        acknowledged_top_level_feedback_cutoff(source.issue_comments),
+        (
+            acknowledged_top_level_feedback_cutoff(
+                source.issue_comments,
+                bound_command_id,
+            )
+            if bound_command_id
+            else ""
+        ),
     )
     persistent_handoff = bool(
         bound_head
         and (
-            command_id
+            new_command_binding
             or (previous_binding_matches and previous_persistent_handoff)
             or acknowledges_persistent_handoff(
                 source.issue_comments,

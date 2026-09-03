@@ -182,8 +182,8 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
         if discussion.is_resolved or discussion.is_outdated:
             continue
         raw_comments = discussion.comments
-        thread_url = raw_comments[0].url if raw_comments else ""
         ordered = sorted(raw_comments, key=lambda comment: comment.created_at)
+        root_comment = ordered[0] if ordered else None
         comments = [
             _discussion_comment(
                 comment.created_at,
@@ -211,13 +211,15 @@ def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
                     ),
                     "discussion_kind": "review-comment-thread",
                     "strict_author_action": bool(
-                        raw_comments
-                        and raw_comments[0].actor.is_copilot_reviewer
+                        root_comment
+                        and root_comment.actor.is_copilot_reviewer
                     ),
                     "path": discussion.path or None,
                     "line": discussion.line,
                     "resolved": False,
-                    "discussion_url": thread_url,
+                    "discussion_url": (
+                        root_comment.url if root_comment is not None else ""
+                    ),
                     "requester": latest_activity_comment.get("actor") or "",
                     "pr_author": source.author,
                     "comments": comments,

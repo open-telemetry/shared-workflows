@@ -504,13 +504,15 @@ the implementation understandable and operationally cheap.
   command, and records that head in an acknowledgement marker on either the
   command reply or the live status comment. A persistence marker makes the
   cross-push behavior explicit. Legacy acknowledgements without that marker
-  remain head-bound, so deployment cannot reactivate old handoffs that had
-  already expired. A separate companion marker records the frozen timestamp
-  used for the permanent top-level feedback cutoff. A legacy acknowledgement
-  without that cutoff does not retire feedback, because the command's current
-  edit timestamp cannot reconstruct the original cutoff. The first observation
-  freezes the cutoff for that command, so editing the command later cannot
-  retire intervening feedback; only a newer command advances it.
+  remain head-bound, as do pending bindings restored from compatible legacy
+  state, so deployment cannot reactivate old handoffs that had already expired.
+  A separate companion marker records the frozen timestamp used for the
+  permanent top-level feedback cutoff. Marker lookup is scoped to the bound
+  command. A legacy acknowledgement without that cutoff does not retire
+  feedback, because the command's current edit timestamp cannot reconstruct the
+  original cutoff. The first observation freezes the cutoff for that command,
+  so editing the command later cannot retire intervening feedback; only a newer
+  command advances it.
 - Recording the observed head also avoids ordering the command against a push by
   comparing the comment timestamp with the head push time from
   `GET /repos/{repo}/activity`. Both timestamps have one-second resolution and
