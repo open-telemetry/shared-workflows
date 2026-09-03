@@ -48,8 +48,14 @@ jobs:
 
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository.
 
+The `success` input is required, so callers must always provide it. Use
+`success: ${{ success() }}` when that status covers the monitored jobs, or use
+an expression over `needs` results as shown above. The reusable workflow skips
+the issue update when the caller run is cancelled, so it ignores the supplied
+value in that case.
+
 ### Inputs
 
 | Name | Type | Required | Description |
 | ---- | ---- | -------- | ----------- |
-| `success` | boolean | yes | Whether the monitored jobs succeeded. On a non-cancelled run, pass `true` to close any open tracking issue or `false` to open or comment on one. |
+| `success` | boolean | yes | Whether the monitored jobs succeeded. Pass `true` to close any open tracking issue or `false` to open or comment on one. |
