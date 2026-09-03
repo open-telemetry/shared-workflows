@@ -22,8 +22,11 @@ Behavior:
   the monitored caller workflow file and ref. The workflow creates that label
   in the calling repository when it is missing, and later runs use it to find
   the issue again. Workflows that share a display name use different labels.
-- On a subsequent failure while an issue is already open, a comment linking to
-  the failing run is added.
+  Issues created by earlier versions receive the label only when the run linked
+  in their body identifies the same caller workflow file and ref.
+- On a subsequent failure, a comment linking to the failing run is added to
+  the lowest-numbered open tracking issue. Any other matching issues are
+  closed as not planned with a comment that points to the retained issue.
 - On success, any open tracking issue is closed.
 - On cancellation, any open tracking issue is left unchanged.
 - Updates for the same caller workflow are serialized so concurrent runs cannot
