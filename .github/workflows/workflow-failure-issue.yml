@@ -17,7 +17,7 @@ concurrency:
 jobs:
   workflow-failure-issue:
     name: Open or close workflow failure issue
-    if: github.repository_owner == 'open-telemetry' && !cancelled()
+    if: github.repository_owner == 'open-telemetry'
     permissions:
       issues: write # needed to open, comment on, and close workflow failure issues
     runs-on: ubuntu-slim
@@ -30,41 +30,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          numbers=$(
-            gh api --paginate \
-              "repos/$GITHUB_REPOSITORY/issues?state=open&creator=github-actions%5Bbot%5D&per_page=100" \
-              --jq '
-                .[]
-                | select(
-                    .pull_request == null
-                    and (.title | startswith("Workflow failed: " + env.GITHUB_WORKFLOW + " (#"))
-                  )
-                | .number
-              ' \
-              | sort -n -u
-          )
-          if [[ -n "$numbers" ]]; then
-            mapfile -t issue_numbers <<< "$numbers"
-          else
-            issue_numbers=()
-          fi
+          # TODO (trask) search doesn't support exact phrases, so it's possible that this could grab the wrong issue
+          number=$(gh issue list --search "in:title Workflow failed: $GITHUB_WORKFLOW" --limit 1 --json number -q .[].number)
 
-          echo "$numbers"
+          echo "$number"
           echo "$INPUT_SUCCESS"
 
-          if (( ${#issue_numbers[@]} > 0 )); then
+          if [[ -n "$number" ]]; then
             if [[ "$INPUT_SUCCESS" == "true" ]]; then
-              for number in "${issue_numbers[@]}"; do
-                gh issue close "$number"
-              done
+              gh issue close "$number"
             else
-              gh issue comment "${issue_numbers[0]}" \
+              gh issue comment "$number" \
                                --body "See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
-              for number in "${issue_numbers[@]:1}"; do
-                gh issue close "$number" \
-                               --reason "not planned" \
-                               --comment "Superseded by #${issue_numbers[0]}."
-              done
             fi
           elif [[ "$INPUT_SUCCESS" == "false" ]]; then
             gh issue create --title "Workflow failed: $GITHUB_WORKFLOW (#$GITHUB_RUN_NUMBER)" \

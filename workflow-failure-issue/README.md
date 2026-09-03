@@ -18,15 +18,9 @@ Behavior:
 
 - On failure, if no tracking issue is open, a new issue titled
   `Workflow failed: <workflow name> (#<run number>)` is created.
-- Tracking issues are matched by their workflow-name title prefix and
-  `github-actions[bot]` author.
-- On a subsequent failure, a comment linking to the failing run is added to
-  the lowest-numbered open tracking issue. Any other matching issues are
-  closed as not planned with a comment that points to the retained issue.
+- On a subsequent failure while an issue is already open, a comment linking to
+  the failing run is added.
 - On success, any open tracking issue is closed.
-- On cancellation, any open tracking issue is left unchanged.
-- Updates for the same workflow name are serialized so concurrent runs cannot
-  create duplicate tracking issues.
 
 ## How to use
 
