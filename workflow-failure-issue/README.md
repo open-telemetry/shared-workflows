@@ -48,11 +48,12 @@ jobs:
 
 Pin `<sha-or-tag>` to a commit SHA or release tag in this repository.
 
-The `success` input is required, so callers must always provide it. Use
-`success: ${{ success() }}` when that status covers the monitored jobs, or use
-an expression over `needs` results as shown above. The reusable workflow skips
-the issue update when the caller run is cancelled, so it ignores the supplied
-value in that case.
+The `success` input is required, so callers must always provide it. Set it from
+the `needs` results of the monitored jobs, as shown above. A status check
+function such as `success()` cannot be used here, because GitHub Actions allows
+those functions only in an `if` condition. The reusable workflow skips the issue
+update when the caller run is cancelled, so it ignores the supplied value in
+that case.
 
 ### Inputs
 
