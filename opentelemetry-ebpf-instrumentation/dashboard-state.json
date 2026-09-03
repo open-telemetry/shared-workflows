@@ -1541,12 +1541,18 @@
         "approval_count": 0,
         "assignees": [],
         "author": "elliehmy",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3268#discussion_r3928540742",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3268#discussion_r3928540763"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3268#pullrequestreview-5106633151"
+        ],
+        "author_nudge_episode_id": "73cc307b270a4380a76cd8751966394d",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "30577436b4a28de831f4c19ce7c47c28dc98bcd72d4b0b0926f4799632029480",
+        "copilot_request_fingerprint": "754f6e8f9f9506145c962203a32ccd62f076cdf42f35224034a13f8a2a6e0ca2",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1562,21 +1568,31 @@
         "head_sha": "caaf87739792b40fe9b820a0a38cbb8d9b18a281",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-02T01:53:41+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-03T20:42:38+00:00",
+        "last_approver_activity_at": "2026-09-03T20:42:38+00:00",
         "last_author_activity_at": "2026-09-02T01:53:41+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "MrAlias",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3f763c1f7037496faee28f322292ccf30b48970871ffa0cdff47749b6b1c454d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-02T01:53:41+00:00"
+        "routing_input_fingerprint": "697ebcf4fd0b0f6862dde3a4df3837224d1c5b6d4fd973f37e57eb2e95bed846",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-03T20:42:37+00:00"
       },
       "failed": false,
       "pr_number": 3268,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3268",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3269": {
