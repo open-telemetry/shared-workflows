@@ -2084,7 +2084,11 @@
         "assignees": [],
         "author": "michaelbushe",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11183#pullrequestreview-4982301602",
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11183#issuecomment-5372269856"
+        ],
+        "author_nudge_episode_id": "53399710eab245208d03310535fc8db7",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -2116,7 +2120,7 @@
             "login": "chalin",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           },
           {
             "approved": false,
@@ -2131,21 +2135,14 @@
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "747eb3aab7e24164bb1b714f9977e71a1545068c07d7736ffc7422bed5cbdf6d",
-        "waiting_age_basis": "last_author_activity",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-03T08:39:14+00:00"
       },
       "failed": false,
       "pr_number": 11183,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11183",
-      "route": "approver",
-      "top_level_history": {
-        "pr-issue-comment-5372269856": {
-          "evidence": {
-            "reply": "2026-09-03T08:39:14Z"
-          },
-          "reply_source_id": 5523002982
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "11203": {
       "facts": {
