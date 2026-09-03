@@ -2468,8 +2468,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "a938d7ae1c6746c39607fa6f23803e1b",
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-03T23:43:35+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "8b0baa2def39a6e3b966fd0efc52d9733ec1611c3d4a0b2ff31d1e4abdb5ed65",
         "copilot_review_exists": true,
@@ -2490,7 +2491,7 @@
         "last_activity_at": "2026-09-03T22:07:57+00:00",
         "last_approver_activity_at": "2026-09-03T06:30:36+00:00",
         "last_author_activity_at": "2026-09-03T22:07:57+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -2502,12 +2503,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-03T22:48:36.219059+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ddd65e10212d58141c4d127f4e7129afaa9fb515c6bdb694f0118a71b3808306",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-03T06:20:59+00:00"
+        "routing_input_fingerprint": "7a89ebbbd750808abd013e55fa97f9a1f7e1855b4e8b8ad48aa380a9f79e9b8a",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-03T23:43:35+00:00"
       },
       "failed": false,
       "pr_number": 3979,
