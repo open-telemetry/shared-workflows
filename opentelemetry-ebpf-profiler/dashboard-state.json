@@ -1158,7 +1158,7 @@
     },
     "1827": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1166,7 +1166,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4516234355cbe8aeaaeea2db72a173b3d9ea9026186dfb12b45e669b08d79afc",
+        "copilot_request_fingerprint": "ba44be4922d8c8c0da3e38b94326926677c72a4ed65bab1f9eb30f50ef8a29d1",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1182,21 +1182,31 @@
         "head_sha": "53b6941c7e4c874631ba15a841e17ae77e184cdf",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-03T02:35:21+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-03T07:10:46+00:00",
+        "last_approver_activity_at": "2026-09-03T07:10:46+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "135cf7099045b7796d457abd6249dd35a32c5c1ab1fa445a82eb27fe2d1d648b",
+        "routing_input_fingerprint": "bfcb5e3a97c11c177914908cad4e8ae7f9d628c1a72e9a30b9980180edcffcf8",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-03T02:35:21+00:00"
       },
       "failed": false,
       "pr_number": 1827,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1827",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1828": {
