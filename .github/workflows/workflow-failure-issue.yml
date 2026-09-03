@@ -94,7 +94,7 @@ jobs:
                                --body "See [$GITHUB_WORKFLOW #$GITHUB_RUN_NUMBER](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
               for number in "${issue_numbers[@]:1}"; do
                 gh issue close "$number" \
-                               --reason duplicate \
+                               --reason "not planned" \
                                --comment "Superseded by #${issue_numbers[0]}."
               done
             fi
