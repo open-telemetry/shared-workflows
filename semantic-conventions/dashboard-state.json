@@ -2392,15 +2392,15 @@
     },
     "4071": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 5,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8e41e25c05cdf5e734933c3f4fd6150ed87895d672aef32371e0f89cbb4f63b0",
+        "copilot_request_fingerprint": "7cee0645893e984f58d1ea588e15d49c4d93dafd6b3068028bcba95f2df4e143",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2416,21 +2416,31 @@
         "head_sha": "4f08b4aa68a5b5881bb0ed8f4a0e629e7c458beb",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-03T01:35:17+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-03T01:35:58+00:00",
+        "last_approver_activity_at": "2026-09-03T01:35:58+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3a246a21867b7dc8e39b2ff18377936d8b64ea4d45a128942179c235a5c2360d",
+        "routing_input_fingerprint": "09bfdea1b44844b3d6d8bd321ac14eeb2f54974cc169b5155d2eeae60bb08d5d",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-03T00:36:07+00:00"
       },
       "failed": false,
       "pr_number": 4071,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4071",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
