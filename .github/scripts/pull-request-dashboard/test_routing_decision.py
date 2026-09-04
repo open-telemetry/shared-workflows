@@ -288,6 +288,53 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertEqual("2026-07-17T01:00:00+00:00", outcome.facts.waiting_since)
         self.assertEqual("ci_failure", outcome.facts.waiting_age_basis)
 
+    def test_only_maintainer_owned_check_actions_route_by_approval_count(
+        self,
+    ) -> None:
+        for approval_count, expected in (
+            (0, DashboardRoute.APPROVER),
+            (1, DashboardRoute.MAINTAINER),
+        ):
+            with self.subTest(approval_count=approval_count):
+                outcome = self.resolve({
+                    "approval_count": approval_count,
+                    "ci_failing_count": 0,
+                    "ci_maintainer_action_required_count": 1,
+                    "ci_pending_count": 0,
+                    "is_maintenance_bot": False,
+                })
+
+                self.assertEqual(expected, outcome.route)
+                self.assertFalse(outcome.facts.required_checks_settled)
+                self.assertFalse(outcome.facts.route_held_for_gates)
+
+    def test_genuine_failure_wins_over_maintainer_owned_check_action(
+        self,
+    ) -> None:
+        outcome = self.resolve({
+            "approval_count": 1,
+            "ci_failing_count": 1,
+            "ci_maintainer_action_required_count": 1,
+            "ci_pending_count": 0,
+            "is_maintenance_bot": False,
+        })
+
+        self.assertEqual(DashboardRoute.AUTHOR, outcome.route)
+
+    def test_pending_checks_still_hold_maintainer_owned_action_route(
+        self,
+    ) -> None:
+        outcome = self.resolve({
+            "approval_count": 0,
+            "ci_failing_count": 0,
+            "ci_maintainer_action_required_count": 1,
+            "ci_pending_count": 1,
+            "is_maintenance_bot": False,
+        })
+
+        self.assertEqual(DashboardRoute.AUTHOR, outcome.route)
+        self.assertTrue(outcome.facts.route_held_for_gates)
+
     def test_reviewer_handoff_is_bound_to_the_current_head(self) -> None:
         self.assertTrue(
             reviewer_handoff_active(

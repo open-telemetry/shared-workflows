@@ -36,7 +36,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 15
+DASHBOARD_STATE_VERSION = 16
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -49,7 +49,7 @@ COPILOT_REVIEW_REQUEST_STATE_VERSION = 6
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 2
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 16
+STATUS_COMMENT_REVISION = 19
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -560,6 +560,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("ci_failing_since"),
             "facts.ci_failing_since",
         ),
+        ci_maintainer_action_required_count=_optional_integer(
+            value.get("ci_maintainer_action_required_count"),
+            "facts.ci_maintainer_action_required_count",
+        ),
         ci_pending_count=_optional_integer(
             value.get("ci_pending_count"),
             "facts.ci_pending_count",
@@ -682,6 +686,10 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["ci_failing_count"] = facts.ci_failing_count
     if facts.ci_failing_since is not None:
         stored["ci_failing_since"] = facts.ci_failing_since
+    if facts.ci_maintainer_action_required_count is not None:
+        stored["ci_maintainer_action_required_count"] = (
+            facts.ci_maintainer_action_required_count
+        )
     if facts.ci_pending_count is not None:
         stored["ci_pending_count"] = facts.ci_pending_count
     if facts.non_blocking_check_failures:
@@ -819,7 +827,6 @@ def load_dashboard_state_cache() -> DashboardState | None:
     state = load_state_file(
         dashboard_state_path(),
         DASHBOARD_STATE_VERSION,
-        compatible_versions=(11, 12, 13),
     )
     if state is None:
         return None

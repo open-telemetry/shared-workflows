@@ -15,7 +15,13 @@ from copilot_review import (
     set_copilot_review_request_needed,
 )
 from dashboard_contracts import DashboardFacts, DashboardRoute
-from utils import format_ts, parse_ts, required_checks_settled, utc_now
+from utils import (
+    format_ts,
+    parse_ts,
+    required_checks_settled,
+    required_checks_unreported,
+    utc_now,
+)
 
 
 @dataclass(frozen=True)
@@ -166,11 +172,12 @@ def _hold_route_until_gates_settle(
         ),
         required_checks_settled=required_checks_settled(facts),
     )
+    checks_unreported = required_checks_unreported(facts)
     gates_outstanding = gates_enabled and (
-        not facts.required_checks_settled or facts.copilot_review_outstanding
+        checks_unreported or facts.copilot_review_outstanding
     )
     unreported_gates = gates_enabled and (
-        not facts.required_checks_settled or facts.copilot_review_unreported
+        checks_unreported or facts.copilot_review_unreported
     )
     would_hold = _route_progress(route) > _route_progress(effective_previous_route)
     facts = _set_gate_hold_clock(

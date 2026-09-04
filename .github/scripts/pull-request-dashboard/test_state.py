@@ -231,6 +231,7 @@ class StateTest(unittest.TestCase):
             last_approver_activity_at="2026-08-16T10:00:00Z",
             ci_failing_count=1,
             ci_failing_since="2026-08-16T09:00:00Z",
+            ci_maintainer_action_required_count=2,
             ci_pending_count=2,
             non_blocking_check_failures=("CodeQL",),
             copilot_first_review_missing_since="2026-08-16T08:30:00Z",
@@ -296,7 +297,7 @@ class StateTest(unittest.TestCase):
             ).route,
         )
 
-    def test_version_thirteen_state_infers_author_capability(self) -> None:
+    def test_legacy_state_infers_author_capability(self) -> None:
         persisted = {
             "version": 13,
             "initial_backfill_complete": True,
@@ -330,21 +331,10 @@ class StateTest(unittest.TestCase):
                 },
             },
         }
-        with (
-            tempfile.TemporaryDirectory() as temp_dir,
-            patch("state._state_dir", Path(temp_dir)),
-        ):
-            dashboard_state_path().write_text(
-                json.dumps(persisted),
-                encoding="utf-8",
-            )
+        warnings = StringIO()
+        with redirect_stderr(warnings):
+            decoded = decode_dashboard_state(persisted)
 
-            warnings = StringIO()
-            with redirect_stderr(warnings):
-                decoded = load_dashboard_state_cache()
-
-        self.assertIsNotNone(decoded)
-        assert decoded is not None
         self.assertEqual(frozenset({124, 125, 126}), decoded.pr_numbers)
         decoded_by_number = {
             result.pr_number: result
@@ -466,6 +456,7 @@ class StateTest(unittest.TestCase):
             decode_dashboard_facts({
                 "ci_failing_count": None,
                 "ci_failing_since": None,
+                "ci_maintainer_action_required_count": None,
                 "ci_pending_count": None,
                 "copilot_first_review_missing_since": None,
                 "route_held_since": None,
@@ -541,7 +532,7 @@ class StateTest(unittest.TestCase):
             "warning: ignoring malformed dashboard result"
         ))
 
-    def test_version_eleven_dashboard_state_migrates_to_current_shape(self) -> None:
+    def test_legacy_dashboard_state_payload_reencodes_to_current_shape(self) -> None:
         persisted = {
             "version": 11,
             "initial_backfill_complete": True,
@@ -650,10 +641,26 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 15)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 16)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)
+
+    def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch("state._state_dir", Path(temp_dir)),
+        ):
+            dashboard_state_path().write_text(
+                json.dumps({
+                    "version": 15,
+                    "initial_backfill_complete": True,
+                    "prs": {},
+                }),
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(load_dashboard_state_cache())
 
     def test_author_nudge_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir, patch("state._state_dir", Path(temp_dir)):

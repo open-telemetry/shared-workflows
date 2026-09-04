@@ -194,12 +194,17 @@ def _compute_facts(
     failing = [
         check
         for check in checks or ()
-        if check.bucket in ("fail", "cancel")
+        if check.bucket in ("fail", "cancel", "action_required")
     ]
     pending = [
         check
         for check in checks or ()
         if check.bucket == "pending"
+    ]
+    maintainer_action_required = [
+        check
+        for check in checks or ()
+        if check.bucket == "maintainer_action_required"
     ]
     failing_timestamps = [parse_ts(check.completed_at) for check in failing]
     failing_timestamps = [ts for ts in failing_timestamps if ts is not None]
@@ -278,6 +283,11 @@ def _compute_facts(
         ci_failing_since=(
             format_ts(min(failing_timestamps))
             if failing_timestamps
+            else None
+        ),
+        ci_maintainer_action_required_count=(
+            len(maintainer_action_required)
+            if checks is not None
             else None
         ),
         ci_pending_count=len(pending) if checks is not None else None,

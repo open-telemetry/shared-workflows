@@ -91,10 +91,24 @@ def render_draft_pr_section(
 
 
 def ci_cell(facts: DashboardFacts) -> str:
-    if facts.ci_failing_count is None and facts.ci_pending_count is None:
+    if (
+        facts.ci_failing_count is None
+        and facts.ci_maintainer_action_required_count is None
+        and facts.ci_pending_count is None
+    ):
         return "?"
-    if (facts.ci_failing_count or 0) > 0:
+    failing = (facts.ci_failing_count or 0) > 0
+    write_access_required = (
+        facts.ci_maintainer_action_required_count or 0
+    ) > 0
+    if failing and write_access_required:
+        return "❌ 🔐"
+    if failing:
         return "❌"
+    if (facts.ci_pending_count or 0) > 0 and write_access_required:
+        return "⏳ 🔐"
+    if write_access_required:
+        return "🔐"
     if (facts.ci_pending_count or 0) > 0:
         return "⏳"
     return "✅"
@@ -237,11 +251,17 @@ def render_pr_tables(
         "⏳ review pending · 💬 open review thread · 📌 top-level feedback needs author action · "
         "🔴 changes requested."
     )
+    ci_note = (
+        "CI column: ✅ passing · ⏳ running · ❌ failing · "
+        "🔐 workflow action required."
+    )
     out: list[str] = [
         "> [!NOTE]",
         f"> {grouping_note}",
         ">",
         f"> {reviewers_note}",
+        ">",
+        f"> {ci_note}",
         "",
     ]
 
