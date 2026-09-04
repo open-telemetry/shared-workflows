@@ -1,4 +1,5 @@
 import contextlib
+from datetime import datetime
 import io
 import json
 import sys
@@ -158,6 +159,24 @@ class RebuildTest(unittest.TestCase):
             rebuilt["measurements_updated_at"],
         )
         self.assertNotIn("generated_at", rebuilt)
+
+    def test_rebuild_uses_one_measurement_date(self) -> None:
+        with patch.object(regenerate_baseline, "datetime") as clock:
+            clock.now.side_effect = [
+                datetime.fromisoformat("2026-09-02T23:59:59+00:00"),
+                datetime.fromisoformat("2026-09-03T00:00:00+00:00"),
+            ]
+
+            rebuilt = rebuild(
+                payload(case("a")),
+                [{"a": "author_action"}],
+                "model",
+            )
+
+        self.assertEqual("2026-09-02", rebuilt["baseline_generated_at"])
+        self.assertEqual("2026-09-02", rebuilt["measurements_updated_at"])
+        self.assertEqual("2026-09-02", rebuilt["cases"][0]["measurement_date"])
+        clock.now.assert_called_once_with(regenerate_baseline.UTC)
 
 
 class RunBatchCachingTest(unittest.TestCase):
