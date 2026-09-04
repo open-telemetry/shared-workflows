@@ -1419,10 +1419,12 @@
         ],
         "author": "jmacd",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/3886#issuecomment-5455803775"
+        ],
         "author_nudge_episode_id": "76b3a0f0e8fd4eaa887723480124b1b0",
         "ci_failing_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 1,
         "conflicts": "no",
         "copilot_request_fingerprint": "9a50d7861138e7e42e18d8fff32d064f48fe17dfc1c9163a0dfffbe78d55e0e2",
         "copilot_review_exists": true,
@@ -1445,6 +1447,15 @@
         "last_author_activity_at": "2026-09-04T16:15:06+00:00",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "AvinashDevX",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -1473,25 +1484,18 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-04T16:16:27.286024+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "19e29e5f9480994ed36aae18b291356c08ec568bcb7ea003c9316d97d43e1613",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "397fbec20c6048c7082488578d5d11a872f89caf3063f9bea08492cdd04b1b4f",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-08-28T17:44:02+00:00"
       },
       "failed": false,
       "pr_number": 3886,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3886",
       "route": "author",
-      "top_level_history": {
-        "pr-issue-comment-5455803775": {
-          "evidence": {
-            "reply": "2026-09-01T00:04:32Z"
-          },
-          "reply_source_id": 5486522306
-        }
-      }
+      "top_level_history": {}
     },
     "3887": {
       "facts": {
