@@ -634,7 +634,9 @@ def append_command_ack_reply(
     The reply carries markers that record the command binding, permanent
     feedback cutoff, and persistent handoff. A command superseded by reviewer
     feedback is acknowledged in the status comment instead of producing another
-    top-level comment.
+    top-level comment. A persistent handoff that currently routes to the author
+    stays unacknowledged until a reviewer route returns, so the reply always
+    records the handoff it announces.
     """
     cleared_by_feedback = facts.dashboard_override_cleared_by_feedback
     command_id = (
@@ -652,6 +654,8 @@ def append_command_ack_reply(
         or _override_command_effective_at(source.issue_comments, command_id)
     )
     if cleared_by_feedback:
+        return facts.with_changes(dashboard_override_since=override_since)
+    if facts.dashboard_override_persistent and route is DashboardRoute.AUTHOR:
         return facts.with_changes(dashboard_override_since=override_since)
     kind = "routed"
     replies = facts.dashboard_command_replies

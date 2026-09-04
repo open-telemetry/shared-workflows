@@ -785,6 +785,100 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
+    def test_persistent_handoff_without_head_defers_acknowledgement(
+        self,
+        fetch_raw: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha=""),
+            issue_comments=(
+                issue_comment(
+                    database_id=102,
+                    body="/dashboard route:reviewers",
+                    created_at="2026-08-16T08:00:00Z",
+                ),
+            ),
+            review_threads=(
+                review_thread(
+                    node_id="thread-1",
+                    comments=(
+                        review_thread_comment(
+                            body="Please update this.",
+                            created_at="2026-08-16T09:00:00Z",
+                        ),
+                    ),
+                ),
+            ),
+        )
+        classification = action_classification(
+            "thread-1",
+            DiscussionKind.REVIEW_THREAD,
+            DiscussionAction.AUTHOR,
+            "The reviewer requested a change.",
+        )
+        classifier = FakeClassificationOperation(
+            DiscussionClassifications((classification,), (), ())
+        )
+
+        result = evaluate_pr(
+            {"number": 7},
+            previous_result=stored_dashboard_result(
+                7,
+                route=DashboardRoute.APPROVER,
+                facts=dashboard_facts(
+                    dashboard_override_command_id=102,
+                    dashboard_override_bound_command_id=102,
+                    dashboard_override_command_user="author",
+                    dashboard_override_head_sha="abcdef123456",
+                    dashboard_override_since="2026-08-16T08:00:00Z",
+                    dashboard_override_persistent=True,
+                    dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+                ),
+            ),
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.AUTHOR, result.route)
+        self.assertTrue(result.facts.dashboard_override_persistent)
+        self.assertEqual((), result.facts.dashboard_command_replies)
+
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(head_sha="abcdef123456"),
+            issue_comments=fetch_raw.return_value.issue_comments,
+            review_threads=fetch_raw.return_value.review_threads,
+        )
+        resumed = evaluate_pr(
+            {"number": 7},
+            previous_result=stored_dashboard_result(
+                7,
+                route=result.route,
+                facts=result.facts,
+            ),
+            classification_service=classifier,
+        )
+
+        self.assertIsInstance(resumed, EvaluationSuccess)
+        assert isinstance(resumed, EvaluationSuccess)
+        self.assertEqual(DashboardRoute.APPROVER, resumed.route)
+        self.assertEqual(
+            (
+                DashboardCommandReply(
+                    102,
+                    "routed",
+                    "author",
+                    head_sha="abcdef123456",
+                    route=DashboardRoute.APPROVER,
+                    since="2026-08-16T08:00:00Z",
+                    top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+                    persistent_handoff=True,
+                ),
+            ),
+            resumed.facts.dashboard_command_replies,
+        )
+
+    @patch("pull_request_evaluation.fetch_pull_request_source")
     def test_actionable_feedback_after_push_ends_persistent_handoff(
         self,
         fetch_raw: Mock,
