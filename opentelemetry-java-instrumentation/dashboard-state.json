@@ -2278,7 +2278,7 @@
     },
     "19985": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2287,7 +2287,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "46ce70a73189a3cf4a55d84113d226320bcac0f3a3853961b38d354b1888eca1",
+        "copilot_request_fingerprint": "1547b0e7708aae8215193ca5b544f834cfd1c7e1ecb3dc688daed1f3b1be82e5",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2303,16 +2303,26 @@
         "head_sha": "6785fa6d87701597c7ffa292f091a74ecb90a73d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-04T13:30:31+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-04T13:59:48+00:00",
+        "last_approver_activity_at": "2026-09-04T13:59:48+00:00",
         "last_author_activity_at": "2026-09-04T13:29:03+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-09-04T13:58:43.435642+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "02ab6b2a056567dceab6e74283d8f260eb8bafc7f9305617182700ab4169bf81",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "1302637c6d44b319388de0e53267f95b84e97752485138cbc69a171842d26f2e",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-04T13:30:31+00:00"
       },
       "failed": false,
