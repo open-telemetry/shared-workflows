@@ -3590,16 +3590,15 @@
     },
     "7067": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "pichlermarc",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "bda2ab6002ca45fc86632555f1c0f614",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e3ce584ef932c9604bebbb50a87f87e6df833e07a8a85fe20892fb8ba220906c",
+        "copilot_request_fingerprint": "aa0449bba523c8135914196fbebc3e4b74220e5071975d3b87f43fe42a886834",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3615,22 +3614,31 @@
         "head_sha": "4ecbd72f61b316e624ce56d2264c80c51a867ccb",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-04T15:01:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-04T15:32:30+00:00",
+        "last_approver_activity_at": "2026-09-04T15:32:30+00:00",
         "last_author_activity_at": "2026-09-04T14:59:38+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-04T15:02:17.801698+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "david-luna",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3cca0978c59b4009fe78e68ed0e197e3fc32c66e209a554de33e8fbcd7e3ae8e",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-04T15:01:42+00:00"
+        "routing_input_fingerprint": "f01b6367804d2e5c8ccea0dfa618cb8ecd687ec9f5a3996c3e6574ed88350a03",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-04T15:32:48.279115+00:00"
       },
       "failed": false,
       "pr_number": 7067,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7067",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
