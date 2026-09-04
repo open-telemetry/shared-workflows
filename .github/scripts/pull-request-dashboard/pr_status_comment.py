@@ -218,6 +218,18 @@ def author_body(
     return [fallback_next_step]
 
 
+def workflow_action_required_summary(count: int) -> str:
+    if count == 1:
+        return (
+            "1 required check needs action from someone with write access "
+            "to this repository."
+        )
+    return (
+        f"{count} required checks need action from someone with write access "
+        "to this repository."
+    )
+
+
 def is_terminal_pr(pr: dict[str, Any]) -> bool:
     return bool(pr.get("merged")) or (pr.get("state") or "").lower() == "closed"
 
@@ -237,6 +249,9 @@ def render_status_comment(
     top_level_feedback_urls = facts.author_action_top_level_feedback_urls
     feedback_count = len(review_thread_urls) + len(top_level_feedback_urls)
     failing_count = facts.ci_failing_count or 0
+    maintainer_action_required_count = (
+        facts.ci_maintainer_action_required_count or 0
+    )
     non_blocking_check_failures = facts.non_blocking_check_failures
 
     override_route = ""
@@ -291,7 +306,14 @@ def render_status_comment(
             body = (
                 ["Resolve merge conflicts, then merge when ready."]
                 if conflicted and route is DashboardRoute.MAINTAINER
-                else [next_step]
+                else (
+                    ["Approve or otherwise unblock the required workflow checks."]
+                    if (
+                        route is DashboardRoute.MAINTAINER
+                        and maintainer_action_required_count
+                    )
+                    else [next_step]
+                )
             )
             abandoned_gates = (
                 abandoned_gate_note(facts)
@@ -319,6 +341,16 @@ def render_status_comment(
                 body.extend(["", f"**{label}:** {names}"])
             if conflicted and route is not DashboardRoute.MAINTAINER:
                 body.extend(["", "**Also blocked by:** Merge conflicts."])
+        if maintainer_action_required_count:
+            body.extend([
+                "",
+                (
+                    "**Workflow action required:** "
+                    + workflow_action_required_summary(
+                        maintainer_action_required_count
+                    )
+                ),
+            ])
 
     lines = [
         STATUS_MARKER,

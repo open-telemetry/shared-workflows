@@ -248,12 +248,14 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                 "approver",
             ),
             (
-                "maintenance bot approval threshold",
+                "Dependabot approval threshold",
                 {
+                    "author": "app/dependabot",
                     "approval_count": 1,
                     "ci_failing_count": 1,
                     "ci_pending_count": 0,
                     "is_maintenance_bot": True,
+                    "author_can_act": False,
                 },
                 {},
                 2,
@@ -285,6 +287,53 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertEqual("author", outcome.route)
         self.assertEqual("2026-07-17T01:00:00+00:00", outcome.facts.waiting_since)
         self.assertEqual("ci_failure", outcome.facts.waiting_age_basis)
+
+    def test_only_maintainer_owned_check_actions_route_by_approval_count(
+        self,
+    ) -> None:
+        for approval_count, expected in (
+            (0, DashboardRoute.APPROVER),
+            (1, DashboardRoute.MAINTAINER),
+        ):
+            with self.subTest(approval_count=approval_count):
+                outcome = self.resolve({
+                    "approval_count": approval_count,
+                    "ci_failing_count": 0,
+                    "ci_maintainer_action_required_count": 1,
+                    "ci_pending_count": 0,
+                    "is_maintenance_bot": False,
+                })
+
+                self.assertEqual(expected, outcome.route)
+                self.assertFalse(outcome.facts.required_checks_settled)
+                self.assertFalse(outcome.facts.route_held_for_gates)
+
+    def test_genuine_failure_wins_over_maintainer_owned_check_action(
+        self,
+    ) -> None:
+        outcome = self.resolve({
+            "approval_count": 1,
+            "ci_failing_count": 1,
+            "ci_maintainer_action_required_count": 1,
+            "ci_pending_count": 0,
+            "is_maintenance_bot": False,
+        })
+
+        self.assertEqual(DashboardRoute.AUTHOR, outcome.route)
+
+    def test_pending_checks_still_hold_maintainer_owned_action_route(
+        self,
+    ) -> None:
+        outcome = self.resolve({
+            "approval_count": 0,
+            "ci_failing_count": 0,
+            "ci_maintainer_action_required_count": 1,
+            "ci_pending_count": 1,
+            "is_maintenance_bot": False,
+        })
+
+        self.assertEqual(DashboardRoute.AUTHOR, outcome.route)
+        self.assertTrue(outcome.facts.route_held_for_gates)
 
     def test_reviewer_handoff_supports_persistent_and_legacy_bindings(self) -> None:
         self.assertTrue(
@@ -387,16 +436,63 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertEqual("author", outcome.route)
         self.assertTrue(outcome.facts.route_held_for_gates)
 
-    def test_maintenance_bot_hold_falls_back_to_approvers(self) -> None:
-        outcome = self.resolve(
-            {
-                "approval_count": 1,
-                "ci_pending_count": 1,
-                "is_maintenance_bot": True,
+    def test_opentelemetrybot_pr_never_routes_to_its_author(self) -> None:
+        facts = {
+            "author": "opentelemetrybot",
+            "ci_failing_count": 1,
+            "ci_pending_count": 0,
+            "is_maintenance_bot": True,
+            "author_can_act": False,
+        }
+        pending_actions = {
+            "thread": {
+                "action": "author",
+                "since": "2026-08-11T13:44:18Z",
             }
+        }
+
+        awaiting_approval = self.resolve(
+            {**facts, "approval_count": 0},
+            pending_actions,
+            required_approvals=2,
+        )
+        approved = self.resolve(
+            {**facts, "approval_count": 1},
+            pending_actions,
+            required_approvals=2,
         )
 
-        self.assertEqual("approver", outcome.route)
+        self.assertEqual("approver", awaiting_approval.route)
+        self.assertEqual("maintainer", approved.route)
+
+    def test_other_automation_uses_the_configured_approval_threshold(self) -> None:
+        facts = {
+            "author": "app/custom-automation",
+            "author_can_act": False,
+            "ci_failing_count": 1,
+            "ci_pending_count": 0,
+            "is_maintenance_bot": False,
+        }
+        pending_actions = {
+            "thread": {
+                "action": "author",
+                "since": "2026-08-11T13:44:18Z",
+            }
+        }
+
+        one_approval = self.resolve(
+            {**facts, "approval_count": 1},
+            pending_actions,
+            required_approvals=2,
+        )
+        two_approvals = self.resolve(
+            {**facts, "approval_count": 2},
+            pending_actions,
+            required_approvals=2,
+        )
+
+        self.assertEqual("approver", one_approval.route)
+        self.assertEqual("maintainer", two_approvals.route)
 
     def test_a_newly_classified_maintenance_bot_falls_back_to_approvers(self) -> None:
         # A cached result can still say "author" when the pull request author
@@ -408,6 +504,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                 "ci_pending_count": 1,
                 "head_sha": "abc",
                 "is_maintenance_bot": True,
+                "author_can_act": False,
             },
             previous_route="author",
         )

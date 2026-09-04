@@ -1041,6 +1041,23 @@ class StaleRequestReasonTest(unittest.TestCase):
             ),
         )
 
+    def test_request_recorded_while_pending_is_stale_after_action_required(
+        self,
+    ) -> None:
+        # The unchanged fingerprint models a request recorded while this check
+        # was pending because check results are not part of that fingerprint.
+        self.assertEqual(
+            "required checks are failing: build",
+            self.reason(
+                raw={
+                    "checks": [
+                        {"name": "build", "bucket": "action_required"},
+                        {"name": "lint", "bucket": "pass"},
+                    ],
+                },
+            ),
+        )
+
     def test_summarizes_long_lists_of_failing_checks(self) -> None:
         self.assertEqual(
             "required checks are failing: a, b, c and 2 more",

@@ -288,7 +288,9 @@ the implementation understandable and operationally cheap.
   CI failure, including when review feedback also needs author action.
   Repository-configured `non_blocking_check_patterns` identify failed optional
   checks in a note alongside this action, without changing required-check facts
-  or routing.
+  or routing. An optional check in `ACTION_REQUIRED` is not included in that
+  failure-only note: it does not block merge and has neither failed nor been
+  cancelled.
 - A merge conflict does not decide who should act. Discussion, CI, and approval
   routing still identify the owner, while the conflict remains visible as a
   separate merge blocker. This lets maintainers handle routine conflicts, such
@@ -309,6 +311,16 @@ the implementation understandable and operationally cheap.
   author is never held, because a failing check or new author-owned discussion
   is evidence the gates cannot undo. Unavailable check results hold the handoff
   for the same reason a pending one does, and resolve on a later run.
+- An `ACTION_REQUIRED` check from the GitHub Actions app with an attached
+  workflow run is the exception to that hold. That metadata identifies a
+  workflow approval: a final, reported result that still blocks merge because
+  someone with repository write access must unblock the workflow. It remains
+  unsettled and appears as 🔐 in the CI column, but it does not hold routing
+  with the author. The PR routes to reviewers while approvals are outstanding,
+  then to maintainers once it has enough approvals. `ACTION_REQUIRED` from
+  another app, or without a workflow run, has unknown ownership and routes
+  conservatively as a failure. A genuine or unknown-owner required-check
+  failure alongside a workflow approval also routes to the author.
 - A held PR is presented as waiting on its author rather than on the robot it
   is waiting for, so a separate route would add a section that nobody is
   expected to act on. What it waits for is named in the columns instead: the CI
@@ -344,11 +356,17 @@ the implementation understandable and operationally cheap.
   with reviewers and is released to maintainers keeps its wait, because it never
   left the people who owe it a response, and restarting there would present an
   approval a week old as a merge request that just arrived.
-- Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
-  respond to a dashboard action. Pending required checks affect the CI column
-  but never route one of these PRs to its author: a bot PR whose handoff is
-  held waits on reviewers instead. Merge conflicts remain visible without
-  overriding that routing.
+- PRs from unattended automation never route to their author because the
+  automation cannot respond to a dashboard action. Copilot-delegated PRs are
+  different. The dashboard recovers a human assignee or the first commit's
+  human committer as the effective author, so that person can receive the
+  author route. Pending required checks affect the CI column, and a bot PR
+  whose handoff is held waits on reviewers instead. Known maintenance bots use
+  a one-approval threshold; other automation uses the repository's configured
+  threshold. Compatible cached state derives a missing author-capability fact
+  from the effective author identity and discards a stale author-routed result
+  for reevaluation, while an explicit stored value wins. Merge conflicts remain
+  visible without overriding that routing.
 - A hold has a time limit, and past it the PR routes anyway. Every gate waits on
   something outside the dashboard, and each one has been seen never to arrive: a
   required check with no check run on the head, a Copilot review GitHub never

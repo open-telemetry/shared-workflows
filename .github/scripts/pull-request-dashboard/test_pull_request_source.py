@@ -149,7 +149,13 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
                         "state": "SUCCESS",
                         "bucket": "pass",
                         "integration_id": 1,
-                    }
+                    },
+                    {
+                        "name": "workflow approval",
+                        "state": "ACTION_REQUIRED",
+                        "bucket": "maintainer_action_required",
+                        "integration_id": 2,
+                    },
                 ],
                 "non_blocking_check_failures": [
                     {
@@ -200,6 +206,10 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
             .user_logins,
         )
         self.assertEqual("pass", source.checks[0].bucket)
+        self.assertEqual(
+            "maintainer_action_required",
+            source.checks[1].bucket,
+        )
         self.assertEqual("optional", source.non_blocking_failures[0].name)
 
     def test_normalizes_bot_and_human_actor_cases(self) -> None:

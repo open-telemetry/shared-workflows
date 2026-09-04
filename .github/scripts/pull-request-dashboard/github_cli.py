@@ -14,6 +14,7 @@ GH_RETRY_DELAY_SECONDS = 1.5
 DEFAULT_OWNER = "open-telemetry"
 COPILOT_REVIEWER_BOT_ID = "BOT_kgDOCnlnWA"
 CODE_SCANNING_APP_ID = 57789  # github-advanced-security
+GITHUB_ACTIONS_APP_ID = 15368
 
 
 REQUEST_COPILOT_REVIEW_MUTATION = """
@@ -368,12 +369,24 @@ query($id: ID!, $after: String) {
 """
 
 
-def check_bucket(state: str) -> str:
+def check_bucket(
+    state: str,
+    *,
+    integration_id: int | None = None,
+    workflow_run_id: int | None = None,
+) -> str:
     if state == "SUCCESS":
         return "pass"
     if state in ("SKIPPED", "NEUTRAL"):
         return "skipping"
-    if state in ("ERROR", "FAILURE", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"):
+    if state == "ACTION_REQUIRED":
+        if (
+            integration_id == GITHUB_ACTIONS_APP_ID
+            and workflow_run_id is not None
+        ):
+            return "maintainer_action_required"
+        return "action_required"
+    if state in ("ERROR", "FAILURE", "TIMED_OUT", "STARTUP_FAILURE"):
         return "fail"
     if state == "CANCELLED":
         return "cancel"
@@ -386,6 +399,8 @@ def normalize_check(node: dict[str, Any]) -> dict[str, Any]:
     app = suite.get("app") or {}
     workflow_run = suite.get("workflowRun") or {}
     workflow = workflow_run.get("workflow") or {}
+    integration_id = None if is_status else app.get("databaseId")
+    workflow_run_id = None if is_status else workflow_run.get("databaseId")
     state = (
         node.get("state")
         if is_status
@@ -394,15 +409,19 @@ def normalize_check(node: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": (node.get("context") if is_status else node.get("name")) or "",
         "state": state,
-        "bucket": check_bucket(state),
+        "bucket": check_bucket(
+            state,
+            integration_id=integration_id,
+            workflow_run_id=workflow_run_id,
+        ),
         "workflow": workflow.get("name") or "",
-        "workflow_run_id": workflow_run.get("databaseId"),
+        "workflow_run_id": workflow_run_id,
         "description": node.get("description") or "",
         "link": (node.get("targetUrl") if is_status else node.get("detailsUrl")) or "",
         "started_at": (node.get("createdAt") if is_status else node.get("startedAt")) or "",
         "completed_at": (node.get("createdAt") if is_status else node.get("completedAt")) or "",
         "check_run_id": None if is_status else check_run_id(node["url"]),
-        "integration_id": None if is_status else app.get("databaseId"),
+        "integration_id": integration_id,
         "status_context": is_status,
     }
 
@@ -494,7 +513,8 @@ def gh_pr_check_rollup(
         "non_blocking_failures": [
             check
             for check, is_required in checks
-            if not is_required and check.get("bucket") in ("fail", "cancel")
+            if not is_required
+            and check.get("bucket") in ("fail", "cancel")
         ],
         "code_scanning": [
             check

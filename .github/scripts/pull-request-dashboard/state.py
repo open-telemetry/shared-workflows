@@ -20,6 +20,7 @@ from dashboard_contracts import (
 )
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
+from utils import is_unattended_author_login
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
@@ -52,7 +53,7 @@ COPILOT_REVIEW_REQUEST_STATE_VERSION = 6
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 2
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 17
+STATUS_COMMENT_REVISION = 19
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -471,8 +472,9 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         raw_reviewers = []
     if not isinstance(raw_reviewers, list):
         raise ValueError("facts.reviewers must be an array")
+    author = _string(value.get("author", _MISSING), "facts.author")
     return DashboardFacts(
-        author=_string(value.get("author", _MISSING), "facts.author"),
+        author=author,
         assignees=_string_tuple(
             value.get("assignees", _MISSING),
             "facts.assignees",
@@ -542,6 +544,11 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             value.get("is_maintenance_bot", _MISSING),
             "facts.is_maintenance_bot",
         ),
+        author_can_act=_boolean(
+            value.get("author_can_act", _MISSING),
+            "facts.author_can_act",
+            not is_unattended_author_login(author),
+        ),
         is_draft=_boolean(
             value.get("is_draft", _MISSING),
             "facts.is_draft",
@@ -578,6 +585,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         ci_failing_since=_optional_string(
             value.get("ci_failing_since"),
             "facts.ci_failing_since",
+        ),
+        ci_maintainer_action_required_count=_optional_integer(
+            value.get("ci_maintainer_action_required_count"),
+            "facts.ci_maintainer_action_required_count",
         ),
         ci_pending_count=_optional_integer(
             value.get("ci_pending_count"),
@@ -662,6 +673,7 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         "copilot_review_stale": facts.copilot_review_stale,
         "copilot_review_needed": facts.copilot_review_needed,
         "is_maintenance_bot": facts.is_maintenance_bot,
+        "author_can_act": facts.author_can_act,
         "is_draft": facts.is_draft,
         "approval_count": facts.approval_count,
         "conflicts": facts.conflicts,
@@ -706,6 +718,10 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["ci_failing_count"] = facts.ci_failing_count
     if facts.ci_failing_since is not None:
         stored["ci_failing_since"] = facts.ci_failing_since
+    if facts.ci_maintainer_action_required_count is not None:
+        stored["ci_maintainer_action_required_count"] = (
+            facts.ci_maintainer_action_required_count
+        )
     if facts.ci_pending_count is not None:
         stored["ci_pending_count"] = facts.ci_pending_count
     if facts.non_blocking_check_failures:
@@ -751,6 +767,11 @@ def decode_stored_result(
         history = {}
     if not isinstance(history, dict):
         raise ValueError("dashboard result top_level_history must be an object")
+    facts = decode_dashboard_facts(
+        value["facts"] if "facts" in value else {}
+    )
+    if route is DashboardRoute.AUTHOR and not facts.author_can_act:
+        raise ValueError("dashboard result author route requires an actionable author")
     return StoredDashboardResult(
         pr_number=pr_number,
         pr_url=_string(
@@ -758,9 +779,7 @@ def decode_stored_result(
             "dashboard result pr_url",
         ),
         route=route,
-        facts=decode_dashboard_facts(
-            value["facts"] if "facts" in value else {}
-        ),
+        facts=facts,
         top_level_history=freeze_json_object(history),
     )
 

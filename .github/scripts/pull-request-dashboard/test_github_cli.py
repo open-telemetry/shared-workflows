@@ -5,6 +5,7 @@ from unittest.mock import ANY, patch
 
 from github_cli import (
     TransientGhError,
+    check_bucket,
     code_scanning_tools,
     fetch_pr_issue_comments,
     fetch_pr_reviews,
@@ -19,6 +20,7 @@ from github_cli import (
     is_retryable_gh_error,
     list_open_prs,
     merge_code_scanning_checks,
+    normalize_check,
     request_copilot_review,
     required_check_contexts,
     required_code_scanning_checks,
@@ -131,6 +133,72 @@ class FetchReviewRequestsTest(unittest.TestCase):
 
 
 class GithubCliTest(unittest.TestCase):
+    def test_generic_action_required_keeps_unknown_ownership(self) -> None:
+        self.assertEqual(
+            "action_required",
+            check_bucket("ACTION_REQUIRED"),
+        )
+        self.assertEqual("fail", check_bucket("FAILURE"))
+        self.assertEqual("pending", check_bucket("IN_PROGRESS"))
+
+    def test_actions_workflow_approval_has_a_maintainer_owned_bucket(
+        self,
+    ) -> None:
+        check = normalize_check({
+            "__typename": "CheckRun",
+            "name": "build",
+            "status": "COMPLETED",
+            "conclusion": "ACTION_REQUIRED",
+            "url": "https://github.com/open-telemetry/example/runs/1",
+            "checkSuite": {
+                "app": {"databaseId": 15368},
+                "workflowRun": {
+                    "databaseId": 101,
+                    "workflow": {"name": "CI"},
+                },
+            },
+        })
+
+        self.assertEqual("maintainer_action_required", check["bucket"])
+
+    def test_actions_action_required_without_a_workflow_run_is_generic(
+        self,
+    ) -> None:
+        check = normalize_check({
+            "__typename": "CheckRun",
+            "name": "custom check",
+            "status": "COMPLETED",
+            "conclusion": "ACTION_REQUIRED",
+            "url": "https://github.com/open-telemetry/example/runs/1",
+            "checkSuite": {"app": {"databaseId": 15368}},
+        })
+
+        self.assertEqual("action_required", check["bucket"])
+
+    @patch("github_cli.gh_graphql")
+    def test_optional_action_required_check_remains_non_blocking(
+        self,
+        graphql,
+    ) -> None:
+        graphql.return_value = _rollup_page([{
+            "__typename": "CheckRun",
+            "name": "optional-deploy",
+            "status": "COMPLETED",
+            "conclusion": "ACTION_REQUIRED",
+            "url": "https://github.com/open-telemetry/example/runs/1",
+            "isRequired": False,
+        }])
+
+        rollup = gh_pr_check_rollup(
+            "open-telemetry/example",
+            "PR_id",
+            ["optional-*"],
+        )
+
+        assert rollup is not None
+        self.assertEqual([], rollup["required"])
+        self.assertEqual([], rollup["non_blocking_failures"])
+
     @patch("github_cli.run_gh_json")
     def test_pr_view_fetches_body_for_routing_freshness(self, run_json) -> None:
         run_json.return_value = {"mergeable": "MERGEABLE"}

@@ -102,6 +102,7 @@ class DashboardFacts:
     copilot_review_stale: bool = False
     copilot_review_needed: bool = False
     is_maintenance_bot: bool = False
+    author_can_act: bool = True
     is_draft: bool = False
     approval_count: int = 0
     conflicts: str = "unknown"
@@ -111,6 +112,7 @@ class DashboardFacts:
     last_approver_activity_at: str = ""
     ci_failing_count: int | None = None
     ci_failing_since: str | None = None
+    ci_maintainer_action_required_count: int | None = None
     ci_pending_count: int | None = None
     non_blocking_check_failures: tuple[str, ...] = ()
     copilot_first_review_missing_since: str | None = None

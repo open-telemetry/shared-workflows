@@ -66,6 +66,24 @@ def actor_login(obj: dict[str, Any] | None) -> str:
     return ((obj or {}).get("login") or "").strip()
 
 
+def normalize_author_identity(login: str) -> str:
+    normalized = (login or "").strip().casefold()
+    if normalized.startswith("app/"):
+        return normalized.removeprefix("app/")
+    if normalized.endswith("[bot]"):
+        return normalized.removesuffix("[bot]")
+    return normalized
+
+
+def is_unattended_author_login(login: str) -> bool:
+    normalized = (login or "").strip().casefold()
+    return (
+        normalized == "opentelemetrybot"
+        or normalized.startswith("app/")
+        or normalized.endswith("[bot]")
+    )
+
+
 # Every login GitHub has used for the Copilot reviewer, lowercased.
 COPILOT_REVIEWER_LOGINS = frozenset({
     "copilot",
@@ -80,11 +98,23 @@ def is_copilot_reviewer_login(login: str) -> bool:
 
 
 def required_checks_settled(facts: DashboardFacts) -> bool:
-    # A route computed while checks are still running is provisional because a
-    # failure becomes visible only after the check completes.
     if facts.ci_pending_count is None:
         return False
-    return not facts.ci_pending_count
+    return not (
+        facts.ci_pending_count
+        or facts.ci_maintainer_action_required_count
+    )
+
+
+def required_checks_unreported(facts: DashboardFacts) -> bool:
+    # A route computed while checks are still running is provisional because a
+    # failure becomes visible only after the check completes.
+    if facts.required_checks_settled:
+        return False
+    return (
+        facts.ci_pending_count is None
+        or facts.ci_pending_count > 0
+    )
 
 
 def format_ts(ts: datetime | None) -> str:
