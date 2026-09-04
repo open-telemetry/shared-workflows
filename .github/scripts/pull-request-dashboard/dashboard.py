@@ -738,10 +738,20 @@ def apply_targeted_dashboard_update(
 def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) -> int:
     if args.pr_number is None:
         raise RuntimeError("update_dashboard_for_pr_number requires --pr-number")
+    publisher_lock_wait_seconds = getattr(
+        args,
+        "publisher_lock_wait_seconds",
+        state_branch.DEFAULT_PUBLISHER_LOCK_WAIT_SECONDS,
+    )
 
     state_branch.configure_git()
     state_branch.checkout_state(state_dir, args.state_branch, require_existing=False)
     try:
+        state_branch.wait_for_publisher_unlock(
+            state_dir,
+            args.state_branch,
+            wait_seconds=publisher_lock_wait_seconds,
+        )
         update = build_targeted_dashboard_update(args)
     finally:
         state_branch.remove_existing_state_dir(state_dir)
@@ -755,11 +765,18 @@ def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) ->
         "Update dashboard state",
         lambda: apply_targeted_dashboard_update(args, update, observed_at),
         state_branch=args.state_branch,
+        respect_publisher_lock=True,
+        publisher_lock_wait_seconds=publisher_lock_wait_seconds,
     )
 
 
 def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> int:
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
+    publisher_lock_wait_seconds = getattr(
+        args,
+        "publisher_lock_wait_seconds",
+        state_branch.DEFAULT_PUBLISHER_LOCK_WAIT_SECONDS,
+    )
     owner, repo_name = repo.split("/", 1)
     prs = list_open_prs(repo)
     open_pr_numbers = {p["number"] for p in prs}
@@ -790,6 +807,8 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 observed_at,
             ),
             state_branch=args.state_branch,
+            respect_publisher_lock=True,
+            publisher_lock_wait_seconds=publisher_lock_wait_seconds,
         )
         if status != 0:
             return status
@@ -815,6 +834,8 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             "Update dashboard state",
             save_current_dashboard_state,
             state_branch=args.state_branch,
+            respect_publisher_lock=True,
+            publisher_lock_wait_seconds=publisher_lock_wait_seconds,
         )
 
     for pr_summary in selection.selected_prs:
@@ -883,6 +904,8 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
             "Update dashboard state",
             update_selected_pr,
             state_branch=args.state_branch,
+            respect_publisher_lock=True,
+            publisher_lock_wait_seconds=publisher_lock_wait_seconds,
         )
         if status != 0:
             return status
@@ -958,13 +981,25 @@ def main() -> int:
         type=Path,
         help="append initial_backfill_complete to this GitHub Actions output file",
     )
+    parser.add_argument(
+        "--publisher-lock-wait-seconds",
+        type=int,
+        default=state_branch.DEFAULT_PUBLISHER_LOCK_WAIT_SECONDS,
+        help="maximum time to wait for an active dashboard publisher",
+    )
     args = parser.parse_args()
     if args.required_approvals < 1:
         parser.error("--required-approvals must be at least 1")
+    if args.publisher_lock_wait_seconds < 0:
+        parser.error("--publisher-lock-wait-seconds must be non-negative")
     with state_branch.temporary_state_dir() as state_dir:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
-        status = update_dashboard_via_state_branch(args, state_dir)
+        try:
+            status = update_dashboard_via_state_branch(args, state_dir)
+        except state_branch.PublisherLockTimeoutError as error:
+            print(error, file=sys.stderr)
+            return state_branch.PUBLISHER_LOCK_BUSY_STATUS
         if args.github_output and status in (0, BACKFILL_RECORDED_FAILURE_STATUS):
             write_initial_backfill_output(args.github_output)
         return status

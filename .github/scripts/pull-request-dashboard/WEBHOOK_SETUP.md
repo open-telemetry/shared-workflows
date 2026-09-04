@@ -53,11 +53,12 @@ No Netlify runtime token is shared with the drain workflow. The existing
 `NETLIFY_AUTH_TOKEN` remains limited to deployment and environment
 configuration.
 
-The `dashboard-queue-recover` scheduled function reclaims expired worker and
-dispatcher leases. A new event normally starts the singleton drain immediately;
-scheduled recovery is only a failure backstop. An item whose lease expires
-repeatedly without an acknowledgment is moved to the shard's dead letters
-instead of being requeued forever.
+The `dashboard-queue-recover` scheduled function runs every five minutes. It
+reclaims expired worker and dispatcher leases, and it starts a drain for claims
+whose retry delay has elapsed. A new event normally starts the singleton drain
+immediately, and a later event can also pick up a delayed claim once its delay
+passes. An item whose lease expires repeatedly without an acknowledgment is
+moved to the shard's dead letters instead of being requeued forever.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
 PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->

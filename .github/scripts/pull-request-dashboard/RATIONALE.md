@@ -102,9 +102,14 @@ the implementation understandable and operationally cheap.
   one even when `cancel-in-progress` is false. Direct and queued publishers also
   acquire a lease stored on the repository's state branch. This shared lock
   prevents the drain from overlapping the direct concurrency group while either
-  path performs external delivery or publishes the issue. Accepted work lives
-  on the state branch: a targeted publisher limits status-comment and Slack
-  delivery to its triggering PR. Webhook runs can arrive concurrently for many
+  path performs external delivery or publishes the issue. Dashboard state
+  writers treat an active lease as a write barrier. Direct writers wait for the
+  publisher to finish. Queue drains do not hold a runner while waiting: they
+  return the repository's claims to the durable queue with a retry delay. A
+  writer that races lease acquisition loses its compare-and-swap push and waits
+  or returns its work on the next attempt. Accepted work lives on the state
+  branch: a targeted publisher limits status-comment and Slack delivery to its
+  triggering PR. Webhook runs arrive concurrently for many
   PRs, so allowing each publisher to fan out into repository-wide delivery
   would create long jobs and put pressure on the GitHub Actions job queue,
   especially when a new status-comment revision queues every open PR. The
@@ -134,6 +139,13 @@ the implementation understandable and operationally cheap.
   do not contend on the same git ref during scheduled and webhook-driven runs.
 - Updates use `git push --force-with-lease`, so git refs provide the durable
   compare-and-swap boundary for concurrent same-repository runs.
+- Before each compare-and-swap attempt, dashboard state writers respect an
+  active publisher lease. Direct writers wait without consuming a retry. Queue
+  drains fail fast and return their claims with a five-minute retry delay. The
+  delay does not consume the claim's processing-failure budget. The claims become
+  runnable after that delay; a recovery scan runs every five minutes to start
+  their next drain. The lease and compare-and-swap check together prevent a
+  stream of state commits from starving delivery.
 - A missing repository state branch is bootstrapped by non-PR backfills. The
   dashboard state records when every open non-draft PR has been populated at
   least once. Targeted PR runs, dashboard publishing, status comments, and
@@ -710,6 +722,7 @@ the implementation understandable and operationally cheap.
   durable ledgers; Slack eligibility is reconstructed from accepted dashboard
   and notification state.
 - The dashboard issue is rendered from `dashboard-state.json` and the target
-  repository's current open PR list after delivery. If another update advances
-  the state branch while a publisher is already working, external views can
-  briefly lag until the next publisher.
+  repository's current open PR list after delivery. The state-branch lease keeps
+  accepted-state commits from advancing while a publisher works. A writer and
+  publisher can race before the lease commit; compare-and-swap selects one, and
+  the loser refetches before continuing.
