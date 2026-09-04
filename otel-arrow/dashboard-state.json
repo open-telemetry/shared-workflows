@@ -3019,53 +3019,39 @@
         "approval_count": 2,
         "assignees": [],
         "author": "lquerel",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/otel-arrow/pull/3998#discussion_r3929202797"
-        ],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/otel-arrow/pull/3998#pullrequestreview-5107814098"
-        ],
+        "author_action_review_thread_urls": [],
+        "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "c081d80a8c6144d5a8b52eb0a443d7ce",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-09-03T23:35:39+00:00",
-        "ci_pending_count": 0,
+        "ci_failing_count": 0,
+        "ci_pending_count": 4,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0ba64c24579c8f0015add2842bf4c7801c8a1e6ceca958e3468e3d82b6d7c6ab",
+        "copilot_request_fingerprint": "977a9f4b9628f452b05990fff8a3231af28a9e9ae442e455ec0c9cccaacdcd50",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": false,
+        "copilot_review_stale": true,
         "copilot_review_unreported": false,
         "created_at": "2026-09-03T22:00:40+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "76673cd6870e981b34920e5716db1db590708bda",
+        "head_sha": "d987d2b6a2e89e108eba21fb49d4204b18c1e9d3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-04T01:22:18+00:00",
+        "last_activity_at": "2026-09-04T01:35:30+00:00",
         "last_approver_activity_at": "2026-09-04T01:18:35+00:00",
-        "last_author_activity_at": "2026-09-04T01:22:18+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-09-04T01:35:30+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": true,
             "login": "cijothomas",
-            "open_thread": true,
-            "pending_review": false,
-            "top_level_feedback": true
-          },
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "copilot-pull-request-reviewer[bot]",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
           },
@@ -3097,17 +3083,25 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-04T01:35:59.429655+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "31fd3a4248c12ff64e5b50700dd3ba4154558509f7f8878a12519761c10f0896",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "329e2c39ba43ec4a66446d5abeee3291126c89716b9fa888c84311e951af504c",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-03T22:19:33+00:00"
       },
       "failed": false,
       "pr_number": 3998,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/3998",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-5107814098": {
+          "evidence": {
+            "reply": "2026-09-04T01:22:18Z"
+          },
+          "reply_source_id": 5534321190
+        }
+      }
     },
     "3999": {
       "facts": {
