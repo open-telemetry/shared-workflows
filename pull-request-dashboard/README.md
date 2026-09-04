@@ -205,8 +205,10 @@ results, the check GitHub publishes for each configured tool is treated as
 required, including its neutral "could not determine the alerts introduced by
 this pull request" outcome, which holds the merge even though GitHub does not
 mark that check as required.
-Maintenance-bot PRs keep their
-maintainer-oriented routing because the bot cannot act on a dashboard request.
+PRs from unattended automation do not route to their author because the
+automation cannot act on a dashboard request. A Copilot-delegated PR can route
+to a human author recovered from an assignee or the first commit's committer.
+Known maintenance bots still route to maintainers after one approval.
 
 A hidden marker lets the workflow update the comment in place and upgrade
 existing one-time guidance comments rather than creating duplicates. Status

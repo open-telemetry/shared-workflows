@@ -348,11 +348,17 @@ the implementation understandable and operationally cheap.
   with reviewers and is released to maintainers keeps its wait, because it never
   left the people who owe it a response, and restarting there would present an
   approval a week old as a merge request that just arrived.
-- Maintenance-bot PRs retain maintainer-oriented routing because the bot cannot
-  respond to a dashboard action. Pending required checks affect the CI column
-  but never route one of these PRs to its author: a bot PR whose handoff is
-  held waits on reviewers instead. Merge conflicts remain visible without
-  overriding that routing.
+- PRs from unattended automation never route to their author because the
+  automation cannot respond to a dashboard action. Copilot-delegated PRs are
+  different. The dashboard recovers a human assignee or the first commit's
+  human committer as the effective author, so that person can receive the
+  author route. Pending required checks affect the CI column, and a bot PR
+  whose handoff is held waits on reviewers instead. Known maintenance bots use
+  a one-approval threshold; other automation uses the repository's configured
+  threshold. Compatible cached state derives a missing author-capability fact
+  from the effective author identity and discards a stale author-routed result
+  for reevaluation, while an explicit stored value wins. Merge conflicts remain
+  visible without overriding that routing.
 - A hold has a time limit, and past it the PR routes anyway. Every gate waits on
   something outside the dashboard, and each one has been seen never to arrive: a
   required check with no check run on the head, a Copilot review GitHub never

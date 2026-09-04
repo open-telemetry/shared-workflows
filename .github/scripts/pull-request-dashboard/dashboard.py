@@ -104,6 +104,8 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
     assignees                       list[str]     PR assignees.
     is_maintenance_bot              bool          PR is authored by a
                                                   maintenance bot.
+    author_can_act                  bool          Effective author can respond
+                                                  to author-routed work.
     is_draft                        bool
     approval_count                  int           Current unique APPROVED reviews
                                                   from approver-team members,

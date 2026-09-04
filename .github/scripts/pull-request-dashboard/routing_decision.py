@@ -92,9 +92,9 @@ def _base_route(
     counts = _action_counts(pending_actions)
     is_maintenance_bot = facts.is_maintenance_bot
     approval_threshold = 1 if is_maintenance_bot else required_approvals
-    if (facts.ci_failing_count or 0) > 0 and not is_maintenance_bot:
+    if (facts.ci_failing_count or 0) > 0 and facts.author_can_act:
         return DashboardRoute.AUTHOR
-    if counts["author"] and not is_maintenance_bot:
+    if counts["author"] and facts.author_can_act:
         return DashboardRoute.AUTHOR
     if facts.approval_count >= approval_threshold:
         return DashboardRoute.MAINTAINER
@@ -151,12 +151,12 @@ def _hold_route_until_gates_settle(
 ) -> tuple[DashboardRoute, DashboardFacts]:
     effective_previous_route = previous_route or DashboardRoute.AUTHOR
     if effective_previous_route.value not in _ROUTE_PROGRESSION or (
-        facts.is_maintenance_bot
+        not facts.author_can_act
         and effective_previous_route is DashboardRoute.AUTHOR
     ):
         effective_previous_route = (
             DashboardRoute.APPROVER
-            if facts.is_maintenance_bot
+            if not facts.author_can_act
             else DashboardRoute.AUTHOR
         )
     gates_enabled = not bypass_gates
