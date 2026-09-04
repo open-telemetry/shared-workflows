@@ -1399,16 +1399,15 @@
     },
     "610": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "sfc-gh-zeningchen",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "58847c964094442f8dbfb721904e6d5a",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e4065acdb6b19db69109f7fd958706d1549ca4967b492a19ca10590ef8b2ef97",
+        "copilot_request_fingerprint": "6504bb24ec560295c0772e75a3ee41fe1bc5de70a5e1c9ac0c3ecb92c9d064c3",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1424,22 +1423,31 @@
         "head_sha": "d4fd6d45544f8f806af4ea806e24ea5c913deffc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-04T01:22:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-04T02:02:20+00:00",
+        "last_approver_activity_at": "2026-09-04T02:02:20+00:00",
         "last_author_activity_at": "2026-09-04T01:22:47+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-04T01:24:39.386956+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c7cced2bff77cc729a0575259025b66b59057732da13ac8589c954c30cbc3d55",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-04T01:09:39+00:00"
+        "routing_input_fingerprint": "b833656f9a5758c68fddc9914cdbeea8204dc3ac1c036508ade78706760b0fe3",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-04T02:06:12.684130+00:00"
       },
       "failed": false,
       "pr_number": 610,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/610",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
