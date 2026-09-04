@@ -14425,12 +14425,14 @@
         "assignees": [],
         "author": "amarkdotdev",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50749#issuecomment-5539795987"
+        ],
         "author_nudge_episode_id": "3360339d2472469ba293c2fd6f1b2b5f",
         "ci_failing_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6f63596846bbfa99e533006c7941bd28e81823bca45f26fb18c0c1c868bbe236",
+        "copilot_request_fingerprint": "cf869c75b4b5f7bf8080906c144238d85219937e36689b8a665c3c911d974675",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14446,17 +14448,26 @@
         "head_sha": "8f85e4ccb8e9e20893a24cd3a398552fb74ed6dd",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-04T08:35:44+00:00",
+        "last_activity_at": "2026-09-04T11:28:49+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-04T08:35:44+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-04T08:51:21.303093+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e3270ee9e4124eaf20172dabcfa535f0500fa1bfe58b3b436ad570c75544921b",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-04T07:54:56+00:00"
+        "routing_input_fingerprint": "26ef7f05de50d08cdd68293bca3b7b4e4e802d863240833667995907bd2f4b27",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-04T11:28:49+00:00"
       },
       "failed": false,
       "pr_number": 50749,
