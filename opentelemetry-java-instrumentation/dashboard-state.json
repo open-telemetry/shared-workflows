@@ -2051,7 +2051,7 @@
     },
     "19906": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "walleseve",
         "author_action_review_thread_urls": [],
@@ -2059,7 +2059,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5ad6f20a6e05902e4ff20dec49dcea49e93b663798cc8acde09405c38d6f4669",
+        "copilot_request_fingerprint": "8800db0cffddfbffaeb6483dfcc4b4508f127b7268e215108f65b226a68d9ab7",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2075,21 +2075,31 @@
         "head_sha": "760c4a7c224e4304d5615cd2180aa0e9f4f1ffa6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-03T23:36:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-04T01:34:04+00:00",
+        "last_approver_activity_at": "2026-09-04T01:34:04+00:00",
         "last_author_activity_at": "2026-09-03T23:36:44+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "trask",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "fbf63e3af2747e27e6fc08aebd82a59ec19f0b478080d8dcc51da4a3ea836e95",
+        "routing_input_fingerprint": "bf559700050b25362b97eddcab746528f60f11d35c336deaf4bb6fcafdec9364",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-04T00:51:02.925405+00:00"
       },
       "failed": false,
       "pr_number": 19906,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19906",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19920": {
