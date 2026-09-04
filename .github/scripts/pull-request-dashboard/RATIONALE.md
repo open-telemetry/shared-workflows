@@ -74,6 +74,11 @@ the implementation understandable and operationally cheap.
   reminders and re-review requests already sent; the delivery version check
   makes it skip delivery instead. Rolling forward is the way out, and a paused
   dashboard is the cheaper failure.
+- Dashboard state version 17 reads production versions 11 through 13 and the
+  pre-persistent-handoff version 16. Versions 14 and 15 describe incompatible
+  state shapes from parallel work, so this version regenerates them rather than
+  guessing at compatibility. An integration that combines those shapes must
+  allocate a newer state version.
 
 ## Queue and Workflow Concurrency
 
@@ -413,10 +418,11 @@ the implementation understandable and operationally cheap.
   would hold every ready PR with its author waiting for a review that never
   runs, so only branches with automatic review are listed and PRs targeting
   other branches route normally.
-- Copilot findings normally return a PR to the author through ordinary
-  discussion routing: an inline finding is an unresolved review thread, and an
-  actionable one routes the PR to "waiting on author." In that common path the
-  gate never fires and no re-review is requested.
+- Every unresolved, non-outdated thread Copilot started is an author action,
+  even after an author reply or a later clean review. This ownership bypasses
+  generic praise and author-reply classification and ends only when the thread
+  is resolved or outdated. The gate therefore never needs its expiration path
+  to retain these findings.
 - Findings are counted from unresolved, non-outdated review threads Copilot
   started, not from the comment count on its review. A review's comment count
   never shrinks, so it keeps counting feedback the author has since addressed
@@ -425,8 +431,10 @@ the implementation understandable and operationally cheap.
   pushed, which is the one change a re-review can respond to. Findings on the
   current head sit on unchanged code, so asking Copilot to look at it again
   would reach the same verdict and be requested again on the next pass; those
-  threads clear when the author resolves them or pushes a fix, which is a
-  re-request in its own right.
+  threads stop counting only when the author resolves them or GitHub marks them
+  outdated after the referenced code moves. A later clean review does not close
+  an existing thread. A push makes the review stale and triggers a re-request,
+  but the push alone does not prove that a finding was fixed.
 - The other state is a first review that never arrived. The gate otherwise
   relies entirely on automatic Copilot code review to produce it, so when GitHub
   silently never starts one, the pull request waits on its author forever for a
@@ -489,39 +497,47 @@ the implementation understandable and operationally cheap.
   stale review is the ordinary state between a push and the next re-review, and
   an icon that is always present says nothing about which PRs are actually
   waiting.
-- An effective reviewer-routing override is a break-glass handoff for the
-  current head. It forces the reviewer route and bypasses required checks,
-  Copilot review, merge conflicts, discussion actions, and approval routing. The
-  author may be stuck or may need a person to explain a basic problem, so no
-  automated blocker can prevent the handoff. A later push restores normal
-  routing and gates. Actionable human reviewer feedback posted after the command
-  also ends the handoff, because a reviewer has answered the request for help and
-  assigned the next action to the author. Praise, informational comments, bot
-  feedback, and feedback posted before the command do not end it.
-- While a handoff is active, the dashboard classifies only newer human reviewer
-  feedback. Old discussions and classification failures therefore cannot block
-  the break-glass route. Once newer feedback produces an author action, normal
-  discussion classification and routing resume. The dashboard records that
-  transition in its live status comment so an author reply or a lost state cache
-  cannot reactivate the same command. A newer command can establish a new
-  handoff on the same head.
+- An effective reviewer-routing override is a break-glass handoff. It forces the
+  reviewer route across later pushes and bypasses required checks, Copilot
+  review, merge conflicts, discussion actions, and approval routing. The author
+  may be stuck or may need a person to explain a basic problem, so no automated
+  blocker can prevent the handoff. Top-level feedback last changed at or before
+  the command stays retired. Review threads are not retired by the command, but
+  their existing work does not override the handoff. Actionable human reviewer
+  feedback on an unresolved, non-outdated thread with an effective content
+  timestamp after the command ends the handoff, because a reviewer has answered
+  the request for help and assigned the next action to the author. That includes
+  a new reply or edit on an older active review thread. Praise, informational
+  comments, bot feedback, inactive threads, and feedback last changed at or
+  before the command do not end it.
+- While a handoff is active, the dashboard classifies only human reviewer
+  feedback with content activity after the command. Older discussions and
+  classification failures therefore cannot block the break-glass route. Once
+  newer feedback produces an author action, normal discussion classification
+  and routing resume, subject to the permanent top-level feedback cutoff.
+  The dashboard records that transition in its live status comment so an author
+  reply or a lost state cache cannot reactivate the same command. A newer
+  command can establish a new handoff on the same head and advance the cutoff.
 - The dashboard binds a command to the head it sees when it first reads that
   command, and records that head in an acknowledgement marker on either the
-  command reply or the live status comment. The handoff is then a comparison of
-  two strings: the recorded head and the current one. The earlier design
-  instead ordered the command against the push by comparing the comment
-  timestamp with the head push time from `GET /repos/{repo}/activity`.
-  Do not reintroduce that. Both timestamps have one-second resolution and come
-  from different APIs, so the ordering is sometimes unknowable, which forces a
-  third "cannot tell" state that every later pass has to carry forward and every
-  failure path has to preserve by hand. It also fails unsafely in the case the
-  handoff exists for: when the activity lookup returns nothing, the command
-  hangs unacknowledged. Binding to the observed head removes the extra API call
-  and keeps the answer in GitHub rather than in `dashboard-state.json`, so a
-  failed pass or a dropped cache cannot corrupt it. The cost is that a push
-  between the command and the pass that reads it belongs to the handoff instead
-  of ending it, which is the safer direction: the author asked for help, and the
-  worst case is one extra handoff the author can end with another push.
+  command reply or the live status comment. A persistence marker makes the
+  cross-push behavior explicit. Legacy acknowledgements without that marker
+  remain head-bound, as do pending bindings restored from compatible legacy
+  state, so deployment cannot reactivate old handoffs that had already expired.
+  A separate companion marker records the frozen timestamp used for the
+  permanent top-level feedback cutoff. Marker lookup is scoped to the bound
+  command. A legacy acknowledgement without that cutoff does not retire
+  feedback, because the command's current edit timestamp cannot reconstruct the
+  original cutoff. The first observation freezes the cutoff for that command,
+  so editing the command later cannot retire intervening feedback; only a newer
+  command advances it.
+- Recording the observed head also avoids ordering the command against a push by
+  comparing the comment timestamp with the head push time from
+  `GET /repos/{repo}/activity`. Both timestamps have one-second resolution and
+  come from different APIs, so the ordering is sometimes unknowable. Binding to
+  the observed head removes that extra API call. A push between the command and
+  the pass that first reads it belongs to the handoff, as does any later push
+  after the persistence marker is recorded.
 - The gate does not wait for the required checks before requesting the review,
   so the two run at once. A route computed while checks are still running is
   provisional, but the only outcome that matters here is a failure, and a
@@ -565,12 +581,20 @@ the implementation understandable and operationally cheap.
   `actions/stale` reads, so no PR in a dashboard repository could go stale.
   The dashboard app is never a PR's author, so `role_for` always classifies its
   comments as `bot` and they never count.
-- An inline review thread's wait age and list position come from its last
-  comment's `createdAt`, never its edit time. Wait age is what makes a neglected
-  thread visible, so a reviewer fixing a typo in their own comment must not make
-  a weeks-old thread look freshly raised. Top-level feedback items date from
-  their creation time for the same reason, so editing a comment cannot reorder
-  the list or reset how long an item has been waiting.
+- An inline review thread's list position comes from its last comment's
+  `createdAt`, never its edit time. Effective content activity selects the
+  latest participant and requester and supplies the pending action timestamp,
+  so editing an older request can reactivate it without reordering the
+  classifier transcript or list. The same selected comment supplies praise and
+  author-reply classification, and removing praise leaves the remaining
+  conversation order intact. Top-level feedback items still date from their
+  creation time, so editing a comment cannot reorder that list.
+- The ignored praise index is a current-evaluation projection used for reviewer
+  attribution. Classification caches retain the praise verdict but not its
+  position, so each refresh recomputes the index from current thread activity.
+  Pending actions are not persisted in dashboard state, which keeps state
+  version 17 valid. Legacy projections with only `ignored_last_comment` retain
+  creation-last behavior.
 
 ## Top-Level Feedback
 
@@ -587,14 +611,16 @@ the implementation understandable and operationally cheap.
   deleted source comments authoritative without additional reconciliation.
   Cached classifications avoid repeated LLM calls, while dashboard state
   retains the author reply already observed for each item.
-- An explicit author reply is the only thing that closes a top-level item.
-  Commits, PR title edits, and PR description edits are not tied to the item
-  they would close, so any push after the feedback arrived would close every
-  open item at once and hide feedback nobody had answered. The status comment
-  lists the exact open discussions and explains how to give each one an outcome,
-  which makes an explicit reply both cheap and unambiguous. An author's explicit
-  commitment to future work in the current PR is a self-deferral, not a
-  completed reply, so the item continues waiting on the author.
+- In normal routing, an explicit author reply is the only thing that closes a
+  top-level item. Commits, PR title edits, and PR description edits are not tied
+  to the item they would close, so a push alone never closes feedback. The
+  break-glass reviewer command is the deliberate bulk exception: it retires
+  top-level items at or before its cutoff while leaving review threads open.
+  The status comment lists the exact open discussions and explains how to give
+  each one an outcome, which makes an explicit reply both cheap and unambiguous.
+  An author's explicit commitment to future work in the current PR is a
+  self-deferral, not a completed reply, so the item continues waiting on the
+  author.
 - Each model call classifies up to ten uncached top-level feedback items
   independently, while retaining a separate cache entry for every item. A
   refresh processes at most 200 such items per PR. Exceeding that cap means the
@@ -638,8 +664,10 @@ the implementation understandable and operationally cheap.
   the classifier is told which kind of item it is reading, so the summary rule
   below applies only to them. Review state stays independent of that: a
   `CHANGES_REQUESTED` state affects only the reviewer's badge; it does not
-  affect dashboard actions or routing. Empty review summaries are ignored;
-  their inline comments, if any, define independent actions.
+  affect dashboard actions or routing. Formal review states are ordered by
+  submission time, while summary edits use their content timestamp for
+  lifecycle decisions. Empty review summaries are ignored; their inline
+  comments, if any, define independent actions.
 - Who a comment opens by addressing is extracted in code and passed to the
   classifier as `addressed_to`, rather than left for the model to find in the
   body. A reviewer routinely names other people, pull requests, and prior work
@@ -664,10 +692,9 @@ the implementation understandable and operationally cheap.
   contains requests, so a reviewer whose only actionable point is in the summary
   should post it as its own comment.
 - The author reply that closed an item is retained in the cached PR result. It
-  is reused only when it is newer than the item's creation time, which an edit
-  never moves. Accepted tradeoff: a substantively rewritten request keeps the
-  reply that answered its earlier text, so a reviewer who needs the new text
-  answered should post it as a new comment. Ordinary requester-confirmation
+  is reused only when it is newer than the item's effective content timestamp.
+  Editing an older request with new work therefore reopens the item when the
+  edit is newer than the completed author reply. Ordinary requester-confirmation
   timestamps are not persisted.
 - Reviewers should prefer inline comments when feedback needs explicit closure.
   Blocking PR-wide feedback should use GitHub's **Request changes** review state;

@@ -18,7 +18,7 @@ from github_cli import (
     required_code_scanning_checks,
     unreported_required_contexts,
 )
-from utils import is_copilot_reviewer_login
+from utils import is_copilot_reviewer_login, parse_ts
 
 
 def gh_pr_view(repo: str, number: int) -> dict[str, Any]:
@@ -213,6 +213,18 @@ class IssueComment:
     actor: Actor = field(default_factory=Actor)
     performed_via_app_slug: str = ""
 
+    @property
+    def effective_content_timestamp(self) -> str:
+        created_at = parse_ts(self.created_at)
+        content_updated_at = parse_ts(self.content_updated_at)
+        if content_updated_at is not None and (
+            created_at is None or content_updated_at >= created_at
+        ):
+            return self.content_updated_at
+        if created_at is not None:
+            return self.created_at
+        return self.updated_at if parse_ts(self.updated_at) is not None else ""
+
     def is_from_app(self, app_slug: str) -> bool:
         return (
             self.performed_via_app_slug == app_slug
@@ -242,6 +254,17 @@ class Review:
     body: str = ""
     submitted_at: str = ""
     updated_at: str = ""
+    content_updated_at: str = ""
+
+    @property
+    def effective_content_timestamp(self) -> str:
+        submitted_at = parse_ts(self.submitted_at)
+        content_updated_at = parse_ts(self.content_updated_at)
+        if content_updated_at is not None and (
+            submitted_at is None or content_updated_at >= submitted_at
+        ):
+            return self.content_updated_at
+        return self.submitted_at
 
 
 @dataclass(frozen=True)
@@ -273,8 +296,19 @@ class ReviewThreadComment:
     url: str = ""
     body: str = ""
     created_at: str = ""
+    updated_at: str = ""
     actor: Actor = field(default_factory=Actor)
     reaction_groups: tuple[ReactionGroup, ...] = ()
+
+    @property
+    def effective_content_timestamp(self) -> str:
+        created_at = parse_ts(self.created_at)
+        updated_at = parse_ts(self.updated_at)
+        if updated_at is not None and (
+            created_at is None or updated_at >= created_at
+        ):
+            return self.updated_at
+        return self.created_at
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -583,6 +617,12 @@ def normalize_reviews(values: Any) -> tuple[Review, ...]:
                 item.get("submitted_at") or item.get("submittedAt")
             ),
             updated_at=_text(item.get("updated_at") or item.get("updatedAt")),
+            content_updated_at=_text(
+                item.get("content_updated_at")
+                or item.get("lastEditedAt")
+                or item.get("submitted_at")
+                or item.get("submittedAt")
+            ),
         ))
     return tuple(reviews)
 
@@ -628,6 +668,13 @@ def normalize_review_threads(values: Any) -> tuple[ReviewThread, ...]:
                 body=str(comment.get("body") or ""),
                 created_at=_text(
                     comment.get("createdAt") or comment.get("created_at")
+                ),
+                updated_at=_text(
+                    comment.get("lastEditedAt")
+                    or comment.get("updatedAt")
+                    or comment.get("updated_at")
+                    or comment.get("createdAt")
+                    or comment.get("created_at")
                 ),
                 actor=normalize_actor(
                     comment.get("author") or comment.get("user")

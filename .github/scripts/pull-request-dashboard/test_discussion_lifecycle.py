@@ -7,6 +7,7 @@ from classification_policy import (
     AuthorCommentDecision,
     ClassificationDeferred,
     ClassificationDiagnostics,
+    ClassificationDiscussion,
     ClassificationFailure,
     ClassificationSuccess,
     DiscussionAction,
@@ -14,6 +15,7 @@ from classification_policy import (
     DiscussionIdentity,
     DiscussionKind,
     FeedbackOutcome,
+    reviewer_feedback_prompt_input,
 )
 from discussion_lifecycle import (
     DiscussionInput,
@@ -153,7 +155,7 @@ class PrepareDiscussionsTest(unittest.TestCase):
                                     "url": "https://example.test/thread/root",
                                     "body": "Please fix this.",
                                     "createdAt": ROOT_TIMESTAMP,
-                                    "author": {"login": "reviewer"},
+                                    "author": {"login": "copilot"},
                                 },
                             ]
                         },
@@ -206,8 +208,9 @@ class PrepareDiscussionsTest(unittest.TestCase):
         )
         self.assertEqual(
             prepared.review_threads[0]["discussion_url"],
-            "https://example.test/thread/first",
+            "https://example.test/thread/root",
         )
+        self.assertTrue(prepared.review_threads[0]["strict_author_action"])
         self.assertEqual(
             [item["discussion_id"] for item in prepared.top_level_items],
             ["pr-issue-comment-201", "pr-issue-comment-202"],
@@ -296,6 +299,180 @@ class PrepareDiscussionsTest(unittest.TestCase):
         self.assertEqual(
             [item["root_timestamp"] for item in prepared.top_level_items],
             ["2026-07-14T02:00:00Z", "2026-07-14T03:00:00Z"],
+        )
+
+    def test_edited_author_response_uses_its_content_timestamp(self) -> None:
+        prepared = prepare_discussions(
+            DiscussionInput(
+                (),
+                (
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 201,
+                        "created_timestamp": "2026-07-14T02:00:00Z",
+                        "timestamp": "2026-07-14T02:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Please update the description.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 301,
+                        "created_timestamp": "2026-07-14T03:00:00Z",
+                        "timestamp": "2026-07-14T06:00:00Z",
+                        "actor": "author",
+                        "actor_role": "author",
+                        "body": "Both requests are complete.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 202,
+                        "created_timestamp": "2026-07-14T05:00:00Z",
+                        "timestamp": "2026-07-14T05:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Please add another test.",
+                    },
+                ),
+                "author",
+                frozenset({"reviewer"}),
+                "no",
+            )
+        )
+
+        reply = prepared.top_level_author_comment_items[0]
+        self.assertEqual("2026-07-14T06:00:00Z", reply["comments"][0]["timestamp"])
+        self.assertEqual(
+            ["pr-issue-comment-201", "pr-issue-comment-202"],
+            [
+                feedback["discussion_id"]
+                for feedback in reply["candidate_feedback"]
+            ],
+        )
+
+    def test_author_response_excludes_feedback_edited_after_it(self) -> None:
+        prepared = prepare_discussions(
+            DiscussionInput(
+                (),
+                (
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 201,
+                        "created_timestamp": "2026-07-14T02:00:00Z",
+                        "timestamp": "2026-07-14T07:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Please also update the tests.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 301,
+                        "created_timestamp": "2026-07-14T03:00:00Z",
+                        "timestamp": "2026-07-14T06:00:00Z",
+                        "actor": "author",
+                        "actor_role": "author",
+                        "body": "The original request is complete.",
+                    },
+                ),
+                "author",
+                frozenset({"reviewer"}),
+                "no",
+            )
+        )
+
+        self.assertEqual(
+            [],
+            prepared.top_level_author_comment_items[0]["candidate_feedback"],
+        )
+
+    def test_top_level_cutoff_retires_only_unchanged_old_feedback(self) -> None:
+        prepared = prepare_discussions(
+            DiscussionInput(
+                normalize_review_threads(({
+                    "id": "old-thread",
+                    "isResolved": False,
+                    "isOutdated": False,
+                    "comments": {
+                        "nodes": [{
+                            "url": "https://example.test/thread/old",
+                            "body": "Please update the implementation.",
+                            "createdAt": "2026-07-14T01:00:00Z",
+                            "author": {"login": "reviewer"},
+                        }],
+                    },
+                },)),
+                (
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 201,
+                        "created_timestamp": "2026-07-14T01:00:00Z",
+                        "timestamp": "2026-07-14T01:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Old top-level request.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 202,
+                        "created_timestamp": "2026-07-14T02:00:00Z",
+                        "timestamp": "2026-07-14T05:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Edited top-level request.",
+                    },
+                    {
+                        "kind": "review-state",
+                        "source_id": 203,
+                        "created_timestamp": "2026-07-14T03:00:00Z",
+                        "timestamp": "2026-07-14T03:00:00Z",
+                        "content_timestamp": "2026-07-14T05:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "state": "COMMENTED",
+                        "body": "Edited review summary.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 204,
+                        "created_timestamp": "2026-07-14T04:00:00Z",
+                        "timestamp": "2026-07-14T04:00:00Z",
+                        "actor": "reviewer",
+                        "actor_role": "approver",
+                        "body": "Same-second top-level request.",
+                    },
+                    {
+                        "kind": "issue-comment",
+                        "source_id": 301,
+                        "created_timestamp": "2026-07-14T06:00:00Z",
+                        "timestamp": "2026-07-14T06:00:00Z",
+                        "actor": "author",
+                        "actor_role": "author",
+                        "body": "I addressed the current requests.",
+                    },
+                ),
+                "author",
+                frozenset({"reviewer"}),
+                "no",
+            ),
+            top_level_feedback_cutoff="2026-07-14T04:00:00Z",
+        )
+
+        self.assertEqual(
+            ["old-thread"],
+            [thread["discussion_id"] for thread in prepared.review_threads],
+        )
+        self.assertEqual(
+            ["pr-issue-comment-202", "pr-review-203"],
+            [item["discussion_id"] for item in prepared.top_level_items],
+        )
+        self.assertEqual(
+            ["pr-issue-comment-202", "pr-review-203"],
+            [
+                item["discussion_id"]
+                for item in prepared.top_level_author_comment_items[0][
+                    "candidate_feedback"
+                ]
+            ],
         )
 
     def test_ignores_author_only_review_threads(self) -> None:
@@ -829,6 +1006,51 @@ class HistoryRestorationTest(unittest.TestCase):
         self.assertEqual(outcome.pending_actions, {})
         self.assertEqual(outcome.top_level_history, legacy_history)
 
+    def test_edited_feedback_invalidates_legacy_history_without_source_id(
+        self,
+    ) -> None:
+        prepared = prepare_discussions(
+            DiscussionInput(
+                (),
+                ({
+                    "kind": "issue-comment",
+                    "source_id": 201,
+                    "created_timestamp": "2026-07-14T07:00:00Z",
+                    "timestamp": "2026-07-14T09:00:00Z",
+                    "actor": "reviewer",
+                    "actor_role": "approver",
+                    "body": "Please update this.",
+                },),
+                "author",
+                frozenset({"reviewer"}),
+                "no",
+            )
+        )
+        outcome = resolve_discussions(
+            prepared,
+            DiscussionClassifications(
+                (),
+                (classification("pr-issue-comment-201", "author"),),
+                (),
+            ),
+            {
+                "pr-issue-comment-201": {
+                    "evidence": {"reply": "2026-07-14T07:30:00Z"},
+                }
+            },
+        )
+
+        self.assertEqual(
+            outcome.pending_actions,
+            {
+                "pr-issue-comment-201": {
+                    "action": "author",
+                    "since": "2026-07-14T07:00:00Z",
+                }
+            },
+        )
+        self.assertEqual(outcome.top_level_history, {})
+
     def test_recovers_source_id_for_legacy_history(self) -> None:
         outcome = resolve_discussions(
             PreparedDiscussions(
@@ -1084,6 +1306,101 @@ class LifecycleProjectionTest(unittest.TestCase):
         )
 
         self.assertEqual(PreparedDiscussions((), (), ()), filtered)
+
+    def test_handoff_feedback_uses_effective_content_timestamps(self) -> None:
+        source = DiscussionInput(
+            normalize_review_threads(({
+                "id": "edited-thread",
+                "isResolved": False,
+                "isOutdated": False,
+                "comments": {
+                    "nodes": [{
+                        "url": "https://example.test/thread/edited",
+                        "body": "Please also update the tests.",
+                        "createdAt": "2026-07-14T02:00:00Z",
+                        "lastEditedAt": "2026-07-14T06:00:00Z",
+                        "author": {"login": "reviewer"},
+                    }],
+                },
+            },)),
+            ({
+                "kind": "issue-comment",
+                "source_id": 201,
+                "created_timestamp": "2026-07-14T03:00:00Z",
+                "timestamp": "2026-07-14T05:00:00Z",
+                "actor": "reviewer",
+                "actor_role": "approver",
+                "body": "The test is still failing.",
+            },),
+            "author",
+            frozenset({"reviewer"}),
+            "no",
+        )
+
+        filtered = reviewer_handoff_feedback(
+            prepare_discussions(source),
+            "2026-07-14T04:00:00Z",
+            "author",
+        )
+
+        self.assertEqual(
+            ["edited-thread"],
+            [item["discussion_id"] for item in filtered.review_threads],
+        )
+        self.assertEqual(
+            ["pr-issue-comment-201"],
+            [item["discussion_id"] for item in filtered.top_level_items],
+        )
+
+    def test_handoff_feedback_preserves_conversation_order_after_edit(self) -> None:
+        source = DiscussionInput(
+            normalize_review_threads(({
+                "id": "edited-thread",
+                "isResolved": False,
+                "isOutdated": False,
+                "comments": {
+                    "nodes": [
+                        {
+                            "url": "https://example.test/thread/edited",
+                            "body": "Root request, edited later.",
+                            "createdAt": "2026-07-14T02:00:00Z",
+                            "lastEditedAt": "2026-07-14T06:00:00Z",
+                            "author": {"login": "root-reviewer"},
+                        },
+                        {
+                            "url": "https://example.test/thread/follow-up",
+                            "body": "Newer follow-up.",
+                            "createdAt": "2026-07-14T05:00:00Z",
+                            "author": {"login": "follow-up-reviewer"},
+                        },
+                    ],
+                },
+            },)),
+            (),
+            "author",
+            frozenset({"root-reviewer"}),
+            "no",
+        )
+
+        filtered = reviewer_handoff_feedback(
+            prepare_discussions(source),
+            "2026-07-14T04:00:00Z",
+            "author",
+        )
+
+        discussion = filtered.review_threads[0]
+        prompt_input = reviewer_feedback_prompt_input(
+            ClassificationDiscussion.from_record(discussion)
+        )
+        self.assertEqual(
+            "Root request, edited later.\n\nNewer follow-up.",
+            prompt_input["body"],
+        )
+        self.assertEqual("root-reviewer", prompt_input["requester"])
+        self.assertEqual(
+            "approver",
+            discussion["discussion_facts"]["latest_comment_role"],
+        )
 
 
 if __name__ == "__main__":

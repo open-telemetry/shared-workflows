@@ -36,7 +36,11 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 16
+# Versions 14 and 15 describe incompatible state shapes from parallel changes.
+# Version 16 is the pre-persistent-handoff lifecycle shape. An integration that
+# combines the incompatible shapes must assign another version.
+DASHBOARD_STATE_VERSION = 17
+DASHBOARD_STATE_COMPATIBLE_VERSIONS = (11, 12, 13, 16)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -49,7 +53,7 @@ COPILOT_REVIEW_REQUEST_STATE_VERSION = 6
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 2
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 19
+STATUS_COMMENT_REVISION = 20
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 
@@ -415,6 +419,14 @@ def _decode_command_reply(value: Any) -> DashboardCommandReply:
             value.get("since", _MISSING),
             "facts.dashboard_command_replies.since",
         ),
+        top_level_feedback_cutoff=_string(
+            value.get("top_level_feedback_cutoff", _MISSING),
+            "facts.dashboard_command_replies.top_level_feedback_cutoff",
+        ),
+        persistent_handoff=_boolean(
+            value.get("persistent_handoff", _MISSING),
+            "facts.dashboard_command_replies.persistent_handoff",
+        ),
     )
 
 
@@ -428,6 +440,12 @@ def _encode_command_reply(reply: DashboardCommandReply) -> dict[str, Any]:
         }
         if reply.since:
             stored["since"] = reply.since
+        if reply.top_level_feedback_cutoff:
+            stored["top_level_feedback_cutoff"] = (
+                reply.top_level_feedback_cutoff
+            )
+        if reply.persistent_handoff:
+            stored["persistent_handoff"] = True
         if reply.kind == "routed":
             # DashboardCommandReply refuses a routed reply without a route.
             stored["route"] = reply.route.value
@@ -489,6 +507,14 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         dashboard_override_since=_string(
             value.get("dashboard_override_since", _MISSING),
             "facts.dashboard_override_since",
+        ),
+        dashboard_top_level_feedback_cutoff=_string(
+            value.get("dashboard_top_level_feedback_cutoff", _MISSING),
+            "facts.dashboard_top_level_feedback_cutoff",
+        ),
+        dashboard_override_persistent=_boolean(
+            value.get("dashboard_override_persistent", _MISSING),
+            "facts.dashboard_override_persistent",
         ),
         dashboard_override_cleared_by_feedback=_boolean(
             value.get("dashboard_override_cleared_by_feedback", _MISSING),
@@ -680,6 +706,12 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         )
     if facts.dashboard_override_since:
         stored["dashboard_override_since"] = facts.dashboard_override_since
+    if facts.dashboard_top_level_feedback_cutoff:
+        stored["dashboard_top_level_feedback_cutoff"] = (
+            facts.dashboard_top_level_feedback_cutoff
+        )
+    if facts.dashboard_override_persistent:
+        stored["dashboard_override_persistent"] = True
     if facts.dashboard_override_cleared_by_feedback:
         stored["dashboard_override_cleared_by_feedback"] = True
     if facts.ci_failing_count is not None:
@@ -827,6 +859,7 @@ def load_dashboard_state_cache() -> DashboardState | None:
     state = load_state_file(
         dashboard_state_path(),
         DASHBOARD_STATE_VERSION,
+        compatible_versions=DASHBOARD_STATE_COMPATIBLE_VERSIONS,
     )
     if state is None:
         return None

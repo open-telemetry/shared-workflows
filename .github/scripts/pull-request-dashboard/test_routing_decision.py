@@ -335,7 +335,7 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
         self.assertEqual(DashboardRoute.AUTHOR, outcome.route)
         self.assertTrue(outcome.facts.route_held_for_gates)
 
-    def test_reviewer_handoff_is_bound_to_the_current_head(self) -> None:
+    def test_reviewer_handoff_supports_persistent_and_legacy_bindings(self) -> None:
         self.assertTrue(
             reviewer_handoff_active(
                 dashboard_facts(
@@ -353,6 +353,15 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                 )
             )
         )
+        self.assertTrue(
+            reviewer_handoff_active(
+                dashboard_facts(
+                    dashboard_override_head_sha="old-head",
+                    dashboard_override_persistent=True,
+                    head_sha="new-head",
+                )
+            )
+        )
         for facts in (
             {"dashboard_override_head_sha": "old-head", "head_sha": "new-head"},
             {"dashboard_override_head_sha": "", "head_sha": "current-head"},
@@ -362,6 +371,17 @@ class RoutingDecisionTest(RoutingTestMixin, unittest.TestCase):
                 "dashboard_override_head_sha": "current-head",
                 "head_sha": "current-head",
                 "dashboard_override_cleared_by_feedback": True,
+            },
+            {
+                "dashboard_override_head_sha": "old-head",
+                "dashboard_override_persistent": True,
+                "head_sha": "new-head",
+                "dashboard_override_cleared_by_feedback": True,
+            },
+            {
+                "dashboard_override_head_sha": "old-head",
+                "dashboard_override_persistent": True,
+                "head_sha": "",
             },
         ):
             with self.subTest(facts=facts):

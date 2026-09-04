@@ -257,6 +257,8 @@ def _compute_facts(
         dashboard_override_bound_command_id=override.bound_command_id,
         dashboard_override_head_sha=override.head_sha,
         dashboard_override_since=override.since,
+        dashboard_top_level_feedback_cutoff=override.top_level_feedback_cutoff,
+        dashboard_override_persistent=override.persistent_handoff,
         dashboard_override_cleared_by_feedback=override.cleared_by_feedback,
         dashboard_command_replies=override.command_replies,
         copilot_review_requested=any(
@@ -492,7 +494,10 @@ def evaluate_pull_request(
             config.approver_logins,
             facts.conflicts,
         )
-        prepared_discussions = prepare_discussions(discussion_input)
+        prepared_discussions = prepare_discussions(
+            discussion_input,
+            top_level_feedback_cutoff=facts.dashboard_top_level_feedback_cutoff,
+        )
         if manual_reviewer_handoff:
             # Old discussions cannot block a break-glass handoff. Only newer
             # human feedback is classified to decide whether the reviewer has

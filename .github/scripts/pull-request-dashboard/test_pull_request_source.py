@@ -7,6 +7,7 @@ from unittest.mock import patch
 from github_cli import TransientGhError
 from pull_request_source import (
     Actor,
+    IssueComment,
     PullRequestMetadata,
     fetch_pull_request_source,
     normalize_actor,
@@ -16,6 +17,16 @@ from pull_request_source import (
 
 
 class PullRequestSourceNormalizationTest(unittest.TestCase):
+    def test_issue_comment_uses_updated_at_only_as_a_missing_source_fallback(
+        self,
+    ) -> None:
+        self.assertEqual(
+            "2026-08-20T04:00:00Z",
+            IssueComment(
+                updated_at="2026-08-20T04:00:00Z"
+            ).effective_content_timestamp,
+        )
+
     def test_non_numeric_issue_comment_database_id_normalizes_to_zero(self) -> None:
         comments = normalize_issue_comments([
             {"databaseId": "not-a-number", "body": "Comment"}
@@ -92,6 +103,7 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
                         "author": {"login": "reviewer"},
                         "state": "approved",
                         "submittedAt": "2026-08-20T07:00:00Z",
+                        "lastEditedAt": "2026-08-20T07:30:00Z",
                     }
                 ],
                 "review_requests": [
@@ -116,6 +128,7 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
                                     "url": "https://example.test/thread/1",
                                     "body": "Please update this.",
                                     "createdAt": "2026-08-20T08:00:00Z",
+                                    "lastEditedAt": "2026-08-20T08:30:00Z",
                                     "author": {"login": "reviewer"},
                                     "reactionGroups": [
                                         {
@@ -175,8 +188,16 @@ class PullRequestSourceNormalizationTest(unittest.TestCase):
         self.assertEqual("status[bot]", source.issue_comments[0].actor.login)
         self.assertEqual("reviewer", source.review_comments[0].actor.login)
         self.assertEqual("head-sha", source.reviews[0].commit_id)
+        self.assertEqual(
+            "2026-08-20T07:30:00Z",
+            source.reviews[0].content_updated_at,
+        )
         self.assertEqual(13, source.reviews[0].database_id)
         self.assertEqual("maintainers", source.review_requests[0].login)
+        self.assertEqual(
+            "2026-08-20T08:30:00Z",
+            source.review_threads[0].comments[0].updated_at,
+        )
         self.assertEqual(
             ("author",),
             source.review_threads[0]

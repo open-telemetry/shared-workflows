@@ -23,9 +23,11 @@ from state import (
     AUTHOR_NUDGE_STATE_VERSION,
     BACKFILL_STATE_VERSION,
     COPILOT_REVIEW_REQUEST_STATE_VERSION,
+    DASHBOARD_STATE_COMPATIBLE_VERSIONS,
     DASHBOARD_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
     STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+    STATUS_COMMENT_REVISION,
     author_nudge_state_path,
     backfill_state_path,
     copilot_review_request_state_path,
@@ -179,6 +181,129 @@ class StateTest(unittest.TestCase):
                 },
             )
 
+    def test_dashboard_state_migrates_safe_production_versions(self) -> None:
+        for version in DASHBOARD_STATE_COMPATIBLE_VERSIONS:
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as temp_dir:
+                with patch("state._state_dir", Path(temp_dir)):
+                    dashboard_state_path().write_text(
+                        json.dumps({
+                            "version": version,
+                            "initial_backfill_complete": True,
+                            "prs": {},
+                        }),
+                        encoding="utf-8",
+                    )
+
+                    self.assertEqual(
+                        DashboardState(initial_backfill_complete=True),
+                        load_dashboard_state_cache(),
+                    )
+
+    def test_dashboard_state_rejects_incompatible_versions(self) -> None:
+        for version in (14, 15):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as temp_dir:
+                with (
+                    patch("state._state_dir", Path(temp_dir)),
+                    redirect_stderr(StringIO()),
+                ):
+                    dashboard_state_path().write_text(
+                        json.dumps({
+                            "version": version,
+                            "initial_backfill_complete": True,
+                            "prs": {},
+                        }),
+                        encoding="utf-8",
+                    )
+
+                    self.assertIsNone(load_dashboard_state_cache())
+
+    def test_version_thirteen_state_does_not_invent_durable_cutoff(self) -> None:
+        legacy_facts = dashboard_facts(
+            dashboard_override_since="2026-08-16T08:00:00Z",
+            dashboard_command_replies=(
+                DashboardCommandReply(
+                    91,
+                    "routed",
+                    "alice",
+                    head_sha="current-head",
+                    route=DashboardRoute.APPROVER,
+                    since="2026-08-16T08:00:00Z",
+                ),
+            ),
+        )
+        stored = encode_dashboard_state(dashboard_state(
+            stored_dashboard_result(facts=legacy_facts)
+        ))
+        stored["version"] = 13
+
+        with tempfile.TemporaryDirectory() as temp_dir, patch(
+            "state._state_dir",
+            Path(temp_dir),
+        ):
+            dashboard_state_path().write_text(
+                json.dumps(stored),
+                encoding="utf-8",
+            )
+
+            loaded = load_dashboard_state_cache()
+
+        self.assertIsNotNone(loaded)
+        assert loaded is not None
+        facts = loaded.results[0].facts
+        self.assertEqual("2026-08-16T08:00:00Z", facts.dashboard_override_since)
+        self.assertEqual("", facts.dashboard_top_level_feedback_cutoff)
+        self.assertFalse(facts.dashboard_override_persistent)
+        self.assertEqual(
+            "",
+            facts.dashboard_command_replies[0].top_level_feedback_cutoff,
+        )
+        self.assertFalse(
+            facts.dashboard_command_replies[0].persistent_handoff
+        )
+
+    def test_version_sixteen_state_does_not_invent_persistent_handoff(self) -> None:
+        legacy_facts = dashboard_facts(
+            dashboard_override_head_sha="bound-head",
+            dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+            dashboard_command_replies=(
+                DashboardCommandReply(
+                    91,
+                    "routed",
+                    "alice",
+                    head_sha="bound-head",
+                    route=DashboardRoute.APPROVER,
+                    top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+                ),
+            ),
+        )
+        stored = encode_dashboard_state(dashboard_state(
+            stored_dashboard_result(facts=legacy_facts)
+        ))
+        stored["version"] = 16
+
+        with tempfile.TemporaryDirectory() as temp_dir, patch(
+            "state._state_dir",
+            Path(temp_dir),
+        ):
+            dashboard_state_path().write_text(
+                json.dumps(stored),
+                encoding="utf-8",
+            )
+
+            loaded = load_dashboard_state_cache()
+
+        self.assertIsNotNone(loaded)
+        assert loaded is not None
+        facts = loaded.results[0].facts
+        self.assertEqual(
+            "2026-08-16T08:00:00Z",
+            facts.dashboard_top_level_feedback_cutoff,
+        )
+        self.assertFalse(facts.dashboard_override_persistent)
+        self.assertFalse(
+            facts.dashboard_command_replies[0].persistent_handoff
+        )
+
     def test_dashboard_facts_codec_round_trip(self) -> None:
         facts = dashboard_facts(
             author="alice",
@@ -191,6 +316,8 @@ class StateTest(unittest.TestCase):
             dashboard_override_bound_command_id=91,
             dashboard_override_head_sha="current-head",
             dashboard_override_since="2026-08-16T08:00:00Z",
+            dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+            dashboard_override_persistent=True,
             dashboard_override_cleared_by_feedback=True,
             dashboard_command_replies=(
                 DashboardCommandReply(
@@ -201,6 +328,8 @@ class StateTest(unittest.TestCase):
                     route=DashboardRoute.APPROVER,
                     held_gates="the required checks",
                     since="2026-08-16T08:00:00Z",
+                    top_level_feedback_cutoff="2026-08-16T08:00:00Z",
+                    persistent_handoff=True,
                 ),
                 DashboardCommandReply(
                     91,
@@ -423,6 +552,10 @@ class StateTest(unittest.TestCase):
             ({"author": None}, "facts.author must be a string"),
             ({"assignees": None}, "facts.assignees must be an array of strings"),
             ({"is_draft": None}, "facts.is_draft must be a boolean"),
+            (
+                {"dashboard_override_persistent": None},
+                "facts.dashboard_override_persistent must be a boolean",
+            ),
             ({"approval_count": None}, "facts.approval_count must be an integer"),
             (
                 {"dashboard_command_replies": None},
@@ -441,6 +574,18 @@ class StateTest(unittest.TestCase):
                     }]
                 },
                 "facts.dashboard_command_replies.comment_id must be an integer",
+            ),
+            (
+                {
+                    "dashboard_command_replies": [{
+                        "comment_id": 1,
+                        "kind": "routed",
+                        "route": "approver",
+                        "persistent_handoff": None,
+                    }]
+                },
+                "facts.dashboard_command_replies.persistent_handoff "
+                "must be a boolean",
             ),
         )
 
@@ -641,8 +786,10 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 16)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 17)
+        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (11, 12, 13, 16))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
+        self.assertEqual(STATUS_COMMENT_REVISION, 20)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)
 
@@ -992,6 +1139,27 @@ class StateTest(unittest.TestCase):
 
             self.assertFalse(claim_delivery_versions())
             self.assertEqual(newer, load_delivery_versions())
+
+    def test_lifecycle_state_version_blocks_incompatible_delivery_workers(self) -> None:
+        current = current_delivery_versions()
+        for old_version in (13, 16):
+            old_worker = {**current, "DASHBOARD_STATE_VERSION": old_version}
+            with self.subTest(old_version=old_version), tempfile.TemporaryDirectory() as temp_dir:
+                with patch("state._state_dir", Path(temp_dir)):
+                    with patch(
+                        "state.current_delivery_versions",
+                        return_value=old_worker,
+                    ):
+                        self.assertTrue(claim_delivery_versions())
+
+                    self.assertTrue(claim_delivery_versions())
+
+                    with patch(
+                        "state.current_delivery_versions",
+                        return_value=old_worker,
+                    ):
+                        self.assertFalse(claim_delivery_versions())
+                    self.assertEqual(current, load_delivery_versions())
 
     def test_delivery_versions_fail_closed(self) -> None:
         malformed_versions = [

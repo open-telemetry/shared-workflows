@@ -30,9 +30,12 @@ diagnostics keep typed classification results and freeze only the source
 discussion records.
 
 `state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
-codecs translate the immutable contracts to the version 16
-`dashboard-state.json` shape. Malformed pull request entries are discarded
-individually, so one bad entry does not prevent valid entries from loading.
+codecs translate the immutable contracts to the version 17
+`dashboard-state.json` shape. Versions 11 through 13 and version 16 migrate
+forward. Versions 14 and 15 belong to incompatible state shapes and regenerate
+instead; an integration that combines those shapes must allocate a newer
+version. Malformed pull request entries are discarded individually, so one bad
+entry does not prevent valid entries from loading.
 
 `dashboard_state_update.py` owns the acceptance transaction for one pull request
 slot. It prepares the cached starting value, reconciles an evaluation with the
@@ -154,10 +157,12 @@ reviewer routes keeps the existing wait.
 
 ### Reviewer handoff
 
-An acknowledged dashboard override binds a reviewer handoff to one head SHA.
-While that head remains current, the handoff routes directly to approvers and
-bypasses discussions, approvals, conflicts, required checks, and the Copilot
-gate. A push or newer actionable human reviewer feedback ends the handoff.
+An acknowledged dashboard override records the observed head as its durable
+binding identity. The handoff routes directly to approvers across later pushes
+and bypasses discussions, approvals, conflicts, required checks, and the Copilot
+gate. Newer actionable human reviewer feedback ends it, including a reply or
+edit on a review thread that the handoff had suppressed. Legacy acknowledgements
+without the persistence marker retain their original head-bound behavior.
 
 ## Routing snapshot
 

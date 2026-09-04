@@ -719,11 +719,15 @@ class ClassificationService:
             by_id[discussion_id] = with_result_metadata(
                 result,
                 since=(
-                    discussion.comments[-1].timestamp
-                    if discussion.comments
-                    else ""
+                    discussion.selected_activity_timestamp
+                    or (
+                        discussion.comments[-1].timestamp
+                        if discussion.comments
+                        else ""
+                    )
                 ),
                 ignored_last_comment=(discussion_id in ignored),
+                ignored_comment_index=discussion.ignored_comment_index,
             )
         return by_id
 

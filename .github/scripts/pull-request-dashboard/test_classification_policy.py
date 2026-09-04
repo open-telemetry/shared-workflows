@@ -57,6 +57,7 @@ def discussion(
     requester: str = "",
     pr_author: str = "",
     candidate_feedback: tuple[tuple[str, str], ...] = (),
+    strict_author_action: bool = False,
 ) -> ClassificationDiscussion:
     return ClassificationDiscussion(
         DiscussionIdentity(discussion_id, kind),
@@ -73,6 +74,7 @@ def discussion(
             CandidateFeedback(feedback_id, feedback_body)
             for feedback_id, feedback_body in candidate_feedback
         ),
+        strict_author_action=strict_author_action,
     )
 
 
@@ -483,6 +485,7 @@ class ResultProjectionCompatibilityTest(unittest.TestCase):
             cli_call=True,
             since="2026-01-02T03:04:05Z",
             ignored_last_comment=True,
+            ignored_comment_index=1,
         )
 
         self.assertEqual(
@@ -498,7 +501,12 @@ class ResultProjectionCompatibilityTest(unittest.TestCase):
                 "_copilot_cli_call": True,
                 "since": "2026-01-02T03:04:05Z",
                 "ignored_last_comment": True,
+                "ignored_comment_index": 1,
             },
+        )
+        self.assertNotIn(
+            "ignored_comment_index",
+            cached_classification_record(result),
         )
 
     def test_failure_and_cache_projections_preserve_the_old_shape(self) -> None:
@@ -704,6 +712,34 @@ class PreparationAndResolutionTest(unittest.TestCase):
         self.assertIsInstance(result, ClassificationSuccess)
         assert isinstance(result.decision, ActionDecision)
         self.assertEqual(result.decision.action, DiscussionAction.AUTHOR)
+
+    def test_unresolved_copilot_finding_bypasses_author_reply_policy(self) -> None:
+        thread = ClassificationDiscussion(
+            DiscussionIdentity("thread-1", DiscussionKind.REVIEW_THREAD),
+            (
+                DiscussionComment(
+                    "2026-01-02T03:04:05Z",
+                    "bot",
+                    "Please fix this.",
+                ),
+                DiscussionComment(
+                    "2026-01-02T04:05:06Z",
+                    "author",
+                    "Done.",
+                ),
+            ),
+            strict_author_action=True,
+        )
+
+        self.assertEqual(prepare_praise_candidates([thread]), ())
+        plan = resolve_review_thread_policy([thread], {})
+
+        self.assertEqual(plan.author_replies, ())
+        result = plan.resolved[0]
+        self.assertIsInstance(result, ClassificationSuccess)
+        assert isinstance(result.decision, ActionDecision)
+        self.assertEqual(result.decision.action, DiscussionAction.AUTHOR)
+        self.assertEqual(result.since, "2026-01-02T04:05:06Z")
 
     def test_praise_and_author_reply_shortcuts_preserve_handoffs(self) -> None:
         thread = discussion(

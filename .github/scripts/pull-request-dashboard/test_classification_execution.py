@@ -1063,6 +1063,20 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
 
+    def test_unresolved_copilot_finding_does_not_use_reply_classifier(self) -> None:
+        thread = self.thread(
+            ("bot", "Please fix this.", "2026-03-12T00:00:00Z"),
+            ("author", "Fixed it.", "2026-05-20T00:00:00Z"),
+        )
+        thread["strict_author_action"] = True
+
+        result, runner = self.classify(thread)
+
+        self.assertEqual(runner.requests, [])
+        assert isinstance(result.decision, ActionDecision)
+        self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
+        self.assertEqual(result.since, "2026-05-20T00:00:00Z")
+
     def test_praise_keeps_the_previous_request_and_wait_age(self) -> None:
         result, runner = self.classify(self.thread(
             ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
@@ -1095,6 +1109,102 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         self.assertIs(result.decision.action, DiscussionAction.REVIEWER)
         self.assertEqual(result.since, "2026-03-12T00:00:00Z")
         self.assertTrue(result.ignored_last_comment)
+
+    def test_edited_older_praise_is_classified_and_removed_by_identity(
+        self,
+    ) -> None:
+        thread = self.thread(
+            ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
+            ("approver", "LGTM", "2026-04-12T00:00:00Z"),
+            ("author", "Fixed it.", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][1]["activity_timestamp"] = "2026-06-20T00:00:00Z"
+
+        result, runner = self.classify(
+            thread,
+            responder=lambda request: successful_response(
+                request,
+                praise="praise",
+                author_reply="complete",
+            ),
+        )
+
+        self.assertEqual(len(runner.requests), 2)
+        self.assertEqual(prompt_items(runner.requests[0])[0]["body"], "LGTM")
+        self.assertEqual(
+            prompt_items(runner.requests[1])[0]["body"],
+            "Fixed it.",
+        )
+        assert isinstance(result.decision, ActionDecision)
+        self.assertIs(result.decision.action, DiscussionAction.REVIEWER)
+        self.assertEqual(result.since, "2026-05-20T00:00:00Z")
+        self.assertTrue(result.ignored_last_comment)
+
+    def test_cached_praise_recomputes_ignored_comment_index(self) -> None:
+        thread = self.thread(
+            ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
+            ("approver", "LGTM", "2026-04-12T00:00:00Z"),
+            ("author", "Fixed it.", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][1]["activity_timestamp"] = "2026-06-20T00:00:00Z"
+        request = execution_request(review_threads=(thread,))
+        cache = MemoryClassificationCacheStore()
+        first_runner = FakeModelRunner(
+            responder=lambda model_request: successful_response(
+                model_request,
+                praise="praise",
+                author_reply="complete",
+            )
+        )
+        ClassificationService(first_runner, cache).classify(request)
+        cached_runner = FakeModelRunner()
+
+        result = ClassificationService(cached_runner, cache).classify(
+            request
+        ).review_threads[0]
+
+        self.assertEqual(cached_runner.requests, [])
+        self.assertTrue(result.ignored_last_comment)
+        self.assertEqual(result.ignored_comment_index, 1)
+
+    def test_edited_older_author_reply_supplies_body_and_result_time(
+        self,
+    ) -> None:
+        thread = self.thread(
+            (
+                "approver",
+                "Please update the implementation and tests.",
+                "2026-03-12T00:00:00Z",
+            ),
+            ("author", "The complete fix is ready.", "2026-04-12T00:00:00Z"),
+            ("author", "One part remains.", "2026-05-20T00:00:00Z"),
+        )
+        thread["comments"][1]["activity_timestamp"] = "2026-06-20T00:00:00Z"
+
+        result, runner = self.classify(
+            thread,
+            responder=lambda request: successful_response(
+                request,
+                author_reply="deferral",
+            ),
+        )
+
+        self.assertEqual(len(runner.requests), 1)
+        self.assertEqual(
+            prompt_items(runner.requests[0])[0]["body"],
+            "The complete fix is ready.",
+        )
+        assert isinstance(result.decision, ActionDecision)
+        self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
+        self.assertEqual(result.since, "2026-06-20T00:00:00Z")
+        self.assertEqual(
+            [comment["body"] for comment in thread["comments"]],
+            [
+                "Please update the implementation and tests.",
+                "The complete fix is ready.",
+                "One part remains.",
+            ],
+        )
 
     def test_failed_praise_and_author_reply_calls_fail_safe_to_author(
         self,
