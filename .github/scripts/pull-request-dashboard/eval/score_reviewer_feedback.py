@@ -295,7 +295,8 @@ def main() -> None:
     data = json.loads(CASES.read_text(encoding="utf-8"))
     print(
         f"{args.classifier} / {args.model} x{args.trials}   "
-        f"baseline generated {data['generated_at']}\n"
+        f"baseline generated {data['baseline_generated_at']}; "
+        f"measurements updated {data['measurements_updated_at']}\n"
     )
     trials = [
         classify(data["cases"], template, fields, mapping, args.model)

@@ -153,6 +153,15 @@ class RebuildTest(unittest.TestCase):
         self.assertEqual(
             regenerate_baseline.PROMPT, rebuilt["baseline_configuration"]["prompt"]
         )
+        self.assertEqual(
+            rebuilt["baseline_generated_at"],
+            rebuilt["measurements_updated_at"],
+        )
+        self.assertEqual(
+            {rebuilt["baseline_generated_at"]},
+            {case["measurement_date"] for case in rebuilt["cases"]},
+        )
+        self.assertNotIn("generated_at", rebuilt)
 
 
 class RunBatchCachingTest(unittest.TestCase):

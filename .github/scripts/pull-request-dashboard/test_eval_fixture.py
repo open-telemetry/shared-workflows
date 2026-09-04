@@ -1,6 +1,7 @@
 import json
 import re
 import unittest
+from datetime import date
 from itertools import groupby
 from pathlib import Path
 
@@ -37,6 +38,22 @@ class EvalFixtureTest(unittest.TestCase):
             counts["adjudicated"],
             sum(1 for case in self.cases if case["adjudicated_label"]),
         )
+
+    def test_measurement_dates_describe_the_mixed_vintage_corpus(self) -> None:
+        baseline = date.fromisoformat(self.data["baseline_generated_at"])
+        updated = date.fromisoformat(self.data["measurements_updated_at"])
+        measurements = []
+
+        self.assertLessEqual(baseline, updated)
+        self.assertNotIn("generated_at", self.data)
+        for case in self.cases:
+            with self.subTest(case=case["id"]):
+                measured = date.fromisoformat(case["measurement_date"])
+                self.assertLessEqual(baseline, measured)
+                self.assertLessEqual(measured, updated)
+                measurements.append(measured)
+        self.assertEqual(baseline, min(measurements))
+        self.assertEqual(updated, max(measurements))
 
     def test_case_ids_are_unique(self) -> None:
         ids = [case["id"] for case in self.cases]

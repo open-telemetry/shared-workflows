@@ -133,8 +133,9 @@ before this pull request can merge?
   - author_action: anything the author would answer or act on, including
     questions, requests, objections, remarks that reject the pull request's
     premise or necessity without asking for anything, an answer to a question
-    the author asked, and a statement that this pull request is blocked on
-    another pull request, release, or decision
+    the author asked, a concrete report that this pull request's tests still
+    fail or its proposed fix remains broken, and a statement that this pull
+    request is blocked on another pull request, release, or decision
   - no_author_action: the item needs nothing from the PR author, such as pure
     approval, thanks, a status summary, a preamble that only describes the
     review it introduces, or a repository automation command (for example
@@ -162,6 +163,11 @@ to give them, or that the author is free to disagree with them ("AI-generated
 review", "lightly filtered AI-generated feedback, push back freely", "some nits
 below, take them or leave them"). An invitation to push back on those comments
 is not a request.
+
+A concrete report that tests still fail, CI still reproduces the defect, or the
+proposed fix remains broken is author_action even when phrased only as a
+statement, without polite request wording. This is unresolved defect evidence,
+not a status summary.
 
 Compare `addressed_to`, and every other login and team named in `body`, against
 `pr_author`. An item asking a different person or team to review, decide, or

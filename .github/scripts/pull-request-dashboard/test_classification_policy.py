@@ -123,8 +123,8 @@ class PromptCompatibilityTest(unittest.TestCase):
             },
             {
                 "review": (
-                    5359,
-                    "ea4f5a86153173cf98f1d3d21a097e18dd513ce52c8c119f563b016559376653",
+                    5714,
+                    "d5960f93e1b5963a6355061281f4e418e807eaa17b8a0a101dfc2b4cc4277a67",
                 ),
                 "author": (
                     3372,
@@ -144,7 +144,7 @@ class PromptCompatibilityTest(unittest.TestCase):
                 "gpt-test",
                 verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
             ),
-            "c78a48290b695bf839eed8ba25a1481a95a7565309c86fd57bd15ce8395ec58b",
+            "c0bae7b1e460f5d7edd0b23e6193f5413a4dd2aee05cffe9d9c8ebc40ca0c8fb",
         )
         self.assertEqual(
             discussion_cache_key(
@@ -162,6 +162,63 @@ class PromptCompatibilityTest(unittest.TestCase):
             ),
             "76e534a013fc212856acbebd3c1897aa2c27daa6a69c6c8bee02e2d11b7bb2fd",
         )
+
+    def test_reviewer_feedback_prompt_assigns_unresolved_defects_to_author(
+        self,
+    ) -> None:
+        item = discussion(
+            "still-failing",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            "The test is unfortunately still failing here.",
+            requester="reviewer",
+            pr_author="author",
+        )
+
+        prompt = render_verdict_prompt(
+            [item],
+            VerdictContract.REVIEWER_FEEDBACK,
+        )
+
+        self.assertIn(
+            "A concrete report that tests still fail, CI still reproduces the defect",
+            prompt,
+        )
+        self.assertIn(
+            '"body": "The test is unfortunately still failing here."',
+            prompt,
+        )
+
+    def test_reviewer_prompt_change_invalidates_only_its_cached_verdicts(
+        self,
+    ) -> None:
+        review_key = discussion_cache_key(
+            self.review,
+            "gpt-test",
+            verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
+        )
+        praise_key = discussion_cache_key(
+            self.thread,
+            "gpt-test",
+            verdict_contract=VerdictContract.PRAISE,
+        )
+
+        with patch(
+            "classification_policy.REVIEWER_FEEDBACK_PROMPT_TEMPLATE",
+            "changed reviewer policy",
+        ):
+            changed_review_key = discussion_cache_key(
+                self.review,
+                "gpt-test",
+                verdict_contract=VerdictContract.REVIEWER_FEEDBACK,
+            )
+            unchanged_praise_key = discussion_cache_key(
+                self.thread,
+                "gpt-test",
+                verdict_contract=VerdictContract.PRAISE,
+            )
+
+        self.assertNotEqual(review_key, changed_review_key)
+        self.assertEqual(praise_key, unchanged_praise_key)
 
     def test_author_comment_prompt_supports_empty_input(self) -> None:
         prompt = make_author_comment_request(

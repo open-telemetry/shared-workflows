@@ -213,6 +213,9 @@ the implementation understandable and operationally cheap.
 - LLM classification cache is stored with `actions/cache`.
 - Unchanged review threads and top-level feedback items reuse cached
   classifications and avoid new Copilot calls.
+- Each discussion cache key includes the model, full prompt template, and prompt
+  input. Changing one classifier's policy invalidates its verdicts without
+  clearing unrelated classifier or dashboard state.
 - Cache keys are scoped by target repository and by either PR number or
   backfill.
 - Targeted PR runs restore their PR-specific cache first, then fall back to the
@@ -620,6 +623,10 @@ the implementation understandable and operationally cheap.
   outside this repository, because the author still has to drive it. A route for
   that case would name nobody, could not be nudged, and would outrank approvals,
   leaving blocked PRs unowned.
+- A concrete reviewer report that tests still fail, CI still reproduces the
+  defect, or the proposed fix remains broken is an author action even without
+  request wording. It is evidence that the change is not ready, not a status
+  summary.
 - Lifecycle transitions are deterministic after feedback and author-reply
   classification. An ordinary new item waits on the
   author with 📌 visible. Once the author gives a completed reply, the item is
