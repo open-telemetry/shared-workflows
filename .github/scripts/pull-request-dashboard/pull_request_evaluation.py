@@ -53,6 +53,7 @@ from discussion_lifecycle import (
 )
 from github_cli import TransientGhError
 from pull_request_source import (
+    Actor,
     IssueComment,
     PullRequestSource,
     fetch_pull_request_source,
@@ -76,16 +77,46 @@ from routing_decision import (
     routing_failure_facts,
 )
 from routing_snapshot import build_routing_snapshot
-from utils import format_ts, parse_ts
+from utils import (
+    format_ts,
+    is_unattended_author_login,
+    normalize_author_identity,
+    parse_ts,
+)
 
 
-# Copilot appears in two API shapes: `gh pr view`'s `author` field uses the
-# `app/<slug>` form, while the Pulls/commits endpoint's `committer.login`
-# field can return the bare `copilot` slug. Do not treat either form as the
-# human author behind a Copilot-authored PR.
-_COPILOT_COMMITTER_LOGINS = {"copilot"}
-_COPILOT_PR_AUTHORS = {"app/copilot-swe-agent", "copilot"}
-_MAINTENANCE_BOT_PR_AUTHORS = {"app/otelbot", "app/renovate"}
+# Copilot appears under two slugs: `gh pr view`'s `author` field reports
+# `app/copilot-swe-agent`, while the Pulls/commits endpoint's `committer.login`
+# field can report the bare `copilot` slug. Either slug can name Copilot as the
+# author, so the author set carries both while the committer set carries only
+# the bare slug. These sets hold the identities `normalize_author_identity`
+# returns, without the `app/` prefix or the `[bot]` suffix. Do not treat either
+# slug as the human author behind a Copilot-authored PR.
+_COPILOT_COMMITTER_IDENTITIES = {"copilot"}
+_COPILOT_PR_AUTHOR_IDENTITIES = {"copilot-swe-agent", "copilot"}
+_MAINTENANCE_APP_IDENTITIES = {"dependabot", "otelbot", "renovate"}
+
+
+def _is_maintenance_bot_author(login: str) -> bool:
+    normalized_login = (login or "").strip().casefold()
+    identity = normalize_author_identity(normalized_login)
+    return identity == "opentelemetrybot" or (
+        identity in _MAINTENANCE_APP_IDENTITIES
+        and (
+            normalized_login.startswith("app/")
+            or normalized_login.endswith("[bot]")
+        )
+    )
+
+
+def _author_can_act(api_author: Actor, effective_author: str) -> bool:
+    if is_unattended_author_login(effective_author):
+        return False
+    return (
+        not api_author.is_bot
+        or normalize_author_identity(api_author.login)
+        != normalize_author_identity(effective_author)
+    )
 
 
 @dataclass(frozen=True)
@@ -116,12 +147,11 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
         for assignee in source.pull_request.assignees
     ]
     for login in assignees:
-        low = login.lower()
+        identity = normalize_author_identity(login)
         if (
             login
-            and low not in _COPILOT_PR_AUTHORS
-            and not low.startswith("app/")
-            and not low.endswith("[bot]")
+            and identity not in _COPILOT_PR_AUTHOR_IDENTITIES
+            and not is_unattended_author_login(login)
         ):
             return login
 
@@ -132,7 +162,8 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
     login = committer.login
     if (
         not login
-        or login.lower() in _COPILOT_COMMITTER_LOGINS
+        or normalize_author_identity(login) in _COPILOT_COMMITTER_IDENTITIES
+        or is_unattended_author_login(login)
         or committer.is_bot
         or committer.is_copilot_reviewer
     ):
@@ -142,7 +173,7 @@ def _human_author_for_copilot_pr(source: PullRequestSource) -> str:
 
 def _effective_author(source: PullRequestSource) -> str:
     author = source.pull_request.author.login
-    if author.lower() in _COPILOT_PR_AUTHORS:
+    if normalize_author_identity(author) in _COPILOT_PR_AUTHOR_IDENTITIES:
         human_author = _human_author_for_copilot_pr(source)
         if human_author:
             return human_author
@@ -230,7 +261,8 @@ def _compute_facts(
         copilot_review_exists=copilot_review_exists,
         copilot_review_stale=copilot_review_stale,
         copilot_review_needed=copilot_review_stale or copilot_review_findings,
-        is_maintenance_bot=api_author.lower() in _MAINTENANCE_BOT_PR_AUTHORS,
+        is_maintenance_bot=_is_maintenance_bot_author(api_author),
+        author_can_act=_author_can_act(pr.author, author),
         is_draft=pr.is_draft,
         approval_count=prepared_reviewers.approval_count,
         conflicts=pr.conflicts,

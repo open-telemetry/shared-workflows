@@ -221,6 +221,7 @@ class StateTest(unittest.TestCase):
             copilot_review_stale=True,
             copilot_review_needed=True,
             is_maintenance_bot=False,
+            author_can_act=True,
             is_draft=False,
             approval_count=2,
             conflicts="no",
@@ -260,6 +261,128 @@ class StateTest(unittest.TestCase):
             facts,
             decode_dashboard_facts(encode_dashboard_facts(facts)),
         )
+
+    def test_legacy_facts_infer_whether_the_author_can_act(self) -> None:
+        cases = (
+            ("alice", True),
+            ("app/dependabot", False),
+            ("renovate[bot]", False),
+            ("opentelemetrybot", False),
+        )
+        for author, expected in cases:
+            with self.subTest(author=author):
+                self.assertEqual(
+                    expected,
+                    decode_dashboard_facts({"author": author}).author_can_act,
+                )
+
+        self.assertTrue(
+            decode_dashboard_facts({
+                "author": "app/dependabot",
+                "author_can_act": True,
+            }).author_can_act
+        )
+        self.assertEqual(
+            DashboardRoute.AUTHOR,
+            decode_stored_result(
+                {
+                    "route": "author",
+                    "facts": {
+                        "author": "app/dependabot",
+                        "author_can_act": True,
+                    },
+                },
+                pr_number_hint=123,
+            ).route,
+        )
+
+    def test_version_thirteen_state_infers_author_capability(self) -> None:
+        persisted = {
+            "version": 13,
+            "initial_backfill_complete": True,
+            "prs": {
+                "123": {
+                    "pr_number": 123,
+                    "failed": False,
+                    "route": "author",
+                    "facts": {"author": "app/dependabot"},
+                },
+                "124": {
+                    "pr_number": 124,
+                    "failed": False,
+                    "route": "approver",
+                    "facts": {"author": "app/dependabot"},
+                },
+                "125": {
+                    "pr_number": 125,
+                    "failed": False,
+                    "route": "author",
+                    "facts": {"author": "alice"},
+                },
+                "126": {
+                    "pr_number": 126,
+                    "failed": False,
+                    "route": "author",
+                    "facts": {
+                        "author": "app/dependabot",
+                        "author_can_act": True,
+                    },
+                },
+            },
+        }
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch("state._state_dir", Path(temp_dir)),
+        ):
+            dashboard_state_path().write_text(
+                json.dumps(persisted),
+                encoding="utf-8",
+            )
+
+            warnings = StringIO()
+            with redirect_stderr(warnings):
+                decoded = load_dashboard_state_cache()
+
+        self.assertIsNotNone(decoded)
+        assert decoded is not None
+        self.assertEqual(frozenset({124, 125, 126}), decoded.pr_numbers)
+        decoded_by_number = {
+            result.pr_number: result
+            for result in decoded.results
+        }
+        self.assertFalse(decoded_by_number[124].facts.author_can_act)
+        self.assertEqual(
+            DashboardRoute.APPROVER,
+            decoded_by_number[124].route,
+        )
+        self.assertTrue(decoded_by_number[125].facts.author_can_act)
+        self.assertEqual(DashboardRoute.AUTHOR, decoded_by_number[125].route)
+        self.assertTrue(decoded_by_number[126].facts.author_can_act)
+        self.assertEqual(DashboardRoute.AUTHOR, decoded_by_number[126].route)
+        self.assertIn(
+            "dashboard result author route requires an actionable author",
+            warnings.getvalue(),
+        )
+        self.assertEqual(
+            DASHBOARD_STATE_VERSION,
+            encode_dashboard_state(decoded)["version"],
+        )
+
+    def test_version_fourteen_state_is_regenerated(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch("state._state_dir", Path(temp_dir)),
+        ):
+            dashboard_state_path().write_text(
+                json.dumps({
+                    "version": 14,
+                    "initial_backfill_complete": True,
+                    "prs": {},
+                }),
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(load_dashboard_state_cache())
 
     def test_stored_result_and_dashboard_state_codecs_round_trip(self) -> None:
         first = stored_dashboard_result(
@@ -514,19 +637,20 @@ class StateTest(unittest.TestCase):
             },
         }
 
-        self.assertEqual(
-            {
-                **persisted,
-                "version": DASHBOARD_STATE_VERSION,
-                "draft_pr_numbers": [],
-            },
-            encode_dashboard_state(decode_dashboard_state(persisted)),
-        )
+        decoded = decode_dashboard_state(persisted)
+        self.assertTrue(decoded.results[0].facts.author_can_act)
+        expected = {
+            **persisted,
+            "version": DASHBOARD_STATE_VERSION,
+            "draft_pr_numbers": [],
+        }
+        expected["prs"]["123"]["facts"]["author_can_act"] = True
+        self.assertEqual(expected, encode_dashboard_state(decoded))
 
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 13)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 15)
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)

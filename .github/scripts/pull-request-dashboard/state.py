@@ -20,6 +20,7 @@ from dashboard_contracts import (
 )
 from github_cli import detect_repo, normalize_repo, repo_state_key
 import state_branch
+from utils import is_unattended_author_login
 
 
 DASHBOARD_MARKDOWN_FILE = "pull-request-dashboard.md"
@@ -35,7 +36,7 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # current vector, ordinary state loaders may regenerate mismatched disposable
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-state.json: accepted PR routing results and backfill readiness.
-DASHBOARD_STATE_VERSION = 13
+DASHBOARD_STATE_VERSION = 15
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
@@ -453,8 +454,9 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         raw_reviewers = []
     if not isinstance(raw_reviewers, list):
         raise ValueError("facts.reviewers must be an array")
+    author = _string(value.get("author", _MISSING), "facts.author")
     return DashboardFacts(
-        author=_string(value.get("author", _MISSING), "facts.author"),
+        author=author,
         assignees=_string_tuple(
             value.get("assignees", _MISSING),
             "facts.assignees",
@@ -515,6 +517,11 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
         is_maintenance_bot=_boolean(
             value.get("is_maintenance_bot", _MISSING),
             "facts.is_maintenance_bot",
+        ),
+        author_can_act=_boolean(
+            value.get("author_can_act", _MISSING),
+            "facts.author_can_act",
+            not is_unattended_author_login(author),
         ),
         is_draft=_boolean(
             value.get("is_draft", _MISSING),
@@ -636,6 +643,7 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         "copilot_review_stale": facts.copilot_review_stale,
         "copilot_review_needed": facts.copilot_review_needed,
         "is_maintenance_bot": facts.is_maintenance_bot,
+        "author_can_act": facts.author_can_act,
         "is_draft": facts.is_draft,
         "approval_count": facts.approval_count,
         "conflicts": facts.conflicts,
@@ -719,6 +727,11 @@ def decode_stored_result(
         history = {}
     if not isinstance(history, dict):
         raise ValueError("dashboard result top_level_history must be an object")
+    facts = decode_dashboard_facts(
+        value["facts"] if "facts" in value else {}
+    )
+    if route is DashboardRoute.AUTHOR and not facts.author_can_act:
+        raise ValueError("dashboard result author route requires an actionable author")
     return StoredDashboardResult(
         pr_number=pr_number,
         pr_url=_string(
@@ -726,9 +739,7 @@ def decode_stored_result(
             "dashboard result pr_url",
         ),
         route=route,
-        facts=decode_dashboard_facts(
-            value["facts"] if "facts" in value else {}
-        ),
+        facts=facts,
         top_level_history=freeze_json_object(history),
     )
 
@@ -808,7 +819,7 @@ def load_dashboard_state_cache() -> DashboardState | None:
     state = load_state_file(
         dashboard_state_path(),
         DASHBOARD_STATE_VERSION,
-        compatible_versions=(11, 12),
+        compatible_versions=(11, 12, 13),
     )
     if state is None:
         return None
