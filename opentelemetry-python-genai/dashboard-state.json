@@ -1711,16 +1711,18 @@
     },
     "631": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "sfc-gh-zeningchen",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/631#discussion_r3938833943"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "8b8b40b72a6d44c982aab4390b3f7f45",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f32e8e2bb3c98edf44f78b12ffa2233a319dc70d2ef0428c2d0c15f381a1d0ea",
+        "copilot_request_fingerprint": "838d4206f21d3a4d0e085a0a510ea8b257c12b4188630f62301a10bfbcc6ade0",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1736,17 +1738,26 @@
         "head_sha": "808655c477220c3acf38429e1a0270d2676aa619",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-05T00:22:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-05T00:37:02+00:00",
+        "last_approver_activity_at": "2026-09-05T00:37:02+00:00",
         "last_author_activity_at": "2026-09-05T00:22:47+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-05T00:34:49.244300+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "abc1a4af0f38a20263fb5f951d365e204822e09b564a3d4647e9d99ae837db8b",
-        "waiting_age_basis": "created",
-        "waiting_since": "2026-09-05T00:22:37+00:00"
+        "routing_input_fingerprint": "b357f19acbf26b0691a4539f7aa83c153414981cea5113d884dace5d1e648882",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-05T00:36:05+00:00"
       },
       "failed": false,
       "pr_number": 631,
