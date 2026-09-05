@@ -323,7 +323,7 @@ import state_branch
 from utils import utc_now
 
 # --- CLI defaults ----------------------------------------------------------
-DEFAULT_MODEL = "gpt-5.4-mini"
+DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_BACKFILL_MAX_PRS = 50
 BACKFILL_RECORDED_FAILURE_STATUS = 2
 
