@@ -4342,12 +4342,11 @@
         "author": "miachillgood",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "author_nudge_episode_id": "85fa60c32aa341df9392bae3b1182cd8",
         "ci_failing_count": 1,
         "ci_failing_since": "2026-09-03T18:50:48+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "66577ad19a4e84b536a3f054ffb00ee9e2e79dedc1fca585d94199bb2cf2dc56",
+        "copilot_request_fingerprint": "0a09c18366dd2c26e7e6159d10313987584220a4903efff7ae9313d385993c3f",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4356,15 +4355,27 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-08-22T05:23:53+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5547178524,
+            "head_sha": "1f26d7a195cf5299919b53a309124c580aba44e0",
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "since": "2026-09-04T22:30:30Z",
+            "user": "tammy-baylis-swi"
+          }
+        ],
+        "dashboard_override_bound_command_id": 5547178524,
+        "dashboard_override_command_id": 5547178524,
+        "dashboard_override_command_user": "tammy-baylis-swi",
+        "dashboard_override_head_sha": "1f26d7a195cf5299919b53a309124c580aba44e0",
+        "dashboard_override_since": "2026-09-04T22:30:30Z",
         "head_sha": "1f26d7a195cf5299919b53a309124c580aba44e0",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-03T17:47:07+00:00",
-        "last_approver_activity_at": "2026-09-03T17:47:07+00:00",
+        "last_activity_at": "2026-09-04T22:30:13+00:00",
+        "last_approver_activity_at": "2026-09-04T22:30:13+00:00",
         "last_author_activity_at": "2026-09-01T22:09:52+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -4380,14 +4391,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "75e6122d30c13549e9502d6f8daa853e17420a53531d73104cb9a9c530f679f2",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-09-03T18:50:48+00:00"
+        "routing_input_fingerprint": "b7c75593782cf49ff91b230094344c5d83dcecb358069396e237579d84dfe591",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-01T22:09:52+00:00"
       },
       "failed": false,
       "pr_number": 4985,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4985",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-5414147159": {
           "evidence": {
