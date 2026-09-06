@@ -14511,7 +14511,7 @@
     },
     "50768": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ogulcanaydogan",
         "author_action_review_thread_urls": [],
@@ -14519,7 +14519,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d53a691761d6c4dcc710226b1a729f8d5e1f4cd37b764b9b111abef3ebbe0ffd",
+        "copilot_request_fingerprint": "38391d3773e409cffcdefba683e1d639dc21fe8ed8683b23780da8fe5584cec0",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14535,21 +14535,31 @@
         "head_sha": "fbf7df1fc19e5ac01fcfbdf1c84c9d2def952874",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-05T16:16:14+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-06T05:14:29+00:00",
+        "last_approver_activity_at": "2026-09-06T05:14:29+00:00",
         "last_author_activity_at": "2026-09-05T16:16:14+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c6d87c11edd0d227a6bf55ec9674684824dc63ed34ef383ca607bbaaa4595bbb",
+        "routing_input_fingerprint": "6ba1e781c56b356b02217fe6fe11e6f41ffdcdbbce0cffb5027225d2a534f5ea",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-05T16:16:14+00:00"
       },
       "failed": false,
       "pr_number": 50768,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50768",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50771": {
