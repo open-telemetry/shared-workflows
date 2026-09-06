@@ -582,7 +582,7 @@
     },
     "5163": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "stevejgordon",
         "author_action_review_thread_urls": [],
@@ -590,7 +590,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "841029c152fd2b15ed097a419dcac33bdad079218fd5bdb0d61a99a695ca2c8c",
+        "copilot_request_fingerprint": "45b1b491d391ed07302013402bf1d7d9930f918f3ab62816e9af201a6c60b3db",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -606,21 +606,31 @@
         "head_sha": "dabbe17203c8e5ea9240e48a390b60f9351c0e7c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-02T14:53:38+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-06T14:55:36+00:00",
+        "last_approver_activity_at": "2026-09-06T14:55:36+00:00",
         "last_author_activity_at": "2026-09-02T14:51:52+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1044328e4ec26f1c93d9e3ae337e12bbcfb96bcce57591f7f14700cb4ef61967",
+        "routing_input_fingerprint": "fc133536b9528c8a2c21e7fe73ef8e9be723e9390e40e8ba8dfe3fa57ba494f3",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-02T14:51:52+00:00"
       },
       "failed": false,
       "pr_number": 5163,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5163",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5165": {
