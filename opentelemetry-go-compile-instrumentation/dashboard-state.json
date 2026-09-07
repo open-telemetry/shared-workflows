@@ -1003,15 +1003,17 @@
     },
     "1137": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "itssaharsh",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "f31f8b5dbe534b808fdd54e27a57d501",
+        "ci_failing_count": 2,
+        "ci_failing_since": "2026-09-07T14:29:38+00:00",
         "ci_pending_count": 0,
-        "conflicts": "yes",
-        "copilot_request_fingerprint": "d8e9043cc1549a8e75d8eb13c3d44b1c0dbbb236d8da0e6d3599f2aa8de53dfd",
+        "conflicts": "no",
+        "copilot_request_fingerprint": "ca8546cffefc5b61da793617712f1a46fe76c64c1ce638240410fecbae83badd",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1024,34 +1026,34 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "5f0dbf3e15d44ef1d9af605300525351e4d0eee0",
+        "head_sha": "1417e692a357ea3ef69af8a1e046f1d3d96d432f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-07T08:54:29+00:00",
-        "last_approver_activity_at": "2026-09-07T08:54:29+00:00",
+        "last_activity_at": "2026-09-07T13:52:20+00:00",
+        "last_approver_activity_at": "2026-09-07T13:52:20+00:00",
         "last_author_activity_at": "2026-09-06T14:57:46+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
-            "changes_requested": true,
+            "changes_requested": false,
             "login": "darccio",
             "open_thread": false,
-            "pending_review": true,
+            "pending_review": false,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4c591c69f1ab53aedb1fa0b41220e7c5000c4c9b2eed6faa84ca9e6ca2eb4f28",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-08-22T18:54:09+00:00"
+        "routing_input_fingerprint": "0aa8b75642a9c16f0eb75a36d8dc64ac46b696c5c5378ebee269edb88289b89e",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-07T14:29:38+00:00"
       },
       "failed": false,
       "pr_number": 1137,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1137",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5328354384": {
           "evidence": {
