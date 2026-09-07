@@ -576,17 +576,21 @@
     },
     "5166": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "sablancoleis"
         ],
         "author": "sablancoleis",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5166#discussion_r3948078902",
+          "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5166#discussion_r3948110488"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "fcfaad4caaa84582869e25d727eb7b8e",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1be6717871e92c5e3c02cf970bc66dcd03f59c392494f474a1bfc1f9251f34f4",
+        "copilot_request_fingerprint": "f88562db05d003fa4c6a0c49cf8949f8b7a74d0a2a744d652c37694b81df8bf1",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -602,11 +606,20 @@
         "head_sha": "b52e9ea7bfddc57dae2c56d9f49fdb11a56cebea",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-02T22:34:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-07T08:58:20+00:00",
+        "last_approver_activity_at": "2026-09-07T08:58:20+00:00",
         "last_author_activity_at": "2026-09-02T22:34:40+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -619,14 +632,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "58e93e55466c1dcc797a6d25a2cedf37142dfdd7da7fa9b894a2f56a8b562a83",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-09-02T22:02:36.711832+00:00"
+        "routing_input_fingerprint": "c8c778d6f6029d268f6ae46b2f41be7e2ad3987dea35bb156f797cbe84bb8b8b",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-07T08:54:03+00:00"
       },
       "failed": false,
       "pr_number": 5166,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5166",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "5167": {
