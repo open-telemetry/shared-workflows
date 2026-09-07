@@ -2021,7 +2021,7 @@
     },
     "3312": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "skl",
         "author_action_review_thread_urls": [],
@@ -2029,7 +2029,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "df9bf212dc8ce7776f5eff9d89f34e43d1bf50b037ef35c881a5c666fd4cebae",
+        "copilot_request_fingerprint": "a8a78ecaf896b8d3cc23b9b10d6694ac71e77fb97a1d3acd0648da9480d141f6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2045,21 +2045,31 @@
         "head_sha": "09916dd791db73c87515133ac472a53472b2d4f7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-04T09:08:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-07T09:31:47+00:00",
+        "last_approver_activity_at": "2026-09-07T09:31:47+00:00",
         "last_author_activity_at": "2026-09-04T09:06:37+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "NimrodAvni78",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "42510e53365adc8355ac4154cc280e9a6ff23c3df88412dcd0e239d37c62ec68",
+        "routing_input_fingerprint": "1c8d5139d4c652d3e05b97ef9a3dc81528c4a344c7000386c0d2ac3a60798595",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-04T09:06:37+00:00"
       },
       "failed": false,
       "pr_number": 3312,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3312",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3314": {
