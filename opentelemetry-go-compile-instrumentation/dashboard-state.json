@@ -3518,9 +3518,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
-        "conflicts": "yes",
-        "copilot_request_fingerprint": "9db8997c020ec6b5e81658bea410fff295163363ebad7f5d70d563d636175b8f",
+        "ci_pending_count": 1,
+        "conflicts": "no",
+        "copilot_request_fingerprint": "85fdf4d8456503791c6bd1df8c77657518ff5fb86154c850b23b77a01e44d1b1",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3533,14 +3533,23 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "d3ee9d857f465342e47e7a65eda636a84f366bb8",
+        "head_sha": "e8a49aeb64cf9f9c702c1935ef0c0d8726acdaae",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-07T08:29:46+00:00",
-        "last_approver_activity_at": "2026-07-23T02:03:50+00:00",
-        "last_author_activity_at": "2026-09-07T08:29:46+00:00",
-        "required_checks_settled": true,
+        "last_activity_at": "2026-09-07T11:14:55+00:00",
+        "last_approver_activity_at": "2026-09-07T10:34:40+00:00",
+        "last_author_activity_at": "2026-09-07T11:14:55+00:00",
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "darccio",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -3571,7 +3580,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "279127380a2450379c3209b409b03a6df8d16ff33aad4c0e0ea5b9fe4014876c",
+        "routing_input_fingerprint": "09fc4a0c53a00674c13d71f3a549f03cbbc66c3b1315beb811ddf436d233c3d3",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-08-25T09:14:25+00:00"
       },
@@ -3585,6 +3594,12 @@
             "reply": "2026-08-23T22:06:09Z"
           },
           "reply_source_id": 5388722285
+        },
+        "pr-review-5130800889": {
+          "evidence": {
+            "reply": "2026-09-07T11:14:55Z"
+          },
+          "reply_source_id": 5569790213
         }
       }
     },
