@@ -3089,7 +3089,9 @@
         "approval_count": 0,
         "assignees": [],
         "author": "trask",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20008#discussion_r3952654026"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "2634f1ac13a44590af8daf1b48cd0dfd",
@@ -3097,14 +3099,14 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "06b8a63e7da55d3cb155d95af654ab7b35591059fded76ed43ee43db6b6e2772",
+        "copilot_request_fingerprint": "cfc8ac97643ee257f3bf9a2eb17a664a5e33496f6b8dbf1c8b6d4971dd733ad7",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
-        "copilot_review_stale": true,
-        "copilot_review_unreported": true,
+        "copilot_review_requested": false,
+        "copilot_review_stale": false,
+        "copilot_review_unreported": false,
         "created_at": "2026-09-07T01:22:08+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
@@ -3117,13 +3119,23 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-07T20:41:41+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-07T21:13:54.676644+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "80de6ee0c513edb720d2986ea12eae82f3e8f4434100f078ebf5d207565ab725",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-07T01:22:08+00:00"
+        "routing_input_fingerprint": "52e15922eaff68d9ff43486cb394351cc46b2c637428e33e04411851d02af28e",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-07T21:21:17+00:00"
       },
       "failed": false,
       "pr_number": 20008,
