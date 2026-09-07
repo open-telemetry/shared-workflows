@@ -3159,7 +3159,7 @@
     },
     "4014": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -3167,7 +3167,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "bac476d084ba025b724a6315eee30d6b55259a95cc5c2d28b96deefd0b77f330",
+        "copilot_request_fingerprint": "a1373957e99ba95713fbc16d11cf26495d3dc7f3a13fb19861bb719e3df1994d",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3183,21 +3183,31 @@
         "head_sha": "ad1af2b290ba1dbfc86d13f33c859b3246300878",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-07T05:46:14+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-07T13:56:39+00:00",
+        "last_approver_activity_at": "2026-09-07T13:56:39+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "albertlockett",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e7fadf9a5f6c088368cca0e4b542d193b3038d7da116ddc9b055ca8dfd1292db",
+        "routing_input_fingerprint": "60b71f063cfa26dc15b03ded479915d127d12fd25d2f1020658aece2d792620e",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-07T05:46:14+00:00"
       },
       "failed": false,
       "pr_number": 4014,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4014",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4015": {
