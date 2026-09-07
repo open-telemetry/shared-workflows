@@ -4,6 +4,13 @@ from dataclasses import FrozenInstanceError
 import unittest
 from unittest.mock import patch
 
+from dashboard_test_support import (
+    actor,
+    pull_request_source,
+    review_source,
+    review_thread,
+    review_thread_comment,
+)
 from pull_request_source import normalize_pull_request_source
 from routing_snapshot import build_routing_snapshot, fetch_routing_snapshot
 
@@ -38,6 +45,65 @@ def representative_raw() -> dict:
 
 
 class RoutingSnapshotTest(unittest.TestCase):
+    def test_fixture_preserves_review_activity_fingerprint_fields(self) -> None:
+        source = pull_request_source(
+            reviews=(review_source(
+                database_id=17,
+                actor=actor("copilot"),
+                content_updated_at="2026-08-16T08:00:00Z",
+            ),),
+            review_threads=(review_thread(comments=(review_thread_comment(
+                actor=actor("copilot"),
+                updated_at="2026-08-16T09:00:00Z",
+            ),)),),
+        )
+
+        inputs = source.fingerprint.routing_inputs()
+
+        self.assertEqual(
+            "2026-08-16T08:00:00Z",
+            inputs["reviews"][0]["content_updated_at"],
+        )
+        thread_comment = inputs["review_threads"][0]["comments"]["nodes"][0]
+        self.assertEqual(
+            "2026-08-16T09:00:00Z",
+            thread_comment["lastEditedAt"],
+        )
+
+    def test_fixture_fingerprint_tracks_review_activity_changes(self) -> None:
+        def snapshot(
+            *,
+            review_edited_at: str = "2026-08-16T08:00:00Z",
+            thread_edited_at: str = "2026-08-16T09:00:00Z",
+        ):
+            return build_routing_snapshot(pull_request_source(
+                reviews=(review_source(
+                    database_id=17,
+                    actor=actor("copilot"),
+                    content_updated_at=review_edited_at,
+                ),),
+                review_threads=(review_thread(
+                    comments=(review_thread_comment(
+                        actor=actor("copilot"),
+                        updated_at=thread_edited_at,
+                    ),),
+                ),),
+            ))
+
+        baseline = snapshot().routing_input_fingerprint
+        changes = (
+            snapshot(
+                review_edited_at="2026-08-16T10:00:00Z"
+            ).routing_input_fingerprint,
+            snapshot(
+                thread_edited_at="2026-08-16T10:00:00Z"
+            ).routing_input_fingerprint,
+        )
+
+        for changed in changes:
+            with self.subTest(changed=changed):
+                self.assertNotEqual(baseline, changed)
+
     def test_preserves_characterized_fingerprints_and_component_digests(self) -> None:
         snapshot = build_routing_snapshot(
             normalize_pull_request_source(representative_raw())

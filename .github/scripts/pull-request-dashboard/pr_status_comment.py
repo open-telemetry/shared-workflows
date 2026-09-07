@@ -14,9 +14,11 @@ from github_cli import (
 )
 from dashboard_override import (
     PRE_REVIEW_ROUTES,
+    acknowledged_top_level_feedback_cutoff,
     acknowledged_override,
     acknowledges_override,
     override_ack_marker,
+    top_level_feedback_cutoff_marker,
 )
 from dashboard_contracts import (
     DashboardFacts,
@@ -379,6 +381,13 @@ def render_status_comment(
                 facts.dashboard_override_since,
             ),
         )
+        if facts.dashboard_top_level_feedback_cutoff:
+            optional_markers.append(
+                top_level_feedback_cutoff_marker(
+                    bound_command_id,
+                    facts.dashboard_top_level_feedback_cutoff,
+                )
+            )
         optional_markers.append(
             reviewer_handoff_cleared_marker(bound_command_id, bound_head),
         )
@@ -468,10 +477,17 @@ def upsert_status_comment(
     if comments:
         comment = comments[0]
         if preserve_clearance:
+            normalized_comments = normalize_issue_comments(comments)
             command_id, head_sha = status_reviewer_handoff_clearance(comments)
             clearance_marker = reviewer_handoff_cleared_marker(command_id, head_sha)
             acknowledged_id, acknowledged_head, since, _ = acknowledged_override(
-                normalize_issue_comments(comments)
+                normalized_comments
+            )
+            top_level_feedback_cutoff = (
+                acknowledged_top_level_feedback_cutoff(
+                    normalized_comments,
+                    command_id,
+                )
             )
             acknowledgement_marker = override_ack_marker(
                 command_id,
@@ -489,6 +505,20 @@ def upsert_status_comment(
                     preserved_markers.append(acknowledgement_marker)
                 if clearance_marker not in body:
                     preserved_markers.append(clearance_marker)
+                if (
+                    top_level_feedback_cutoff
+                    and top_level_feedback_cutoff_marker(
+                        command_id,
+                        top_level_feedback_cutoff,
+                    )
+                    not in body
+                ):
+                    preserved_markers.append(
+                        top_level_feedback_cutoff_marker(
+                            command_id,
+                            top_level_feedback_cutoff,
+                        )
+                    )
             if preserved_markers:
                 lines = body.splitlines()
                 lines[2:2] = preserved_markers

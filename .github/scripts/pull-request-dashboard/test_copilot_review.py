@@ -9,7 +9,9 @@ from unittest.mock import patch
 
 from copilot_review import (
     REQUEST_CONFIRMATION_ATTEMPTS,
+    copilot_review_status,
     copilot_first_review_overdue,
+    open_copilot_finding_urls,
     set_copilot_first_review_missing_since,
     set_copilot_review_request_needed,
     stale_request_reason,
@@ -19,7 +21,11 @@ from copilot_review_delivery import (
     record_copilot_review_observation,
 )
 from dashboard_test_support import (
+    actor,
     dashboard_facts,
+    review_source,
+    review_thread,
+    review_thread_comment,
     stored_dashboard_result,
 )
 from routing_snapshot import build_routing_snapshot
@@ -54,6 +60,55 @@ def review_result(route: str = "approver", **fact_changes):
         facts=dashboard_facts(**fact_changes),
     )
 
+
+class CopilotFindingLifecycleTest(unittest.TestCase):
+    def test_clean_current_review_keeps_open_findings(self) -> None:
+        reviews = (review_source(
+            actor=actor("copilot"),
+            commit_id="current-head",
+            finding_count=0,
+            submitted_at="2026-07-20T02:00:00Z",
+        ),)
+        threads = (
+            review_thread(
+                node_id="open",
+                comments=(review_thread_comment(
+                    url="https://example.test/open",
+                    actor=actor("copilot"),
+                    created_at="2026-07-20T01:00:00Z",
+                    updated_at="2026-07-20T01:00:00Z",
+                ),),
+            ),
+            review_thread(
+                node_id="resolved",
+                is_resolved=True,
+                comments=(review_thread_comment(
+                    url="https://example.test/resolved",
+                    actor=actor("copilot"),
+                    created_at="2026-07-20T01:00:00Z",
+                    updated_at="2026-07-20T01:00:00Z",
+                ),),
+            ),
+            review_thread(
+                node_id="outdated",
+                is_outdated=True,
+                comments=(review_thread_comment(
+                    url="https://example.test/outdated",
+                    actor=actor("copilot"),
+                    created_at="2026-07-20T01:00:00Z",
+                    updated_at="2026-07-20T01:00:00Z",
+                ),),
+            ),
+        )
+
+        self.assertEqual(
+            (True, False, True),
+            copilot_review_status(reviews, "current-head", threads),
+        )
+        self.assertEqual(
+            ("https://example.test/open",),
+            open_copilot_finding_urls(threads),
+        )
 
 class CopilotFirstReviewMissingSinceTest(unittest.TestCase):
     def test_starts_clock_when_review_is_missing(self) -> None:

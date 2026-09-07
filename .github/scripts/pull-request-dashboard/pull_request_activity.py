@@ -119,11 +119,7 @@ def _issue_comment_event(
         else comment.body
     )
     login = reviewer_actor_login(comment.actor)
-    timestamp = (
-    comment.content_updated_at
-    or comment.created_at
-    or comment.updated_at
-    )
+    timestamp = comment.effective_content_timestamp
     return {
     "source_id": comment.database_id or None,
     "discussion_url": comment.url,
@@ -174,6 +170,7 @@ def _review_event(
         "discussion_url": review.url,
         "kind": "review-state",
         "timestamp": review.submitted_at,
+        "content_timestamp": review.effective_content_timestamp,
         "created_timestamp": review.submitted_at,
         "actor": login,
         "actor_role": role_for(login, author, approver_logins),
@@ -224,7 +221,7 @@ def _latest_substantive_activity(
     actor_roles: set[str],
 ) -> datetime | None:
     timestamps = [
-        parse_ts(event["timestamp"])
+        parse_ts(event.get("content_timestamp") or event["timestamp"])
         for event in events
         if event.get("actor_role") in actor_roles
         and is_substantive_activity(event)

@@ -7,11 +7,12 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
+from datetime import datetime, timezone
 from enum import Enum
 from types import MappingProxyType
 from typing import Any
 
-from utils import truncate
+from utils import parse_ts, truncate
 
 
 DISCUSSION_COMMENT_BODY_MAX_CHARS = 500
@@ -19,6 +20,7 @@ MAX_PROMPT_CHARS = 18_000
 TOP_LEVEL_CLASSIFICATION_BATCH_SIZE = 10
 AUTHOR_COMMENT_DIAGNOSTIC_ITEM_LIMIT = 10
 PRAISE_MAX_CHARS = 80
+_MIN_TIMESTAMP = datetime.min.replace(tzinfo=timezone.utc)
 
 
 class _PromptTooLongError(ValueError):
@@ -364,6 +366,17 @@ class DiscussionComment:
     timestamp: str = ""
     actor_role: str = ""
     body: str = ""
+    activity_timestamp: str = ""
+
+    @property
+    def effective_activity_timestamp(self) -> str:
+        timestamp = parse_ts(self.timestamp)
+        activity_timestamp = parse_ts(self.activity_timestamp)
+        if activity_timestamp is not None and (
+            timestamp is None or activity_timestamp >= timestamp
+        ):
+            return self.activity_timestamp
+        return self.timestamp if timestamp is not None else ""
 
 
 @dataclass(frozen=True)
@@ -380,6 +393,10 @@ class ClassificationDiscussion:
     pr_author: str = ""
     source_kind: str = ""
     candidate_feedback: tuple[CandidateFeedback, ...] = ()
+    strict_author_action: bool = False
+    selected_comment_index: int | None = None
+    selected_activity_timestamp: str = ""
+    ignored_comment_index: int | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "comments", tuple(self.comments))
@@ -409,6 +426,9 @@ class ClassificationDiscussion:
                 timestamp=str(comment.get("timestamp") or ""),
                 actor_role=str(comment.get("actor_role") or ""),
                 body=str(comment.get("body") or ""),
+                activity_timestamp=str(
+                    comment.get("activity_timestamp") or ""
+                ),
             )
             for comment in _mapping_items(record.get("comments"))
         )
@@ -426,13 +446,24 @@ class ClassificationDiscussion:
             pr_author=str(record.get("pr_author") or ""),
             source_kind=str(record.get("source_kind") or ""),
             candidate_feedback=candidate_feedback,
+            strict_author_action=bool(record.get("strict_author_action")),
         )
 
     def with_comments(
         self,
         comments: Sequence[DiscussionComment],
+        *,
+        selected_comment_index: int | None = None,
+        selected_activity_timestamp: str = "",
+        ignored_comment_index: int | None = None,
     ) -> ClassificationDiscussion:
-        return replace(self, comments=tuple(comments))
+        return replace(
+            self,
+            comments=tuple(comments),
+            selected_comment_index=selected_comment_index,
+            selected_activity_timestamp=selected_activity_timestamp,
+            ignored_comment_index=ignored_comment_index,
+        )
 
 
 @dataclass(frozen=True)
@@ -484,6 +515,7 @@ class ClassificationSuccess:
     cli_call: bool = False
     since: str = ""
     ignored_last_comment: bool = False
+    ignored_comment_index: int | None = None
 
     @property
     def failed(self) -> bool:
@@ -502,6 +534,7 @@ class ClassificationFailure:
     cli_call: bool = False
     since: str = ""
     ignored_last_comment: bool = False
+    ignored_comment_index: int | None = None
 
     @property
     def failed(self) -> bool:
@@ -518,6 +551,7 @@ class ClassificationDeferred:
     decision: ClassificationDecision
     since: str = ""
     ignored_last_comment: bool = False
+    ignored_comment_index: int | None = None
 
     @property
     def failed(self) -> bool:
@@ -802,10 +836,17 @@ def review_thread_author_reply_input(
     discussion: ClassificationDiscussion,
 ) -> dict[str, Any]:
     body = ""
-    for comment in reversed(discussion.comments):
-        if comment.actor_role == "author":
-            body = comment.body
-            break
+    selected_index = discussion.selected_comment_index
+    if (
+        selected_index is not None
+        and 0 <= selected_index < len(discussion.comments)
+    ):
+        body = discussion.comments[selected_index].body
+    else:
+        for comment in reversed(discussion.comments):
+            if comment.actor_role == "author":
+                body = comment.body
+                break
     return {
         "discussion_id": discussion.identity.discussion_id,
         "body": body,
@@ -815,9 +856,10 @@ def review_thread_author_reply_input(
 def praise_prompt_input(
     discussion: ClassificationDiscussion,
 ) -> dict[str, Any]:
+    selected = _latest_review_thread_comment(discussion.comments)
     return {
         "discussion_id": discussion.identity.discussion_id,
-        "body": discussion.comments[-1].body if discussion.comments else "",
+        "body": selected.comment.body if selected is not None else "",
     }
 
 
@@ -1566,17 +1608,50 @@ def map_verdict_result(
 def prepare_praise_candidates(
     discussions: Sequence[ClassificationDiscussion],
 ) -> tuple[ClassificationDiscussion, ...]:
-    return tuple(discussion for discussion in discussions if _could_be_praise(discussion))
+    return tuple(
+        discussion
+        for discussion in discussions
+        if not discussion.strict_author_action and _could_be_praise(discussion)
+    )
 
 
 def _could_be_praise(discussion: ClassificationDiscussion) -> bool:
-    comments = discussion.comments
-    role = comments[-1].actor_role if comments else ""
-    if not comments or role in ("author", "bot"):
+    selected = _latest_review_thread_comment(discussion.comments)
+    if selected is None or selected.comment.actor_role in ("author", "bot"):
         return False
     return (
-        len(" ".join(comments[-1].body.split()))
+        len(" ".join(selected.comment.body.split()))
         <= PRAISE_MAX_CHARS
+    )
+
+
+@dataclass(frozen=True)
+class _ReviewThreadCommentSelection:
+    index: int
+    comment: DiscussionComment
+    activity_timestamp: str
+
+
+def _latest_review_thread_comment(
+    comments: Sequence[DiscussionComment],
+) -> _ReviewThreadCommentSelection | None:
+    if not comments:
+        return None
+    index, comment = max(
+        enumerate(comments),
+        key=lambda item: (
+            (
+                parse_ts(item[1].effective_activity_timestamp)
+                or _MIN_TIMESTAMP
+            ),
+            parse_ts(item[1].timestamp) or _MIN_TIMESTAMP,
+            item[0],
+        ),
+    )
+    return _ReviewThreadCommentSelection(
+        index,
+        comment,
+        comment.effective_activity_timestamp,
     )
 
 
@@ -1599,17 +1674,33 @@ def resolve_review_thread_policy(
     resolved: dict[str, ClassificationResult] = dict(failed_praise)
     author_replies: list[ClassificationDiscussion] = []
     since_by_id: dict[str, str] = {}
+    ignored_comment_index_by_id: dict[str, int] = {}
     for discussion in discussions:
         discussion_id = discussion.identity.discussion_id
         if discussion_id in failed_praise:
             continue
         comments = list(discussion.comments)
         dropped = discussion_id in ignored
-        if dropped:
-            comments.pop()
-        if comments:
-            since_by_id[discussion_id] = comments[-1].timestamp
-        if dropped and not comments:
+        selected = _latest_review_thread_comment(comments)
+        if dropped and selected is not None:
+            ignored_comment_index_by_id[discussion_id] = selected.index
+            comments.pop(selected.index)
+            selected = _latest_review_thread_comment(comments)
+        if selected is not None:
+            since_by_id[discussion_id] = (
+                selected.activity_timestamp
+                or selected.comment.timestamp
+            )
+        if discussion.strict_author_action:
+            resolved[discussion_id] = ClassificationSuccess(
+                discussion.identity,
+                ActionDecision(
+                    DiscussionAction.AUTHOR,
+                    "This unresolved Copilot finding remains author work until "
+                    "the thread is resolved or outdated.",
+                ),
+            )
+        elif dropped and not comments:
             resolved[discussion_id] = ClassificationSuccess(
                 discussion.identity,
                 ActionDecision(
@@ -1617,14 +1708,26 @@ def resolve_review_thread_policy(
                     "This thread is only praise.",
                 ),
             )
-        elif comments and comments[-1].actor_role == "author":
-            author_replies.append(discussion.with_comments(comments))
+        elif (
+            selected is not None
+            and selected.comment.actor_role == "author"
+        ):
+            author_replies.append(
+                discussion.with_comments(
+                    comments,
+                    selected_comment_index=selected.index,
+                    selected_activity_timestamp=selected.activity_timestamp,
+                    ignored_comment_index=(
+                        ignored_comment_index_by_id.get(discussion_id)
+                    ),
+                )
+            )
         else:
             resolved[discussion_id] = ClassificationSuccess(
                 discussion.identity,
                 ActionDecision(
                     DiscussionAction.AUTHOR,
-                    "The last comment on this unresolved thread is not the author's.",
+                    "The latest activity on this unresolved thread is not the author's.",
                 ),
             )
     resolved = {
@@ -1632,6 +1735,9 @@ def resolve_review_thread_policy(
             result,
             since=since_by_id.get(discussion_id, ""),
             ignored_last_comment=(discussion_id in ignored),
+            ignored_comment_index=ignored_comment_index_by_id.get(
+                discussion_id
+            ),
         )
         for discussion_id, result in resolved.items()
     }
@@ -1643,12 +1749,18 @@ def with_result_metadata(
     *,
     since: str = "",
     ignored_last_comment: bool = False,
+    ignored_comment_index: int | None = None,
 ) -> ClassificationResult:
     return replace(
         result,
         since=since or result.since,
         ignored_last_comment=(
             ignored_last_comment or result.ignored_last_comment
+        ),
+        ignored_comment_index=(
+            ignored_comment_index
+            if ignored_comment_index is not None
+            else result.ignored_comment_index
         ),
     )
 
@@ -1742,6 +1854,8 @@ def classification_result_to_record(
         record["since"] = result.since
     if result.ignored_last_comment:
         record["ignored_last_comment"] = True
+    if result.ignored_comment_index is not None:
+        record["ignored_comment_index"] = result.ignored_comment_index
     return record
 
 
@@ -1758,6 +1872,7 @@ def cached_classification_record(
             "response_text",
             "stderr",
             "usage",
+            "ignored_comment_index",
         )
     }
 

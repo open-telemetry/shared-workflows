@@ -37,6 +37,8 @@ class DashboardCommandReply:
     route: DashboardRoute | None = None
     held_gates: str = ""
     since: str = ""
+    top_level_feedback_cutoff: str = ""
+    persistent_handoff: bool = False
 
     def __post_init__(self) -> None:
         if self.comment_id <= 0:
@@ -60,6 +62,12 @@ class DashboardCommandReply:
             )
         if self.kind != "routed" and self.route is not None:
             raise ValueError("only routed dashboard command replies may include a route")
+        if self.kind != "routed" and self.persistent_handoff:
+            raise ValueError("only routed replies may persist a reviewer handoff")
+        if self.persistent_handoff and self.route is DashboardRoute.AUTHOR:
+            raise ValueError(
+                "persistent reviewer handoff replies require a reviewer route"
+            )
 
 
 @dataclass(frozen=True)
@@ -85,6 +93,8 @@ class DashboardFacts:
     dashboard_override_bound_command_id: int = 0
     dashboard_override_head_sha: str = ""
     dashboard_override_since: str = ""
+    dashboard_top_level_feedback_cutoff: str = ""
+    dashboard_override_persistent: bool = False
     dashboard_override_cleared_by_feedback: bool = False
     dashboard_command_replies: tuple[DashboardCommandReply, ...] = ()
     copilot_review_requested: bool = False

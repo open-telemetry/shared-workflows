@@ -32,6 +32,29 @@ class DashboardCommandReplyContractTest(unittest.TestCase):
                 ):
                     DashboardCommandReply(1, "routed", route=route)
 
+    def test_non_routed_reply_rejects_persistent_handoff(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "only routed replies may persist a reviewer handoff",
+        ):
+            DashboardCommandReply(
+                1,
+                "unauthorized",
+                persistent_handoff=True,
+            )
+
+    def test_persistent_handoff_reply_rejects_author_route(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "persistent reviewer handoff replies require a reviewer route",
+        ):
+            DashboardCommandReply(
+                1,
+                "routed",
+                route=DashboardRoute.AUTHOR,
+                persistent_handoff=True,
+            )
+
 
 class EvaluationResultContractTest(unittest.TestCase):
     def test_success_rejects_failure_routes(self) -> None:

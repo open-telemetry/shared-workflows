@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, TypedDict
 
@@ -27,6 +28,7 @@ from utils import parse_ts, truncate
 
 POSITIVE_ACK_REACTIONS = {"THUMBS_UP", "HOORAY", "HEART", "ROCKET"}
 _HUMAN_REVIEWER_ROLES = frozenset({"approver", "outsider"})
+_MIN_TIMESTAMP = datetime.min.replace(tzinfo=timezone.utc)
 
 
 class LifecycleMode(Enum):
@@ -110,26 +112,53 @@ def _discussion_comment(
     reviewers: set[str],
     body: str,
     positive_reactors: set[str] | None = None,
+    activity_timestamp: str = "",
 ) -> dict[str, Any]:
-    return {
+    comment = {
         "timestamp": timestamp,
         "actor": actor,
         "actor_role": role_for(actor, author, reviewers),
         "body": truncate(body),
         "positive_reactors": sorted(positive_reactors or set()),
     }
+    if activity_timestamp and activity_timestamp != timestamp:
+        comment["activity_timestamp"] = activity_timestamp
+    return comment
 
 
 def _add_discussion_facts(
     discussion: dict[str, Any],
     comments: list[dict[str, Any]],
     conflicts: str,
+    *,
+    latest_comment: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    latest = latest_comment if latest_comment is not None else comments[-1]
     discussion["discussion_facts"] = {
-        "latest_comment_role": comments[-1].get("actor_role"),
+        "latest_comment_role": latest.get("actor_role"),
         "current_conflicts": conflicts,
     }
     return discussion
+
+
+def _latest_activity_comment(
+    comments: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return max(
+        enumerate(comments),
+        key=lambda item: (
+            (
+                parse_ts(
+                    item[1].get("activity_timestamp")
+                    or item[1].get("timestamp")
+                    or ""
+                )
+                or _MIN_TIMESTAMP
+            ),
+            parse_ts(item[1].get("timestamp") or "") or _MIN_TIMESTAMP,
+            item[0],
+        ),
+    )[1]
 
 
 def _positive_reaction_logins(
@@ -146,21 +175,15 @@ def _positive_reaction_logins(
     return logins
 
 
-def _group_review_threads(
-    source: DiscussionInput,
-    *,
-    include_inactive: bool = False,
-) -> list[dict[str, Any]]:
+def _group_review_threads(source: DiscussionInput) -> list[dict[str, Any]]:
     discussions: list[dict[str, Any]] = []
     reviewers = set(source.reviewers)
     for discussion in source.review_threads:
-        if (
-            discussion.is_resolved or discussion.is_outdated
-        ) and not include_inactive:
+        if discussion.is_resolved or discussion.is_outdated:
             continue
         raw_comments = discussion.comments
-        thread_url = raw_comments[0].url if raw_comments else ""
         ordered = sorted(raw_comments, key=lambda comment: comment.created_at)
+        root_comment = ordered[0] if ordered else None
         comments = [
             _discussion_comment(
                 comment.created_at,
@@ -169,6 +192,7 @@ def _group_review_threads(
                 reviewers,
                 comment.body,
                 _positive_reaction_logins(comment),
+                comment.effective_content_timestamp,
             )
             for comment in ordered
         ]
@@ -177,6 +201,7 @@ def _group_review_threads(
             comment["actor_role"] == "author" for comment in comments
         ):
             continue
+        latest_activity_comment = _latest_activity_comment(comments)
         discussions.append(
             _add_discussion_facts(
                 {
@@ -185,14 +210,23 @@ def _group_review_threads(
                         or f"review-discussion-{len(discussions) + 1}"
                     ),
                     "discussion_kind": "review-comment-thread",
+                    "strict_author_action": bool(
+                        root_comment
+                        and root_comment.actor.is_copilot_reviewer
+                    ),
                     "path": discussion.path or None,
                     "line": discussion.line,
                     "resolved": False,
-                    "discussion_url": thread_url,
+                    "discussion_url": (
+                        root_comment.url if root_comment is not None else ""
+                    ),
+                    "requester": latest_activity_comment.get("actor") or "",
+                    "pr_author": source.author,
                     "comments": comments,
                 },
                 comments,
                 source.conflicts,
+                latest_comment=latest_activity_comment,
             )
         )
     discussions.sort(key=lambda thread: thread["comments"][-1]["timestamp"])
@@ -219,6 +253,13 @@ def _derive_top_level_items(source: DiscussionInput) -> list[dict[str, Any]]:
             "body": body,
             "positive_reactors": [],
         }
+        activity_timestamp = (
+            event.get("content_timestamp")
+            or event.get("timestamp")
+            or root_timestamp
+        )
+        if activity_timestamp != root_timestamp:
+            comment["activity_timestamp"] = activity_timestamp
         if (
             event.get("source_id") is not None
             and comment["actor"]
@@ -272,7 +313,7 @@ def _derive_top_level_author_comment_items(
     )
     items: list[dict[str, Any]] = []
     for event in source.events:
-        timestamp = event.get("created_timestamp") or event.get("timestamp") or ""
+        timestamp = event.get("timestamp") or event.get("created_timestamp") or ""
         if (
             event.get("kind") != "issue-comment"
             or event.get("actor_role") != "author"
@@ -288,17 +329,30 @@ def _derive_top_level_author_comment_items(
             "body": truncate(event.get("body") or ""),
             "positive_reactors": [],
         }
-        candidate_feedback = [
-            {
+        author_timestamp = parse_ts(timestamp)
+        candidate_feedback = []
+        for item in top_level_items:
+            item_comments = item.get("comments") or []
+            feedback_timestamp = parse_ts(
+                (item_comments[-1] if item_comments else {}).get(
+                    "activity_timestamp"
+                )
+                or item.get("root_timestamp")
+                or ""
+            )
+            if (
+                author_timestamp is None
+                or feedback_timestamp is None
+                or feedback_timestamp >= author_timestamp
+            ):
+                continue
+            candidate_feedback.append({
                 "discussion_id": item["discussion_id"],
                 "body": "\n\n".join(
                     item_comment.get("body") or ""
-                    for item_comment in (item.get("comments") or [])
+                    for item_comment in item_comments
                 ),
-            }
-            for item in top_level_items
-            if (item.get("root_timestamp") or "") < timestamp
-        ]
+            })
         items.append(
             _add_discussion_facts(
                 {
@@ -315,9 +369,43 @@ def _derive_top_level_author_comment_items(
     return items
 
 
-def prepare_discussions(source: DiscussionInput) -> PreparedDiscussions:
+def _top_level_feedback_timestamp(discussion: dict[str, Any]) -> str:
+    comments = discussion.get("comments") or ()
+    root_comment = comments[0] if comments else {}
+    return (
+        root_comment.get("activity_timestamp")
+        or discussion.get("root_timestamp")
+        or ""
+    )
+
+
+def _top_level_items_after_cutoff(
+    items: list[dict[str, Any]],
+    cutoff_value: str,
+) -> list[dict[str, Any]]:
+    cutoff = parse_ts(cutoff_value)
+    if cutoff is None:
+        return items
+    return [
+        item
+        for item in items
+        if (
+            (activity := parse_ts(_top_level_feedback_timestamp(item))) is None
+            or activity > cutoff
+        )
+    ]
+
+
+def prepare_discussions(
+    source: DiscussionInput,
+    *,
+    top_level_feedback_cutoff: str = "",
+) -> PreparedDiscussions:
     review_threads = _group_review_threads(source)
-    top_level_items = _derive_top_level_items(source)
+    top_level_items = _top_level_items_after_cutoff(
+        _derive_top_level_items(source),
+        top_level_feedback_cutoff,
+    )
     top_level_author_comment_items = _derive_top_level_author_comment_items(
         source,
         top_level_items,
@@ -340,19 +428,25 @@ def _filter_handoff_feedback(
         if (
             comment.get("actor_role") in _HUMAN_REVIEWER_ROLES
             and comment.get("actor") != pr_author
-            and after_cutoff(comment.get("timestamp") or "")
+            and after_cutoff(
+                comment.get("activity_timestamp")
+                or comment.get("timestamp")
+                or ""
+            )
         )
     ]
     if not comments:
         return None
+    latest_activity_comment = _latest_activity_comment(comments)
     filtered = {**discussion, "comments": comments}
-    filtered["requester"] = comments[-1].get("actor") or ""
+    filtered["requester"] = latest_activity_comment.get("actor") or ""
     filtered["pr_author"] = pr_author
     return _add_discussion_facts(
         filtered,
         comments,
         (discussion.get("discussion_facts") or {}).get("current_conflicts")
         or "unknown",
+        latest_comment=latest_activity_comment,
     )
 
 
@@ -361,7 +455,7 @@ def reviewer_handoff_feedback(
     override_since: str,
     pr_author: str,
 ) -> PreparedDiscussions:
-    """Select human reviewer feedback created after a reviewer handoff command."""
+    """Select human reviewer feedback changed after a reviewer handoff command."""
     cutoff = parse_ts(override_since)
     if cutoff is None:
         return PreparedDiscussions((), (), ())
@@ -397,7 +491,7 @@ def prepare_reviewer_handoff_feedback(
     pr_author: str,
 ) -> PreparedDiscussions:
     prepared = PreparedDiscussions(
-        tuple(_group_review_threads(source, include_inactive=True)),
+        tuple(_group_review_threads(source)),
         tuple(_derive_top_level_items(source)),
         (),
     )
@@ -580,13 +674,13 @@ def _collect_author_evidence(
     author_comment_outcomes: list[AuthorCommentOutcome],
     author_comment_source_state: AuthorCommentSourceState | None,
 ) -> tuple[dict[str, str], int | None]:
-    root_timestamp = discussion.get("root_timestamp") or ""
+    feedback_timestamp = _top_level_feedback_timestamp(discussion)
     evidence: dict[str, str] = {}
     reply_source_id: int | None = None
     previous_reply = (previous_entry.get("evidence") or {}).get("reply") or ""
     previous_reply_source_id = previous_entry.get("reply_source_id")
     if (
-        previous_reply > root_timestamp
+        previous_reply > feedback_timestamp
         and _should_restore_author_reply(
             author_comment_outcomes,
             author_comment_source_state,
@@ -602,7 +696,7 @@ def _collect_author_evidence(
 
     completed_reply = _completed_author_reply_after(
         discussion["discussion_id"],
-        root_timestamp,
+        feedback_timestamp,
         author_comment_outcomes,
     )
     if completed_reply:
@@ -636,9 +730,13 @@ def _review_thread_pending_actions(
                 f"({classification.identity.kind.value}) requires "
                 f"ActionDecision, got {type(decision).__name__}"
             )
-        action = decision.action
         discussion_id = classification.identity.discussion_id
         discussion = by_id.get(discussion_id)
+        action = (
+            DiscussionAction.AUTHOR
+            if (discussion or {}).get("strict_author_action")
+            else decision.action
+        )
         comments = (discussion or {}).get("comments") or []
         if action is not DiscussionAction.NONE and comments:
             entry = {
@@ -651,6 +749,10 @@ def _review_thread_pending_actions(
             }
             if classification.ignored_last_comment:
                 entry["ignored_last_comment"] = True
+            if classification.ignored_comment_index is not None:
+                entry["ignored_comment_index"] = (
+                    classification.ignored_comment_index
+                )
             pending_actions[discussion_id] = entry
     return pending_actions
 
@@ -679,6 +781,7 @@ def _advance_top_level_actions(
             )
         action = decision.action
         root_timestamp = discussion.get("root_timestamp") or ""
+        feedback_timestamp = _top_level_feedback_timestamp(discussion)
         if action not in (
             DiscussionAction.AUTHOR,
             DiscussionAction.UNCLEAR,
@@ -701,7 +804,7 @@ def _advance_top_level_actions(
             continue
         handoff = _latest_author_comment_handoff(
             discussion["discussion_id"],
-            root_timestamp,
+            feedback_timestamp,
             author_comment_outcomes,
         )
         if handoff is not None:
