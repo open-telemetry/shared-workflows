@@ -3013,16 +3013,17 @@
     },
     "504": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": false,
         "ci_failing_count": 0,
+        "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "384d6f8172bb082995da75e503d49647d2ac09b50680f857ef75edca44e63eed",
+        "copilot_request_fingerprint": "630312a15875b829775609c69541e7f700468be0562b309bb037d16ef4e5a83b",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -3038,21 +3039,31 @@
         "head_sha": "8784390daf92dd5aa12355bbb2bc3d63c9bcfe8a",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-07T20:00:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-08T04:20:22+00:00",
+        "last_approver_activity_at": "2026-09-08T04:20:22+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "eacd3c1fae1c9c5d35ebe67a615a3ceee94410baa17c5cb6c003e84681a72e1b",
+        "routing_input_fingerprint": "32d7914fc3cfe12926187e032451d3d9de41acf79517280a6a9477c261dc315f",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-07T00:37:11+00:00"
       },
       "failed": false,
       "pr_number": 504,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/504",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "98": {
