@@ -3575,16 +3575,14 @@
         "assignees": [],
         "author": "david-luna",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-js/pull/7078#pullrequestreview-5140796776"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "d4f2600361d945debc87a436376e3242",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 6,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4ad5de21e8c413b17b23af764dfea75d5be7613753bfa418cebb15331f8bd3c6",
+        "copilot_request_fingerprint": "4223f4c5453e28fb8931e53556c137c202069088642da68d9735c8ac89732399",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3597,13 +3595,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "c1deb37edc8e523da4857a8a8c8386d0f65675d8",
+        "head_sha": "2ac66d4a46413ccee1b2d8d8be0fcfd9ccaac8a5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-08T11:41:29+00:00",
+        "last_activity_at": "2026-09-08T12:07:40+00:00",
         "last_approver_activity_at": "2026-09-08T10:57:56+00:00",
-        "last_author_activity_at": "2026-09-08T11:41:29+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-09-08T12:07:40+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -3611,21 +3609,29 @@
             "changes_requested": false,
             "login": "pichlermarc",
             "open_thread": false,
-            "pending_review": false,
-            "top_level_feedback": true
+            "pending_review": true,
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-08T12:12:05.368599+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "69c81c9c676d05edf38dc1565d6034e6fed2d15724d60a33863b3376c2fce4c0",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "fc74161d03975936a38a7482cb0a0a411d14c06bb6e1221bb122ca3b87c2aa83",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-08T10:56:02+00:00"
       },
       "failed": false,
       "pr_number": 7078,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7078",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-5140796776": {
+          "evidence": {
+            "reply": "2026-09-08T12:07:40Z"
+          },
+          "reply_source_id": 5584878284
+        }
+      }
     }
   },
   "version": 17
