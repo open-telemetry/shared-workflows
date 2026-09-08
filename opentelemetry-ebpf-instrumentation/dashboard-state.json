@@ -2359,16 +2359,17 @@
     },
     "3341": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 2,
         "assignees": [],
         "author": "loveRhythm1990",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "ci_failing_count": 0,
+        "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "457edf4e1bbbbec23c0e80b7590655e6f95ce643456e617468d2412e32bd6905",
+        "copilot_request_fingerprint": "cf2ff4aaada6a70c65a9815ee4decd99327a0cb0f6301d6c284f7aefaaa7adc0",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2384,11 +2385,20 @@
         "head_sha": "99d27791953df58f525edf5c9602fd5fd5f9b22f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-08T09:27:54+00:00",
-        "last_approver_activity_at": "2026-09-08T08:16:47+00:00",
+        "last_activity_at": "2026-09-08T20:16:36+00:00",
+        "last_approver_activity_at": "2026-09-08T20:16:36+00:00",
         "last_author_activity_at": "2026-09-08T09:27:54+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "grcevski",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -2397,18 +2407,27 @@
             "open_thread": false,
             "pending_review": true,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mmat11",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e696f3cd769232755e3b6d3a4696ee37a31b6e568ed9377b463db466e7d3f569",
+        "routing_input_fingerprint": "4572e2aa903b0404aae60ef117cebd121584f2707299679f3a0f92351583d03f",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-08T09:27:54+00:00"
       },
       "failed": false,
       "pr_number": 3341,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3341",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3348": {
