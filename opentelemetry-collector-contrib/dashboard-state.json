@@ -13979,7 +13979,7 @@
     },
     "50794": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "vesari",
         "author_action_review_thread_urls": [],
@@ -13987,7 +13987,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "095d605d0a8955a01915feee73999444fdbdcf2c25ff3292827a46810ca62ff1",
+        "copilot_request_fingerprint": "a19fdf23690cad6ac5ffd35d6976265cbe17c782ee70956ef72cf9cb667e1b1f",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14003,21 +14003,31 @@
         "head_sha": "644ab2ace7befc6140b4e28c21e91deb586271f5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-07T16:12:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-08T10:56:29+00:00",
+        "last_approver_activity_at": "2026-09-08T10:56:29+00:00",
         "last_author_activity_at": "2026-09-07T15:25:57+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "ChrsMark",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b11195b959f0d87090b97492b69bb42426fb27cd554ff8122a7d4922d0e9a627",
+        "routing_input_fingerprint": "97bec7db62f0a96c4f3b6ca50064304429050a5e21cc94b2f6a85f30e98c1ab2",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-07T15:25:57+00:00"
       },
       "failed": false,
       "pr_number": 50794,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50794",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50798": {
