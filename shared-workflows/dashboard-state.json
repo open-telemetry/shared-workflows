@@ -6,7 +6,7 @@
   "prs": {
     "354": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -16,7 +16,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "12c63127a625aabf591cf909aef9abe976f8b96b01be3d6925460a74e143c14b",
+        "copilot_request_fingerprint": "cec7086695a4d89df6a6cc4c198f551821c60eb00ef969af22482048441b1c54",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -32,21 +32,31 @@
         "head_sha": "5133054688a28bfd05b3cd3236fc52822a0227e4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-05T22:47:26+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-08T09:29:55+00:00",
+        "last_approver_activity_at": "2026-09-08T09:29:55+00:00",
         "last_author_activity_at": "2026-09-05T22:47:15+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mx-psi",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "cf08da4b26137c2877b28cac01a8f518cd8f284f20734b90b933bc24f6dd3f15",
+        "routing_input_fingerprint": "e51eeb381a21e4b6ce413a9a91473b06ad38c460497146e32dd4ffcb30fd4c64",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-05T22:47:15+00:00"
       },
       "failed": false,
       "pr_number": 354,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/354",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "359": {
