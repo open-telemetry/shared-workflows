@@ -11704,15 +11704,15 @@
     },
     "50650": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Sprakhar97",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 9,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7a6f7daab206db62585b997543c1f4f4d36c10a599b5ecc7b33abcd4a80a704e",
+        "copilot_request_fingerprint": "bc98a1beaa4493575ca28b3a90dd6dda75b78cfa230624940e5e60c62782a93b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -11725,19 +11725,37 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "eccf33cb875df1c5fa4d3f8e8b7ea6637d87bdb9",
+        "head_sha": "23003c4dcaaafd58c71e7bc683204f38e96ac998",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-08T08:44:19+00:00",
-        "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-09-08T08:44:19+00:00",
-        "required_checks_settled": true,
+        "last_activity_at": "2026-09-09T15:43:03+00:00",
+        "last_approver_activity_at": "2026-09-09T15:43:03+00:00",
+        "last_author_activity_at": "2026-09-09T15:32:01+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": true,
             "changes_requested": false,
             "login": "akshays-19",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "ebrdarSplunk",
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
@@ -11752,10 +11770,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-09T15:47:25.923746+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "724647356fcc5af8f90009155ead26761b42f2791e19cde12945f9ea6cc916a0",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "538171923312be8b4dd948af895152a583182763e69b52d1c79b0c9d662076d4",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-08T08:44:19+00:00"
       },
       "failed": false,
