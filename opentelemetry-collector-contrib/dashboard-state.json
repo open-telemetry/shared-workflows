@@ -12823,16 +12823,15 @@
     },
     "50746": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 2,
-        "ci_failing_since": "2026-09-09T09:25:20+00:00",
-        "ci_pending_count": 0,
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "676906aea0ed9332a0f85b84f1b0e9656e0ade1f515549b62853be035bf678bb",
+        "copilot_request_fingerprint": "0c727fcc529a8d7cfadeddf1d774e008f8bdfc4ea6f2f2655283e5ac81f9c838",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12845,14 +12844,23 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "e10d9b47775b76635bbb7654192dc149baaa519d",
+        "head_sha": "a04b65ab40807bab78d74e1d01595c001f5e17df",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-09T09:16:11+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-09T22:41:21+00:00",
+        "last_approver_activity_at": "2026-09-09T15:26:38+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "codeboten",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -12863,10 +12871,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-09T23:03:11.134948+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c576c1e3c1a767c06a371d9d8a9f96d6100e14ed7359ffc8cde9a9a9fe2431db",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "b4570cbf1992b97aa3d9aeacb644cb9b448e34d5e2036fc3efd040418ecc0bbf",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-03T23:58:03+00:00"
       },
       "failed": false,
