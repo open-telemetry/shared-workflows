@@ -1271,16 +1271,14 @@
         "assignees": [],
         "author": "gniadeck",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java/pull/8780#pullrequestreview-5149594605"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "84334eb4a3eb4fb8a6d6f4a27c1a52ac",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "202bf950a2972f9e358c6272f47695495cf9f66dec5cb713365e3554c1cfa6f3",
+        "copilot_request_fingerprint": "3617683a1fb5f86bd01df15cb9a811653773404a57edb82649ef4e31df73f681",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1296,9 +1294,9 @@
         "head_sha": "4a6133f2fe3aba13615d833060d58d8629c79e3f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-09T09:30:25+00:00",
+        "last_activity_at": "2026-09-09T09:38:05+00:00",
         "last_approver_activity_at": "2026-09-09T04:19:52+00:00",
-        "last_author_activity_at": "2026-09-09T09:30:25+00:00",
+        "last_author_activity_at": "2026-09-09T09:38:05+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
@@ -1308,20 +1306,28 @@
             "login": "psx95",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-09T09:38:59.941582+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "53331982a96c0b289ac0bf9990a266a60f0d038baabd46de715280de8819ce66",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "e4c6a7ba7731072f20303ad684480f3a3a96cfc0eb29298040ad34bea40608ad",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-09T04:19:52+00:00"
       },
       "failed": false,
       "pr_number": 8780,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8780",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-5149594605": {
+          "evidence": {
+            "reply": "2026-09-09T09:38:05Z"
+          },
+          "reply_source_id": 5599723477
+        }
+      }
     },
     "8781": {
       "facts": {
