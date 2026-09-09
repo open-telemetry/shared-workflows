@@ -1567,17 +1567,27 @@
     },
     "3374": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "mariomac",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3374#discussion_r3970370299",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3374#discussion_r3970370372",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3374#discussion_r3970370419",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3374#discussion_r3970370461",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3374#discussion_r3971652537",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3374#discussion_r3971710811"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3374#pullrequestreview-5158211191"
+        ],
+        "author_nudge_episode_id": "afd14055bf654f36bac40399d03a7f6e",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "12dfed64f6a21c02e60416a89a14ec4b825c0b59cd39cc747cb197fd2112ae1a",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "a9c77a6163d4467f919dcd67eda5036864a21acd475ba46c802eec505dca73d1",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
@@ -1591,21 +1601,40 @@
         "head_sha": "5e6ca02dfc4c3dc2ba91ff974a9245012dc2a623",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-09T14:50:17+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-09T18:26:24+00:00",
+        "last_approver_activity_at": "2026-09-09T18:26:24+00:00",
         "last_author_activity_at": "2026-09-09T14:50:17+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "grcevski",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "056f9490fbbbc5f1fdbdcbc9e6e8a84dd7815c139c1def08dc710a3f47084949",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-09T14:50:17+00:00"
+        "routing_input_fingerprint": "3806abf238f1f32b77251b43aba5abdac408d4fc567a2e0a56cd8435a1f262ca",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-09T15:46:25+00:00"
       },
       "failed": false,
       "pr_number": 3374,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3374",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "3375": {
