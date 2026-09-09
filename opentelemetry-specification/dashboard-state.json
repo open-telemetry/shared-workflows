@@ -1538,17 +1538,20 @@
     },
     "5149": {
       "facts": {
-        "approval_count": 2,
+        "approval_count": 3,
         "assignees": [
           "pellared"
         ],
         "author": "pellared",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-specification/pull/5149#pullrequestreview-5160044525"
+        ],
+        "author_nudge_episode_id": "a3608a34cf004da087ebafdaf6440a0a",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ab3eeb26ad0d9c0e016cc3d397766b1f7ac4f5d9550e4daa52a6b9e5372e7aab",
+        "copilot_request_fingerprint": "4fed73c77476d576118b8febf3ce7009c568f840bf1b775e4e504e967f510c62",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1564,8 +1567,8 @@
         "head_sha": "825c21a975c8ba79e40317b0249877fa1b28e057",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-04T17:58:23+00:00",
-        "last_approver_activity_at": "2026-09-04T17:58:23+00:00",
+        "last_activity_at": "2026-09-09T21:29:20+00:00",
+        "last_approver_activity_at": "2026-09-09T21:29:20+00:00",
         "last_author_activity_at": "2026-09-04T06:59:30+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -1577,6 +1580,15 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jack-berg",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
           },
           {
             "approved": true,
@@ -1599,14 +1611,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2a827f2215b2f7a1ff9c81727924825666d0fa19a591c28f16cef6468c7a63c7",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-04T06:59:30+00:00"
+        "routing_input_fingerprint": "daa9708ea00804128295b4130511f2200128ea08196239612142a0876feefc8c",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-09T21:29:20+00:00"
       },
       "failed": false,
       "pr_number": 5149,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5149",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     },
     "5190": {
