@@ -3709,12 +3709,17 @@
         "assignees": [],
         "author": "dlowzzxx",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python/pull/5622#issuecomment-5545033855",
+          "https://github.com/open-telemetry/opentelemetry-python/pull/5622#issuecomment-5593636095"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "bddbdf93958b4bf4a2b89c0ea5d240db",
         "ci_failing_count": 0,
+        "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "82fbfafde77e6fae27188ab217e37f317310e8d7fd6738050c30892a2641a3c8",
+        "copilot_request_fingerprint": "9f8df1a1a2d8118434e4c95489c7948f0128802c154e7857c2d0a9726ac3256b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3725,6 +3730,7 @@
         "created_at": "2026-09-04T16:30:45+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_bound_command_id": 5559180507,
+        "dashboard_override_cleared_by_feedback": true,
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "1362fa4948475dd364f7a06b2cddf3cbb656e4ed",
@@ -3732,22 +3738,39 @@
         "head_sha": "1362fa4948475dd364f7a06b2cddf3cbb656e4ed",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-06T12:21:29+00:00",
+        "last_activity_at": "2026-09-09T00:02:02+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-06T12:21:29+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "ocelotl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ed471f373980e1556004f9d59c9e0d38c23b91766cfea44cd123fb7cabdc268b",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-06T12:21:29+00:00"
+        "routing_input_fingerprint": "e3d9256aa87cf3bdb9d2751e686d00f1ba2efe5150bd1d99861d492f7cab51f1",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-04T18:45:29+00:00"
       },
       "failed": false,
       "pr_number": 5622,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5622",
-      "route": "approver",
-      "top_level_history": {}
+      "route": "author",
+      "top_level_history": {
+        "pr-issue-comment-5545216815": {
+          "evidence": {
+            "reply": "2026-09-04T21:23:51Z"
+          },
+          "reply_source_id": 5546610555
+        }
+      }
     },
     "5623": {
       "facts": {
