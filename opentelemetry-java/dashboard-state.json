@@ -876,9 +876,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "69cfdba1bbd600c53993808409aa6b3e7e3d780fc3158280a499acf26a87ff31",
+        "copilot_request_fingerprint": "c606d4ab9cacf1776738b67944053c3c0f598be4b5556a154101bc4cbf82fac3",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -891,14 +891,23 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "4a6133f2fe3aba13615d833060d58d8629c79e3f",
+        "head_sha": "da59cbe4aa19003a0f596756adfbe1650f8c6b93",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-09T09:38:05+00:00",
-        "last_approver_activity_at": "2026-09-09T04:19:52+00:00",
-        "last_author_activity_at": "2026-09-09T09:38:05+00:00",
-        "required_checks_settled": true,
+        "last_activity_at": "2026-09-09T22:28:53+00:00",
+        "last_approver_activity_at": "2026-09-09T20:45:01+00:00",
+        "last_author_activity_at": "2026-09-09T22:28:53+00:00",
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jack-berg",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -911,7 +920,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a0d8d9363af29fcd0e5783604d1892e84d95f0a24a4c62edc08f7b0c33dd4f21",
+        "routing_input_fingerprint": "1db8954d7bcfc875419986cbf17fe88fe514a4e31e86eba4b2dab6b2773bb2aa",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-09T09:38:05+00:00"
       },
@@ -920,6 +929,12 @@
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8780",
       "route": "approver",
       "top_level_history": {
+        "pr-issue-comment-5606858438": {
+          "evidence": {
+            "reply": "2026-09-09T22:28:53Z"
+          },
+          "reply_source_id": 5609608996
+        },
         "pr-review-5149594605": {
           "evidence": {
             "reply": "2026-09-09T09:38:05Z"
