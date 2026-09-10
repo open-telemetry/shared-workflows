@@ -12917,7 +12917,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "706720d3602c4cfc5c4a7ec366654bb3dfd7fa7bfc53158890c5556ac75acc9d",
+        "copilot_request_fingerprint": "41a9f1f94e364be8568c1bf00f1235d2dfc186fdc72d5ef9897ec10d840421f9",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12933,24 +12933,33 @@
         "head_sha": "a7ef82db8c58f457ba02fff5e800467eb302843e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-10T06:07:07+00:00",
+        "last_activity_at": "2026-09-10T11:18:08+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-09-10T06:07:07+00:00",
+        "last_author_activity_at": "2026-09-10T11:18:08+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
-            "approved_non_team": false,
-            "changes_requested": true,
+            "approved_non_team": true,
+            "changes_requested": false,
             "login": "ebrdarSplunk",
             "open_thread": false,
             "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "thompson-tomo",
+            "open_thread": false,
+            "pending_review": true,
             "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4a6a37ca6696429b28e44d45bab335997c285711184f3207087dab212d697225",
+        "routing_input_fingerprint": "674d32d3b5a1ffe6920c1836c4ac0923ea2423055010876f645f41e8fc246d79",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-10T06:07:07+00:00"
       },
@@ -12964,6 +12973,12 @@
             "reply": "2026-09-09T11:54:32Z"
           },
           "reply_source_id": 5601408448
+        },
+        "pr-review-5165064104": {
+          "evidence": {
+            "reply": "2026-09-10T11:18:08Z"
+          },
+          "reply_source_id": 5617824684
         }
       }
     },
