@@ -1800,7 +1800,7 @@
     },
     "19844": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -1810,7 +1810,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "60e7d13491b9ac7ed0a084a7aa66655de1940decc0a56409ca5e849782fcf9d1",
+        "copilot_request_fingerprint": "39b3e4efc46dfbba303bb07c24a50b0024e38a7e65e8bfdf982c7e7c30eb6017",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1826,21 +1826,31 @@
         "head_sha": "1e91cbb266430c327dc2c0d670b949a07f298d74",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-10T00:41:32+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-10T10:57:33+00:00",
+        "last_approver_activity_at": "2026-09-10T10:57:33+00:00",
         "last_author_activity_at": "2026-09-10T00:41:32+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "30bf7c1932bcbf4aca0ade2cc2edbd3b1a3a913d4736d2263e2bed357fe511e0",
+        "routing_input_fingerprint": "24903f6348e923cb9b8ebfe7b4d6b53dd2aa58715fe55f13409fb4ec58939dfe",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-10T04:13:41.802103+00:00"
       },
       "failed": false,
       "pr_number": 19844,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19844",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "19845": {
