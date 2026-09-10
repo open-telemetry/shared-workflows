@@ -354,6 +354,56 @@ class AcknowledgeTest(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
+    def test_claim_command_forwards_excluded_item_keys(self) -> None:
+        calls = []
+
+        class Client:
+            def call(self, action: str, **payload: object) -> dict[str, object]:
+                calls.append({"action": action, **payload})
+                return {"claims": []}
+
+        with tempfile.TemporaryDirectory() as directory:
+            claims = Path(directory) / "claims.json"
+            argv = [
+                "queue_worker_client.py",
+                "--endpoint",
+                "https://example.test/worker",
+                "--generation",
+                "4",
+                "--worker-id",
+                "worker",
+                "claim",
+                "--limit",
+                "16",
+                "--output",
+                str(claims),
+                "--exclude-item-key",
+                "example#pr:1",
+                "--exclude-item-key",
+                "example#pr:2",
+            ]
+            with (
+                mock.patch.object(
+                    queue_worker_client,
+                    "QueueWorkerClient",
+                    lambda *_args, **_kwargs: Client(),
+                ),
+                mock.patch.object(sys, "argv", argv),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(queue_worker_client.main(), 0)
+
+        self.assertEqual(
+            calls,
+            [{
+                "action": "claim",
+                "generation": 4,
+                "workerId": "worker",
+                "limit": 16,
+                "excludeItemKeys": ["example#pr:1", "example#pr:2"],
+            }],
+        )
+
     def test_acknowledge_command_succeeds(self) -> None:
         client = RecordingClient()
         with tempfile.TemporaryDirectory() as directory:

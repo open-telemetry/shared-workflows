@@ -559,6 +559,7 @@ def main() -> int:
     parser.add_argument("--queue-endpoint", required=True)
     parser.add_argument("--dispatcher-generation", type=int, required=True)
     parser.add_argument("--worker-id", required=True)
+    parser.add_argument("--continue-after-dead-letters", action="store_true")
     args = parser.parse_args()
 
     claims = load_claims(args.claims)
@@ -614,7 +615,7 @@ def main() -> int:
             sort_keys=True,
         )
     )
-    return 1 if dead_letters else 0
+    return 1 if dead_letters and not args.continue_after_dead_letters else 0
 
 
 if __name__ == "__main__":

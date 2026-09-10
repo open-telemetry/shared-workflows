@@ -184,6 +184,7 @@ def main() -> int:
     claim.add_argument("--limit", type=int, default=32)
     claim.add_argument("--output", type=Path, required=True)
     claim.add_argument("--github-output", type=Path)
+    claim.add_argument("--exclude-item-key", action="append", default=[])
 
     subparsers.add_parser("heartbeat")
 
@@ -207,7 +208,12 @@ def main() -> int:
         if result.get("activated") is not True:
             raise RuntimeError("dispatcher activation was rejected")
     elif args.action == "claim":
-        result = client.call("claim", limit=args.limit, **common)
+        result = client.call(
+            "claim",
+            limit=args.limit,
+            excludeItemKeys=args.exclude_item_key,
+            **common,
+        )
         claims = result.get("claims")
         if not isinstance(claims, list):
             raise RuntimeError("queue claim response did not include a claims array")

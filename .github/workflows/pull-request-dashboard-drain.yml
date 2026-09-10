@@ -47,6 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$DISPATCHER_GENERATION" =~ ^[1-9][0-9]*$ ]] || { echo "bad dispatcher generation"; exit 1; }
+          echo "DRAIN_PROCESSING_DEADLINE=$(($(date +%s) + 40 * 60))" >> "$GITHUB_ENV"
           python3 .github/scripts/pull-request-dashboard/queue_worker_client.py \
             --generation "$DISPATCHER_GENERATION" \
             --worker-id "$WORKER_ID" \
@@ -63,21 +64,6 @@ jobs:
             --limit 16 \
             --output "$RUNNER_TEMP/dashboard-claims.json" \
             --github-output "$GITHUB_OUTPUT"
-
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
-        id: dashboard-token
-        with:
-          client-id: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
-          private-key: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
-          owner: open-telemetry
-          repositories: ${{ steps.claim.outputs.repositories }}
-          permission-checks: read
-          permission-contents: read
-          permission-issues: write
-          permission-members: read
-          permission-pull-requests: write
-          permission-statuses: read
 
       - name: Install Copilot CLI
         if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
@@ -96,25 +82,24 @@ jobs:
           key: pull-request-dashboard-classifications-queue-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: pull-request-dashboard-classifications-queue-
 
-      - name: Process queue batch
+      - name: Process queue waves
         if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
         id: process
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}
+          PR_DASHBOARD_CLIENT_ID: ${{ vars.PR_DASHBOARD_CLIENT_ID }}
+          PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           set -euo pipefail
-          python3 .github/scripts/pull-request-dashboard/process_queue_batch.py \
+          node .github/scripts/pull-request-dashboard/drain_queue.mjs \
             --claims "$RUNNER_TEMP/dashboard-claims.json" \
-            --results "$RUNNER_TEMP/dashboard-results.json" \
-            --max-repositories 4 \
-            --queue-endpoint "$PR_DASHBOARD_QUEUE_ENDPOINT" \
-            --dispatcher-generation "$DISPATCHER_GENERATION" \
-            --worker-id "$WORKER_ID"
+            --deadline "$DRAIN_PROCESSING_DEADLINE" \
+            --generation "$DISPATCHER_GENERATION" \
+            --worker "$WORKER_ID" \
+            --endpoint "$PR_DASHBOARD_QUEUE_ENDPOINT"
 
       - name: Save classification cache
         if: always() && steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
@@ -122,13 +107,6 @@ jobs:
         with:
           path: .github/scripts/pull-request-dashboard/.cache/classifications
           key: pull-request-dashboard-classifications-queue-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Report GitHub App rate limits
-        if: always() && steps.dashboard-token.outcome == 'success'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
-        run: python3 .github/scripts/pull-request-dashboard/report_rate_limits.py
 
       - name: Finish queue drain
         if: always() && steps.activate.outcome == 'success'
