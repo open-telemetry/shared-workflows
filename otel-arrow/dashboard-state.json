@@ -2183,19 +2183,20 @@
     },
     "4031": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "c1ly",
         "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/otel-arrow/pull/4031#discussion_r3981732717",
           "https://github.com/open-telemetry/otel-arrow/pull/4031#discussion_r3981770383"
         ],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/4031#issuecomment-5623570063"
+        ],
         "author_nudge_episode_id": "006f2b1e34544b5f8994cc4578d1cf3d",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "120da3ca5c2fe16a35748b2e0dc5680c2d10816674b12254f0181105ad324e60",
+        "copilot_request_fingerprint": "757f8b702ac3082c7aa921844743dacffab47a02c9ea6187856d3339e419878e",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2208,14 +2209,23 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "982e7eeac03fad45e6a9c12498ff56a28c5734b3",
+        "head_sha": "adb2d9e52d140cea6db4d89f06fe1c1a435f7afd",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-10T17:28:06+00:00",
-        "last_approver_activity_at": "2026-09-10T17:28:06+00:00",
-        "last_author_activity_at": "2026-09-09T21:52:25+00:00",
-        "required_checks_settled": true,
+        "last_activity_at": "2026-09-10T18:57:06+00:00",
+        "last_approver_activity_at": "2026-09-10T18:41:53+00:00",
+        "last_author_activity_at": "2026-09-10T18:57:06+00:00",
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jmacd",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -2228,9 +2238,9 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8eff1ee681a60105bb4215f413f379b009ab891f8c81e66637794d98699616e0",
+        "routing_input_fingerprint": "a5d127565c90185e028e2ba4fe14b401844b45edc54925c03b365c11f2a50865",
         "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-09-10T17:22:30+00:00"
+        "waiting_since": "2026-09-10T17:27:13+00:00"
       },
       "failed": false,
       "pr_number": 4031,
