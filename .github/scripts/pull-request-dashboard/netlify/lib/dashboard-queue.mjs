@@ -486,8 +486,12 @@ export class DashboardQueue {
       item.leaseOwner = null;
       item.leaseExpiresAt = null;
       item.claimedGeneration = null;
-      item.attempts = outcome === "retry" && !hasFollowUp ? item.attempts + 1 : 0;
-      item.notBefore = outcome === "retry" && !hasFollowUp && retryAfterMs > 0
+      if (hasFollowUp) {
+        item.attempts = 0;
+      } else if (outcome === "retry" && retryAfterMs === 0) {
+        item.attempts += 1;
+      }
+      item.notBefore = outcome === "retry" && retryAfterMs > 0
         ? this.#isoAfter(retryAfterMs)
         : null;
       const result = {

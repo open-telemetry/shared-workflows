@@ -9,8 +9,8 @@ import sys
 import tempfile
 import threading
 from collections import defaultdict
-from collections.abc import Callable
-from contextlib import AbstractContextManager
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,6 +22,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 OWNER = "open-telemetry"
 STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-state"
 MAX_ATTEMPTS = 3
+PUBLISHER_LOCK_RETRY_AFTER_MS = 5 * 60 * 1000
 
 
 class LeaseMonitor:
@@ -91,6 +92,18 @@ class WorkItem:
     claims: tuple[Claim, ...]
 
 
+class CommandFailedError(RuntimeError):
+    def __init__(self, command: list[str], returncode: int) -> None:
+        super().__init__(f"command failed with exit code {returncode}: {' '.join(command)}")
+        self.returncode = returncode
+
+
+@contextmanager
+def queue_publisher_lock(state_branch_name: str, owner: str) -> Iterator[None]:
+    with state_branch.publisher_lock(state_branch_name, owner, wait_seconds=0):
+        yield
+
+
 def load_claims(path: Path) -> list[Claim]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, list):
@@ -122,6 +135,9 @@ def resolve_work_items(
     for claim in claims:
         try:
             pr_number = claim.pr_number or resolve_head(claim.repository, claim.head_sha)
+        except state_branch.PublisherLockTimeoutError as error:
+            completed.extend(publisher_lock_acknowledgments((claim,), error))
+            continue
         except Exception as error:
             completed.extend(failure_acknowledgments((claim,), error))
             continue
@@ -212,6 +228,7 @@ class DashboardBatchProcessor:
         }
 
     def resolve_head(self, repository: str, head_sha: str) -> int | None:
+        self._assert_publisher_unlocked(repository)
         result = self._run(
             [
                 "gh",
@@ -229,6 +246,21 @@ class DashboardBatchProcessor:
             and isinstance(pull_request.get("number"), int)
         )
         return matches[0] if matches else None
+
+    def _assert_publisher_unlocked(self, repository: str) -> None:
+        state_branch_name = f"{STATE_BRANCH_PREFIX}/{repository}"
+        with state_branch.temporary_state_dir() as state_dir:
+            state_branch.configure_git()
+            state_branch.checkout_state(
+                state_dir,
+                state_branch_name,
+                require_existing=False,
+            )
+            state_branch.wait_for_publisher_unlock(
+                state_dir,
+                state_branch_name,
+                wait_seconds=0,
+            )
 
     def process_repository(
         self,
@@ -261,13 +293,13 @@ class DashboardBatchProcessor:
             "SLACK_CHANNEL": config.get("slack_channel", ""),
             "SLACK_USER_MAP_JSON": json.dumps(config.get("slack_user_mapping", {})),
         }
-        state_branch = f"{STATE_BRANCH_PREFIX}/{repository}"
+        state_branch_name = f"{STATE_BRANCH_PREFIX}/{repository}"
         results: list[dict[str, Any]] = []
         ready: list[WorkItem] = []
 
         try:
             initial_backfill_complete = self._initial_backfill_complete(
-                repository, state_branch, env
+                repository, state_branch_name, env
             )
         except Exception as error:
             return [
@@ -282,10 +314,28 @@ class DashboardBatchProcessor:
                 for claim in item.claims
             ]
 
-        for item in items:
+        for index, item in enumerate(items):
             try:
-                self._update_dashboard(repository, item.pr_number, state_branch, config, env)
+                self._update_dashboard(
+                    repository,
+                    item.pr_number,
+                    state_branch_name,
+                    config,
+                    env,
+                )
                 ready.append(item)
+            except CommandFailedError as error:
+                if error.returncode == state_branch.PUBLISHER_LOCK_BUSY_STATUS:
+                    deferred = [*ready, *items[index:]]
+                    for deferred_item in deferred:
+                        results.extend(
+                            publisher_lock_acknowledgments(
+                                deferred_item.claims,
+                                error,
+                            )
+                        )
+                    return results
+                results.extend(failure_acknowledgments(item.claims, error))
             except Exception as error:
                 results.extend(failure_acknowledgments(item.claims, error))
 
@@ -296,10 +346,13 @@ class DashboardBatchProcessor:
         successful: list[WorkItem] = []
         publish_active = False
         try:
-            with self.publisher_lock(state_branch, self.publisher_lock_owner):
+            with self.publisher_lock(state_branch_name, self.publisher_lock_owner):
                 for item in ready:
                     delivery_active, delivery_error = self._deliver(
-                        repository, item.pr_number, state_branch, env
+                        repository,
+                        item.pr_number,
+                        state_branch_name,
+                        env,
                     )
                     publish_active = delivery_active or publish_active
                     if delivery_error is not None:
@@ -311,7 +364,7 @@ class DashboardBatchProcessor:
 
                 if publish_active:
                     try:
-                        self._publish(repository, state_branch, config, env)
+                        self._publish(repository, state_branch_name, config, env)
                     except Exception as error:
                         for item in successful:
                             locked_results.extend(failure_acknowledgments(item.claims, error))
@@ -321,6 +374,14 @@ class DashboardBatchProcessor:
                     locked_results.extend(
                         acknowledgment(claim, "success") for claim in item.claims
                     )
+        except state_branch.PublisherLockTimeoutError as error:
+            for item in ready:
+                results.extend(
+                    publisher_lock_acknowledgments(
+                        item.claims,
+                        error,
+                    )
+                )
         except Exception as error:
             for item in ready:
                 results.extend(failure_acknowledgments(item.claims, error))
@@ -370,6 +431,8 @@ class DashboardBatchProcessor:
                 str(pr_number),
                 "--required-approvals",
                 str(config.get("required_approvals", 1)),
+                "--publisher-lock-wait-seconds",
+                "0",
                 "--github-output",
                 github_output.name,
             ]
@@ -482,9 +545,7 @@ class DashboardBatchProcessor:
         if result.stderr:
             print(result.stderr, end="", file=sys.stderr)
         if result.returncode != 0:
-            raise RuntimeError(
-                f"command failed with exit code {result.returncode}: {' '.join(command)}"
-            )
+            raise CommandFailedError(command, result.returncode)
         return result
 
 
@@ -513,6 +574,22 @@ def failure_acknowledgments(
             claim,
             "dead" if claim.attempts + 1 >= MAX_ATTEMPTS else "retry",
             message,
+        )
+        for claim in claims
+    ]
+
+
+def publisher_lock_acknowledgments(
+    claims: tuple[Claim, ...],
+    error: Exception,
+) -> list[dict[str, Any]]:
+    message = str(error)
+    return [
+        acknowledgment(
+            claim,
+            "retry",
+            message,
+            PUBLISHER_LOCK_RETRY_AFTER_MS,
         )
         for claim in claims
     ]
@@ -587,6 +664,7 @@ def main() -> int:
         processor = DashboardBatchProcessor(
             args.config,
             lease_check=monitor.assert_valid,
+            publisher_lock=queue_publisher_lock,
             publisher_lock_owner=args.worker_id,
         )
         work_items, resolved = resolve_work_items(claims, processor.resolve_head)

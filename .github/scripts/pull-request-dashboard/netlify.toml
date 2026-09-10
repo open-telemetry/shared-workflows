@@ -5,4 +5,4 @@ publish = "public"
 directory = "netlify/functions"
 
 [functions."dashboard-queue-recover"]
-schedule = "@hourly"
+schedule = "*/5 * * * *"
