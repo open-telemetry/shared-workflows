@@ -4,6 +4,8 @@ const GITHUB_API_VERSION = "2022-11-28";
 const OWNER = "open-telemetry";
 const WORKFLOW_REPOSITORY = "shared-workflows";
 const WORKFLOW_REF = "main";
+const GITHUB_API_ROOT =
+  `https://api.github.com/repos/${OWNER}/${WORKFLOW_REPOSITORY}`;
 const DASHBOARD_WORKFLOW_ID = "pull-request-dashboard.yml";
 const DRAIN_WORKFLOW_ID = "pull-request-dashboard-drain.yml";
 
@@ -47,9 +49,16 @@ export async function dispatchQueueDrain(
 }
 
 async function dispatchWorkflow(workflowId, inputs, config) {
+  const actions = await createGitHubActionsClient(config);
+  await actions.dispatchWorkflow(workflowId, inputs);
+}
+
+export async function createGitHubActionsClient(
+  config = loadDispatcherConfig(),
+) {
   const appJwt = createAppJwt(config);
   const installation = await githubJson(
-    `https://api.github.com/repos/${OWNER}/${WORKFLOW_REPOSITORY}/installation`,
+    `${GITHUB_API_ROOT}/installation`,
     appJwt,
   );
   if (!installation || !installation.id) {
@@ -71,17 +80,62 @@ async function dispatchWorkflow(workflowId, inputs, config) {
       "GitHub installation token response did not include a token",
     );
   }
-  await githubFetch(
-    `https://api.github.com/repos/${OWNER}/${WORKFLOW_REPOSITORY}/actions/workflows/${encodeURIComponent(workflowId)}/dispatches`,
-    installationToken.token,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        ref: WORKFLOW_REF,
-        inputs,
-      }),
+
+  const token = installationToken.token;
+  return {
+    async dispatchWorkflow(workflowId, inputs) {
+      await githubFetch(
+        `${GITHUB_API_ROOT}/actions/workflows/${encodeURIComponent(workflowId)}/dispatches`,
+        token,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ref: WORKFLOW_REF,
+            inputs,
+          }),
+        },
+      );
     },
-  );
+    async listWorkflowRuns(workflowId, { event } = {}) {
+      const url = new URL(
+        `${GITHUB_API_ROOT}/actions/workflows/${encodeURIComponent(workflowId)}/runs`,
+      );
+      url.searchParams.set("per_page", "100");
+      if (event) {
+        url.searchParams.set("event", event);
+      }
+      const result = await githubJson(url.toString(), token);
+      if (!Array.isArray(result?.workflow_runs)) {
+        throw dispatchError(
+          502,
+          "GitHub workflow runs lookup failed",
+          "GitHub workflow runs response did not include a workflow_runs array",
+        );
+      }
+      return result.workflow_runs;
+    },
+    async listRunJobs(runId) {
+      const result = await githubJson(
+        `${GITHUB_API_ROOT}/actions/runs/${runId}/jobs?filter=latest&per_page=100`,
+        token,
+      );
+      if (!Array.isArray(result?.jobs)) {
+        throw dispatchError(
+          502,
+          "GitHub workflow jobs lookup failed",
+          "GitHub workflow jobs response did not include a jobs array",
+        );
+      }
+      return result.jobs;
+    },
+    async cancelWorkflowRun(runId) {
+      await githubFetch(
+        `${GITHUB_API_ROOT}/actions/runs/${runId}/cancel`,
+        token,
+        { method: "POST" },
+      );
+    },
+  };
 }
 
 async function githubJson(url, token, options = {}) {
