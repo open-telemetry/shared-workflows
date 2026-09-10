@@ -240,16 +240,29 @@ AUTHOR_REPLY_PROMPT_TEMPLATE = (
     + BATCH_CONTRACT
     + """
 
-Question: does this pull request still belong to its author?
+Question: does the author explicitly say that work remains for them in this
+pull request?
 
-  - deferral: the author commits to future work still required here ("still
-    working on it", "WIP", "I'll update this", "will fix", "on hold"), or says
-    this pull request cannot proceed until something outside it happens
-  - complete: anything else, including an answer, completed work, pushback,
-    inability to find an alternative, a question back to reviewers, a request
-    for review or a bump asking what else is needed, an offer to make further
-    changes if reviewers want them, an explanation of failing CI, a detailed
-    rationale however long, and work deferred to a separate future pull request
+  - deferral: the author still needs to do something before this pull request
+    can proceed or merge ("still working on it", "WIP", "I'll update this",
+    "will fix", "on hold"), or this pull request cannot proceed until something
+    outside it happens
+  - complete: the author has answered or handed the discussion back, including
+    completed work, pushback, inability to find an alternative, a question back
+    to reviewers, a request for review or a bump asking what else is needed, an
+    offer to make further changes if reviewers want them, an explanation of
+    failing CI, a detailed rationale however long, or a decision that the work
+    belongs outside this pull request
+
+Classify based on where the remaining work belongs, not words such as "later",
+"future", "follow-up", or "defer":
+
+  - "I'll make this change later in this PR." is deferral
+  - "I'll address this after the dependency lands, then update this PR." is
+    deferral
+  - "This requires a significant refactor and is better handled as a later
+    improvement." is complete
+  - "Let's defer this to a follow-up PR." is complete
 
 A dependency counts only when the author says this pull request is waiting on
 it. Merely referencing related work, or a discussion happening elsewhere, is
@@ -258,8 +271,9 @@ complete.
 An offer that waits on a reviewer answering first is complete, because the next
 move is the reviewer's.
 
-Do not infer a deferral merely because a reviewer may disagree, the reply is
-long, or the discussion looks unfinished.
+Use deferral only when the reply explicitly leaves work for the author in this
+pull request. Do not infer a deferral merely because a reviewer may disagree,
+the reply is long, or the discussion looks unfinished.
 
 Respond with a single JSON object and nothing else. Include exactly one result
 for every input discussion_id and copy each discussion_id exactly:

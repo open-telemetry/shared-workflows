@@ -165,6 +165,25 @@ class PromptCompatibilityTest(unittest.TestCase):
             "76e534a013fc212856acbebd3c1897aa2c27daa6a69c6c8bee02e2d11b7bb2fd",
         )
 
+    def test_author_reply_prompt_distinguishes_current_pr_work(self) -> None:
+        prompt = render_verdict_prompt(
+            [self.thread],
+            VerdictContract.AUTHOR_REPLY,
+        )
+
+        self.assertIn(
+            "Classify based on where the remaining work belongs",
+            prompt,
+        )
+        self.assertIn(
+            '"I\'ll make this change later in this PR." is deferral',
+            prompt,
+        )
+        self.assertIn(
+            '"Let\'s defer this to a follow-up PR." is complete',
+            prompt,
+        )
+
     def test_reviewer_feedback_prompt_assigns_unresolved_defects_to_author(
         self,
     ) -> None:
