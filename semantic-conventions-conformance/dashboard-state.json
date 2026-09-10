@@ -613,8 +613,9 @@
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
-        "ci_failing_count": 0,
-        "ci_pending_count": 1,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-10T02:37:02+00:00",
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "93e5b326afb7cd465fcac37c25f33497b3e760ff0e97fed9ad81b1e8061a981e",
         "copilot_review_exists": true,
@@ -635,7 +636,7 @@
         "last_activity_at": "2026-09-10T02:22:20+00:00",
         "last_approver_activity_at": "2026-09-10T02:22:20+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -647,17 +648,16 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-10T02:29:44.389139+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "894807da5e7335116a565e4a1b2675ff9afa0ff894f4606abb834e5db798d9f7",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "e768bf0f7f47f8d330354d9d172c6c894b850e2c9795ac3e1370ce8970423697",
+        "waiting_age_basis": "created",
         "waiting_since": "2026-09-10T00:27:44+00:00"
       },
       "failed": false,
       "pr_number": 196,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/196",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "197": {
