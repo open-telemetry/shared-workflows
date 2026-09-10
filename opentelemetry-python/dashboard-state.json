@@ -4245,7 +4245,7 @@
     },
     "5639": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ocelotl",
         "author_action_review_thread_urls": [],
@@ -4253,7 +4253,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d0548de4a49add275c827fbb269188dba26d253ae4989dd61a7aff1f00f8320a",
+        "copilot_request_fingerprint": "0502ba903f842d334c7f1e6dd82f8e6db00a118c6d375a381476752788a2c925",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4269,21 +4269,31 @@
         "head_sha": "1ed3e2c107d5b8537623d4aa2fe2e665815ca22f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-08T18:57:42+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-10T00:27:25+00:00",
+        "last_approver_activity_at": "2026-09-10T00:27:25+00:00",
         "last_author_activity_at": "2026-09-08T18:57:42+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "herin049",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7053b68bb610a5279886e58c616d6eb02f60ae0b089605964c13d3c6aacbc85a",
+        "routing_input_fingerprint": "5ea98e11ff8c67ffad1ba750937a28d8d0df443b379264fcf182049d893f102d",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-08T18:57:42+00:00"
       },
       "failed": false,
       "pr_number": 5639,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5639",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5642": {
