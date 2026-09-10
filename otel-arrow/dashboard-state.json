@@ -2212,12 +2212,14 @@
         "assignees": [],
         "author": "jmacd",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/4008#pullrequestreview-5157500160"
+        ],
         "author_nudge_episode_id": "30a858f4abf743fca5c3293419f1d04f",
         "ci_failing_count": 0,
-        "ci_pending_count": 1,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "4f40211389a2c252ff4280bbaa7a06edb7ff5b0f87848f73c9d296be90d727ce",
+        "ci_pending_count": 0,
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "51af5657fac5bba84187c7d9031bcdf67ba1c4fd249340b4f3cfc627caccf5d7",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2236,7 +2238,7 @@
         "last_activity_at": "2026-09-10T00:10:10+00:00",
         "last_approver_activity_at": "2026-09-09T17:15:28+00:00",
         "last_author_activity_at": "2026-09-10T00:10:10+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2245,15 +2247,14 @@
             "login": "lalitb",
             "open_thread": true,
             "pending_review": false,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-10T00:25:19.767391+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7b4f53f6d19c2830ce0d75162869cb0b83db50a4141c4d91cb199e550ed15635",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-09T17:04:34+00:00"
+        "routing_input_fingerprint": "7fe675f3fedeeef0e56b1306bbec5ffda2fa72faec5c0d3d5f0f2fb9cb6cdba8",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-09T17:15:28+00:00"
       },
       "failed": false,
       "pr_number": 4008,
