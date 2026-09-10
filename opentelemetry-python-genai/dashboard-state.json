@@ -1903,7 +1903,7 @@
     },
     "671": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "SAMurai-16",
         "author_action_review_thread_urls": [],
@@ -1911,7 +1911,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "3396e3caf57f4e0e1a1c29ea3c8a776701bc7f28690f954cb9e244a5dc5c76b0",
+        "copilot_request_fingerprint": "d569d92ded8ee33dae02f54446488ee3b8a681aae07f5286419134fb263adea6",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1927,21 +1927,31 @@
         "head_sha": "795dea8741f5c33730f1d04de865d309d7365c43",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-10T09:13:55+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-10T15:56:09+00:00",
+        "last_approver_activity_at": "2026-09-10T15:56:09+00:00",
         "last_author_activity_at": "2026-09-10T09:13:55+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lzchen",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c25585bbb78f92280ec8aacaf642f3ed6c829a63d70291e91f3a0bd5cb6e7720",
+        "routing_input_fingerprint": "01ad7f0803b9fca1ba51c6c3019e8b273a2700c946aaeaa8290d3c648adcd063",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-10T09:13:55+00:00"
       },
       "failed": false,
       "pr_number": 671,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/671",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
