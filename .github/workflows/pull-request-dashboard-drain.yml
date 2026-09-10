@@ -16,7 +16,7 @@ permissions: {}
 # stable repositories.
 concurrency:
   group: pull-request-dashboard-queue-drain
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   drain:
