@@ -14141,7 +14141,7 @@
     },
     "50876": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "TylerHelmuth",
         "author_action_review_thread_urls": [],
@@ -14149,7 +14149,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "2d1ad37e10d0fe40d2882ffee1005525e5f70f88411196a730a471e188154842",
+        "copilot_request_fingerprint": "397a092db8806dc7da04574d291535a7062178d7473a22e932b51f9197733558",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14162,14 +14162,23 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "eff2e678dd3ab74ff4ca9cbfb90baabafa1b77fc",
+        "head_sha": "0fe3e8b7b322d890b898da0020900af267118d07",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-10T00:58:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-10T12:34:06+00:00",
+        "last_approver_activity_at": "2026-09-10T12:34:06+00:00",
         "last_author_activity_at": "2026-09-10T00:58:40+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "evan-bradley",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -14182,14 +14191,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f147312d25562832d489aa3656b95bac11a4472853de74d138734c0836b7e502",
+        "routing_input_fingerprint": "d5e30e9d8cdd0293a61e6f553055e9c8d9f078008e08e4ba6baf4bc48c35dece",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-10T00:58:40+00:00"
       },
       "failed": false,
       "pr_number": 50876,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50876",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "50878": {
