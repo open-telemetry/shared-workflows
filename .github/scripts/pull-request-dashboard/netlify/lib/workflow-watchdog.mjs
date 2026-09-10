@@ -12,7 +12,9 @@ export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
 ]);
 
 const BLOCKING_RUN_STATUSES = new Set(["in_progress", "queued"]);
-const QUEUED_RUN_STATUS = "queued";
+// GitHub reports a run held by its concurrency group as "pending" and a run
+// admitted to the group but waiting for a runner as "queued".
+const WAITING_RUN_STATUSES = new Set(["queued", "pending"]);
 
 export async function cancelStalledDashboardRuns({
   actions,
@@ -45,7 +47,7 @@ export async function cancelStalledDashboardRuns({
           Number.isFinite(createdAt) &&
           createdAt <= staleBefore &&
           matchingRuns.some((newer) =>
-            newer.status === QUEUED_RUN_STATUS &&
+            WAITING_RUN_STATUSES.has(newer.status) &&
             Date.parse(newer.created_at) > createdAt
           );
       })
@@ -60,7 +62,7 @@ export async function cancelStalledDashboardRuns({
       }
       const newerRun = matchingRuns
         .filter((candidate) =>
-          candidate.status === QUEUED_RUN_STATUS &&
+          WAITING_RUN_STATUSES.has(candidate.status) &&
           Date.parse(candidate.created_at) > Date.parse(run.created_at)
         )
         .sort((left, right) =>
