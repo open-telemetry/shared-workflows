@@ -3133,12 +3133,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "bc39793b341e46639bcc1508e8640778",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "df0ffc979f334bb393db9591e2c62cc9efff1193b38e2cc28fddedc060154b7c",
+        "copilot_request_fingerprint": "e75796546fa2cea351a6d9f965a3debb07443f5b5b53811a2574f8a91df4504b",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3154,10 +3153,10 @@
         "head_sha": "84724fed1a9362ee161916f326de1336304ce3bc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-09T23:28:36+00:00",
+        "last_activity_at": "2026-09-10T02:08:14+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-09-09T23:28:36+00:00",
-        "required_checks_settled": false,
+        "last_author_activity_at": "2026-09-10T02:08:14+00:00",
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -3170,25 +3169,24 @@
           },
           {
             "approved": false,
-            "approved_non_team": false,
+            "approved_non_team": true,
             "changes_requested": false,
             "login": "trask",
             "open_thread": false,
-            "pending_review": true,
+            "pending_review": false,
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-09T23:42:05.824285+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4a0980a92791cdcfb5ade1b608cef3dfa855d6e3b7fe0cf7f3bc9b185ce5732d",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-09T22:42:17+00:00"
+        "routing_input_fingerprint": "947533fae939c9724bbc82fda2fe705bd9466092fac799238fa7fddf2dba98a9",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-10T02:18:00.878479+00:00"
       },
       "failed": false,
       "pr_number": 20068,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20068",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
