@@ -5,7 +5,7 @@ import { getStore } from "@netlify/blobs";
 export const QUEUE_STORE_NAME = "pr-dashboard-queue";
 export const DEFAULT_SHARD_COUNT = 64;
 export const DEFAULT_ITEM_LEASE_MS = 15 * 60 * 1000;
-export const DEFAULT_DISPATCHER_REQUEST_LEASE_MS = 2 * 60 * 60 * 1000;
+export const DEFAULT_DISPATCHER_REQUEST_LEASE_MS = 60 * 60 * 1000;
 export const DEFAULT_DISPATCHER_ACTIVE_LEASE_MS = 15 * 60 * 1000;
 export const DEFAULT_CAS_ATTEMPTS = 8;
 // An item whose worker dies before it can acknowledge is recovered instead of
