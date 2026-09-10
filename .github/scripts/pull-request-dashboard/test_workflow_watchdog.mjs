@@ -42,7 +42,14 @@ function unassignedJob(startedAt, status = "in_progress") {
     started_at: startedAt,
     runner_id: 0,
     runner_name: "",
-    steps: [],
+    steps: [{
+      name: "Run job",
+      status: "queued",
+      conclusion: null,
+      number: 1,
+      started_at: null,
+      completed_at: null,
+    }],
   };
 }
 

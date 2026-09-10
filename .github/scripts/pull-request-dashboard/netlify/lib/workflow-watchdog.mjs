@@ -93,7 +93,8 @@ function wasNeverAssigned(jobs, staleBefore) {
     jobs.some((job) =>
       (Number.isInteger(job.runner_id) && job.runner_id !== 0) ||
       Boolean(job.runner_name) ||
-      (Array.isArray(job.steps) && job.steps.length > 0)
+      (Array.isArray(job.steps) &&
+        job.steps.some((step) => Boolean(step.started_at)))
     )
   ) {
     return false;
