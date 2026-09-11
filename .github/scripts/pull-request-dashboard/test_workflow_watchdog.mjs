@@ -8,7 +8,7 @@ import {
 const NOW = Date.parse("2026-09-10T12:00:00Z");
 const WORKFLOW = Object.freeze({ workflowId: "dashboard.yml" });
 
-function fixture({ runs, jobs = {} }) {
+function fixture({ runs, jobs = {}, cancellationErrors = {} }) {
   const calls = [];
   const actions = {
     async listWorkflowRuns(workflowId, options) {
@@ -21,6 +21,9 @@ function fixture({ runs, jobs = {} }) {
     },
     async cancelWorkflowRun(runId) {
       calls.push(["cancel", runId]);
+      if (cancellationErrors[runId]) {
+        throw cancellationErrors[runId];
+      }
     },
   };
   return { actions, calls };
@@ -140,6 +143,44 @@ test("cancels a stale run blocked by a newer pending run", async () => {
     ["list-runs", "dashboard.yml", { event: undefined }],
     ["list-jobs", 1],
     ["cancel", 1],
+  ]);
+});
+
+test("continues when a run completes during cancellation", async () => {
+  const conflict = Object.assign(new Error("Conflict"), {
+    githubStatusCode: 409,
+  });
+  const { actions, calls } = fixture({
+    runs: [
+      run(3, "pending", "2026-09-10T11:45:00Z"),
+      run(2, "queued", "2026-09-10T11:00:00Z"),
+      run(1, "in_progress", "2026-09-10T10:30:00Z"),
+    ],
+    jobs: {
+      1: [unassignedJob("2026-09-10T10:30:00Z")],
+      2: [unassignedJob("2026-09-10T11:00:00Z")],
+    },
+    cancellationErrors: { 1: conflict },
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [WORKFLOW],
+  });
+
+  assert.deepEqual(result.cancelled, [{
+    workflowId: "dashboard.yml",
+    runId: 2,
+    newerRunId: 3,
+    ageMinutes: 60,
+  }]);
+  assert.deepEqual(calls, [
+    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-jobs", 1],
+    ["cancel", 1],
+    ["list-jobs", 2],
+    ["cancel", 2],
   ]);
 });
 

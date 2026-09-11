@@ -160,11 +160,13 @@ async function githubFetch(url, token, options = {}) {
   });
   if (!response.ok) {
     const body = await response.text();
-    throw dispatchError(
+    const error = dispatchError(
       502,
       "GitHub API request failed",
       `GitHub API request failed: ${response.status} ${response.statusText}: ${body}`,
     );
+    error.githubStatusCode = response.status;
+    throw error;
   }
   return response;
 }

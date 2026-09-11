@@ -68,7 +68,14 @@ export async function cancelStalledDashboardRuns({
         .sort((left, right) =>
           Date.parse(left.created_at) - Date.parse(right.created_at)
         )[0];
-      await actions.cancelWorkflowRun(run.id);
+      try {
+        await actions.cancelWorkflowRun(run.id);
+      } catch (error) {
+        if (error.githubStatusCode === 409) {
+          continue;
+        }
+        throw error;
+      }
       cancelled.push({
         workflowId: workflow.workflowId,
         runId: run.id,
