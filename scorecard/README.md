@@ -54,8 +54,9 @@ Only these checks are uploaded to code scanning:
 - `PinnedDependenciesID`
 - `TokenPermissionsID`
 
-`PinnedDependenciesID` findings for GitHub's `$/` same-repository syntax are
-omitted from the code scanning upload because Scorecard currently
+`PinnedDependenciesID` findings for
+[GitHub's `$/` same-repository syntax](https://github.blog/changelog/2026-07-30-reference-same-repository-actions-with-self-repository-syntax/)
+are omitted from the code scanning upload because Scorecard currently
 [misclassifies them as unpinned third-party dependencies](https://github.com/ossf/scorecard/issues/5232).
 Other pinned-dependency findings are still uploaded.
 
