@@ -119,8 +119,26 @@ jobs:
           # The rule definitions stay in place so that code scanning closes the
           # alerts already raised for them rather than leaving them stale.
           jq --arg included "$INCLUDED_CHECKS" '
+            # Scorecard misclassifies GitHub self-repository references as unpinned
+            # third-party dependencies: https://github.com/ossf/scorecard/issues/5232
+            # Remove this filter after that fix ships in the Scorecard version used here:
+            # https://github.com/open-telemetry/shared-workflows/issues/366
+            def self_repository_reference:
+              ((.ruleId // "") == "PinnedDependenciesID")
+              and any(
+                .locations[]?;
+                ((.physicalLocation.region.snippet.text // "") | any(split("\n")[]; test("^\\s*\\$/")))
+              );
             ($included | split("\n") | map(select(length > 0))) as $keep
-            | .runs |= map(.results = ((.results // []) | map(select((.ruleId // "") | IN($keep[])))))
+            | .runs |= map(
+                .results = (
+                  (.results // [])
+                  | map(select(
+                      ((.ruleId // "") | IN($keep[]))
+                      and (self_repository_reference | not)
+                    ))
+                )
+              )
           ' results.sarif > filtered.sarif
           echo "kept $(jq '[.runs[] | (.results // [])[]] | length' filtered.sarif) of $(jq '[.runs[] | (.results // [])[]] | length' results.sarif) results"
 
