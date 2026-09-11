@@ -12,6 +12,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -149,6 +150,8 @@ def acknowledge_results(
     client: QueueWorkerClient,
     results: Any,
     common: dict[str, Any],
+    *,
+    on_acknowledged: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     if not isinstance(results, list):
         raise ValueError("results file must contain a JSON array")
@@ -171,6 +174,8 @@ def acknowledge_results(
             failures.append(f"{item.get('itemKey')}: {error}")
         else:
             acknowledged += 1
+            if on_acknowledged is not None:
+                on_acknowledged(item)
     if failures:
         raise RuntimeError(
             "queue acknowledgment failed for "

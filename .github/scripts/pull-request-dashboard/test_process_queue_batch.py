@@ -19,6 +19,7 @@ from process_queue_batch import (
     group_by_repository,
     load_claims,
     process_batch,
+    process_claims,
     resolve_work_items,
 )
 
@@ -382,7 +383,9 @@ class QueueBatchTest(unittest.TestCase):
             def __init__(self, *_args: object, **_kwargs: object) -> None:
                 pass
 
-            def call(self, _action: str, **_payload: object) -> dict[str, bool]:
+            def call(self, action: str, **_payload: object) -> dict[str, bool]:
+                if action == "acknowledge":
+                    lifecycle.append("acknowledge")
                 return {"dispatcher": True}
 
         class Processor:
@@ -398,10 +401,6 @@ class QueueBatchTest(unittest.TestCase):
                 _items: list[WorkItem],
             ) -> list[dict[str, object]]:
                 raise AssertionError("unreachable")
-
-        def acknowledge(*_args: object, **_kwargs: object) -> dict[str, int]:
-            lifecycle.append("acknowledge")
-            return {"acknowledged": 1}
 
         original_close = LeaseMonitor.close
 
@@ -446,7 +445,6 @@ class QueueBatchTest(unittest.TestCase):
             with (
                 mock.patch.object(process_queue_batch, "QueueWorkerClient", Client),
                 mock.patch.object(process_queue_batch, "DashboardBatchProcessor", Processor),
-                mock.patch.object(process_queue_batch, "acknowledge_all", side_effect=acknowledge),
                 mock.patch.object(LeaseMonitor, "close", new=close),
                 mock.patch.object(sys, "argv", argv),
             ):
@@ -459,6 +457,66 @@ class QueueBatchTest(unittest.TestCase):
             [("example#head:abc", "success")],
         )
         self.assertEqual(lifecycle, ["acknowledge", "close"])
+
+    def test_results_file_contains_only_accepted_acknowledgments(self) -> None:
+        class Client:
+            def call(self, action: str, **payload: object) -> dict[str, bool]:
+                if action == "heartbeat":
+                    return {"dispatcher": True}
+                if payload["itemKey"] == "example#pr:1":
+                    raise RuntimeError("acknowledgment unavailable")
+                return {"dispatcher": True}
+
+        class Processor:
+            def __init__(self, *_args: object, **_kwargs: object) -> None:
+                pass
+
+            def resolve_head(self, _repository: str, _head_sha: str) -> int | None:
+                raise AssertionError("unreachable")
+
+            def process_repository(
+                self,
+                _repository: str,
+                items: list[WorkItem],
+            ) -> list[dict[str, object]]:
+                return [
+                    process_queue_batch.acknowledgment(item_claim, "success")
+                    for item in items
+                    for item_claim in item.claims
+                ]
+
+        claims = [
+            claim("example#pr:1", "example", pr_number=1),
+            claim("example#pr:2", "example", pr_number=2),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            results_path = Path(directory) / "results.json"
+            with (
+                mock.patch.object(
+                    process_queue_batch,
+                    "DashboardBatchProcessor",
+                    Processor,
+                ),
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    "1 incremental acknowledgment",
+                ),
+            ):
+                process_claims(
+                    claims,
+                    results_path,
+                    Client(),
+                    1,
+                    "worker",
+                    config_path=Path(directory) / "repositories.json",
+                )
+
+            results = json.loads(results_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            [result["itemKey"] for result in results],
+            ["example#pr:2"],
+        )
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ from queue_worker_client import (
     OIDC_AUDIENCE,
     QueueWorkerClient,
     acknowledge_all,
+    acknowledge_results,
     is_transient_error,
 )
 
@@ -351,6 +352,21 @@ class AcknowledgeTest(unittest.TestCase):
             [call["itemKey"] for call in client.calls],
             ["example#pr:1", "example#pr:2", "example#pr:3"],
         )
+
+    def test_reports_each_accepted_acknowledgment(self) -> None:
+        client = RecordingClient(failures={"example#pr:1"})
+        self.write_results(["example#pr:1", "example#pr:2", "example#pr:3"])
+        acknowledged: list[str] = []
+
+        with self.assertRaisesRegex(RuntimeError, "1 of 3 items"):
+            acknowledge_results(
+                client,
+                json.loads(self.results.read_text(encoding="utf-8")),
+                {"generation": 3, "workerId": "w"},
+                on_acknowledged=lambda result: acknowledged.append(result["itemKey"]),
+            )
+
+        self.assertEqual(acknowledged, ["example#pr:2", "example#pr:3"])
 
 
 class MainTest(unittest.TestCase):

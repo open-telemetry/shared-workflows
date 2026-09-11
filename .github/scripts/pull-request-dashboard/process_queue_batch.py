@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from queue_worker_client import QueueWorkerClient, acknowledge_all
+from queue_worker_client import QueueWorkerClient, acknowledge_results
 import state_branch
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -135,9 +135,20 @@ def process_claims(
     def record_and_acknowledge(completed: list[dict[str, Any]]) -> None:
         if not completed:
             return
-        results.extend(completed)
-        results_path.write_text(json.dumps(completed, indent=2) + "\n", encoding="utf-8")
-        acknowledge_all(client, results_path, common)
+
+        def record_acknowledged(result: dict[str, Any]) -> None:
+            results.append(result)
+            results_path.write_text(
+                json.dumps(results, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+        acknowledge_results(
+            client,
+            completed,
+            common,
+            on_acknowledged=record_acknowledged,
+        )
 
     try:
         monitor.start()
