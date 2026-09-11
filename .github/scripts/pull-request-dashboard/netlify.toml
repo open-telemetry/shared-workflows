@@ -6,3 +6,6 @@ directory = "netlify/functions"
 
 [functions."dashboard-queue-recover"]
 schedule = "@hourly"
+
+[functions."dashboard-workflow-watchdog"]
+schedule = "*/15 * * * *"
