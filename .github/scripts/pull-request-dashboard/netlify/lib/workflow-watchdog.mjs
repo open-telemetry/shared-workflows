@@ -88,6 +88,9 @@ export async function cancelStalledDashboardRuns({
 }
 
 function wasNeverAssigned(jobs, staleBefore) {
+  if (jobs.length === 0) {
+    return true;
+  }
   if (
     jobs.some((job) =>
       (Number.isInteger(job.runner_id) && job.runner_id !== 0) ||

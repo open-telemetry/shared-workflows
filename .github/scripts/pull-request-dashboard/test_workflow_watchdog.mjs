@@ -86,6 +86,33 @@ test("cancels an unassigned stale run blocking a newer run", async () => {
   ]);
 });
 
+test("cancels a stale run before GitHub creates job records", async () => {
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "queued", "2026-09-10T11:45:00Z"),
+      run(1, "in_progress", "2026-09-10T11:00:00Z"),
+    ],
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [WORKFLOW],
+  });
+
+  assert.deepEqual(result.cancelled, [{
+    workflowId: "dashboard.yml",
+    runId: 1,
+    newerRunId: 2,
+    ageMinutes: 60,
+  }]);
+  assert.deepEqual(calls, [
+    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-jobs", 1],
+    ["cancel", 1],
+  ]);
+});
+
 test("cancels a stale run blocked by a newer pending run", async () => {
   const { actions, calls } = fixture({
     runs: [
