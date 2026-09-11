@@ -12,9 +12,9 @@ export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
 ]);
 
 const BLOCKING_RUN_STATUSES = new Set(["in_progress", "queued"]);
-// GitHub reports a run held by its concurrency group as "pending" and a run
+// GitHub reports concurrency-held runs as "pending" or "waiting", and a run
 // admitted to the group but waiting for a runner as "queued".
-const WAITING_RUN_STATUSES = new Set(["queued", "pending"]);
+const WAITING_RUN_STATUSES = new Set(["queued", "pending", "waiting"]);
 
 export async function cancelStalledDashboardRuns({
   actions,
