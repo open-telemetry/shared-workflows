@@ -16,6 +16,7 @@ from drain_queue import (
     WaveResult,
     drain_queue as run_drain,
     process_claim_wave,
+    process_repository_claims,
     unresolved_acknowledgments,
 )
 from process_queue_batch import Claim
@@ -256,7 +257,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
         client = Client()
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(RuntimeError, "token failed"):
-                process_claim_wave(
+                process_repository_claims(
                     [claim("example#pr:1", attempts=2)],
                     Path(directory) / "results.json",
                     client,
@@ -267,6 +268,77 @@ class ProcessClaimWaveTest(unittest.TestCase):
 
         self.assertEqual(client.calls[0]["action"], "acknowledge")
         self.assertEqual(client.calls[0]["outcome"], "dead")
+
+    def test_processes_other_repository_when_one_token_cannot_be_minted(self) -> None:
+        class TokenClient:
+            def __init__(self) -> None:
+                self.minted: list[str] = []
+
+            def mint(self, repositories: list[str]) -> str:
+                repository = repositories[0]
+                self.minted.append(repository)
+                if repository == "removed":
+                    raise RuntimeError("repository is not accessible")
+                return f"{repository}-token"
+
+            def revoke(self, _token: str) -> None:
+                pass
+
+        class Client:
+            def __init__(self) -> None:
+                self.acknowledged: list[str] = []
+
+            def call(self, action: str, **payload: object) -> dict[str, object]:
+                if action == "acknowledge":
+                    self.acknowledged.append(str(payload["itemKey"]))
+                return {"status": "retry"}
+
+        processed: list[str] = []
+
+        def process(
+            claims: list[Claim],
+            *_args: object,
+            processor_env: dict[str, str],
+            **_kwargs: object,
+        ) -> tuple[dict[str, int], list[dict[str, object]]]:
+            repository = claims[0].repository
+            processed.append(repository)
+            self.assertEqual(processor_env["GH_TOKEN"], f"{repository}-token")
+            return (
+                {"dead_letters": 0},
+                [
+                    {
+                        "itemKey": claims[0].item_key,
+                        "claimGeneration": 1,
+                        "outcome": "success",
+                    }
+                ],
+            )
+
+        client = Client()
+        token_client = TokenClient()
+        claims = [
+            Claim("valid#pr:1", 1, "valid", 1, "", 0),
+            Claim("removed#pr:1", 1, "removed", 1, "", 0),
+        ]
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(drain_queue, "process_claims", side_effect=process),
+            self.assertRaisesRegex(RuntimeError, "removed: repository is not accessible"),
+        ):
+            process_claim_wave(
+                claims,
+                Path(directory) / "results.json",
+                client,
+                1,
+                "worker",
+                token_client,
+                report_limits=lambda *_args, **_kwargs: None,
+            )
+
+        self.assertEqual(sorted(token_client.minted), ["removed", "valid"])
+        self.assertEqual(processed, ["valid"])
+        self.assertEqual(client.acknowledged, ["removed#pr:1"])
 
     def test_processes_with_scoped_token_and_reports_before_revocation(self) -> None:
         lifecycle: list[str] = []

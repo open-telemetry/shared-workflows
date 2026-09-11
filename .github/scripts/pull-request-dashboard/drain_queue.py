@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import os
 import subprocess
 import tempfile
 import time
+from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -27,6 +29,7 @@ MINIMUM_WAVE_SECONDS = 10 * 60
 WAVE_DURATION_MULTIPLIER = 1.5
 MAXIMUM_EXCLUSIONS = 500
 MAXIMUM_EXCLUSION_BYTES = 60 * 1024
+MAXIMUM_REPOSITORIES = 4
 TOKEN_HELPER = SCRIPT_DIR / "github_app_token.mjs"
 
 
@@ -199,10 +202,70 @@ def process_claim_wave(
     *,
     report_limits: Callable[..., None] = report_rate_limits,
 ) -> WaveResult:
+    claims_by_repository: dict[str, list[Claim]] = defaultdict(list)
+    for claim in claims:
+        claims_by_repository[claim.repository].append(claim)
+
+    results: list[dict[str, Any]] = []
+    failures: dict[str, Exception] = {}
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=MAXIMUM_REPOSITORIES
+    ) as executor:
+        futures = {
+            executor.submit(
+                process_repository_claims,
+                repository_claims,
+                results_path.with_name(
+                    f"{results_path.stem}-{index}{results_path.suffix}"
+                ),
+                client,
+                generation,
+                worker_id,
+                token_client,
+                report_limits=report_limits,
+            ): repository
+            for index, (repository, repository_claims) in enumerate(
+                sorted(claims_by_repository.items())
+            )
+        }
+        for future in concurrent.futures.as_completed(futures):
+            repository = futures[future]
+            try:
+                results.extend(future.result())
+            except Exception as error:
+                failures[repository] = error
+
+    if failures:
+        details = "; ".join(
+            f"{repository}: {failures[repository]}" for repository in sorted(failures)
+        )
+        raise RuntimeError(
+            f"{len(failures)} repository group(s) failed: {details}"
+        ) from failures[sorted(failures)[0]]
+
+    results.sort(key=lambda result: result["itemKey"])
+    return WaveResult(
+        dead_letters=sum(result["outcome"] == "dead" for result in results),
+        retry_item_keys=tuple(
+            result["itemKey"] for result in results if result["outcome"] == "retry"
+        ),
+    )
+
+
+def process_repository_claims(
+    claims: list[Claim],
+    results_path: Path,
+    client: QueueWorkerClient,
+    generation: int,
+    worker_id: str,
+    token_client: GitHubAppTokenClient,
+    *,
+    report_limits: Callable[..., None] = report_rate_limits,
+) -> list[dict[str, Any]]:
     token: str | None = None
     common = {"generation": generation, "workerId": worker_id}
     try:
-        token = token_client.mint(sorted({claim.repository for claim in claims}))
+        token = token_client.mint([claims[0].repository])
         print(f"::add-mask::{token}")
         processor_env = child_process_environment()
         processor_env.update({"GH_TOKEN": token, "PR_DASHBOARD_TOKEN": token})
@@ -240,12 +303,7 @@ def process_claim_wave(
             except Exception as error:
                 print(f"::warning::GitHub App token revocation failed: {error}")
 
-    return WaveResult(
-        dead_letters=sum(result["outcome"] == "dead" for result in results),
-        retry_item_keys=tuple(
-            result["itemKey"] for result in results if result["outcome"] == "retry"
-        ),
-    )
+    return results
 
 
 def main() -> int:
