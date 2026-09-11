@@ -1479,14 +1479,20 @@
         "approval_count": 0,
         "assignees": [],
         "author": "dlowzzxx",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#discussion_r3940596729"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#pullrequestreview-5126587433",
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634#issuecomment-5641364776"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "38067a69f60e491a9178054d19180122",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "253a929524509b2475ce876296c3f1c766e22f566903339809c3aebabfe788b3",
+        "copilot_request_fingerprint": "3c306d3db6459a98e901d6c06c0a39e59a1962fffe714400cb9eaa9edb28e639",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1495,30 +1501,30 @@
         "copilot_review_stale": true,
         "copilot_review_unreported": false,
         "created_at": "2026-09-05T12:09:36+00:00",
-        "dashboard_command_replies": [
-          {
-            "comment_id": 5590819862,
-            "head_sha": "92c520b03bed470452e79d20e6a7ce9c3af48b19",
-            "held_gates": "",
-            "kind": "routed",
-            "route": "approver",
-            "since": "2026-09-08T19:41:58Z",
-            "user": "dlowzzxx"
-          }
-        ],
+        "dashboard_command_replies": [],
         "dashboard_override_bound_command_id": 5590819862,
-        "dashboard_override_command_id": 5590819862,
-        "dashboard_override_command_user": "dlowzzxx",
+        "dashboard_override_cleared_by_feedback": true,
+        "dashboard_override_command_id": 0,
+        "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "92c520b03bed470452e79d20e6a7ce9c3af48b19",
         "dashboard_override_since": "2026-09-08T19:41:58Z",
         "head_sha": "92c520b03bed470452e79d20e6a7ce9c3af48b19",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-08T19:41:55+00:00",
-        "last_approver_activity_at": "2026-09-06T20:53:53+00:00",
+        "last_activity_at": "2026-09-11T22:30:35+00:00",
+        "last_approver_activity_at": "2026-09-11T22:30:35+00:00",
         "last_author_activity_at": "2026-09-08T19:41:55+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -1526,19 +1532,19 @@
             "login": "lmolkova",
             "open_thread": false,
             "pending_review": true,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "039a5e6f054a83b00f30b2c789339753bc6cda1395e6efc2794864ee9c427144",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-08T19:41:55+00:00"
+        "routing_input_fingerprint": "8869952ad58e5d6df9602201dbd380642d6ec1a6d38491b9765fbe4f84528d0c",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-05T13:14:06+00:00"
       },
       "failed": false,
       "pr_number": 634,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/634",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "640": {
