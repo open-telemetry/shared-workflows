@@ -11,6 +11,7 @@ export default async () => {
       event: "dashboard_workflow_watchdog",
       ...result,
     }));
+    return Response.json(result, { status: 200 });
   } catch (error) {
     console.error(error);
     throw error;
