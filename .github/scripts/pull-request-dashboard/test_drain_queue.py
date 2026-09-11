@@ -240,7 +240,7 @@ class TokenClientTest(unittest.TestCase):
 
 
 class ProcessClaimWaveTest(unittest.TestCase):
-    def test_retries_unprocessed_claim_when_token_creation_fails(self) -> None:
+    def test_dead_letters_exhausted_claim_when_token_creation_fails(self) -> None:
         class TokenClient:
             def mint(self, _repositories: list[str]) -> str:
                 raise RuntimeError("token failed")
@@ -266,7 +266,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 )
 
         self.assertEqual(client.calls[0]["action"], "acknowledge")
-        self.assertEqual(client.calls[0]["outcome"], "retry")
+        self.assertEqual(client.calls[0]["outcome"], "dead")
 
     def test_processes_with_scoped_token_and_reports_before_revocation(self) -> None:
         lifecycle: list[str] = []

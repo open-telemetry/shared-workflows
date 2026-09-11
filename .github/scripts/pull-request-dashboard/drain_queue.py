@@ -14,7 +14,6 @@ from typing import Any
 from process_queue_batch import (
     SCRIPT_DIR,
     Claim,
-    acknowledgment,
     failure_acknowledgments,
     load_claims,
     parse_claims,
@@ -166,8 +165,6 @@ def unresolved_acknowledgments(
     claims: list[Claim],
     results: list[dict[str, Any]],
     error: Exception,
-    *,
-    allow_dead_letters: bool = True,
 ) -> list[dict[str, Any]]:
     resolved_keys = {
         result.get("itemKey")
@@ -175,13 +172,11 @@ def unresolved_acknowledgments(
         if isinstance(result, dict) and isinstance(result.get("itemKey"), str)
     }
     unresolved = [claim for claim in claims if claim.item_key not in resolved_keys]
-    if allow_dead_letters:
-        return [
-            result
-            for claim in unresolved
-            for result in failure_acknowledgments((claim,), error)
-        ]
-    return [acknowledgment(claim, "retry", str(error)) for claim in unresolved]
+    return [
+        result
+        for claim in unresolved
+        for result in failure_acknowledgments((claim,), error)
+    ]
 
 
 def read_results(path: Path) -> list[dict[str, Any]]:
@@ -225,7 +220,6 @@ def process_claim_wave(
             claims,
             results,
             error,
-            allow_dead_letters=token is not None,
         )
         if unresolved:
             try:
