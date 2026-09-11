@@ -126,8 +126,10 @@ def process_claims(
     config_path: Path = SCRIPT_DIR / "repositories.json",
     max_repositories: int = 4,
     processor_env: dict[str, str] | None = None,
+    lease_monitor: LeaseMonitor | None = None,
 ) -> tuple[dict[str, int], list[dict[str, Any]]]:
-    monitor = LeaseMonitor(client, generation, worker_id)
+    monitor = lease_monitor or LeaseMonitor(client, generation, worker_id)
+    owns_monitor = lease_monitor is None
     work_items: list[WorkItem] = []
     results: list[dict[str, Any]] = []
     common = {"generation": generation, "workerId": worker_id}
@@ -151,7 +153,8 @@ def process_claims(
         )
 
     try:
-        monitor.start()
+        if owns_monitor:
+            monitor.start()
         processor = DashboardBatchProcessor(
             config_path,
             env=processor_env,
@@ -168,7 +171,8 @@ def process_claims(
         )
     finally:
         results_path.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
-        monitor.close()
+        if owns_monitor:
+            monitor.close()
     dead_letters = sum(result["outcome"] == "dead" for result in results)
     retries = sum(result["outcome"] == "retry" for result in results)
     return (

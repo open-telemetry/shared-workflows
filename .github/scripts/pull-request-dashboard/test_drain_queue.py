@@ -264,6 +264,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                     1,
                     "worker",
                     TokenClient(),
+                    lease_monitor=mock.Mock(),
                 )
 
         self.assertEqual(client.calls[0]["action"], "acknowledge")
@@ -287,8 +288,12 @@ class ProcessClaimWaveTest(unittest.TestCase):
         class Client:
             def __init__(self) -> None:
                 self.acknowledged: list[str] = []
+                self.heartbeat_calls = 0
 
             def call(self, action: str, **payload: object) -> dict[str, object]:
+                if action == "heartbeat":
+                    self.heartbeat_calls += 1
+                    return {"dispatcher": True}
                 if action == "acknowledge":
                     self.acknowledged.append(str(payload["itemKey"]))
                 return {"status": "retry"}
@@ -339,6 +344,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
         self.assertEqual(sorted(token_client.minted), ["removed", "valid"])
         self.assertEqual(processed, ["valid"])
         self.assertEqual(client.acknowledged, ["removed#pr:1"])
+        self.assertEqual(client.heartbeat_calls, 1)
 
     def test_processes_with_scoped_token_and_reports_before_revocation(self) -> None:
         lifecycle: list[str] = []
@@ -373,10 +379,12 @@ class ProcessClaimWaveTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             mock.patch.object(drain_queue, "process_claims", side_effect=process),
         ):
+            client = mock.Mock()
+            client.call.return_value = {"dispatcher": True}
             result = process_claim_wave(
                 [claim("example#pr:1")],
                 Path(directory) / "results.json",
-                mock.Mock(),
+                client,
                 1,
                 "worker",
                 token_client,

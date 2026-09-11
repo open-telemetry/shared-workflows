@@ -16,6 +16,7 @@ from typing import Any
 from process_queue_batch import (
     SCRIPT_DIR,
     Claim,
+    LeaseMonitor,
     failure_acknowledgments,
     load_claims,
     parse_claims,
@@ -206,34 +207,56 @@ def process_claim_wave(
     for claim in claims:
         claims_by_repository[claim.repository].append(claim)
 
+    monitor = LeaseMonitor(client, generation, worker_id)
+    try:
+        monitor.start()
+    except Exception as error:
+        monitor.close()
+        unresolved = unresolved_acknowledgments(claims, [], error)
+        try:
+            acknowledge_results(
+                client,
+                unresolved,
+                {"generation": generation, "workerId": worker_id},
+            )
+        except Exception as acknowledgment_error:
+            raise RuntimeError(
+                "queue wave failed and unresolved claims could not be acknowledged"
+            ) from acknowledgment_error
+        raise
+
     results: list[dict[str, Any]] = []
     failures: dict[str, Exception] = {}
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=MAXIMUM_REPOSITORIES
-    ) as executor:
-        futures = {
-            executor.submit(
-                process_repository_claims,
-                repository_claims,
-                results_path.with_name(
-                    f"{results_path.stem}-{index}{results_path.suffix}"
-                ),
-                client,
-                generation,
-                worker_id,
-                token_client,
-                report_limits=report_limits,
-            ): repository
-            for index, (repository, repository_claims) in enumerate(
-                sorted(claims_by_repository.items())
-            )
-        }
-        for future in concurrent.futures.as_completed(futures):
-            repository = futures[future]
-            try:
-                results.extend(future.result())
-            except Exception as error:
-                failures[repository] = error
+    try:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=MAXIMUM_REPOSITORIES
+        ) as executor:
+            futures = {
+                executor.submit(
+                    process_repository_claims,
+                    repository_claims,
+                    results_path.with_name(
+                        f"{results_path.stem}-{index}{results_path.suffix}"
+                    ),
+                    client,
+                    generation,
+                    worker_id,
+                    token_client,
+                    lease_monitor=monitor,
+                    report_limits=report_limits,
+                ): repository
+                for index, (repository, repository_claims) in enumerate(
+                    sorted(claims_by_repository.items())
+                )
+            }
+            for future in concurrent.futures.as_completed(futures):
+                repository = futures[future]
+                try:
+                    results.extend(future.result())
+                except Exception as error:
+                    failures[repository] = error
+    finally:
+        monitor.close()
 
     if failures:
         details = "; ".join(
@@ -260,6 +283,7 @@ def process_repository_claims(
     worker_id: str,
     token_client: GitHubAppTokenClient,
     *,
+    lease_monitor: LeaseMonitor,
     report_limits: Callable[..., None] = report_rate_limits,
 ) -> list[dict[str, Any]]:
     token: str | None = None
@@ -276,6 +300,7 @@ def process_repository_claims(
             generation,
             worker_id,
             processor_env=processor_env,
+            lease_monitor=lease_monitor,
         )
     except Exception as error:
         results = read_results(results_path)
