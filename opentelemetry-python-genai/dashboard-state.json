@@ -1917,7 +1917,7 @@
     },
     "676": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1927,7 +1927,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c749bb313dcacec32578a27e04c7af24da4ab349208649c349f3b69ae0f21f26",
+        "copilot_request_fingerprint": "b280189cd56f87f73c56bc7bcc2074033ad5207c392989b9dfce390a176ef4f9",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1943,15 +1943,26 @@
         "head_sha": "341a00cfde549b33ae084ebf90635d4a41e4c5eb",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-11T11:33:56+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-11T11:40:39+00:00",
+        "last_approver_activity_at": "2026-09-11T11:40:39+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-11T11:41:09.093782+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b91b07a67048406817820ec9ddc2daf4a9a21a44ac6d875a172c3fe676491a8d",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "20af49a44fe1c50d629607a1360848e0e1d90095feb0c7ee55bcbe40fe04f406",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-11T04:28:47+00:00"
       },
       "failed": false,
