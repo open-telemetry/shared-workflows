@@ -281,6 +281,36 @@ test("does not cancel before the stale threshold", async () => {
   ]);
 });
 
+test("uses the workflow run age instead of the job record age", async () => {
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "queued", "2026-09-10T11:45:00Z"),
+      run(1, "in_progress", "2026-09-10T11:00:00Z"),
+    ],
+    jobs: {
+      1: [unassignedJob("2026-09-10T11:45:00Z")],
+    },
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [WORKFLOW],
+  });
+
+  assert.deepEqual(result.cancelled, [{
+    workflowId: "dashboard.yml",
+    runId: 1,
+    newerRunId: 2,
+    ageMinutes: 60,
+  }]);
+  assert.deepEqual(calls, [
+    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-jobs", 1],
+    ["cancel", 1],
+  ]);
+});
+
 test("filters workflows whose concurrency group is event-specific", async () => {
   const scheduledWorkflow = {
     workflowId: "dashboard.yml",
