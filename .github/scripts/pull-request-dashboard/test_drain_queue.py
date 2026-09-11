@@ -111,6 +111,22 @@ class DrainQueueTest(unittest.TestCase):
         self.assertEqual(result, DrainResult(2, 0, "exclusion_limit", 1))
         claim_wave.assert_not_called()
 
+    def test_stops_before_retry_exclusions_exceed_the_byte_budget(self) -> None:
+        claim_wave = mock.Mock()
+        long_keys = ("a" * 500, "b" * 500)
+
+        result = run_drain(
+            [claim(item_key) for item_key in long_keys],
+            1_000,
+            claim_wave,
+            lambda _claims, _wave: WaveResult(0, long_keys),
+            now=lambda: 0,
+            maximum_exclusion_bytes=800,
+        )
+
+        self.assertEqual(result, DrainResult(2, 0, "exclusion_limit", 1))
+        claim_wave.assert_not_called()
+
     def test_main_claims_each_later_wave_with_limit_16(self) -> None:
         class Client:
             def __init__(self, _endpoint: str) -> None:

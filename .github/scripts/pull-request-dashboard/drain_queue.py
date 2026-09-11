@@ -27,6 +27,7 @@ WAVE_LIMIT = 16
 MINIMUM_WAVE_SECONDS = 10 * 60
 WAVE_DURATION_MULTIPLIER = 1.5
 MAXIMUM_EXCLUSIONS = 500
+MAXIMUM_EXCLUSION_BYTES = 60 * 1024
 TOKEN_HELPER = SCRIPT_DIR / "github_app_token.mjs"
 
 
@@ -54,6 +55,7 @@ def drain_queue(
     minimum_wave_seconds: float = MINIMUM_WAVE_SECONDS,
     wave_duration_multiplier: float = WAVE_DURATION_MULTIPLIER,
     maximum_exclusions: int = MAXIMUM_EXCLUSIONS,
+    maximum_exclusion_bytes: int = MAXIMUM_EXCLUSION_BYTES,
 ) -> DrainResult:
     claims = initial_claims
     waves = 0
@@ -70,7 +72,14 @@ def drain_queue(
         claim_count += len(claims)
         dead_letters += wave_result.dead_letters
         retry_item_keys.update(wave_result.retry_item_keys)
-        if len(retry_item_keys) >= maximum_exclusions:
+        serialized_exclusions = json.dumps(
+            sorted(retry_item_keys),
+            separators=(",", ":"),
+        ).encode()
+        if (
+            len(retry_item_keys) >= maximum_exclusions
+            or len(serialized_exclusions) >= maximum_exclusion_bytes
+        ):
             return DrainResult(claim_count, dead_letters, "exclusion_limit", waves)
 
         maximum_wave_seconds = max(maximum_wave_seconds, finished_at - started_at)
