@@ -203,7 +203,7 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertNotRegex(body, STABLE_USES)
         self.assertRegex(body, r"(?m)^    timeout-minutes: 50$")
         self.assertIn("DRAIN_PROCESSING_DEADLINE", body)
-        self.assertIn("drain_queue.mjs", body)
+        self.assertIn("drain_queue.py", body)
         self.assertNotIn("actions/create-github-app-token@", body)
 
     def test_webhook_deployment_automates_queue_rollout(self) -> None:

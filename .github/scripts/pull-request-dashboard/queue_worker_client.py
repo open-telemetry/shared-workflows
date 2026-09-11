@@ -142,6 +142,14 @@ def acknowledge_all(
     remaining items are still worth acknowledging before the caller fails.
     """
     results = json.loads(results_path.read_text(encoding="utf-8"))
+    return acknowledge_results(client, results, common)
+
+
+def acknowledge_results(
+    client: QueueWorkerClient,
+    results: Any,
+    common: dict[str, Any],
+) -> dict[str, Any]:
     if not isinstance(results, list):
         raise ValueError("results file must contain a JSON array")
     acknowledged = 0

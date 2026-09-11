@@ -94,7 +94,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           set -euo pipefail
-          node .github/scripts/pull-request-dashboard/drain_queue.mjs \
+          python3 .github/scripts/pull-request-dashboard/drain_queue.py \
             --claims "$RUNNER_TEMP/dashboard-claims.json" \
             --deadline "$DRAIN_PROCESSING_DEADLINE" \
             --generation "$DISPATCHER_GENERATION" \

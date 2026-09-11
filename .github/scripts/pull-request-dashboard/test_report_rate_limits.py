@@ -28,9 +28,9 @@ class ReportRateLimitsTest(unittest.TestCase):
 
         output = io.StringIO()
         with redirect_stdout(output):
-            report_rate_limits(20)
+            report_rate_limits(20, token="wave-token")
 
-        mock_gh_api.assert_called_once_with("/rate_limit")
+        mock_gh_api.assert_called_once_with("/rate_limit", token="wave-token")
         self.assertIn("REST /rate_limit core:", output.getvalue())
         self.assertIn("75.0% remaining", output.getvalue())
         self.assertIn("REST /rate_limit graphql:", output.getvalue())
