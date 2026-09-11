@@ -17,6 +17,7 @@ from queue_worker_client import (
     OIDC_AUDIENCE,
     QueueWorkerClient,
     acknowledge_all,
+    acknowledge_results,
     is_transient_error,
 )
 
@@ -352,8 +353,73 @@ class AcknowledgeTest(unittest.TestCase):
             ["example#pr:1", "example#pr:2", "example#pr:3"],
         )
 
+    def test_reports_each_accepted_acknowledgment(self) -> None:
+        client = RecordingClient(failures={"example#pr:1"})
+        self.write_results(["example#pr:1", "example#pr:2", "example#pr:3"])
+        acknowledged: list[str] = []
+
+        with self.assertRaisesRegex(RuntimeError, "1 of 3 items"):
+            acknowledge_results(
+                client,
+                json.loads(self.results.read_text(encoding="utf-8")),
+                {"generation": 3, "workerId": "w"},
+                on_acknowledged=lambda result: acknowledged.append(result["itemKey"]),
+            )
+
+        self.assertEqual(acknowledged, ["example#pr:2", "example#pr:3"])
+
 
 class MainTest(unittest.TestCase):
+    def test_claim_command_forwards_excluded_item_keys(self) -> None:
+        calls = []
+
+        class Client:
+            def call(self, action: str, **payload: object) -> dict[str, object]:
+                calls.append({"action": action, **payload})
+                return {"claims": []}
+
+        with tempfile.TemporaryDirectory() as directory:
+            claims = Path(directory) / "claims.json"
+            argv = [
+                "queue_worker_client.py",
+                "--endpoint",
+                "https://example.test/worker",
+                "--generation",
+                "4",
+                "--worker-id",
+                "worker",
+                "claim",
+                "--limit",
+                "16",
+                "--output",
+                str(claims),
+                "--exclude-item-key",
+                "example#pr:1",
+                "--exclude-item-key",
+                "example#pr:2",
+            ]
+            with (
+                mock.patch.object(
+                    queue_worker_client,
+                    "QueueWorkerClient",
+                    lambda *_args, **_kwargs: Client(),
+                ),
+                mock.patch.object(sys, "argv", argv),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(queue_worker_client.main(), 0)
+
+        self.assertEqual(
+            calls,
+            [{
+                "action": "claim",
+                "generation": 4,
+                "workerId": "worker",
+                "limit": 16,
+                "excludeItemKeys": ["example#pr:1", "example#pr:2"],
+            }],
+        )
+
     def test_acknowledge_command_succeeds(self) -> None:
         client = RecordingClient()
         with tempfile.TemporaryDirectory() as directory:

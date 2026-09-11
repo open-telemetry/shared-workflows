@@ -299,11 +299,23 @@ export class DashboardQueue {
     return { dispatcher: true, items: itemCount };
   }
 
-  async claimWave({ generation, workerId, limit = 4 }) {
+  async claimWave({ generation, workerId, limit = 4, excludeItemKeys = [] }) {
     validateWorkerId(workerId);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
       throw new Error("claim limit must be an integer between 1 and 100");
     }
+    if (
+      !Array.isArray(excludeItemKeys) ||
+      excludeItemKeys.length > 1000 ||
+      excludeItemKeys.some((itemKey) => (
+        typeof itemKey !== "string" ||
+        itemKey.length < 1 ||
+        itemKey.length > 500
+      ))
+    ) {
+      throw new Error("excluded item keys are invalid");
+    }
+    const excluded = new Set(excludeItemKeys);
     const dispatcher = await this.#readDispatcher();
     if (
       dispatcher.phase !== "active" ||
@@ -326,6 +338,7 @@ export class DashboardQueue {
         validateItem(itemKey, item);
         if (
           item.phase === "queued" &&
+          !excluded.has(itemKey) &&
           (!item.notBefore || Date.parse(item.notBefore) <= this.now())
         ) {
           found.push({

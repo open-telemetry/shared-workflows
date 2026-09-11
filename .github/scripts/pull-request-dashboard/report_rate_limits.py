@@ -33,9 +33,9 @@ def report_rate_limit(name: str, rate_limit: dict[str, Any], warning_threshold: 
         )
 
 
-def report_rate_limits(warning_threshold: float) -> None:
+def report_rate_limits(warning_threshold: float, *, token: str | None = None) -> None:
     try:
-        rate_limit_data = gh_api("/rate_limit")
+        rate_limit_data = gh_api("/rate_limit", token=token)
     except Exception as e:
         print(f"::warning title=REST rate-limit query failed::{e}")
         raise

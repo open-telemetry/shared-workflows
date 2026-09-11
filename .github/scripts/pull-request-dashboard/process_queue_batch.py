@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from queue_worker_client import QueueWorkerClient, acknowledge_all
+from queue_worker_client import QueueWorkerClient, acknowledge_results
 import state_branch
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -92,7 +92,10 @@ class WorkItem:
 
 
 def load_claims(path: Path) -> list[Claim]:
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    return parse_claims(json.loads(path.read_text(encoding="utf-8")))
+
+
+def parse_claims(raw: Any) -> list[Claim]:
     if not isinstance(raw, list):
         raise ValueError("claims file must contain a JSON array")
     claims = []
@@ -111,6 +114,77 @@ def load_claims(path: Path) -> list[Claim]:
             raise ValueError(f"claim {claim.item_key} must identify one PR or head SHA")
         claims.append(claim)
     return claims
+
+
+def process_claims(
+    claims: list[Claim],
+    results_path: Path,
+    client: QueueWorkerClient,
+    generation: int,
+    worker_id: str,
+    *,
+    config_path: Path = SCRIPT_DIR / "repositories.json",
+    max_repositories: int = 4,
+    processor_env: dict[str, str] | None = None,
+    lease_monitor: LeaseMonitor | None = None,
+) -> tuple[dict[str, int], list[dict[str, Any]]]:
+    monitor = lease_monitor or LeaseMonitor(client, generation, worker_id)
+    owns_monitor = lease_monitor is None
+    work_items: list[WorkItem] = []
+    results: list[dict[str, Any]] = []
+    common = {"generation": generation, "workerId": worker_id}
+
+    def record_and_acknowledge(completed: list[dict[str, Any]]) -> None:
+        if not completed:
+            return
+
+        def record_acknowledged(result: dict[str, Any]) -> None:
+            results.append(result)
+            results_path.write_text(
+                json.dumps(results, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+        acknowledge_results(
+            client,
+            completed,
+            common,
+            on_acknowledged=record_acknowledged,
+        )
+
+    try:
+        if owns_monitor:
+            monitor.start()
+        processor = DashboardBatchProcessor(
+            config_path,
+            env=processor_env,
+            lease_check=monitor.assert_valid,
+            publisher_lock_owner=worker_id,
+        )
+        work_items, resolved = resolve_work_items(claims, processor.resolve_head)
+        record_and_acknowledge(resolved)
+        process_batch(
+            work_items,
+            processor.process_repository,
+            max_repositories=max_repositories,
+            on_results=record_and_acknowledge,
+        )
+    finally:
+        results_path.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
+        if owns_monitor:
+            monitor.close()
+    dead_letters = sum(result["outcome"] == "dead" for result in results)
+    retries = sum(result["outcome"] == "retry" for result in results)
+    return (
+        {
+            "claims": len(claims),
+            "work_items": len(work_items),
+            "successes": len(results) - retries - dead_letters,
+            "retries": retries,
+            "dead_letters": dead_letters,
+        },
+        results,
+    )
 
 
 def resolve_work_items(
@@ -563,58 +637,17 @@ def main() -> int:
 
     claims = load_claims(args.claims)
     client = QueueWorkerClient(args.queue_endpoint)
-    monitor = LeaseMonitor(
+    summary, _results = process_claims(
+        claims,
+        args.results,
         client,
         args.dispatcher_generation,
         args.worker_id,
+        config_path=args.config,
+        max_repositories=args.max_repositories,
     )
-    work_items: list[WorkItem] = []
-    results: list[dict[str, Any]] = []
-    common = {
-        "generation": args.dispatcher_generation,
-        "workerId": args.worker_id,
-    }
-
-    def record_and_acknowledge(completed: list[dict[str, Any]]) -> None:
-        if not completed:
-            return
-        results.extend(completed)
-        args.results.write_text(json.dumps(completed, indent=2) + "\n", encoding="utf-8")
-        acknowledge_all(client, args.results, common)
-
-    try:
-        monitor.start()
-        processor = DashboardBatchProcessor(
-            args.config,
-            lease_check=monitor.assert_valid,
-            publisher_lock_owner=args.worker_id,
-        )
-        work_items, resolved = resolve_work_items(claims, processor.resolve_head)
-        record_and_acknowledge(resolved)
-        process_batch(
-            work_items,
-            processor.process_repository,
-            max_repositories=args.max_repositories,
-            on_results=record_and_acknowledge,
-        )
-    finally:
-        args.results.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
-        monitor.close()
-    dead_letters = sum(result["outcome"] == "dead" for result in results)
-    retries = sum(result["outcome"] == "retry" for result in results)
-    print(
-        json.dumps(
-            {
-                "claims": len(claims),
-                "work_items": len(work_items),
-                "successes": len(results) - retries - dead_letters,
-                "retries": retries,
-                "dead_letters": dead_letters,
-            },
-            sort_keys=True,
-        )
-    )
-    return 1 if dead_letters else 0
+    print(json.dumps(summary, sort_keys=True))
+    return 1 if summary["dead_letters"] else 0
 
 
 if __name__ == "__main__":

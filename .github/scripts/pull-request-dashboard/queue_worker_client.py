@@ -12,6 +12,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -142,6 +143,16 @@ def acknowledge_all(
     remaining items are still worth acknowledging before the caller fails.
     """
     results = json.loads(results_path.read_text(encoding="utf-8"))
+    return acknowledge_results(client, results, common)
+
+
+def acknowledge_results(
+    client: QueueWorkerClient,
+    results: Any,
+    common: dict[str, Any],
+    *,
+    on_acknowledged: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     if not isinstance(results, list):
         raise ValueError("results file must contain a JSON array")
     acknowledged = 0
@@ -163,6 +174,8 @@ def acknowledge_all(
             failures.append(f"{item.get('itemKey')}: {error}")
         else:
             acknowledged += 1
+            if on_acknowledged is not None:
+                on_acknowledged(item)
     if failures:
         raise RuntimeError(
             "queue acknowledgment failed for "
@@ -184,6 +197,7 @@ def main() -> int:
     claim.add_argument("--limit", type=int, default=32)
     claim.add_argument("--output", type=Path, required=True)
     claim.add_argument("--github-output", type=Path)
+    claim.add_argument("--exclude-item-key", action="append", default=[])
 
     subparsers.add_parser("heartbeat")
 
@@ -207,7 +221,12 @@ def main() -> int:
         if result.get("activated") is not True:
             raise RuntimeError("dispatcher activation was rejected")
     elif args.action == "claim":
-        result = client.call("claim", limit=args.limit, **common)
+        result = client.call(
+            "claim",
+            limit=args.limit,
+            excludeItemKeys=args.exclude_item_key,
+            **common,
+        )
         claims = result.get("claims")
         if not isinstance(claims, list):
             raise RuntimeError("queue claim response did not include a claims array")

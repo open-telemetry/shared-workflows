@@ -45,6 +45,12 @@ export async function handleQueueWorkerRequest(
           generation: positiveInteger(body.generation, "generation"),
           workerId: workerId(body.workerId),
           limit: optionalPositiveInteger(body.limit, "limit") || 4,
+          excludeItemKeys: optionalStringArray(
+            body.excludeItemKeys,
+            "excludeItemKeys",
+            1000,
+            500,
+          ),
         }),
       });
     case "heartbeat":
@@ -158,6 +164,27 @@ function optionalNonNegativeInteger(value, name) {
   }
   if (!Number.isInteger(value) || value < 0) {
     throw requestError(400, `${name} must be a non-negative integer`);
+  }
+  return value;
+}
+
+function optionalStringArray(value, name, maxItems, maxLength) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  if (
+    !Array.isArray(value) ||
+    value.length > maxItems ||
+    value.some((item) => (
+      typeof item !== "string" ||
+      item.length < 1 ||
+      item.length > maxLength
+    ))
+  ) {
+    throw requestError(
+      400,
+      `${name} must contain at most ${maxItems} non-empty strings no longer than ${maxLength} characters`,
+    );
   }
   return value;
 }

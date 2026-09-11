@@ -76,6 +76,7 @@ test("claims a wave after authentication", async () => {
     generation: 7,
     workerId: "worker",
     limit: 4,
+    excludeItemKeys: ["example#pr:2"],
   }), { queue, verifyRequest });
 
   assert.equal(response.status, 200);
@@ -84,7 +85,12 @@ test("claims a wave after authentication", async () => {
   });
   assert.deepEqual(calls, [[
     "claim",
-    { generation: 7, workerId: "worker", limit: 4 },
+    {
+      generation: 7,
+      workerId: "worker",
+      limit: 4,
+      excludeItemKeys: ["example#pr:2"],
+    },
   ]]);
 });
 

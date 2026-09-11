@@ -211,6 +211,32 @@ test("clean success removes the claimed item", async () => {
   assert.equal((await queue.stats()).inflight, 0);
 });
 
+test("claim wave skips item keys retried by the same worker run", async () => {
+  const { queue } = fixture();
+  for (const prNumber of [123, 456]) {
+    await queue.enqueue({
+      repository: "example",
+      prNumber,
+      headSha: "",
+      triggerEvent: "pull_request",
+    });
+  }
+  const request = await queue.requestDispatcher("request");
+  await queue.activateDispatcher({
+    generation: request.generation,
+    workerId: "worker",
+  });
+
+  const claims = await queue.claimWave({
+    generation: request.generation,
+    workerId: "worker",
+    limit: 2,
+    excludeItemKeys: ["example#pr:123"],
+  });
+
+  assert.deepEqual(claims.map((claim) => claim.itemKey), ["example#pr:456"]);
+});
+
 test("replays an identical acknowledgment after its response is lost", async () => {
   const { queue } = fixture();
   await queue.enqueue({
