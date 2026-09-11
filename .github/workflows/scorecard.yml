@@ -125,7 +125,7 @@ jobs:
               ((.ruleId // "") == "PinnedDependenciesID")
               and any(
                 .locations[]?;
-                ((.physicalLocation.region.snippet.text // "") | test("^\\s*\\$/"))
+                ((.physicalLocation.region.snippet.text // "") | any(split("\n")[]; test("^\\s*\\$/")))
               );
             ($included | split("\n") | map(select(length > 0))) as $keep
             | .runs |= map(
