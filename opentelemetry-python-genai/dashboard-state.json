@@ -1942,7 +1942,7 @@
     },
     "675": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1952,7 +1952,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "31c3ce93eeac2cbcbdccee09699856334b82531de5b3b038fb6c40d2914f19e5",
+        "copilot_request_fingerprint": "b6ce526278a28fd53725208988f5bc4ea5c065ca502f49f3b88d49ffd17dc4f7",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1968,15 +1968,26 @@
         "head_sha": "c9a71d581dc2ef36baf727382c3cdce5ed13f06b",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-11T00:22:16+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-11T00:32:33+00:00",
+        "last_approver_activity_at": "2026-09-11T00:32:33+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-11T00:33:17.767271+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4af1a76a91afe13d27ed1ed72f90df08c6ba3b28b31d3e2e557bbb95f1871aa6",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "5ce7608c1697c5ddfeefacf10f871b093da68577537677a788c6c65ecb7e1d57",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-11T00:22:16+00:00"
       },
       "failed": false,
