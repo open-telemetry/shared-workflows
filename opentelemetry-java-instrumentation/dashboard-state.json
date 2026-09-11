@@ -1407,7 +1407,7 @@
     },
     "19782": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "SylvainJuge"
         ],
@@ -1417,28 +1417,28 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "dfec6871faa13ed781d46519c0343a3fef4c44d59dda79cbf12ded99436b8df5",
+        "copilot_request_fingerprint": "22651c4ad23716a35466a430697cc30d7e6dd00bff3fee4a89d36feaa60e6688",
         "copilot_review_exists": true,
-        "copilot_review_needed": false,
-        "copilot_review_outstanding": false,
-        "copilot_review_request_needed": false,
+        "copilot_review_needed": true,
+        "copilot_review_outstanding": true,
+        "copilot_review_request_needed": true,
         "copilot_review_requested": false,
-        "copilot_review_stale": false,
-        "copilot_review_unreported": false,
+        "copilot_review_stale": true,
+        "copilot_review_unreported": true,
         "created_at": "2026-08-24T16:47:12+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "cbdb380964ca8d2f4348279128e2a760fb932d23",
+        "head_sha": "10654afc27b80afa0a2517f7eb2dd70380ab99be",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-10T23:30:03+00:00",
-        "last_approver_activity_at": "2026-09-10T23:30:03+00:00",
+        "last_activity_at": "2026-09-11T03:35:02+00:00",
+        "last_approver_activity_at": "2026-09-11T03:35:02+00:00",
         "last_author_activity_at": "2026-09-10T09:04:18+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -1450,7 +1450,7 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "trask",
@@ -1459,10 +1459,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-11T03:35:52.965980+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "233cb8b14136449eb9073c6d993fe0e7787a45ef1afc80b154873e0259cb2bb6",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "be063578c9dc20146c509499e81c8fa8ad618948beecc6353a34e844edb91c0e",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-10T09:04:18+00:00"
       },
       "failed": false,
