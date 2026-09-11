@@ -121,6 +121,8 @@ jobs:
           jq --arg included "$INCLUDED_CHECKS" '
             # Scorecard misclassifies GitHub self-repository references as unpinned
             # third-party dependencies: https://github.com/ossf/scorecard/issues/5232
+            # Remove this filter after that fix ships in the Scorecard version used here:
+            # https://github.com/open-telemetry/shared-workflows/issues/366
             def self_repository_reference:
               ((.ruleId // "") == "PinnedDependenciesID")
               and any(
