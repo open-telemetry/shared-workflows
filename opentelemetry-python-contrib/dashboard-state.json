@@ -5881,7 +5881,7 @@
     },
     "5039": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/dependabot",
         "author_action_review_thread_urls": [],
@@ -5891,7 +5891,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "966c03f01a44bda142207f499666303c4709a0a61e274bd7e05811fb5e835f71",
+        "copilot_request_fingerprint": "c9e89df425bb62780b1c2f1e64023713e58c9a6db4443c0f7c3905224f2dbf37",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -5904,16 +5904,16 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "cf65ffb14a6ab848779111c82f448cbf23aa4758",
+        "head_sha": "ba788a9d5906b4c641895d75fedff01b1f5ec112",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-11T14:02:25+00:00",
-        "last_approver_activity_at": "2026-09-11T14:02:13+00:00",
+        "last_activity_at": "2026-09-11T14:03:12+00:00",
+        "last_approver_activity_at": "2026-09-11T14:03:12+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "xrmx",
@@ -5922,10 +5922,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-11T14:04:21.151609+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "32ecb68971e4fedff4463a61395d3f601d34520d13cc0ee7ef915f89f46782b4",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "b1cfe19828aa73f1ae5e98e1ae76caa22107de4c425a93c1d8cd8d3d78a5f35d",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-08T23:18:17+00:00"
       },
       "failed": false,
