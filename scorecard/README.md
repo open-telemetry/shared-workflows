@@ -54,4 +54,9 @@ Only these checks are uploaded to code scanning:
 - `PinnedDependenciesID`
 - `TokenPermissionsID`
 
+`PinnedDependenciesID` findings for GitHub's `$/` same-repository syntax are
+omitted from the code scanning upload because Scorecard currently
+[misclassifies them as unpinned third-party dependencies](https://github.com/ossf/scorecard/issues/5232).
+Other pinned-dependency findings are still uploaded.
+
 By default, the full result is still published, so the badge and the public `api.scorecard.dev` entry are unaffected. Runs with `skip-publication: true` do not update the badge or public entry.
