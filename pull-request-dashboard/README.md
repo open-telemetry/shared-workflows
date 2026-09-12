@@ -37,11 +37,11 @@ The dashboard groups open non-draft pull requests by who is expected to act next
 - **Reviewers** — Reviewers who have engaged with the PR, each annotated with one or more icons:
   - ✅ active approval
   - ✔️ active approval (non-code-owner — does **not** count toward `required_approvals`)
-  - 💬 has an open (unresolved) review thread on the PR
+  - 💬 has an open review thread that still needs author action
   - 📌 has tracked top-level feedback that still needs author action
   - 🔴 requested changes
   - ⏳ a review is in flight (a human reviewer was requested again after reviewing, or a Copilot review is pending while it holds the PR)
-  - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has both an unresolved inline thread and tracked top-level feedback; ✅ may accompany either or both.
+  - Icons combine when multiple states apply. For example, 💬📌 means the reviewer has both inline and top-level feedback that still need author action; ✅ may accompany either or both.
 - **CI** — Aggregate check status across the PR's required status checks. Optional checks do not affect this column:
   - ✅ all required checks passing
   - ⏳ at least one required check pending, none failing

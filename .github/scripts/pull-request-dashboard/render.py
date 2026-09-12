@@ -248,7 +248,8 @@ def render_pr_tables(
     )
     reviewers_note = (
         "Reviewers column: ✅ active approval · ✔️ active approval (non-code-owner) · "
-        "⏳ review pending · 💬 open review thread · 📌 top-level feedback needs author action · "
+        "⏳ review pending · 💬 review thread needs author action · "
+        "📌 top-level feedback needs author action · "
         "🔴 changes requested."
     )
     ci_note = (
