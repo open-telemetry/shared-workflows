@@ -4163,16 +4163,17 @@
     },
     "11688": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-docs",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": false,
         "ci_failing_count": 0,
+        "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "53c00a2c4f49875150f631fcc73c919ba5130d6804b6776031a3c1cad32ae7af",
+        "copilot_request_fingerprint": "447659fa583a8d098c87a9f4cea95b089026abfcb369d5c210778a2be8a9ee6f",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4188,21 +4189,31 @@
         "head_sha": "738d88ae940cede748821e24f0340c6c3bc68c75",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-12T03:46:19+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-12T13:33:52+00:00",
+        "last_approver_activity_at": "2026-09-12T13:33:52+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c6daf7d6c3bfa37b84ad6406bdd5aa03fa5d3eb722770e71243089b66c2baa7b",
+        "routing_input_fingerprint": "c1b7dcd4b695b45114ebb1905d9255acc28c4e97b9b6630e501c4ad03ef32433",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-12T03:46:19+00:00"
       },
       "failed": false,
       "pr_number": 11688,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11688",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11689": {
