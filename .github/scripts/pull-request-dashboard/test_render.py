@@ -59,7 +59,7 @@ class RenderTest(unittest.TestCase):
         markdown = render_pr_tables([], ())
 
         self.assertIn(
-            "⏳ review pending · 💬 open review thread · "
+            "⏳ review pending · 💬 review thread needs author action · "
             "📌 top-level feedback needs author action · 🔴 changes requested.",
             markdown,
         )

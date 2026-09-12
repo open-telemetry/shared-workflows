@@ -257,8 +257,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   CHANGES_REQUESTED, which a
                                                   re-review request does not
                                                   clear,
-                                                  open_thread means they own an
-                                                  unresolved discussion,
+                                                  open_thread means their inline
+                                                  feedback still needs author
+                                                  action,
                                                   and top_level_feedback means
                                                   their top-level feedback still
                                                   needs author action.

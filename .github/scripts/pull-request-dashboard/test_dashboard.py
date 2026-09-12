@@ -1706,7 +1706,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             result.pending_actions,
         )
         self.assertEqual(
-            (ReviewerSummary(login="root-reviewer", open_thread=True),),
+            (ReviewerSummary(login="root-reviewer"),),
             result.facts.reviewers,
         )
         self.assertEqual(

@@ -39,7 +39,8 @@ class ReviewerDiscussionInput:
     pending_actions: Mapping[str, dict[str, Any]]
 
 
-_OPEN_DISCUSSION_ACTIONS = {"author", "reviewer"}
+_OPEN_DISCUSSION_ACTIONS = frozenset({"author", "reviewer"})
+_AUTHOR_ACTION = frozenset({"author"})
 
 
 def _latest_review_states(events: tuple[Mapping[str, Any], ...]) -> dict[str, str]:
@@ -133,13 +134,14 @@ def prepare_reviewers(source: ReviewerInput) -> PreparedReviewers:
     )
 
 
-def _reviewers_with_open_threads(
+def _reviewers_with_threads(
     source: ReviewerDiscussionInput,
+    actions: frozenset[str],
 ) -> set[str]:
     logins: set[str] = set()
     for discussion in source.review_threads:
         entry = source.pending_actions.get(discussion["discussion_id"]) or {}
-        if entry.get("action") not in _OPEN_DISCUSSION_ACTIONS:
+        if entry.get("action") not in actions:
             continue
         comments = discussion.get("comments") or []
         if entry.get("ignored_last_comment"):
@@ -197,14 +199,18 @@ def resolve_reviewers(
         for reviewer, state in states.items()
         if state == "CHANGES_REQUESTED"
     }
-    with_open = _reviewers_with_open_threads(source)
+    with_open_threads = _reviewers_with_threads(
+        source,
+        _OPEN_DISCUSSION_ACTIONS,
+    )
+    with_author_action_threads = _reviewers_with_threads(source, _AUTHOR_ACTION)
     with_top_level = _reviewers_with_top_level_feedback(source)
     candidates = (
         approved
         | approved_non_team
         | set(prepared.pending_human_reviewer_logins)
         | changes_requested
-        | with_open
+        | with_open_threads
         | with_top_level
         | set(prepared._state.participating_approver_logins)
         | set(prepared.assignee_logins)
@@ -217,7 +223,7 @@ def resolve_reviewers(
             approved_non_team=login in approved_non_team,
             pending_review=login in prepared.pending_human_reviewer_logins,
             changes_requested=login in changes_requested,
-            open_thread=login in with_open,
+            open_thread=login in with_author_action_threads,
             top_level_feedback=login in with_top_level,
         )
         for login in sorted(candidates, key=str.lower)
