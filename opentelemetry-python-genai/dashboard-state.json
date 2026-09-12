@@ -2218,7 +2218,7 @@
     },
     "694": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2228,7 +2228,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9014d8306ea95d5a5d41eade8ee746c21336bc07c455370a067bfa9fbe6f1d61",
+        "copilot_request_fingerprint": "a6a812bc5eeb70d73bb95ef3a4dcfd256ecb6e877adedb8e5388c7cdc933dfdd",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2244,15 +2244,26 @@
         "head_sha": "6b59c21dc9be68ae8809694dce19417108891206",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-12T18:43:13+00:00",
-        "last_approver_activity_at": "2026-09-12T18:43:13+00:00",
+        "last_activity_at": "2026-09-12T18:45:23+00:00",
+        "last_approver_activity_at": "2026-09-12T18:45:23+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-12T18:45:33.246596+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "25c78ade82918404c30825078f52c713c5a50521cf7fec0533dad7a394c1ee4b",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "bdf69b791df177be3e1a8ef70550d36c66d3366f639c702a2c713ddc7e7bf5d5",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-12T02:07:56+00:00"
       },
       "failed": false,
