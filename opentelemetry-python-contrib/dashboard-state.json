@@ -5473,7 +5473,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "58a5284b99ff6d0359b95b010c4d07cec65ad520709bfa82a484489d3be3d11e",
+        "copilot_request_fingerprint": "14ac797d914a5297a5642b496efaf738fc8756fae5f2f38306c7af4f17491a8a",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -5482,16 +5482,28 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-06T23:09:19+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5653174709,
+            "head_sha": "f0cd99e474e0636bfd6777bceb642aadfb154281",
+            "held_gates": "",
+            "kind": "routed",
+            "route": "approver",
+            "since": "2026-09-13T12:10:05Z",
+            "user": "chrikrah"
+          }
+        ],
+        "dashboard_override_bound_command_id": 5653174709,
+        "dashboard_override_command_id": 5653174709,
+        "dashboard_override_command_user": "chrikrah",
+        "dashboard_override_head_sha": "f0cd99e474e0636bfd6777bceb642aadfb154281",
+        "dashboard_override_since": "2026-09-13T12:10:05Z",
         "head_sha": "f0cd99e474e0636bfd6777bceb642aadfb154281",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-12T15:36:47+00:00",
+        "last_activity_at": "2026-09-13T12:10:57+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-09-12T15:36:47+00:00",
+        "last_author_activity_at": "2026-09-13T12:10:57+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -5515,7 +5527,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "fd87705ed67dd6c0166dfc11c646aebe05af662ee2ae1a68fd9bfb5a11ce70ea",
+        "routing_input_fingerprint": "8c87ed06e0808b3c596112bdbfc891967400a8949cb34e769dcc990cbeffe051",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-12T15:36:47+00:00"
       },
