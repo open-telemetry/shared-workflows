@@ -2136,7 +2136,7 @@
     },
     "701": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -2144,7 +2144,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "af3d81025917534cc92435360adcb82f99643016c1706f94af367cdddb97b98e",
+        "copilot_request_fingerprint": "fadbddba8820a26115355bafd26ca042a0ee630ea70ce7c7bb59b77cdcd4f915",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2160,21 +2160,31 @@
         "head_sha": "36d7517df1fa78934ad42063ed3206ee9b1af696",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-12T20:49:54+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-13T02:00:27+00:00",
+        "last_approver_activity_at": "2026-09-13T02:00:27+00:00",
         "last_author_activity_at": "2026-09-12T20:49:54+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "10a454fc8491bbe9974ef58313871db3c5f1772311c11f7afe1b98a6bdaffb22",
+        "routing_input_fingerprint": "07c69f2c34a6c558da4cf61732624da0d5bf775becad602b3b50ed6211b23e09",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-12T20:49:54+00:00"
       },
       "failed": false,
       "pr_number": 701,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/701",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
