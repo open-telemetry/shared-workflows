@@ -729,14 +729,11 @@
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/weaver/pull/1760#issuecomment-5652733162"
-        ],
-        "author_nudge_episode_id": "0f3487ae0ff6479390e80bce0c584bdc",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "baea6ecc682c174791282fa507767f9885ea40ed61aa41b266052c519b448416",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "dc49171f20c1f83c386aaf2081a6da1abdcf9f5c9c71680aec9fac56e143d00e",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -752,9 +749,9 @@
         "head_sha": "2e9f7f1bf3d465d2ceffd8ebca6d4d116a5afb05",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-13T10:33:12+00:00",
+        "last_activity_at": "2026-09-13T16:39:47+00:00",
         "last_approver_activity_at": "2026-09-13T10:33:12+00:00",
-        "last_author_activity_at": "2026-09-12T19:53:42+00:00",
+        "last_author_activity_at": "2026-09-13T16:39:47+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -764,20 +761,27 @@
             "login": "jerbly",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4c3f3727a6ffa2bd9a9d70f0eba55d677f1cf84bd715c242508383f3c4ba28de",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-09-13T10:33:12+00:00"
+        "routing_input_fingerprint": "7c62adce840725ff5f7329bf601625837e27d653d5139cdc8634a44540ebccd9",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-13T16:39:47+00:00"
       },
       "failed": false,
       "pr_number": 1760,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1760",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5652733162": {
+          "evidence": {
+            "reply": "2026-09-13T16:39:47Z"
+          },
+          "reply_source_id": 5654593653
+        }
+      }
     },
     "1761": {
       "facts": {
