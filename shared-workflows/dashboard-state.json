@@ -7,7 +7,7 @@
   "prs": {
     "370": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -17,7 +17,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "46bfcb06d3e24dc23f1b80583063bee23a3d943989011b34bd8b3c4aecfe2153",
+        "copilot_request_fingerprint": "8c5a2b534436aaf914fbe611ec8f32e04f98e85774c31852399e74e5ad5b9bba",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -33,21 +33,31 @@
         "head_sha": "f220d8a335a3c310d7858705198beb7e005a0b9f",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-14T00:22:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-14T08:08:38+00:00",
+        "last_approver_activity_at": "2026-09-14T08:08:38+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mx-psi",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1f380bd9c995f2fe1776bc693afb18d625819705c7a7c63742f18c177d7b50cd",
+        "routing_input_fingerprint": "2664c8ae3c0dda9a8658baf96396e1d780ba32ccd1ed49d11db5845d23c97de6",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-14T00:22:47+00:00"
       },
       "failed": false,
       "pr_number": 370,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/370",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
