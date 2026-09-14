@@ -121,5 +121,19 @@
     "approver_teams": ["ebpf-instrumentation-approvers"],
     "labels_to_display": ["breaking change", "dependencies", "do-not-merge", "blocked"],
     "non_blocking_check_patterns": ["codecov/*"]
+  },
+  {
+    "name": "opentelemetry-rust",
+    "approver_teams": ["rust-approvers"],
+    "required_approvals": 1,
+    "labels_to_display": [
+      "A-*",
+      "M-*",
+      "performance",
+      "version:*",
+      "S-blocked-spec",
+      "Stale"
+    ],
+    "non_blocking_check_patterns": ["codecov/*"]
   }
 ]
