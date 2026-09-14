@@ -906,16 +906,17 @@
     },
     "8810": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "thswlsqls",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "ci_failing_count": 0,
+        "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "281ec3d6775ce7483f44619cc08a753d4deb8c1442e75edda48335e9121fa9ed",
+        "copilot_request_fingerprint": "29267cda947e42efa999bb9d3f7d43a342222195f02f1c549f8ae5d7af014067",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -931,21 +932,31 @@
         "head_sha": "5b1972a3b2afc022fed613aa9f2a14d554f98758",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-12T10:15:56+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-14T18:04:59+00:00",
+        "last_approver_activity_at": "2026-09-14T18:04:59+00:00",
         "last_author_activity_at": "2026-09-12T09:09:00+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jack-berg",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ed7e7a4ce17d163e21696c40c30d9402423b1867da94161316455faf77ff4585",
+        "routing_input_fingerprint": "1d7083dad69582bcd18ef434ae996e57c4e85b47b9392675f72594aa2fbb1409",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-12T09:09:00+00:00"
       },
       "failed": false,
       "pr_number": 8810,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8810",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "8812": {
