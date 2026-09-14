@@ -18,6 +18,7 @@
           "https://github.com/open-telemetry/opentelemetry-proto/pull/664#pullrequestreview-3136851451",
           "https://github.com/open-telemetry/opentelemetry-proto/pull/664#issuecomment-3206632845"
         ],
+        "author_can_act": true,
         "author_nudge_episode_id": "76d74c38748c411b820289b0acb62512",
         "ci_failing_count": 0,
         "ci_pending_count": 1,
@@ -109,6 +110,7 @@
           "https://github.com/open-telemetry/opentelemetry-proto/pull/786#discussion_r3109558358"
         ],
         "author_action_top_level_feedback_urls": [],
+        "author_can_act": true,
         "author_nudge_episode_id": "5b9bc318aa3846919d33778352733e11",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
@@ -183,6 +185,7 @@
           "https://github.com/open-telemetry/opentelemetry-proto/pull/848#discussion_r3850538275"
         ],
         "author_action_top_level_feedback_urls": [],
+        "author_can_act": true,
         "author_nudge_episode_id": "f03050b432ae42ca8020d9b5fd2db085",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
@@ -276,6 +279,7 @@
           "https://github.com/open-telemetry/opentelemetry-proto/pull/857#discussion_r3925406458"
         ],
         "author_action_top_level_feedback_urls": [],
+        "author_can_act": true,
         "author_nudge_episode_id": "a7a9ed3517c74c6ca7eca4a0cbf91034",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
@@ -369,6 +373,7 @@
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
+        "author_can_act": false,
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -407,15 +412,17 @@
     },
     "862": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
+        "author_can_act": false,
         "ci_failing_count": 0,
+        "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e232f76174b42590645d6a2d07aef5a6fdaf643723a2b73d1b341d2db488ba85",
+        "copilot_request_fingerprint": "ad0fba2fa06d1c078d0ac98dcf71a392c2f0a8bfc06f15da2d870bc2017aa003",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -431,23 +438,33 @@
         "head_sha": "07dca528a25ca7c46002a88b6c61b0b9eea2d1bf",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-14T00:22:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-14T08:11:23+00:00",
+        "last_approver_activity_at": "2026-09-14T08:11:23+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ac6a0706a597019125365889fd90f2f1ad0068b7ee8a3b72a54c911cd9c9df15",
+        "routing_input_fingerprint": "f739275c797c2cc84c2aacaa3bfbf8855b7c7771beac0f38be93fa18bad256ff",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-14T00:22:06+00:00"
       },
       "failed": false,
       "pr_number": 862,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/862",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
-  "version": 13
+  "version": 17
 }
