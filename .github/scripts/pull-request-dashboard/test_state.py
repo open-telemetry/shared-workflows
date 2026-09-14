@@ -393,20 +393,34 @@ class StateTest(unittest.TestCase):
             decode_dashboard_facts(encode_dashboard_facts(facts)),
         )
 
-    def test_legacy_reviewer_uses_open_thread_for_unresolved_thread(self) -> None:
-        facts = decode_dashboard_facts({
-            "reviewers": [{
-                "login": "reviewer",
-                "approved": True,
-                "approved_non_team": False,
-                "pending_review": False,
-                "changes_requested": False,
-                "open_thread": True,
-                "top_level_feedback": False,
-            }]
-        })
+    def test_version_seventeen_reviewer_preserves_unresolved_thread(self) -> None:
+        stored = encode_dashboard_state(dashboard_state(
+            stored_dashboard_result(
+                facts=dashboard_facts(reviewers=({
+                    "login": "reviewer",
+                    "approved": True,
+                    "open_thread": True,
+                    "unresolved_thread": True,
+                },))
+            )
+        ))
+        stored["version"] = 17
+        persisted_result = next(iter(stored["prs"].values()))
+        del persisted_result["facts"]["reviewers"][0]["unresolved_thread"]
 
-        self.assertTrue(facts.reviewers[0].unresolved_thread)
+        with tempfile.TemporaryDirectory() as temp_dir, patch(
+            "state._state_dir",
+            Path(temp_dir),
+        ):
+            dashboard_state_path().write_text(
+                json.dumps(stored),
+                encoding="utf-8",
+            )
+            loaded = load_dashboard_state_cache()
+
+        self.assertIsNotNone(loaded)
+        assert loaded is not None
+        self.assertTrue(loaded.results[0].facts.reviewers[0].unresolved_thread)
 
     def test_legacy_facts_infer_whether_the_author_can_act(self) -> None:
         cases = (
@@ -803,8 +817,11 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 17)
-        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (11, 12, 13, 16))
+        self.assertEqual(DASHBOARD_STATE_VERSION, 18)
+        self.assertEqual(
+            DASHBOARD_STATE_COMPATIBLE_VERSIONS,
+            (11, 12, 13, 16, 17),
+        )
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
         self.assertEqual(STATUS_COMMENT_REVISION, 20)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)

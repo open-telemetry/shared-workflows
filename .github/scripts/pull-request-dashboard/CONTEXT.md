@@ -30,12 +30,12 @@ diagnostics keep typed classification results and freeze only the source
 discussion records.
 
 `state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
-codecs translate the immutable contracts to the version 17
-`dashboard-state.json` shape. Versions 11 through 13 and version 16 migrate
-forward. Versions 14 and 15 belong to incompatible state shapes and regenerate
-instead; an integration that combines those shapes must allocate a newer
-version. Malformed pull request entries are discarded individually, so one bad
-entry does not prevent valid entries from loading.
+codecs translate the immutable contracts to the version 18
+`dashboard-state.json` shape. Versions 11 through 13 and versions 16 and 17
+migrate forward. Versions 14 and 15 belong to incompatible state shapes and
+regenerate instead; an integration that combines those shapes must allocate a
+newer version. Malformed pull request entries are discarded individually, so
+one bad entry does not prevent valid entries from loading.
 
 `dashboard_state_update.py` owns the acceptance transaction for one pull request
 slot. It prepares the cached starting value, reconciles an evaluation with the

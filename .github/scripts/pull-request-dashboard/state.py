@@ -39,8 +39,9 @@ DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 # Versions 14 and 15 describe incompatible state shapes from parallel changes.
 # Version 16 is the pre-persistent-handoff lifecycle shape. An integration that
 # combines the incompatible shapes must assign another version.
-DASHBOARD_STATE_VERSION = 17
-DASHBOARD_STATE_COMPATIBLE_VERSIONS = (11, 12, 13, 16)
+# Version 17 predates separate author-action and unresolved-thread reviewer state.
+DASHBOARD_STATE_VERSION = 18
+DASHBOARD_STATE_COMPATIBLE_VERSIONS = (11, 12, 13, 16, 17)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.

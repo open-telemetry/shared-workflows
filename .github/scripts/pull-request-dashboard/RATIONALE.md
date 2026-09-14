@@ -74,11 +74,11 @@ the implementation understandable and operationally cheap.
   reminders and re-review requests already sent; the delivery version check
   makes it skip delivery instead. Rolling forward is the way out, and a paused
   dashboard is the cheaper failure.
-- Dashboard state version 17 reads production versions 11 through 13 and the
-  pre-persistent-handoff version 16. Versions 14 and 15 describe incompatible
-  state shapes from parallel work, so this version regenerates them rather than
-  guessing at compatibility. An integration that combines those shapes must
-  allocate a newer state version.
+- Dashboard state version 18 reads production versions 11 through 13, the
+  pre-persistent-handoff version 16, and the pre-unresolved-thread version 17.
+  Versions 14 and 15 describe incompatible state shapes from parallel work, so
+  this version regenerates them rather than guessing at compatibility. An
+  integration that combines those shapes must allocate a newer state version.
 
 ## Queue and Workflow Concurrency
 
@@ -592,9 +592,8 @@ the implementation understandable and operationally cheap.
 - The ignored praise index is a current-evaluation projection used for reviewer
   attribution. Classification caches retain the praise verdict but not its
   position, so each refresh recomputes the index from current thread activity.
-  Pending actions are not persisted in dashboard state, which keeps state
-  version 17 valid. Legacy projections with only `ignored_last_comment` retain
-  creation-last behavior.
+  Pending actions are not persisted in dashboard state. Legacy projections
+  with only `ignored_last_comment` retain creation-last behavior.
 
 ## Top-Level Feedback
 
