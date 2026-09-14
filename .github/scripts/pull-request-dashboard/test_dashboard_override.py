@@ -696,10 +696,7 @@ class DashboardOverrideTest(unittest.TestCase):
             content_updated_at="2026-08-16T10:00:00Z",
         ))
         for version in (13, 16):
-            with (
-                self.subTest(version=version),
-                tempfile.TemporaryDirectory() as temp_dir,
-            ):
+            with self.subTest(version=version):
                 legacy_facts = dashboard_facts(
                     dashboard_override_command_id=5,
                     dashboard_override_command_user="author",
@@ -718,14 +715,7 @@ class DashboardOverrideTest(unittest.TestCase):
                     stored_dashboard_result(7, facts=legacy_facts)
                 ))
                 stored["version"] = version
-                with patch("state._state_dir", Path(temp_dir)):
-                    state.dashboard_state_path().write_text(
-                        json.dumps(stored),
-                        encoding="utf-8",
-                    )
-                    loaded = state.load_dashboard_state_cache()
-                self.assertIsNotNone(loaded)
-                assert loaded is not None
+                loaded = state.decode_dashboard_state(stored)
                 previous_facts = loaded.results[0].facts
 
                 migrated = dashboard_override.dashboard_override_facts(

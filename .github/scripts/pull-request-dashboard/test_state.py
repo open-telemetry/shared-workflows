@@ -181,26 +181,8 @@ class StateTest(unittest.TestCase):
                 },
             )
 
-    def test_dashboard_state_migrates_safe_production_versions(self) -> None:
-        for version in DASHBOARD_STATE_COMPATIBLE_VERSIONS:
-            with self.subTest(version=version), tempfile.TemporaryDirectory() as temp_dir:
-                with patch("state._state_dir", Path(temp_dir)):
-                    dashboard_state_path().write_text(
-                        json.dumps({
-                            "version": version,
-                            "initial_backfill_complete": True,
-                            "prs": {},
-                        }),
-                        encoding="utf-8",
-                    )
-
-                    self.assertEqual(
-                        DashboardState(initial_backfill_complete=True),
-                        load_dashboard_state_cache(),
-                    )
-
     def test_dashboard_state_rejects_incompatible_versions(self) -> None:
-        for version in (14, 15):
+        for version in range(11, DASHBOARD_STATE_VERSION):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as temp_dir:
                 with (
                     patch("state._state_dir", Path(temp_dir)),
@@ -217,7 +199,7 @@ class StateTest(unittest.TestCase):
 
                     self.assertIsNone(load_dashboard_state_cache())
 
-    def test_version_thirteen_state_does_not_invent_durable_cutoff(self) -> None:
+    def test_version_thirteen_codec_does_not_invent_durable_cutoff(self) -> None:
         legacy_facts = dashboard_facts(
             dashboard_override_since="2026-08-16T08:00:00Z",
             dashboard_command_replies=(
@@ -236,20 +218,9 @@ class StateTest(unittest.TestCase):
         ))
         stored["version"] = 13
 
-        with tempfile.TemporaryDirectory() as temp_dir, patch(
-            "state._state_dir",
-            Path(temp_dir),
-        ):
-            dashboard_state_path().write_text(
-                json.dumps(stored),
-                encoding="utf-8",
-            )
-
-            loaded = load_dashboard_state_cache()
-
-        self.assertIsNotNone(loaded)
-        assert loaded is not None
+        loaded = decode_dashboard_state(stored)
         facts = loaded.results[0].facts
+
         self.assertEqual("2026-08-16T08:00:00Z", facts.dashboard_override_since)
         self.assertEqual("", facts.dashboard_top_level_feedback_cutoff)
         self.assertFalse(facts.dashboard_override_persistent)
@@ -261,7 +232,9 @@ class StateTest(unittest.TestCase):
             facts.dashboard_command_replies[0].persistent_handoff
         )
 
-    def test_version_sixteen_state_does_not_invent_persistent_handoff(self) -> None:
+    def test_version_sixteen_codec_does_not_invent_persistent_handoff(
+        self,
+    ) -> None:
         legacy_facts = dashboard_facts(
             dashboard_override_head_sha="bound-head",
             dashboard_top_level_feedback_cutoff="2026-08-16T08:00:00Z",
@@ -281,20 +254,9 @@ class StateTest(unittest.TestCase):
         ))
         stored["version"] = 16
 
-        with tempfile.TemporaryDirectory() as temp_dir, patch(
-            "state._state_dir",
-            Path(temp_dir),
-        ):
-            dashboard_state_path().write_text(
-                json.dumps(stored),
-                encoding="utf-8",
-            )
-
-            loaded = load_dashboard_state_cache()
-
-        self.assertIsNotNone(loaded)
-        assert loaded is not None
+        loaded = decode_dashboard_state(stored)
         facts = loaded.results[0].facts
+
         self.assertEqual(
             "2026-08-16T08:00:00Z",
             facts.dashboard_top_level_feedback_cutoff,
@@ -392,35 +354,6 @@ class StateTest(unittest.TestCase):
             facts,
             decode_dashboard_facts(encode_dashboard_facts(facts)),
         )
-
-    def test_version_seventeen_reviewer_preserves_unresolved_thread(self) -> None:
-        stored = encode_dashboard_state(dashboard_state(
-            stored_dashboard_result(
-                facts=dashboard_facts(reviewers=({
-                    "login": "reviewer",
-                    "approved": True,
-                    "open_thread": True,
-                    "unresolved_thread": True,
-                },))
-            )
-        ))
-        stored["version"] = 17
-        persisted_result = next(iter(stored["prs"].values()))
-        del persisted_result["facts"]["reviewers"][0]["unresolved_thread"]
-
-        with tempfile.TemporaryDirectory() as temp_dir, patch(
-            "state._state_dir",
-            Path(temp_dir),
-        ):
-            dashboard_state_path().write_text(
-                json.dumps(stored),
-                encoding="utf-8",
-            )
-            loaded = load_dashboard_state_cache()
-
-        self.assertIsNotNone(loaded)
-        assert loaded is not None
-        self.assertTrue(loaded.results[0].facts.reviewers[0].unresolved_thread)
 
     def test_legacy_facts_infer_whether_the_author_can_act(self) -> None:
         cases = (
@@ -818,10 +751,7 @@ class StateTest(unittest.TestCase):
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
         self.assertEqual(DASHBOARD_STATE_VERSION, 18)
-        self.assertEqual(
-            DASHBOARD_STATE_COMPATIBLE_VERSIONS,
-            (11, 12, 13, 16, 17),
-        )
+        self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
         self.assertEqual(STATUS_COMMENT_REVISION, 20)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
