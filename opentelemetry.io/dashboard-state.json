@@ -3115,7 +3115,7 @@
     },
     "11676": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "didiViking"
         ],
@@ -3124,9 +3124,10 @@
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "ci_failing_count": 0,
+        "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "fe69bcd8b215a9ca374341b55768daa7982f55259461eb2e34ff897067a76c31",
+        "copilot_request_fingerprint": "77d352f1768b4074955895df3fed476133bdca73eae6625d6679fa52bfd7d976",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3142,8 +3143,8 @@
         "head_sha": "9ce5b3312c86eff127f0566af93f2a85c7101eca",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-14T07:10:17+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-14T08:00:24+00:00",
+        "last_approver_activity_at": "2026-09-14T08:00:24+00:00",
         "last_author_activity_at": "2026-09-14T07:10:17+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -3164,18 +3165,27 @@
             "open_thread": false,
             "pending_review": true,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "svrnm",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8b2548790c3ffdfbdf9a6f9f0857e7c5a9a01f590697b604c6ab405fa8d347d6",
+        "routing_input_fingerprint": "f4da2b86e1e717ba0136378070112540839961070181e3725e776b35c6ca1645",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-12T05:04:57+00:00"
       },
       "failed": false,
       "pr_number": 11676,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11676",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "11677": {
