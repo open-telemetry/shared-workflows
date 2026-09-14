@@ -1491,7 +1491,7 @@
     },
     "3412": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "NimrodAvni78",
         "author_action_review_thread_urls": [],
@@ -1501,7 +1501,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e04d764b5a098665c52bfba6255d7af7cc3fccce49b8833ca0a9bfb2860eb344",
+        "copilot_request_fingerprint": "406ad927112728bed5bfc7dfb64b3bc0d517e8f01665254409b168e99f5f64e1",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1517,21 +1517,31 @@
         "head_sha": "b49f73357278236f423f1c5a4791c4bd523b39c6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-14T12:26:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-14T14:20:51+00:00",
+        "last_approver_activity_at": "2026-09-14T14:20:51+00:00",
         "last_author_activity_at": "2026-09-14T12:21:53+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mariomac",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "537e2d25957337e390aab95a66d96eb0fa38dcee9fc3d8a959b10ac4c8f8cdc7",
+        "routing_input_fingerprint": "4819c58d4aa0608dcfa6b891c5f2bcaa9014992c00026e3d4d81222525ba92d7",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-14T12:21:53+00:00"
       },
       "failed": false,
       "pr_number": 3412,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3412",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3413": {
