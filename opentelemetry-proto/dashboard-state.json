@@ -368,16 +368,17 @@
     },
     "861": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": false,
         "ci_failing_count": 0,
+        "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6af043064eacbd762eae3aaeecb7131dc1a417a6c9011f30ec1468c02a227138",
+        "copilot_request_fingerprint": "22ef9f37d8ac65ebbc13c85d0200a5b2173775ab95a0a2437a9017123d56e9f6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -393,21 +394,31 @@
         "head_sha": "645d8bd20bb1b0b40516753b82e9b825a9b7a779",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-14T00:22:00+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-14T08:11:50+00:00",
+        "last_approver_activity_at": "2026-09-14T08:11:50+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "33a6fdbb90696edcd014abb04de6ad95f3a089d338d306492b71673db71ce4b1",
+        "routing_input_fingerprint": "110e23472df86ac140f30736403dd4160e05cd9c0c2318a3c29deccca6735b34",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-14T00:22:00+00:00"
       },
       "failed": false,
       "pr_number": 861,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/861",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "862": {
