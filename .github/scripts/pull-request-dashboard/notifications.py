@@ -146,7 +146,7 @@ def reviewer_logins_for_notification(facts: DashboardFacts) -> list[str]:
         if reviewer.login
         and (
             not (reviewer.approved or reviewer.approved_non_team)
-            or reviewer.open_thread
+            or reviewer.unresolved_thread
             or reviewer.top_level_feedback
         )
     ]

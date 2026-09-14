@@ -243,6 +243,7 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   "pending_review": bool,
                                                   "changes_requested": bool,
                                                   "open_thread": bool,
+                                                  "unresolved_thread": bool,
                                                   "top_level_feedback": bool}; approved
                                                   means an approver-team member
                                                   has an active APPROVED state,
@@ -260,6 +261,9 @@ Only ``pr_number``, ``pr_url``, ``failed``, ``route``, ``facts``, and
                                                   open_thread means their inline
                                                   feedback still needs author
                                                   action,
+                                                  unresolved_thread means they
+                                                  participated in an unresolved
+                                                  inline thread,
                                                   and top_level_feedback means
                                                   their top-level feedback still
                                                   needs author action.

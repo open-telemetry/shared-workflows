@@ -224,6 +224,7 @@ def resolve_reviewers(
             pending_review=login in prepared.pending_human_reviewer_logins,
             changes_requested=login in changes_requested,
             open_thread=login in with_author_action_threads,
+            unresolved_thread=login in with_open_threads,
             top_level_feedback=login in with_top_level,
         )
         for login in sorted(candidates, key=str.lower)

@@ -583,6 +583,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             ReviewerSummary(
                 login="copilot-pull-request-reviewer[bot]",
                 open_thread=True,
+                unresolved_thread=True,
             ),
             ungated_result.facts.reviewers,
         )
@@ -1706,7 +1707,12 @@ class PullRequestEvaluationTest(unittest.TestCase):
             result.pending_actions,
         )
         self.assertEqual(
-            (ReviewerSummary(login="root-reviewer"),),
+            (
+                ReviewerSummary(
+                    login="root-reviewer",
+                    unresolved_thread=True,
+                ),
+            ),
             result.facts.reviewers,
         )
         self.assertEqual(

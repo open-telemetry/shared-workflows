@@ -78,6 +78,7 @@ class ReviewerSummary:
     pending_review: bool = False
     changes_requested: bool = False
     open_thread: bool = False
+    unresolved_thread: bool = False
     top_level_feedback: bool = False
 
 

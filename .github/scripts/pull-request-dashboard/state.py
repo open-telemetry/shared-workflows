@@ -361,6 +361,10 @@ def _decode_reviewer(value: Any) -> ReviewerSummary:
             value.get("open_thread", _MISSING),
             "facts.reviewers.open_thread",
         ),
+        unresolved_thread=_boolean(
+            value.get("unresolved_thread", value.get("open_thread", _MISSING)),
+            "facts.reviewers.unresolved_thread",
+        ),
         top_level_feedback=_boolean(
             value.get("top_level_feedback", _MISSING),
             "facts.reviewers.top_level_feedback",
@@ -376,6 +380,7 @@ def _encode_reviewer(reviewer: ReviewerSummary) -> dict[str, Any]:
         "pending_review": reviewer.pending_review,
         "changes_requested": reviewer.changes_requested,
         "open_thread": reviewer.open_thread,
+        "unresolved_thread": reviewer.unresolved_thread,
         "top_level_feedback": reviewer.top_level_feedback,
     }
 

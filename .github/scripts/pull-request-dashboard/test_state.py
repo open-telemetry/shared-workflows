@@ -383,6 +383,7 @@ class StateTest(unittest.TestCase):
                     "login": "reviewer",
                     "approved": True,
                     "open_thread": True,
+                    "unresolved_thread": True,
                 },
             ),
         )
@@ -391,6 +392,21 @@ class StateTest(unittest.TestCase):
             facts,
             decode_dashboard_facts(encode_dashboard_facts(facts)),
         )
+
+    def test_legacy_reviewer_uses_open_thread_for_unresolved_thread(self) -> None:
+        facts = decode_dashboard_facts({
+            "reviewers": [{
+                "login": "reviewer",
+                "approved": True,
+                "approved_non_team": False,
+                "pending_review": False,
+                "changes_requested": False,
+                "open_thread": True,
+                "top_level_feedback": False,
+            }]
+        })
+
+        self.assertTrue(facts.reviewers[0].unresolved_thread)
 
     def test_legacy_facts_infer_whether_the_author_can_act(self) -> None:
         cases = (
@@ -752,6 +768,7 @@ class StateTest(unittest.TestCase):
                             "pending_review": False,
                             "changes_requested": False,
                             "open_thread": False,
+                            "unresolved_thread": False,
                             "top_level_feedback": False,
                         }],
                         "ci_failing_count": 0,

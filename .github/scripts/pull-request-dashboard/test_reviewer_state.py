@@ -206,9 +206,10 @@ class ReviewerStateTest(unittest.TestCase):
             [reviewer.login for reviewer in reviewers],
         )
         self.assertTrue(all(reviewer.open_thread for reviewer in reviewers))
+        self.assertTrue(all(reviewer.unresolved_thread for reviewer in reviewers))
 
     def test_reviewer_action_inline_thread_does_not_show_open_thread(self) -> None:
-        prepared = prepare()
+        prepared = prepare([review_event("reviewer", "APPROVED")])
         thread = {
             "discussion_id": "inline",
             "comments": [{"actor": "reviewer", "actor_role": "approver"}],
@@ -221,8 +222,20 @@ class ReviewerStateTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            [ReviewerSummary(login="reviewer")],
+            [
+                ReviewerSummary(
+                    login="reviewer",
+                    approved=True,
+                    unresolved_thread=True,
+                )
+            ],
             list(reviewers),
+        )
+        self.assertEqual(
+            ["reviewer"],
+            reviewer_logins_for_notification(
+                dashboard_facts(reviewers=reviewers)
+            ),
         )
 
     def test_inline_ownership_includes_bot_reviewers(self) -> None:
@@ -249,8 +262,13 @@ class ReviewerStateTest(unittest.TestCase):
                 ReviewerSummary(
                     login="copilot-pull-request-reviewer[bot]",
                     open_thread=True,
+                    unresolved_thread=True,
                 ),
-                ReviewerSummary(login="reviewer[bot]", open_thread=True),
+                ReviewerSummary(
+                    login="reviewer[bot]",
+                    open_thread=True,
+                    unresolved_thread=True,
+                ),
             ],
             list(reviewers),
         )
@@ -328,6 +346,7 @@ class ReviewerStateTest(unittest.TestCase):
             ReviewerSummary(
                 login="bob",
                 open_thread=True,
+                unresolved_thread=True,
                 top_level_feedback=True,
             ),
             reviewers[1],
