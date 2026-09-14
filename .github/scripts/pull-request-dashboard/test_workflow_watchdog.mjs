@@ -257,7 +257,7 @@ test("matches targeted dispatches by their exposed concurrency group", async () 
         "waiting",
         "2026-09-10T11:00:00Z",
         "workflow_dispatch",
-        "pull-request-dashboard-repo-a-1-refresh",
+        "pull-request-dashboard-Repo-A-1-refresh",
       ),
     ],
     jobs: {

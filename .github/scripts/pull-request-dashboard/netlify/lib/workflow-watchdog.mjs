@@ -115,7 +115,7 @@ export async function cancelStalledDashboardRuns({
 
 function sameConcurrencyGroup(left, right, workflow) {
   return !workflow.groupByRunName ||
-    left.display_title === right.display_title;
+    left.display_title.toLowerCase() === right.display_title.toLowerCase();
 }
 
 function wasNeverAssigned(jobs) {
