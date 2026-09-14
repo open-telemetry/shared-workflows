@@ -1175,27 +1175,22 @@
         "approval_count": 0,
         "assignees": [],
         "author": "lrwh",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19473#discussion_r3985145704",
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19473#discussion_r3985145723"
-        ],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19473#issuecomment-5403698455"
-        ],
+        "author_action_review_thread_urls": [],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "2c0c819791eb48a79712fe9a0b08a7e1",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "dcc532757607a8420104ba1f49e372caa164c93dc8614ebe86a4929c18ac7493",
+        "copilot_request_fingerprint": "9d1fd4aae0de1e12e7660dd3408c1b7d788ca02e5679adad4a822bb50905c29f",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
-        "copilot_review_request_needed": false,
+        "copilot_review_request_needed": true,
         "copilot_review_requested": false,
-        "copilot_review_stale": false,
-        "copilot_review_unreported": false,
+        "copilot_review_stale": true,
+        "copilot_review_unreported": true,
         "created_at": "2026-08-10T06:49:23+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_bound_command_id": 5406123399,
@@ -1203,23 +1198,14 @@
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "e68764cd8368dc4fe9e9c557a9f2e9cfa0a2901d",
         "dashboard_override_since": "2026-08-25T05:48:45Z",
-        "head_sha": "509327a2997eea99b1d6cbd02d0ce8a17385c80f",
+        "head_sha": "ffc4eb92cdf1804e31cc0f1fda304af4a962ce06",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-11T01:22:40+00:00",
+        "last_activity_at": "2026-09-14T02:34:45+00:00",
         "last_approver_activity_at": "2026-09-07T12:06:09+00:00",
-        "last_author_activity_at": "2026-09-11T01:22:40+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-09-14T02:34:45+00:00",
+        "required_checks_settled": false,
         "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "copilot-pull-request-reviewer[bot]",
-            "open_thread": true,
-            "pending_review": false,
-            "top_level_feedback": false
-          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -1236,20 +1222,28 @@
             "login": "trask",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-14T02:35:13.718007+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2fa8b929e355db9c97c0ef993d737b76ac634a11034241a841b7948a1685a80c",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "345b7a49155a840293f8bc89a7e865224ba59099f21c54d51e3671f4fcedad30",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-08-25T01:14:47+00:00"
       },
       "failed": false,
       "pr_number": 19473,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/19473",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-issue-comment-5403698455": {
+          "evidence": {
+            "reply": "2026-08-25T03:45:01Z"
+          },
+          "reply_source_id": 5404804022
+        }
+      }
     },
     "19511": {
       "facts": {
