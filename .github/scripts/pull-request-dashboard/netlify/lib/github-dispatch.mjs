@@ -96,23 +96,44 @@ export async function createGitHubActionsClient(
         },
       );
     },
-    async listWorkflowRuns(workflowId, { event } = {}) {
-      const url = new URL(
-        `${GITHUB_API_ROOT}/actions/workflows/${encodeURIComponent(workflowId)}/runs`,
-      );
-      url.searchParams.set("per_page", "100");
-      if (event) {
-        url.searchParams.set("event", event);
-      }
-      const result = await githubJson(url.toString(), token);
-      if (!Array.isArray(result?.workflow_runs)) {
-        throw dispatchError(
-          502,
-          "GitHub workflow runs lookup failed",
-          "GitHub workflow runs response did not include a workflow_runs array",
-        );
-      }
-      return result.workflow_runs;
+    async listWorkflowRuns(workflowId, { event, statuses } = {}) {
+      const statusFilters = Array.isArray(statuses) && statuses.length > 0
+        ? statuses
+        : [undefined];
+      const results = await Promise.all(statusFilters.map(async (status) => {
+        const runs = [];
+        for (let page = 1;; page += 1) {
+          const url = new URL(
+            `${GITHUB_API_ROOT}/actions/workflows/${encodeURIComponent(workflowId)}/runs`,
+          );
+          url.searchParams.set("per_page", "100");
+          url.searchParams.set("page", String(page));
+          if (event) {
+            url.searchParams.set("event", event);
+          }
+          if (status) {
+            url.searchParams.set("status", status);
+          }
+          const result = await githubJson(url.toString(), token);
+          if (!Array.isArray(result?.workflow_runs)) {
+            throw dispatchError(
+              502,
+              "GitHub workflow runs lookup failed",
+              "GitHub workflow runs response did not include a workflow_runs array",
+            );
+          }
+          runs.push(...result.workflow_runs);
+          if (result.workflow_runs.length < 100) {
+            break;
+          }
+        }
+        return runs;
+      }));
+      return [
+        ...new Map(
+          results.flat().map((run) => [run.id, run]),
+        ).values(),
+      ];
     },
     async listRunJobs(runId) {
       const result = await githubJson(

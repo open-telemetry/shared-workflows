@@ -93,6 +93,12 @@ class RolloutWiringTest(unittest.TestCase):
         for name in self.canary:
             self.assertIn(name, configured)
 
+    def test_run_name_exposes_the_workflow_concurrency_group(self) -> None:
+        lines = self.text.splitlines()
+        run_name = lines[lines.index("run-name: >-") + 1].strip()
+        concurrency = lines[lines.index("concurrency:") + 2].strip()
+        self.assertEqual(run_name, concurrency)
+
     def test_every_entry_path_has_both_channels(self) -> None:
         for prefix in ENTRY_PATHS:
             self.assertIn(f"{prefix}-canary", self.jobs)

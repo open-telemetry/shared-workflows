@@ -1,5 +1,7 @@
 export const DEFAULT_STALE_RUN_MS = 30 * 60 * 1000;
 
+const DASHBOARD_RUN_NAME_PREFIX = "pull-request-dashboard-";
+
 export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
   Object.freeze({ workflowId: "pull-request-dashboard-drain.yml" }),
   Object.freeze({
@@ -7,14 +9,23 @@ export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
     event: "schedule",
   }),
   Object.freeze({
+    workflowId: "pull-request-dashboard.yml",
+    event: "workflow_dispatch",
+    groupByRunName: true,
+    runNamePrefix: DASHBOARD_RUN_NAME_PREFIX,
+  }),
+  Object.freeze({
     workflowId: "pull-request-dashboard-deploy-webhook.yml",
   }),
 ]);
 
-const BLOCKING_RUN_STATUSES = new Set(["in_progress", "queued"]);
-// GitHub reports concurrency-held runs as "pending" or "waiting", and a run
-// admitted to the group but waiting for a runner as "queued".
+const BLOCKING_RUN_STATUSES = new Set(["in_progress", "queued", "waiting"]);
+// GitHub reports environment-gated runs as "waiting", concurrency-held runs as
+// "pending", and runs waiting for a runner as "queued".
 const WAITING_RUN_STATUSES = new Set(["queued", "pending", "waiting"]);
+const ACTIVE_RUN_STATUSES = Object.freeze([
+  ...new Set([...BLOCKING_RUN_STATUSES, ...WAITING_RUN_STATUSES]),
+]);
 
 export async function cancelStalledDashboardRuns({
   actions,
@@ -36,10 +47,16 @@ export async function cancelStalledDashboardRuns({
   for (const workflow of watchedWorkflows) {
     const runs = await actions.listWorkflowRuns(workflow.workflowId, {
       event: workflow.event,
+      statuses: ACTIVE_RUN_STATUSES,
     });
-    const matchingRuns = workflow.event
-      ? runs.filter((run) => run.event === workflow.event)
-      : runs;
+    const matchingRuns = runs.filter((run) =>
+      (!workflow.event || run.event === workflow.event) &&
+      (!workflow.runNamePrefix ||
+        (
+          typeof run.display_title === "string" &&
+          run.display_title.startsWith(workflow.runNamePrefix)
+        ))
+    );
     const candidates = matchingRuns
       .filter((run) => {
         const createdAt = Date.parse(run.created_at);
@@ -48,7 +65,8 @@ export async function cancelStalledDashboardRuns({
           createdAt <= staleBefore &&
           matchingRuns.some((newer) =>
             WAITING_RUN_STATUSES.has(newer.status) &&
-            Date.parse(newer.created_at) > createdAt
+            Date.parse(newer.created_at) > createdAt &&
+            sameConcurrencyGroup(run, newer, workflow)
           );
       })
       .sort((left, right) =>
@@ -63,7 +81,8 @@ export async function cancelStalledDashboardRuns({
       const newerRun = matchingRuns
         .filter((candidate) =>
           WAITING_RUN_STATUSES.has(candidate.status) &&
-          Date.parse(candidate.created_at) > Date.parse(run.created_at)
+          Date.parse(candidate.created_at) > Date.parse(run.created_at) &&
+          sameConcurrencyGroup(run, candidate, workflow)
         )
         .sort((left, right) =>
           Date.parse(left.created_at) - Date.parse(right.created_at)
@@ -92,6 +111,11 @@ export async function cancelStalledDashboardRuns({
     checkedWorkflows: watchedWorkflows.length,
     cancelled,
   };
+}
+
+function sameConcurrencyGroup(left, right, workflow) {
+  return !workflow.groupByRunName ||
+    left.display_title === right.display_title;
 }
 
 function wasNeverAssigned(jobs) {

@@ -7,6 +7,7 @@ import {
 
 const NOW = Date.parse("2026-09-10T12:00:00Z");
 const WORKFLOW = Object.freeze({ workflowId: "dashboard.yml" });
+const ACTIVE_RUN_STATUSES = ["in_progress", "queued", "waiting", "pending"];
 
 function fixture({ runs, jobs = {}, cancellationErrors = {} }) {
   const calls = [];
@@ -29,12 +30,19 @@ function fixture({ runs, jobs = {}, cancellationErrors = {} }) {
   return { actions, calls };
 }
 
-function run(id, status, createdAt, event = "workflow_dispatch") {
+function run(
+  id,
+  status,
+  createdAt,
+  event = "workflow_dispatch",
+  displayTitle = "Pull request dashboard",
+) {
   return {
     id,
     status,
     created_at: createdAt,
     event,
+    display_title: displayTitle,
   };
 }
 
@@ -83,7 +91,10 @@ test("cancels an unassigned stale run blocking a newer run", async () => {
     }],
   });
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
     ["list-jobs", 1],
     ["cancel", 1],
   ]);
@@ -110,7 +121,10 @@ test("cancels a stale run before GitHub creates job records", async () => {
     ageMinutes: 60,
   }]);
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
     ["list-jobs", 1],
     ["cancel", 1],
   ]);
@@ -140,7 +154,10 @@ test("cancels a stale run blocked by a newer pending run", async () => {
     ageMinutes: 60,
   }]);
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
     ["list-jobs", 1],
     ["cancel", 1],
   ]);
@@ -170,9 +187,132 @@ test("cancels a stale run blocked by a newer waiting run", async () => {
     ageMinutes: 60,
   }]);
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
     ["list-jobs", 1],
     ["cancel", 1],
+  ]);
+});
+
+test("cancels a stale waiting run blocking a newer pending run", async () => {
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:45:00Z"),
+      run(1, "waiting", "2026-09-10T11:00:00Z"),
+    ],
+    jobs: {
+      1: [unassignedJob("2026-09-10T11:00:00Z", "waiting")],
+    },
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [WORKFLOW],
+  });
+
+  assert.deepEqual(result.cancelled, [{
+    workflowId: "dashboard.yml",
+    runId: 1,
+    newerRunId: 2,
+    ageMinutes: 60,
+  }]);
+  assert.deepEqual(calls, [
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
+    ["list-jobs", 1],
+    ["cancel", 1],
+  ]);
+});
+
+test("matches targeted dispatches by their exposed concurrency group", async () => {
+  const targetedWorkflow = {
+    workflowId: "dashboard.yml",
+    event: "workflow_dispatch",
+    groupByRunName: true,
+    runNamePrefix: "pull-request-dashboard-",
+  };
+  const { actions, calls } = fixture({
+    runs: [
+      run(
+        3,
+        "pending",
+        "2026-09-10T11:50:00Z",
+        "workflow_dispatch",
+        "pull-request-dashboard-repo-a-1-refresh",
+      ),
+      run(
+        2,
+        "pending",
+        "2026-09-10T11:40:00Z",
+        "workflow_dispatch",
+        "pull-request-dashboard-repo-b-2-refresh",
+      ),
+      run(
+        1,
+        "waiting",
+        "2026-09-10T11:00:00Z",
+        "workflow_dispatch",
+        "pull-request-dashboard-repo-a-1-refresh",
+      ),
+    ],
+    jobs: {
+      1: [unassignedJob("2026-09-10T11:00:00Z", "waiting")],
+    },
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [targetedWorkflow],
+  });
+
+  assert.deepEqual(result.cancelled, [{
+    workflowId: "dashboard.yml",
+    runId: 1,
+    newerRunId: 3,
+    ageMinutes: 60,
+  }]);
+  assert.deepEqual(calls, [
+    ["list-runs", "dashboard.yml", {
+      event: "workflow_dispatch",
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
+    ["list-jobs", 1],
+    ["cancel", 1],
+  ]);
+});
+
+test("ignores targeted dispatches without an exposed concurrency group", async () => {
+  const targetedWorkflow = {
+    workflowId: "dashboard.yml",
+    event: "workflow_dispatch",
+    groupByRunName: true,
+    runNamePrefix: "pull-request-dashboard-",
+  };
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:45:00Z"),
+      run(1, "waiting", "2026-09-10T11:00:00Z"),
+    ],
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [targetedWorkflow],
+  });
+
+  assert.deepEqual(result.cancelled, []);
+  assert.deepEqual(calls, [
+    ["list-runs", "dashboard.yml", {
+      event: "workflow_dispatch",
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
   ]);
 });
 
@@ -206,7 +346,10 @@ test("continues when a run completes during cancellation", async () => {
     ageMinutes: 60,
   }]);
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
     ["list-jobs", 1],
     ["cancel", 1],
     ["list-jobs", 2],
@@ -254,7 +397,10 @@ test("does not cancel without a newer queued run", async () => {
 
   assert.deepEqual(result.cancelled, []);
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
   ]);
 });
 
@@ -277,7 +423,10 @@ test("does not cancel before the stale threshold", async () => {
 
   assert.deepEqual(result.cancelled, []);
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
   ]);
 });
 
@@ -305,7 +454,10 @@ test("uses the workflow run age instead of the job record age", async () => {
     ageMinutes: 60,
   }]);
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: undefined }],
+    ["list-runs", "dashboard.yml", {
+      event: undefined,
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
     ["list-jobs", 1],
     ["cancel", 1],
   ]);
@@ -334,7 +486,10 @@ test("filters workflows whose concurrency group is event-specific", async () => 
   });
 
   assert.deepEqual(calls, [
-    ["list-runs", "dashboard.yml", { event: "schedule" }],
+    ["list-runs", "dashboard.yml", {
+      event: "schedule",
+      statuses: ACTIVE_RUN_STATUSES,
+    }],
     ["list-jobs", 1],
     ["cancel", 1],
   ]);

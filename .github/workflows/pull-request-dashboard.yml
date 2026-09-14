@@ -1,5 +1,8 @@
 name: Pull request dashboard
 
+run-name: >-
+  pull-request-dashboard-${{ inputs.repository || 'all-repositories' }}-${{ inputs.pr_number || inputs.head_sha || 'backfill' }}-${{ github.event_name == 'workflow_dispatch' && (inputs.trigger_event == '' || inputs.trigger_event == 'workflow_dispatch') && 'manual' || 'refresh' }}
+
 on:
   schedule:
     - cron: "0 * * * *" # hourly
