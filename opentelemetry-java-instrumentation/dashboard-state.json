@@ -2666,7 +2666,7 @@
     },
     "20121": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -2676,7 +2676,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a8d2b8eb6652f9ccd4a8aa6cad10dbfa2501ac7dcde272c6f32c793a86d2d5c0",
+        "copilot_request_fingerprint": "b3ef74582f7c67825cd5506f3425680b1a1790e2c1989386a757c70d355e6a60",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2692,21 +2692,31 @@
         "head_sha": "07b907af3e2206a3cc003803c4280a006dbae467",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-12T18:10:20+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-14T19:30:38+00:00",
+        "last_approver_activity_at": "2026-09-14T19:30:38+00:00",
         "last_author_activity_at": "2026-09-12T18:10:20+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "90d0655376d8ce3e381be1bea437d60e47812b19fc86eb9f5c12fe4c60b9a261",
+        "routing_input_fingerprint": "c7b7cf84c6b93484751f0e74bce602fd13a737a4fa9519547e11fc492a8b386b",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-12T18:10:20+00:00"
       },
       "failed": false,
       "pr_number": 20121,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20121",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "20122": {
