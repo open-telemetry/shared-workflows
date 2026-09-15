@@ -106,8 +106,12 @@ python3 .github/scripts/github-actions-queue/collect.py \
 ```
 
 The command prints a JSON summary containing the request count plus starting and
-ending `limit`, `remaining`, and `reset` values. It applies the same 50% safety
-floor locally.
+ending `limit`, `remaining`, and `reset` values. The starting snapshot comes
+from the first ordinary API response because GitHub's `/rate_limit` response
+can lag the bucket reported by repository endpoints. The summary also reports
+the lowest remaining fraction observed because GitHub can return fluctuating
+quota headers across sequential public-repository requests. The command applies
+the 50% floor to that conservative low-water mark.
 
 ## Known REST limitation
 

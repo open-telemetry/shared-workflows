@@ -102,6 +102,7 @@ class GitHubClient:
         self._max_retries = max_retries
         self._rate: RateSnapshot | None = None
         self._initial_rate: RateSnapshot | None = None
+        self._minimum_rate: RateSnapshot | None = None
         self.request_count = 0
 
     @property
@@ -112,16 +113,17 @@ class GitHubClient:
 
     @property
     def initial_rate(self) -> RateSnapshot:
-        if self._initial_rate is None:
-            raise RuntimeError("initial rate limit has not been loaded")
-        return self._initial_rate
+        return self._initial_rate or self.rate
+
+    @property
+    def minimum_rate(self) -> RateSnapshot:
+        return self._minimum_rate or self.rate
 
     def load_rate_limit(self) -> RateSnapshot:
         response = self._send(f"{API_ROOT}/rate_limit", enforce_budget=False)
         data = self._decode_json(response)
         core = (data.get("resources") or {}).get("core") or {}
         self._rate = _parse_rate_snapshot(core)
-        self._initial_rate = self._rate
         self._ensure_budget()
         return self._rate
 
@@ -141,7 +143,10 @@ class GitHubClient:
 
             response = self._transport(url, self._headers)
             self.request_count += 1
-            self._update_rate(response.headers)
+            self._update_rate(
+                response.headers,
+                capture_initial=enforce_budget,
+            )
 
             if 200 <= response.status < 300:
                 return response
@@ -173,7 +178,12 @@ class GitHubClient:
                 f"GitHub API returned invalid JSON with status {response.status}"
             ) from error
 
-    def _update_rate(self, headers: dict[str, str]) -> None:
+    def _update_rate(
+        self,
+        headers: dict[str, str],
+        *,
+        capture_initial: bool,
+    ) -> None:
         limit = headers.get("x-ratelimit-limit")
         remaining = headers.get("x-ratelimit-remaining")
         reset = headers.get("x-ratelimit-reset")
@@ -184,17 +194,29 @@ class GitHubClient:
             remaining=int(remaining),
             reset=int(reset),
         )
+        if capture_initial and self._initial_rate is None:
+            self._initial_rate = RateSnapshot(
+                limit=self._rate.limit,
+                remaining=min(self._rate.limit, self._rate.remaining + 1),
+                reset=self._rate.reset,
+            )
+        if capture_initial and (
+            self._minimum_rate is None
+            or self._rate.remaining / self._rate.limit
+            < self._minimum_rate.remaining / self._minimum_rate.limit
+        ):
+            self._minimum_rate = self._rate
 
     def _ensure_budget(self) -> None:
         if self._rate is not None and self._at_or_below_floor():
             raise RateBudgetExhausted(self._budget_message())
 
     def _at_or_below_floor(self) -> bool:
-        rate = self.rate
+        rate = self.minimum_rate
         return rate.remaining <= math.ceil(rate.limit * self._stop_fraction)
 
     def _budget_message(self) -> str:
-        rate = self.rate
+        rate = self.minimum_rate
         floor = math.ceil(rate.limit * self._stop_fraction)
         return (
             f"REST rate-limit safety floor reached: {rate.remaining} remaining, "
@@ -838,6 +860,7 @@ def main() -> None:
         ),
         "pending_runs": len(state.pending_runs),
         "rate_end": client.rate.to_dict(),
+        "rate_low_watermark": client.minimum_rate.to_dict(),
         "rate_start": client.initial_rate.to_dict(),
         "records": len(result.records),
         "requests": client.request_count,

@@ -175,6 +175,32 @@ class GitHubClientTest(unittest.TestCase):
 
         self.assertEqual(2, len(transport.urls))
 
+    def test_initial_rate_uses_first_data_response_headers(self):
+        transport = FakeTransport(
+            lambda _url: response({"login": "octocat"}, remaining=4200)
+        )
+        client = GitHubClient("token", transport=transport)
+
+        client.get_json("/user")
+
+        self.assertEqual(4201, client.initial_rate.remaining)
+        self.assertEqual(4200, client.rate.remaining)
+
+    def test_budget_uses_lowest_observed_remaining_value(self):
+        remaining = iter((2600, 4000))
+        transport = FakeTransport(
+            lambda _url: response({}, remaining=next(remaining))
+        )
+        client = GitHubClient("token", transport=transport)
+
+        client.get_json("/first")
+        client.get_json("/second")
+        self.assertEqual(2600, client.minimum_rate.remaining)
+
+        client._minimum_rate = RateSnapshot(5000, 2500, 2000000000)
+        with self.assertRaises(RateBudgetExhausted):
+            client.get_json("/third")
+
 
 class JobRecordTest(unittest.TestCase):
     def setUp(self):
