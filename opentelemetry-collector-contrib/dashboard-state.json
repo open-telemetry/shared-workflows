@@ -10632,16 +10632,19 @@
     },
     "50634": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Lewis-E",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50634#issuecomment-5669461325"
+        ],
         "author_nudge_episode_id": "733b036b92444c149ee3ddefc3b88c62",
-        "ci_failing_count": 0,
-        "ci_pending_count": 8,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-14T19:23:15+00:00",
+        "ci_pending_count": 0,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "b90c922536e26db9d1bb85ca27254e3195ee617b814ad7fac8a50e77c84affc8",
+        "copilot_request_fingerprint": "660fe27699a465c3eb956bf4381c1b92c41988e5068ede329ffd7f775715de6e",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -10657,11 +10660,20 @@
         "head_sha": "18dd8c0c90081ad9fef0ebee33682936913127b0",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-09T14:08:11+00:00",
-        "last_approver_activity_at": "2026-08-31T22:01:37+00:00",
+        "last_activity_at": "2026-09-14T19:21:05+00:00",
+        "last_approver_activity_at": "2026-09-14T19:21:05+00:00",
         "last_author_activity_at": "2026-09-09T14:08:11+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -10669,14 +10681,14 @@
             "login": "paulojmdias",
             "open_thread": false,
             "pending_review": true,
-            "top_level_feedback": false
+            "top_level_feedback": true
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c0026e5f305fe2e50f43771e2f4ec821be880d5063d428cf272cae6cf496982a",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-09T14:08:11+00:00"
+        "routing_input_fingerprint": "5c2e8ea29134eb92e87fbe9495591c474a8a762d1cbf0640cbbb88baf209ad02",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-14T19:21:05+00:00"
       },
       "failed": false,
       "pr_number": 50634,
