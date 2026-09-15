@@ -871,7 +871,7 @@
     },
     "3418": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 2,
         "assignees": [],
         "author": "mmat11",
         "author_action_review_thread_urls": [],
@@ -879,7 +879,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "340105b4cde432322dbe5cbcefb9023b34dd3b048603d18fd8fa0228fed69bf1",
+        "copilot_request_fingerprint": "09a38c628bd721a6c3485ff695d74cb1daf62813cffe02bfe4002b958919876f",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -892,16 +892,25 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "caac69de5f5ec6303d294010cae32b7bf82f2377",
+        "head_sha": "6a111905d47067c3e5dbe021cd3c56dc64135a0b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-15T14:33:09+00:00",
-        "last_approver_activity_at": "2026-09-14T18:58:31+00:00",
-        "last_author_activity_at": "2026-09-15T14:33:09+00:00",
+        "last_activity_at": "2026-09-15T22:42:01+00:00",
+        "last_approver_activity_at": "2026-09-15T22:16:27+00:00",
+        "last_author_activity_at": "2026-09-15T22:42:01+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "grcevski",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "MrAlias",
@@ -912,14 +921,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "30aacaa8dd8159375315d6faa6ddcbf141f1a136362be821960ccd8d724de4d0",
+        "routing_input_fingerprint": "c4cd37b6d041a3b02e3b7e5d91b9dbea2c2fa28d82ecc98e0ee14e90646819b3",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-15T10:27:49+00:00"
       },
       "failed": false,
       "pr_number": 3418,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3418",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3422": {
