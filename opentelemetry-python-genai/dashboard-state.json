@@ -1707,7 +1707,7 @@
     },
     "684": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "rads-1996",
         "author_action_review_thread_urls": [],
@@ -1715,7 +1715,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "67ed4f252cb2cb584d4ef442c0edba8cfe105224b6bab55224f801f3e526a4d9",
+        "copilot_request_fingerprint": "f7c1e0ce70785446a02667ebfe37a49506443310e6c2547c5f36b7592ab6d3e9",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1731,21 +1731,31 @@
         "head_sha": "ad517fc2a42e15f7caf6ab0b37dccdcf1f89c9a9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-14T20:11:46+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-15T15:43:52+00:00",
+        "last_approver_activity_at": "2026-09-15T15:43:52+00:00",
         "last_author_activity_at": "2026-09-14T20:11:46+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lzchen",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "de92dd495d59f691092daa2f7207f40914e4ac7514913f1f7b023672e2154e3a",
+        "routing_input_fingerprint": "c9fefd2b9a55f40756ede6ce28f6a5d216c9645f61d0f74acc07d5d22be15a1b",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-14T20:11:46+00:00"
       },
       "failed": false,
       "pr_number": 684,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/684",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "705": {
