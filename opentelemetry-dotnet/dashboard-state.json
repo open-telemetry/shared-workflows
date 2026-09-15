@@ -519,7 +519,7 @@
     },
     "7749": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "matt-hensley",
         "author_action_review_thread_urls": [],
@@ -527,7 +527,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "492866635f9d1247fe2ad5a50616159767b7ba7aa171f1844f07411f56e50967",
+        "copilot_request_fingerprint": "3fa85d03358b2cc83e475c5a080ffd44875271d43f9662e883803d6cabd75fcc",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -543,21 +543,31 @@
         "head_sha": "b538ec991a37b6434a04e3dc927fa1ed81129e1a",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-14T23:28:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-15T07:30:04+00:00",
+        "last_approver_activity_at": "2026-09-15T07:30:04+00:00",
         "last_author_activity_at": "2026-09-14T23:28:52+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Kielek",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e576ab7de5f2cfad9b0a2f7a70f68a05c4ef31db99a5467aee200012ae74ac31",
+        "routing_input_fingerprint": "898493037c78a376f356df6b2431e0f336d6c22879046df5989e181c7f95dd87",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-14T20:05:56+00:00"
       },
       "failed": false,
       "pr_number": 7749,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7749",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
