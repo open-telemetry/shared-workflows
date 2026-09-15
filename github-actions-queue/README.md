@@ -117,5 +117,7 @@ run, but a rerun requested after that run leaves the pending set can fall
 outside later creation-time windows. Closing this gap may require a bounded
 lookback or `workflow_job` webhook ingestion.
 
-Persistent GitHub `5xx` responses fail the collection visibly. They are not
-converted into successful empty records.
+Failed job lookups are retained in `state.json` with their failure count, last
+error, and last attempt time. Later collections retry them while continuing to
+discover newer runs. The workflow emits a warning as long as any failed lookup
+remains unresolved; failures are never converted into successful empty records.

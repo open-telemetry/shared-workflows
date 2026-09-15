@@ -241,6 +241,7 @@ class FakeClient:
         self.rate = RateSnapshot(5000, 4990, 2000000000)
         self.request_count = 0
         self.pause_on_repo = None
+        self.fail_jobs_for_run = None
         self.completed_runs = {}
 
     def load_rate_limit(self):
@@ -269,6 +270,8 @@ class FakeClient:
         }]
 
     def list_jobs(self, _org, repository, run_id):
+        if run_id == self.fail_jobs_for_run:
+            raise ApiError("GitHub API returned 502")
         return [{
             "id": run_id + 1,
             "name": "test",
@@ -357,6 +360,28 @@ class QueueCollectorTest(unittest.TestCase):
 
         self.assertEqual([10], [record["job_id"] for record in result.records])
         self.assertEqual([], state.pending_runs)
+
+    def test_job_api_failure_does_not_block_window_progress(self):
+        client = FakeClient()
+        client.fail_jobs_for_run = 100
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(cursor="2026-09-15T00:00:00Z")
+
+        result = collector.collect(
+            state,
+            selected_repositories=["a"],
+        )
+
+        self.assertFalse(result.paused)
+        self.assertEqual("2026-09-15T01:00:00Z", state.cursor)
+        self.assertEqual([], result.records)
+        self.assertEqual(1, len(state.pending_runs))
+        self.assertEqual(1, state.pending_runs[0]["failures"])
+        self.assertIn("502", state.pending_runs[0]["last_error"])
 
 
 class PersistenceTest(unittest.TestCase):

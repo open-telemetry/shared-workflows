@@ -83,6 +83,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "cursor=$(jq -r .cursor <<< "$summary")" >> "$GITHUB_OUTPUT"
           echo "paused=$(jq -r .paused <<< "$summary")" >> "$GITHUB_OUTPUT"
+          echo "pending_run_failures=$(jq -r .pending_run_failures <<< "$summary")" >> "$GITHUB_OUTPUT"
 
       - name: Commit collected data
         env:
@@ -104,3 +105,10 @@ jobs:
         if: steps.collect.outputs.paused == 'true'
         run: |
           echo "::notice::Collection paused at the 50% REST rate-limit safety floor; the next run will resume from the saved checkpoint"
+
+      - name: Report failed run retries
+        if: steps.collect.outputs.pending_run_failures != '0'
+        env:
+          FAILED_RUNS: ${{ steps.collect.outputs.pending_run_failures }}
+        run: |
+          echo "::warning::$FAILED_RUNS workflow runs have job API failures recorded in state.json and will be retried"

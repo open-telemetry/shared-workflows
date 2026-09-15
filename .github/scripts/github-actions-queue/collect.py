@@ -438,6 +438,7 @@ class QueueCollector:
             repositories = self._client.resolve_repositories(
                 self._org, selected_repositories
             )
+            pending_to_retry = list(state.pending_runs)
 
             available_until = _floor_hour(self._now())
             while (
@@ -468,7 +469,9 @@ class QueueCollector:
                 state.window_repositories = []
                 state.completed_repositories = []
                 completed_windows += 1
-            records.extend(self._collect_pending_runs(state))
+            records.extend(
+                self._collect_pending_runs(state, pending_to_retry)
+            )
         except RateBudgetExhausted:
             return CollectionResult(
                 records=records,
@@ -487,29 +490,29 @@ class QueueCollector:
     def _collect_pending_runs(
         self,
         state: CollectorState,
+        pending: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []
-        remaining: list[dict[str, Any]] = []
-        pending = list(state.pending_runs)
-        state.pending_runs = remaining
-        for index, item in enumerate(pending):
+        for item in pending:
             try:
                 run = self._client.get_workflow_run(
                     self._org, item["repository"], item["run_id"]
                 )
                 if run.get("status") != "completed":
-                    remaining.append(item)
                     continue
                 run_records, terminal = self._collect_completed_run(
                     item["repository"], run
                 )
                 if terminal:
                     records.extend(run_records)
-                else:
-                    remaining.append(item)
+                    _remove_pending_run(state, item)
             except RateBudgetExhausted:
-                remaining.extend(pending[index:])
                 raise
+            except ApiError as error:
+                _merge_pending_runs(
+                    state,
+                    [_pending_run_failure(item, error, self._now())],
+                )
         return records
 
     def _collect_repository_window(
@@ -527,7 +530,17 @@ class QueueCollector:
             if run.get("status") != "completed":
                 pending.append(_pending_run(repository, run))
                 continue
-            run_records, terminal = self._collect_completed_run(repository, run)
+            try:
+                run_records, terminal = self._collect_completed_run(repository, run)
+            except ApiError as error:
+                pending.append(
+                    _pending_run_failure(
+                        _pending_run(repository, run),
+                        error,
+                        self._now(),
+                    )
+                )
+                continue
             if terminal:
                 records.extend(run_records)
             else:
@@ -560,6 +573,19 @@ def _pending_run(
     }
 
 
+def _pending_run_failure(
+    item: dict[str, Any],
+    error: ApiError,
+    attempted_at: datetime,
+) -> dict[str, Any]:
+    return {
+        **item,
+        "failures": int(item.get("failures") or 0) + 1,
+        "last_error": str(error)[:1000],
+        "last_attempt_at": _format_instant(attempted_at),
+    }
+
+
 def _merge_pending_runs(
     state: CollectorState,
     additions: list[dict[str, Any]],
@@ -572,6 +598,18 @@ def _merge_pending_runs(
         merged.values(),
         key=lambda item: (item["repository"], item["run_id"]),
     )
+
+
+def _remove_pending_run(
+    state: CollectorState,
+    completed: dict[str, Any],
+) -> None:
+    key = (completed["repository"], completed["run_id"])
+    state.pending_runs = [
+        item
+        for item in state.pending_runs
+        if (item["repository"], item["run_id"]) != key
+    ]
 
 
 def _job_record(
@@ -795,6 +833,9 @@ def main() -> None:
         "cursor": state.cursor,
         "output": str(output) if output else None,
         "paused": result.paused,
+        "pending_run_failures": sum(
+            1 for item in state.pending_runs if item.get("last_error")
+        ),
         "pending_runs": len(state.pending_runs),
         "rate_end": client.rate.to_dict(),
         "rate_start": client.initial_rate.to_dict(),
