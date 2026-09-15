@@ -2101,7 +2101,7 @@
     },
     "4061": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2109,7 +2109,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c77822dcf032948b63340f0dd1a769681bd8a77800b2625afde4cfd6b9750aed",
+        "copilot_request_fingerprint": "f0dfecf94f7c69bc610c4f99c52bbc99c2214df10149559598f132c96812f5bf",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2125,21 +2125,31 @@
         "head_sha": "2c1b3c4bf24d4097179d1b9cb8ce74ce0c8fe63e",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-15T11:11:08+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-15T15:52:37+00:00",
+        "last_approver_activity_at": "2026-09-15T15:52:37+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "drewrelmas",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "410150385406e22317c88b3d81281f56bd9c1d7e677ba84f1d5591bb5e7c61d7",
+        "routing_input_fingerprint": "dda19247f422c1bc23bb7275a816279e92dab53e1dc2f97b1ad9e196a05ae5c3",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-14T00:33:53+00:00"
       },
       "failed": false,
       "pr_number": 4061,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4061",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4063": {
