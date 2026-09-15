@@ -1,0 +1,106 @@
+name: Collect GitHub Actions queue data
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      max_windows:
+        description: Maximum number of one-hour windows to collect.
+        required: false
+        default: 2
+        type: number
+
+permissions: {}
+
+concurrency:
+  group: github-actions-queue-collector
+  cancel-in-progress: false
+
+env:
+  DATA_BRANCH: github-actions-queue-data
+
+jobs:
+  collect:
+    if: github.repository == 'open-telemetry/shared-workflows'
+    runs-on: ubuntu-latest
+    environment: protected
+    timeout-minutes: 50
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: collector-token
+        with:
+          client-id: ${{ vars.ACTIONS_QUEUE_CLIENT_ID }}
+          private-key: ${{ secrets.ACTIONS_QUEUE_PRIVATE_KEY }}
+          owner: open-telemetry
+          permission-actions: read
+
+      - name: Check out data branch
+        id: data
+        env:
+          DATA_BRANCH_README: .github/scripts/github-actions-queue/DATA_BRANCH_README.md
+        run: |
+          set -euo pipefail
+          data_dir="$RUNNER_TEMP/github-actions-queue-data"
+          if git ls-remote --exit-code --heads origin "refs/heads/$DATA_BRANCH" >/dev/null; then
+            git fetch --no-tags --depth=1 origin "$DATA_BRANCH"
+            git worktree add --detach "$data_dir" FETCH_HEAD
+          else
+            git worktree add --detach "$data_dir" HEAD
+            git -C "$data_dir" switch --orphan "$DATA_BRANCH"
+            git -C "$data_dir" rm -rf .
+            cp "$DATA_BRANCH_README" "$data_dir/README.md"
+          fi
+          echo "directory=$data_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Collect completed jobs
+        id: collect
+        env:
+          GH_TOKEN: ${{ steps.collector-token.outputs.token }}
+          DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+          MAX_WINDOWS: ${{ inputs.max_windows || 2 }}
+        run: |
+          set -euo pipefail
+          summary=$(
+            python3 .github/scripts/github-actions-queue/collect.py \
+              --state "$DATA_DIRECTORY/state.json" \
+              --output-dir "$DATA_DIRECTORY/jobs" \
+              --collection-id "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+              --max-windows "$MAX_WINDOWS" \
+              --rate-stop-fraction 0.5
+          )
+          echo "$summary" | jq .
+          {
+            echo "### GitHub Actions queue collection"
+            echo
+            echo '```json'
+            echo "$summary" | jq .
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "cursor=$(jq -r .cursor <<< "$summary")" >> "$GITHUB_OUTPUT"
+          echo "paused=$(jq -r .paused <<< "$summary")" >> "$GITHUB_OUTPUT"
+
+      - name: Commit collected data
+        env:
+          CURSOR: ${{ steps.collect.outputs.cursor }}
+          DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+        run: |
+          set -euo pipefail
+          git -C "$DATA_DIRECTORY" config user.name "github-actions[bot]"
+          git -C "$DATA_DIRECTORY" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$DATA_DIRECTORY" add --all
+          if git -C "$DATA_DIRECTORY" diff --cached --quiet; then
+            echo "No data or checkpoint changes to commit"
+            exit 0
+          fi
+          git -C "$DATA_DIRECTORY" commit -m "Collect queue data through $CURSOR"
+          git -C "$DATA_DIRECTORY" push origin "HEAD:refs/heads/$DATA_BRANCH"
+
+      - name: Report rate-limit pause
+        if: steps.collect.outputs.paused == 'true'
+        run: |
+          echo "::notice::Collection paused at the 50% REST rate-limit safety floor; the next run will resume from the saved checkpoint"
