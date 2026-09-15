@@ -1263,11 +1263,14 @@
         "assignees": [],
         "author": "vignesh2027",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1209#pullrequestreview-5120953121"
+        ],
+        "author_nudge_episode_id": "609c17c71e394be590f69d8b8f689e38",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "70310ccc7987b41af94b8bc323a74239f578e74837134e6ffe36a3bccda2d6ec",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "43d500be9d4a406c23e43c6bea1800db9857d456938bffc7dab0e0a03b72937d",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1287,17 +1290,27 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-15T09:46:32+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "Labreo",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "10ac161141aef26326d22dbc136abbf7b076892e76be600e2a58fcb9e9a8176e",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-15T09:46:32+00:00"
+        "routing_input_fingerprint": "64354a272dd1497be7be2b3ff037354a536b35ab30e90e5fea63b58404cc5716",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-05T11:03:42+00:00"
       },
       "failed": false,
       "pr_number": 1209,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1209",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "1211": {
