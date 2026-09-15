@@ -59,7 +59,7 @@ class RenderTest(unittest.TestCase):
         markdown = render_pr_tables([], ())
 
         self.assertIn(
-            "⏳ review pending · 💬 review thread needs author action · "
+            "⏳ review pending · 💬 unresolved feedback from reviewer · "
             "📌 top-level feedback needs author action · 🔴 changes requested.",
             markdown,
         )
@@ -111,7 +111,7 @@ class RenderTest(unittest.TestCase):
         cell = reviewers_cell_text(dashboard_facts(
             reviewers=[{
                 "login": "copilot-pull-request-reviewer",
-                "open_thread": True,
+                "unresolved_thread": True,
             }],
             copilot_review_outstanding=True,
             copilot_review_requested=True,
@@ -121,7 +121,7 @@ class RenderTest(unittest.TestCase):
 
     def test_requested_copilot_review_marks_its_short_login_entry(self) -> None:
         cell = reviewers_cell_text(dashboard_facts(
-            reviewers=[{"login": "copilot", "open_thread": True}],
+            reviewers=[{"login": "copilot", "unresolved_thread": True}],
             copilot_review_outstanding=True,
             copilot_review_requested=True,
         ))
@@ -130,7 +130,7 @@ class RenderTest(unittest.TestCase):
 
     def test_requested_copilot_review_marks_its_api_cased_entry(self) -> None:
         cell = reviewers_cell_text(dashboard_facts(
-            reviewers=[{"login": "Copilot", "open_thread": True}],
+            reviewers=[{"login": "Copilot", "unresolved_thread": True}],
             copilot_review_outstanding=True,
             copilot_review_requested=True,
         ))

@@ -76,7 +76,7 @@ the implementation understandable and operationally cheap.
   dashboard is the cheaper failure.
 - Dashboard state version 18 regenerates every earlier dashboard state. Earlier
   versions use `open_thread` for any unresolved thread and do not persist the
-  pending action needed to reconstruct the narrower author-action badge.
+  pending action needed to reconstruct the separate author-action state.
 
 ## Queue and Workflow Concurrency
 

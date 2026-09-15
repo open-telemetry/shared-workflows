@@ -32,9 +32,9 @@ discussion records.
 `state.py` owns the JSON boundary. Its dashboard facts, stored-result, and state
 codecs translate the immutable contracts to the version 18
 `dashboard-state.json` shape. Earlier versions regenerate because they cannot
-reconstruct whether an unresolved inline thread needs author action for the
-reviewer badge. Malformed pull request entries are discarded individually, so
-one bad entry does not prevent valid entries from loading.
+reconstruct both unresolved-thread ownership and whether an unresolved inline
+thread needs author action. Malformed pull request entries are discarded
+individually, so one bad entry does not prevent valid entries from loading.
 
 `dashboard_state_update.py` owns the acceptance transaction for one pull request
 slot. It prepares the cached starting value, reconciles an evaluation with the

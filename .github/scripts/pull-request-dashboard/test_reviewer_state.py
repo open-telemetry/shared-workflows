@@ -208,7 +208,7 @@ class ReviewerStateTest(unittest.TestCase):
         self.assertTrue(all(reviewer.open_thread for reviewer in reviewers))
         self.assertTrue(all(reviewer.unresolved_thread for reviewer in reviewers))
 
-    def test_reviewer_action_inline_thread_does_not_show_open_thread(self) -> None:
+    def test_reviewer_action_inline_thread_shows_unresolved_feedback(self) -> None:
         prepared = prepare([review_event("reviewer", "APPROVED")])
         thread = {
             "discussion_id": "inline",
@@ -231,6 +231,7 @@ class ReviewerStateTest(unittest.TestCase):
             ],
             list(reviewers),
         )
+        self.assertEqual("\U0001f4ac\u2060\u2705", reviewer_icon(reviewers[0]))
         self.assertEqual(
             ["reviewer"],
             reviewer_logins_for_notification(

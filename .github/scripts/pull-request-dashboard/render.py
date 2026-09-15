@@ -143,7 +143,7 @@ def reviewer_icon(reviewer: ReviewerSummary) -> str:
     pending_review = reviewer.pending_review
     if pending_review:
         discussion_icons.append("⏳")
-    if reviewer.open_thread:
+    if reviewer.unresolved_thread:
         discussion_icons.append("💬")
     if reviewer.top_level_feedback:
         discussion_icons.append("📌")
@@ -248,7 +248,7 @@ def render_pr_tables(
     )
     reviewers_note = (
         "Reviewers column: ✅ active approval · ✔️ active approval (non-code-owner) · "
-        "⏳ review pending · 💬 review thread needs author action · "
+        "⏳ review pending · 💬 unresolved feedback from reviewer · "
         "📌 top-level feedback needs author action · "
         "🔴 changes requested."
     )
