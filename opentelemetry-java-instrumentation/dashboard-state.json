@@ -306,19 +306,21 @@
         "assignees": [],
         "author": "shashank-reddy-nr",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/18978#issuecomment-5281402517"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "6e28cc6d5843449bb1541acf5f05f457",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1006853ba3e6f3da9bae3e1d96352f604631bab4ae158a964cc13d0b28e1feb8",
+        "copilot_request_fingerprint": "d3243f293f5acc72e084fe72917f7b29a844fd80919c7c6da326f0d9be14be8b",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
-        "copilot_review_request_needed": true,
-        "copilot_review_requested": false,
+        "copilot_review_request_needed": false,
+        "copilot_review_requested": true,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
         "created_at": "2026-06-12T15:48:18+00:00",
@@ -353,15 +355,15 @@
             "login": "trask",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-15T12:20:00.250723+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c29b0cb5fe4f9fe819ed293b9a2789455c05978e7fd2955373c698e8ca4dda28",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "9561ee324a97e62972ec8e02c05a0b841aead8cfb2ad461d4a75afc262fabd0e",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-08-28T15:00:43+00:00"
       },
       "failed": false,
@@ -380,12 +382,6 @@
             "reply": "2026-08-03T16:08:40Z"
           },
           "reply_source_id": 5168835074
-        },
-        "pr-issue-comment-5281402517": {
-          "evidence": {
-            "reply": "2026-09-14T10:15:29Z"
-          },
-          "reply_source_id": 5662416300
         }
       }
     },
