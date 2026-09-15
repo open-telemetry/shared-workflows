@@ -403,21 +403,17 @@
     },
     "4809": {
       "facts": {
-        "approval_count": 2,
+        "approval_count": 3,
         "assignees": [
           "jmacd"
         ],
         "author": "dashpole",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-specification/pull/4809#pullrequestreview-3623761317",
-          "https://github.com/open-telemetry/opentelemetry-specification/pull/4809#pullrequestreview-3637025798"
-        ],
-        "author_nudge_episode_id": "48c66eeb8dc045a1aedf87c5ab537526",
+        "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "yes",
-        "copilot_request_fingerprint": "9877601f3265123b19d186d44d7e84031777c5b8fa059cec790725d7c59ffeb6",
+        "conflicts": "no",
+        "copilot_request_fingerprint": "f2b2c520e8a76e506168f0bb9b90fe10f200e5e5db97702b611fba3ef09be443",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -430,12 +426,12 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "3e98745b5a43a6d0a8f5d2094d12362e34274fa1",
+        "head_sha": "ef731b5ddcac47a36c7c2b774dd70071989af44f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-08-26T15:40:37+00:00",
-        "last_approver_activity_at": "2026-08-26T15:40:37+00:00",
-        "last_author_activity_at": "2026-08-24T20:50:28+00:00",
+        "last_activity_at": "2026-09-15T14:30:40+00:00",
+        "last_approver_activity_at": "2026-09-15T14:30:40+00:00",
+        "last_author_activity_at": "2026-09-15T13:50:09+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -454,7 +450,7 @@
             "login": "cijothomas",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           },
           {
             "approved": false,
@@ -463,7 +459,7 @@
             "login": "codeboten",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true
+            "top_level_feedback": false
           },
           {
             "approved": true,
@@ -493,12 +489,12 @@
             "top_level_feedback": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "reyang",
             "open_thread": false,
-            "pending_review": true,
+            "pending_review": false,
             "top_level_feedback": false
           },
           {
@@ -522,20 +518,32 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "49065319c59ad286dbb3af8f43794f0f8b5b731a97339f3916c1203a4d1bda08",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-01-02T19:28:00+00:00"
+        "routing_input_fingerprint": "edeafe2c21c130964966ac308e965dbe92cc405a562e612ec79a6c3f5ced4d72",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-15T13:50:09+00:00"
       },
       "failed": false,
       "pr_number": 4809,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/4809",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5320227053": {
           "evidence": {
             "reply": "2026-08-18T09:26:01Z"
           },
           "reply_source_id": 5326244457
+        },
+        "pr-review-3623761317": {
+          "evidence": {
+            "reply": "2026-09-15T13:50:09Z"
+          },
+          "reply_source_id": 5681301644
+        },
+        "pr-review-3637025798": {
+          "evidence": {
+            "reply": "2026-09-15T13:50:09Z"
+          },
+          "reply_source_id": 5681301644
         }
       }
     },
