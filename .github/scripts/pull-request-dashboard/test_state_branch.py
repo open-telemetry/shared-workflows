@@ -119,6 +119,120 @@ class PublisherLockTest(unittest.TestCase):
                 )
 
 
+class PublisherWriteBarrierTest(unittest.TestCase):
+    @patch.object(state_branch, "reset_state", return_value=True)
+    @patch.object(
+        state_branch,
+        "load_publisher_lock",
+        side_effect=[
+            {"owner": "publisher", "expiresAt": 200},
+            None,
+        ],
+    )
+    def test_waits_for_active_publisher_lock(
+        self,
+        load_publisher_lock: object,
+        reset_state: object,
+    ) -> None:
+        sleeps: list[float] = []
+
+        state_branch.wait_for_publisher_unlock(
+            Path("state"),
+            "state-branch",
+            now=lambda: 100,
+            sleep=sleeps.append,
+        )
+
+        self.assertEqual([5], sleeps)
+        self.assertEqual(2, load_publisher_lock.call_count)
+        reset_state.assert_called_once_with(Path("state"), "state-branch")
+
+    @patch.object(state_branch, "reset_state")
+    @patch.object(
+        state_branch,
+        "load_publisher_lock",
+        return_value={"owner": "publisher", "expiresAt": 100},
+    )
+    def test_expired_publisher_lock_does_not_wait(
+        self,
+        _load_publisher_lock: object,
+        reset_state: object,
+    ) -> None:
+        sleeps: list[float] = []
+
+        state_branch.wait_for_publisher_unlock(
+            Path("state"),
+            "state-branch",
+            now=lambda: 100,
+            sleep=sleeps.append,
+        )
+
+        self.assertEqual([], sleeps)
+        reset_state.assert_not_called()
+
+    @patch.object(
+        state_branch,
+        "load_publisher_lock",
+        return_value={"owner": "publisher", "expiresAt": 200},
+    )
+    def test_active_publisher_lock_times_out(
+        self,
+        _load_publisher_lock: object,
+    ) -> None:
+        with self.assertRaisesRegex(
+            TimeoutError,
+            "state-branch held by publisher",
+        ):
+            state_branch.wait_for_publisher_unlock(
+                Path("state"),
+                "state-branch",
+                wait_seconds=0,
+                now=lambda: 100,
+            )
+
+    def test_checks_barrier_before_each_cas_attempt(self) -> None:
+        lifecycle: list[str] = []
+
+        def run(
+            command: list[str],
+            **_kwargs: object,
+        ) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess(
+                command,
+                1 if command[:4] == ["git", "diff", "--cached", "--quiet"] else 0,
+            )
+
+        def update_state() -> int:
+            lifecycle.append("update")
+            return 0
+
+        with (
+            patch.object(state_branch, "configure_git"),
+            patch.object(state_branch, "checkout_state"),
+            patch.object(state_branch, "run", side_effect=run),
+            patch.object(state_branch, "push_state", side_effect=[False, True]),
+            patch.object(state_branch, "reset_state", return_value=True),
+            patch.object(state_branch, "retry_delay_seconds", return_value=0),
+            patch.object(state_branch.time, "sleep"),
+            patch.object(
+                state_branch,
+                "wait_for_publisher_unlock",
+                side_effect=lambda *_args, **_kwargs: lifecycle.append("wait"),
+            ) as wait_for_publisher_unlock,
+        ):
+            status = state_branch.push_state_changes(
+                Path("state"),
+                "Update dashboard state",
+                update_state,
+                state_branch="state-branch",
+                respect_publisher_lock=True,
+            )
+
+        self.assertEqual(0, status)
+        self.assertEqual(["wait", "update", "wait", "update"], lifecycle)
+        self.assertEqual(2, wait_for_publisher_unlock.call_count)
+
+
 class FetchStateBranchTest(unittest.TestCase):
     @staticmethod
     def rejected_fetch() -> subprocess.CompletedProcess[str]:
