@@ -3668,7 +3668,7 @@
     },
     "49404": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "evan-bradley"
         ],
@@ -3678,7 +3678,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ea21110fa74f75305a76fcc9c6754a700c401d4f62fca9d42369e56165f2bfc0",
+        "copilot_request_fingerprint": "38d6b6d6f64a42b8c4dd72f16c4feb7967f733980ee8d67cfe13ba7cbd882dce",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3694,11 +3694,20 @@
         "head_sha": "5ab94d7cba3d120e21b8ccdc5d2859025ccfd49d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-13T12:44:55+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-15T17:53:41+00:00",
+        "last_approver_activity_at": "2026-09-15T17:53:41+00:00",
         "last_author_activity_at": "2026-09-13T12:38:35+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dashpole",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -3720,14 +3729,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9a58b97e99779057a8e5daef8511253936858fc247ec124841949ebe9bef97cc",
+        "routing_input_fingerprint": "5052aa5d33b8dfc8f34d314ef73e2af269e140b8931171831718c93e73f803c1",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-13T12:38:35+00:00"
       },
       "failed": false,
       "pr_number": 49404,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49404",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5574177520": {
           "evidence": {
