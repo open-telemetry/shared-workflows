@@ -2781,7 +2781,7 @@
     },
     "4111": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2789,7 +2789,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0292f004a04877c0a7f123299c37e33d7176f4ca29bda7c3208c9e34b7ff0721",
+        "copilot_request_fingerprint": "f5edbc6e822559f1b48df611314c03e504047aece6158c3c11810fb9c80bea28",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2805,21 +2805,31 @@
         "head_sha": "7d5a1950a7301cb327e216ea0af5c201b2a3c6f4",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-15T00:23:40+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-15T07:01:42+00:00",
+        "last_approver_activity_at": "2026-09-15T07:01:42+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2c72d881ece97ff53ad32bc78953c1d03c567780e0140de9ae9551e17b107520",
+        "routing_input_fingerprint": "cb8030bf86bfc1256b84fccbd91368867e754468422aafaafad6713ccc289f5e",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-15T00:23:40+00:00"
       },
       "failed": false,
       "pr_number": 4111,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/4111",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "4112": {
