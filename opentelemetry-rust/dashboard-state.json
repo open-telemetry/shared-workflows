@@ -2239,7 +2239,7 @@
     },
     "3739": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "uasmirnov",
         "author_action_review_thread_urls": [],
@@ -2247,7 +2247,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a32322390468b24f5bc2f4b64283b9440cb93944dd6ade05293895a5d8a1d8dd",
+        "copilot_request_fingerprint": "ebe33a87fa2d5c695756a842a776390ee8a80dbdf344ab53f99cb68595dcb913",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2263,21 +2263,31 @@
         "head_sha": "a10685c20b17adcee41510e408aa2d64cf21c6c6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-15T16:35:29+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T01:24:51+00:00",
+        "last_approver_activity_at": "2026-09-16T01:24:51+00:00",
         "last_author_activity_at": "2026-09-15T14:37:30+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lalitb",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0f06bd3e6ed6e05ca0ac1f6f27d7ef05de010e5b9aa07bf90af58c4cfcd70c32",
+        "routing_input_fingerprint": "ca1b4a41a23de40ffe9a2475f595226d39447fe96851f391f888c771354f906a",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-15T14:37:30+00:00"
       },
       "failed": false,
       "pr_number": 3739,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3739",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
