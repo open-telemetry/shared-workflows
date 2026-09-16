@@ -14526,15 +14526,22 @@
         "approval_count": 0,
         "assignees": [],
         "author": "isaacaflores2",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51045#discussion_r4023492188",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51045#discussion_r4024242129",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51045#discussion_r4024249034",
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51045#discussion_r4024260471"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51045#pullrequestreview-5220601296"
+        ],
         "author_nudge_episode_id": "d2394c370b8c41159eb8a7ed4ac1143f",
         "ci_failing_count": 1,
         "ci_failing_since": "2026-09-15T23:39:03+00:00",
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "04b1e3b6016cb31c24d93ba3a51066861c9d50772f766027941a00cf52f3f71a",
-        "copilot_review_exists": false,
+        "copilot_request_fingerprint": "7b460d6448325607c96337559e7974dd785a41916d175b9d71978e7a10a17c36",
+        "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
@@ -14549,14 +14556,33 @@
         "head_sha": "aa824f98fbd5126d5d04bf35c4cc5953dbcfa618",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-15T23:15:01+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T09:00:25+00:00",
+        "last_approver_activity_at": "2026-09-16T09:00:25+00:00",
         "last_author_activity_at": "2026-09-15T23:15:01+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "constanca-m",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d254a3c73c06b0c632a20bb94fd8717526c96260a898078760e5161e2a381e39",
+        "routing_input_fingerprint": "aee5e3408418ed7b6f557d06b5aa7f4479c556d7f3f7c449492544d4e2ad7e21",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-09-15T23:39:03+00:00"
       },
