@@ -383,6 +383,51 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual([10], [record["job_id"] for record in result.records])
         self.assertEqual([], state.pending_runs)
 
+    def test_checkpoints_pending_records_before_rate_limit_pause(self):
+        class PausingClient(FakeClient):
+            def get_workflow_run(self, org, repository, run_id):
+                if run_id == 10:
+                    raise RateLimitExhausted("limit")
+                return super().get_workflow_run(org, repository, run_id)
+
+        client = PausingClient()
+        client.completed_runs[("a", 9)] = {
+            "id": 9,
+            "name": "CI",
+            "workflow_id": 1,
+            "run_attempt": 1,
+            "created_at": "2026-09-14T23:00:00Z",
+            "status": "completed",
+            "event": "push",
+            "head_repository": {"full_name": "open-telemetry/a"},
+        }
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(
+            cursor="2026-09-15T01:00:00Z",
+            pending_runs=[
+                {
+                    "repository": "a",
+                    "run_id": 9,
+                    "created_at": "2026-09-14T23:00:00Z",
+                },
+                {
+                    "repository": "a",
+                    "run_id": 10,
+                    "created_at": "2026-09-14T23:30:00Z",
+                },
+            ],
+        )
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertTrue(result.paused)
+        self.assertEqual([10], [record["job_id"] for record in result.records])
+        self.assertEqual([10], [item["run_id"] for item in state.pending_runs])
+
     def test_job_api_failure_does_not_block_window_progress(self):
         client = FakeClient()
         client.fail_jobs_for_run = 100
