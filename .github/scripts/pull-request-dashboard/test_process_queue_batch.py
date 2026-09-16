@@ -421,8 +421,9 @@ class QueueBatchTest(unittest.TestCase):
         self.assertEqual("dashboard publisher lock is busy", result["error"])
 
     def test_publisher_lock_command_failure_uses_stable_error(self) -> None:
+        command = ["dashboard.py", "--github-output", "/tmp/random"]
         command_error = process_queue_batch.CommandFailedError(
-            ["dashboard.py", "--github-output", "/tmp/random"],
+            command,
             process_queue_batch.state_branch.PUBLISHER_LOCK_BUSY_STATUS,
         )
 
@@ -433,6 +434,7 @@ class QueueBatchTest(unittest.TestCase):
 
         self.assertEqual("dashboard publisher lock is busy", result["error"])
         self.assertNotIn("/tmp/random", result["error"])
+        self.assertEqual(command, command_error.command)
 
     def test_queue_publisher_lock_does_not_wait(self) -> None:
         with mock.patch.object(

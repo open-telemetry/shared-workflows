@@ -120,10 +120,10 @@ class PublisherLockTest(unittest.TestCase):
 
 
 class PublisherWriteBarrierTest(unittest.TestCase):
-    @patch.object(state_branch, "reset_state", return_value=True)
+    @patch.object(state_branch, "fetch_state_branch", return_value=True)
     @patch.object(
         state_branch,
-        "load_publisher_lock",
+        "load_remote_publisher_lock",
         side_effect=[
             {"owner": "publisher", "expiresAt": 200},
             None,
@@ -131,8 +131,8 @@ class PublisherWriteBarrierTest(unittest.TestCase):
     )
     def test_waits_for_active_publisher_lock(
         self,
-        load_publisher_lock: object,
-        reset_state: object,
+        load_remote_publisher_lock: object,
+        fetch_state_branch: object,
     ) -> None:
         sleeps: list[float] = []
 
@@ -144,25 +144,25 @@ class PublisherWriteBarrierTest(unittest.TestCase):
         )
 
         self.assertEqual([5], sleeps)
-        self.assertEqual(2, load_publisher_lock.call_count)
+        self.assertEqual(2, load_remote_publisher_lock.call_count)
         self.assertEqual(
             [
-                ((Path("state"), "state-branch"),),
-                ((Path("state"), "state-branch"),),
+                (("state-branch",), {"required": False}),
+                (("state-branch",), {"required": False}),
             ],
-            reset_state.call_args_list,
+            fetch_state_branch.call_args_list,
         )
 
-    @patch.object(state_branch, "reset_state")
+    @patch.object(state_branch, "fetch_state_branch", return_value=True)
     @patch.object(
         state_branch,
-        "load_publisher_lock",
+        "load_remote_publisher_lock",
         return_value={"owner": "publisher", "expiresAt": 100},
     )
     def test_expired_publisher_lock_does_not_wait(
         self,
-        _load_publisher_lock: object,
-        reset_state: object,
+        _load_remote_publisher_lock: object,
+        fetch_state_branch: object,
     ) -> None:
         sleeps: list[float] = []
 
@@ -174,18 +174,18 @@ class PublisherWriteBarrierTest(unittest.TestCase):
         )
 
         self.assertEqual([], sleeps)
-        reset_state.assert_called_once_with(Path("state"), "state-branch")
+        fetch_state_branch.assert_called_once_with("state-branch", required=False)
 
-    @patch.object(state_branch, "reset_state", return_value=True)
+    @patch.object(state_branch, "fetch_state_branch", return_value=True)
     @patch.object(
         state_branch,
-        "load_publisher_lock",
+        "load_remote_publisher_lock",
         return_value={"owner": "publisher", "expiresAt": 200},
     )
     def test_active_publisher_lock_times_out(
         self,
-        _load_publisher_lock: object,
-        reset_state: object,
+        _load_remote_publisher_lock: object,
+        fetch_state_branch: object,
     ) -> None:
         with self.assertRaisesRegex(
             TimeoutError,
@@ -197,19 +197,19 @@ class PublisherWriteBarrierTest(unittest.TestCase):
                 wait_seconds=0,
                 now=lambda: 100,
             )
-        reset_state.assert_called_once_with(Path("state"), "state-branch")
+        fetch_state_branch.assert_called_once_with("state-branch", required=False)
 
-    @patch.object(state_branch, "reset_state", return_value=False)
-    @patch.object(state_branch, "load_publisher_lock")
+    @patch.object(state_branch, "fetch_state_branch", return_value=False)
+    @patch.object(state_branch, "load_remote_publisher_lock")
     def test_missing_remote_branch_is_unlocked(
         self,
-        load_publisher_lock: object,
-        reset_state: object,
+        load_remote_publisher_lock: object,
+        fetch_state_branch: object,
     ) -> None:
         state_branch.wait_for_publisher_unlock(Path("state"), "state-branch")
 
-        reset_state.assert_called_once_with(Path("state"), "state-branch")
-        load_publisher_lock.assert_not_called()
+        fetch_state_branch.assert_called_once_with("state-branch", required=False)
+        load_remote_publisher_lock.assert_not_called()
 
     def test_checks_barrier_before_each_cas_attempt(self) -> None:
         lifecycle: list[str] = []

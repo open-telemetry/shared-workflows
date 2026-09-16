@@ -95,6 +95,7 @@ class WorkItem:
 class CommandFailedError(RuntimeError):
     def __init__(self, command: list[str], returncode: int) -> None:
         super().__init__(f"command failed with exit code {returncode}: {' '.join(command)}")
+        self.command = command
         self.returncode = returncode
 
 
@@ -660,7 +661,7 @@ def failure_acknowledgments(
 
 def publisher_lock_acknowledgments(
     claims: tuple[Claim, ...],
-    error: Exception,
+    _error: Exception,
 ) -> list[dict[str, Any]]:
     message = "dashboard publisher lock is busy"
     return [

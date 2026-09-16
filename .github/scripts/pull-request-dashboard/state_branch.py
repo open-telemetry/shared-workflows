@@ -244,8 +244,12 @@ def load_publisher_lock(state_dir: Path) -> PublisherLock | None:
     path = state_dir / PUBLISHER_LOCK_PATH
     if not path.exists():
         return None
+    return parse_publisher_lock(path.read_text(encoding="utf-8"))
+
+
+def parse_publisher_lock(contents: str) -> PublisherLock:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(contents)
     except json.JSONDecodeError as error:
         raise RuntimeError(f"publisher lock is not valid JSON: {error}") from error
     if not isinstance(value, dict):
@@ -262,6 +266,22 @@ def load_publisher_lock(state_dir: Path) -> PublisherLock | None:
     return {"owner": owner, "expiresAt": float(expires_at)}
 
 
+def load_remote_publisher_lock(state_branch: str) -> PublisherLock | None:
+    ref_path = f"{remote_ref(state_branch)}:{PUBLISHER_LOCK_PATH.as_posix()}"
+    proc = subprocess.run(
+        ["git", "show", ref_path],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode == 0:
+        return parse_publisher_lock(proc.stdout)
+    if "does not exist in" in proc.stderr:
+        return None
+    message = proc.stderr.strip() or proc.stdout.strip() or f"exit code {proc.returncode}"
+    raise RuntimeError(f"failed to read publisher lock from {state_branch}: {message}")
+
+
 def wait_for_publisher_unlock(
     state_dir: Path,
     state_branch: str,
@@ -270,15 +290,16 @@ def wait_for_publisher_unlock(
     now: Callable[[], float] = time.time,
     sleep: Callable[[float], None] = time.sleep,
 ) -> None:
+    """Wait for the remote publisher lock without modifying state_dir."""
     if wait_seconds < 0:
         raise ValueError("publisher lock wait must be non-negative")
     deadline = now() + wait_seconds
     announced_owner: str | None = None
     while True:
-        if not reset_state(state_dir, state_branch):
+        if not fetch_state_branch(state_branch, required=False):
             return
         current_time = now()
-        lock = load_publisher_lock(state_dir)
+        lock = load_remote_publisher_lock(state_branch)
         if lock is None or lock["expiresAt"] <= current_time:
             return
         if lock["owner"] != announced_owner:
