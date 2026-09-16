@@ -1375,7 +1375,7 @@
     },
     "3451": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "NimrodAvni78",
         "author_action_review_thread_urls": [],
@@ -1383,7 +1383,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d14e7f7bf74e8ced9907c7bf95ddb3afc0fdb46bffa2daab55727e7de4305a67",
+        "copilot_request_fingerprint": "f1f15574021319e47e2b227c669f4f56dc94016f497f9bbaa2a50fe068b85b9e",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1399,21 +1399,31 @@
         "head_sha": "670cdd3c9205b1ef49c7db0627bb9e54ff61b69f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T10:07:52+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T13:06:49+00:00",
+        "last_approver_activity_at": "2026-09-16T13:06:49+00:00",
         "last_author_activity_at": "2026-09-16T10:04:51+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mariomac",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "032078a8fe4769bf01be25206b24ca43d3cb7a0a0a99c0fcdf7e3e26b07eeee7",
+        "routing_input_fingerprint": "7ac01a1ab74a2e62e22a5e4a840790573ad9af9c57f9221a5596e2d44aaee816",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-16T10:04:51+00:00"
       },
       "failed": false,
       "pr_number": 3451,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3451",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3452": {
