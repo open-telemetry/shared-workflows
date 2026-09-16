@@ -147,13 +147,25 @@ class GitHubClientTest(unittest.TestCase):
 
     def test_stops_before_requesting_at_half_of_limit(self):
         transport = FakeTransport(lambda _url: response({}))
-        client = GitHubClient("token", transport=transport)
+        client = GitHubClient("token", stop_fraction=0.5, transport=transport)
         client._rate = RateSnapshot(limit=5000, remaining=2500, reset=2000000000)
 
         with self.assertRaisesRegex(RateBudgetExhausted, "safety floor"):
             client.get_json("/user")
 
         self.assertEqual([], transport.urls)
+
+    def test_default_budget_stops_only_when_exhausted(self):
+        transport = FakeTransport(lambda _url: response({}))
+        client = GitHubClient("token", transport=transport)
+        client._rate = RateSnapshot(limit=5000, remaining=2500, reset=2000000000)
+
+        client.get_json("/user")
+        self.assertEqual(1, len(transport.urls))
+
+        client._minimum_rate = RateSnapshot(5000, 0, 2000000000)
+        with self.assertRaisesRegex(RateBudgetExhausted, "exhausted"):
+            client.get_json("/another")
 
     def test_does_not_retry_permission_error_as_secondary_limit(self):
         def handler(_url):
@@ -191,7 +203,7 @@ class GitHubClientTest(unittest.TestCase):
         transport = FakeTransport(
             lambda _url: response({}, remaining=next(remaining))
         )
-        client = GitHubClient("token", transport=transport)
+        client = GitHubClient("token", stop_fraction=0.5, transport=transport)
 
         client.get_json("/first")
         client.get_json("/second")

@@ -70,8 +70,7 @@ jobs:
               --state "$DATA_DIRECTORY/state.json" \
               --output-dir "$DATA_DIRECTORY/jobs" \
               --collection-id "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
-              --max-windows "$MAX_WINDOWS" \
-              --rate-stop-fraction 0.5
+              --max-windows "$MAX_WINDOWS"
           )
           echo "$summary" | jq .
           {
@@ -104,7 +103,7 @@ jobs:
       - name: Report rate-limit pause
         if: steps.collect.outputs.paused == 'true'
         run: |
-          echo "::notice::Collection paused at the 50% REST rate-limit safety floor; the next run will resume from the saved checkpoint"
+          echo "::notice::Collection paused after exhausting its REST quota; the next run will resume from the saved checkpoint"
 
       - name: Report failed run retries
         if: steps.collect.outputs.pending_run_failures != '0'

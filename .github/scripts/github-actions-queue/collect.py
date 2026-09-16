@@ -81,15 +81,15 @@ class GitHubClient:
         self,
         token: str,
         *,
-        stop_fraction: float = 0.5,
+        stop_fraction: float = 0.0,
         transport: Transport = _urlopen_transport,
         sleep: Callable[[float], None] = time.sleep,
         max_retries: int = 3,
     ) -> None:
         if not token:
             raise ValueError("a GitHub token is required")
-        if not 0 < stop_fraction < 1:
-            raise ValueError("stop_fraction must be between 0 and 1")
+        if not 0 <= stop_fraction < 1:
+            raise ValueError("stop_fraction must be at least 0 and less than 1")
         self._headers = {
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
@@ -217,6 +217,11 @@ class GitHubClient:
 
     def _budget_message(self) -> str:
         rate = self.minimum_rate
+        if self._stop_fraction == 0:
+            return (
+                f"REST rate limit exhausted: {rate.remaining} remaining of "
+                f"{rate.limit}, reset {rate.reset}"
+            )
         floor = math.ceil(rate.limit * self._stop_fraction)
         return (
             f"REST rate-limit safety floor reached: {rate.remaining} remaining, "
@@ -826,7 +831,7 @@ def main() -> None:
         help="initial UTC cursor when the state file does not exist",
     )
     parser.add_argument("--max-windows", type=int, default=1)
-    parser.add_argument("--rate-stop-fraction", type=float, default=0.5)
+    parser.add_argument("--rate-stop-fraction", type=float, default=0.0)
     args = parser.parse_args()
 
     now = datetime.now(UTC)

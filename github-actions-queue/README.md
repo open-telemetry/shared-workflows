@@ -54,9 +54,8 @@ collections revisit them and emit their jobs only after every returned job is
 terminal. Job listing uses `filter=all`, so all attempts available when the run
 is finalized are retained.
 
-The collector checks the installation's REST quota before doing work and stops
-before making another request once 50% or less remains. It commits the partial
-checkpoint and resumes during the next scheduled run.
+The collector tracks the installation's REST quota. If it exhausts the quota,
+it commits the partial checkpoint and resumes during the next scheduled run.
 
 GitHub limits a filtered workflow-run search to 1,000 results. The collector
 splits busy one-hour windows into smaller ranges until each result can be
@@ -116,8 +115,9 @@ ending `limit`, `remaining`, and `reset` values. The starting snapshot comes
 from the first ordinary API response because GitHub's `/rate_limit` response
 can lag the bucket reported by repository endpoints. The summary also reports
 the lowest remaining fraction observed because GitHub can return fluctuating
-quota headers across sequential public-repository requests. The command applies
-the 50% floor to that conservative low-water mark.
+quota headers across sequential public-repository requests. For local runs with
+a personal token, `--rate-stop-fraction 0.5` restores the conservative 50%
+safety floor.
 
 ## Known REST limitation
 
