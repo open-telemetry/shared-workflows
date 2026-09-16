@@ -1807,15 +1807,15 @@
     },
     "4046": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "drewrelmas",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "ci_failing_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "yes",
-        "copilot_request_fingerprint": "6121706408e87ccc8422618267ae611d34e41f30d6d3a991d9d45d29466b674e",
+        "conflicts": "no",
+        "copilot_request_fingerprint": "bc12fd56be0068dd8457d50f32358437de675cec1fb6d5eb89676bf48a4825d5",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1828,14 +1828,23 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "b6a77f9999635b8caf1c19370146cf90bfd1c190",
+        "head_sha": "58b10dc37c8527111df8bb272aa21ab6954cd6d8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-15T15:50:52+00:00",
-        "last_approver_activity_at": "2026-09-14T21:28:26+00:00",
-        "last_author_activity_at": "2026-09-15T15:50:52+00:00",
+        "last_activity_at": "2026-09-16T17:31:55+00:00",
+        "last_approver_activity_at": "2026-09-16T17:30:45+00:00",
+        "last_author_activity_at": "2026-09-16T17:28:35+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "Dipanshusinghh",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -1844,11 +1853,20 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lalitb",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "20cc743a180a9dc062b055d225acfc611505d496256db7892d9e37e15251259d",
+        "routing_input_fingerprint": "3eb37d4262293fac9935e76e945f2d42c28266576eb9a15ec57aeea0b278d270",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-14T15:39:11+00:00"
       },
