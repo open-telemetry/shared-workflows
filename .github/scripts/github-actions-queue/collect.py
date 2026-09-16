@@ -485,9 +485,7 @@ class QueueCollector:
                 state.window_repositories = []
                 state.completed_repositories = []
                 completed_windows += 1
-            records.extend(
-                self._collect_pending_runs(state, pending_to_retry)
-            )
+            self._collect_pending_runs(state, pending_to_retry, records)
         except RateLimitExhausted:
             return CollectionResult(
                 records=records,
@@ -507,8 +505,8 @@ class QueueCollector:
         self,
         state: CollectorState,
         pending: list[dict[str, Any]],
-    ) -> list[dict[str, Any]]:
-        records: list[dict[str, Any]] = []
+        records: list[dict[str, Any]],
+    ) -> None:
         for item in pending:
             try:
                 run = self._client.get_workflow_run(
@@ -529,7 +527,6 @@ class QueueCollector:
                     state,
                     [_pending_run_failure(item, error, self._now())],
                 )
-        return records
 
     def _collect_repository_window(
         self,
