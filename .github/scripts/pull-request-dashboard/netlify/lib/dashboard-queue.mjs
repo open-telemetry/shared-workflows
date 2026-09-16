@@ -499,7 +499,7 @@ export class DashboardQueue {
       item.leaseOwner = null;
       item.leaseExpiresAt = null;
       item.claimedGeneration = null;
-      if (hasFollowUp) {
+      if (hasFollowUp || outcome !== "retry") {
         item.attempts = 0;
       } else if (outcome === "retry" && retryAfterMs === 0) {
         item.attempts += 1;

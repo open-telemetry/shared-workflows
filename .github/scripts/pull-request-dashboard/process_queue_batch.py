@@ -295,6 +295,7 @@ class DashboardBatchProcessor:
         self.lease_check = lease_check
         self.publisher_lock = publisher_lock
         self.publisher_lock_owner = publisher_lock_owner
+        self._publisher_unlocked_repositories: set[str] = set()
         config = json.loads(config_path.read_text(encoding="utf-8"))
         self.config = {
             entry["name"]: entry
@@ -323,6 +324,8 @@ class DashboardBatchProcessor:
         return matches[0] if matches else None
 
     def _assert_publisher_unlocked(self, repository: str) -> None:
+        if repository in self._publisher_unlocked_repositories:
+            return
         state_branch_name = f"{STATE_BRANCH_PREFIX}/{repository}"
         with state_branch.temporary_state_dir() as state_dir:
             state_branch.configure_git()
@@ -336,6 +339,7 @@ class DashboardBatchProcessor:
                 state_branch_name,
                 wait_seconds=0,
             )
+        self._publisher_unlocked_repositories.add(repository)
 
     def process_repository(
         self,
@@ -658,7 +662,7 @@ def publisher_lock_acknowledgments(
     claims: tuple[Claim, ...],
     error: Exception,
 ) -> list[dict[str, Any]]:
-    message = str(error)
+    message = "dashboard publisher lock is busy"
     return [
         acknowledgment(
             claim,

@@ -532,6 +532,50 @@ test("a dead acknowledgment preserves a dirty follow-up generation", async () =>
     headSha: "",
     triggerEvent: "pull_request",
   });
+
+  test("a terminal acknowledgment gives a dirty generation a fresh attempt budget", async () => {
+    const { queue } = fixture();
+    await queue.enqueue({
+      repository: "example",
+      prNumber: 123,
+      headSha: "",
+      triggerEvent: "pull_request",
+    });
+    const request = await queue.requestDispatcher("request");
+    await queue.activateDispatcher({
+      generation: request.generation,
+      workerId: "worker",
+    });
+    const [firstClaim] = await queue.claimWave({
+      generation: request.generation,
+      workerId: "worker",
+    });
+    await queue.acknowledge({
+      itemKey: firstClaim.itemKey,
+      claimGeneration: firstClaim.claimGeneration,
+      workerId: "worker",
+      outcome: "retry",
+    });
+    const [secondClaim] = await queue.claimWave({
+      generation: request.generation,
+      workerId: "worker",
+    });
+    await queue.enqueue({
+      repository: "example",
+      prNumber: 123,
+      headSha: "",
+      triggerEvent: "status",
+    });
+
+    const result = await queue.acknowledge({
+      itemKey: secondClaim.itemKey,
+      claimGeneration: secondClaim.claimGeneration,
+      workerId: "worker",
+      outcome: "success",
+    });
+
+    assert.deepEqual(result, { status: "follow_up", attempts: 0 });
+  });
   const request = await queue.requestDispatcher("request");
   await queue.activateDispatcher({
     generation: request.generation,

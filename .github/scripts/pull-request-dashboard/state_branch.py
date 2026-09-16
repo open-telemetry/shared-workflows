@@ -275,6 +275,8 @@ def wait_for_publisher_unlock(
     deadline = now() + wait_seconds
     announced_owner: str | None = None
     while True:
+        if not reset_state(state_dir, state_branch):
+            return
         current_time = now()
         lock = load_publisher_lock(state_dir)
         if lock is None or lock["expiresAt"] <= current_time:
@@ -298,11 +300,6 @@ def wait_for_publisher_unlock(
                 lock["expiresAt"] - current_time,
             )
         )
-        if not reset_state(state_dir, state_branch):
-            raise RuntimeError(
-                f"dashboard state branch {state_branch} disappeared while waiting "
-                "for its publisher lock"
-            )
 
 
 def commit_publisher_lock(

@@ -149,6 +149,46 @@ class QueueBatchTest(unittest.TestCase):
 
         run.assert_not_called()
 
+    def test_head_resolution_checks_publisher_lock_once_per_repository(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text("[]", encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config_path,
+                run=mock.Mock(
+                    return_value=subprocess.CompletedProcess(
+                        [],
+                        0,
+                        stdout="[]",
+                        stderr="",
+                    )
+                ),
+            )
+            with mock.patch.object(
+                processor,
+                "_assert_publisher_unlocked",
+                wraps=processor._assert_publisher_unlocked,
+            ) as assert_unlocked:
+                with mock.patch.object(
+                    process_queue_batch.state_branch,
+                    "temporary_state_dir",
+                    return_value=nullcontext(Path(directory)),
+                ), mock.patch.object(
+                    process_queue_batch.state_branch,
+                    "configure_git",
+                ), mock.patch.object(
+                    process_queue_batch.state_branch,
+                    "checkout_state",
+                ), mock.patch.object(
+                    process_queue_batch.state_branch,
+                    "wait_for_publisher_unlock",
+                ) as wait_for_unlock:
+                    processor.resolve_head("example", "a" * 40)
+                    processor.resolve_head("example", "b" * 40)
+
+        self.assertEqual(2, assert_unlocked.call_count)
+        wait_for_unlock.assert_called_once()
+
     def test_prs_are_grouped_sequentially_by_repository(self) -> None:
         items = [
             WorkItem("b", 2, (claim("b#pr:2", "b", pr_number=2),)),
@@ -378,6 +418,21 @@ class QueueBatchTest(unittest.TestCase):
             process_queue_batch.PUBLISHER_LOCK_RETRY_AFTER_MS,
             result["retryAfterMs"],
         )
+        self.assertEqual("dashboard publisher lock is busy", result["error"])
+
+    def test_publisher_lock_command_failure_uses_stable_error(self) -> None:
+        command_error = process_queue_batch.CommandFailedError(
+            ["dashboard.py", "--github-output", "/tmp/random"],
+            process_queue_batch.state_branch.PUBLISHER_LOCK_BUSY_STATUS,
+        )
+
+        [result] = process_queue_batch.publisher_lock_acknowledgments(
+            (claim("example#pr:1", "example", pr_number=1),),
+            command_error,
+        )
+
+        self.assertEqual("dashboard publisher lock is busy", result["error"])
+        self.assertNotIn("/tmp/random", result["error"])
 
     def test_queue_publisher_lock_does_not_wait(self) -> None:
         with mock.patch.object(

@@ -145,7 +145,13 @@ class PublisherWriteBarrierTest(unittest.TestCase):
 
         self.assertEqual([5], sleeps)
         self.assertEqual(2, load_publisher_lock.call_count)
-        reset_state.assert_called_once_with(Path("state"), "state-branch")
+        self.assertEqual(
+            [
+                ((Path("state"), "state-branch"),),
+                ((Path("state"), "state-branch"),),
+            ],
+            reset_state.call_args_list,
+        )
 
     @patch.object(state_branch, "reset_state")
     @patch.object(
@@ -168,8 +174,9 @@ class PublisherWriteBarrierTest(unittest.TestCase):
         )
 
         self.assertEqual([], sleeps)
-        reset_state.assert_not_called()
+        reset_state.assert_called_once_with(Path("state"), "state-branch")
 
+    @patch.object(state_branch, "reset_state", return_value=True)
     @patch.object(
         state_branch,
         "load_publisher_lock",
@@ -178,6 +185,7 @@ class PublisherWriteBarrierTest(unittest.TestCase):
     def test_active_publisher_lock_times_out(
         self,
         _load_publisher_lock: object,
+        reset_state: object,
     ) -> None:
         with self.assertRaisesRegex(
             TimeoutError,
@@ -189,6 +197,19 @@ class PublisherWriteBarrierTest(unittest.TestCase):
                 wait_seconds=0,
                 now=lambda: 100,
             )
+        reset_state.assert_called_once_with(Path("state"), "state-branch")
+
+    @patch.object(state_branch, "reset_state", return_value=False)
+    @patch.object(state_branch, "load_publisher_lock")
+    def test_missing_remote_branch_is_unlocked(
+        self,
+        load_publisher_lock: object,
+        reset_state: object,
+    ) -> None:
+        state_branch.wait_for_publisher_unlock(Path("state"), "state-branch")
+
+        reset_state.assert_called_once_with(Path("state"), "state-branch")
+        load_publisher_lock.assert_not_called()
 
     def test_checks_barrier_before_each_cas_attempt(self) -> None:
         lifecycle: list[str] = []
