@@ -33,12 +33,25 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: List public repositories
+        id: repositories
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo 'names<<EOF'
+            gh api --paginate --method GET /orgs/open-telemetry/repos \
+              -f type=public -f per_page=100 --jq '.[].name'
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: collector-token
         with:
           client-id: ${{ vars.ACTIONS_TELEMETRY_CLIENT_ID }}
           private-key: ${{ secrets.ACTIONS_TELEMETRY_PRIVATE_KEY }}
           owner: open-telemetry
+          repositories: ${{ steps.repositories.outputs.names }}
           permission-actions: read
 
       - name: Check out data branch
