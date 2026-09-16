@@ -20,6 +20,7 @@ from urllib.request import Request, urlopen
 API_ROOT = "https://api.github.com"
 API_VERSION = "2022-11-28"
 PAGE_SIZE = 100
+PENDING_RETRY_BATCH_SIZE = 25
 STATE_VERSION = 1
 USER_AGENT = "open-telemetry-github-actions-queue-collector"
 COLLECTION_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -471,7 +472,16 @@ class QueueCollector:
                 for item in state.pending_runs
                 if item["repository"] in current_repositories
             ]
-            pending_to_retry = list(state.pending_runs)
+            pending_to_retry = sorted(
+                state.pending_runs,
+                key=lambda item: (
+                    item.get("last_attempt_at") or "",
+                    item.get("created_at") or "",
+                    item["repository"],
+                    item["run_id"],
+                ),
+            )[:PENDING_RETRY_BATCH_SIZE]
+            self._collect_pending_runs(state, pending_to_retry, records)
 
             available_until = _floor_hour(self._now())
             while (
@@ -504,7 +514,6 @@ class QueueCollector:
                 state.completed_repositories = []
                 resuming_window = False
                 completed_windows += 1
-            self._collect_pending_runs(state, pending_to_retry, records)
         except RateLimitExhausted:
             return CollectionResult(
                 records=records,
@@ -532,6 +541,10 @@ class QueueCollector:
                     self._org, item["repository"], item["run_id"]
                 )
                 if run.get("status") != "completed":
+                    _merge_pending_runs(
+                        state,
+                        [_pending_run_attempt(item, self._now())],
+                    )
                     continue
                 run_records, terminal = self._collect_completed_run(
                     item["repository"], run
@@ -539,6 +552,11 @@ class QueueCollector:
                 if terminal:
                     records.extend(run_records)
                     _remove_pending_run(state, item)
+                else:
+                    _merge_pending_runs(
+                        state,
+                        [_pending_run_attempt(item, self._now())],
+                    )
             except RateLimitExhausted:
                 raise
             except ApiError as error:
@@ -614,6 +632,16 @@ def _pending_run_failure(
         **item,
         "failures": int(item.get("failures") or 0) + 1,
         "last_error": str(error)[:1000],
+        "last_attempt_at": _format_instant(attempted_at),
+    }
+
+
+def _pending_run_attempt(
+    item: dict[str, Any],
+    attempted_at: datetime,
+) -> dict[str, Any]:
+    return {
+        **item,
         "last_attempt_at": _format_instant(attempted_at),
     }
 

@@ -426,6 +426,90 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual([10], [record["job_id"] for record in result.records])
         self.assertEqual([], state.pending_runs)
 
+    def test_retries_pending_runs_before_window_collection_can_pause(self):
+        client = FakeClient()
+        client.pause_on_repo = "a"
+        client.completed_runs[("a", 9)] = {
+            "id": 9,
+            "name": "CI",
+            "workflow_id": 1,
+            "run_attempt": 1,
+            "created_at": "2026-09-14T23:00:00Z",
+            "status": "completed",
+            "event": "push",
+            "head_repository": {"full_name": "open-telemetry/a"},
+        }
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(
+            cursor="2026-09-15T00:00:00Z",
+            pending_runs=[{
+                "repository": "a",
+                "run_id": 9,
+                "created_at": "2026-09-14T23:00:00Z",
+            }],
+        )
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertTrue(result.paused)
+        self.assertEqual([10], [record["job_id"] for record in result.records])
+        self.assertEqual([], state.pending_runs)
+
+    def test_retries_never_attempted_pending_runs_first(self):
+        class TrackingClient(FakeClient):
+            def __init__(self):
+                super().__init__()
+                self.retried = []
+
+            def get_workflow_run(self, org, repository, run_id):
+                self.retried.append(run_id)
+                return {
+                    "id": run_id,
+                    "status": "in_progress",
+                }
+
+        client = TrackingClient()
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(
+            cursor="2026-09-15T01:00:00Z",
+            pending_runs=[
+                {
+                    "repository": "a",
+                    "run_id": 1,
+                    "created_at": "2026-09-14T23:00:00Z",
+                    "last_attempt_at": "2026-09-15T00:30:00Z",
+                },
+                *[
+                    {
+                        "repository": "a",
+                        "run_id": run_id,
+                        "created_at": "2026-09-14T23:00:00Z",
+                    }
+                    for run_id in range(2, 27)
+                ],
+            ],
+        )
+
+        collector.collect(state, selected_repositories=["a"])
+
+        self.assertEqual(list(range(2, 27)), client.retried)
+        self.assertEqual(
+            "2026-09-15T00:30:00Z",
+            next(
+                item["last_attempt_at"]
+                for item in state.pending_runs
+                if item["run_id"] == 1
+            ),
+        )
+
     def test_checkpoints_pending_runs_before_rate_limit_pause(self):
         class PausingClient(FakeClient):
             def get_workflow_run(self, org, repository, run_id):
