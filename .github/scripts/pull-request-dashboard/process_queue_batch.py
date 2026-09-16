@@ -15,10 +15,10 @@ from pathlib import Path
 from typing import Any
 
 from queue_worker_client import QueueWorkerClient, acknowledge_results
+import state_branch as state_branch_git
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OWNER = "open-telemetry"
-STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-state"
 MAX_ATTEMPTS = 3
 
 
@@ -326,7 +326,7 @@ class DashboardBatchProcessor:
             "SLACK_CHANNEL": config.get("slack_channel", ""),
             "SLACK_USER_MAP_JSON": json.dumps(config.get("slack_user_mapping", {})),
         }
-        state_branch = f"{STATE_BRANCH_PREFIX}/{repository}"
+        state_branch = f"{state_branch_git.STATE_BRANCH_PREFIX}/{repository}"
         results: list[dict[str, Any]] = []
         ready: list[WorkItem] = []
 
@@ -453,11 +453,7 @@ class DashboardBatchProcessor:
                         "--state-branch",
                         state_branch,
                         "--delivery-state-branch",
-                        state_branch.replace(
-                            "otelbot/pull-request-dashboard-state/",
-                            "otelbot/pull-request-dashboard-delivery/",
-                            1,
-                        ),
+                        state_branch_git.delivery_state_branch(state_branch),
                         "--repo",
                         repository,
                         "--pr-number",

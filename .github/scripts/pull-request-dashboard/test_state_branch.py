@@ -9,6 +9,31 @@ from unittest.mock import patch
 import state_branch
 
 
+def run_git(directory: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=directory,
+        check=True,
+        capture_output=True,
+        text=True,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+
+
+class DeliveryStateBranchTest(unittest.TestCase):
+    def test_maps_accepted_state_branch_to_delivery_branch(self) -> None:
+        self.assertEqual(
+            "otelbot/pull-request-dashboard-delivery/open-telemetry/example",
+            state_branch.delivery_state_branch(
+                "otelbot/pull-request-dashboard-state/open-telemetry/example"
+            ),
+        )
+
+    def test_rejects_unexpected_state_branch(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must start with"):
+            state_branch.delivery_state_branch("custom/dashboard-state/example")
+
+
 class TemporaryStateDirTest(unittest.TestCase):
     @patch.object(state_branch, "remove_existing_state_dir")
     def test_removes_registered_worktree_before_temporary_directory(
@@ -82,6 +107,63 @@ class LegacyPublisherLockCleanupTest(unittest.TestCase):
             )
 
         self.assertEqual(1, status)
+
+    @patch.object(state_branch, "push_state")
+    @patch.object(state_branch, "checkout_state")
+    @patch.object(state_branch, "configure_git")
+    def test_narrow_update_commits_legacy_lock_deletion(
+        self,
+        _configure_git: object,
+        _checkout_state: object,
+        push_state: object,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_dir = Path(directory)
+            repo_dir = state_dir / "open-telemetry" / "example"
+            repo_dir.mkdir(parents=True)
+            lock = state_dir / ".publisher-lock.json"
+            lock.write_text('{"owner":"old-publisher"}\n', encoding="utf-8")
+            state_file = repo_dir / "dashboard-state.json"
+            state_file.write_text('{"revision":1}\n', encoding="utf-8")
+            run_git(state_dir, "init")
+            run_git(state_dir, "config", "user.email", "test@example.com")
+            run_git(state_dir, "config", "user.name", "Test")
+            run_git(state_dir, "add", ".")
+            run_git(state_dir, "commit", "-m", "Initial state")
+
+            def update_state() -> int:
+                self.assertFalse(lock.exists())
+                state_file.write_text('{"revision":2}\n', encoding="utf-8")
+                return 0
+
+            def inspect_pushed_commit(_state_dir: Path, _state_branch: str) -> bool:
+                changed_paths = run_git(
+                    state_dir,
+                    "diff-tree",
+                    "--no-commit-id",
+                    "--name-status",
+                    "-r",
+                    "HEAD",
+                ).stdout.splitlines()
+                self.assertIn("D\t.publisher-lock.json", changed_paths)
+                self.assertIn(
+                    "M\topen-telemetry/example/dashboard-state.json",
+                    changed_paths,
+                )
+                self.assertFalse(lock.exists())
+                return True
+
+            push_state.side_effect = inspect_pushed_commit
+            status = state_branch.push_state_changes(
+                state_dir,
+                "Update dashboard state",
+                update_state,
+                state_branch="state-branch",
+                add_paths=["open-telemetry/example"],
+            )
+
+        self.assertEqual(0, status)
+        push_state.assert_called_once_with(state_dir, "state-branch")
 
 
 class FetchStateBranchTest(unittest.TestCase):

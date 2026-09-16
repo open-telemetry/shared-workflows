@@ -23,6 +23,20 @@ DEFAULT_MAX_ATTEMPTS = 8
 RETRY_BACKOFF_BASE_SECONDS = 0.5
 RETRY_BACKOFF_MAX_SECONDS = 8.0
 CONFIG_LOCK_ATTEMPTS = 5
+STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-state"
+DELIVERY_STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-delivery"
+
+
+def delivery_state_branch(state_branch: str) -> str:
+    accepted_prefix = f"{STATE_BRANCH_PREFIX}/"
+    if not state_branch.startswith(accepted_prefix):
+        raise ValueError(
+            f"accepted state branch must start with {accepted_prefix}: {state_branch}"
+        )
+    repository = state_branch.removeprefix(accepted_prefix)
+    if not repository:
+        raise ValueError(f"accepted state branch is missing a repository: {state_branch}")
+    return f"{DELIVERY_STATE_BRANCH_PREFIX}/{repository}"
 
 
 @contextmanager
@@ -252,6 +266,15 @@ def push_state_changes(
             return status
 
         run(["git", "add", "--", *paths_to_add], cwd=state_dir)
+        if run(
+            ["git", "diff", "--quiet", "--", ".publisher-lock.json"],
+            cwd=state_dir,
+            check=False,
+        ).returncode != 0:
+            run(
+                ["git", "add", "--update", "--", ".publisher-lock.json"],
+                cwd=state_dir,
+            )
         if run(["git", "diff", "--cached", "--quiet"], cwd=state_dir, check=False).returncode == 0:
             print("no state changes to push", file=sys.stderr)
             return 0

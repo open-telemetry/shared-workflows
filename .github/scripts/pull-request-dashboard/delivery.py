@@ -245,11 +245,7 @@ def deliver_with_state(
         deliver,
         state_branch=(
             delivery_state_branch_name
-            or state_branch_name.replace(
-                "otelbot/pull-request-dashboard-state/",
-                "otelbot/pull-request-dashboard-delivery/",
-                1,
-            )
+            or state_branch.delivery_state_branch(state_branch_name)
         ),
         add_paths=[repo_key],
         retry_snapshots=[

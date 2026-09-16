@@ -420,7 +420,7 @@ class DeliveryTest(unittest.TestCase):
             github_output = Path(temp_dir) / "github-output"
             status = delivery.deliver_with_state(
                 "open-telemetry/example",
-                "dashboard-state",
+                "otelbot/pull-request-dashboard-state/example",
                 Path("state"),
                 github_output=github_output,
             )
@@ -430,6 +430,10 @@ class DeliveryTest(unittest.TestCase):
         claim_delivery_versions.assert_called_once_with()
         deliver_from_state.assert_not_called()
         self.assertEqual("active=false\n", github_output_text)
+        self.assertEqual(
+            "otelbot/pull-request-dashboard-delivery/example",
+            push_state_changes.call_args.kwargs["state_branch"],
+        )
 
 
 if __name__ == "__main__":
