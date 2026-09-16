@@ -600,7 +600,7 @@
     },
     "5209": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "matt-hensley",
         "author_action_review_thread_urls": [],
@@ -608,7 +608,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a391f7dec9beb0cab7dccdbfa42d227164ace13e9c4dc92407228c340b8b23c1",
+        "copilot_request_fingerprint": "94513bba9431d3bbf31c6198cc1b338204b1dca24f9b70280c01165484270bb4",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -624,21 +624,31 @@
         "head_sha": "26bcec0c211e6950957cbe82b9893caaa9cc946c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-15T18:23:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T10:37:10+00:00",
+        "last_approver_activity_at": "2026-09-16T10:37:10+00:00",
         "last_author_activity_at": "2026-09-15T18:23:06+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8dcedcb4a2e8ddf8c33869b530cbbf356c4c66e3b69045493dfa9cd8e31daf92",
+        "routing_input_fingerprint": "be756cfff49c3391ea415c9d003515ced99989c86b811231f15acbec3782b61d",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-15T18:23:06+00:00"
       },
       "failed": false,
       "pr_number": 5209,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5209",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5212": {
