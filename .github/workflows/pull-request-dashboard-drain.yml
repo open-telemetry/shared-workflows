@@ -10,10 +10,9 @@ on:
 
 permissions: {}
 
-# One checkout serves every claimed repository, so the drain always runs the
-# dashboard scripts from this repository's default branch. Stable repositories
-# enter the queue only while that code and the promoted release advertise the
-# same delivery versions.
+# One checkout serves every claimed repository. Canary claims run the dashboard
+# code from the default branch; stable claims are handed to the targeted
+# workflow, which runs the promoted repository workflow and scripts.
 concurrency:
   group: pull-request-dashboard-queue-drain
   cancel-in-progress: false
@@ -22,6 +21,7 @@ jobs:
   drain:
     if: github.repository == 'open-telemetry/shared-workflows'
     permissions:
+      actions: write
       contents: write
       copilot-requests: write
       id-token: write
@@ -42,52 +42,6 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-
-      - name: Resolve queue rollout mode
-        run: |
-          set -euo pipefail
-          queue_mode=canary
-          mapfile -t stable_refs < <(
-            sed -nE \
-              's#^[[:space:]]*uses: open-telemetry/shared-workflows/\.github/workflows/pull-request-dashboard-repo\.yml@([0-9a-f]{40}).*$#\1#p' \
-              .github/workflows/pull-request-dashboard.yml |
-              sort -u
-          )
-          if [[ "${#stable_refs[@]}" -gt 1 ]]; then
-            echo "::error::Stable dashboard jobs use different workflow refs"
-            exit 1
-          fi
-          if [[ "${#stable_refs[@]}" -eq 1 ]]; then
-            stable_ref="${stable_refs[0]}"
-            if git fetch --no-tags --depth=1 origin "$stable_ref" &&
-              stable_workflow=$(git show "$stable_ref:.github/workflows/pull-request-dashboard-repo.yml"); then
-              stable_queue_ready=true
-              for requirement in acquire-publisher-lock release-publisher-lock "timeout-minutes: 50"; do
-                if ! grep -Fq -- "$requirement" <<< "$stable_workflow"; then
-                  echo "::notice::Stable dashboard workflow $stable_ref lacks $requirement; using canary queue mode"
-                  stable_queue_ready=false
-                fi
-              done
-              if [[ "$stable_queue_ready" == "true" ]]; then
-                stable_state="$RUNNER_TEMP/stable-dashboard-state.py"
-                if git show "$stable_ref:.github/scripts/pull-request-dashboard/state.py" > "$stable_state"; then
-                  if resolved_queue_mode=$(python3 .github/scripts/pull-request-dashboard/queue_rollout.py \
-                    --current-state .github/scripts/pull-request-dashboard/state.py \
-                    --stable-state "$stable_state"); then
-                    queue_mode="$resolved_queue_mode"
-                  else
-                    echo "::warning::Could not compare dashboard delivery versions; using canary queue mode"
-                  fi
-                else
-                  echo "::warning::Promoted dashboard state code is unavailable; using canary queue mode"
-                fi
-              fi
-            else
-              echo "::warning::Promoted dashboard workflow is unavailable; using canary queue mode"
-            fi
-          fi
-          echo "DASHBOARD_QUEUE_MODE=$queue_mode" >> "$GITHUB_ENV"
-          echo "Pull request dashboard queue mode: $queue_mode"
 
       - name: Activate queue dispatcher
         id: activate
@@ -147,7 +101,6 @@ jobs:
             --generation "$DISPATCHER_GENERATION" \
             --worker "$WORKER_ID" \
             --endpoint "$PR_DASHBOARD_QUEUE_ENDPOINT" \
-            --queue-mode "$DASHBOARD_QUEUE_MODE" \
             --canary-repositories-json "$CANARY_REPOSITORIES"
 
       - name: Save classification cache

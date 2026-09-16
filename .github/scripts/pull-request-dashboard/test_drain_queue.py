@@ -11,12 +11,12 @@ from unittest import mock
 
 import drain_queue
 from drain_queue import (
+    DASHBOARD_WORKFLOW_DISPATCH_URL,
+    DashboardWorkflowDispatcher,
     DrainResult,
     GitHubAppTokenClient,
     WaveResult,
-    acknowledge_bypassed_claims,
     drain_queue as run_drain,
-    partition_claims_for_queue_mode,
     process_claim_wave,
     process_repository_claims,
     unresolved_acknowledgments,
@@ -29,45 +29,6 @@ def claim(item_key: str, *, attempts: int = 0) -> Claim:
 
 
 class DrainQueueTest(unittest.TestCase):
-    def test_canary_mode_bypasses_stable_repository_claims(self) -> None:
-        canary = Claim("canary#pr:1", 1, "canary", 1, "", 0)
-        stable = Claim("stable#pr:1", 1, "stable", 1, "", 0)
-
-        self.assertEqual(
-            partition_claims_for_queue_mode(
-                [stable, canary],
-                "canary",
-                frozenset({"canary"}),
-            ),
-            ([canary], [stable]),
-        )
-        self.assertEqual(
-            partition_claims_for_queue_mode(
-                [stable, canary],
-                "all",
-                frozenset({"canary"}),
-            ),
-            ([stable, canary], []),
-        )
-
-    def test_bypassed_claims_are_acknowledged_without_retry(self) -> None:
-        client = mock.Mock()
-        client.call.return_value = {"status": "success"}
-        stable = Claim("stable#pr:1", 4, "stable", 1, "", 0)
-
-        acknowledge_bypassed_claims([stable], client, 7, "worker")
-
-        client.call.assert_called_once_with(
-            "acknowledge",
-            itemKey="stable#pr:1",
-            claimGeneration=4,
-            outcome="success",
-            error="",
-            retryAfterMs=0,
-            generation=7,
-            workerId="worker",
-        )
-
     def test_stops_without_claiming_when_initial_queue_is_empty(self) -> None:
         claim_wave = mock.Mock()
         process_wave = mock.Mock()
@@ -213,10 +174,8 @@ class DrainQueueTest(unittest.TestCase):
                 "worker",
                 "--endpoint",
                 "https://example.test/queue",
-                "--queue-mode",
-                "all",
                 "--canary-repositories-json",
-                '["canary"]',
+                '["example"]',
             ]
             with (
                 mock.patch.object(drain_queue, "QueueWorkerClient", return_value=client),
@@ -230,6 +189,7 @@ class DrainQueueTest(unittest.TestCase):
                 mock.patch.dict(
                     os.environ,
                     {
+                        "GITHUB_TOKEN": "actions-token",
                         "PR_DASHBOARD_CLIENT_ID": "client",
                         "PR_DASHBOARD_PRIVATE_KEY": "private-key",
                     },
@@ -250,6 +210,57 @@ class DrainQueueTest(unittest.TestCase):
                 }
             ],
         )
+
+
+class WorkflowDispatcherTest(unittest.TestCase):
+    def test_dispatches_the_coalesced_claim_to_the_targeted_workflow(self) -> None:
+        requests: list[tuple[object, int]] = []
+
+        class Response:
+            status = 204
+
+            def __enter__(self) -> Response:
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                pass
+
+        def open_request(request: object, timeout: int) -> Response:
+            requests.append((request, timeout))
+            return Response()
+
+        dispatcher = DashboardWorkflowDispatcher(
+            "actions-token",
+            opener=open_request,
+        )
+        dispatcher.dispatch(
+            Claim(
+                "stable#pr:7",
+                3,
+                "stable",
+                7,
+                "",
+                0,
+                ("pull_request_review", "status"),
+            )
+        )
+
+        request, timeout = requests[0]
+        self.assertEqual(request.full_url, DASHBOARD_WORKFLOW_DISPATCH_URL)
+        self.assertEqual(timeout, 30)
+        self.assertEqual(
+            json.loads(request.data),
+            {
+                "ref": "main",
+                "inputs": {
+                    "repository": "stable",
+                    "pr_number": "7",
+                    "head_sha": "",
+                    "trigger_event": "pull_request_review",
+                },
+            },
+        )
+        self.assertEqual(request.get_header("Authorization"), "Bearer actions-token")
 
 
 class TokenClientTest(unittest.TestCase):
@@ -286,6 +297,74 @@ class TokenClientTest(unittest.TestCase):
 
 
 class ProcessClaimWaveTest(unittest.TestCase):
+    def test_dispatches_stable_claim_without_minting_a_target_token(self) -> None:
+        client = mock.Mock()
+        client.call.return_value = {"dispatcher": True}
+        token_client = mock.Mock()
+        dispatched: list[str] = []
+        stable = Claim(
+            "stable#pr:7",
+            3,
+            "stable",
+            7,
+            "",
+            0,
+            ("pull_request_review",),
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            result = process_claim_wave(
+                [stable],
+                Path(directory) / "results.json",
+                client,
+                1,
+                "worker",
+                token_client,
+                canary_repositories=frozenset({"canary"}),
+                dispatch_stable=lambda item: dispatched.append(item.item_key),
+                report_limits=lambda *_args, **_kwargs: None,
+            )
+
+        self.assertEqual(dispatched, ["stable#pr:7"])
+        token_client.mint.assert_not_called()
+        self.assertEqual(result, WaveResult(0, ()))
+        acknowledgment = next(
+            call
+            for call in client.call.call_args_list
+            if call.args == ("acknowledge",)
+        )
+        self.assertEqual(acknowledgment.kwargs["itemKey"], "stable#pr:7")
+        self.assertEqual(acknowledgment.kwargs["outcome"], "success")
+
+    def test_retries_stable_claim_when_workflow_dispatch_fails(self) -> None:
+        client = mock.Mock()
+        client.call.return_value = {"dispatcher": True}
+
+        def fail_dispatch(_claim: Claim) -> None:
+            raise RuntimeError("dispatch unavailable")
+
+        with tempfile.TemporaryDirectory() as directory:
+            result = process_claim_wave(
+                [Claim("stable#pr:7", 3, "stable", 7, "", 0)],
+                Path(directory) / "results.json",
+                client,
+                1,
+                "worker",
+                mock.Mock(),
+                canary_repositories=frozenset({"canary"}),
+                dispatch_stable=fail_dispatch,
+                report_limits=lambda *_args, **_kwargs: None,
+            )
+
+        self.assertEqual(result, WaveResult(0, ("stable#pr:7",)))
+        acknowledgment = next(
+            call
+            for call in client.call.call_args_list
+            if call.args == ("acknowledge",)
+        )
+        self.assertEqual(acknowledgment.kwargs["outcome"], "retry")
+        self.assertIn("dispatch unavailable", acknowledgment.kwargs["error"])
+
     def test_dead_letters_exhausted_claim_when_token_creation_fails(self) -> None:
         class TokenClient:
             def mint(self, _repositories: list[str]) -> str:
@@ -383,6 +462,8 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 1,
                 "worker",
                 token_client,
+                canary_repositories=frozenset({"removed", "valid"}),
+                dispatch_stable=mock.Mock(),
                 report_limits=lambda *_args, **_kwargs: None,
             )
 
@@ -433,6 +514,8 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 1,
                 "worker",
                 token_client,
+                canary_repositories=frozenset({"example"}),
+                dispatch_stable=mock.Mock(),
                 report_limits=lambda threshold, token: lifecycle.append(
                     f"report:{threshold}:{token}"
                 ),

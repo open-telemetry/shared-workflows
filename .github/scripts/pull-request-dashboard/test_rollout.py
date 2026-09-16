@@ -211,9 +211,7 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertIn("DRAIN_PROCESSING_DEADLINE", body)
         self.assertIn("drain_queue.py", body)
         self.assertNotIn("actions/create-github-app-token@", body)
-        self.assertIn("queue_rollout.py", body)
-        self.assertIn("acquire-publisher-lock release-publisher-lock", body)
-        self.assertIn('--queue-mode "$DASHBOARD_QUEUE_MODE"', body)
+        self.assertIn("      actions: write", body)
         self.assertIn('--canary-repositories-json "$CANARY_REPOSITORIES"', body)
         drain_canary = re.search(
             r"^ {6}CANARY_REPOSITORIES: '(\[[^']*\])'$",
@@ -226,33 +224,15 @@ class RolloutWiringTest(unittest.TestCase):
     def test_webhook_deployment_automates_queue_rollout(self) -> None:
         body = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("      - .github/workflows/pull-request-dashboard.yml", body)
-        self.assertIn(
-            "      - .github/scripts/pull-request-dashboard/queue_rollout.py",
-            body,
-        )
-        self.assertIn(
-            "      - .github/scripts/pull-request-dashboard/state.py",
-            body,
-        )
         self.assertNotIn("vars.PR_DASHBOARD_QUEUE_MODE", body)
-        self.assertIn("queue_mode=canary", body)
-        self.assertIn("acquire-publisher-lock release-publisher-lock", body)
-        self.assertIn("queue_rollout.py", body)
-        canary_default = body.index("queue_mode=canary")
-        stable_guard = body.index("stable_queue_ready=true")
-        delivery_guard = body.index("queue_rollout.py", stable_guard)
-        compatible_selection = body.index(
-            'queue_mode="$resolved_queue_mode"',
-            delivery_guard,
-        )
+        self.assertIn("queue_mode=all", body)
+        self.assertNotIn("stable_queue_ready", body)
+        queue_selection = body.index("queue_mode=all")
         environment_remove = body.index("env:unset PR_DASHBOARD_QUEUE_MODE")
         environment_write = body.index(
             'env:set PR_DASHBOARD_QUEUE_MODE "$queue_mode"'
         )
-        self.assertLess(canary_default, stable_guard)
-        self.assertLess(stable_guard, delivery_guard)
-        self.assertLess(delivery_guard, compatible_selection)
-        self.assertLess(compatible_selection, environment_remove)
+        self.assertLess(queue_selection, environment_remove)
         self.assertLess(environment_remove, environment_write)
 
 

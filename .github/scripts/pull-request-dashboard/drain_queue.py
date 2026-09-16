@@ -7,6 +7,8 @@ import os
 import subprocess
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -33,6 +35,10 @@ MAXIMUM_EXCLUSIONS = 500
 MAXIMUM_EXCLUSION_BYTES = 60 * 1024
 MAXIMUM_REPOSITORIES = 4
 TOKEN_HELPER = SCRIPT_DIR / "github_app_token.mjs"
+DASHBOARD_WORKFLOW_DISPATCH_URL = (
+    "https://api.github.com/repos/open-telemetry/shared-workflows/"
+    "actions/workflows/pull-request-dashboard.yml/dispatches"
+)
 
 
 @dataclass(frozen=True)
@@ -151,6 +157,60 @@ class GitHubAppTokenClient:
         return result
 
 
+class DashboardWorkflowDispatcher:
+    def __init__(
+        self,
+        token: str,
+        *,
+        opener: Callable[..., Any] = urllib.request.urlopen,
+    ) -> None:
+        if not token:
+            raise ValueError("GITHUB_TOKEN is required to dispatch stable dashboard work")
+        self.token = token
+        self.opener = opener
+
+    def dispatch(self, claim: Claim) -> None:
+        payload = json.dumps(
+            {
+                "ref": "main",
+                "inputs": {
+                    "repository": claim.repository,
+                    "pr_number": str(claim.pr_number or ""),
+                    "head_sha": claim.head_sha,
+                    "trigger_event": (
+                        claim.trigger_events[0]
+                        if claim.trigger_events
+                        else "pull_request"
+                    ),
+                },
+            }
+        ).encode()
+        request = urllib.request.Request(
+            DASHBOARD_WORKFLOW_DISPATCH_URL,
+            data=payload,
+            method="POST",
+            headers={
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json",
+                "User-Agent": "pull-request-dashboard-queue-drain",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+        )
+        try:
+            with self.opener(request, timeout=30) as response:
+                if response.status != 204:
+                    raise RuntimeError(
+                        "dashboard workflow dispatch returned "
+                        f"unexpected HTTP status {response.status}"
+                    )
+        except urllib.error.HTTPError as error:
+            body = error.read().decode("utf-8", errors="replace")[:1000]
+            raise RuntimeError(
+                f"dashboard workflow dispatch failed with HTTP {error.code}: {body}"
+            ) from error
+
+
 def child_process_environment() -> dict[str, str]:
     return {
         name: value
@@ -194,44 +254,6 @@ def read_results(path: Path) -> list[dict[str, Any]]:
     return value
 
 
-def partition_claims_for_queue_mode(
-    claims: list[Claim],
-    queue_mode: str,
-    canary_repositories: frozenset[str],
-) -> tuple[list[Claim], list[Claim]]:
-    if queue_mode == "all":
-        return claims, []
-    if queue_mode != "canary":
-        raise ValueError(f"unsupported dashboard queue mode: {queue_mode}")
-    queued = [
-        claim for claim in claims if claim.repository in canary_repositories
-    ]
-    bypassed = [
-        claim for claim in claims if claim.repository not in canary_repositories
-    ]
-    return queued, bypassed
-
-
-def acknowledge_bypassed_claims(
-    claims: list[Claim],
-    client: QueueWorkerClient,
-    generation: int,
-    worker_id: str,
-) -> None:
-    if not claims:
-        return
-    print(
-        "::notice::Skipping queued stable dashboard claims because "
-        "the promoted release has different delivery versions: "
-        + ", ".join(claim.item_key for claim in claims)
-    )
-    acknowledge_results(
-        client,
-        [acknowledgment(claim, "success") for claim in claims],
-        {"generation": generation, "workerId": worker_id},
-    )
-
-
 def process_claim_wave(
     claims: list[Claim],
     results_path: Path,
@@ -240,11 +262,17 @@ def process_claim_wave(
     worker_id: str,
     token_client: GitHubAppTokenClient,
     *,
+    canary_repositories: frozenset[str],
+    dispatch_stable: Callable[[Claim], None],
     report_limits: Callable[..., None] = report_rate_limits,
 ) -> WaveResult:
     claims_by_repository: dict[str, list[Claim]] = defaultdict(list)
+    stable_claims: list[Claim] = []
     for claim in claims:
-        claims_by_repository[claim.repository].append(claim)
+        if claim.repository in canary_repositories:
+            claims_by_repository[claim.repository].append(claim)
+        else:
+            stable_claims.append(claim)
 
     monitor = LeaseMonitor(client, generation, worker_id)
     try:
@@ -267,6 +295,21 @@ def process_claim_wave(
     results: list[dict[str, Any]] = []
     failures: dict[str, Exception] = {}
     try:
+        stable_results: list[dict[str, Any]] = []
+        for claim in stable_claims:
+            try:
+                dispatch_stable(claim)
+            except Exception as error:
+                stable_results.extend(failure_acknowledgments((claim,), error))
+            else:
+                stable_results.append(acknowledgment(claim, "success"))
+        acknowledge_results(
+            client,
+            stable_results,
+            {"generation": generation, "workerId": worker_id},
+        )
+        results.extend(stable_results)
+
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=MAXIMUM_REPOSITORIES
         ) as executor:
@@ -377,7 +420,6 @@ def main() -> int:
     parser.add_argument("--generation", type=int, required=True)
     parser.add_argument("--worker", required=True)
     parser.add_argument("--endpoint", required=True)
-    parser.add_argument("--queue-mode", choices=("all", "canary"), required=True)
     parser.add_argument("--canary-repositories-json", required=True)
     args = parser.parse_args()
 
@@ -392,6 +434,9 @@ def main() -> int:
     client = QueueWorkerClient(args.endpoint)
     client_id, private_key = take_github_app_credentials()
     token_client = GitHubAppTokenClient(client_id, private_key)
+    workflow_dispatcher = DashboardWorkflowDispatcher(
+        os.environ.get("GITHUB_TOKEN", "")
+    )
     with tempfile.TemporaryDirectory(prefix="dashboard-waves-") as directory:
         temporary_directory = Path(directory)
 
@@ -406,26 +451,15 @@ def main() -> int:
             return parse_claims(response.get("claims"))
 
         def process_wave(claims: list[Claim], wave: int) -> WaveResult:
-            queued, bypassed = partition_claims_for_queue_mode(
-                claims,
-                args.queue_mode,
-                canary_repositories,
-            )
-            acknowledge_bypassed_claims(
-                bypassed,
-                client,
-                args.generation,
-                args.worker,
-            )
-            if not queued:
-                return WaveResult(0, ())
             return process_claim_wave(
-                queued,
+                claims,
                 temporary_directory / f"results-{wave}.json",
                 client,
                 args.generation,
                 args.worker,
                 token_client,
+                canary_repositories=canary_repositories,
+                dispatch_stable=workflow_dispatcher.dispatch,
             )
 
         result = drain_queue(

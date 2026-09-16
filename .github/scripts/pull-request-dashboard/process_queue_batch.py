@@ -82,6 +82,7 @@ class Claim:
     pr_number: int | None
     head_sha: str
     attempts: int
+    trigger_events: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -109,6 +110,7 @@ def parse_claims(raw: Any) -> list[Claim]:
             pr_number=optional_positive_int(value.get("prNumber"), "prNumber"),
             head_sha=value.get("headSha") or "",
             attempts=non_negative_int(value.get("attempts", 0), "attempts"),
+            trigger_events=string_tuple(value.get("triggerEvents"), "triggerEvents"),
         )
         if (claim.pr_number is None) == (not claim.head_sha):
             raise ValueError(f"claim {claim.item_key} must identify one PR or head SHA")
@@ -618,6 +620,16 @@ def non_negative_int(value: Any, name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < 0:
         raise ValueError(f"{name} must be a non-negative integer")
     return value
+
+
+def string_tuple(value: Any, name: str) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list) or any(
+        not isinstance(item, str) or not item for item in value
+    ):
+        raise ValueError(f"{name} must be an array of non-empty strings")
+    return tuple(value)
 
 
 def main() -> int:

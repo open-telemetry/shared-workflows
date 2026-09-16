@@ -66,13 +66,27 @@ class QueueBatchTest(unittest.TestCase):
                             "repository": "example",
                             "prNumber": 1,
                             "headSha": "",
+                            "triggerEvents": ["pull_request", "status"],
                             "attempts": 0,
                         }
                     ]
                 ),
                 encoding="utf-8",
             )
-            self.assertEqual(load_claims(path), [claim("example#pr:1", "example", pr_number=1)])
+            self.assertEqual(
+                load_claims(path),
+                [
+                    Claim(
+                        "example#pr:1",
+                        1,
+                        "example",
+                        1,
+                        "",
+                        0,
+                        ("pull_request", "status"),
+                    )
+                ],
+            )
 
     def test_head_and_pr_claims_collapse_to_one_work_item(self) -> None:
         claims = [
