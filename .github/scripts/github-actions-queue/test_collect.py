@@ -475,7 +475,7 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual([10], [record["job_id"] for record in result.records])
         self.assertEqual([], state.pending_runs)
 
-    def test_retries_never_attempted_pending_runs_first(self):
+    def test_retries_old_attempted_run_before_new_unattempted_runs(self):
         class TrackingClient(FakeClient):
             def __init__(self):
                 super().__init__()
@@ -500,14 +500,14 @@ class QueueCollectorTest(unittest.TestCase):
                 {
                     "repository": "a",
                     "run_id": 1,
-                    "created_at": "2026-09-14T23:00:00Z",
+                    "created_at": "2026-09-14T22:00:00Z",
                     "last_attempt_at": "2026-09-15T00:30:00Z",
                 },
                 *[
                     {
                         "repository": "a",
                         "run_id": run_id,
-                        "created_at": "2026-09-14T23:00:00Z",
+                        "created_at": "2026-09-15T00:45:00Z",
                     }
                     for run_id in range(2, 27)
                 ],
@@ -516,14 +516,10 @@ class QueueCollectorTest(unittest.TestCase):
 
         collector.collect(state, selected_repositories=["a"])
 
-        self.assertEqual(list(range(2, 27)), client.retried)
-        self.assertEqual(
-            "2026-09-15T00:30:00Z",
-            next(
-                item["last_attempt_at"]
-                for item in state.pending_runs
-                if item["run_id"] == 1
-            ),
+        self.assertEqual([1, *range(2, 26)], client.retried)
+        self.assertNotIn(
+            "last_attempt_at",
+            next(item for item in state.pending_runs if item["run_id"] == 26),
         )
 
     def test_checkpoints_pending_runs_before_rate_limit_pause(self):

@@ -475,8 +475,7 @@ class QueueCollector:
             pending_to_retry = sorted(
                 state.pending_runs,
                 key=lambda item: (
-                    item.get("last_attempt_at") or "",
-                    item.get("created_at") or "",
+                    item.get("last_attempt_at") or item.get("created_at") or "",
                     item["repository"],
                     item["run_id"],
                 ),
