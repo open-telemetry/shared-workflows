@@ -39,6 +39,7 @@ DASHBOARD_WORKFLOW_DISPATCH_URL = (
     "https://api.github.com/repos/open-telemetry/shared-workflows/"
     "actions/workflows/pull-request-dashboard.yml/dispatches"
 )
+CANARY_REPOSITORIES_EXAMPLE = '["open-telemetry/opentelemetry-java"]'
 
 
 @dataclass(frozen=True)
@@ -413,6 +414,22 @@ def process_repository_claims(
     return results
 
 
+def parse_canary_repositories(value: str) -> frozenset[str]:
+    message = (
+        "expected a JSON array of repository names, for example "
+        f"{CANARY_REPOSITORIES_EXAMPLE}"
+    )
+    try:
+        repositories = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise argparse.ArgumentTypeError(message) from error
+    if not isinstance(repositories, list) or not all(
+        isinstance(repository, str) and repository for repository in repositories
+    ):
+        raise argparse.ArgumentTypeError(message)
+    return frozenset(repositories)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Drain dashboard queue waves.")
     parser.add_argument("--claims", type=Path, required=True)
@@ -420,17 +437,15 @@ def main() -> int:
     parser.add_argument("--generation", type=int, required=True)
     parser.add_argument("--worker", required=True)
     parser.add_argument("--endpoint", required=True)
-    parser.add_argument("--canary-repositories-json", required=True)
+    parser.add_argument(
+        "--canary-repositories-json",
+        dest="canary_repositories",
+        type=parse_canary_repositories,
+        required=True,
+    )
     args = parser.parse_args()
 
     initial_claims = load_claims(args.claims)
-    canary_repositories_value = json.loads(args.canary_repositories_json)
-    if not isinstance(canary_repositories_value, list) or not all(
-        isinstance(repository, str) and repository
-        for repository in canary_repositories_value
-    ):
-        raise ValueError("canary repositories must be a JSON array of names")
-    canary_repositories = frozenset(canary_repositories_value)
     client = QueueWorkerClient(args.endpoint)
     client_id, private_key = take_github_app_credentials()
     token_client = GitHubAppTokenClient(client_id, private_key)
@@ -458,7 +473,7 @@ def main() -> int:
                 args.generation,
                 args.worker,
                 token_client,
-                canary_repositories=canary_repositories,
+                canary_repositories=args.canary_repositories,
                 dispatch_stable=workflow_dispatcher.dispatch,
             )
 

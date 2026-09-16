@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -29,6 +31,39 @@ def claim(item_key: str, *, attempts: int = 0) -> Claim:
 
 
 class DrainQueueTest(unittest.TestCase):
+    def test_main_reports_invalid_canary_repositories_json(self) -> None:
+        argv = [
+            "drain_queue.py",
+            "--claims",
+            "claims.json",
+            "--deadline",
+            "1",
+            "--generation",
+            "1",
+            "--worker",
+            "worker",
+            "--endpoint",
+            "https://example.test/queue",
+            "--canary-repositories-json",
+            "{",
+        ]
+        stderr = io.StringIO()
+
+        with (
+            mock.patch.object(sys, "argv", argv),
+            contextlib.redirect_stderr(stderr),
+            self.assertRaises(SystemExit) as exit_context,
+        ):
+            drain_queue.main()
+
+        self.assertEqual(exit_context.exception.code, 2)
+        self.assertIn(
+            "argument --canary-repositories-json: expected a JSON array of "
+            'repository names, for example ["open-telemetry/opentelemetry-java"]',
+            stderr.getvalue(),
+        )
+        self.assertNotIn("Traceback", stderr.getvalue())
+
     def test_stops_without_claiming_when_initial_queue_is_empty(self) -> None:
         claim_wave = mock.Mock()
         process_wave = mock.Mock()
