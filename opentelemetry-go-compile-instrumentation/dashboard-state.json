@@ -2854,16 +2854,13 @@
         "approval_count": 0,
         "assignees": [],
         "author": "rarguelloF",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1362#discussion_r4005508262",
-          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1362#discussion_r4023900453"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_nudge_episode_id": "0a16e7bff36d426f89146de9f888386c",
         "ci_failing_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7487fa991c84f45b9b241238ed27372891d1eaa6fbf60335bc41c62560b69eee",
+        "copilot_request_fingerprint": "0f8da705c7f2cce267f8c7e4d46dd8b1e50cc1b2020600ffc91f72a5e3a6ebba",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2876,26 +2873,18 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "b8029bd5042dfb2a5d773a2ff83bdf84d5167d3c",
+        "head_sha": "ec0c5349d646b5097c1d776185e172c4fba8c76c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T08:14:08+00:00",
+        "last_activity_at": "2026-09-16T14:19:36+00:00",
         "last_approver_activity_at": "",
-        "last_author_activity_at": "2026-09-14T12:39:18+00:00",
+        "last_author_activity_at": "2026-09-16T14:19:36+00:00",
         "non_blocking_check_failures": [
-          "Done (LatestLibBuild Tests)"
+          "codecov/patch",
+          "govulncheck (instrumentation)"
         ],
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
-          {
-            "approved": false,
-            "approved_non_team": false,
-            "changes_requested": false,
-            "login": "ADITYA-CODE-SOURCE",
-            "open_thread": true,
-            "pending_review": false,
-            "top_level_feedback": false
-          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -2906,10 +2895,11 @@
             "top_level_feedback": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-16T14:41:59.929523+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4a0f2b46e1ac5256ba18e5c69d8b89220f099a28eed20366ec41c7ac44f9e719",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "3480f8a0d0452db75237f6cc16ab3df854e95f6822a9fb0abe44446f31fb7f90",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-14T13:11:18+00:00"
       },
       "failed": false,
