@@ -1272,7 +1272,7 @@
     },
     "3441": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1280,7 +1280,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "2f5af61b54cda1e98d46c62410cb727eac88a98e2f6a702b183a576b23835e23",
+        "copilot_request_fingerprint": "e7a8232de03ac0e8d6123c10730cda73910dd339b3be265266a4046387b23441",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1293,24 +1293,34 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "c97ab800a4178e0689eecc9d4de623c6e889e2a4",
+        "head_sha": "ad7d08d003226b7246f697b0b7d1676bfeada5cf",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-15T20:15:34+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T09:07:42+00:00",
+        "last_approver_activity_at": "2026-09-16T08:54:07+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mmat11",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6c618cf2ac90f886afc5d4677abc5f3f32052c28fe38319689658830c251c824",
+        "routing_input_fingerprint": "80b9d8b56f6f0543f5a9345e050d61592ed49ac1ed2d31b783d7e4c91f75705b",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-15T20:15:34+00:00"
       },
       "failed": false,
       "pr_number": 3441,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3441",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3446": {
