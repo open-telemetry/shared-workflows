@@ -352,6 +352,49 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual([], state.completed_repositories)
         self.assertEqual([201], [record["job_id"] for record in resumed.records])
 
+    def test_reconciles_resumed_state_with_current_repositories(self):
+        client = FakeClient()
+        client.pause_on_repo = "a"
+        collector = QueueCollector(
+            client,
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(
+            cursor="2026-09-15T00:00:00Z",
+            window_repositories=["a", "removed"],
+            completed_repositories=["removed"],
+            pending_runs=[{
+                "repository": "removed",
+                "run_id": 9,
+                "created_at": "2026-09-14T23:00:00Z",
+            }],
+        )
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertTrue(result.paused)
+        self.assertEqual(["a"], state.window_repositories)
+        self.assertEqual([], state.completed_repositories)
+        self.assertEqual([], state.pending_runs)
+
+    def test_does_not_reinitialize_empty_reconciled_window(self):
+        collector = QueueCollector(
+            FakeClient(),
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 1, tzinfo=UTC),
+        )
+        state = CollectorState(
+            cursor="2026-09-15T00:00:00Z",
+            window_repositories=["removed"],
+        )
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertFalse(result.paused)
+        self.assertEqual([], result.records)
+        self.assertEqual("2026-09-15T01:00:00Z", state.cursor)
+
     def test_revisits_pending_run_until_it_is_terminal(self):
         client = FakeClient()
         client.completed_runs[("a", 9)] = {

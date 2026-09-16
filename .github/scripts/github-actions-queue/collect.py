@@ -454,6 +454,23 @@ class QueueCollector:
             repositories = self._client.resolve_repositories(
                 self._org, selected_repositories
             )
+            current_repositories = set(repositories)
+            resuming_window = bool(state.window_repositories)
+            state.window_repositories = [
+                repository
+                for repository in state.window_repositories
+                if repository in current_repositories
+            ]
+            state.completed_repositories = [
+                repository
+                for repository in state.completed_repositories
+                if repository in current_repositories
+            ]
+            state.pending_runs = [
+                item
+                for item in state.pending_runs
+                if item["repository"] in current_repositories
+            ]
             pending_to_retry = list(state.pending_runs)
 
             available_until = _floor_hour(self._now())
@@ -461,9 +478,10 @@ class QueueCollector:
                 _parse_instant(state.cursor) < available_until
                 and completed_windows < max_windows
             ):
-                if not state.window_repositories:
+                if not resuming_window:
                     state.window_repositories = repositories
                     state.completed_repositories = []
+                    resuming_window = True
 
                 completed = set(state.completed_repositories)
                 for repository in state.window_repositories:
@@ -484,6 +502,7 @@ class QueueCollector:
                 )
                 state.window_repositories = []
                 state.completed_repositories = []
+                resuming_window = False
                 completed_windows += 1
             self._collect_pending_runs(state, pending_to_retry, records)
         except RateLimitExhausted:
