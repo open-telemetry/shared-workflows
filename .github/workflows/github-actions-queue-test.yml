@@ -1,0 +1,36 @@
+name: GitHub Actions queue collector tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/scripts/github-actions-queue/**
+      - .github/workflows/github-actions-queue-*.yml
+      - github-actions-queue/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/scripts/github-actions-queue/**
+      - .github/workflows/github-actions-queue-*.yml
+      - github-actions-queue/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run tests
+        working-directory: .github/scripts/github-actions-queue
+        run: python3 -m unittest discover -p 'test_*.py'
