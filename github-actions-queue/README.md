@@ -80,7 +80,7 @@ contains:
 | `repository_id` | Stable GitHub repository ID when the runs API supplies it. |
 | `workflow_name`, `workflow_id` | Workflow identity. |
 | `run_id`, `run_attempt`, `run_created_at` | Workflow run identity and creation time. |
-| `event`, `from_fork` | Trigger and whether the head repository was a fork. |
+| `event`, `from_fork` | Trigger and whether the head repository was a fork. `from_fork` is null when GitHub no longer provides the head repository. |
 | `head_branch`, `head_sha` | Source revision. |
 | `job_id`, `job_name` | Individual job identity. Matrix values normally appear in `job_name`. |
 | `job_status`, `job_conclusion` | Terminal state and result. |

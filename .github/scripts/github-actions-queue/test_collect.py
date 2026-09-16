@@ -257,6 +257,22 @@ class JobRecordTest(unittest.TestCase):
         self.assertIsNone(record["queue_seconds"])
         self.assertFalse(record["runner_assigned"])
 
+    def test_unknown_head_repository_preserves_unknown_fork_origin(self):
+        self.run["head_repository"] = None
+
+        record = _job_record(
+            "open-telemetry",
+            "example",
+            self.run,
+            {
+                "id": 22,
+                "status": "completed",
+            },
+            "2026-09-15T01:00:00Z",
+        )
+
+        self.assertIsNone(record["from_fork"])
+
 
 class FakeClient:
     def __init__(self):

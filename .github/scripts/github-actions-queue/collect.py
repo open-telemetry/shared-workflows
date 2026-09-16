@@ -689,6 +689,11 @@ def _job_record(
 
     head_repository = run.get("head_repository") or {}
     head_full_name = head_repository.get("full_name")
+    from_fork = (
+        head_full_name.lower() != f"{org}/{repository}".lower()
+        if head_full_name
+        else None
+    )
     return {
         "schema_version": 1,
         "organization": org,
@@ -700,9 +705,7 @@ def _job_record(
         "run_attempt": job.get("run_attempt") or run.get("run_attempt"),
         "run_created_at": run.get("created_at"),
         "event": run.get("event"),
-        "from_fork": bool(
-            head_full_name and head_full_name.lower() != f"{org}/{repository}".lower()
-        ),
+        "from_fork": from_fork,
         "head_branch": job.get("head_branch") or run.get("head_branch"),
         "head_sha": job.get("head_sha") or run.get("head_sha"),
         "job_id": job["id"],
