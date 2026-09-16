@@ -1443,7 +1443,7 @@
     },
     "3452": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "pinoOgni",
         "author_action_review_thread_urls": [],
@@ -1451,7 +1451,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ec9154557b2196f3a6b44789e93de0025de1f84496791d0489032eafbda94140",
+        "copilot_request_fingerprint": "fd98164bdd94b6ab8f61bc3e131db558f4df79321b86eddd007bb970c4cf97b1",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1467,21 +1467,31 @@
         "head_sha": "634e76cbafd85fd5907e8f4e816319f565bfd2dc",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T11:00:09+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T11:39:20+00:00",
+        "last_approver_activity_at": "2026-09-16T11:39:20+00:00",
         "last_author_activity_at": "2026-09-16T10:53:25+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mmat11",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "eb166ccb83e7fcb13b5207a51f9a3ac04b436097a10fa37edbd875aa91fb9d39",
+        "routing_input_fingerprint": "0aa564776042ff6bc878ca3c4e9920c4f9089369ae2d10286267ebdc4f20f957",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-16T10:53:25+00:00"
       },
       "failed": false,
       "pr_number": 3452,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3452",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
