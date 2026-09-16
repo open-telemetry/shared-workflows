@@ -29,7 +29,7 @@ class ApiError(RuntimeError):
     pass
 
 
-class RateBudgetExhausted(RuntimeError):
+class RateLimitExhausted(RuntimeError):
     pass
 
 
@@ -81,22 +81,18 @@ class GitHubClient:
         self,
         token: str,
         *,
-        stop_fraction: float = 0.0,
         transport: Transport = _urlopen_transport,
         sleep: Callable[[float], None] = time.sleep,
         max_retries: int = 3,
     ) -> None:
         if not token:
             raise ValueError("a GitHub token is required")
-        if not 0 <= stop_fraction < 1:
-            raise ValueError("stop_fraction must be at least 0 and less than 1")
         self._headers = {
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
             "User-Agent": USER_AGENT,
             "X-GitHub-Api-Version": API_VERSION,
         }
-        self._stop_fraction = stop_fraction
         self._transport = transport
         self._sleep = sleep
         self._max_retries = max_retries
@@ -120,11 +116,11 @@ class GitHubClient:
         return self._minimum_rate or self.rate
 
     def load_rate_limit(self) -> RateSnapshot:
-        response = self._send(f"{API_ROOT}/rate_limit", enforce_budget=False)
+        response = self._send(f"{API_ROOT}/rate_limit", check_rate_limit=False)
         data = self._decode_json(response)
         core = (data.get("resources") or {}).get("core") or {}
         self._rate = _parse_rate_snapshot(core)
-        self._ensure_budget()
+        self._ensure_rate_available()
         return self._rate
 
     def get_json(self, path: str, query: dict[str, str] | None = None) -> Any:
@@ -133,27 +129,27 @@ class GitHubClient:
         url = f"{API_ROOT}{path}"
         if query:
             url = f"{url}?{urlencode(query)}"
-        response = self._send(url, enforce_budget=True)
+        response = self._send(url, check_rate_limit=True)
         return self._decode_json(response)
 
-    def _send(self, url: str, *, enforce_budget: bool) -> ApiResponse:
+    def _send(self, url: str, *, check_rate_limit: bool) -> ApiResponse:
         for attempt in range(self._max_retries + 1):
-            if enforce_budget:
-                self._ensure_budget()
+            if check_rate_limit:
+                self._ensure_rate_available()
 
             response = self._transport(url, self._headers)
             self.request_count += 1
             self._update_rate(
                 response.headers,
-                capture_initial=enforce_budget,
+                capture_initial=check_rate_limit,
             )
 
             if 200 <= response.status < 300:
                 return response
 
             if response.status in (403, 429):
-                if self._rate is not None and self._at_or_below_floor():
-                    raise RateBudgetExhausted(self._budget_message())
+                if self._rate is not None and self._rate_exhausted():
+                    raise RateLimitExhausted(self._rate_limit_message())
                 if _is_secondary_rate_limit(response) and attempt < self._max_retries:
                     self._sleep(_retry_delay(response.headers, attempt))
                     continue
@@ -207,25 +203,18 @@ class GitHubClient:
         ):
             self._minimum_rate = self._rate
 
-    def _ensure_budget(self) -> None:
-        if self._rate is not None and self._at_or_below_floor():
-            raise RateBudgetExhausted(self._budget_message())
+    def _ensure_rate_available(self) -> None:
+        if self._rate is not None and self._rate_exhausted():
+            raise RateLimitExhausted(self._rate_limit_message())
 
-    def _at_or_below_floor(self) -> bool:
-        rate = self.minimum_rate
-        return rate.remaining <= math.ceil(rate.limit * self._stop_fraction)
+    def _rate_exhausted(self) -> bool:
+        return self.rate.remaining == 0
 
-    def _budget_message(self) -> str:
-        rate = self.minimum_rate
-        if self._stop_fraction == 0:
-            return (
-                f"REST rate limit exhausted: {rate.remaining} remaining of "
-                f"{rate.limit}, reset {rate.reset}"
-            )
-        floor = math.ceil(rate.limit * self._stop_fraction)
+    def _rate_limit_message(self) -> str:
+        rate = self.rate
         return (
-            f"REST rate-limit safety floor reached: {rate.remaining} remaining, "
-            f"floor {floor} of {rate.limit}, reset {rate.reset}"
+            f"REST rate limit exhausted: {rate.remaining} remaining of "
+            f"{rate.limit}, reset {rate.reset}"
         )
 
     def resolve_repositories(
@@ -499,7 +488,7 @@ class QueueCollector:
             records.extend(
                 self._collect_pending_runs(state, pending_to_retry)
             )
-        except RateBudgetExhausted:
+        except RateLimitExhausted:
             return CollectionResult(
                 records=records,
                 paused=True,
@@ -533,7 +522,7 @@ class QueueCollector:
                 if terminal:
                     records.extend(run_records)
                     _remove_pending_run(state, item)
-            except RateBudgetExhausted:
+            except RateLimitExhausted:
                 raise
             except ApiError as error:
                 _merge_pending_runs(
@@ -831,16 +820,12 @@ def main() -> None:
         help="initial UTC cursor when the state file does not exist",
     )
     parser.add_argument("--max-windows", type=int, default=1)
-    parser.add_argument("--rate-stop-fraction", type=float, default=0.0)
     args = parser.parse_args()
 
     now = datetime.now(UTC)
     initial_start = args.start or (_floor_hour(now) - timedelta(hours=1))
     state = load_state(args.state, initial_start)
-    client = GitHubClient(
-        _token_from_environment(),
-        stop_fraction=args.rate_stop_fraction,
-    )
+    client = GitHubClient(_token_from_environment())
     collector = QueueCollector(client, org=args.org)
     result = collector.collect(
         state,

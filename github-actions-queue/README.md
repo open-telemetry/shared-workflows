@@ -115,9 +115,7 @@ ending `limit`, `remaining`, and `reset` values. The starting snapshot comes
 from the first ordinary API response because GitHub's `/rate_limit` response
 can lag the bucket reported by repository endpoints. The summary also reports
 the lowest remaining fraction observed because GitHub can return fluctuating
-quota headers across sequential public-repository requests. For local runs with
-a personal token, `--rate-stop-fraction 0.5` restores the conservative 50%
-safety floor.
+quota headers across sequential public-repository requests.
 
 ## Known REST limitation
 

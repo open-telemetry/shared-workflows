@@ -14,7 +14,7 @@ from collect import (
     CollectorState,
     GitHubClient,
     QueueCollector,
-    RateBudgetExhausted,
+    RateLimitExhausted,
     RateSnapshot,
     _job_record,
     load_state,
@@ -145,27 +145,15 @@ class GitHubClientTest(unittest.TestCase):
             len([url for url in transport.urls if "/actions/runs?" in url]),
         )
 
-    def test_stops_before_requesting_at_half_of_limit(self):
+    def test_stops_before_requesting_when_limit_is_exhausted(self):
         transport = FakeTransport(lambda _url: response({}))
-        client = GitHubClient("token", stop_fraction=0.5, transport=transport)
-        client._rate = RateSnapshot(limit=5000, remaining=2500, reset=2000000000)
+        client = GitHubClient("token", transport=transport)
+        client._rate = RateSnapshot(limit=5000, remaining=0, reset=2000000000)
 
-        with self.assertRaisesRegex(RateBudgetExhausted, "safety floor"):
+        with self.assertRaisesRegex(RateLimitExhausted, "exhausted"):
             client.get_json("/user")
 
         self.assertEqual([], transport.urls)
-
-    def test_default_budget_stops_only_when_exhausted(self):
-        transport = FakeTransport(lambda _url: response({}))
-        client = GitHubClient("token", transport=transport)
-        client._rate = RateSnapshot(limit=5000, remaining=2500, reset=2000000000)
-
-        client.get_json("/user")
-        self.assertEqual(1, len(transport.urls))
-
-        client._minimum_rate = RateSnapshot(5000, 0, 2000000000)
-        with self.assertRaisesRegex(RateBudgetExhausted, "exhausted"):
-            client.get_json("/another")
 
     def test_does_not_retry_permission_error_as_secondary_limit(self):
         def handler(_url):
@@ -198,20 +186,16 @@ class GitHubClientTest(unittest.TestCase):
         self.assertEqual(4201, client.initial_rate.remaining)
         self.assertEqual(4200, client.rate.remaining)
 
-    def test_budget_uses_lowest_observed_remaining_value(self):
+    def test_tracks_lowest_observed_remaining_value(self):
         remaining = iter((2600, 4000))
         transport = FakeTransport(
             lambda _url: response({}, remaining=next(remaining))
         )
-        client = GitHubClient("token", stop_fraction=0.5, transport=transport)
+        client = GitHubClient("token", transport=transport)
 
         client.get_json("/first")
         client.get_json("/second")
         self.assertEqual(2600, client.minimum_rate.remaining)
-
-        client._minimum_rate = RateSnapshot(5000, 2500, 2000000000)
-        with self.assertRaises(RateBudgetExhausted):
-            client.get_json("/third")
 
 
 class JobRecordTest(unittest.TestCase):
@@ -293,7 +277,7 @@ class FakeClient:
 
     def list_workflow_runs(self, _org, repository, _start, _end):
         if repository == self.pause_on_repo:
-            raise RateBudgetExhausted("floor")
+            raise RateLimitExhausted("limit")
         return [{
             "id": 100 if repository == "a" else 200,
             "name": "CI",
@@ -325,10 +309,10 @@ class FakeClient:
 
 
 class QueueCollectorTest(unittest.TestCase):
-    def test_cleanly_pauses_when_initial_budget_is_at_floor(self):
+    def test_cleanly_pauses_when_initial_rate_limit_is_exhausted(self):
         class ExhaustedClient(FakeClient):
             def load_rate_limit(self):
-                raise RateBudgetExhausted("floor")
+                raise RateLimitExhausted("limit")
 
         collector = QueueCollector(
             ExhaustedClient(),
@@ -343,7 +327,7 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual([], result.records)
         self.assertEqual("2026-09-15T00:00:00Z", state.cursor)
 
-    def test_checkpoints_completed_repositories_when_budget_pauses(self):
+    def test_checkpoints_completed_repositories_when_rate_limit_is_exhausted(self):
         client = FakeClient()
         client.pause_on_repo = "b"
         collector = QueueCollector(
