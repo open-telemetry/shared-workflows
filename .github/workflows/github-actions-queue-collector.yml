@@ -102,6 +102,7 @@ jobs:
         env:
           CURSOR: ${{ steps.collect.outputs.cursor }}
           DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git -C "$DATA_DIRECTORY" config user.name "github-actions[bot]"
@@ -112,6 +113,7 @@ jobs:
             exit 0
           fi
           git -C "$DATA_DIRECTORY" commit -m "Collect queue data through $CURSOR"
+          gh auth setup-git
           git -C "$DATA_DIRECTORY" push origin "HEAD:refs/heads/$DATA_BRANCH"
 
       - name: Report rate-limit pause
