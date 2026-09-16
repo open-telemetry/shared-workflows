@@ -2875,12 +2875,15 @@
         "approval_count": 0,
         "assignees": [],
         "author": "gabrielldn",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11692#discussion_r4023024381"
+        ],
         "author_action_top_level_feedback_urls": [],
+        "author_nudge_episode_id": "150c07618ebc4acb8d0972f947f7d999",
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f67ab92e7b404102d918d66cbcb66f157f2c20e965868c03a5e975f55ada1037",
+        "copilot_request_fingerprint": "fcb117db403bbbdb8422c56c7f5310405a275b5cb4a8bbfa037a3ef38a11edc1",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2896,21 +2899,31 @@
         "head_sha": "39533ee4092579f98dc26b098439b3538ae3b105",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-15T10:37:36+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T06:17:00+00:00",
+        "last_approver_activity_at": "2026-09-16T06:17:00+00:00",
         "last_author_activity_at": "2026-09-15T10:37:36+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "vitorvasc",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e9ed883f98b9bb680c84b038686e1df0a894502d95f39f4c1b3203b94ad63ca0",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-12T18:59:14+00:00"
+        "routing_input_fingerprint": "104c47442090adec40b9f41704b71d19cd81a27303a9d37fc086931713c7c109",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-16T06:15:21+00:00"
       },
       "failed": false,
       "pr_number": 11692,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11692",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11693": {
