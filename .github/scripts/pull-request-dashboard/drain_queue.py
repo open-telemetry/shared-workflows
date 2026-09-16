@@ -17,6 +17,7 @@ from process_queue_batch import (
     SCRIPT_DIR,
     Claim,
     LeaseMonitor,
+    acknowledgment,
     failure_acknowledgments,
     load_claims,
     parse_claims,
@@ -193,6 +194,44 @@ def read_results(path: Path) -> list[dict[str, Any]]:
     return value
 
 
+def partition_claims_for_queue_mode(
+    claims: list[Claim],
+    queue_mode: str,
+    canary_repositories: frozenset[str],
+) -> tuple[list[Claim], list[Claim]]:
+    if queue_mode == "all":
+        return claims, []
+    if queue_mode != "canary":
+        raise ValueError(f"unsupported dashboard queue mode: {queue_mode}")
+    queued = [
+        claim for claim in claims if claim.repository in canary_repositories
+    ]
+    bypassed = [
+        claim for claim in claims if claim.repository not in canary_repositories
+    ]
+    return queued, bypassed
+
+
+def acknowledge_bypassed_claims(
+    claims: list[Claim],
+    client: QueueWorkerClient,
+    generation: int,
+    worker_id: str,
+) -> None:
+    if not claims:
+        return
+    print(
+        "::notice::Skipping queued stable dashboard claims because "
+        "the promoted release has different delivery versions: "
+        + ", ".join(claim.item_key for claim in claims)
+    )
+    acknowledge_results(
+        client,
+        [acknowledgment(claim, "success") for claim in claims],
+        {"generation": generation, "workerId": worker_id},
+    )
+
+
 def process_claim_wave(
     claims: list[Claim],
     results_path: Path,
@@ -338,9 +377,18 @@ def main() -> int:
     parser.add_argument("--generation", type=int, required=True)
     parser.add_argument("--worker", required=True)
     parser.add_argument("--endpoint", required=True)
+    parser.add_argument("--queue-mode", choices=("all", "canary"), required=True)
+    parser.add_argument("--canary-repositories-json", required=True)
     args = parser.parse_args()
 
     initial_claims = load_claims(args.claims)
+    canary_repositories_value = json.loads(args.canary_repositories_json)
+    if not isinstance(canary_repositories_value, list) or not all(
+        isinstance(repository, str) and repository
+        for repository in canary_repositories_value
+    ):
+        raise ValueError("canary repositories must be a JSON array of names")
+    canary_repositories = frozenset(canary_repositories_value)
     client = QueueWorkerClient(args.endpoint)
     client_id, private_key = take_github_app_credentials()
     token_client = GitHubAppTokenClient(client_id, private_key)
@@ -358,8 +406,21 @@ def main() -> int:
             return parse_claims(response.get("claims"))
 
         def process_wave(claims: list[Claim], wave: int) -> WaveResult:
-            return process_claim_wave(
+            queued, bypassed = partition_claims_for_queue_mode(
                 claims,
+                args.queue_mode,
+                canary_repositories,
+            )
+            acknowledge_bypassed_claims(
+                bypassed,
+                client,
+                args.generation,
+                args.worker,
+            )
+            if not queued:
+                return WaveResult(0, ())
+            return process_claim_wave(
+                queued,
                 temporary_directory / f"results-{wave}.json",
                 client,
                 args.generation,

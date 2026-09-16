@@ -10,6 +10,8 @@ on:
       - .github/scripts/pull-request-dashboard/package-lock.json
       - .github/scripts/pull-request-dashboard/package.json
       - .github/scripts/pull-request-dashboard/public/**
+      - .github/scripts/pull-request-dashboard/queue_rollout.py
+      - .github/scripts/pull-request-dashboard/state.py
       - .github/workflows/pull-request-dashboard-deploy-webhook.yml
       - .github/workflows/pull-request-dashboard.yml
   workflow_dispatch:
@@ -59,17 +61,31 @@ jobs:
           fi
           if [[ "${#stable_refs[@]}" -eq 1 ]]; then
             stable_ref="${stable_refs[0]}"
-            git fetch --no-tags --depth=1 origin "$stable_ref"
-            stable_workflow=$(git show "$stable_ref:.github/workflows/pull-request-dashboard-repo.yml")
-            stable_queue_ready=true
-            for requirement in acquire-publisher-lock release-publisher-lock "timeout-minutes: 50"; do
-              if ! grep -Fq -- "$requirement" <<< "$stable_workflow"; then
-                echo "::notice::Stable dashboard workflow $stable_ref lacks $requirement; deploying canary queue mode"
-                stable_queue_ready=false
+            if git fetch --no-tags --depth=1 origin "$stable_ref" &&
+              stable_workflow=$(git show "$stable_ref:.github/workflows/pull-request-dashboard-repo.yml"); then
+              stable_queue_ready=true
+              for requirement in acquire-publisher-lock release-publisher-lock "timeout-minutes: 50"; do
+                if ! grep -Fq -- "$requirement" <<< "$stable_workflow"; then
+                  echo "::notice::Stable dashboard workflow $stable_ref lacks $requirement; deploying canary queue mode"
+                  stable_queue_ready=false
+                fi
+              done
+              if [[ "$stable_queue_ready" == "true" ]]; then
+                stable_state="$RUNNER_TEMP/stable-dashboard-state.py"
+                if git show "$stable_ref:.github/scripts/pull-request-dashboard/state.py" > "$stable_state"; then
+                  if resolved_queue_mode=$(python3 queue_rollout.py \
+                    --current-state state.py \
+                    --stable-state "$stable_state"); then
+                    queue_mode="$resolved_queue_mode"
+                  else
+                    echo "::warning::Could not compare dashboard delivery versions; deploying canary queue mode"
+                  fi
+                else
+                  echo "::warning::Promoted dashboard state code is unavailable; deploying canary queue mode"
+                fi
               fi
-            done
-            if [[ "$stable_queue_ready" == "true" ]]; then
-              queue_mode=all
+            else
+              echo "::warning::Promoted dashboard workflow is unavailable; deploying canary queue mode"
             fi
           fi
           echo "Deploying pull request dashboard queue mode: $queue_mode"

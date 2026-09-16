@@ -14,7 +14,9 @@ from drain_queue import (
     DrainResult,
     GitHubAppTokenClient,
     WaveResult,
+    acknowledge_bypassed_claims,
     drain_queue as run_drain,
+    partition_claims_for_queue_mode,
     process_claim_wave,
     process_repository_claims,
     unresolved_acknowledgments,
@@ -27,6 +29,45 @@ def claim(item_key: str, *, attempts: int = 0) -> Claim:
 
 
 class DrainQueueTest(unittest.TestCase):
+    def test_canary_mode_bypasses_stable_repository_claims(self) -> None:
+        canary = Claim("canary#pr:1", 1, "canary", 1, "", 0)
+        stable = Claim("stable#pr:1", 1, "stable", 1, "", 0)
+
+        self.assertEqual(
+            partition_claims_for_queue_mode(
+                [stable, canary],
+                "canary",
+                frozenset({"canary"}),
+            ),
+            ([canary], [stable]),
+        )
+        self.assertEqual(
+            partition_claims_for_queue_mode(
+                [stable, canary],
+                "all",
+                frozenset({"canary"}),
+            ),
+            ([stable, canary], []),
+        )
+
+    def test_bypassed_claims_are_acknowledged_without_retry(self) -> None:
+        client = mock.Mock()
+        client.call.return_value = {"status": "success"}
+        stable = Claim("stable#pr:1", 4, "stable", 1, "", 0)
+
+        acknowledge_bypassed_claims([stable], client, 7, "worker")
+
+        client.call.assert_called_once_with(
+            "acknowledge",
+            itemKey="stable#pr:1",
+            claimGeneration=4,
+            outcome="success",
+            error="",
+            retryAfterMs=0,
+            generation=7,
+            workerId="worker",
+        )
+
     def test_stops_without_claiming_when_initial_queue_is_empty(self) -> None:
         claim_wave = mock.Mock()
         process_wave = mock.Mock()
@@ -172,6 +213,10 @@ class DrainQueueTest(unittest.TestCase):
                 "worker",
                 "--endpoint",
                 "https://example.test/queue",
+                "--queue-mode",
+                "all",
+                "--canary-repositories-json",
+                '["canary"]',
             ]
             with (
                 mock.patch.object(drain_queue, "QueueWorkerClient", return_value=client),
