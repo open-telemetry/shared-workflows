@@ -485,9 +485,10 @@ class QueueCollector:
                 state.window_repositories = []
                 state.completed_repositories = []
                 completed_windows += 1
-            records.extend(
-                self._collect_pending_runs(state, pending_to_retry)
-            )
+            for pending_run in pending_to_retry:
+                records.extend(
+                    self._collect_pending_runs(state, [pending_run])
+                )
         except RateLimitExhausted:
             return CollectionResult(
                 records=records,
