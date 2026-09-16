@@ -3,7 +3,7 @@
 This centrally executed workflow collects one compact timing record for every
 terminal GitHub Actions job in active public repositories under
 `open-telemetry`. Records are written to the orphan
-`github-actions-queue-data` branch in this repository and can be queried to
+`otelbot/github-actions-queue-data` branch in this repository and can be queried to
 find queue-time outliers.
 
 Queue time is measured per job:
