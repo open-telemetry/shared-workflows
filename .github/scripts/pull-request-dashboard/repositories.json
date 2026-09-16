@@ -123,6 +123,12 @@
     "non_blocking_check_patterns": ["codecov/*"]
   },
   {
+    "name": "opentelemetry-ecosystem-explorer",
+    "approver_teams": ["ecosystem-explorer-approvers"],
+    "non_blocking_check_patterns": ["codecov/*"],
+    "require_clean_copilot_review_branches": ["main"]
+  },
+  {
     "name": "opentelemetry-rust",
     "approver_teams": ["rust-approvers"],
     "required_approvals": 1,
