@@ -18,39 +18,26 @@ GitHub can report equal creation and start timestamps for such jobs.
 
 ## GitHub App
 
-Use the App manifest automation in
-[`open-telemetry/admin`](https://github.com/open-telemetry/admin/blob/main/scripts/create_otelbot_app.py):
-
-```bash
-python scripts/create_otelbot_app.py \
-  --repo shared-workflows \
-  --short-name actions-queue \
-  --permissions '{"actions":"read","metadata":"read"}'
-```
-
-The script uses GitHub's App manifest flow to create `otelbot actions-queue`,
-then stores these organization-level credentials with access limited to the
-`shared-workflows` repository:
-
-- Variable `OTELBOT_ACTIONS_QUEUE_CLIENT_ID`
-- Secret `OTELBOT_ACTIONS_QUEUE_PRIVATE_KEY`
-
-It requires a GitHub CLI login with the `admin:org` scope and the Python
-`requests` package.
-
-The script's final instructions say to install the App only on
-`shared-workflows`. For this collector, choose **All repositories** instead so
-one installation token can read Actions data across the organization and new
-repositories are covered automatically.
+Use the private organization-owned GitHub App named
+`OpenTelemetry Actions Telemetry`. Its homepage is
+`https://github.com/open-telemetry/shared-workflows`, and it has no webhook or
+event subscriptions.
 
 The App requires only:
 
 - Actions: read-only
 - Metadata: read-only, granted automatically
 
+Install it for **All repositories** so one installation token can read Actions
+data across the organization and new repositories are covered automatically.
 It requests no webhook events and no write permissions. The collector lists
 only public repositories and rejects an explicitly selected repository unless
 GitHub reports `private: false`.
+
+Store its credentials in the `protected` environment of `shared-workflows`:
+
+- Variable `ACTIONS_TELEMETRY_CLIENT_ID`
+- Secret `ACTIONS_TELEMETRY_PRIVATE_KEY`
 
 The workflow creates a short-lived installation token for API reads. Its
 built-in `GITHUB_TOKEN`, scoped to `shared-workflows`, writes the data branch.
