@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
+import shutil
 import sys
 import traceback
 from typing import Callable
@@ -20,14 +22,30 @@ from pr_status_comment import (
     update_targeted_status_comment_from_state,
 )
 from state import (
+    AUTHOR_NUDGE_STATE_FILE,
+    COPILOT_REVIEW_REQUEST_STATE_FILE,
+    DELIVERY_STATE_FILE,
+    DELIVERY_VERSIONS_FILE,
+    STATUS_COMMENT_ROLLOUT_STATE_FILE,
     author_nudge_state_path,
     claim_delivery_versions,
     copilot_review_request_state_path,
     notification_state_path,
-    set_state_dir,
+    set_delivery_state_dirs,
+    state_dir as current_state_dir,
 )
 import state_branch
 from utils import utc_now
+
+
+DELIVERY_STATE_VERSION = 1
+LEGACY_DELIVERY_FILES = (
+    "notification-state.json",
+    AUTHOR_NUDGE_STATE_FILE,
+    COPILOT_REVIEW_REQUEST_STATE_FILE,
+    STATUS_COMMENT_ROLLOUT_STATE_FILE,
+    DELIVERY_VERSIONS_FILE,
+)
 
 
 def runner_temp_path(name: str) -> Path:
@@ -47,6 +65,41 @@ def run_delivery_action(
         print(f"{label} raised an exception:", file=sys.stderr)
         traceback.print_exc()
         errors.append(f"{label}: {e}")
+
+
+def initialize_delivery_state(accepted_repo_dir: Path) -> None:
+    delivery_repo_dir = current_state_dir()
+    marker = delivery_repo_dir / DELIVERY_STATE_FILE
+    if marker.exists():
+        try:
+            marker_state = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError(f"delivery state marker is unreadable: {error}") from error
+        if (
+            not isinstance(marker_state, dict)
+            or marker_state.get("version") != DELIVERY_STATE_VERSION
+            or marker_state.get("migrated_from_accepted_state") is not True
+        ):
+            raise RuntimeError("delivery state marker has an incompatible shape")
+        return
+    delivery_repo_dir.mkdir(parents=True, exist_ok=True)
+    for name in LEGACY_DELIVERY_FILES:
+        source = accepted_repo_dir / name
+        destination = delivery_repo_dir / name
+        if source.exists() and not destination.exists():
+            shutil.copyfile(source, destination)
+    marker.write_text(
+        json.dumps(
+            {
+                "version": DELIVERY_STATE_VERSION,
+                "migrated_from_accepted_state": True,
+            },
+            sort_keys=True,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def deliver_from_state(
@@ -157,6 +210,9 @@ def deliver_with_state(
     state_dir: Path,
     pr_number: int | None = None,
     github_output: Path | None = None,
+    *,
+    delivery_state_branch_name: str | None = None,
+    accepted_repo_dir: Path | None = None,
 ) -> int:
     repo_key = repo_state_key(repo)
     author_retry = runner_temp_path("prior-author-nudge-state.json")
@@ -167,6 +223,8 @@ def deliver_with_state(
 
     def deliver() -> int:
         nonlocal active_versions
+        if accepted_repo_dir is not None:
+            initialize_delivery_state(accepted_repo_dir)
         active_versions = claim_delivery_versions()
         if not active_versions:
             errors.clear()
@@ -185,7 +243,14 @@ def deliver_with_state(
         state_dir,
         "Deliver pull request dashboard updates",
         deliver,
-        state_branch=state_branch_name,
+        state_branch=(
+            delivery_state_branch_name
+            or state_branch_name.replace(
+                "otelbot/pull-request-dashboard-state/",
+                "otelbot/pull-request-dashboard-delivery/",
+                1,
+            )
+        ),
         add_paths=[repo_key],
         retry_snapshots=[
             (author_nudge_state_path(), author_retry),
@@ -210,18 +275,35 @@ def main() -> int:
     parser.add_argument("--repo", help="target repository name")
     parser.add_argument("--pr-number", type=int, help="target pull request number")
     parser.add_argument("--state-branch", required=True, help="git branch used for workflow state")
+    parser.add_argument(
+        "--delivery-state-branch",
+        required=True,
+        help="git branch used for publisher receipts and rollout state",
+    )
     parser.add_argument("--github-output", type=Path, help="append the active versions result")
     args = parser.parse_args()
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
-    with state_branch.temporary_state_dir() as state_dir:
-        set_state_dir(state_dir / repo_state_key(repo))
-        return deliver_with_state(
-            repo,
-            args.state_branch,
-            state_dir,
-            pr_number=args.pr_number,
-            github_output=args.github_output,
-        )
+    with state_branch.accepted_state_dir(
+        args.state_branch,
+        required=True,
+    ) as accepted_checkout:
+        if accepted_checkout is None:
+            raise RuntimeError(f"required state branch not found: {args.state_branch}")
+        with state_branch.temporary_state_dir() as state_dir:
+            accepted_repo_dir = accepted_checkout / repo_state_key(repo)
+            set_delivery_state_dirs(
+                state_dir / repo_state_key(repo),
+                accepted_repo_dir,
+            )
+            return deliver_with_state(
+                repo,
+                args.state_branch,
+                state_dir,
+                pr_number=args.pr_number,
+                github_output=args.github_output,
+                delivery_state_branch_name=args.delivery_state_branch,
+                accepted_repo_dir=accepted_repo_dir,
+            )
 
 
 if __name__ == "__main__":

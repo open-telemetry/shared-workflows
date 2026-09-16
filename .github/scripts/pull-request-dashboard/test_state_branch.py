@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from contextlib import nullcontext
 from pathlib import Path
 import subprocess
 import tempfile
@@ -58,65 +57,31 @@ class AcceptedStateDirTest(unittest.TestCase):
         run.assert_not_called()
 
 
-class PublisherLockTest(unittest.TestCase):
-    @patch.object(state_branch, "commit_publisher_lock", return_value=True)
+class LegacyPublisherLockCleanupTest(unittest.TestCase):
     @patch.object(state_branch, "checkout_state")
     @patch.object(state_branch, "configure_git")
-    def test_acquires_and_releases_publisher_lock(
-        self,
-        _configure_git: object,
-        _checkout_state: object,
-        commit_publisher_lock: object,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            state_dir = Path(directory)
-            with patch.object(
-                state_branch,
-                "temporary_state_dir",
-                return_value=nullcontext(state_dir),
-            ):
-                state_branch.acquire_publisher_lock(
-                    "state-branch",
-                    "worker",
-                    now=lambda: 100,
-                )
-                lock = state_branch.load_publisher_lock(state_dir)
-                self.assertEqual(lock, {"owner": "worker", "expiresAt": 3700})
-
-                state_branch.release_publisher_lock("state-branch", "worker")
-                self.assertFalse(
-                    (state_dir / state_branch.PUBLISHER_LOCK_PATH).exists()
-                )
-
-        self.assertEqual(commit_publisher_lock.call_count, 2)
-
-    @patch.object(state_branch, "checkout_state")
-    @patch.object(state_branch, "configure_git")
-    def test_active_publisher_lock_times_out(
+    def test_worker_update_removes_legacy_lock_without_waiting(
         self,
         _configure_git: object,
         _checkout_state: object,
     ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             state_dir = Path(directory)
-            (state_dir / state_branch.PUBLISHER_LOCK_PATH).write_text(
-                '{"expiresAt": 200, "owner": "other"}\n',
-                encoding="utf-8",
+            lock = state_dir / ".publisher-lock.json"
+            lock.write_text('{"owner":"old-publisher"}\n', encoding="utf-8")
+
+            def update_state() -> int:
+                self.assertFalse(lock.exists())
+                return 1
+
+            status = state_branch.push_state_changes(
+                state_dir,
+                "Update dashboard state",
+                update_state,
+                state_branch="state-branch",
             )
-            with (
-                patch.object(
-                    state_branch,
-                    "temporary_state_dir",
-                    return_value=nullcontext(state_dir),
-                ),
-                self.assertRaisesRegex(TimeoutError, "timed out waiting"),
-            ):
-                state_branch.acquire_publisher_lock(
-                    "state-branch",
-                    "worker",
-                    wait_seconds=0,
-                    now=lambda: 100,
-                )
+
+        self.assertEqual(1, status)
 
 
 class FetchStateBranchTest(unittest.TestCase):

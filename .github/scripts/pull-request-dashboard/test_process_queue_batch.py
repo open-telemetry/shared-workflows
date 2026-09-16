@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from contextlib import contextmanager, nullcontext
 import json
 import subprocess
 import sys
@@ -265,6 +264,7 @@ class QueueBatchTest(unittest.TestCase):
 
     def test_delivery_error_still_publishes_committed_active_state(self) -> None:
         commands: list[str] = []
+        delivery_commands: list[list[str]] = []
 
         def run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
             script = Path(command[1]).name
@@ -272,6 +272,7 @@ class QueueBatchTest(unittest.TestCase):
             if script == "state.py":
                 return subprocess.CompletedProcess(command, 0, stdout="true\n", stderr="")
             if script == "delivery.py":
+                delivery_commands.append(command)
                 output_path = Path(command[command.index("--github-output") + 1])
                 output_path.write_text("active=true\n", encoding="utf-8")
                 return subprocess.CompletedProcess(
@@ -291,7 +292,6 @@ class QueueBatchTest(unittest.TestCase):
             processor = process_queue_batch.DashboardBatchProcessor(
                 config_path,
                 run=run,
-                publisher_lock=lambda _branch, _owner: nullcontext(),
             )
             item = WorkItem(
                 "example",
@@ -303,17 +303,14 @@ class QueueBatchTest(unittest.TestCase):
 
         self.assertEqual(results[0]["outcome"], "retry")
         self.assertIn("publish_dashboard.py", commands)
+        self.assertIn("--delivery-state-branch", delivery_commands[0])
+        self.assertIn(
+            "otelbot/pull-request-dashboard-delivery/example",
+            delivery_commands[0],
+        )
 
-    def test_repository_delivery_and_publication_share_one_publisher_lock(self) -> None:
+    def test_repository_delivery_and_publication_do_not_use_a_shared_lock(self) -> None:
         lifecycle: list[str] = []
-
-        @contextmanager
-        def publisher_lock(_branch: str, _owner: str):
-            lifecycle.append("acquire")
-            try:
-                yield
-            finally:
-                lifecycle.append("release")
 
         with tempfile.TemporaryDirectory() as directory:
             config_path = Path(directory) / "repositories.json"
@@ -321,11 +318,7 @@ class QueueBatchTest(unittest.TestCase):
                 json.dumps([{"name": "example"}]),
                 encoding="utf-8",
             )
-            processor = process_queue_batch.DashboardBatchProcessor(
-                config_path,
-                publisher_lock=publisher_lock,
-                publisher_lock_owner="worker",
-            )
+            processor = process_queue_batch.DashboardBatchProcessor(config_path)
             items = [
                 WorkItem(
                     "example",
@@ -367,11 +360,9 @@ class QueueBatchTest(unittest.TestCase):
             [
                 "update-1",
                 "update-2",
-                "acquire",
                 "deliver-1",
                 "deliver-2",
                 "publish",
-                "release",
             ],
         )
         self.assertEqual([result["outcome"] for result in results], ["success", "success"])

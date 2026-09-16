@@ -62,7 +62,7 @@ jobs:
             git fetch --no-tags --depth=1 origin "$stable_ref"
             stable_workflow=$(git show "$stable_ref:.github/workflows/pull-request-dashboard-repo.yml")
             stable_queue_ready=true
-            for requirement in acquire-publisher-lock release-publisher-lock "timeout-minutes: 50"; do
+            for requirement in pull-request-dashboard-delivery "timeout-minutes: 50"; do
               if ! grep -Fq -- "$requirement" <<< "$stable_workflow"; then
                 echo "::notice::Stable dashboard workflow $stable_ref lacks $requirement; deploying canary queue mode"
                 stable_queue_ready=false

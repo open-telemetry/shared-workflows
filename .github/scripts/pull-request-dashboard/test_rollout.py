@@ -151,45 +151,29 @@ class RolloutWiringTest(unittest.TestCase):
         )
         self.assertEqual(
             body.count("DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}"),
-            8,
+            6,
         )
         self.assertNotIn('python3 "${{ steps.dashboard-code.outputs.path }}', body)
         self.assertEqual(body.count("steps.dashboard-code.outcome == 'success'"), 3)
         self.assertIn("path=$GITHUB_ACTION_PATH", action)
 
-    def test_direct_publisher_uses_the_shared_repository_lock(self) -> None:
+    def test_direct_publisher_uses_separate_delivery_state(self) -> None:
         body = REPO_WORKFLOW.read_text(encoding="utf-8")
         publish_job = job_blocks(body)["publish-dashboard"]
-        self.assertEqual(body.count("acquire-publisher-lock"), 1)
-        self.assertEqual(body.count("release-publisher-lock"), 1)
+        self.assertNotIn("publisher-lock", publish_job)
+        self.assertIn("otelbot/pull-request-dashboard-delivery", body)
+        self.assertIn('--delivery-state-branch "$delivery_state_branch"', publish_job)
         self.assertIn("    timeout-minutes: 50", publish_job)
-        self.assertIn(
-            "if: always() && steps.publisher-lock.outcome == 'success'",
-            body,
-        )
-        self.assertLess(body.index("acquire-publisher-lock"), body.index("delivery.py"))
-        self.assertLess(body.index("publish_dashboard.py"), body.index("release-publisher-lock"))
 
-    def test_reminder_sweep_uses_the_shared_repository_lock(self) -> None:
+    def test_reminder_sweep_relies_on_repository_publisher_concurrency(self) -> None:
         body = SWEEP_WORKFLOW.read_text(encoding="utf-8")
         sweep_job = job_blocks(body)["sweep"]
-        self.assertEqual(sweep_job.count("acquire-publisher-lock"), 1)
-        self.assertEqual(sweep_job.count("release-publisher-lock"), 1)
-        self.assertIn("      contents: write", sweep_job)
-        self.assertIn("if: inputs.dry_run == false", sweep_job)
+        self.assertNotIn("publisher-lock", sweep_job)
         self.assertIn(
-            "inputs.dry_run == false &&\n"
-            "          steps.publisher-lock.outcome == 'success'",
+            "group: pull-request-dashboard-publish-${{ matrix.name }}",
             sweep_job,
         )
-        self.assertLess(
-            sweep_job.index("acquire-publisher-lock"),
-            sweep_job.index("refresh_author_nudges.py"),
-        )
-        self.assertLess(
-            sweep_job.index("refresh_author_nudges.py"),
-            sweep_job.index("release-publisher-lock"),
-        )
+        self.assertIn("      contents: write", sweep_job)
 
     def test_queue_mode_canary_list_matches_the_rollout_canary_list(self) -> None:
         webhook = WEBHOOK.read_text(encoding="utf-8")
@@ -218,7 +202,7 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertNotIn("vars.PR_DASHBOARD_QUEUE_MODE", body)
         self.assertIn("queue_mode=canary", body)
         self.assertIn("queue_mode=all", body)
-        self.assertIn("acquire-publisher-lock release-publisher-lock", body)
+        self.assertIn("pull-request-dashboard-delivery", body)
         canary_default = body.index("queue_mode=canary")
         stable_guard = body.index("stable_queue_ready=true")
         all_selection = body.index("queue_mode=all")

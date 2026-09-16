@@ -25,13 +25,19 @@ Save a Netlify personal access token as a GitHub Actions secret named
 
 Queue rollout requires no queue-mode variable or manual Netlify deployment. The
 deployment workflow selects `canary` until the stable pinned repository workflow
-contains the shared publisher lock and its timeout. In that mode, only
+uses the separate publisher-owned delivery-state branch and retains the
+publisher timeout. In that mode, only
 `opentelemetry-java-instrumentation` and `shared-workflows` use the queue.
 
 Merging the promotion pull request updates the stable workflow pin and triggers
 another Netlify deployment. Once that pin contains the queue-compatible
 publisher behavior, the deployment automatically selects `all` and queues every
 accepted targeted webhook refresh.
+
+The `shared-workflows` Actions token needs `contents: write` so workers can push
+`otelbot/pull-request-dashboard-state/<repository>` and publishers can push
+`otelbot/pull-request-dashboard-delivery/<repository>`. Target-repository app
+permissions do not change.
 
 The drain workflow runs the dashboard scripts from the commit it was dispatched
 at. Before promotion, queued canary repositories therefore exercise the merged

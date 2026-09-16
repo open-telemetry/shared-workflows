@@ -18,12 +18,16 @@ the implementation understandable and operationally cheap.
 - The top-level repository matrix runs one repository at a time. Backfills do
   not benefit enough from cross-repository parallelism to justify extra
   aggregate API and LLM demand.
-- State for each target repository lives on its own state branch under
+- Calculated state and delivery intent for each target repository live on a
+  worker-owned branch under
   `otelbot/pull-request-dashboard-state/<repository>`, with files still
   namespaced by repository name inside the branch.
-- The state branch stores structured dashboard and notification state. The
-  publishing job renders markdown from accepted dashboard state and the target
-  repository's current open PR list.
+- Publisher receipts and rollout cursors live on a separate branch under
+  `otelbot/pull-request-dashboard-delivery/<repository>`. Publishers read a
+  detached snapshot of accepted worker state and never push to the worker
+  branch.
+- The publishing job renders markdown from accepted dashboard state and the
+  target repository's current open PR list.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
 - Refresh events that carry no pull request number report the head commit
@@ -102,12 +106,12 @@ the implementation understandable and operationally cheap.
   repositories by coalescing events in Netlify first.
 - Publishers use one concurrency group per target repository. GitHub preserves
   the running publisher but may replace an older pending publisher with a newer
-  one even when `cancel-in-progress` is false. Direct and queued publishers also
-  acquire a lease stored on the repository's state branch. This shared lock
-  prevents the drain from overlapping the direct concurrency group while either
-  path performs external delivery or publishes the issue. Accepted work lives
-  on the state branch: a targeted publisher limits status-comment and Slack
-  delivery to its triggering PR. Webhook runs can arrive concurrently for many
+  one even when `cancel-in-progress` is false. The queue drain can overlap a
+  direct publisher, but both persist receipts with compare-and-swap pushes to
+  the delivery branch. GitHub-facing actions validate live state and use
+  markers or managed resources to make repeated attempts safe. Accepted work
+  lives on the worker branch: a targeted publisher limits status-comment and
+  Slack delivery to its triggering PR. Webhook runs can arrive concurrently for many
   PRs, so allowing each publisher to fan out into repository-wide delivery
   would create long jobs and put pressure on the GitHub Actions job queue,
   especially when a new status-comment revision queues every open PR. The
@@ -128,15 +132,25 @@ the implementation understandable and operationally cheap.
 - Netlify remains appropriate for small webhook-sized work, but it was a poor
   fit for long backfill workers.
 
-## State Branch
+## State branches
 
-- Dashboard and notification state are stored on a git branch rather than in the
-  live dashboard issue body.
-- Dashboard and notification state files are namespaced by target repository.
-- Each target repository uses a separate state branch so unrelated repositories
-  do not contend on the same git ref during scheduled and webhook-driven runs.
-- Updates use `git push --force-with-lease`, so git refs provide the durable
-  compare-and-swap boundary for concurrent same-repository runs.
+- Dashboard calculations and delivery intent are stored on a worker-owned git
+  branch rather than in the live dashboard issue body.
+- Notification receipts, author-nudge and Copilot-request receipts,
+  status-comment rollout progress, and delivery-version claims are stored on a
+  publisher-owned delivery branch. Both branches keep files namespaced by
+  target repository.
+- Workers only push the accepted-state branch. Publishers only push the
+  delivery branch. Continuous worker compare-and-swap traffic therefore cannot
+  reject a publisher receipt push, and publisher activity never delays a
+  worker.
+- Updates use `git push --force-with-lease`, so each owned ref remains its own
+  durable compare-and-swap boundary.
+- The first publisher copies compatible receipt state from the accepted branch
+  before writing a delivery-state marker. Existing notification history,
+  pending reminders, Copilot requests, status-comment rollout work, and version
+  claims therefore move without a gap. Later publishers reconcile immutable
+  worker intent with receipts instead of copying mutable files back.
 - A missing repository state branch is bootstrapped by non-PR backfills. The
   dashboard state records when every open non-draft PR has been populated at
   least once. Targeted PR runs, dashboard publishing, status comments, and
@@ -154,12 +168,14 @@ the implementation understandable and operationally cheap.
 - Status-comment rendering rollouts use separate versioned state and a durable
   queue. Incrementing the implementation revision snapshots all open PRs, then
   hourly runs update at most 50 queued comments until the rollout completes.
-  Dashboard refreshes atomically queue comments only when their persisted result
-  changes. A targeted publisher updates only its triggering PR when that PR is
-  queued and cannot initialize or drain the repository-wide rollout. Untargeted
-  publishers drain up to 50 queued comments. This confines rollout fan-out to
-  the hourly path instead of multiplying it across concurrent webhook runs, and
-  also delivers work left by a pending publisher that GitHub replaced.
+  Dashboard refreshes record a deterministic intent revision when their
+  persisted result changes. The delivery branch records the last delivered
+  revision per PR, so an intent remains durable without forcing every
+  publisher to rewrite the same comment. A targeted publisher updates only its
+  triggering PR and cannot initialize or drain the repository-wide rollout.
+  Untargeted publishers drain up to 50 queued comments. This confines rollout
+  fan-out to the hourly path and delivers work left by a pending publisher that
+  GitHub replaced.
 - Selected PRs are processed one at a time through the same single-PR merge path
   as targeted refreshes. Each accepted PR update pushes structured state before
   the next selected PR is processed.
@@ -717,23 +733,26 @@ the implementation understandable and operationally cheap.
   publisher checks out state, so a notification can be slightly late
   relative to the newest state.
 - The publisher preserves just-written notification state across normal
-  state-branch CAS retries. If Slack delivery succeeds and every state-branch
-  push attempt is rejected, a later run can send the same notification again.
-  Recording state before sending Slack would avoid that duplicate window, but
-  could instead record notifications that were never delivered.
+  delivery-branch CAS retries. Slack delivery is explicitly at least once. A
+  process crash after Slack accepts a webhook but before the receipt push can
+  cause a later publisher to send the same notification again. Recording the
+  receipt first would trade the duplicate for a lost notification, which is
+  worse for this dashboard.
 
 ## Publishing
 
-- Dashboard publishing is serialized per target repository. The publisher owns
+- Dashboard publishing is normally serialized per target repository. The publisher owns
   target-repository writes for status comments, author reminders, Copilot
   re-review requests, Slack notifications, and the dashboard issue.
-- Each publisher fetches accepted state while holding the publish slot. A
+- Each publisher pins one accepted-state snapshot. A
   targeted publisher limits status-comment and Slack delivery to its triggering
   PR; an untargeted publisher drains repository-wide work, with status comments
   bounded to 50 per run. Author reminders and Copilot requests use explicit
   durable ledgers; Slack eligibility is reconstructed from accepted dashboard
   and notification state.
 - The dashboard issue is rendered from `dashboard-state.json` and the target
-  repository's current open PR list after delivery. If another update advances
-  the state branch while a publisher is already working, external views can
-  briefly lag until the next publisher.
+  repository's current open PR list after delivery. Worker advancement does not
+  invalidate an in-progress publish or trigger a retry loop. The resulting issue
+  can briefly show snapshot A after workers accept B. A later targeted
+  publisher normally converges it, and the hourly untargeted publisher is the
+  repair path if GitHub replaces that pending run.

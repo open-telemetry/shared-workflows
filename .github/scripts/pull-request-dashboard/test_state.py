@@ -59,6 +59,8 @@ from state import (
     save_dashboard_state_cache,
     save_notifications,
     save_status_comment_rollout_state,
+    reconcile_author_nudges,
+    reconcile_copilot_review_requests,
     stored_result,
     union_merge_author_nudges,
     union_merge_copilot_review_requests,
@@ -752,10 +754,10 @@ class StateTest(unittest.TestCase):
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
         self.assertEqual(DASHBOARD_STATE_VERSION, 18)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, ())
-        self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 2)
+        self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
         self.assertEqual(STATUS_COMMENT_REVISION, 20)
-        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 3)
-        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 6)
+        self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 4)
+        self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 7)
 
     def test_version_fifteen_dashboard_state_is_regenerated(self) -> None:
         with (
@@ -1079,6 +1081,103 @@ class StateTest(unittest.TestCase):
                 [34, 12],
                 load_status_comment_rollout_state()["pending_pr_numbers"],
             )
+
+    def test_status_intent_is_suppressed_by_receipt_until_it_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            accepted = root / "accepted"
+            receipts = root / "receipts"
+            accepted.mkdir()
+            receipts.mkdir()
+            accepted_state = {
+                "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+                "intent_revisions": {"34": "snapshot-a"},
+            }
+            (accepted / "status-comment-rollout-state.json").write_text(
+                json.dumps(accepted_state),
+                encoding="utf-8",
+            )
+            receipt_state = {
+                "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
+                "delivered_intent_revisions": {"34": "snapshot-a"},
+            }
+            (receipts / "status-comment-rollout-state.json").write_text(
+                json.dumps(receipt_state),
+                encoding="utf-8",
+            )
+            with (
+                patch("state._state_dir", receipts),
+                patch("state._accepted_state_dir", accepted),
+                patch("state._using_delivery_state", True),
+            ):
+                self.assertNotIn(
+                    34,
+                    load_status_comment_rollout_state()["pending_pr_numbers"],
+                )
+                accepted_state["intent_revisions"]["34"] = "snapshot-b"
+                (accepted / "status-comment-rollout-state.json").write_text(
+                    json.dumps(accepted_state),
+                    encoding="utf-8",
+                )
+                self.assertIn(
+                    34,
+                    load_status_comment_rollout_state()["pending_pr_numbers"],
+                )
+
+    def test_author_nudge_receipts_suppress_delivered_intent_and_completion(self) -> None:
+        intent = {
+            "1": {
+                "episode_id": "episode-1",
+                "waiting_since": "2026-07-01T00:00:00Z",
+                "pending_at": "2026-07-08T00:00:00Z",
+                "completions": [
+                    {
+                        "episode_id": "old-episode",
+                        "completed_at": "2026-07-08T00:00:00Z",
+                        "kind": "routing_changed",
+                    }
+                ],
+            }
+        }
+        receipts = {
+            "1": {
+                "episode_id": "episode-1",
+                "waiting_since": "2026-07-01T00:00:00Z",
+                "nudged_at": "2026-07-08T00:00:00Z",
+                "delivered_completion_ids": ["old-episode"],
+            }
+        }
+
+        reconciled = reconcile_author_nudges(intent, receipts)["1"]
+
+        self.assertEqual("2026-07-08T00:00:00Z", reconciled["nudged_at"])
+        self.assertNotIn("pending_at", reconciled)
+        self.assertNotIn("completions", reconciled)
+        self.assertEqual(["old-episode"], reconciled["delivered_completion_ids"])
+
+    def test_copilot_receipt_matches_stable_intent_identity(self) -> None:
+        intent = {
+            "1": {
+                "head_sha": "abc",
+                "observed_at": "2026-07-09T00:00:00Z",
+                "requested_at": "",
+                "copilot_request_fingerprint": "fingerprint",
+            }
+        }
+        receipts = {
+            "1": {
+                **intent["1"],
+                "observed_at": "2026-07-08T00:00:00Z",
+                "requested_at": "2026-07-08T01:00:00Z",
+            }
+        }
+
+        reconciled = reconcile_copilot_review_requests(intent, receipts)
+
+        self.assertEqual(
+            "2026-07-08T01:00:00Z",
+            reconciled["1"]["requested_at"],
+        )
 
     def test_each_delivery_version_rejects_older_workers(self) -> None:
         baseline = current_delivery_versions()

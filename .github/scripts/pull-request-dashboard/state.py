@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections.abc import Iterable, Mapping
@@ -29,6 +30,7 @@ AUTHOR_NUDGE_STATE_FILE = "author-nudge-state.json"
 COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 DELIVERY_VERSIONS_FILE = "delivery-versions.json"
+DELIVERY_STATE_FILE = "delivery-state.json"
 
 # These monotonic versions jointly order delivery compatibility. Increment the
 # relevant version whenever its stored shape, meaning, or delivered behavior
@@ -45,21 +47,32 @@ BACKFILL_STATE_VERSION = 3
 # notification-state.json: pending and delivered Slack notification records.
 NOTIFICATION_STATE_VERSION = 3
 # author-nudge-state.json: waiting episodes and delivered author reminders.
-AUTHOR_NUDGE_STATE_VERSION = 3
+AUTHOR_NUDGE_STATE_VERSION = 4
 # copilot-review-request-state.json: pending and delivered review requests.
-COPILOT_REVIEW_REQUEST_STATE_VERSION = 6
+COPILOT_REVIEW_REQUEST_STATE_VERSION = 7
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
-STATUS_COMMENT_ROLLOUT_STATE_VERSION = 2
+STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
 STATUS_COMMENT_REVISION = 20
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
+_accepted_state_dir: Path | None = None
+_using_delivery_state = False
 
 
 def set_state_dir(path: Path) -> None:
-    global _state_dir
+    global _accepted_state_dir, _state_dir, _using_delivery_state
     _state_dir = path
+    _accepted_state_dir = path
+    _using_delivery_state = False
+
+
+def set_delivery_state_dirs(delivery_path: Path, accepted_path: Path) -> None:
+    global _accepted_state_dir, _state_dir, _using_delivery_state
+    _state_dir = delivery_path
+    _accepted_state_dir = accepted_path
+    _using_delivery_state = True
 
 
 def state_dir() -> Path:
@@ -68,8 +81,20 @@ def state_dir() -> Path:
     return _state_dir
 
 
+def accepted_state_dir() -> Path:
+    if not _using_delivery_state:
+        return state_dir()
+    if _accepted_state_dir is None:
+        raise RuntimeError("accepted state directory has not been initialized")
+    return _accepted_state_dir
+
+
+def using_delivery_state() -> bool:
+    return _using_delivery_state
+
+
 def dashboard_state_path() -> Path:
-    return state_dir() / "dashboard-state.json"
+    return accepted_state_dir() / "dashboard-state.json"
 
 
 def notification_state_path() -> Path:
@@ -113,13 +138,16 @@ def empty_backfill_state() -> dict[str, Any]:
 
 
 def empty_status_comment_rollout_state() -> dict[str, Any]:
-    return {
+    result = {
         "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
         "target_revision": 0,
         "completed_revision": 0,
         "pending_pr_numbers": [],
         "draft_reconciliation_cursor": 0,
+        "intent_revisions": {},
+        "delivered_intent_revisions": {},
     }
+    return result
 
 
 def current_delivery_versions() -> dict[str, int]:
@@ -183,11 +211,11 @@ def save_backfill_state(state: dict[str, Any]) -> None:
     save_state_file(backfill_state_path(), stored, BACKFILL_STATE_VERSION)
 
 
-def load_status_comment_rollout_state() -> dict[str, Any]:
+def load_status_comment_rollout_state_file(path: Path) -> dict[str, Any]:
     state = load_state_file(
-        status_comment_rollout_state_path(),
+        path,
         STATUS_COMMENT_ROLLOUT_STATE_VERSION,
-        compatible_versions=(1,),
+        compatible_versions=(1, 2),
     )
     if state is None:
         return empty_status_comment_rollout_state()
@@ -201,7 +229,9 @@ def load_status_comment_rollout_state() -> dict[str, Any]:
         )
     except (TypeError, ValueError):
         return empty_status_comment_rollout_state()
-    return {
+    intent_revisions = state.get("intent_revisions")
+    delivered_intent_revisions = state.get("delivered_intent_revisions")
+    result = {
         "version": STATUS_COMMENT_ROLLOUT_STATE_VERSION,
         "target_revision": target_revision,
         "completed_revision": completed_revision,
@@ -216,12 +246,52 @@ def load_status_comment_rollout_state() -> dict[str, Any]:
             else []
         ),
     }
+    if isinstance(intent_revisions, dict) and intent_revisions:
+        result["intent_revisions"] = {
+            str(number): revision
+            for number, revision in intent_revisions.items()
+            if str(number).isdigit()
+            and int(number) > 0
+            and isinstance(revision, str)
+            and revision
+        }
+    if isinstance(delivered_intent_revisions, dict) and delivered_intent_revisions:
+        result["delivered_intent_revisions"] = {
+            str(number): revision
+            for number, revision in delivered_intent_revisions.items()
+            if str(number).isdigit()
+            and int(number) > 0
+            and isinstance(revision, str)
+            and revision
+        }
+    return result
+
+
+def load_status_comment_rollout_state() -> dict[str, Any]:
+    state = load_status_comment_rollout_state_file(status_comment_rollout_state_path())
+    if not using_delivery_state():
+        return state
+    intent = load_status_comment_rollout_state_file(
+        accepted_state_dir() / STATUS_COMMENT_ROLLOUT_STATE_FILE
+    )
+    desired = dict(intent.get("intent_revisions") or {})
+    for number in intent["pending_pr_numbers"]:
+        desired.setdefault(str(number), "legacy")
+    delivered = dict(state.get("delivered_intent_revisions") or {})
+    pending = list(dict.fromkeys(state["pending_pr_numbers"]))
+    pending.extend(
+        int(number)
+        for number, revision in desired.items()
+        if delivered.get(number) != revision and int(number) not in pending
+    )
+    state["pending_pr_numbers"] = pending
+    state["_accepted_intent_revisions"] = desired
+    return state
 
 
 def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
-    save_state_file(
-        status_comment_rollout_state_path(),
-        {
+    if using_delivery_state():
+        stored = {
             "target_revision": int(state.get("target_revision") or 0),
             "completed_revision": int(state.get("completed_revision") or 0),
             "draft_reconciliation_cursor": int(
@@ -230,7 +300,25 @@ def save_status_comment_rollout_state(state: dict[str, Any]) -> None:
             "pending_pr_numbers": list(
                 dict.fromkeys(state.get("pending_pr_numbers") or [])
             ),
-        },
+            "delivered_intent_revisions": dict(
+                state.get("delivered_intent_revisions") or {}
+            ),
+        }
+    else:
+        stored = {
+            "target_revision": int(state.get("target_revision") or 0),
+            "completed_revision": int(state.get("completed_revision") or 0),
+            "draft_reconciliation_cursor": int(
+                state.get("draft_reconciliation_cursor") or 0
+            ),
+            "pending_pr_numbers": list(
+                dict.fromkeys(state.get("pending_pr_numbers") or [])
+            ),
+            "intent_revisions": dict(state.get("intent_revisions") or {}),
+        }
+    save_state_file(
+        status_comment_rollout_state_path(),
+        stored,
         STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     )
 
@@ -281,11 +369,27 @@ def claim_delivery_versions() -> bool:
     return True
 
 
-def enqueue_status_comment_update(pr_number: int) -> None:
+def status_comment_intent_revision(result: StoredDashboardResult | None) -> str:
+    payload = {
+        "renderer_revision": STATUS_COMMENT_REVISION,
+        "result": encode_stored_result(result) if result is not None else None,
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def enqueue_status_comment_update(
+    pr_number: int,
+    result: StoredDashboardResult | None = None,
+) -> None:
     state = load_status_comment_rollout_state()
     pending = state["pending_pr_numbers"]
     if pr_number not in pending:
         pending.append(pr_number)
+    state.setdefault("intent_revisions", {})[str(pr_number)] = (
+        status_comment_intent_revision(result)
+    )
     save_status_comment_rollout_state(state)
 
 
@@ -917,7 +1021,7 @@ def load_author_nudge_state_file(path: Path) -> dict[str, Any]:
     state = load_state_file(
         path,
         AUTHOR_NUDGE_STATE_VERSION,
-        compatible_versions=(2,),
+        compatible_versions=(2, 3),
     )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}
@@ -969,12 +1073,85 @@ def union_merge_author_nudges(
     return merged
 
 
+def reconcile_author_nudges(
+    intents: dict[str, Any],
+    receipts: dict[str, Any],
+) -> dict[str, Any]:
+    reconciled: dict[str, Any] = {}
+    for key in intents.keys() | receipts.keys():
+        intent = dict(intents.get(key) or {})
+        receipt = dict(receipts.get(key) or {})
+        delivered_completion_ids = list(
+            dict.fromkeys(receipt.get("delivered_completion_ids") or [])
+        )
+        pending_completions = {
+            completion.get("episode_id"): completion
+            for completion in receipt.get("completions") or []
+            if isinstance(completion, dict) and completion.get("episode_id")
+        }
+        for completion in intent.get("completions") or []:
+            if not isinstance(completion, dict):
+                continue
+            episode_id = completion.get("episode_id") or ""
+            if episode_id and episode_id not in delivered_completion_ids:
+                pending_completions[episode_id] = completion
+
+        entry = intent
+        intent_episode = entry.get("episode_id") or ""
+        receipt_episode = receipt.get("episode_id") or ""
+        same_episode = bool(
+            receipt.get("nudged_at")
+            and (
+                (intent_episode and intent_episode == receipt_episode)
+                or (
+                    entry.get("waiting_since")
+                    and entry.get("waiting_since") == receipt.get("waiting_since")
+                )
+            )
+        )
+        if same_episode:
+            entry["nudged_at"] = receipt["nudged_at"]
+            entry.pop("pending_at", None)
+            entry.pop("head_sha", None)
+            entry.pop("routing_input_fingerprint", None)
+        elif receipt.get("nudged_at"):
+            completed_episode = (
+                receipt_episode
+                or f"legacy-nudge:{receipt['nudged_at']}"
+            )
+            if completed_episode not in delivered_completion_ids:
+                pending_completions.setdefault(
+                    completed_episode,
+                    {
+                        "episode_id": completed_episode,
+                        "completed_at": receipt["nudged_at"],
+                        "kind": "routing_changed",
+                    },
+                )
+        if pending_completions:
+            entry["completions"] = list(pending_completions.values())
+        else:
+            entry.pop("completions", None)
+        if delivered_completion_ids:
+            entry["delivered_completion_ids"] = delivered_completion_ids
+        if entry:
+            reconciled[key] = entry
+    return reconciled
+
+
 def load_author_nudges(retry_snapshot_path: Path | None = None) -> dict[str, Any]:
     nudges = load_author_nudge_state_file(author_nudge_state_path())
     if retry_snapshot_path and retry_snapshot_path.exists():
         nudges = union_merge_author_nudges(
             nudges,
             load_author_nudge_state_file(retry_snapshot_path),
+        )
+    if using_delivery_state():
+        nudges = reconcile_author_nudges(
+            load_author_nudge_state_file(
+                accepted_state_dir() / AUTHOR_NUDGE_STATE_FILE
+            ),
+            nudges,
         )
     return nudges
 
@@ -991,6 +1168,7 @@ def load_copilot_review_request_state_file(path: Path) -> dict[str, Any]:
     state = load_state_file(
         path,
         COPILOT_REVIEW_REQUEST_STATE_VERSION,
+        compatible_versions=(6,),
     )
     if state is None or not isinstance(state.get("prs"), dict):
         return {}
@@ -1014,12 +1192,41 @@ def union_merge_copilot_review_requests(
     return merged
 
 
+def reconcile_copilot_review_requests(
+    intents: dict[str, Any],
+    receipts: dict[str, Any],
+) -> dict[str, Any]:
+    reconciled = {
+        key: dict(entry or {})
+        for key, entry in intents.items()
+    }
+    for key, receipt in receipts.items():
+        intent = reconciled.get(key)
+        receipt = dict(receipt or {})
+        if (
+            intent is not None
+            and receipt.get("requested_at")
+            and receipt.get("head_sha") == intent.get("head_sha")
+            and receipt.get("copilot_request_fingerprint")
+            == intent.get("copilot_request_fingerprint")
+        ):
+            intent["requested_at"] = receipt["requested_at"]
+    return reconciled
+
+
 def load_copilot_review_requests(retry_snapshot_path: Path | None = None) -> dict[str, Any]:
     requests = load_copilot_review_request_state_file(copilot_review_request_state_path())
     if retry_snapshot_path and retry_snapshot_path.exists():
         requests = union_merge_copilot_review_requests(
             requests,
             load_copilot_review_request_state_file(retry_snapshot_path),
+        )
+    if using_delivery_state():
+        requests = reconcile_copilot_review_requests(
+            load_copilot_review_request_state_file(
+                accepted_state_dir() / COPILOT_REVIEW_REQUEST_STATE_FILE
+            ),
+            requests,
         )
     return requests
 
