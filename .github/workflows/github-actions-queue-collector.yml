@@ -52,7 +52,6 @@ jobs:
           else
             git worktree add --detach "$data_dir" HEAD
             git -C "$data_dir" switch --orphan "$DATA_BRANCH"
-            git -C "$data_dir" rm -rf .
             cp "$DATA_BRANCH_README" "$data_dir/README.md"
           fi
           echo "directory=$data_dir" >> "$GITHUB_OUTPUT"
