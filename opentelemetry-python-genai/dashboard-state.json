@@ -2010,7 +2010,7 @@
     },
     "729": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -2018,7 +2018,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f5671c4d6721f788cf2b8f262f222c7339e19394595e413fdbb8ae6bf0f5c650",
+        "copilot_request_fingerprint": "2084060437824808e9056d87a125485fc4ffa62a101bc1b51ffc041619fd2287",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2034,21 +2034,31 @@
         "head_sha": "6873268fa72d42d63ea9d57dd907171908f143fb",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T05:23:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T11:42:04+00:00",
+        "last_approver_activity_at": "2026-09-16T11:42:04+00:00",
         "last_author_activity_at": "2026-09-16T05:23:53+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b125361d50c944e86c2b04e5b2d161aae6bc1b3db787bfff726a4a57bd93096e",
+        "routing_input_fingerprint": "be47954a4441354592f7a8ae0bb0d9e23bd72861867a046b9dac116ef46c69c3",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-16T06:28:10.499470+00:00"
       },
       "failed": false,
       "pr_number": 729,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/729",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
