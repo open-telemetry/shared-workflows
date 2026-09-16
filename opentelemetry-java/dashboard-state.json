@@ -935,7 +935,7 @@
     },
     "8830": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
         "author_action_review_thread_urls": [],
@@ -943,7 +943,7 @@
         "ci_failing_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "49f151fdc0d9e32db16ab8cc238d08fe076d7683170c971254efb994d8aa93c2",
+        "copilot_request_fingerprint": "635beb8794d2c61fef1652703b343c6328a789a6afa3c438cab710d615906864",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -959,21 +959,31 @@
         "head_sha": "b73aff84b11c8ba2ceceb5cbe358e8878d9462bd",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T19:02:22+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-16T20:30:59+00:00",
+        "last_approver_activity_at": "2026-09-16T20:30:59+00:00",
         "last_author_activity_at": "2026-09-16T18:25:29+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "017fb666101e310e5fc9abdf7a00bf1354b35611d844b1702322967a85dbbc36",
+        "routing_input_fingerprint": "d441fe8d49f08e8f1672fdc95a7739971d5c5c300a2375c8fb1716cc8896670a",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-16T20:14:11.438326+00:00"
       },
       "failed": false,
       "pr_number": 8830,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8830",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
