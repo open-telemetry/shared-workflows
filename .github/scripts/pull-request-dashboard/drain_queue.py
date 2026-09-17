@@ -11,7 +11,7 @@ import urllib.error
 import urllib.request
 from collections import defaultdict
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,7 @@ from process_queue_batch import (
     load_claims,
     parse_claims,
     process_claims,
+    resolve_work_items,
 )
 from queue_worker_client import QueueWorkerClient, acknowledge_results
 from report_rate_limits import report_rate_limits
@@ -170,6 +171,43 @@ class DashboardWorkflowDispatcher:
         self.token = token
         self.opener = opener
 
+    def resolve_head(self, repository: str, head_sha: str) -> int | None:
+        request = urllib.request.Request(
+            f"https://api.github.com/repos/open-telemetry/{repository}/"
+            f"commits/{head_sha}/pulls",
+            headers={
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"Bearer {self.token}",
+                "User-Agent": "pull-request-dashboard-queue-drain",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+        )
+        try:
+            with self.opener(request, timeout=30) as response:
+                if response.status != 200:
+                    raise RuntimeError(
+                        "head pull request lookup returned "
+                        f"unexpected HTTP status {response.status}"
+                    )
+                pull_requests = json.load(response)
+        except urllib.error.HTTPError as error:
+            body = error.read().decode("utf-8", errors="replace")[:1000]
+            raise RuntimeError(
+                f"head pull request lookup failed with HTTP {error.code}: {body}"
+            ) from error
+        if not isinstance(pull_requests, list):
+            raise RuntimeError("head pull request lookup returned invalid JSON")
+        matches = sorted(
+            pull_request["number"]
+            for pull_request in pull_requests
+            if isinstance(pull_request, dict)
+            and pull_request.get("state") == "open"
+            and isinstance(pull_request.get("head"), dict)
+            and pull_request["head"].get("sha") == head_sha
+            and isinstance(pull_request.get("number"), int)
+        )
+        return matches[0] if matches else None
+
     def dispatch(self, claim: Claim) -> None:
         payload = json.dumps(
             {
@@ -265,6 +303,7 @@ def process_claim_wave(
     *,
     canary_repositories: frozenset[str],
     configured_repositories: frozenset[str],
+    resolve_stable_head: Callable[[str, str], int | None],
     dispatch_stable: Callable[[Claim], None],
     report_limits: Callable[..., None] = report_rate_limits,
 ) -> WaveResult:
@@ -297,24 +336,54 @@ def process_claim_wave(
     results: list[dict[str, Any]] = []
     failures: dict[str, Exception] = {}
     try:
-        stable_results: list[dict[str, Any]] = []
-        for claim in stable_claims:
+        stable_results = [
+            acknowledgment(
+                claim,
+                "dead",
+                f"repository is not configured: {claim.repository}",
+            )
+            for claim in stable_claims
+            if claim.repository not in configured_repositories
+        ]
+        configured_stable_claims = [
+            claim
+            for claim in stable_claims
+            if claim.repository in configured_repositories
+        ]
+
+        def resolve_head(repository: str, head_sha: str) -> int | None:
+            monitor.assert_valid()
+            return resolve_stable_head(repository, head_sha)
+
+        stable_work, resolved_stable = resolve_work_items(
+            configured_stable_claims,
+            resolve_head,
+        )
+        stable_results.extend(resolved_stable)
+        for item in stable_work:
             try:
                 monitor.assert_valid()
-                if claim.repository not in configured_repositories:
-                    stable_results.append(
-                        acknowledgment(
-                            claim,
-                            "dead",
-                            f"repository is not configured: {claim.repository}",
-                        )
+                trigger_events = tuple(
+                    dict.fromkeys(
+                        event
+                        for claim in item.claims
+                        for event in claim.trigger_events
                     )
-                    continue
-                dispatch_stable(claim)
+                )
+                dispatch_stable(
+                    replace(
+                        item.claims[0],
+                        pr_number=item.pr_number,
+                        head_sha="",
+                        trigger_events=trigger_events,
+                    )
+                )
             except Exception as error:
-                stable_results.extend(failure_acknowledgments((claim,), error))
+                stable_results.extend(failure_acknowledgments(item.claims, error))
             else:
-                stable_results.append(acknowledgment(claim, "success"))
+                stable_results.extend(
+                    acknowledgment(claim, "success") for claim in item.claims
+                )
         acknowledge_results(
             client,
             stable_results,
@@ -498,6 +567,7 @@ def main() -> int:
                 token_client,
                 canary_repositories=args.canary_repositories,
                 configured_repositories=configured_repositories,
+                resolve_stable_head=workflow_dispatcher.resolve_head,
                 dispatch_stable=workflow_dispatcher.dispatch,
             )
 
