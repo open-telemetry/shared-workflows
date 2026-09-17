@@ -1128,23 +1128,18 @@
     },
     "11281": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "martincostello",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11281#discussion_r4019048518",
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11281#discussion_r4019080760",
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11281#discussion_r4019124921",
-          "https://github.com/open-telemetry/opentelemetry.io/pull/11281#discussion_r4019133688"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "81fd62d2fe874fb6a8cddac2b0ec6855",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 3,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9c1e5b3b1f9e1684eeb67626b6d347545d0447c0b9acfd3a2a4036dfadf3acd7",
+        "copilot_request_fingerprint": "b34c80da31235ffc570345b0afacbc1a5cfeaa5d03849cbfd211ca893103b208",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1157,13 +1152,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "5b2c9470b91bce3df357e0971b28272c8f8d223c",
+        "head_sha": "a185761bfe42886c28ddc4b8dd75da5dbb4843d5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-15T18:56:14+00:00",
-        "last_approver_activity_at": "2026-09-15T18:56:14+00:00",
-        "last_author_activity_at": "2026-09-15T13:42:54+00:00",
-        "required_checks_settled": true,
+        "last_activity_at": "2026-09-17T16:20:56+00:00",
+        "last_approver_activity_at": "2026-09-17T16:20:56+00:00",
+        "last_author_activity_at": "2026-09-17T16:17:23+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -1173,23 +1168,24 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "maryliag",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-17T17:02:27.048811+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "116a39f0f6a32f6e1f852d977a084460e274611d4238f5040d38d52d49ae315e",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "f0fb785d13b6bb111ba0906a57909835914dd73eb9144b03110ce70b2e3419e0",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-15T18:44:08+00:00"
       },
       "failed": false,
