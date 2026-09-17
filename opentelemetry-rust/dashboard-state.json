@@ -2502,7 +2502,7 @@
     },
     "3743": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "uasmirnov",
         "author_action_review_thread_urls": [],
@@ -2512,7 +2512,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "500401079b9ed060b2dc508c4075128f57b12f488415ab053f6715706b592587",
+        "copilot_request_fingerprint": "e681008a2e0b2dddd371232baeca28127eed6d27f27bd223539930c4cae458fd",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2528,11 +2528,21 @@
         "head_sha": "de0f76f472e3af6082d530e9a40cd58e6dee7b3e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-17T09:24:16+00:00",
-        "last_approver_activity_at": "2026-09-17T09:24:16+00:00",
+        "last_activity_at": "2026-09-17T13:30:17+00:00",
+        "last_approver_activity_at": "2026-09-17T13:30:17+00:00",
         "last_author_activity_at": "2026-09-17T06:25:08+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "bantonsson",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -2546,14 +2556,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "282f775002690c90d523c7bd06129a9e99d0ae88c944e3fac17b6ffac726f1fd",
+        "routing_input_fingerprint": "8ed81ce8b6c94d6456e5c17270dca9ac4a12bc08554e04df1f44f743e1982674",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-17T08:05:26.854392+00:00"
       },
       "failed": false,
       "pr_number": 3743,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3743",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3744": {
