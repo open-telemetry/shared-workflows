@@ -143,3 +143,23 @@ jobs:
           FAILED_RUNS: ${{ steps.collect.outputs.pending_run_failures }}
         run: |
           echo "::warning::$FAILED_RUNS workflow runs have job API failures recorded in collector state and will be retried"
+
+  notify-collection-failure:
+    needs:
+      - collect
+    # Every manual invocation runs the full organization collector. Skip forks
+    # where the collect job is intentionally disabled.
+    if: >-
+      always() &&
+      github.repository == 'open-telemetry/shared-workflows' &&
+      (
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
+    permissions:
+      issues: write # needed to open or close the collection failure tracking issue
+    uses: ./.github/workflows/workflow-failure-issue.yml
+    with:
+      # Unlike the dashboard's replaceable matrix publishers, this single job
+      # has no superseding worker. Cancellation therefore counts as failure.
+      success: ${{ needs.collect.result == 'success' }}
