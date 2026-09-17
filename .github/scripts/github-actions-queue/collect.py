@@ -118,6 +118,7 @@ class GitHubClient:
         self._minimum_rate: RateSnapshot | None = None
         self._cooldown_until = 0.0
         self._lock = threading.RLock()
+        self._in_flight_requests = 0
         self.request_count = 0
 
     @property
@@ -161,14 +162,14 @@ class GitHubClient:
         for attempt in range(self._max_retries + 1):
             self._wait_for_cooldown()
             self._reserve_request(check_rate_limit=check_rate_limit)
-            if check_rate_limit:
-                self._ensure_rate_available()
-
-            response = self._transport(url, self._headers)
-            self._update_rate(
-                response.headers,
-                capture_initial=check_rate_limit,
-            )
+            try:
+                response = self._transport(url, self._headers)
+                self._update_rate(
+                    response.headers,
+                    capture_initial=check_rate_limit,
+                )
+            finally:
+                self._release_request(check_rate_limit=check_rate_limit)
 
             if 200 <= response.status < 300:
                 return response
@@ -201,7 +202,14 @@ class GitHubClient:
                 raise CollectionBudgetExhausted("request_limit")
             if check_rate_limit:
                 self._ensure_rate_available()
+                self._in_flight_requests += 1
             self.request_count += 1
+
+    def _release_request(self, *, check_rate_limit: bool) -> None:
+        if not check_rate_limit:
+            return
+        with self._lock:
+            self._in_flight_requests -= 1
 
     def _wait_for_cooldown(self) -> None:
         while True:
@@ -247,17 +255,25 @@ class GitHubClient:
         reset = headers.get("x-ratelimit-reset")
         if limit is None or remaining is None or reset is None:
             return
+        observed = RateSnapshot(
+            limit=int(limit),
+            remaining=int(remaining),
+            reset=int(reset),
+        )
         with self._lock:
-            self._rate = RateSnapshot(
-                limit=int(limit),
-                remaining=int(remaining),
-                reset=int(reset),
-            )
+            if self._rate is None or observed.reset > self._rate.reset:
+                self._rate = observed
+            elif observed.reset == self._rate.reset:
+                self._rate = RateSnapshot(
+                    limit=observed.limit,
+                    remaining=min(self._rate.remaining, observed.remaining),
+                    reset=observed.reset,
+                )
             if capture_initial and self._initial_rate is None:
                 self._initial_rate = RateSnapshot(
-                    limit=self._rate.limit,
-                    remaining=min(self._rate.limit, self._rate.remaining + 1),
-                    reset=self._rate.reset,
+                    limit=observed.limit,
+                    remaining=min(observed.limit, observed.remaining + 1),
+                    reset=observed.reset,
                 )
             if capture_initial and (
                 self._minimum_rate is None
@@ -268,17 +284,24 @@ class GitHubClient:
 
     def _ensure_rate_available(self) -> None:
         with self._lock:
-            if self._rate is not None and self._rate_exhausted():
+            if (
+                self._rate is not None
+                and self._rate.remaining <= self._in_flight_requests
+            ):
                 raise RateLimitExhausted(self._rate_limit_message())
 
     def _rate_exhausted(self) -> bool:
         return self.rate.remaining == 0
 
     def _rate_limit_message(self) -> str:
-        rate = self.rate
+        with self._lock:
+            rate = self.rate
+            in_flight = self._in_flight_requests
+        available = max(0, rate.remaining - in_flight)
         return (
-            f"REST rate limit exhausted: {rate.remaining} remaining of "
-            f"{rate.limit}, reset {rate.reset}"
+            f"REST rate limit exhausted: {available} available of {rate.limit}, "
+            f"{rate.remaining} reported remaining with "
+            f"{in_flight} requests in flight, reset {rate.reset}"
         )
 
     def resolve_repositories(

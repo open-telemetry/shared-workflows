@@ -208,6 +208,7 @@ class GitHubClientTest(unittest.TestCase):
         client.get_json("/first")
         client.get_json("/second")
         self.assertEqual(2600, client.minimum_rate.remaining)
+        self.assertEqual(2600, client.rate.remaining)
 
     def test_stops_at_request_budget(self):
         transport = FakeTransport(lambda _url: response({"login": "octocat"}))
@@ -241,6 +242,31 @@ class GitHubClientTest(unittest.TestCase):
             )
 
         self.assertEqual(21, client.request_count)
+
+    def test_reserves_reported_quota_for_in_flight_request(self):
+        request_started = threading.Event()
+        release_request = threading.Event()
+
+        def handler(_url):
+            request_started.set()
+            release_request.wait(timeout=1)
+            return response({}, remaining=0)
+
+        transport = FakeTransport(handler)
+        client = GitHubClient("token", transport=transport)
+        client._rate = RateSnapshot(limit=5000, remaining=1, reset=2000000000)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            request = executor.submit(client.get_json, "/first")
+            self.assertTrue(request_started.wait(timeout=1))
+            try:
+                with self.assertRaisesRegex(RateLimitExhausted, "exhausted"):
+                    client.get_json("/second")
+            finally:
+                release_request.set()
+            request.result()
+
+        self.assertEqual([f"{API_ROOT}/first"], transport.urls)
 
     def test_does_not_wait_past_runtime_deadline(self):
         transport = FakeTransport(
