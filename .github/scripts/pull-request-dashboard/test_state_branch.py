@@ -4,7 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import state_branch
 
@@ -210,24 +210,53 @@ class FetchStateBranchTest(unittest.TestCase):
 
         self.assertTrue(state_branch.fetch_state_branch("state-branch", required=True))
 
-        self.assertEqual(2, subprocess_run.call_count)
+        self.assertEqual(
+            [
+                call(
+                    [
+                        "git",
+                        "fetch",
+                        "--no-write-fetch-head",
+                        "origin",
+                        "state-branch:refs/temp/fetch",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                ),
+                call(
+                    [
+                        "git",
+                        "fetch",
+                        "--no-write-fetch-head",
+                        "origin",
+                        "state-branch:refs/temp/fetch",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                ),
+            ],
+            subprocess_run.call_args_list,
+        )
         retry_delay_seconds.assert_called_once_with(1)
         sleep.assert_called_once_with(0.25)
         self.assertEqual(
             [
-                (
+                call(
                     [
                         "git",
                         "update-ref",
                         "refs/remotes/origin/state-branch",
                         "refs/temp/fetch",
-                    ],
+                    ]
                 ),
-                (
+                call(
                     ["git", "update-ref", "-d", "refs/temp/fetch"],
+                    check=False,
                 ),
             ],
-            [call.args for call in run.call_args_list],
+            run.call_args_list,
         )
 
     @patch.object(state_branch, "temporary_fetch_ref", return_value="refs/temp/fetch")
@@ -253,7 +282,24 @@ class FetchStateBranchTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "failed to fetch required"):
             state_branch.fetch_state_branch("state-branch", required=True)
 
-        self.assertEqual(4, subprocess_run.call_count)
+        self.assertEqual(
+            [
+                call(
+                    [
+                        "git",
+                        "fetch",
+                        "--no-write-fetch-head",
+                        "origin",
+                        "state-branch:refs/temp/fetch",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            ]
+            * 4,
+            subprocess_run.call_args_list,
+        )
         self.assertEqual(
             [1, 2, 3],
             [call.args[0] for call in retry_delay_seconds.call_args_list],
@@ -284,7 +330,18 @@ class FetchStateBranchTest(unittest.TestCase):
 
         self.assertFalse(state_branch.fetch_state_branch("state-branch", required=False))
 
-        subprocess_run.assert_called_once()
+        subprocess_run.assert_called_once_with(
+            [
+                "git",
+                "fetch",
+                "--no-write-fetch-head",
+                "origin",
+                "state-branch:refs/temp/fetch",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         sleep.assert_not_called()
         run.assert_called_once_with(
             ["git", "update-ref", "-d", "refs/temp/fetch"],
@@ -312,7 +369,18 @@ class FetchStateBranchTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Permission to repository denied"):
             state_branch.fetch_state_branch("state-branch", required=True)
 
-        subprocess_run.assert_called_once()
+        subprocess_run.assert_called_once_with(
+            [
+                "git",
+                "fetch",
+                "--no-write-fetch-head",
+                "origin",
+                "state-branch:refs/temp/fetch",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         sleep.assert_not_called()
         run.assert_called_once_with(
             ["git", "update-ref", "-d", "refs/temp/fetch"],
