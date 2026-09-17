@@ -643,7 +643,7 @@ def apply_dashboard_update_effects(
     if effects.clear_backfill_failure:
         clear_backfill_pr_failure(pr_number)
     if effects.enqueue_status_comment:
-        enqueue_status_comment_update(pr_number)
+        enqueue_status_comment_update(pr_number, acceptance.accepted_result)
     if effects.record_observations:
         record_author_nudge_observation(
             pr_number,

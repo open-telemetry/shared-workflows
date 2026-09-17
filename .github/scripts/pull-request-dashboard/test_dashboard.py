@@ -2645,7 +2645,7 @@ class StatusCommentQueueTest(unittest.TestCase):
 
         self.assertEqual(0, status)
         self.assertEqual(
-            [call(12), call(34)],
+            [call(12, None), call(34, None)],
             sorted(enqueue_update.call_args_list, key=lambda call: call.args[0]),
         )
         saved_state = save_state.call_args.args[1]
@@ -2698,7 +2698,7 @@ class StatusCommentQueueTest(unittest.TestCase):
 
         self.assertEqual(0, status)
         accept_update.assert_called_once()
-        enqueue_update.assert_called_once_with(12)
+        enqueue_update.assert_called_once_with(12, accepted_result)
         record_nudge.assert_called_once_with(
             12,
             accepted_result,

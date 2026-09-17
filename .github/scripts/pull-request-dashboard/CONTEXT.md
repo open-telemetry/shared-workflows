@@ -53,6 +53,11 @@ those updates. The state branch remains the durable compare-and-swap boundary;
 the acceptance transaction only decides which dashboard state a retry may
 persist.
 
+Workers exclusively own `otelbot/pull-request-dashboard-state/<repository>`.
+Publishers read a detached snapshot of that ref and persist receipts and rollout
+progress on `otelbot/pull-request-dashboard-delivery/<repository>`. The two
+paths never push the same ref.
+
 ## Activity timeline
 
 The activity timeline projects canonical commits, issue comments, review

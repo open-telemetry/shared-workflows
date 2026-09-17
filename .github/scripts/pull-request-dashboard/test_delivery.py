@@ -1,14 +1,66 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import tempfile
 import unittest
 from unittest.mock import ANY, Mock, call, patch
 
 import delivery
+import state
 
 
 class DeliveryTest(unittest.TestCase):
+    def test_migrates_existing_receipts_once(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            accepted = root / "accepted"
+            delivery_state = root / "delivery"
+            accepted.mkdir()
+            delivery_state.mkdir()
+            for name in delivery.LEGACY_DELIVERY_FILES:
+                (accepted / name).write_text(f"{name}\n", encoding="utf-8")
+
+            with patch.object(state, "_state_dir", delivery_state):
+                delivery.initialize_delivery_state(accepted)
+                (accepted / "notification-state.json").write_text(
+                    "new worker value\n",
+                    encoding="utf-8",
+                )
+                delivery.initialize_delivery_state(accepted)
+
+            self.assertEqual(
+                "notification-state.json\n",
+                (delivery_state / "notification-state.json").read_text(
+                    encoding="utf-8"
+                ),
+            )
+            marker = json.loads(
+                (delivery_state / state.DELIVERY_STATE_FILE).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(delivery.DELIVERY_STATE_VERSION, marker["version"])
+            self.assertTrue(marker["migrated_from_accepted_state"])
+
+    def test_rejects_an_invalid_delivery_state_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            accepted = root / "accepted"
+            delivery_state = root / "delivery"
+            accepted.mkdir()
+            delivery_state.mkdir()
+            (delivery_state / state.DELIVERY_STATE_FILE).write_text(
+                '{"version":999}\n',
+                encoding="utf-8",
+            )
+
+            with (
+                patch.object(state, "_state_dir", delivery_state),
+                self.assertRaisesRegex(RuntimeError, "incompatible shape"),
+            ):
+                delivery.initialize_delivery_state(accepted)
+
     @patch.object(delivery, "notify_slack_from_state", return_value=[])
     @patch.object(delivery, "deliver_copilot_review_requests", return_value=[])
     @patch.object(delivery, "deliver_prepared_author_nudges", return_value=[])
@@ -326,11 +378,25 @@ class DeliveryTest(unittest.TestCase):
                 "dashboard-state",
                 Path("state"),
                 github_output=github_output,
+                delivery_state_branch_name=(
+                    "otelbot/pull-request-dashboard-delivery/example"
+                ),
             )
             github_output_text = github_output.read_text(encoding="utf-8")
 
         self.assertEqual(1, status)
         self.assertEqual("active=true\n", github_output_text)
+        self.assertEqual(
+            "otelbot/pull-request-dashboard-delivery/example",
+            push_state_changes.call_args.kwargs["state_branch"],
+        )
+        retry_sources = {
+            source
+            for source, _destination in (
+                push_state_changes.call_args.kwargs["retry_snapshots"]
+            )
+        }
+        self.assertIn(Path("slack"), retry_sources)
 
     @patch.object(delivery, "deliver_from_state")
     @patch.object(delivery, "claim_delivery_versions", return_value=False)
@@ -354,7 +420,7 @@ class DeliveryTest(unittest.TestCase):
             github_output = Path(temp_dir) / "github-output"
             status = delivery.deliver_with_state(
                 "open-telemetry/example",
-                "dashboard-state",
+                "otelbot/pull-request-dashboard-state/example",
                 Path("state"),
                 github_output=github_output,
             )
@@ -364,6 +430,10 @@ class DeliveryTest(unittest.TestCase):
         claim_delivery_versions.assert_called_once_with()
         deliver_from_state.assert_not_called()
         self.assertEqual("active=false\n", github_output_text)
+        self.assertEqual(
+            "otelbot/pull-request-dashboard-delivery/example",
+            push_state_changes.call_args.kwargs["state_branch"],
+        )
 
 
 if __name__ == "__main__":

@@ -30,6 +30,11 @@ coalesced stable item to the targeted workflow, which invokes the promoted
 repository workflow and scripts. Stable and canary workers therefore never load
 each other's dashboard state formats.
 
+The `shared-workflows` Actions token needs `contents: write` so workers can push
+`otelbot/pull-request-dashboard-state/<repository>` and publishers can push
+`otelbot/pull-request-dashboard-delivery/<repository>`. Target-repository app
+permissions do not change.
+
 The queue uses the site-wide `pr-dashboard-queue` store with strong reads and
 ETag-conditional writes. Netlify creates the store on its first write. The drain
 workflow authenticates claim, heartbeat, acknowledgment, and finish calls with

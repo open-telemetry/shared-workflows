@@ -31,6 +31,7 @@ permissions:
 env:
   DASHBOARD_CONFIG: .github/scripts/pull-request-dashboard/repositories.json
   DASHBOARD_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-state
+  DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX: otelbot/pull-request-dashboard-delivery
 
 jobs:
   update-dashboard:
@@ -228,8 +229,6 @@ jobs:
     environment: protected
     runs-on: ubuntu-latest
     timeout-minutes: 50
-    env:
-      PUBLISHER_LOCK_OWNER: ${{ github.run_id }}-${{ github.run_attempt }}-publish
     steps:
       # `$` resolves this same-repository action from the reusable workflow's exact commit.
       - name: Load dashboard code
@@ -280,19 +279,6 @@ jobs:
           permission-members: read
           permission-pull-requests: write
 
-      - name: Acquire repository publisher lock
-        id: publisher-lock
-        env:
-          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_NAME: ${{ steps.config.outputs.name }}
-        run: |
-          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          python3 "$DASHBOARD_CODE/state_branch.py" \
-            acquire-publisher-lock \
-            --state-branch "$state_branch" \
-            --owner "$PUBLISHER_LOCK_OWNER"
-
       - name: Deliver dashboard updates
         id: delivery
         continue-on-error: true
@@ -308,8 +294,10 @@ jobs:
         run: |
           set -euo pipefail
           state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
+          delivery_state_branch="${DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX}/${REPO_NAME}"
           delivery_args=(
             --state-branch "$state_branch"
+            --delivery-state-branch "$delivery_state_branch"
             --repo "$REPO_NAME"
             --github-output "$GITHUB_OUTPUT"
           )
@@ -341,19 +329,6 @@ jobs:
             publish_args+=(--large-repo)
           fi
           python3 "$DASHBOARD_CODE/publish_dashboard.py" "${publish_args[@]}"
-
-      - name: Release repository publisher lock
-        if: always() && steps.publisher-lock.outcome == 'success'
-        env:
-          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_NAME: ${{ steps.config.outputs.name }}
-        run: |
-          state_branch="${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}"
-          python3 "$DASHBOARD_CODE/state_branch.py" \
-            release-publisher-lock \
-            --state-branch "$state_branch" \
-            --owner "$PUBLISHER_LOCK_OWNER"
 
       - name: Report GitHub App rate limits
         if: always() && steps.dashboard-token.outcome == 'success'

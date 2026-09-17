@@ -1323,6 +1323,8 @@ class RolloutStateTest(unittest.TestCase):
             "target_revision": 0,
             "completed_revision": 0,
             "pending_pr_numbers": [56, 34, 12],
+            "_accepted_intent_revisions": {"34": "snapshot-b"},
+            "delivered_intent_revisions": {"56": "snapshot-a"},
         },
     )
     def test_targeted_update_only_drains_triggering_pr(
@@ -1346,6 +1348,10 @@ class RolloutStateTest(unittest.TestCase):
         saved_state = save_rollout.call_args.args[0]
         self.assertEqual(0, saved_state["target_revision"])
         self.assertEqual([56, 12], saved_state["pending_pr_numbers"])
+        self.assertEqual(
+            {"56": "snapshot-a", "34": "snapshot-b"},
+            saved_state["delivered_intent_revisions"],
+        )
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")

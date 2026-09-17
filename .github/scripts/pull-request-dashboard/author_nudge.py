@@ -30,6 +30,7 @@ from state import (
     load_author_nudges,
     load_dashboard_state_cache,
     save_author_nudges,
+    using_delivery_state,
 )
 from routing_snapshot import fetch_routing_snapshot
 from utils import format_ts, parse_ts
@@ -93,7 +94,13 @@ def display_time(value: datetime) -> str:
 
 def completion_only(entry: dict[str, Any]) -> dict[str, Any] | None:
     completions = list(entry.get("completions") or [])
-    return {"completions": completions} if completions else None
+    delivered_completion_ids = list(entry.get("delivered_completion_ids") or [])
+    state: dict[str, Any] = {}
+    if completions:
+        state["completions"] = completions
+    if delivered_completion_ids:
+        state["delivered_completion_ids"] = delivered_completion_ids
+    return state or None
 
 
 def queue_completion(
@@ -475,6 +482,9 @@ def deliver_prepared_author_nudges(
             continue
         result = dashboard_state.result_for(pr_number)
         completions = list((entry or {}).get("completions") or [])
+        delivered_completion_ids = list(
+            dict.fromkeys((entry or {}).get("delivered_completion_ids") or [])
+        )
         remaining_completions: list[dict[str, Any]] = []
         for completion in completions:
             episode_id = completion.get("episode_id") or ""
@@ -519,11 +529,18 @@ def deliver_prepared_author_nudges(
             except Exception as e:
                 errors.append(f"PR #{pr_number}: {e}")
                 remaining_completions.append(completion)
+            else:
+                if not using_delivery_state():
+                    continue
+                if episode_id not in delivered_completion_ids:
+                    delivered_completion_ids.append(episode_id)
         entry = dict(entry or {})
         if remaining_completions:
             entry["completions"] = remaining_completions
         else:
             entry.pop("completions", None)
+        if delivered_completion_ids:
+            entry["delivered_completion_ids"] = delivered_completion_ids
         if not entry.get("waiting_since") and not entry.get("pending_at"):
             if entry:
                 updated[key] = entry

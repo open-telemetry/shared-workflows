@@ -71,6 +71,19 @@ class StatusCommentDeferred(Exception):
     pass
 
 
+def record_delivered_status_intents(
+    rollout_state: dict[str, Any],
+    pr_numbers: set[int],
+) -> None:
+    desired = rollout_state.get("_accepted_intent_revisions") or {}
+    delivered = dict(rollout_state.get("delivered_intent_revisions") or {})
+    for pr_number in pr_numbers:
+        revision = desired.get(str(pr_number))
+        if revision:
+            delivered[str(pr_number)] = revision
+    rollout_state["delivered_intent_revisions"] = delivered
+
+
 def status_report_url(pr: dict[str, Any], status_comment: str) -> str:
     quoted_status_comment = "\n".join(
         f"> {line}" for line in status_comment.splitlines()
@@ -604,6 +617,7 @@ def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list
 
     pending_pr_numbers.remove(pr_number)
     rollout_state["pending_pr_numbers"] = pending_pr_numbers
+    record_delivered_status_intents(rollout_state, {pr_number})
     if not pending_pr_numbers:
         rollout_state["completed_revision"] = rollout_state["target_revision"]
     save_status_comment_rollout_state(rollout_state)
@@ -614,8 +628,17 @@ def prepare_rollout_state(
     rollout_state: dict[str, Any],
     open_pr_numbers: set[int],
 ) -> dict[str, Any]:
+    common = {
+        "delivered_intent_revisions": dict(
+            rollout_state.get("delivered_intent_revisions") or {}
+        ),
+        "_accepted_intent_revisions": dict(
+            rollout_state.get("_accepted_intent_revisions") or {}
+        ),
+    }
     if rollout_state.get("target_revision") != STATUS_COMMENT_REVISION:
         return {
+            **common,
             "target_revision": STATUS_COMMENT_REVISION,
             "completed_revision": int(rollout_state.get("completed_revision") or 0),
             "pending_pr_numbers": sorted(open_pr_numbers),
@@ -629,6 +652,7 @@ def prepare_rollout_state(
         if number in open_pr_numbers
     }
     return {
+        **common,
         "target_revision": STATUS_COMMENT_REVISION,
         "completed_revision": int(rollout_state.get("completed_revision") or 0),
         "pending_pr_numbers": sorted(pending),
@@ -727,6 +751,7 @@ def update_status_comments_from_state(
     ] + [
         number for number in rollout_pr_numbers if number in deferred_pr_numbers
     ]
+    record_delivered_status_intents(rollout_state, successful_pr_numbers)
     pending = rollout_state["pending_pr_numbers"]
     if not pending:
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
