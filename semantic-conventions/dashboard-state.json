@@ -889,19 +889,15 @@
         "approval_count": 2,
         "assignees": [],
         "author": "peschinskiy",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/3916#discussion_r4030535917"
-        ],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/semantic-conventions/pull/3916#pullrequestreview-5228023066"
-        ],
+        "author_action_review_thread_urls": [],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "af55509dd788447db23dc6d2f41316a2",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
-        "conflicts": "yes",
-        "copilot_request_fingerprint": "6613dd31332adcc1b549289c8a66603152fd2692600fd846981e9bd9804f5783",
+        "ci_pending_count": 11,
+        "conflicts": "no",
+        "copilot_request_fingerprint": "c47beeb7ac9a2077b002a34867e4f554459e03e5287a4cdf7f22d95abd5624eb",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -916,13 +912,13 @@
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
         "dashboard_override_since": "2026-07-30T15:44:35Z",
-        "head_sha": "8c57cad1e28ffbb2448f96021f94359ecc3f9942",
+        "head_sha": "3b83a20bbf013f3b804c1a5c0dc7de9591f312ca",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T20:36:33+00:00",
+        "last_activity_at": "2026-09-17T14:51:13+00:00",
         "last_approver_activity_at": "2026-09-16T20:36:33+00:00",
-        "last_author_activity_at": "2026-09-10T13:08:14+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-09-17T14:51:13+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -959,10 +955,10 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "lmolkova",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
-            "unresolved_thread": true
+            "top_level_feedback": false,
+            "unresolved_thread": false
           },
           {
             "approved": false,
@@ -1005,10 +1001,11 @@
             "unresolved_thread": true
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-17T14:53:05.465002+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "14f5d4958c16b532e9591e11427457ae3a0bd7c84a2d919e54b64560e7b99ae9",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "e120bdeebcac87b6b16c32220f6d1e96bfb4796ad77b6e66ca89636bf4053431",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-16T20:35:21+00:00"
       },
       "failed": false,
