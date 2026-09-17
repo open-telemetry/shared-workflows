@@ -158,7 +158,7 @@ jobs:
       )
     permissions:
       issues: write # needed to open or close the collection failure tracking issue
-    uses: ./.github/workflows/workflow-failure-issue.yml
+    uses: $/.github/workflows/workflow-failure-issue.yml
     with:
       # Unlike the dashboard's replaceable matrix publishers, this single job
       # has no superseding worker. Cancellation therefore counts as failure.
