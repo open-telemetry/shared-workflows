@@ -274,7 +274,10 @@ class WorkflowDispatcherTest(unittest.TestCase):
             opener=open_request,
         )
 
-        self.assertEqual(dispatcher.resolve_head("stable", "a" * 40), 7)
+        self.assertEqual(
+            dispatcher.resolve_head("stable", "a" * 40, "stable-token"),
+            7,
+        )
 
     def test_dispatches_the_coalesced_claim_to_the_targeted_workflow(self) -> None:
         requests: list[tuple[object, int]] = []
@@ -405,6 +408,8 @@ class ProcessClaimWaveTest(unittest.TestCase):
         client = mock.Mock()
         client.call.return_value = {"dispatcher": True}
         dispatched: list[Claim] = []
+        token_client = mock.Mock()
+        token_client.mint.return_value = "stable-token"
         direct = Claim(
             "stable#pr:7",
             3,
@@ -432,7 +437,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 client,
                 1,
                 "worker",
-                mock.Mock(),
+                token_client,
                 canary_repositories=frozenset({"canary"}),
                 configured_repositories=frozenset({"stable"}),
                 resolve_stable_head=resolve_stable_head,
@@ -440,7 +445,13 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 report_limits=lambda *_args, **_kwargs: None,
             )
 
-        resolve_stable_head.assert_called_once_with("stable", "a" * 40)
+        resolve_stable_head.assert_called_once_with(
+            "stable",
+            "a" * 40,
+            "stable-token",
+        )
+        token_client.mint.assert_called_once_with(["stable"])
+        token_client.revoke.assert_called_once_with("stable-token")
         self.assertEqual(len(dispatched), 1)
         self.assertEqual(dispatched[0].pr_number, 7)
         self.assertEqual(dispatched[0].head_sha, "")

@@ -171,13 +171,18 @@ class DashboardWorkflowDispatcher:
         self.token = token
         self.opener = opener
 
-    def resolve_head(self, repository: str, head_sha: str) -> int | None:
+    def resolve_head(
+        self,
+        repository: str,
+        head_sha: str,
+        token: str,
+    ) -> int | None:
         request = urllib.request.Request(
             f"https://api.github.com/repos/open-telemetry/{repository}/"
             f"commits/{head_sha}/pulls",
             headers={
                 "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {self.token}",
+                "Authorization": f"Bearer {token}",
                 "User-Agent": "pull-request-dashboard-queue-drain",
                 "X-GitHub-Api-Version": "2022-11-28",
             },
@@ -303,7 +308,7 @@ def process_claim_wave(
     *,
     canary_repositories: frozenset[str],
     configured_repositories: frozenset[str],
-    resolve_stable_head: Callable[[str, str], int | None],
+    resolve_stable_head: Callable[[str, str, str], int | None],
     dispatch_stable: Callable[[Claim], None],
     report_limits: Callable[..., None] = report_rate_limits,
 ) -> WaveResult:
@@ -351,14 +356,34 @@ def process_claim_wave(
             if claim.repository in configured_repositories
         ]
 
-        def resolve_head(repository: str, head_sha: str) -> int | None:
-            monitor.assert_valid()
-            return resolve_stable_head(repository, head_sha)
+        resolution_tokens: dict[str, str] = {}
+        try:
+            def resolve_head(repository: str, head_sha: str) -> int | None:
+                monitor.assert_valid()
+                token = resolution_tokens.get(repository)
+                if token is None:
+                    token = token_client.mint([repository])
+                    resolution_tokens[repository] = token
+                    print(f"::add-mask::{token}")
+                return resolve_stable_head(repository, head_sha, token)
 
-        stable_work, resolved_stable = resolve_work_items(
-            configured_stable_claims,
-            resolve_head,
-        )
+            stable_work, resolved_stable = resolve_work_items(
+                configured_stable_claims,
+                resolve_head,
+            )
+        finally:
+            for token in resolution_tokens.values():
+                try:
+                    report_limits(20, token=token)
+                except Exception as error:
+                    print(
+                        "::warning::GitHub App rate-limit reporting failed: "
+                        f"{error}"
+                    )
+                try:
+                    token_client.revoke(token)
+                except Exception as error:
+                    print(f"::warning::GitHub App token revocation failed: {error}")
         stable_results.extend(resolved_stable)
         for item in stable_work:
             try:
