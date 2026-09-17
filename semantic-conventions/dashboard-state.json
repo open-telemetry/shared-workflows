@@ -892,12 +892,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "af55509dd788447db23dc6d2f41316a2",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 11,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c47beeb7ac9a2077b002a34867e4f554459e03e5287a4cdf7f22d95abd5624eb",
+        "copilot_request_fingerprint": "745eb19428a4ac776c52aa1643a5737b8e2bf2d4d1a6936a9533a75dc5351ae3",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -918,7 +917,7 @@
         "last_activity_at": "2026-09-17T14:51:13+00:00",
         "last_approver_activity_at": "2026-09-16T20:36:33+00:00",
         "last_author_activity_at": "2026-09-17T14:51:13+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -998,20 +997,19 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-17T14:53:05.465002+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e120bdeebcac87b6b16c32220f6d1e96bfb4796ad77b6e66ca89636bf4053431",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-16T20:35:21+00:00"
+        "routing_input_fingerprint": "c162d80a1ee2b8dcd5318515e295c206a671b5b2479b98fc8362bc0b96d6f1e1",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-17T14:54:27.050721+00:00"
       },
       "failed": false,
       "pr_number": 3916,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions/pull/3916",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5243058986": {
           "evidence": {
