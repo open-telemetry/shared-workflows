@@ -356,6 +356,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 "worker",
                 token_client,
                 canary_repositories=frozenset({"canary"}),
+                configured_repositories=frozenset({"stable"}),
                 dispatch_stable=lambda item: dispatched.append(item.item_key),
                 report_limits=lambda *_args, **_kwargs: None,
             )
@@ -370,6 +371,38 @@ class ProcessClaimWaveTest(unittest.TestCase):
         )
         self.assertEqual(acknowledgment.kwargs["itemKey"], "stable#pr:7")
         self.assertEqual(acknowledgment.kwargs["outcome"], "success")
+
+    def test_dead_letters_unconfigured_stable_claim_without_dispatching(self) -> None:
+        client = mock.Mock()
+        client.call.return_value = {"dispatcher": True}
+        dispatch_stable = mock.Mock()
+
+        with tempfile.TemporaryDirectory() as directory:
+            result = process_claim_wave(
+                [Claim("removed#pr:7", 3, "removed", 7, "", 0)],
+                Path(directory) / "results.json",
+                client,
+                1,
+                "worker",
+                mock.Mock(),
+                canary_repositories=frozenset({"canary"}),
+                configured_repositories=frozenset({"stable"}),
+                dispatch_stable=dispatch_stable,
+                report_limits=lambda *_args, **_kwargs: None,
+            )
+
+        dispatch_stable.assert_not_called()
+        self.assertEqual(result, WaveResult(1, ()))
+        acknowledgment = next(
+            call
+            for call in client.call.call_args_list
+            if call.args == ("acknowledge",)
+        )
+        self.assertEqual(acknowledgment.kwargs["outcome"], "dead")
+        self.assertEqual(
+            acknowledgment.kwargs["error"],
+            "repository is not configured: removed",
+        )
 
     def test_retries_stable_claim_when_workflow_dispatch_fails(self) -> None:
         client = mock.Mock()
@@ -387,6 +420,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 "worker",
                 mock.Mock(),
                 canary_repositories=frozenset({"canary"}),
+                configured_repositories=frozenset({"stable"}),
                 dispatch_stable=fail_dispatch,
                 report_limits=lambda *_args, **_kwargs: None,
             )
@@ -424,6 +458,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 "worker",
                 mock.Mock(),
                 canary_repositories=frozenset({"canary"}),
+                configured_repositories=frozenset({"stable"}),
                 dispatch_stable=dispatch_stable,
                 report_limits=lambda *_args, **_kwargs: None,
             )
@@ -539,6 +574,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 "worker",
                 token_client,
                 canary_repositories=frozenset({"removed", "valid"}),
+                configured_repositories=frozenset({"removed", "valid"}),
                 dispatch_stable=mock.Mock(),
                 report_limits=lambda *_args, **_kwargs: None,
             )
@@ -591,6 +627,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
                 "worker",
                 token_client,
                 canary_repositories=frozenset({"example"}),
+                configured_repositories=frozenset({"example"}),
                 dispatch_stable=mock.Mock(),
                 report_limits=lambda threshold, token: lifecycle.append(
                     f"report:{threshold}:{token}"

@@ -264,6 +264,7 @@ def process_claim_wave(
     token_client: GitHubAppTokenClient,
     *,
     canary_repositories: frozenset[str],
+    configured_repositories: frozenset[str],
     dispatch_stable: Callable[[Claim], None],
     report_limits: Callable[..., None] = report_rate_limits,
 ) -> WaveResult:
@@ -300,6 +301,15 @@ def process_claim_wave(
         for claim in stable_claims:
             try:
                 monitor.assert_valid()
+                if claim.repository not in configured_repositories:
+                    stable_results.append(
+                        acknowledgment(
+                            claim,
+                            "dead",
+                            f"repository is not configured: {claim.repository}",
+                        )
+                    )
+                    continue
                 dispatch_stable(claim)
             except Exception as error:
                 stable_results.extend(failure_acknowledgments((claim,), error))
@@ -431,6 +441,17 @@ def parse_canary_repositories(value: str) -> frozenset[str]:
     return frozenset(repositories)
 
 
+def load_configured_repositories(
+    path: Path = SCRIPT_DIR / "repositories.json",
+) -> frozenset[str]:
+    config = json.loads(path.read_text(encoding="utf-8"))
+    return frozenset(
+        entry["name"]
+        for entry in config
+        if isinstance(entry, dict) and isinstance(entry.get("name"), str)
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Drain dashboard queue waves.")
     parser.add_argument("--claims", type=Path, required=True)
@@ -447,6 +468,7 @@ def main() -> int:
     args = parser.parse_args()
 
     initial_claims = load_claims(args.claims)
+    configured_repositories = load_configured_repositories()
     client = QueueWorkerClient(args.endpoint)
     client_id, private_key = take_github_app_credentials()
     token_client = GitHubAppTokenClient(client_id, private_key)
@@ -475,6 +497,7 @@ def main() -> int:
                 args.worker,
                 token_client,
                 canary_repositories=args.canary_repositories,
+                configured_repositories=configured_repositories,
                 dispatch_stable=workflow_dispatcher.dispatch,
             )
 
