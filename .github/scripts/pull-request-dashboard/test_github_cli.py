@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+import subprocess
 import unittest
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, call, patch
 
 from github_cli import (
+    GH_RETRY_ATTEMPTS,
     TransientGhError,
     check_bucket,
     code_scanning_tools,
@@ -24,6 +27,7 @@ from github_cli import (
     request_copilot_review,
     required_check_contexts,
     required_code_scanning_checks,
+    run_gh_json,
     settled_check_suite_app_ids,
 )
 from pull_request_source import fetch_pull_request_source
@@ -66,6 +70,59 @@ def _rollup_page(nodes):
             },
         },
     }
+
+
+class RunGhJsonTest(unittest.TestCase):
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_recovers_from_malformed_json(self, run, sleep) -> None:
+        run.side_effect = [
+            subprocess.CompletedProcess(["gh"], 0, "{broken", ""),
+            subprocess.CompletedProcess(["gh"], 0, '{"ok": true}', ""),
+        ]
+
+        self.assertEqual({"ok": True}, run_gh_json(["gh", "api", "/test"]))
+        self.assertEqual(2, run.call_count)
+        sleep.assert_called_once_with(0)
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_malformed_json_exhaustion_preserves_decode_error(
+        self, run, sleep
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess(["gh"], 0, "{broken", "")
+
+        with self.assertRaisesRegex(
+            TransientGhError,
+            f"returned invalid JSON after {GH_RETRY_ATTEMPTS} attempts",
+        ) as raised:
+            run_gh_json(["gh", "api", "/test"])
+
+        self.assertIsInstance(raised.exception.__cause__, json.JSONDecodeError)
+        self.assertEqual(GH_RETRY_ATTEMPTS, run.call_count)
+        self.assertEqual(GH_RETRY_ATTEMPTS - 1, sleep.call_count)
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_process_and_decode_failures_share_attempt_budget(
+        self, run, sleep
+    ) -> None:
+        run.side_effect = [
+            subprocess.CompletedProcess(["gh"], 1, "", "HTTP 502"),
+            subprocess.CompletedProcess(["gh"], 1, "", "connection reset"),
+            subprocess.CompletedProcess(["gh"], 1, "", "gateway timeout"),
+            subprocess.CompletedProcess(["gh"], 0, "{broken", ""),
+        ]
+
+        with self.assertRaises(TransientGhError) as raised:
+            run_gh_json(["gh", "api", "/test"])
+
+        self.assertIsInstance(raised.exception.__cause__, json.JSONDecodeError)
+        self.assertEqual(GH_RETRY_ATTEMPTS, run.call_count)
+        self.assertEqual(
+            [call(attempt) for attempt in range(3)],
+            sleep.call_args_list,
+        )
 
 
 class FetchReviewRequestsTest(unittest.TestCase):

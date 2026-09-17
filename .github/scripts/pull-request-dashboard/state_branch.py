@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -23,6 +24,7 @@ DEFAULT_MAX_ATTEMPTS = 8
 RETRY_BACKOFF_BASE_SECONDS = 0.5
 RETRY_BACKOFF_MAX_SECONDS = 8.0
 CONFIG_LOCK_ATTEMPTS = 5
+FETCH_ATTEMPTS = 4
 STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-state"
 DELIVERY_STATE_BRANCH_PREFIX = "otelbot/pull-request-dashboard-delivery"
 
@@ -77,6 +79,46 @@ def is_missing_remote_ref(stderr: str) -> bool:
     return "couldn't find remote ref" in stderr.lower()
 
 
+def is_transient_fetch_error(output: str) -> bool:
+    message = output.lower()
+    if re.search(r"(?:http(?:/\d(?:\.\d)?)?|returned error:)\s*5\d\d\b", message):
+        return True
+    return any(
+        text in message
+        for text in (
+            "bad gateway",
+            "broken pipe",
+            "connection closed by remote host",
+            "connection refused",
+            "connection reset",
+            "connection timed out",
+            "connection was reset",
+            "could not resolve host",
+            "early eof",
+            "empty reply from server",
+            "failed to connect",
+            "failure when receiving data from the peer",
+            "gateway timeout",
+            "gnutls_handshake() failed",
+            "internal server error",
+            "network is unreachable",
+            "operation timed out",
+            "recv failure",
+            "remote end hung up unexpectedly",
+            "schannel: failed to receive handshake",
+            "send failure",
+            "service unavailable",
+            "ssl_error_syscall",
+            "temporary failure in name resolution",
+            "tls connection was non-properly terminated",
+            "transfer closed with outstanding read data remaining",
+            "unexpected disconnect",
+            "unexpected eof while reading",
+            "was not closed cleanly",
+        )
+    )
+
+
 def temporary_fetch_ref() -> str:
     return f"refs/pull-request-dashboard-fetch/{uuid.uuid4()}"
 
@@ -114,24 +156,33 @@ def remote_is_behind_local(state_branch: str, fetched_ref: str) -> bool:
 def fetch_state_branch(state_branch: str, required: bool) -> bool:
     fetched_ref = temporary_fetch_ref()
     try:
-        proc = subprocess.run(
-            [
-                "git",
-                "fetch",
-                "--no-write-fetch-head",
-                "origin",
-                f"{state_branch}:{fetched_ref}",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if proc.returncode != 0:
+        for attempt in range(1, FETCH_ATTEMPTS + 1):
+            proc = subprocess.run(
+                [
+                    "git",
+                    "fetch",
+                    "--no-write-fetch-head",
+                    "origin",
+                    f"{state_branch}:{fetched_ref}",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if proc.returncode == 0:
+                break
             if not required and is_missing_remote_ref(proc.stderr):
                 return False
             message = proc.stderr.strip() or proc.stdout.strip() or f"exit code {proc.returncode}"
-            kind = "required" if required else "optional"
-            raise RuntimeError(f"failed to fetch {kind} state branch {state_branch}: {message}")
+            if (
+                not is_transient_fetch_error(f"{proc.stderr}\n{proc.stdout}")
+                or attempt == FETCH_ATTEMPTS
+            ):
+                kind = "required" if required else "optional"
+                raise RuntimeError(
+                    f"failed to fetch {kind} state branch {state_branch}: {message}"
+                )
+            time.sleep(retry_delay_seconds(attempt))
 
         destination = remote_ref(state_branch)
         if not has_state_branch(state_branch) or ref_is_ancestor(destination, fetched_ref):

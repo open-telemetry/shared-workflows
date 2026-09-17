@@ -193,7 +193,10 @@ the implementation understandable and operationally cheap.
   `backfill-state.json`. The cursor is the last attempted PR number, and the
   next run continues after it in sorted PR-number order, wrapping when needed.
   Failed PR numbers are stored beside the cursor and are removed after a later
-  successful refresh.
+  successful refresh. Each run pulls forward up to 10 recorded failures from
+  that rotation, then fills the remaining batch from the normal mixed order.
+  This retries failures sooner without adding another cursor or letting the
+  priority group consume the entire 50-PR batch.
 - The rotation is not reordered to favor PRs that are waiting on something. A
   wait ends with nothing changing on the PR — a check completes, a review is
   filed — so a missed event is only noticed when the rotation comes round again.

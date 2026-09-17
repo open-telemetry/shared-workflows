@@ -335,6 +335,7 @@ from utils import utc_now
 # --- CLI defaults ----------------------------------------------------------
 DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_BACKFILL_MAX_PRS = 50
+BACKFILL_FAILED_PR_PRIORITY_LIMIT = 10
 BACKFILL_RECORDED_FAILURE_STATUS = 2
 
 def build_dashboard_update_for_pr(
@@ -475,10 +476,22 @@ def select_backfill_prs(
         | set(dashboard_state.draft_pr_numbers)
     )
     cached_pr_numbers_to_remove = tracked_numbers - open_number_set
-    selected_numbers = round_robin_numbers(
+    rotated_eligible_numbers = round_robin_numbers(
         sorted(selected_prs_by_number),
         backfill_cursor_pr_number(backfill_state),
-    )[:max_prs]
+    )
+    failed_pr_numbers = backfill_failed_pr_numbers(backfill_state)
+    priority_failed_numbers = [
+        number
+        for number in rotated_eligible_numbers
+        if number in failed_pr_numbers
+    ][:min(max_prs, BACKFILL_FAILED_PR_PRIORITY_LIMIT)]
+    priority_failed_number_set = set(priority_failed_numbers)
+    selected_numbers = priority_failed_numbers + [
+        number
+        for number in rotated_eligible_numbers
+        if number not in priority_failed_number_set
+    ][:max_prs - len(priority_failed_numbers)]
     return BackfillSelection(
         [selected_prs_by_number[number] for number in selected_numbers],
         cached_pr_numbers_to_remove,

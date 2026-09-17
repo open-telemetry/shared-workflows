@@ -5,7 +5,7 @@ import os
 import subprocess
 import time
 from fnmatch import fnmatchcase
-from typing import Any
+from typing import Any, Callable, TypeVar
 from urllib.parse import quote, urlparse
 
 
@@ -65,12 +65,16 @@ def sleep_for_retry(attempt: int) -> None:
     time.sleep(GH_RETRY_DELAY_SECONDS * (attempt + 1))
 
 
-def run_gh(
+_T = TypeVar("_T")
+
+
+def _run_gh(
     cmd: list[str],
-    token: str | None = None,
-    input_text: str | None = None,
-    allowed_exit_codes: frozenset[int] | set[int] = frozenset({0}),
-) -> str:
+    token: str | None,
+    input_text: str | None,
+    allowed_exit_codes: frozenset[int] | set[int],
+    parse_stdout: Callable[[str], _T],
+) -> _T:
     env = {**os.environ, "GH_TOKEN": token} if token else None
     last_stderr = ""
     for attempt in range(GH_RETRY_ATTEMPTS):
@@ -85,7 +89,17 @@ def run_gh(
             env=env,
         )
         if proc.returncode in allowed_exit_codes:
-            return proc.stdout
+            try:
+                return parse_stdout(proc.stdout)
+            except json.JSONDecodeError as error:
+                if attempt == GH_RETRY_ATTEMPTS - 1:
+                    message = (
+                        f"{' '.join(cmd)} returned invalid JSON after "
+                        f"{GH_RETRY_ATTEMPTS} attempts: {error}"
+                    )
+                    raise TransientGhError(message) from error
+                sleep_for_retry(attempt)
+                continue
         last_stderr = proc.stderr.strip()
         if attempt == GH_RETRY_ATTEMPTS - 1 or not is_retryable_gh_error(last_stderr):
             break
@@ -96,8 +110,23 @@ def run_gh(
     raise RuntimeError(message)
 
 
+def run_gh(
+    cmd: list[str],
+    token: str | None = None,
+    input_text: str | None = None,
+    allowed_exit_codes: frozenset[int] | set[int] = frozenset({0}),
+) -> str:
+    return _run_gh(cmd, token, input_text, allowed_exit_codes, lambda stdout: stdout)
+
+
 def run_gh_json(cmd: list[str], token: str | None = None, input_text: str | None = None) -> Any:
-    return json.loads(run_gh(cmd, token=token, input_text=input_text) or "null")
+    return _run_gh(
+        cmd,
+        token,
+        input_text,
+        frozenset({0}),
+        lambda stdout: json.loads(stdout or "null"),
+    )
 
 
 def gh_api(path: str, paginate: bool = False, token: str | None = None) -> Any:

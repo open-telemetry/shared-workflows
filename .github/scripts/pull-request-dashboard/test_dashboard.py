@@ -2547,6 +2547,66 @@ class HeadShaSourceTest(unittest.TestCase):
 
 
 class BackfillSelectionTest(unittest.TestCase):
+    def test_prioritizes_failures_in_cursor_relative_order(self) -> None:
+        selection = select_backfill_prs(
+            [{"number": number} for number in range(1, 7)],
+            dashboard_state(),
+            {
+                "cursor": {"last_pr_number": 3},
+                "failed_pr_numbers": [1, 2, 5],
+            },
+            5,
+        )
+
+        self.assertEqual(
+            [5, 1, 2, 4, 6],
+            [pr["number"] for pr in selection.selected_prs],
+        )
+
+    def test_prioritizes_at_most_ten_failures(self) -> None:
+        selection = select_backfill_prs(
+            [{"number": number} for number in range(1, 13)],
+            dashboard_state(),
+            {
+                "cursor": {},
+                "failed_pr_numbers": list(range(2, 13)),
+            },
+            11,
+        )
+
+        self.assertEqual(
+            [*range(2, 12), 1],
+            [pr["number"] for pr in selection.selected_prs],
+        )
+
+    def test_does_not_repeat_prioritized_failures_in_remainder(self) -> None:
+        selection = select_backfill_prs(
+            [{"number": number} for number in range(1, 4)],
+            dashboard_state(),
+            {"cursor": {}, "failed_pr_numbers": [2]},
+            3,
+        )
+
+        selected_numbers = [pr["number"] for pr in selection.selected_prs]
+        self.assertEqual([2, 1, 3], selected_numbers)
+        self.assertEqual(len(selected_numbers), len(set(selected_numbers)))
+
+    def test_keeps_unprioritized_failures_in_mixed_remainder_order(self) -> None:
+        selection = select_backfill_prs(
+            [{"number": number} for number in range(1, 14)],
+            dashboard_state(),
+            {
+                "cursor": {},
+                "failed_pr_numbers": list(range(2, 13)),
+            },
+            13,
+        )
+
+        self.assertEqual(
+            [*range(2, 12), 1, 12, 13],
+            [pr["number"] for pr in selection.selected_prs],
+        )
+
     def test_selects_untracked_drafts_once_and_removes_closed_markers(self) -> None:
         selection = select_backfill_prs(
             [
