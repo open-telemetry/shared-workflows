@@ -49,7 +49,7 @@
     },
     "383": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "trask",
         "author_action_review_thread_urls": [],
@@ -59,7 +59,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6c86ec096f93f3d380f021272a9266ed7630dda328491abb7366457969fa6a8e",
+        "copilot_request_fingerprint": "dcf7396f824b8b62b3ac991b3cac80e6195a38172dbaea2ce6d7cc5c8df8400b",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -75,21 +75,32 @@
         "head_sha": "19852bf67b646585381f3ea5cfe798ca46b8bc0f",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T19:38:41+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-17T01:53:34+00:00",
+        "last_approver_activity_at": "2026-09-17T01:53:34+00:00",
         "last_author_activity_at": "2026-09-16T19:38:41+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "874a813a8c97296998048669880928c38513a6e5d008942ab3aad8b16e04b8f4",
+        "routing_input_fingerprint": "5613729191d460f0c0a9b192af3ebbe513ed824d4fa2cc8c0a70407ab4110877",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-16T19:38:41+00:00"
       },
       "failed": false,
       "pr_number": 383,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/383",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "384": {
