@@ -8,6 +8,8 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
+from urllib.error import URLError
 from urllib.parse import parse_qs, urlparse
 
 from collect import (
@@ -22,6 +24,7 @@ from collect import (
     RateLimitExhausted,
     RateSnapshot,
     _job_record,
+    _urlopen_transport,
     collect_live_and_backfill,
     load_backfill_state,
     load_state,
@@ -66,6 +69,14 @@ class FakeTransport:
 
 
 class GitHubClientTest(unittest.TestCase):
+    def test_preserves_wrapped_connection_errors_for_retry(self):
+        with patch(
+            "collect.urlopen",
+            side_effect=URLError(ConnectionResetError("connection reset")),
+        ):
+            with self.assertRaisesRegex(ConnectionResetError, "connection reset"):
+                _urlopen_transport(f"{API_ROOT}/user", {})
+
     def test_lists_only_active_public_repositories(self):
         pages = {
             "1": [

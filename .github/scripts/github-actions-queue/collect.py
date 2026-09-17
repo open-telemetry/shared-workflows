@@ -83,6 +83,8 @@ def _urlopen_transport(url: str, headers: dict[str, str]) -> ApiResponse:
             body=error.read(),
         )
     except URLError as error:
+        if isinstance(error.reason, ConnectionError):
+            raise error.reason from error
         raise ApiError(f"GitHub API request failed: {error}") from error
 
 
