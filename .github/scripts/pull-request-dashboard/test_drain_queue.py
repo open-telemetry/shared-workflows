@@ -400,6 +400,47 @@ class ProcessClaimWaveTest(unittest.TestCase):
         self.assertEqual(acknowledgment.kwargs["outcome"], "retry")
         self.assertIn("dispatch unavailable", acknowledgment.kwargs["error"])
 
+    def test_stops_stable_dispatches_when_lease_is_lost(self) -> None:
+        client = mock.Mock()
+        client.call.return_value = {"dispatcher": True}
+        monitor = mock.Mock(spec=drain_queue.LeaseMonitor)
+        monitor.assert_valid.side_effect = [
+            None,
+            RuntimeError("queue lease heartbeat failed: lease expired"),
+        ]
+        dispatch_stable = mock.Mock()
+        first = Claim("stable#pr:7", 3, "stable", 7, "", 0)
+        second = Claim("stable#pr:8", 3, "stable", 8, "", 0)
+
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.object(drain_queue, "LeaseMonitor", return_value=monitor),
+        ):
+            result = process_claim_wave(
+                [first, second],
+                Path(directory) / "results.json",
+                client,
+                1,
+                "worker",
+                mock.Mock(),
+                canary_repositories=frozenset({"canary"}),
+                dispatch_stable=dispatch_stable,
+                report_limits=lambda *_args, **_kwargs: None,
+            )
+
+        dispatch_stable.assert_called_once_with(first)
+        self.assertEqual(result, WaveResult(0, ("stable#pr:8",)))
+        acknowledgments = [
+            call.kwargs
+            for call in client.call.call_args_list
+            if call.args == ("acknowledge",)
+        ]
+        self.assertEqual(
+            [(item["itemKey"], item["outcome"]) for item in acknowledgments],
+            [("stable#pr:7", "success"), ("stable#pr:8", "retry")],
+        )
+        self.assertIn("lease expired", acknowledgments[1]["error"])
+
     def test_dead_letters_exhausted_claim_when_token_creation_fails(self) -> None:
         class TokenClient:
             def mint(self, _repositories: list[str]) -> str:

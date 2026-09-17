@@ -299,6 +299,7 @@ def process_claim_wave(
         stable_results: list[dict[str, Any]] = []
         for claim in stable_claims:
             try:
+                monitor.assert_valid()
                 dispatch_stable(claim)
             except Exception as error:
                 stable_results.extend(failure_acknowledgments((claim,), error))
