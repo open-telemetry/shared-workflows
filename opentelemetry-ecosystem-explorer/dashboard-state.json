@@ -412,7 +412,7 @@
     },
     "1114": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot",
         "author_action_review_thread_urls": [],
@@ -422,9 +422,9 @@
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "03c463668984aba851acbafe9c73ed016a78405327989f3a5933474ff766e567",
+        "copilot_request_fingerprint": "cdc76f939c2c67bc64f5856d163dfe4885de0d2f7d4aab84fa10808ff05ae569",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -440,15 +440,15 @@
         "head_sha": "63921c2b13d58e7530c737660e48332a8c4c7c52",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-16T10:07:17+00:00",
-        "last_approver_activity_at": "2026-09-16T10:07:17+00:00",
+        "last_activity_at": "2026-09-17T10:52:54+00:00",
+        "last_approver_activity_at": "2026-09-17T10:52:54+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
-            "changes_requested": true,
+            "changes_requested": false,
             "login": "jaydeluca",
             "open_thread": false,
             "pending_review": false,
@@ -456,10 +456,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-17T10:53:37.682620+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a60ae22d0ff90a50ad4cbeb540336f296db7a7cb49e15ae6f9cb127746790bd7",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "400f41961cb2952d508eaa5851c87d8102fe22bf7411a37c8d731c18d91c4bcd",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-15T06:31:52+00:00"
       },
       "failed": false,
