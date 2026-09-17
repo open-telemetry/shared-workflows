@@ -7,20 +7,23 @@
         "approval_count": 1,
         "assignees": [],
         "author": "trask",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/shared-workflows/pull/384#discussion_r4032976071"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "ab0a344eef1d42ce9e43653733de38f9",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b0a651ff07839f7221744ef8de1836f8481caa75d62a8c24ce139c943fa181b5",
+        "copilot_request_fingerprint": "a5e2648b8650157402a949610c7c0f37969f21d40087fd3c5eefc718b4116b8c",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
-        "copilot_review_stale": true,
+        "copilot_review_requested": false,
+        "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-16T22:16:49+00:00",
         "dashboard_command_replies": [],
@@ -36,6 +39,16 @@
         "required_checks_settled": true,
         "reviewers": [
           {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          },
+          {
             "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
@@ -48,14 +61,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4444fb332617ff3b171d560af4312c85d7ccae463eb1913ec22ffda870807b1d",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-17T04:00:07+00:00"
+        "routing_input_fingerprint": "b6f85398a70a91d5153d7c5d1e3e7c7710cff54358f8a40e745d4d20c4726e47",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-17T04:05:31+00:00"
       },
       "failed": false,
       "pr_number": 384,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/384",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {}
     }
   },
