@@ -3,8 +3,8 @@
 This centrally executed workflow collects one compact timing record for every
 terminal GitHub Actions job in active public repositories under
 `open-telemetry`. Records are written to the orphan
-`otelbot/github-actions-queue-data` branch in this repository and can be queried to
-find queue-time outliers.
+`otelbot/github-actions-queue-data` branch in this repository and can be
+queried to find queue-time outliers.
 
 Queue time is measured per job:
 
@@ -49,6 +49,18 @@ every hour. It discovers active public repositories dynamically, then processes
 closed one-hour workflow-run windows. A repository checkpoint lets the next run
 resume an incomplete window without re-emitting repositories already committed.
 
+The collector prioritizes live data, then uses the remaining run budget to
+backfill from `2026-09-17T02:00:00Z` toward `2026-01-01T00:00:00Z`. Backfill
+processes newer hours first and continues automatically on each schedule.
+`backfill-state.json` stores the oldest complete hour plus partial repository
+progress, independently of the live `state.json` cursor.
+
+Up to four repositories are processed concurrently. Workflow invocations stop
+after at most 20 total windows, 12,000 requests, or 40 minutes of collection.
+These limits leave room below the App's 15,000-request hourly quota and the
+workflow's 50-minute timeout. A stopped run commits its records and checkpoints
+before the next schedule resumes it.
+
 Runs that have not reached a terminal state are saved in `state.json`. Later
 collections revisit them and emit their jobs only after every returned job is
 terminal. Job listing uses `filter=all`, so all attempts available when the run
@@ -69,8 +81,8 @@ Each successful collection adds one immutable gzip-compressed JSON Lines file:
 jobs/date=2026-09-15/collection-123456789-1.jsonl.gz
 ```
 
-`state.json` is mutable collector state and is not reporting data. Each job line
-contains:
+`state.json` and `backfill-state.json` are mutable collector checkpoints, not
+reporting data. Each job line contains:
 
 | Field | Meaning |
 | ----- | ------- |
@@ -126,6 +138,13 @@ outside later creation-time windows. Closing this gap may require a bounded
 lookback or `workflow_job` webhook ingestion.
 
 Failed job lookups are retained in `state.json` with their failure count, last
-error, and last attempt time. Later collections retry them while continuing to
-discover newer runs. The workflow emits a warning as long as any failed lookup
-remains unresolved; failures are never converted into successful empty records.
+error, and last attempt time. Backfill failures are retained in
+`backfill-state.json` the same way. Later collections retry them while
+continuing to discover other runs. The workflow emits a warning as long as any
+failed lookup remains unresolved; failures are never converted into successful
+empty records.
+
+GitHub announced that organization retention settings will cover workflow runs
+created on or after October 1, 2026. The change is not retroactive. The January
+2026 workflow-run and job metadata needed by this backfill was verified before
+collection began.

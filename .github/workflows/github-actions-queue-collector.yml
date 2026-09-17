@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       max_windows:
-        description: Maximum number of one-hour windows to collect.
+        description: Maximum live and backfill windows to collect (1-20).
         required: false
-        default: 2
+        default: 20
         type: number
 
 permissions: {}
@@ -19,6 +19,8 @@ concurrency:
 
 env:
   DATA_BRANCH: otelbot/github-actions-queue-data
+  BACKFILL_START: "2026-09-17T02:00:00Z"
+  BACKFILL_TARGET: "2026-01-01T00:00:00Z"
 
 jobs:
   collect:
@@ -76,15 +78,26 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.collector-token.outputs.token }}
           DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
-          MAX_WINDOWS: ${{ inputs.max_windows || 2 }}
+          MAX_WINDOWS: ${{ inputs.max_windows }}
         run: |
           set -euo pipefail
+          max_windows="${MAX_WINDOWS:-20}"
+          if (( max_windows < 1 || max_windows > 20 )); then
+            echo "::error::max_windows must be between 1 and 20"
+            exit 1
+          fi
           summary=$(
             python3 .github/scripts/github-actions-queue/collect.py \
               --state "$DATA_DIRECTORY/state.json" \
+              --backfill-state "$DATA_DIRECTORY/backfill-state.json" \
+              --backfill-start "$BACKFILL_START" \
+              --backfill-target "$BACKFILL_TARGET" \
               --output-dir "$DATA_DIRECTORY/jobs" \
               --collection-id "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
-              --max-windows "$MAX_WINDOWS"
+              --max-windows "$max_windows" \
+              --max-workers 4 \
+              --max-requests 12000 \
+              --max-runtime-seconds 2400
           )
           echo "$summary" | jq .
           {
@@ -96,6 +109,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "cursor=$(jq -r .cursor <<< "$summary")" >> "$GITHUB_OUTPUT"
           echo "paused=$(jq -r .paused <<< "$summary")" >> "$GITHUB_OUTPUT"
+          echo "pause_reason=$(jq -r .pause_reason <<< "$summary")" >> "$GITHUB_OUTPUT"
           echo "pending_run_failures=$(jq -r .pending_run_failures <<< "$summary")" >> "$GITHUB_OUTPUT"
 
       - name: Commit collected data
@@ -116,14 +130,16 @@ jobs:
           gh auth setup-git
           git -C "$DATA_DIRECTORY" push origin "HEAD:refs/heads/$DATA_BRANCH"
 
-      - name: Report rate-limit pause
+      - name: Report collection pause
         if: steps.collect.outputs.paused == 'true'
+        env:
+          PAUSE_REASON: ${{ steps.collect.outputs.pause_reason }}
         run: |
-          echo "::notice::Collection paused after exhausting its REST quota; the next run will resume from the saved checkpoint"
+          echo "::notice::Collection paused at $PAUSE_REASON; the next run will resume from the saved checkpoint"
 
       - name: Report failed run retries
         if: steps.collect.outputs.pending_run_failures != '0'
         env:
           FAILED_RUNS: ${{ steps.collect.outputs.pending_run_failures }}
         run: |
-          echo "::warning::$FAILED_RUNS workflow runs have job API failures recorded in state.json and will be retried"
+          echo "::warning::$FAILED_RUNS workflow runs have job API failures recorded in collector state and will be retried"

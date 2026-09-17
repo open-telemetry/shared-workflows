@@ -7,7 +7,9 @@ import json
 import math
 import os
 import re
+import threading
 import time
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -32,6 +34,12 @@ class ApiError(RuntimeError):
 
 class RateLimitExhausted(RuntimeError):
     pass
+
+
+class CollectionBudgetExhausted(RuntimeError):
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
 
 
 @dataclass(frozen=True)
@@ -84,10 +92,15 @@ class GitHubClient:
         *,
         transport: Transport = _urlopen_transport,
         sleep: Callable[[float], None] = time.sleep,
+        monotonic: Callable[[], float] = time.monotonic,
         max_retries: int = 3,
+        max_requests: int | None = None,
+        deadline: float | None = None,
     ) -> None:
         if not token:
             raise ValueError("a GitHub token is required")
+        if max_requests is not None and max_requests < 1:
+            raise ValueError("max_requests must be positive")
         self._headers = {
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
@@ -96,36 +109,47 @@ class GitHubClient:
         }
         self._transport = transport
         self._sleep = sleep
+        self._monotonic = monotonic
         self._max_retries = max_retries
+        self._max_requests = max_requests
+        self._deadline = deadline
         self._rate: RateSnapshot | None = None
         self._initial_rate: RateSnapshot | None = None
         self._minimum_rate: RateSnapshot | None = None
+        self._cooldown_until = 0.0
+        self._lock = threading.RLock()
         self.request_count = 0
 
     @property
     def rate(self) -> RateSnapshot:
-        if self._rate is None:
-            raise RuntimeError("rate limit has not been loaded")
-        return self._rate
+        with self._lock:
+            if self._rate is None:
+                raise RuntimeError("rate limit has not been loaded")
+            return self._rate
 
     @property
     def initial_rate(self) -> RateSnapshot:
-        return self._initial_rate or self.rate
+        with self._lock:
+            return self._initial_rate or self.rate
 
     @property
     def minimum_rate(self) -> RateSnapshot:
-        return self._minimum_rate or self.rate
+        with self._lock:
+            return self._minimum_rate or self.rate
 
     def load_rate_limit(self) -> RateSnapshot:
         response = self._send(f"{API_ROOT}/rate_limit", check_rate_limit=False)
         data = self._decode_json(response)
         core = (data.get("resources") or {}).get("core") or {}
-        self._rate = _parse_rate_snapshot(core)
+        with self._lock:
+            self._rate = _parse_rate_snapshot(core)
         self._ensure_rate_available()
-        return self._rate
+        return self.rate
 
     def get_json(self, path: str, query: dict[str, str] | None = None) -> Any:
-        if self._rate is None:
+        with self._lock:
+            rate_loaded = self._rate is not None
+        if not rate_loaded:
             self.load_rate_limit()
         url = f"{API_ROOT}{path}"
         if query:
@@ -135,11 +159,12 @@ class GitHubClient:
 
     def _send(self, url: str, *, check_rate_limit: bool) -> ApiResponse:
         for attempt in range(self._max_retries + 1):
+            self._wait_for_cooldown()
+            self._reserve_request(check_rate_limit=check_rate_limit)
             if check_rate_limit:
                 self._ensure_rate_available()
 
             response = self._transport(url, self._headers)
-            self.request_count += 1
             self._update_rate(
                 response.headers,
                 capture_initial=check_rate_limit,
@@ -152,11 +177,11 @@ class GitHubClient:
                 if self._rate is not None and self._rate_exhausted():
                     raise RateLimitExhausted(self._rate_limit_message())
                 if _is_secondary_rate_limit(response) and attempt < self._max_retries:
-                    self._sleep(_retry_delay(response.headers, attempt))
+                    self._start_cooldown(_retry_delay(response.headers, attempt))
                     continue
 
             if response.status >= 500 and attempt < self._max_retries:
-                self._sleep(2**attempt)
+                self._sleep_with_budget(2**attempt)
                 continue
 
             message = response.body.decode("utf-8", errors="replace")
@@ -165,6 +190,42 @@ class GitHubClient:
             )
 
         raise AssertionError("unreachable")
+
+    def _reserve_request(self, *, check_rate_limit: bool) -> None:
+        with self._lock:
+            self._ensure_runtime_available()
+            if (
+                self._max_requests is not None
+                and self.request_count >= self._max_requests
+            ):
+                raise CollectionBudgetExhausted("request_limit")
+            if check_rate_limit:
+                self._ensure_rate_available()
+            self.request_count += 1
+
+    def _wait_for_cooldown(self) -> None:
+        while True:
+            with self._lock:
+                delay = self._cooldown_until - self._monotonic()
+            if delay <= 0:
+                return
+            self._sleep_with_budget(delay)
+
+    def _start_cooldown(self, delay: float) -> None:
+        with self._lock:
+            self._cooldown_until = max(
+                self._cooldown_until,
+                self._monotonic() + delay,
+            )
+
+    def _sleep_with_budget(self, delay: float) -> None:
+        with self._lock:
+            self._ensure_runtime_available(delay)
+        self._sleep(delay)
+
+    def _ensure_runtime_available(self, delay: float = 0.0) -> None:
+        if self._deadline is not None and self._monotonic() + delay >= self._deadline:
+            raise CollectionBudgetExhausted("runtime_limit")
 
     @staticmethod
     def _decode_json(response: ApiResponse) -> Any:
@@ -186,27 +247,29 @@ class GitHubClient:
         reset = headers.get("x-ratelimit-reset")
         if limit is None or remaining is None or reset is None:
             return
-        self._rate = RateSnapshot(
-            limit=int(limit),
-            remaining=int(remaining),
-            reset=int(reset),
-        )
-        if capture_initial and self._initial_rate is None:
-            self._initial_rate = RateSnapshot(
-                limit=self._rate.limit,
-                remaining=min(self._rate.limit, self._rate.remaining + 1),
-                reset=self._rate.reset,
+        with self._lock:
+            self._rate = RateSnapshot(
+                limit=int(limit),
+                remaining=int(remaining),
+                reset=int(reset),
             )
-        if capture_initial and (
-            self._minimum_rate is None
-            or self._rate.remaining / self._rate.limit
-            < self._minimum_rate.remaining / self._minimum_rate.limit
-        ):
-            self._minimum_rate = self._rate
+            if capture_initial and self._initial_rate is None:
+                self._initial_rate = RateSnapshot(
+                    limit=self._rate.limit,
+                    remaining=min(self._rate.limit, self._rate.remaining + 1),
+                    reset=self._rate.reset,
+                )
+            if capture_initial and (
+                self._minimum_rate is None
+                or self._rate.remaining / self._rate.limit
+                < self._minimum_rate.remaining / self._minimum_rate.limit
+            ):
+                self._minimum_rate = self._rate
 
     def _ensure_rate_available(self) -> None:
-        if self._rate is not None and self._rate_exhausted():
-            raise RateLimitExhausted(self._rate_limit_message())
+        with self._lock:
+            if self._rate is not None and self._rate_exhausted():
+                raise RateLimitExhausted(self._rate_limit_message())
 
     def _rate_exhausted(self) -> bool:
         return self.rate.remaining == 0
@@ -226,16 +289,16 @@ class GitHubClient:
         if selected:
             repositories = []
             for name in sorted(set(selected)):
-                repository = self.get_json(
-                    f"/repos/{quote(org)}/{quote(name)}"
-                )
+                repository = self.get_json(f"/repos/{quote(org)}/{quote(name)}")
                 if repository.get("private") is not False:
                     raise ApiError(f"{org}/{name} is not public")
                 if repository.get("archived") is True:
                     raise ApiError(f"{org}/{name} is archived")
                 if repository.get("disabled") is True:
                     raise ApiError(f"{org}/{name} is disabled")
-                if (repository.get("owner") or {}).get("login", "").lower() != org.lower():
+                if (repository.get("owner") or {}).get(
+                    "login", ""
+                ).lower() != org.lower():
                     raise ApiError(f"{org}/{name} is not owned by {org}")
                 repositories.append(name)
             return repositories
@@ -301,20 +364,14 @@ class GitHubClient:
             if midpoint <= start:
                 midpoint = start + timedelta(seconds=1)
             combined = [
-                *self._list_workflow_runs_range(
-                    org, repository, start, midpoint
-                ),
-                *self._list_workflow_runs_range(
-                    org, repository, midpoint, end
-                ),
+                *self._list_workflow_runs_range(org, repository, start, midpoint),
+                *self._list_workflow_runs_range(org, repository, midpoint, end),
             ]
             return _deduplicate_runs(combined)
 
         pages = math.ceil(total / PAGE_SIZE)
         for page in range(2, pages + 1):
-            response = self._workflow_runs_page(
-                org, repository, start, end, page
-            )
+            response = self._workflow_runs_page(org, repository, start, end, page)
             page_runs = response.get("workflow_runs")
             if not isinstance(page_runs, list):
                 raise ApiError("workflow runs page has an invalid shape")
@@ -416,12 +473,44 @@ class CollectorState:
         }
 
 
+@dataclass
+class BackfillState:
+    initial_cursor: str
+    target: str
+    cursor: str
+    window_repositories: list[str] = field(default_factory=list)
+    completed_repositories: list[str] = field(default_factory=list)
+    pending_runs: list[dict[str, Any]] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "version": STATE_VERSION,
+            "initial_cursor": self.initial_cursor,
+            "target": self.target,
+            "cursor": self.cursor,
+            "window_repositories": self.window_repositories,
+            "completed_repositories": self.completed_repositories,
+            "pending_runs": self.pending_runs,
+        }
+
+
+CollectionState = CollectorState | BackfillState
+
+
 @dataclass(frozen=True)
 class CollectionResult:
     records: list[dict[str, Any]]
     paused: bool
+    pause_reason: str | None
     completed_windows: int
     completed_repositories: int
+
+
+@dataclass(frozen=True)
+class CollectionRunResult:
+    live: CollectionResult
+    backfill: CollectionResult | None
+    records: list[dict[str, Any]]
 
 
 class QueueCollector:
@@ -442,16 +531,61 @@ class QueueCollector:
         *,
         selected_repositories: list[str] | None = None,
         max_windows: int = 1,
+        max_workers: int = 1,
+        load_rate_limit: bool = True,
+    ) -> CollectionResult:
+        return self._collect(
+            state,
+            selected_repositories=selected_repositories,
+            max_windows=max_windows,
+            max_workers=max_workers,
+            load_rate_limit=load_rate_limit,
+            direction=1,
+            boundary=_floor_hour(self._now()),
+        )
+
+    def collect_backfill(
+        self,
+        state: BackfillState,
+        *,
+        selected_repositories: list[str] | None = None,
+        max_windows: int = 1,
+        max_workers: int = 1,
+        load_rate_limit: bool = True,
+    ) -> CollectionResult:
+        return self._collect(
+            state,
+            selected_repositories=selected_repositories,
+            max_windows=max_windows,
+            max_workers=max_workers,
+            load_rate_limit=load_rate_limit,
+            direction=-1,
+            boundary=_parse_instant(state.target),
+        )
+
+    def _collect(
+        self,
+        state: CollectionState,
+        *,
+        selected_repositories: list[str] | None,
+        max_windows: int,
+        max_workers: int,
+        load_rate_limit: bool,
+        direction: int,
+        boundary: datetime,
     ) -> CollectionResult:
         if max_windows < 1:
             raise ValueError("max_windows must be positive")
+        if max_workers < 1:
+            raise ValueError("max_workers must be positive")
 
         records: list[dict[str, Any]] = []
         completed_windows = 0
         completed_repositories = 0
 
         try:
-            self._client.load_rate_limit()
+            if load_rate_limit:
+                self._client.load_rate_limit()
             repositories = self._client.resolve_repositories(
                 self._org, selected_repositories
             )
@@ -482,9 +616,8 @@ class QueueCollector:
             )[:PENDING_RETRY_BATCH_SIZE]
             self._collect_pending_runs(state, pending_to_retry, records)
 
-            available_until = _floor_hour(self._now())
             while (
-                _parse_instant(state.cursor) < available_until
+                _has_window(_parse_instant(state.cursor), boundary, direction)
                 and completed_windows < max_windows
             ):
                 if not resuming_window:
@@ -493,30 +626,56 @@ class QueueCollector:
                     resuming_window = True
 
                 completed = set(state.completed_repositories)
+                start, end = _window_bounds(
+                    _parse_instant(state.cursor),
+                    direction,
+                )
+                outcomes, pause_reason = self._collect_window_repositories(
+                    [
+                        repository
+                        for repository in state.window_repositories
+                        if repository not in completed
+                    ],
+                    start,
+                    end,
+                    max_workers,
+                )
                 for repository in state.window_repositories:
-                    if repository in completed:
+                    outcome = outcomes.get(repository)
+                    if outcome is None:
                         continue
-                    repository_records, pending = self._collect_repository_window(
-                        repository,
-                        _parse_instant(state.cursor),
-                        _parse_instant(state.cursor) + timedelta(hours=1),
-                    )
+                    repository_records, pending = outcome
                     records.extend(repository_records)
                     _merge_pending_runs(state, pending)
-                    state.completed_repositories.append(repository)
+                    completed.add(repository)
                     completed_repositories += 1
+                state.completed_repositories = [
+                    repository
+                    for repository in state.window_repositories
+                    if repository in completed
+                ]
+
+                if pause_reason is not None:
+                    return CollectionResult(
+                        records=records,
+                        paused=True,
+                        pause_reason=pause_reason,
+                        completed_windows=completed_windows,
+                        completed_repositories=completed_repositories,
+                    )
 
                 state.cursor = _format_instant(
-                    _parse_instant(state.cursor) + timedelta(hours=1)
+                    _parse_instant(state.cursor) + timedelta(hours=direction)
                 )
                 state.window_repositories = []
                 state.completed_repositories = []
                 resuming_window = False
                 completed_windows += 1
-        except RateLimitExhausted:
+        except (CollectionBudgetExhausted, RateLimitExhausted) as error:
             return CollectionResult(
                 records=records,
                 paused=True,
+                pause_reason=_pause_reason(error),
                 completed_windows=completed_windows,
                 completed_repositories=completed_repositories,
             )
@@ -524,13 +683,51 @@ class QueueCollector:
         return CollectionResult(
             records=records,
             paused=False,
+            pause_reason=None,
             completed_windows=completed_windows,
             completed_repositories=completed_repositories,
         )
 
+    def _collect_window_repositories(
+        self,
+        repositories: list[str],
+        start: datetime,
+        end: datetime,
+        max_workers: int,
+    ) -> tuple[
+        dict[str, tuple[list[dict[str, Any]], list[dict[str, Any]]]],
+        str | None,
+    ]:
+        outcomes: dict[
+            str,
+            tuple[list[dict[str, Any]], list[dict[str, Any]]],
+        ] = {}
+        pause_reason = None
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures: dict[Future[Any], str] = {
+                executor.submit(
+                    self._collect_repository_window,
+                    repository,
+                    start,
+                    end,
+                ): repository
+                for repository in repositories
+            }
+            for future in as_completed(futures):
+                repository = futures[future]
+                try:
+                    outcomes[repository] = future.result()
+                except (CollectionBudgetExhausted, RateLimitExhausted) as error:
+                    pause_reason = pause_reason or _pause_reason(error)
+                except Exception:
+                    for pending in futures:
+                        pending.cancel()
+                    raise
+        return outcomes, pause_reason
+
     def _collect_pending_runs(
         self,
-        state: CollectorState,
+        state: CollectionState,
         pending: list[dict[str, Any]],
         records: list[dict[str, Any]],
     ) -> None:
@@ -572,9 +769,7 @@ class QueueCollector:
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         records: list[dict[str, Any]] = []
         pending: list[dict[str, Any]] = []
-        runs = self._client.list_workflow_runs(
-            self._org, repository, start, end
-        )
+        runs = self._client.list_workflow_runs(self._org, repository, start, end)
         for run in runs:
             if run.get("status") != "completed":
                 pending.append(_pending_run(repository, run))
@@ -606,9 +801,53 @@ class QueueCollector:
             return [], False
         collected_at = _format_instant(self._now())
         return [
-            _job_record(self._org, repository, run, job, collected_at)
-            for job in jobs
+            _job_record(self._org, repository, run, job, collected_at) for job in jobs
         ], True
+
+
+def collect_live_and_backfill(
+    collector: QueueCollector,
+    live_state: CollectorState,
+    backfill_state: BackfillState | None,
+    *,
+    now: datetime,
+    selected_repositories: list[str] | None = None,
+    max_windows: int = 1,
+    max_workers: int = 1,
+) -> CollectionRunResult:
+    live = collector.collect(
+        live_state,
+        selected_repositories=selected_repositories,
+        max_windows=max_windows,
+        max_workers=max_workers,
+    )
+    records = list(live.records)
+    remaining_windows = max_windows - live.completed_windows
+    backfill = None
+    if (
+        backfill_state is not None
+        and not live.paused
+        and _parse_instant(live_state.cursor) >= _floor_hour(now)
+        and remaining_windows > 0
+        and (
+            _parse_instant(backfill_state.cursor)
+            > _parse_instant(backfill_state.target)
+            or bool(backfill_state.pending_runs)
+        )
+    ):
+        backfill = collector.collect_backfill(
+            backfill_state,
+            selected_repositories=selected_repositories,
+            max_windows=remaining_windows,
+            max_workers=max_workers,
+            load_rate_limit=False,
+        )
+        records.extend(backfill.records)
+    return CollectionRunResult(
+        live=live,
+        backfill=backfill,
+        records=records,
+    )
 
 
 def _pending_run(
@@ -646,7 +885,7 @@ def _pending_run_attempt(
 
 
 def _merge_pending_runs(
-    state: CollectorState,
+    state: CollectionState,
     additions: list[dict[str, Any]],
 ) -> None:
     merged = {
@@ -660,7 +899,7 @@ def _merge_pending_runs(
 
 
 def _remove_pending_run(
-    state: CollectorState,
+    state: CollectionState,
     completed: dict[str, Any],
 ) -> None:
     key = (completed["repository"], completed["run_id"])
@@ -682,8 +921,7 @@ def _job_record(
     queue_seconds = None
     if runner_assigned and job.get("created_at") and job.get("started_at"):
         queue_seconds = (
-            _parse_instant(job["started_at"])
-            - _parse_instant(job["created_at"])
+            _parse_instant(job["started_at"]) - _parse_instant(job["created_at"])
         ).total_seconds()
 
     head_repository = run.get("head_repository") or {}
@@ -730,7 +968,9 @@ def load_state(path: Path, initial_start: datetime) -> CollectorState:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"unable to read collector state from {path}: {error}") from error
+        raise ValueError(
+            f"unable to read collector state from {path}: {error}"
+        ) from error
     if data.get("version") != STATE_VERSION:
         raise ValueError(f"unsupported collector state version: {data.get('version')}")
     state = CollectorState(
@@ -745,7 +985,50 @@ def load_state(path: Path, initial_start: datetime) -> CollectorState:
     return state
 
 
-def write_state(path: Path, state: CollectorState) -> None:
+def load_backfill_state(
+    path: Path,
+    initial_cursor: datetime,
+    target: datetime,
+) -> BackfillState:
+    initial_cursor = _floor_hour(initial_cursor)
+    target = _floor_hour(target)
+    if target >= initial_cursor:
+        raise ValueError("backfill target must be earlier than its initial cursor")
+    if not path.exists():
+        return BackfillState(
+            initial_cursor=_format_instant(initial_cursor),
+            target=_format_instant(target),
+            cursor=_format_instant(initial_cursor),
+        )
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(
+            f"unable to read backfill state from {path}: {error}"
+        ) from error
+    if data.get("version") != STATE_VERSION:
+        raise ValueError(f"unsupported backfill state version: {data.get('version')}")
+    state = BackfillState(
+        initial_cursor=data["initial_cursor"],
+        target=data["target"],
+        cursor=data["cursor"],
+        window_repositories=list(data.get("window_repositories") or []),
+        completed_repositories=list(data.get("completed_repositories") or []),
+        pending_runs=list(data.get("pending_runs") or []),
+    )
+    if _parse_instant(state.initial_cursor) != initial_cursor:
+        raise ValueError("backfill initial cursor does not match the saved state")
+    if _parse_instant(state.target) != target:
+        raise ValueError("backfill target does not match the saved state")
+    cursor = _parse_instant(state.cursor)
+    if not target <= cursor <= initial_cursor:
+        raise ValueError("backfill cursor is outside its configured range")
+    if not set(state.completed_repositories).issubset(state.window_repositories):
+        raise ValueError("completed repositories are not in the saved window")
+    return state
+
+
+def write_state(path: Path, state: CollectionState) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(f"{path.suffix}.tmp")
     temporary.write_text(
@@ -786,6 +1069,28 @@ def write_records(
                     )
                     text.write("\n")
     return path
+
+
+def _has_window(cursor: datetime, boundary: datetime, direction: int) -> bool:
+    if direction == 1:
+        return cursor < boundary
+    if direction == -1:
+        return cursor > boundary
+    raise ValueError("collection direction must be 1 or -1")
+
+
+def _window_bounds(cursor: datetime, direction: int) -> tuple[datetime, datetime]:
+    if direction == 1:
+        return cursor, cursor + timedelta(hours=1)
+    if direction == -1:
+        return cursor - timedelta(hours=1), cursor
+    raise ValueError("collection direction must be 1 or -1")
+
+
+def _pause_reason(error: CollectionBudgetExhausted | RateLimitExhausted) -> str:
+    if isinstance(error, CollectionBudgetExhausted):
+        return error.reason
+    return "rate_limit"
 
 
 def _parse_rate_snapshot(data: dict[str, Any]) -> RateSnapshot:
@@ -866,39 +1171,140 @@ def main() -> None:
         help="initial UTC cursor when the state file does not exist",
     )
     parser.add_argument("--max-windows", type=int, default=1)
+    parser.add_argument("--max-workers", type=int, default=1)
+    parser.add_argument("--max-requests", type=int)
+    parser.add_argument("--max-runtime-seconds", type=int)
+    parser.add_argument("--backfill-state", type=Path)
+    parser.add_argument("--backfill-start", type=_parse_instant)
+    parser.add_argument("--backfill-target", type=_parse_instant)
     args = parser.parse_args()
+
+    backfill_values = (
+        args.backfill_state,
+        args.backfill_start,
+        args.backfill_target,
+    )
+    if any(value is not None for value in backfill_values) and not all(
+        value is not None for value in backfill_values
+    ):
+        parser.error(
+            "--backfill-state, --backfill-start, and --backfill-target "
+            "must be supplied together"
+        )
+    if args.max_runtime_seconds is not None and args.max_runtime_seconds < 1:
+        parser.error("--max-runtime-seconds must be positive")
 
     now = datetime.now(UTC)
     initial_start = args.start or (_floor_hour(now) - timedelta(hours=1))
     state = load_state(args.state, initial_start)
-    client = GitHubClient(_token_from_environment())
+    backfill_state = (
+        load_backfill_state(
+            args.backfill_state,
+            args.backfill_start,
+            args.backfill_target,
+        )
+        if args.backfill_state is not None
+        else None
+    )
+    deadline = (
+        time.monotonic() + args.max_runtime_seconds
+        if args.max_runtime_seconds is not None
+        else None
+    )
+    client = GitHubClient(
+        _token_from_environment(),
+        max_requests=args.max_requests,
+        deadline=deadline,
+    )
     collector = QueueCollector(client, org=args.org)
-    result = collector.collect(
+    run_result = collect_live_and_backfill(
+        collector,
         state,
+        backfill_state,
+        now=now,
         selected_repositories=args.repository,
         max_windows=args.max_windows,
+        max_workers=args.max_workers,
     )
+    live_result = run_result.live
+    backfill_result = run_result.backfill
+    records = run_result.records
+
     output = write_records(
         args.output_dir,
         args.collection_id,
-        result.records,
+        records,
         now,
     )
     write_state(args.state, state)
+    if args.backfill_state is not None and backfill_state is not None:
+        write_state(args.backfill_state, backfill_state)
+
+    results = [
+        result for result in (live_result, backfill_result) if result is not None
+    ]
+    pending_states: list[CollectionState] = [state]
+    if backfill_state is not None:
+        pending_states.append(backfill_state)
     summary = {
-        "completed_repositories": result.completed_repositories,
-        "completed_windows": result.completed_windows,
-        "cursor": state.cursor,
-        "output": str(output) if output else None,
-        "paused": result.paused,
-        "pending_run_failures": sum(
-            1 for item in state.pending_runs if item.get("last_error")
+        "backfill": (
+            {
+                "completed": (
+                    _parse_instant(backfill_state.cursor)
+                    <= _parse_instant(backfill_state.target)
+                    and not backfill_state.pending_runs
+                ),
+                "completed_repositories": (
+                    backfill_result.completed_repositories
+                    if backfill_result is not None
+                    else 0
+                ),
+                "completed_windows": (
+                    backfill_result.completed_windows
+                    if backfill_result is not None
+                    else 0
+                ),
+                "cursor": backfill_state.cursor,
+                "pending_runs": len(backfill_state.pending_runs),
+                "target": backfill_state.target,
+            }
+            if backfill_state is not None
+            else None
         ),
-        "pending_runs": len(state.pending_runs),
+        "completed_repositories": sum(
+            result.completed_repositories for result in results
+        ),
+        "completed_windows": sum(result.completed_windows for result in results),
+        "cursor": state.cursor,
+        "live": {
+            "completed_repositories": live_result.completed_repositories,
+            "completed_windows": live_result.completed_windows,
+            "cursor": state.cursor,
+            "pending_runs": len(state.pending_runs),
+        },
+        "output": str(output) if output else None,
+        "pause_reason": next(
+            (
+                result.pause_reason
+                for result in results
+                if result.pause_reason is not None
+            ),
+            None,
+        ),
+        "paused": any(result.paused for result in results),
+        "pending_run_failures": sum(
+            1
+            for pending_state in pending_states
+            for item in pending_state.pending_runs
+            if item.get("last_error")
+        ),
+        "pending_runs": sum(
+            len(pending_state.pending_runs) for pending_state in pending_states
+        ),
         "rate_end": client.rate.to_dict(),
         "rate_low_watermark": client.minimum_rate.to_dict(),
         "rate_start": client.initial_rate.to_dict(),
-        "records": len(result.records),
+        "records": len(records),
         "requests": client.request_count,
     }
     print(json.dumps(summary, sort_keys=True))
