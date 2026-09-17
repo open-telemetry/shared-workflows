@@ -1852,18 +1852,20 @@
         "approval_count": 2,
         "assignees": [],
         "author": "AaronRM",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/4048#discussion_r4032049541",
+          "https://github.com/open-telemetry/otel-arrow/pull/4048#discussion_r4032049563"
+        ],
         "author_action_top_level_feedback_urls": [
           "https://github.com/open-telemetry/otel-arrow/pull/4048#issuecomment-5629203008"
         ],
         "author_nudge_episode_id": "ad366d7ceba9440a9eb875f166079809",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-09-14T18:54:37+00:00",
-        "ci_pending_count": 0,
+        "ci_failing_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "02e9c9021ff509efa2964934311b99827dc595f3b4f4cd9f8bf9bf5e71b86cca",
+        "copilot_request_fingerprint": "7c3ef1013da6c046c8105944702858888e22f68d29cce79c2feabb6e14d92ba8",
         "copilot_review_exists": true,
-        "copilot_review_needed": false,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
         "copilot_review_requested": false,
@@ -1874,14 +1876,23 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "99bbf98448445acc9a3a251fd09ffd646d4abcd7",
+        "head_sha": "5bd356050f7c4747c6f1d635b8745a4868281536",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T16:57:59+00:00",
+        "last_activity_at": "2026-09-16T23:31:46+00:00",
         "last_approver_activity_at": "2026-09-16T16:57:59+00:00",
-        "last_author_activity_at": "2026-09-14T18:27:53+00:00",
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-09-16T23:31:46+00:00",
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -1903,7 +1914,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "084ad4a1eae181512d83066dc751c4b927acea92a44ec02d54b75fdf7833a155",
+        "routing_input_fingerprint": "f65cbb449fb8538a1f62c708b32af6a4591d986960077b6d52fa6174a499ea93",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-11T03:55:10+00:00"
       },
