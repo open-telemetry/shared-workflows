@@ -2935,7 +2935,9 @@
         "approval_count": 0,
         "assignees": [],
         "author": "steverao",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions/pull/4120#discussion_r4037404486"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "4e7fd4babf374b9493c7d39610bfcfbc",
@@ -2944,12 +2946,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1a4e8d5d598d65e430822f1158eaff13b0c9083a408a2b83ba727e1d1bf9212c",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "fed5532d77511b35bf47e12a80f1de1169aa112c30899f7eed72de30d4bbd404",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-17T13:29:19+00:00",
@@ -2964,10 +2966,21 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-17T12:39:35+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f1c7f29fc86b550466781c7f070384b350d9c5986be009b4916ffa044d1d6da1",
+        "routing_input_fingerprint": "1a9f74ed247e1cde001393dd72aa02946689788d2d9c978603f37f7428a9d615",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-09-17T13:29:40+00:00"
       },
