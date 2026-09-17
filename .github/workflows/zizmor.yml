@@ -31,6 +31,7 @@ jobs:
     name: Zizmor Security Analysis
     runs-on: ubuntu-latest
     permissions:
+      actions: read  # for private-repository SARIF uploads
       contents: read
       security-events: write  # for zizmor to upload SARIF results
     steps:
