@@ -2541,9 +2541,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "badc50e1f93a47eda12390f6364da314",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-17T09:03:23+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 5,
         "conflicts": "no",
         "copilot_request_fingerprint": "1bd960bef2ba4e8cddb90c220aea9d1c638bf2555ce67098eec46ba08158eea2",
         "copilot_review_exists": false,
@@ -2558,13 +2560,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "880d795d40d33a1f8684b526c2ade1bf1bd4b9d8",
+        "head_sha": "a2c3b578ae6b8999bc00bc291d3999ffb552ec24",
         "is_draft": false,
         "is_maintenance_bot": false,
         "last_activity_at": "2026-09-17T08:30:22+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-17T08:30:22+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -2579,14 +2581,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "802425eed830c28409c444e6b25d5d844c3a0db6eb4af587303265342017ad0f",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-17T08:29:18+00:00"
+        "routing_input_fingerprint": "3caa4d4941942a21756328288e6fb436dc897d03dab62f34a21b76d33710e0aa",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-17T09:03:23+00:00"
       },
       "failed": false,
       "pr_number": 11663,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11663",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5655050736": {
           "evidence": {
