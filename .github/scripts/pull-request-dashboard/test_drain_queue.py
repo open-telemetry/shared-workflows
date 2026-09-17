@@ -59,7 +59,7 @@ class DrainQueueTest(unittest.TestCase):
         self.assertEqual(exit_context.exception.code, 2)
         self.assertIn(
             "argument --canary-repositories-json: expected a JSON array of "
-            'repository names, for example ["open-telemetry/opentelemetry-java"]',
+            'repository names, for example ["opentelemetry-java-instrumentation"]',
             stderr.getvalue(),
         )
         self.assertNotIn("Traceback", stderr.getvalue())

@@ -39,7 +39,7 @@ DASHBOARD_WORKFLOW_DISPATCH_URL = (
     "https://api.github.com/repos/open-telemetry/shared-workflows/"
     "actions/workflows/pull-request-dashboard.yml/dispatches"
 )
-CANARY_REPOSITORIES_EXAMPLE = '["open-telemetry/opentelemetry-java"]'
+CANARY_REPOSITORIES_EXAMPLE = '["opentelemetry-java-instrumentation"]'
 
 
 @dataclass(frozen=True)
