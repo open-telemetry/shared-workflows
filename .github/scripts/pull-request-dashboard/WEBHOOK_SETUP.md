@@ -24,11 +24,11 @@ Save a Netlify personal access token as a GitHub Actions secret named
 `NETLIFY_AUTH_TOKEN` in the `shared-workflows` repository.
 
 Queue rollout requires no queue-mode variable or manual Netlify deployment.
-Every accepted targeted webhook refresh enters the queue. The drain processes
-canary repositories with code from the default branch and dispatches each
-coalesced stable item to the targeted workflow, which invokes the promoted
-repository workflow and scripts. Stable and canary workers therefore never load
-each other's dashboard state formats.
+Every accepted targeted webhook refresh except an `opened` draft pull request
+enters the queue. The drain processes canary repositories with code from the
+default branch and dispatches each coalesced stable item to the targeted
+workflow, which invokes the promoted repository workflow and scripts. Stable and
+canary workers therefore never load each other's dashboard state formats.
 
 The `shared-workflows` Actions token needs `contents: write` so workers can push
 `otelbot/pull-request-dashboard-state/<repository>` and publishers can push
