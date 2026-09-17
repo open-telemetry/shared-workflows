@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import json
 import tempfile
 import threading
@@ -188,6 +189,63 @@ class GitHubClientTest(unittest.TestCase):
             client.get_json("/user")
 
         self.assertEqual(2, len(transport.urls))
+
+    def test_retries_truncated_and_disconnected_responses(self):
+        failures = (
+            http.client.IncompleteRead(b"", 10),
+            http.client.RemoteDisconnected("connection closed"),
+        )
+
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__):
+                attempts = 0
+                sleeps = []
+
+                def handler(_url):
+                    nonlocal attempts
+                    attempts += 1
+                    if attempts == 1:
+                        raise failure
+                    return response({"login": "octocat"})
+
+                transport = FakeTransport(handler)
+                client = GitHubClient(
+                    "token",
+                    transport=transport,
+                    sleep=sleeps.append,
+                )
+
+                self.assertEqual({"login": "octocat"}, client.get_json("/user"))
+                self.assertEqual(2, attempts)
+                self.assertEqual([1], sleeps)
+                self.assertEqual(3, client.request_count)
+
+    def test_transport_retry_exhaustion_raises_api_error(self):
+        attempts = 0
+        sleeps = []
+
+        def handler(_url):
+            nonlocal attempts
+            attempts += 1
+            raise http.client.IncompleteRead(b"", 10)
+
+        transport = FakeTransport(handler)
+        client = GitHubClient(
+            "token",
+            transport=transport,
+            sleep=sleeps.append,
+            max_retries=2,
+        )
+
+        with self.assertRaisesRegex(
+            ApiError,
+            r"transport failed after 3 attempts .*\/user",
+        ):
+            client.get_json("/user")
+
+        self.assertEqual(3, attempts)
+        self.assertEqual([1, 2], sleeps)
+        self.assertEqual(4, client.request_count)
 
     def test_initial_rate_uses_first_data_response_headers(self):
         transport = FakeTransport(

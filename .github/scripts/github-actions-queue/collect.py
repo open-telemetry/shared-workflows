@@ -12,6 +12,7 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from http.client import IncompleteRead
 from pathlib import Path
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
@@ -162,14 +163,28 @@ class GitHubClient:
         for attempt in range(self._max_retries + 1):
             self._wait_for_cooldown()
             self._reserve_request(check_rate_limit=check_rate_limit)
+            transport_error: IncompleteRead | ConnectionError | None = None
             try:
-                response = self._transport(url, self._headers)
-                self._update_rate(
-                    response.headers,
-                    capture_initial=check_rate_limit,
-                )
+                try:
+                    response = self._transport(url, self._headers)
+                except (IncompleteRead, ConnectionError) as error:
+                    transport_error = error
+                else:
+                    self._update_rate(
+                        response.headers,
+                        capture_initial=check_rate_limit,
+                    )
             finally:
                 self._release_request(check_rate_limit=check_rate_limit)
+
+            if transport_error is not None:
+                if attempt < self._max_retries:
+                    self._sleep_with_budget(2**attempt)
+                    continue
+                raise ApiError(
+                    f"GitHub API transport failed after {attempt + 1} attempts "
+                    f"for {url}: {transport_error}"
+                ) from transport_error
 
             if 200 <= response.status < 300:
                 return response
