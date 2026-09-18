@@ -265,7 +265,7 @@ class DashboardContractTest(unittest.TestCase):
         self.assertIn("manifest.json", script)
         self.assertIn("date=${date}.json", script)
         self.assertIn(
-            "Queue time is how long a job waits between creation and starting on a runner.",
+            "Queue time represents the interval from job creation until execution begins on a runner.",
             html,
         )
         self.assertNotIn("<strong>Method.</strong>", html)
