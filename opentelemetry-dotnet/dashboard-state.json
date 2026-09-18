@@ -711,7 +711,7 @@
     },
     "7784": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-dotnet",
         "author_action_review_thread_urls": [],
@@ -719,9 +719,9 @@
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ee7ad1d12b23adff117a343fa83f05ed0c138f1d03dc264b9caa5f35002e7893",
+        "copilot_request_fingerprint": "a8c909c9733f9ce1ef5890e3e5535d98ab0368ddbfb0ff4820bc3335eec3d8a6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -737,13 +737,13 @@
         "head_sha": "10ba197fe20a03b8bcc4b923fd55482e14b23d0e",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T14:01:57+00:00",
-        "last_approver_activity_at": "2026-09-18T14:01:57+00:00",
+        "last_activity_at": "2026-09-18T14:04:03+00:00",
+        "last_approver_activity_at": "2026-09-18T14:04:03+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "martincostello",
@@ -753,10 +753,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-18T14:04:28.088840+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b3a01d0007c5601fc228581645aa4b0329cd7f47cc6bc09b2c4d5fe136871650",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "2af081286e0eb76dd04083cd0d03f3663486d04715fe1eae65c6e8e926dcb040",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-18T13:54:01+00:00"
       },
       "failed": false,
