@@ -1229,7 +1229,7 @@
     },
     "5270": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "matt-hensley",
           "martincostello"
@@ -1240,9 +1240,9 @@
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e10a74ac27cf716ccb3e60ad615785859acb473313b69929764e9c6a22888fa0",
+        "copilot_request_fingerprint": "cb98fe7f55612be1943003b32efce7eb9d75f20025e5eaee69bdd88024d8518b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1258,13 +1258,13 @@
         "head_sha": "3a369c40522ad812d3038fec73eb9d1b13d1e1b2",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T19:43:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T19:45:34+00:00",
+        "last_approver_activity_at": "2026-09-18T19:45:34+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "martincostello",
@@ -1284,10 +1284,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-18T19:46:43.164781+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e79e365d46c083286a09a7335d2684cb562c9a31baab2de781974ca8daf4ea5e",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "38c8ad67d6903f89d65d2a51cbadff7d3d8b0dfba4158f90c2e153a49ea1a19f",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-18T19:43:43+00:00"
       },
       "failed": false,
