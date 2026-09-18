@@ -6129,10 +6129,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "ec0bd0c5b97d47199531cbf418924e8d",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 6,
+        "ci_pending_count": 0,
         "conflicts": "no",
         "copilot_request_fingerprint": "debf2132d3eb61f380cb379f2b5b1582c7ba05b07233f91def02a351e89f0b9b",
         "copilot_review_exists": false,
@@ -6153,7 +6152,7 @@
         "last_activity_at": "2026-09-18T20:07:44+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-18T20:07:44+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -6176,17 +6175,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-18T20:08:33.659003+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "19831fc4fa4b5cf8d4c9c51dc121b6d9c53ea4a4a7e9ddbd6e11ecbf2d1e0afd",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-17T05:03:21+00:00"
+        "routing_input_fingerprint": "343a3909c2427658f10a341eba448a68f9f06c036ea06235226ba4231fd7d013",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-18T21:14:48.748517+00:00"
       },
       "failed": false,
       "pr_number": 3767,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3767",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     }
   },
