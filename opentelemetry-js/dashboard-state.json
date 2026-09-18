@@ -3733,7 +3733,7 @@
     },
     "7083": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "trentm",
           "dyladan",
@@ -3748,7 +3748,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d76efa567b7540882c78f09233c8d62239f7eebbc2421e514fd94747f1110c88",
+        "copilot_request_fingerprint": "7f17ec0f3bf29f1cd5ac796838362f2dff41252751f3fa938a96ae3347d9ba81",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3764,11 +3764,21 @@
         "head_sha": "c78ddd4c5df5768f9ee0ea81ae8af8bd45e4efd0",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-15T10:20:27+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T07:30:27+00:00",
+        "last_approver_activity_at": "2026-09-18T07:30:27+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "david-luna",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -3812,14 +3822,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "414904d870c6db635d60ee6296b06b186d7c7bd56cc6e9e84fed6613c127d953",
+        "routing_input_fingerprint": "51829b1e28c34dfb34514fd05df20177f86239374928b419c44b4cb82f4689d5",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-14T00:43:17+00:00"
       },
       "failed": false,
       "pr_number": 7083,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7083",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "7093": {
