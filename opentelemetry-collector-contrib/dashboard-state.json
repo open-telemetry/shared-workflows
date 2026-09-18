@@ -15416,7 +15416,7 @@
     },
     "51240": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "codeboten",
         "author_action_review_thread_urls": [],
@@ -15427,7 +15427,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 8,
         "conflicts": "no",
-        "copilot_request_fingerprint": "81672ee1e431479be94aab4cf88bdf4c4fc4b07d888cd940893211f77d0421db",
+        "copilot_request_fingerprint": "41bc8569b1188ad887526ec08879e364d3017998f2b5fb5a50e51a4342eaf30a",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -15443,16 +15443,27 @@
         "head_sha": "ddf3b0aedd350d4d1073ea3fb334055888bbc7b3",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T20:09:56+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T20:12:27+00:00",
+        "last_approver_activity_at": "2026-09-18T20:12:27+00:00",
         "last_author_activity_at": "2026-09-18T20:09:15+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "songy23",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-09-18T20:11:40.314301+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "fe7358871d733bb95614cc442deece260080130d3d38e0ebe5a6fec24056e012",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "7210403f98acd80ae80c3f3c70e4f719da80d08e3810c3dfae646b5613b53364",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-18T20:09:56+00:00"
       },
       "failed": false,
