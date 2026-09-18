@@ -180,7 +180,7 @@ def _add_record(
     if queue_seconds is None:
         raise ValueError("queue_seconds must not be null")
     if isinstance(queue_seconds, bool) or not isinstance(queue_seconds, (int, float)):
-        raise TypeError("queue_seconds must be a number or null")
+        raise TypeError("queue_seconds must be a number")
     if not math.isfinite(queue_seconds):
         raise ValueError("queue_seconds must be finite")
     if queue_seconds < 0:

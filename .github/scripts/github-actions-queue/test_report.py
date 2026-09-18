@@ -243,12 +243,31 @@ class ReportTest(unittest.TestCase):
                     root / "report-data",
                 )
 
+    def test_rejects_non_numeric_queue_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_collection(
+                root / "jobs" / "date=2026-09-18" / "collection-1.jsonl.gz",
+                [record("slow")],
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "queue_seconds must be a number",
+            ):
+                build_report(
+                    root / "jobs",
+                    root / "state.json.gz",
+                    root / "report-data",
+                )
+
 
 class DashboardContractTest(unittest.TestCase):
     def test_dashboard_has_required_filters_and_theme(self):
         dashboard = Path(__file__).parents[3] / "github-actions-queue" / "dashboard"
         html = (dashboard / "index.html").read_text(encoding="utf-8")
         script = (dashboard / "dashboard.js").read_text(encoding="utf-8")
+        stylesheet = (dashboard / "dashboard.css").read_text(encoding="utf-8")
         workflow = (
             Path(__file__).parents[2]
             / "workflows"
@@ -268,6 +287,7 @@ class DashboardContractTest(unittest.TestCase):
         self.assertNotIn("negative timestamp anomalies", html)
         self.assertNotIn('id="exclusions"', html)
         self.assertNotIn("negative_queue_records", script)
+        self.assertIn("width: min(calc(100% - 24px), 1180px);", stylesheet)
         self.assertIn(
             'dashboard_dir="$site_dir/github-actions-queue"',
             workflow,
