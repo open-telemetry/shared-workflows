@@ -71,8 +71,7 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-.chart-card,
-.method {
+.chart-card {
   border: 1px solid var(--cp-border);
   background: var(--cp-surface);
   box-shadow: 0 0 2px var(--cp-border);
@@ -180,26 +179,6 @@ svg {
 
 .dot-p95 {
   fill: var(--cp-warning);
-}
-
-.method {
-  margin-top: 14px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  color: var(--cp-text-muted);
-  font-size: 0.88rem;
-}
-
-.method p {
-  margin: 0;
-}
-
-.method p + p {
-  margin-top: 6px;
-}
-
-code {
-  font-family: Consolas, "Courier New", Courier, monospace;
 }
 
 footer {

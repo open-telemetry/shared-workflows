@@ -264,12 +264,7 @@ class DashboardContractTest(unittest.TestCase):
         self.assertNotIn('id="log-scale"', html)
         self.assertIn("manifest.json", script)
         self.assertIn("date=${date}.json", script)
-        self.assertIn(
-            "Queue time represents the interval from job creation until execution begins on a runner.",
-            html,
-        )
-        self.assertNotIn("<strong>Method.</strong>", html)
-        self.assertNotIn("<strong>About this chart.</strong>", html)
+        self.assertNotIn('class="method"', html)
         self.assertNotIn("negative timestamp anomalies", html)
         self.assertNotIn('id="exclusions"', html)
         self.assertNotIn("negative_queue_records", script)
