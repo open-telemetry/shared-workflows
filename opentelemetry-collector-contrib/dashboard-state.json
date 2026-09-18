@@ -3256,7 +3256,7 @@
     },
     "49295": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "braydonk"
         ],
@@ -3266,9 +3266,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1d7d44ca79e9dfbb5918cb42f535b7794bdf1564d80cc8d7baaa5f5b433b82a5",
+        "copilot_request_fingerprint": "d2b4bc08e4e867d33d5101532ef842d173a67809c08521c36ad897548634345e",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3281,13 +3281,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "e465781d6d48e2c9163da8d4c5904af0b8eb6e18",
+        "head_sha": "06326c170c6f5d9b16c5a4ff6525f3fd1f344b92",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-07-10T17:54:50+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T16:07:02+00:00",
+        "last_approver_activity_at": "2026-09-18T16:06:48+00:00",
         "last_author_activity_at": "2026-07-10T17:54:50+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -3298,12 +3298,23 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "dmitryax",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-18T16:33:18.261783+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e26ccf3d44c15be7c3642a8af6aeafc146bd00cc2842faa28cdfe2e0b6730f0f",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "312eb96d78de20172fb901f5d7f0b2fe5aa4aadbf7faab3fbec2578baef9650e",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-07-10T17:54:50+00:00"
       },
       "failed": false,
