@@ -222,6 +222,7 @@ class DashboardContractTest(unittest.TestCase):
         self.assertIn('id="repository"', html)
         self.assertIn('value="7" selected', html)
         self.assertIn("--cp-accent", html)
+        self.assertNotIn('id="log-scale"', html)
         self.assertIn("manifest.json", script)
         self.assertIn("date=${date}.json", script)
 

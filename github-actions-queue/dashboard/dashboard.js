@@ -7,7 +7,6 @@ const elements = {
   label: document.querySelector("#runner-label"),
   repository: document.querySelector("#repository"),
   range: document.querySelector("#time-range"),
-  logScale: document.querySelector("#log-scale"),
   measurementCount: document.querySelector("#measurement-count"),
   latestP50: document.querySelector("#latest-p50"),
   latestP95: document.querySelector("#latest-p95"),
@@ -119,6 +118,21 @@ function formatDuration(seconds) {
   return `${(seconds / 3600).toFixed(1)}h`;
 }
 
+function niceStep(value) {
+  const magnitude = 10 ** Math.floor(Math.log10(value));
+  const normalized = value / magnitude;
+  if (normalized <= 1) {
+    return magnitude;
+  }
+  if (normalized <= 2) {
+    return 2 * magnitude;
+  }
+  if (normalized <= 5) {
+    return 5 * magnitude;
+  }
+  return 10 * magnitude;
+}
+
 function renderMetrics() {
   if (!selectedRows.length) {
     elements.measurementCount.textContent = "0";
@@ -155,30 +169,19 @@ function renderChart() {
     return;
   }
 
-  const isLog = elements.logScale.checked;
   const maxValue = Math.max(...selectedRows.map((row) => row.p95), 1);
-  const maxAxis = isLog
-    ? 10 ** Math.max(1, Math.ceil(Math.log10(maxValue)))
-    : Math.ceil(maxValue / 600) * 600 || 60;
-  const minimumLogValue = 1;
-  const y = (value) =>
-    isLog
-      ? top +
-        ((Math.log(maxAxis) - Math.log(Math.max(value, minimumLogValue))) /
-          (Math.log(maxAxis) - Math.log(minimumLogValue) || 1)) *
-          plotHeight
-      : top + ((maxAxis - value) / maxAxis) * plotHeight;
+  const tickStep = niceStep(maxValue / 4);
+  const maxAxis = Math.ceil(maxValue / tickStep) * tickStep;
+  const y = (value) => top + ((maxAxis - value) / maxAxis) * plotHeight;
   const x = (index) =>
     left +
     (selectedRows.length === 1
       ? plotWidth / 2
       : (index / (selectedRows.length - 1)) * plotWidth);
-  const logTicks = [1, 10, 60, 600, 3600, 36000, 360000].filter(
-    (value) => value <= maxAxis,
+  const ticks = Array.from(
+    { length: Math.round(maxAxis / tickStep) + 1 },
+    (_, index) => tickStep * index,
   );
-  const ticks = isLog
-    ? logTicks
-    : Array.from({ length: 5 }, (_, index) => (maxAxis * index) / 4);
   const grid = ticks
     .map(
       (value) =>
@@ -261,6 +264,5 @@ elements.host.addEventListener("change", () => {
 elements.label.addEventListener("change", refreshData);
 elements.repository.addEventListener("change", refreshData);
 elements.range.addEventListener("change", refreshData);
-elements.logScale.addEventListener("change", renderChart);
 
 initialize();
