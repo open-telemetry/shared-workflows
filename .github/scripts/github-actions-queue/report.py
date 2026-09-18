@@ -68,7 +68,6 @@ def _new_report_state() -> dict[str, Any]:
         },
         "records": 0,
         "valid_records": 0,
-        "null_queue_records": 0,
         "updated_at": None,
     }
 
@@ -179,8 +178,7 @@ def _add_record(
 
     queue_seconds = record.get("queue_seconds")
     if queue_seconds is None:
-        state["null_queue_records"] += 1
-        return
+        raise ValueError("queue_seconds must not be null")
     if isinstance(queue_seconds, bool) or not isinstance(queue_seconds, (int, float)):
         raise TypeError("queue_seconds must be a number or null")
     if not math.isfinite(queue_seconds):
@@ -282,7 +280,6 @@ def _write_manifest(
             "repositories": state["repositories"],
             "records": state["records"],
             "valid_records": state["valid_records"],
-            "null_queue_records": state["null_queue_records"],
             "self_hosted_label_patterns": list(SELF_HOSTED_LABEL_PATTERNS),
         },
     )

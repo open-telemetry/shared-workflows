@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from migrate_rerun_carry_forwards import migrate_collections
+from migrate_queue_records import migrate_collections
 from rerun_carry_forwards import CarryForwardError, filter_rerun_carry_forwards
 
 
@@ -52,6 +52,27 @@ def record(item: dict) -> dict:
         "runner_name": item["runner_name"],
         "runner_group_name": item["runner_group_name"],
         "runner_labels": item["labels"],
+    }
+
+
+def runnerless_record(job_id: int) -> dict:
+    return {
+        "schema_version": 1,
+        "organization": "open-telemetry",
+        "repository": "example",
+        "run_id": 10,
+        "run_attempt": 1,
+        "job_id": job_id,
+        "job_name": "skipped",
+        "job_created_at": "2026-09-18T11:24:57Z",
+        "job_started_at": "2026-09-18T11:24:57Z",
+        "job_completed_at": "2026-09-18T11:24:57Z",
+        "job_conclusion": "skipped",
+        "queue_seconds": None,
+        "runner_assigned": False,
+        "runner_name": None,
+        "runner_group_name": None,
+        "runner_labels": ["ubuntu-24.04"],
     }
 
 
@@ -168,7 +189,10 @@ class CarryForwardMigrationTest(unittest.TestCase):
                 / "collection-1.jsonl.gz"
             )
             original_record = record(self.original)
-            write_collection(path, [original_record, record(self.clone)])
+            write_collection(
+                path,
+                [original_record, record(self.clone), runnerless_record(3)],
+            )
 
             summary = migrate_collections(Path(directory) / "jobs")
             first_bytes = path.read_bytes()
@@ -178,7 +202,9 @@ class CarryForwardMigrationTest(unittest.TestCase):
                 migrated = [json.loads(line) for line in source]
             self.assertEqual([original_record], migrated)
             self.assertEqual(1, summary["files_changed"])
-            self.assertEqual(1, summary["records_removed"])
+            self.assertEqual(2, summary["records_removed"])
+            self.assertEqual(1, summary["carry_forward_records_removed"])
+            self.assertEqual(1, summary["runnerless_records_removed"])
             self.assertEqual(0, second_summary["files_changed"])
             self.assertEqual(0, second_summary["records_removed"])
             self.assertEqual(first_bytes, path.read_bytes())
@@ -229,7 +255,7 @@ class MigrationWorkflowContractTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn(
-            "migrations/remove-rerun-carry-forwards-v1.json",
+            "migrations/remove-unmeasurable-jobs-v1.json",
             workflow,
         )
         self.assertIn(

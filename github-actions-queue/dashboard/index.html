@@ -124,7 +124,7 @@
     </section>
 
     <aside class="method">
-      <p><strong>Method.</strong> Queue time is <code>job_started_at - job_created_at</code>. The chart includes completed jobs that were assigned to a runner. Jobs that finish without a runner assignment are excluded.</p>
+      <p><strong>Method.</strong> Queue time is <code>job_started_at - job_created_at</code>. Only completed jobs that ran on a runner are collected.</p>
       <p>Self-hosted labels match <code>self-hosted</code>, <code>cncf-*</code>, <code>oracle-*</code>, or <code>*-s390x</code>. Other assigned runners are GitHub-hosted.</p>
     </aside>
 

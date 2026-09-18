@@ -11,7 +11,7 @@ from rerun_carry_forwards import CarryForwardError, filter_rerun_carry_forwards
 
 
 def migrate_collections(jobs_dir: Path) -> dict[str, int]:
-    plans: list[tuple[Path, list[bytes], int]] = []
+    plans: list[tuple[Path, list[bytes], int, int]] = []
     files = sorted(jobs_dir.rglob("*.jsonl.gz")) if jobs_dir.exists() else []
     records_scanned = 0
     seen_job_ids: set[int] = set()
@@ -29,32 +29,51 @@ def migrate_collections(jobs_dir: Path) -> dict[str, int]:
             if job_id in seen_job_ids:
                 raise CarryForwardError(f"duplicate job_id in collections: {job_id}")
             seen_job_ids.add(job_id)
-        removed_ids = _carry_forward_ids(path, records)
+            if not isinstance(record.get("runner_assigned"), bool):
+                raise CarryForwardError(
+                    f"{path} has a record without boolean runner_assigned"
+                )
+        carry_forward_ids = _carry_forward_ids(path, records)
         negative_ids = {
             record.get("job_id")
             for record in records
             if _is_negative_queue(record.get("queue_seconds"))
         }
-        if removed_ids != negative_ids:
+        if carry_forward_ids != negative_ids:
             raise CarryForwardError(
                 f"{path} has negative records that are not verified carry-forwards"
             )
+        runnerless_ids = {
+            record["job_id"]
+            for record in records
+            if not record["runner_assigned"]
+        }
+        removed_ids = carry_forward_ids | runnerless_ids
         if removed_ids:
             kept_lines = [
                 line
                 for line, record in zip(lines, records, strict=True)
                 if record.get("job_id") not in removed_ids
             ]
-            plans.append((path, kept_lines, len(removed_ids)))
+            plans.append(
+                (
+                    path,
+                    kept_lines,
+                    len(carry_forward_ids),
+                    len(runnerless_ids),
+                )
+            )
 
-    for path, lines, _ in plans:
+    for path, lines, _, _ in plans:
         _write_lines(path, lines)
 
     return {
+        "carry_forward_records_removed": sum(plan[2] for plan in plans),
         "files_changed": len(plans),
         "files_scanned": len(files),
-        "records_removed": sum(plan[2] for plan in plans),
+        "records_removed": sum(plan[2] + plan[3] for plan in plans),
         "records_scanned": records_scanned,
+        "runnerless_records_removed": sum(plan[3] for plan in plans),
     }
 
 
@@ -132,7 +151,7 @@ def _write_lines(path: Path, lines: list[bytes]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Remove verified partial-rerun carry-forwards from queue data."
+        description="Remove records without measurable runner queue time."
     )
     parser.add_argument("--jobs-dir", type=Path, required=True)
     args = parser.parse_args()

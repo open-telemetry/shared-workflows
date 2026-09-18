@@ -390,23 +390,24 @@ class JobRecordTest(unittest.TestCase):
         self.assertTrue(record["from_fork"])
         self.assertEqual("test (3.13, ubuntu)", record["job_name"])
 
-    def test_never_assigned_job_does_not_look_like_zero_wait(self):
-        record = _job_record(
-            "open-telemetry",
-            "example",
-            self.run,
-            {
-                "id": 22,
-                "status": "completed",
-                "created_at": "2026-09-15T00:00:10Z",
-                "started_at": "2026-09-15T00:00:10Z",
-                "runner_name": None,
-            },
-            "2026-09-15T01:00:00Z",
-        )
-
-        self.assertIsNone(record["queue_seconds"])
-        self.assertFalse(record["runner_assigned"])
+    def test_rejects_job_without_assigned_runner(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "job must have an assigned runner",
+        ):
+            _job_record(
+                "open-telemetry",
+                "example",
+                self.run,
+                {
+                    "id": 22,
+                    "status": "completed",
+                    "created_at": "2026-09-15T00:00:10Z",
+                    "started_at": "2026-09-15T00:00:10Z",
+                    "runner_name": None,
+                },
+                "2026-09-15T01:00:00Z",
+            )
 
     def test_unknown_head_repository_preserves_unknown_fork_origin(self):
         self.run["head_repository"] = None
@@ -418,6 +419,9 @@ class JobRecordTest(unittest.TestCase):
             {
                 "id": 22,
                 "status": "completed",
+                "created_at": "2026-09-15T00:00:10Z",
+                "started_at": "2026-09-15T00:00:20Z",
+                "runner_name": "runner",
             },
             "2026-09-15T01:00:00Z",
         )
@@ -799,6 +803,17 @@ class QueueCollectorTest(unittest.TestCase):
                         "created_at": "2026-09-15T00:20:00Z",
                         "started_at": "2026-09-15T00:21:00Z",
                         "completed_at": "2026-09-15T00:22:00Z",
+                    },
+                    {
+                        **common,
+                        "id": 4,
+                        "name": "skipped",
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:20:00Z",
+                        "started_at": "2026-09-15T00:20:00Z",
+                        "completed_at": "2026-09-15T00:20:00Z",
+                        "conclusion": "skipped",
+                        "runner_name": None,
                     },
                 ]
 

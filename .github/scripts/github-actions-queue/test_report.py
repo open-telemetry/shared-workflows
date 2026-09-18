@@ -88,17 +88,16 @@ class ReportTest(unittest.TestCase):
                         repository="other",
                         labels=["linux", "cncf-ubuntu-8-32-x86"],
                     ),
-                    record(None),
                 ],
             )
 
             summary = build_report(jobs, state_path, output)
 
             self.assertEqual(1, summary["new_files"])
-            self.assertEqual(5, summary["records"])
+            self.assertEqual(4, summary["records"])
             self.assertEqual(4, summary["valid_records"])
             manifest = json.loads((output / "manifest.json").read_text())
-            self.assertEqual(1, manifest["null_queue_records"])
+            self.assertNotIn("null_queue_records", manifest)
             self.assertNotIn("negative_queue_records", manifest)
             self.assertEqual("2026-09-18T12:00:00Z", manifest["latest_hour"])
             self.assertEqual(["ubuntu-latest"], manifest["labels"][GITHUB_HOSTED])
@@ -226,6 +225,24 @@ class ReportTest(unittest.TestCase):
                     root / "report-data",
                 )
 
+    def test_rejects_null_queue_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_collection(
+                root / "jobs" / "date=2026-09-18" / "collection-1.jsonl.gz",
+                [record(None)],
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "queue_seconds must not be null",
+            ):
+                build_report(
+                    root / "jobs",
+                    root / "state.json.gz",
+                    root / "report-data",
+                )
+
 
 class DashboardContractTest(unittest.TestCase):
     def test_dashboard_has_required_filters_and_theme(self):
@@ -248,11 +265,7 @@ class DashboardContractTest(unittest.TestCase):
         self.assertIn("manifest.json", script)
         self.assertIn("date=${date}.json", script)
         self.assertIn(
-            "The chart includes completed jobs that were assigned to a runner.",
-            html,
-        )
-        self.assertIn(
-            "Jobs that finish without a runner assignment are excluded.",
+            "Only completed jobs that ran on a runner are collected.",
             html,
         )
         self.assertNotIn("negative timestamp anomalies", html)

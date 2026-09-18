@@ -12,9 +12,10 @@ Queue time is measured per job:
 queue_seconds = job_started_at - job_created_at
 ```
 
-Matrix jobs are separate records. Jobs that never receive a runner retain their
-timestamps but have `runner_assigned: false` and `queue_seconds: null`, because
-GitHub can report equal creation and start timestamps for such jobs.
+Matrix jobs are separate records. Jobs that never receive a runner are not
+stored because they have no runner queue time. This excludes skipped jobs,
+jobs cancelled before assignment, and check runs created only to publish
+results.
 
 When only failed jobs are rerun, GitHub also returns cloned records for jobs
 that did not execute again. The clones have a later `created_at` but retain the
@@ -140,8 +141,8 @@ reporting data. Each job line contains:
 | `job_id`, `job_name` | Individual job identity. Matrix values normally appear in `job_name`. |
 | `job_status`, `job_conclusion` | Terminal state and result. |
 | `job_created_at`, `job_started_at`, `job_completed_at` | GitHub job timestamps. |
-| `queue_seconds` | Start minus creation time, or null when no runner was assigned. |
-| `runner_assigned` | Whether GitHub reported a runner name. |
+| `queue_seconds` | Start minus creation time. |
+| `runner_assigned` | Always true for retained queue records. |
 | `runner_labels`, `runner_name`, `runner_group_name` | Runner classification. |
 | `html_url` | Direct link to the job. |
 | `collected_at` | Time the collector finalized the record. |

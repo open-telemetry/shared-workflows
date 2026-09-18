@@ -840,6 +840,7 @@ class QueueCollector:
         if any(job.get("status") != "completed" for job in jobs):
             return [], False
         jobs, _ = filter_rerun_carry_forwards(jobs)
+        jobs = [job for job in jobs if job.get("runner_name")]
         collected_at = _format_instant(self._now())
         return [
             _job_record(self._org, repository, run, job, collected_at) for job in jobs
@@ -958,12 +959,13 @@ def _job_record(
     job: dict[str, Any],
     collected_at: str,
 ) -> dict[str, Any]:
-    runner_assigned = bool(job.get("runner_name"))
-    queue_seconds = None
-    if runner_assigned and job.get("created_at") and job.get("started_at"):
-        queue_seconds = (
-            _parse_instant(job["started_at"]) - _parse_instant(job["created_at"])
-        ).total_seconds()
+    if not job.get("runner_name"):
+        raise ValueError("job must have an assigned runner")
+    if not job.get("created_at") or not job.get("started_at"):
+        raise ValueError("assigned job must have creation and start timestamps")
+    queue_seconds = (
+        _parse_instant(job["started_at"]) - _parse_instant(job["created_at"])
+    ).total_seconds()
 
     head_repository = run.get("head_repository") or {}
     head_full_name = head_repository.get("full_name")
@@ -994,7 +996,7 @@ def _job_record(
         "job_started_at": job.get("started_at"),
         "job_completed_at": job.get("completed_at"),
         "queue_seconds": queue_seconds,
-        "runner_assigned": runner_assigned,
+        "runner_assigned": True,
         "runner_labels": job.get("labels") or [],
         "runner_name": job.get("runner_name"),
         "runner_group_name": job.get("runner_group_name"),
