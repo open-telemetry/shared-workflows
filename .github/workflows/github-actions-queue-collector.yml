@@ -73,6 +73,35 @@ jobs:
           cp "$DATA_BRANCH_README" "$data_dir/README.md"
           echo "directory=$data_dir" >> "$GITHUB_OUTPUT"
 
+      - name: Remove partial-rerun carry-forwards
+        id: migration
+        env:
+          DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+        run: |
+          set -euo pipefail
+          marker="$DATA_DIRECTORY/migrations/remove-rerun-carry-forwards-v1.json"
+          performed=false
+          if [[ -f "$marker" ]]; then
+            summary='{"files_changed":0,"files_scanned":0,"records_removed":0,"records_scanned":0}'
+          else
+            summary=$(
+              python3 .github/scripts/github-actions-queue/migrate_rerun_carry_forwards.py \
+                --jobs-dir "$DATA_DIRECTORY/jobs"
+            )
+            mkdir -p "$(dirname "$marker")"
+            jq . <<< "$summary" > "$marker"
+            performed=true
+          fi
+          echo "$summary" | jq .
+          {
+            echo "### Partial-rerun carry-forward migration"
+            echo
+            echo '```json'
+            echo "$summary" | jq .
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "performed=$performed" >> "$GITHUB_OUTPUT"
+
       - name: Collect completed jobs
         id: collect
         env:
@@ -115,8 +144,13 @@ jobs:
       - name: Build queue report
         env:
           DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+          MIGRATION_PERFORMED: ${{ steps.migration.outputs.performed }}
         run: |
           set -euo pipefail
+          if [[ "$MIGRATION_PERFORMED" == "true" ]]; then
+            rm -f "$DATA_DIRECTORY/report-state.json.gz"
+            rm -rf "$DATA_DIRECTORY/report-data"
+          fi
           summary=$(
             python3 .github/scripts/github-actions-queue/report.py \
               --jobs-dir "$DATA_DIRECTORY/jobs" \

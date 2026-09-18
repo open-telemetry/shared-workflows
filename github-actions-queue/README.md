@@ -16,6 +16,11 @@ Matrix jobs are separate records. Jobs that never receive a runner retain their
 timestamps but have `runner_assigned: false` and `queue_seconds: null`, because
 GitHub can report equal creation and start timestamps for such jobs.
 
+When only failed jobs are rerun, GitHub also returns cloned records for jobs
+that did not execute again. The clones have a later `created_at` but retain the
+original execution timestamps. The collector removes a clone only when it has
+exactly one earlier non-negative execution match in the same workflow run.
+
 ## Dashboard
 
 The hourly queue-time dashboard is published at
@@ -100,8 +105,9 @@ before the next schedule resumes it.
 
 Runs that have not reached a terminal state are saved in `state.json`. Later
 collections revisit them and emit their jobs only after every returned job is
-terminal. Job listing uses `filter=all`, so all attempts available when the run
-is finalized are retained.
+terminal. Job listing uses `filter=all`, so actual executions from every
+available attempt are retained when the run is finalized. Carry-forward clones
+created by partial reruns are not stored.
 
 The collector tracks the installation's REST quota. If it exhausts the quota,
 it commits the partial checkpoint and resumes during the next scheduled run.
@@ -140,9 +146,9 @@ reporting data. Each job line contains:
 | `html_url` | Direct link to the job. |
 | `collected_at` | Time the collector finalized the record. |
 
-The format deliberately retains self-hosted jobs, retries, fork runs, and large
-queue values. Reports should filter those dimensions rather than discarding raw
-records during collection.
+The format deliberately retains self-hosted jobs, actual retries, fork runs,
+and large queue values. Reports should filter those dimensions rather than
+discarding raw records during collection.
 
 ## Local use
 

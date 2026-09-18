@@ -3,9 +3,11 @@
 This orphan branch contains compact, per-job GitHub Actions timing records for
 public repositories in the `open-telemetry` organization.
 
-Files under `jobs/date=YYYY-MM-DD/` are immutable gzip-compressed JSON Lines.
-Each line is one terminal workflow job. `state.json` tracks live collection, and
+Files under `jobs/date=YYYY-MM-DD/` are gzip-compressed JSON Lines. Each line is
+one terminal workflow job. Collection files are immutable after any documented
+one-time migration. `state.json` tracks live collection, and
 `backfill-state.json` tracks automatic historical collection.
+The files under `migrations/` record completed one-time data cleanups.
 
 `report-state.json.gz` tracks the immutable files included in the hourly
 aggregates. `report-data/manifest.json` and the daily JSON files under

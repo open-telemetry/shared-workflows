@@ -89,18 +89,17 @@ class ReportTest(unittest.TestCase):
                         labels=["linux", "cncf-ubuntu-8-32-x86"],
                     ),
                     record(None),
-                    record(-10),
                 ],
             )
 
             summary = build_report(jobs, state_path, output)
 
             self.assertEqual(1, summary["new_files"])
-            self.assertEqual(6, summary["records"])
+            self.assertEqual(5, summary["records"])
             self.assertEqual(4, summary["valid_records"])
             manifest = json.loads((output / "manifest.json").read_text())
             self.assertEqual(1, manifest["null_queue_records"])
-            self.assertEqual(1, manifest["negative_queue_records"])
+            self.assertNotIn("negative_queue_records", manifest)
             self.assertEqual("2026-09-18T12:00:00Z", manifest["latest_hour"])
             self.assertEqual(["ubuntu-latest"], manifest["labels"][GITHUB_HOSTED])
             self.assertEqual(
@@ -209,6 +208,24 @@ class ReportTest(unittest.TestCase):
             self.assertEqual(1, summary["records"])
             self.assertEqual(1, summary["new_files"])
 
+    def test_rejects_negative_queue_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_collection(
+                root / "jobs" / "date=2026-09-18" / "collection-1.jsonl.gz",
+                [record(-1)],
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "queue_seconds must not be negative",
+            ):
+                build_report(
+                    root / "jobs",
+                    root / "state.json.gz",
+                    root / "report-data",
+                )
+
 
 class DashboardContractTest(unittest.TestCase):
     def test_dashboard_has_required_filters_and_theme(self):
@@ -225,6 +242,17 @@ class DashboardContractTest(unittest.TestCase):
         self.assertNotIn('id="log-scale"', html)
         self.assertIn("manifest.json", script)
         self.assertIn("date=${date}.json", script)
+        self.assertIn(
+            "The chart includes completed jobs that were assigned to a runner.",
+            html,
+        )
+        self.assertIn(
+            "Jobs that finish without a runner assignment are excluded.",
+            html,
+        )
+        self.assertNotIn("negative timestamp anomalies", html)
+        self.assertNotIn('id="exclusions"', html)
+        self.assertNotIn("negative_queue_records", script)
 
 
 if __name__ == "__main__":

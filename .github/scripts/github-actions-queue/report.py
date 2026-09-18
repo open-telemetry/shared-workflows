@@ -69,7 +69,6 @@ def _new_report_state() -> dict[str, Any]:
         "records": 0,
         "valid_records": 0,
         "null_queue_records": 0,
-        "negative_queue_records": 0,
         "updated_at": None,
     }
 
@@ -187,8 +186,7 @@ def _add_record(
     if not math.isfinite(queue_seconds):
         raise ValueError("queue_seconds must be finite")
     if queue_seconds < 0:
-        state["negative_queue_records"] += 1
-        return
+        raise ValueError("queue_seconds must not be negative")
 
     repository = record["repository"]
     if not isinstance(repository, str) or not repository:
@@ -285,7 +283,6 @@ def _write_manifest(
             "records": state["records"],
             "valid_records": state["valid_records"],
             "null_queue_records": state["null_queue_records"],
-            "negative_queue_records": state["negative_queue_records"],
             "self_hosted_label_patterns": list(SELF_HOSTED_LABEL_PATTERNS),
         },
     )

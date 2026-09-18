@@ -748,6 +748,71 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual(1, state.pending_runs[0]["failures"])
         self.assertIn("502", state.pending_runs[0]["last_error"])
 
+    def test_removes_partial_rerun_carry_forward_before_recording(self):
+        class RerunClient(FakeClient):
+            def list_workflow_runs(self, _org, _repository, _start, _end):
+                return [
+                    {
+                        "id": 100,
+                        "name": "CI",
+                        "workflow_id": 1,
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:10:00Z",
+                        "status": "completed",
+                        "event": "push",
+                        "head_repository": {
+                            "full_name": "open-telemetry/a"
+                        },
+                    }
+                ]
+
+            def list_jobs(self, _org, _repository, _run_id):
+                common = {
+                    "name": "setup",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "completed_at": "2026-09-15T00:12:00Z",
+                    "runner_name": "runner",
+                    "runner_group_name": "GitHub Actions",
+                    "labels": ["ubuntu-latest"],
+                }
+                return [
+                    {
+                        **common,
+                        "id": 1,
+                        "run_attempt": 1,
+                        "created_at": "2026-09-15T00:10:00Z",
+                        "started_at": "2026-09-15T00:11:00Z",
+                    },
+                    {
+                        **common,
+                        "id": 2,
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:20:00Z",
+                        "started_at": "2026-09-15T00:11:00Z",
+                    },
+                    {
+                        **common,
+                        "id": 3,
+                        "name": "test",
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:20:00Z",
+                        "started_at": "2026-09-15T00:21:00Z",
+                        "completed_at": "2026-09-15T00:22:00Z",
+                    },
+                ]
+
+        collector = QueueCollector(
+            RerunClient(),
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 2, tzinfo=UTC),
+        )
+        state = CollectorState(cursor="2026-09-15T00:00:00Z")
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertEqual([1, 3], [item["job_id"] for item in result.records])
+
     def test_backfills_newest_windows_first(self):
         class WindowClient(FakeClient):
             def __init__(self):

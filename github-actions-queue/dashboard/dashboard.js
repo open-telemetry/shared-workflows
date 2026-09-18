@@ -7,7 +7,6 @@ const elements = {
   label: document.querySelector("#runner-label"),
   repository: document.querySelector("#repository"),
   range: document.querySelector("#time-range"),
-  exclusions: document.querySelector("#exclusions"),
   updatedAt: document.querySelector("#updated-at"),
 };
 
@@ -219,9 +218,6 @@ async function initialize() {
     }
     manifest = await response.json();
     updateDependentFilters();
-    elements.exclusions.textContent =
-      `${manifest.null_queue_records.toLocaleString()} records have no runner-assigned queue time. ` +
-      `${manifest.negative_queue_records.toLocaleString()} records have negative timestamp anomalies.`;
     elements.updatedAt.textContent = manifest.updated_at
       ? `Updated ${manifest.updated_at}`
       : "No queue data collected yet";
