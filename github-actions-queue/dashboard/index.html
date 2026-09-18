@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenTelemetry GitHub Actions queue time</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+  </style>
+  <link rel="stylesheet" href="dashboard.css">
+  <script src="dashboard.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">OpenTelemetry public repositories</p>
+      <h1>GitHub Actions queue time</h1>
+      <p class="subtitle">Hourly runner queue percentiles in UTC</p>
+    </header>
+
+    <section class="filters" aria-label="Chart filters">
+      <label>
+        Runner host
+        <select id="runner-host">
+          <option value="github-hosted" selected>GitHub-hosted</option>
+          <option value="self-hosted">Self-hosted</option>
+        </select>
+      </label>
+      <label>
+        Runner label
+        <select id="runner-label">
+          <option value="*">All runners</option>
+        </select>
+      </label>
+      <label>
+        Repository
+        <select id="repository">
+          <option value="*">All repositories</option>
+        </select>
+      </label>
+      <label>
+        Time range
+        <select id="time-range">
+          <option value="1">Last 24 hours</option>
+          <option value="7" selected>Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="all">All history</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="metrics" aria-label="Selected queue metrics">
+      <article>
+        <strong id="measurement-count">-</strong>
+        <span>queue measurements</span>
+      </article>
+      <article>
+        <strong id="latest-p50">-</strong>
+        <span>latest p50</span>
+      </article>
+      <article>
+        <strong id="latest-p95">-</strong>
+        <span>latest p95</span>
+      </article>
+      <article>
+        <strong id="peak-p95">-</strong>
+        <span>peak p95</span>
+      </article>
+    </section>
+
+    <section class="chart-card">
+      <div class="chart-heading">
+        <div>
+          <h2>Hourly queue-time percentiles</h2>
+          <p id="chart-status" role="status">Loading report data...</p>
+        </div>
+        <label class="scale-control">
+          <input id="log-scale" type="checkbox" checked>
+          Logarithmic y-axis
+        </label>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span class="p50">p50</span>
+        <span class="p90">p90</span>
+        <span class="p95">p95</span>
+      </div>
+      <svg id="chart" viewBox="0 0 1040 480" role="img" aria-label="Hourly p50, p90, and p95 GitHub Actions queue times"></svg>
+    </section>
+
+    <aside class="method">
+      <p><strong>Method.</strong> Queue time is <code>job_started_at - job_created_at</code>. Null queue times and negative timestamp anomalies are excluded.</p>
+      <p>Self-hosted labels match <code>self-hosted</code>, <code>cncf-*</code>, <code>oracle-*</code>, or <code>*-s390x</code>. Other assigned runners are GitHub-hosted.</p>
+      <p id="exclusions"></p>
+    </aside>
+
+    <footer>
+      <span id="updated-at"></span>
+      <a href="https://github.com/open-telemetry/shared-workflows/tree/otelbot/github-actions-queue-data/jobs">Raw data</a>
+      <a href="https://github.com/open-telemetry/shared-workflows/blob/main/github-actions-queue/README.md">Collection notes</a>
+    </footer>
+  </main>
+</body>
+</html>

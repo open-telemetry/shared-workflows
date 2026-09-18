@@ -16,6 +16,44 @@ Matrix jobs are separate records. Jobs that never receive a runner retain their
 timestamps but have `runner_assigned: false` and `queue_seconds: null`, because
 GitHub can report equal creation and start timestamps for such jobs.
 
+## Dashboard
+
+The hourly queue-time dashboard is published at
+<https://open-telemetry.github.io/shared-workflows/>. It opens to the latest
+seven days of GitHub-hosted runner data and provides:
+
+- Required GitHub-hosted or self-hosted runner selection
+- Runner labels scoped to the selected host category
+- Repository filtering
+- 24-hour, 7-day, 30-day, and all-history ranges
+- Hourly p50, p90, and p95 queue times in UTC
+- Logarithmic and linear y-axis modes
+
+The self-hosted category matches runner labels case-insensitively against:
+
+```text
+self-hosted
+cncf-*
+oracle-*
+*-s390x
+```
+
+These broad patterns cover the special self-hosted runners documented in the
+[OpenTelemetry community asset inventory](https://github.com/open-telemetry/community/blob/main/assets.md#special-github-action-runners).
+All other assigned runners are classified as GitHub-hosted. In particular,
+`otel-windows-latest-8-cores` is GitHub-hosted even though it uses an
+organization-defined runner group.
+
+The collector incrementally updates `report-state.json.gz` and daily report
+partitions under `report-data/` on the data branch. The Pages artifact includes
+only the dashboard assets and those derived partitions, not the raw job files
+or collector checkpoints.
+
+Repository administrators must enable GitHub Pages once in the repository
+settings and select **GitHub Actions** as the source. The deployment uses the
+standard `github-pages` environment and needs no new GitHub App permission,
+token, or secret.
+
 ## GitHub App
 
 Use the private organization-owned GitHub App named

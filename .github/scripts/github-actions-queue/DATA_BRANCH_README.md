@@ -7,5 +7,11 @@ Files under `jobs/date=YYYY-MM-DD/` are immutable gzip-compressed JSON Lines.
 Each line is one terminal workflow job. `state.json` tracks live collection, and
 `backfill-state.json` tracks automatic historical collection.
 
+`report-state.json.gz` tracks the immutable files included in the hourly
+aggregates. `report-data/manifest.json` and the daily JSON files under
+`report-data/` are compact derived inputs for the
+[queue dashboard](https://open-telemetry.github.io/shared-workflows/). They can
+be rebuilt from the job files and are not the reporting source of truth.
+
 The collector and schema documentation live on the default branch under
 [`github-actions-queue/`](https://github.com/open-telemetry/shared-workflows/tree/main/github-actions-queue).
