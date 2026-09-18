@@ -752,7 +752,7 @@
     },
     "5239": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-dotnet-contrib",
         "author_action_review_thread_urls": [],
@@ -762,7 +762,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5a9640a684acc4f0b6c8cf2e8e580bf2b7a0d2445e9f0a276c8220e44d3e31aa",
+        "copilot_request_fingerprint": "e60d6248612f137f4feb959b8ed46d1000e51fd92171b8c1d79afeba2b1d936f",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -778,15 +778,27 @@
         "head_sha": "0a2e1d37b368b1c884f494dff8ac719959e9e374",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T13:54:38+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T13:55:47+00:00",
+        "last_approver_activity_at": "2026-09-18T13:55:47+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-18T13:56:13.338997+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c19a6b13a1c3dae0933828a1578107131ee5cdbff32d4a0214b6bf4a094d3bf8",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "82cce740ed0347f08e891d2b9dc18e4e13f0237ef03e2f1d2aa308047786c900",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-18T13:54:38+00:00"
       },
       "failed": false,
