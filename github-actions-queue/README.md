@@ -49,6 +49,11 @@ every hour. It discovers active public repositories dynamically, then processes
 closed one-hour workflow-run windows. A repository checkpoint lets the next run
 resume an incomplete window without re-emitting repositories already committed.
 
+Scheduled and manual collector runs report operational failures through a
+tracking issue in `shared-workflows`. A failed or cancelled collection opens the
+issue or adds a link to the latest failing run. The next successful collection
+closes the issue. Runs in forks do not update the tracking issue.
+
 The collector prioritizes live data, then uses the remaining run budget to
 backfill from `2026-09-17T02:00:00Z` toward `2026-01-01T00:00:00Z`. Backfill
 processes newer hours first and continues automatically on each schedule.
