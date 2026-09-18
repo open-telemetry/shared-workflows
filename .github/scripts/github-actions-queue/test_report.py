@@ -265,9 +265,10 @@ class DashboardContractTest(unittest.TestCase):
         self.assertIn("manifest.json", script)
         self.assertIn("date=${date}.json", script)
         self.assertIn(
-            "Only completed jobs that ran on a runner are collected.",
+            "The chart includes only completed jobs that ran on a runner.",
             html,
         )
+        self.assertNotIn("<strong>Method.</strong>", html)
         self.assertNotIn("negative timestamp anomalies", html)
         self.assertNotIn('id="exclusions"', html)
         self.assertNotIn("negative_queue_records", script)
