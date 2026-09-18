@@ -71,35 +71,11 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.metrics article,
 .chart-card,
 .method {
   border: 1px solid var(--cp-border);
   background: var(--cp-surface);
   box-shadow: 0 0 2px var(--cp-border);
-}
-
-.metrics article {
-  display: grid;
-  gap: 4px;
-  padding: 16px;
-  border-radius: 16px;
-}
-
-.metrics strong {
-  font-size: 1.45rem;
-}
-
-.metrics span {
-  color: var(--cp-text-muted);
-  font-size: 0.82rem;
 }
 
 .chart-card {
@@ -240,8 +216,7 @@ a {
 }
 
 @media (max-width: 800px) {
-  .filters,
-  .metrics {
+  .filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -254,18 +229,6 @@ a {
 
   .filters {
     grid-template-columns: 1fr;
-  }
-
-  .metrics {
-    gap: 8px;
-  }
-
-  .metrics article {
-    padding: 12px;
-  }
-
-  .metrics strong {
-    font-size: 1.15rem;
   }
 
   .chart-heading {

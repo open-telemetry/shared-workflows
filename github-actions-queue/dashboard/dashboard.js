@@ -7,10 +7,6 @@ const elements = {
   label: document.querySelector("#runner-label"),
   repository: document.querySelector("#repository"),
   range: document.querySelector("#time-range"),
-  measurementCount: document.querySelector("#measurement-count"),
-  latestP50: document.querySelector("#latest-p50"),
-  latestP95: document.querySelector("#latest-p95"),
-  peakP95: document.querySelector("#peak-p95"),
   exclusions: document.querySelector("#exclusions"),
   updatedAt: document.querySelector("#updated-at"),
 };
@@ -133,27 +129,6 @@ function niceStep(value) {
   return 10 * magnitude;
 }
 
-function renderMetrics() {
-  if (!selectedRows.length) {
-    elements.measurementCount.textContent = "0";
-    elements.latestP50.textContent = "-";
-    elements.latestP95.textContent = "-";
-    elements.peakP95.textContent = "-";
-    return;
-  }
-  const latest = selectedRows.at(-1);
-  const peak = selectedRows.reduce((current, row) =>
-    row.p95 > current.p95 ? row : current,
-  );
-  elements.measurementCount.textContent = selectedRows
-    .reduce((total, row) => total + row.count, 0)
-    .toLocaleString();
-  elements.latestP50.textContent = formatDuration(latest.p50);
-  elements.latestP95.textContent = formatDuration(latest.p95);
-  elements.peakP95.textContent = formatDuration(peak.p95);
-  elements.peakP95.title = peak.hour;
-}
-
 function renderChart() {
   const width = 1040;
   const height = 480;
@@ -227,7 +202,6 @@ function renderChart() {
 }
 
 function render() {
-  renderMetrics();
   renderChart();
   if (selectedRows.length) {
     elements.status.textContent =
