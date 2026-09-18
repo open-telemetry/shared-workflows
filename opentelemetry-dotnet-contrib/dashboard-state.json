@@ -1287,7 +1287,7 @@
     },
     "5271": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "hananiel",
           "mic-max"
@@ -1300,7 +1300,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9d4a4b347edf8c54e5b1426881a333941a8075e07bde695887ebde212924a590",
+        "copilot_request_fingerprint": "995d8c21f74079ebbfc3827cce5b9533f037cd178215e8ebd4410e7ef1c6fc55",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1316,8 +1316,8 @@
         "head_sha": "5dcce7221d8153bc251eb1e20fd4cac55b3381fa",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T19:44:03+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T19:46:26+00:00",
+        "last_approver_activity_at": "2026-09-18T19:46:26+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
@@ -1326,6 +1326,16 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "hananiel",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
@@ -1342,10 +1352,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-18T19:46:32.738147+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "177b57880bcd931538eb7fa5a49d4c84d049d8e604f1d3d67a40918dd5d1eb4c",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "dab64ced95189a44d1caaaa552e9e3748f474b1a3b5e9649cbb1c6ee607aa292",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-18T19:44:03+00:00"
       },
       "failed": false,
