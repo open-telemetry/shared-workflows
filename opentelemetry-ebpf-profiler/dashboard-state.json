@@ -683,12 +683,15 @@
     },
     "1801": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "simonepri",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#discussion_r4045249605"
+        ],
         "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#issuecomment-5694388628"
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#issuecomment-5694388628",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#pullrequestreview-5245985118"
         ],
         "author_can_act": true,
         "author_nudge_episode_id": "355260b91c47473a92edd6c6566172d4",
@@ -696,7 +699,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "64bcbc778f1074e60d0ebf91fbf9865855a51d91835b1bdbe5407228bee154b8",
+        "copilot_request_fingerprint": "76af49f2d2f41edd68d15f16e5397fcd8a2b1f352cd4c85ada9c3d49fa4ac57a",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -712,8 +715,8 @@
         "head_sha": "5ee3eada12a022decd760fc792feae133d115c98",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T10:09:04+00:00",
-        "last_approver_activity_at": "2026-09-16T08:29:09+00:00",
+        "last_activity_at": "2026-09-18T08:54:51+00:00",
+        "last_approver_activity_at": "2026-09-18T08:54:51+00:00",
         "last_author_activity_at": "2026-09-16T10:09:04+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -738,19 +741,19 @@
             "unresolved_thread": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "rogercoll",
-            "open_thread": false,
-            "pending_review": true,
+            "open_thread": true,
+            "pending_review": false,
             "top_level_feedback": true,
-            "unresolved_thread": false
+            "unresolved_thread": true
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "bb12610e2a71059e80a3650e4dec3b6a439700410ebb88786c61ac48b6bf8c36",
+        "routing_input_fingerprint": "5da97a561e8d47adc0167f916a88492a0ef2a03606fd2d0938064304b6e5fa48",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-16T08:22:33+00:00"
       },
