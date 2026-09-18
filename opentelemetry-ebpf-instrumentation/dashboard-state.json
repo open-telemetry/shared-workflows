@@ -1639,7 +1639,7 @@
     },
     "3485": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1649,7 +1649,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5eaf083f65010c8875929c7331cdb0b90cea62f11102b8c463116a0d0e1ed024",
+        "copilot_request_fingerprint": "6d238697ae99569d0713aaa92e1028057f3c327356abe6cd88aa04af66e45515",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1665,21 +1665,32 @@
         "head_sha": "1fbddd9009f3cbebb25f3b6000f0a1be5657a1a2",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-18T15:02:24+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T15:07:56+00:00",
+        "last_approver_activity_at": "2026-09-18T15:07:56+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "MrAlias",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "837d1870e21e8849a72d7c6631a10e96c02d7f848eda72623de1ab6313322687",
+        "routing_input_fingerprint": "99a3a463d82b1a2fae8ab9e7f62af27e6ac8c25905235174cad509d667925b51",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-18T15:02:24+00:00"
       },
       "failed": false,
       "pr_number": 3485,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3485",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
