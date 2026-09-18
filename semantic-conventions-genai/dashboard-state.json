@@ -3258,7 +3258,10 @@
         "approval_count": 0,
         "assignees": [],
         "author": "1aifanatic",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4043439536",
+          "https://github.com/open-telemetry/semantic-conventions-genai/pull/524#discussion_r4043439556"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "1bc1fdba264b45ca906713c7eb517f09",
@@ -3267,12 +3270,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "153e3662f385ecc5a9f9b138fdf7c6de36f91a4d6c426104306201557c8258fe",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "e10188188e9352ddea9cf0e7833d22b63f1b39a13d126431742ba77bf4714054",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-18T02:56:58+00:00",
@@ -3287,10 +3290,21 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-18T02:56:01+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8e92b6d7bdf6be81a528f96298bcc913fe7dd48a76e93a1c8fafc0586d0ec85c",
+        "routing_input_fingerprint": "89955ef16bb8b9356fb096e1aef3d0c472da6875248b4279653b604fa311bc2b",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-09-18T02:57:17+00:00"
       },
