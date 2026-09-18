@@ -14327,7 +14327,7 @@
     },
     "51199": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "VihasMakwana",
         "author_action_review_thread_urls": [],
@@ -14336,12 +14336,11 @@
         ],
         "author_can_act": true,
         "author_nudge_episode_id": "f032f9707c0a407d9c7a14dbb2c3a2be",
-        "ci_failing_count": 1,
-        "ci_failing_since": "2026-09-18T12:11:15+00:00",
+        "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f3f87a52f09aaa9924973756684058f9b1582e93edade32b4c92027f6a1cda3a",
+        "copilot_request_fingerprint": "c0ae4c7da4ca52188a872c860e045db08138dd031fd44d55a3efc32636ebca6d",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14357,11 +14356,21 @@
         "head_sha": "baf153f1228b1453234e193556467c93a7fbebba",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T15:21:32+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T15:29:05+00:00",
+        "last_approver_activity_at": "2026-09-18T15:29:05+00:00",
         "last_author_activity_at": "2026-09-18T11:42:37+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "atoulme",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": false,
             "approved_non_team": false,
@@ -14385,9 +14394,9 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f02986b6a4a606b146c3fb56b07efa542cce0fe84fa85c14e47b133e092c43c2",
-        "waiting_age_basis": "ci_failure",
-        "waiting_since": "2026-09-18T12:11:15+00:00"
+        "routing_input_fingerprint": "c10751446ea40262a481d39c7a33068e53286de7e79fc68dcf265ed970589c76",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-18T15:21:10+00:00"
       },
       "failed": false,
       "pr_number": 51199,
