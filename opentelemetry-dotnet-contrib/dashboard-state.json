@@ -1149,7 +1149,7 @@
     },
     "5273": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "IliaBrahinets",
           "pcwiese"
@@ -1160,9 +1160,9 @@
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "eb2be8acc334d74ac19ea999b4642403adc2b0de004e7fe6c97c3e18e0df623c",
+        "copilot_request_fingerprint": "ead4abd358e787f16f6e7916f28071dd6a063187e278e1ec81a5bf1e3c043952",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1178,8 +1178,8 @@
         "head_sha": "7c66b4ff2bc903e0f96aa70fb43e065675eeb058",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T19:48:48+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-18T19:50:20+00:00",
+        "last_approver_activity_at": "2026-09-18T19:50:20+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
@@ -1188,6 +1188,16 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "IliaBrahinets",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
@@ -1204,10 +1214,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-18T19:50:47.227325+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3e218949bf23da0c2a9a2b9b7f3f520f4b89bf2407bfa17c52318ea59a209c68",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "0456d09d5b27bc82bb43369395d38b71942602bebe9509ac19e56aa2d8d5c19f",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-18T19:48:48+00:00"
       },
       "failed": false,
