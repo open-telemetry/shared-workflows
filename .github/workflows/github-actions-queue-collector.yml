@@ -191,9 +191,10 @@ jobs:
         run: |
           set -euo pipefail
           site_dir="$RUNNER_TEMP/github-actions-queue-site"
-          mkdir -p "$site_dir/data"
-          cp -R github-actions-queue/dashboard/. "$site_dir/"
-          cp -R "$DATA_DIRECTORY/report-data/." "$site_dir/data/"
+          dashboard_dir="$site_dir/github-actions-queue"
+          mkdir -p "$dashboard_dir/data"
+          cp -R github-actions-queue/dashboard/. "$dashboard_dir/"
+          cp -R "$DATA_DIRECTORY/report-data/." "$dashboard_dir/data/"
           echo "directory=$site_dir" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

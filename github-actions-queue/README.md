@@ -24,8 +24,8 @@ exactly one earlier non-negative execution match in the same workflow run.
 ## Dashboard
 
 The hourly queue-time dashboard is published at
-<https://open-telemetry.github.io/shared-workflows/>. It opens to the latest
-seven days of GitHub-hosted runner data and provides:
+<https://open-telemetry.github.io/shared-workflows/github-actions-queue/>. It
+opens to the latest seven days of GitHub-hosted runner data and provides:
 
 - Required GitHub-hosted or self-hosted runner selection
 - Runner labels scoped to the selected host category

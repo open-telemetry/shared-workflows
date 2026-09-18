@@ -232,6 +232,11 @@ class DashboardContractTest(unittest.TestCase):
         dashboard = Path(__file__).parents[3] / "github-actions-queue" / "dashboard"
         html = (dashboard / "index.html").read_text(encoding="utf-8")
         script = (dashboard / "dashboard.js").read_text(encoding="utf-8")
+        workflow = (
+            Path(__file__).parents[2]
+            / "workflows"
+            / "github-actions-queue-collector.yml"
+        ).read_text(encoding="utf-8")
 
         self.assertIn('id="runner-host"', html)
         self.assertIn('value="github-hosted" selected', html)
@@ -253,6 +258,10 @@ class DashboardContractTest(unittest.TestCase):
         self.assertNotIn("negative timestamp anomalies", html)
         self.assertNotIn('id="exclusions"', html)
         self.assertNotIn("negative_queue_records", script)
+        self.assertIn(
+            'dashboard_dir="$site_dir/github-actions-queue"',
+            workflow,
+        )
 
 
 if __name__ == "__main__":

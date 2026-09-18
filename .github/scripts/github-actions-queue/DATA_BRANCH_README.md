@@ -12,8 +12,9 @@ The files under `migrations/` record completed one-time data cleanups.
 `report-state.json.gz` tracks the immutable files included in the hourly
 aggregates. `report-data/manifest.json` and the daily JSON files under
 `report-data/` are compact derived inputs for the
-[queue dashboard](https://open-telemetry.github.io/shared-workflows/). They can
-be rebuilt from the job files and are not the reporting source of truth.
+[queue dashboard](https://open-telemetry.github.io/shared-workflows/github-actions-queue/).
+They can be rebuilt from the job files and are not the reporting source of
+truth.
 
 The collector and schema documentation live on the default branch under
 [`github-actions-queue/`](https://github.com/open-telemetry/shared-workflows/tree/main/github-actions-queue).
