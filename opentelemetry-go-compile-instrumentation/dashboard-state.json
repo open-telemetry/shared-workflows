@@ -2746,14 +2746,16 @@
         "assignees": [],
         "author": "darkraider01",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1350#pullrequestreview-5254785980"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "563f6def13f5480d8066a151bcfde645",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 4,
+        "ci_pending_count": 3,
         "conflicts": "no",
-        "copilot_request_fingerprint": "512c92bc174bac5242f80e20b4bdff0e247fc2d05cd04b353f4b6cea14459a17",
+        "copilot_request_fingerprint": "ef16dc6e6a1996ca06ee6a925997657ec84251eab25e0098c84efd4283f22aec",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2773,12 +2775,23 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-19T07:31:16+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "om7057",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-19T07:32:45.042229+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "ff43df6583ff22db06350c410de6a88cef1f393e010d3f5abc58ad148a09d8cb",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "8dbd78c1ff49f0973e1760426b60a13770341aed71a509316980bb4a18151ec4",
+        "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-19T05:42:43+00:00"
       },
       "failed": false,
