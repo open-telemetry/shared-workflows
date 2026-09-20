@@ -3547,12 +3547,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "1f8e6b6bf64544d2ba1149c9926375db",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 5,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "03b28ad963e7e4d6ea01f91bfd4e15463b9566eb1f4c3a115cee6cacd4c3520b",
+        "copilot_request_fingerprint": "d59a4b72a882946618b03d8cda6278c01bff1c4f2c34d01a4f52541c00a8439c",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3568,15 +3567,15 @@
         "head_sha": "63f5b4a021a52f44c8bc8dd76cd06983da7155dd",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-20T00:35:12+00:00",
+        "last_activity_at": "2026-09-20T01:25:02+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-20T00:35:12+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
-            "approved_non_team": false,
-            "changes_requested": true,
+            "approved_non_team": true,
+            "changes_requested": false,
             "login": "kota-sakuma",
             "open_thread": false,
             "pending_review": false,
@@ -3584,17 +3583,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-20T00:36:29.239418+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "3fea0c2800e78c720a3dc3708eb6092b69a1ba2558d94204cea31dacec5e8f3f",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-20T00:01:29+00:00"
+        "routing_input_fingerprint": "f64c9203d85c5545a8e520b2bf2f3d020183d10bda1c4293f691a3541612c1bc",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-20T01:25:57.018180+00:00"
       },
       "failed": false,
       "pr_number": 11777,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11777",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "11780": {
