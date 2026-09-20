@@ -207,16 +207,16 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "deffd3a027b942477490afd245330941969b7d07ccf0cd2aba0482ad6fc0f84b",
+        "copilot_request_fingerprint": "945935597ff2ff5ecb3a34173c9a78760e75a5b3c79f594d583cc713176390c9",
         "copilot_review_exists": true,
-        "copilot_review_needed": true,
-        "copilot_review_outstanding": true,
-        "copilot_review_request_needed": true,
+        "copilot_review_needed": false,
+        "copilot_review_outstanding": false,
+        "copilot_review_request_needed": false,
         "copilot_review_requested": false,
-        "copilot_review_stale": true,
-        "copilot_review_unreported": true,
+        "copilot_review_stale": false,
+        "copilot_review_unreported": false,
         "created_at": "2026-09-10T17:44:17+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_command_id": 0,
@@ -228,7 +228,7 @@
         "last_activity_at": "2026-09-20T12:27:47+00:00",
         "last_approver_activity_at": "2026-09-20T12:27:47+00:00",
         "last_author_activity_at": "2026-09-17T01:50:00+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -241,17 +241,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-20T12:28:25.394740+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "35a39a90270445e53602b36a89404d015b5f9662b9d9f53881ba393fcc32892e",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "70906c3a13cf4d5b62f59623414e60337c0fc8a39c24de19ee9814ce381834d5",
+        "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-17T01:50:00+00:00"
       },
       "failed": false,
       "pr_number": 1092,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ecosystem-explorer/pull/1092",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-review-5202209256": {
           "evidence": {
