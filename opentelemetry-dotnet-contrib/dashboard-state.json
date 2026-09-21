@@ -841,7 +841,7 @@
     },
     "5340": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [
           "Havret"
         ],
@@ -853,7 +853,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1adfb2e15d8505d1654912cce5555ea95f173b61da07a4a5e495e57846f73b1d",
+        "copilot_request_fingerprint": "24a9b6379b8e1e139b835891952ca23a5fb56b809b771f7c81a420d2d0013942",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -869,8 +869,8 @@
         "head_sha": "36fd8c2f2f5bf5697b2d4b5af5e1722535f575b7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-21T11:57:34+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T12:00:42+00:00",
+        "last_approver_activity_at": "2026-09-21T12:00:42+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
@@ -883,12 +883,23 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-21T12:01:20.723445+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "4c4b030438d8483b8757269c48f3cacaf315c66ba31a56add57aeeb18264f36d",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "d8de2b5d9dd30a5b42b448faf0eb31b3e45b6844902c801fb47ee44586e4bf2a",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-21T11:57:34+00:00"
       },
       "failed": false,
