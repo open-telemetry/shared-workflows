@@ -3392,7 +3392,9 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "db91895621224add913aba1b30fce5d1",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-21T03:06:57+00:00",
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
@@ -3419,14 +3421,14 @@
         "reviewers": [],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "44f5e3c024ae54819fcec35c1903caa8f5cc57b152ed0b85e382868a9fd8a538",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-17T18:44:37+00:00"
+        "routing_input_fingerprint": "da0320a350184480bf88faf9d35c1b8753c17c9442a61de5f68c7759c4228657",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-21T03:06:57+00:00"
       },
       "failed": false,
       "pr_number": 20144,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20144",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "20145": {
