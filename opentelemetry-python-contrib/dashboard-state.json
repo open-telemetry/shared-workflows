@@ -6076,8 +6076,11 @@
         "assignees": [],
         "author": "Shriprasad-P",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5056#pullrequestreview-5201425550"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "edf994b02fab44b38b59fb55cc065c36",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -6102,17 +6105,28 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-14T18:42:20+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "chrikrah",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "e3696e252925d06acb36d071c3ce2f560ef4ad6039ba737c08128ea325c5d678",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-14T18:42:20+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-14T18:34:31+00:00"
       },
       "failed": false,
       "pr_number": 5056,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5056",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-review-5192111345": {
           "evidence": {
