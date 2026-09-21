@@ -2386,7 +2386,7 @@
     },
     "5320": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2396,7 +2396,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "d847564e30ae6e67799a4eafcbfe1bd27cb2a0431293da9ab6f910df8839af4e",
+        "copilot_request_fingerprint": "f7cd5f367b0b488999a238539944755273fe7a830ab02463fbe139fcbda13240",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2412,21 +2412,32 @@
         "head_sha": "ebaa10ea2a1823287f8b77e4ba53c41e426cb43e",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-21T00:36:33+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T13:28:18+00:00",
+        "last_approver_activity_at": "2026-09-21T13:28:18+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "carlosalberto",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6278f84dff03cc245c411d595f79c92fb32c71501a5abfe7652e7f8502493ef6",
+        "routing_input_fingerprint": "86be0372f452ee8291fa813ddb83b2c8f49549b9e57cae60984cbeb0832c46d6",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T00:36:33+00:00"
       },
       "failed": false,
       "pr_number": 5320,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5320",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
