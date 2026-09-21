@@ -840,7 +840,7 @@
     },
     "5329": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [
           "ejsmith",
           "g7ed6e",
@@ -859,9 +859,9 @@
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "274ef20c74249be396f7e32f3e2208e3e0edecd9f36947789b5cc3e88cb1b53e",
+        "copilot_request_fingerprint": "ad2316279a557094877d35774fc6bf5a82ed0b5d073352e21781452a3948195e",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -877,10 +877,10 @@
         "head_sha": "0f5232e594f70e17bacc7661cd0340e10f9a62a8",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-21T09:10:24+00:00",
-        "last_approver_activity_at": "2026-09-21T08:46:26+00:00",
+        "last_activity_at": "2026-09-21T09:17:19+00:00",
+        "last_approver_activity_at": "2026-09-21T09:17:19+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -963,7 +963,7 @@
             "unresolved_thread": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "Kielek",
@@ -993,17 +993,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-21T08:52:07.744355+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7d322a4269b3434db794dfee8edd9e6b39a36af5a0c6a90679031260d20a1922",
-        "waiting_age_basis": "gate_hold",
+        "routing_input_fingerprint": "b7bf0313e4afaccf7ff543f3818e2a37f4cf129102c378482182012ea43da34d",
+        "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T08:45:05+00:00"
       },
       "failed": false,
       "pr_number": 5329,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5329",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
