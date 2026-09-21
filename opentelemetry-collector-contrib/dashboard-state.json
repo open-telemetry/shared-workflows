@@ -265,8 +265,11 @@
         ],
         "author": "paulojmdias",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46537#issuecomment-5022523681"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "3a6bf12a6ad349018d228681002fd9b6",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -296,6 +299,16 @@
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
+            "login": "anarwal",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
             "login": "VihasMakwana",
             "open_thread": false,
             "pending_review": false,
@@ -306,21 +319,14 @@
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "5126a304613e032657d483cde4227adf97bd9c356d00af35c06e8867948f73d8",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-07-21T09:17:48+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-07-20T13:07:20+00:00"
       },
       "failed": false,
       "pr_number": 46537,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/46537",
-      "route": "approver",
-      "top_level_history": {
-        "pr-issue-comment-5022523681": {
-          "evidence": {
-            "reply": "2026-07-20T13:07:20Z"
-          },
-          "reply_source_id": 5022576354
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "46947": {
       "facts": {
