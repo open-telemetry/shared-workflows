@@ -25,6 +25,7 @@ jobs:
   changelog:
     permissions:
       contents: read
+      pull-requests: read
     uses: open-telemetry/shared-workflows/.github/workflows/chloggen.yml@<sha-or-tag>
 ```
 
