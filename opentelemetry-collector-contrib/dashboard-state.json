@@ -16771,7 +16771,7 @@
     },
     "51329": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "songy23",
         "author_action_review_thread_urls": [],
@@ -16780,9 +16780,9 @@
         "author_nudge_episode_id": "8ee10fcdff614da1bdba350a4978c21d",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 6,
         "conflicts": "no",
-        "copilot_request_fingerprint": "60bc73ef9bdf0b6e8612fdd235d326851b39b17131188608365c6b83ce027ae4",
+        "copilot_request_fingerprint": "40c6c68cd62de225d54313a1567c64e45372ee97488e6557a8a368a2a1efa028",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -16798,16 +16798,37 @@
         "head_sha": "bbd6ba98b46ae63e92c93961d1c9855afb5954d5",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-21T15:14:08+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T15:20:27+00:00",
+        "last_approver_activity_at": "2026-09-21T15:20:27+00:00",
         "last_author_activity_at": "2026-09-21T15:14:08+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "paulojmdias",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": true,
         "route_held_since": "2026-09-21T15:15:42.165833+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2e352145b598d0b2f6b37805303cfc55dda1acbd8cd276a59241964ce2541dc8",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "d30b322b8637ad45194789cd35a86378a9a13af921833fc7f4bacec38a2e6b2d",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-21T15:13:14+00:00"
       },
       "failed": false,
