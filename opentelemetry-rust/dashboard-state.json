@@ -1227,19 +1227,14 @@
         "approval_count": 0,
         "assignees": [],
         "author": "antcybersec",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-rust/pull/3537#discussion_r3713015563"
-        ],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-rust/pull/3537#issuecomment-5043984159"
-        ],
+        "author_action_review_thread_urls": [],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "0f78ce614790446697705bc4c7493a19",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 6,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "ac4b67611f64281c8ef5ba69467ec40e809d7174c3662700762413438eb729f4",
+        "copilot_request_fingerprint": "e3d8984abe7fcbf8186b16355e800674cf405fd2f81fac31a423736501543242",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1248,10 +1243,26 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-06-05T01:45:44+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5765022469,
+            "head_sha": "d1daf039bbe42616f76fa9648e3f71c347971e15",
+            "held_gates": "",
+            "kind": "routed",
+            "persistent_handoff": true,
+            "route": "approver",
+            "since": "2026-09-21T17:52:29Z",
+            "top_level_feedback_cutoff": "2026-09-21T17:52:29Z",
+            "user": "antcybersec"
+          }
+        ],
+        "dashboard_override_bound_command_id": 5765022469,
+        "dashboard_override_command_id": 5765022469,
+        "dashboard_override_command_user": "antcybersec",
+        "dashboard_override_head_sha": "d1daf039bbe42616f76fa9648e3f71c347971e15",
+        "dashboard_override_persistent": true,
+        "dashboard_override_since": "2026-09-21T17:52:29Z",
+        "dashboard_top_level_feedback_cutoff": "2026-09-21T17:52:29Z",
         "head_sha": "d1daf039bbe42616f76fa9648e3f71c347971e15",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -1265,10 +1276,10 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "cijothomas",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": true,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           },
           {
             "approved": false,
@@ -1287,20 +1298,20 @@
             "login": "scottgerring",
             "open_thread": false,
             "pending_review": true,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c64a74c997f5394c1b69f637f50f0f4b3c04f7d00acd5b02f6ef95b36cbade2c",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-07-22T09:08:10+00:00"
+        "routing_input_fingerprint": "e665317e4ee49ac749dd51f41dcdf098883a91c327f1381df8f31983abde00e6",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-05T06:17:06+00:00"
       },
       "failed": false,
       "pr_number": 3537,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3537",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-4675901721": {
           "evidence": {
