@@ -4260,11 +4260,13 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "d2bf6ab1e31149269e125d37623ff716",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-21T19:36:04+00:00",
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "730448f200ddb48a5151a54d7a99cfd5ad671148f734cfb1378595dea73ed75f",
+        "copilot_request_fingerprint": "68e529fc8216282f9af8617f3ca8ceae4b419ed5c8f2f3aa3d29006721155d02",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4280,21 +4282,32 @@
         "head_sha": "cf99e1dcc1014e7b482420556d96b7aa14bbbe69",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-13T03:46:05+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T19:48:55+00:00",
+        "last_approver_activity_at": "2026-09-21T19:48:55+00:00",
         "last_author_activity_at": "2026-09-13T03:46:05+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "tammy-baylis-swi",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c08b10b75536e01a089dc07c0e05dc02b042659b1a62776f744761d59d0c4245",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-13T03:46:05+00:00"
+        "routing_input_fingerprint": "1fdf37633f63d4df676cda2a242106a6ad9a3f08519d60f47a65f8809e16143b",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-21T19:36:04+00:00"
       },
       "failed": false,
       "pr_number": 5650,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5650",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5647657373": {
           "evidence": {
