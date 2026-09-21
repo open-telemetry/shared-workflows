@@ -630,7 +630,7 @@
     },
     "3436": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -640,7 +640,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9352cfa8bed40f44c3470034948cd7c2fdee007d658d5d2ca3c68c35f9dde954",
+        "copilot_request_fingerprint": "fa974b6c502f7b906b049cbaf7c75390757c177e5e918646c6c656c9633f3e33",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -656,21 +656,32 @@
         "head_sha": "ee8c1b9a9b5b0ff445642acd7a01f0ea319322fd",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-21T11:36:06+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T18:15:29+00:00",
+        "last_approver_activity_at": "2026-09-21T18:15:29+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "MrAlias",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "655f0dea6042b0a48ac7e6fbca5f416ba0798c18314d53dabddf34ffb0ed8637",
+        "routing_input_fingerprint": "7ee77530b0f9270cb5e91069657d2bf35d3cef22d01ccd069d89fbf1687bf95a",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-15T11:18:34+00:00"
       },
       "failed": false,
       "pr_number": 3436,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3436",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "3457": {
