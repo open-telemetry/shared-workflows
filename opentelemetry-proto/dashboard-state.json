@@ -467,7 +467,7 @@
     },
     "868": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -477,7 +477,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "4b01ce70a2cdb55d29d0a3852c5c60a8bb077fe3ed28d37f89766526b2a2beed",
+        "copilot_request_fingerprint": "f911779361c424cf77ea27502b5622c70bb44ecd0b39b891317716d81f98492b",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -493,21 +493,32 @@
         "head_sha": "764ca4200662fbd8d680dd681d76e2c0c3b6dc99",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-21T00:21:14+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T10:15:04+00:00",
+        "last_approver_activity_at": "2026-09-21T10:15:04+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "florianl",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e45a4ad7448cb91fabfeeb29e18711394a87392c16e4fa008ddd7e7b4d3f8dd8",
+        "routing_input_fingerprint": "71e27cc600dd0727d72c93bd96cd267a925711260eb9eabd7b36750ba08eebed",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T00:21:14+00:00"
       },
       "failed": false,
       "pr_number": 868,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-proto/pull/868",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
