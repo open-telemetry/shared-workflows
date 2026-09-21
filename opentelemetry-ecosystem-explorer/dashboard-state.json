@@ -705,7 +705,7 @@
     },
     "1135": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -714,8 +714,8 @@
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "2c434bee98b04eed4e809436cc72c87f1473f8930065f495cec74eeffaa11e0f",
+        "conflicts": "unknown",
+        "copilot_request_fingerprint": "75aeb7bea32f69aba076ba978ae8ea3e23ca8ef45c0bc97f95ffe33199a3c314",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -731,21 +731,32 @@
         "head_sha": "933d149abeef2282809f3a3690a3ad1220b25922",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-21T00:41:41+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T06:27:24+00:00",
+        "last_approver_activity_at": "2026-09-21T06:27:24+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0e0e63f418fa02e19c8bf5cfa6a4eb94ba8997261ace78907f9656d5460b118f",
+        "routing_input_fingerprint": "a62b4a9c01d479ea63dd660977283988ec224a70a807e5284d46114a3ef68018",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T00:41:41+00:00"
       },
       "failed": false,
       "pr_number": 1135,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ecosystem-explorer/pull/1135",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1136": {
