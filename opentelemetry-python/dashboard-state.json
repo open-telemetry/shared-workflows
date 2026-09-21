@@ -1574,7 +1574,7 @@
     },
     "5444": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "herin049",
         "author_action_review_thread_urls": [],
@@ -1584,7 +1584,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8d5517f5686a7c52758d15a049c6723f93c4acce635895d9b530070ee216face",
+        "copilot_request_fingerprint": "5f2d2a187fa08839a327dc300502a1e392d5d20ad4a6786f987ae92db89c86ca",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -1593,20 +1593,27 @@
         "copilot_review_stale": true,
         "copilot_review_unreported": false,
         "created_at": "2026-07-20T01:27:25+00:00",
-        "dashboard_command_replies": [],
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5766139095,
+            "kind": "unknown_command",
+            "subcommand": "route:maintainers",
+            "user": "tammy-baylis-swi"
+          }
+        ],
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
         "head_sha": "d539dec6db5170285244b0e88044774338e8ea76",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T02:19:38+00:00",
-        "last_approver_activity_at": "2026-08-31T19:42:33+00:00",
+        "last_activity_at": "2026-09-21T19:17:23+00:00",
+        "last_approver_activity_at": "2026-09-21T19:17:23+00:00",
         "last_author_activity_at": "2026-09-16T02:19:38+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "tammy-baylis-swi",
@@ -1618,14 +1625,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b2fa117c3d29871f565fd4cb2916e107ca45e72172d45b9e4c6a9816cb0408ea",
+        "routing_input_fingerprint": "802a1d1ef8946f0e1b8d685f28b9dd6387c20a2be7fdd6263738c27e14903628",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-16T02:19:38+00:00"
       },
       "failed": false,
       "pr_number": 5444,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5444",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5448": {
