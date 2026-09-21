@@ -7,7 +7,7 @@
   "prs": {
     "398": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -18,7 +18,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9c93820a60685401f8c0b237dff57add655f70018b9c38ccdc12fb728f79fa07",
+        "copilot_request_fingerprint": "a1ec18959a7b38622bb9d20ed36ce53448f925360454b7eac5e4c6741728b371",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -34,21 +34,32 @@
         "head_sha": "8ea230503a8931804b86db38b80b736d30b87147",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-21T12:26:32+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T14:58:11+00:00",
+        "last_approver_activity_at": "2026-09-21T14:58:11+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mx-psi",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "897dae4a0281cb46d7dd4070d431e32f356fea25b2413b730585f74059954e6b",
+        "routing_input_fingerprint": "5ab66b99d654a7cbd91a05e4845e6ff4c30497cbff0eec145ca439fcbb093d06",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T00:39:56+00:00"
       },
       "failed": false,
       "pr_number": 398,
       "pr_url": "https://github.com/open-telemetry/shared-workflows/pull/398",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
