@@ -422,7 +422,7 @@
     },
     "1132": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -432,7 +432,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0906b214c5697e9427b033b8784a620c2e64ab60650ff8203f27dfd755f453e7",
+        "copilot_request_fingerprint": "b64979aeada2b9378c16a4f52086a06075b433c1b857e5cfa6d9ad76b40121d7",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -448,21 +448,32 @@
         "head_sha": "b175d194384ca9db7abcfacd5aaa208fdc0dfb32",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-21T00:40:48+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T06:33:16+00:00",
+        "last_approver_activity_at": "2026-09-21T06:33:16+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "vitorvasc",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "7d2f5b0c40272c4b35c05c3375f87397a47efaf695ea0bf4a3098cda5aaf3eb1",
+        "routing_input_fingerprint": "4ac491d98525de99f7074f5333356479a5cb9ec76b02e562b6558eccf42165ea",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T00:40:48+00:00"
       },
       "failed": false,
       "pr_number": 1132,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ecosystem-explorer/pull/1132",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1137": {
