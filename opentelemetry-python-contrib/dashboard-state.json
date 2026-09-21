@@ -6285,17 +6285,20 @@
     },
     "5063": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ahmed5145",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5063#discussion_r4065404186"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "bf5e95bb68b6407697c7ed1388e5c5e3",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c1eec9d8c1f317c99418964bdc1be3300bd41f1aeadf47c7420e49f4f21c6f2e",
+        "copilot_request_fingerprint": "3a9767b78973f90ba5e530fc3053914476804f954e1f0c34196cd34f645c4727",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -6311,21 +6314,32 @@
         "head_sha": "b91800c8d1dfcc9d36d3f28f71a5da6be35d8e25",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-17T18:43:35+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T18:59:35+00:00",
+        "last_approver_activity_at": "2026-09-21T18:59:35+00:00",
         "last_author_activity_at": "2026-09-17T18:43:35+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "tammy-baylis-swi",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "6e20af10b074f31b130c051228da5fce84cc3f781fc62b4bfd70a4e57b648093",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-14T20:48:35+00:00"
+        "routing_input_fingerprint": "075edd352a0876cf13454f4203586d9958fc532c9f31150c46220a54981be222",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-21T18:58:55+00:00"
       },
       "failed": false,
       "pr_number": 5063,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5063",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "5064": {
