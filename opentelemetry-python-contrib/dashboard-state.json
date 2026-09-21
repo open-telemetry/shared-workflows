@@ -6384,7 +6384,7 @@
     },
     "5065": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "JoeyPatricio",
         "author_action_review_thread_urls": [],
@@ -6394,7 +6394,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6fd12abe3cea714b60a0e8f2e6e9ff5445bec185b8399074e32032859a146637",
+        "copilot_request_fingerprint": "72c771786db9e2aca55165b6738095d9c14d23df6555172dfa964f84c84ee1f9",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -6403,15 +6403,31 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-15T06:32:31+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5767169982,
+            "head_sha": "9c331395a0df120c88051e7ff7cfad192a0a0b5d",
+            "held_gates": "",
+            "kind": "routed",
+            "persistent_handoff": true,
+            "route": "approver",
+            "since": "2026-09-21T20:37:24Z",
+            "top_level_feedback_cutoff": "2026-09-21T20:37:24Z",
+            "user": "tammy-baylis-swi"
+          }
+        ],
+        "dashboard_override_bound_command_id": 5767169982,
+        "dashboard_override_command_id": 5767169982,
+        "dashboard_override_command_user": "tammy-baylis-swi",
+        "dashboard_override_head_sha": "9c331395a0df120c88051e7ff7cfad192a0a0b5d",
+        "dashboard_override_persistent": true,
+        "dashboard_override_since": "2026-09-21T20:37:24Z",
+        "dashboard_top_level_feedback_cutoff": "2026-09-21T20:37:24Z",
         "head_sha": "9c331395a0df120c88051e7ff7cfad192a0a0b5d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T00:29:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T20:37:01+00:00",
+        "last_approver_activity_at": "2026-09-21T20:37:01+00:00",
         "last_author_activity_at": "2026-09-18T00:29:44+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -6423,12 +6439,22 @@
             "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "tammy-baylis-swi",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "69f1854a5be13c069d2d1374a57eeb69e74fb51d66aac7ac2ef22a2c085acd10",
+        "routing_input_fingerprint": "50d1418ed9407ebc25740e32bbd345b0e06b7484746c0d65aea833fbacc5a196",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-15T18:41:04+00:00"
       },
