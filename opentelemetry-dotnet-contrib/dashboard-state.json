@@ -1424,7 +1424,7 @@
     },
     "5349": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-dotnet-contrib",
         "author_action_review_thread_urls": [],
@@ -1432,9 +1432,9 @@
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "0e7b3f919fd54192450e9ca04a6dcce18bd9be26eaefe7d364faeb7faedde801",
+        "copilot_request_fingerprint": "ff05b000bb951a2289ac348415635bf988f6ebcca032501ba38125835c73b906",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1450,21 +1450,32 @@
         "head_sha": "4746918fb278661982d3d255b83b167f61907bcf",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-21T11:58:37+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T12:04:45+00:00",
+        "last_approver_activity_at": "2026-09-21T12:04:45+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "972bfe8cb871016bbd8a80c059a8ac9d798fe761526460e0cf727a9525b6dbae",
+        "routing_input_fingerprint": "423a31e4b44d6ba777862cf4bd87b20632a7bb1d109aca0b165dbff01cdddf4b",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T11:58:37+00:00"
       },
       "failed": false,
       "pr_number": 5349,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5349",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
