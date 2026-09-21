@@ -33,6 +33,8 @@ Pin `<sha-or-tag>` to a commit SHA or release tag in this repository. No secrets
 
 Keep your repository's own `on:` trigger, `concurrency:`, and `permissions:` blocks — those stay in the calling workflow, since a reusable workflow cannot define when it runs.
 
+### Requirements
+
 Your repository must have:
 
 - A `.chloggen/` directory with a config the [chloggen](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/chloggen) tool understands.
