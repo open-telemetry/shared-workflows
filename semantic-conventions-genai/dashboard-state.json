@@ -3398,7 +3398,7 @@
     },
     "528": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -3408,7 +3408,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "976c6d81f3adc81223db234d9d2618ee684b48b3d01056a2dc78c5f69571b8b9",
+        "copilot_request_fingerprint": "4bf126ba299e42f17fb25756569497a4c2ed8394e1b4abd16b4508bc770b4c4f",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3424,21 +3424,32 @@
         "head_sha": "fe79f3dfa7bb9dce99738c2118d90d6bd095e340",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-21T00:41:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T11:44:30+00:00",
+        "last_approver_activity_at": "2026-09-21T11:44:30+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "lmolkova",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5793cd9919cfa5f306429a2fca359b905e073b41bfe3f2bb1cde64401dfa6b75",
+        "routing_input_fingerprint": "cb5941e0cb161c02a9528ca095329a1ef62f001b85f8b30279b5e282edd5dd53",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-21T00:41:47+00:00"
       },
       "failed": false,
       "pr_number": 528,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/528",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "529": {
