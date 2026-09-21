@@ -3669,18 +3669,17 @@
     },
     "1380": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "ADITYA-CODE-SOURCE",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "e8d4d3406f734c8ebdf66cfa429fa08b",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 3,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "4bddb2ab035be21a83a6aca7a67975ca0e57c226f9eb37d10877db689f2a64cc",
+        "ci_pending_count": 0,
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "cecfe19ed5ee5675a87ad7800c9e76481c931b72e58c34d86cae0aed978a06fc",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3696,22 +3695,35 @@
         "head_sha": "eafa41634f4e48219af9193453ede7fafbc1bf99",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-20T02:57:23+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T07:45:46+00:00",
+        "last_approver_activity_at": "2026-09-21T07:45:46+00:00",
         "last_author_activity_at": "2026-09-16T16:24:32+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-21T07:19:51.604869+00:00",
+        "non_blocking_check_failures": [
+          "govulncheck (instrumentation)"
+        ],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "amazingakai",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "48f8d0bef7088b208e74de93a3bbfb09be159252a38f40a98191502fd0f6e5ad",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-20T03:15:20+00:00"
+        "routing_input_fingerprint": "a9c3ca6031ba9d2efe59f4e38d92ddf6d17cd124b8efbc6bf0e9dfd643e84294",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-21T08:41:24.230713+00:00"
       },
       "failed": false,
       "pr_number": 1380,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1380",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1381": {
