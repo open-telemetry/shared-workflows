@@ -41,14 +41,15 @@ Your repository must have:
 
 ### Inputs
 
-The optional `go-version` input is passed straight to `actions/setup-go` and defaults to `oldstable`. Set it if your repository's `chloggen` build needs a specific Go version.
+- `go-version` is passed straight to `actions/setup-go` and defaults to `oldstable`. Set it if your repository's `chloggen` build needs a specific Go version.
+- `skip-title-marker` is the substring in the pull request title that skips changelog enforcement, and defaults to `[chore]`. Set it to an empty string to disable title-based skipping entirely.
+- `skip-labels` is a comma-separated list of pull request labels that skip changelog enforcement, and defaults to `dependencies,Skip Changelog`. Set it to an empty string to disable label-based skipping entirely.
 
 ## Skipping the check
 
-A pull request skips every check in this workflow (other than the job itself running) when any of these are true:
+A pull request skips every check in this workflow (other than the job itself running) when either of these is true:
 
-- It has the `dependencies` label.
-- It has the `Skip Changelog` label.
-- Its title contains `[chore]`.
+- It has one of the labels in the `skip-labels` input (`dependencies` or `Skip Changelog` by default).
+- Its title contains the `skip-title-marker` input's value (`[chore]` by default).
 
 The job itself is always skipped for pull requests opened by `dependabot[bot]`.
