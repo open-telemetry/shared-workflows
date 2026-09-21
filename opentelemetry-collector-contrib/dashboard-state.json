@@ -15663,17 +15663,13 @@
         "assignees": [],
         "author": "spathlavath",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51302#pullrequestreview-5266155130",
-          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51302#issuecomment-5761220234"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "a462fc3a6b544dddac27a3d02f6b6fc6",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
-        "conflicts": "no",
-        "copilot_request_fingerprint": "b846a9c2c8a7a7b312115d41eaaabc997308c336f42f07e45dae86dec1b717ab",
+        "conflicts": "yes",
+        "copilot_request_fingerprint": "066826f172bb9658bce06c69be1fe63e24033cd9642b405a44c62fdc6f5709cd",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -15701,7 +15697,7 @@
             "login": "ebrdarSplunk",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           },
           {
@@ -15717,15 +15713,28 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "88360e202e1ca580e1ce93f5567fd6699a99090f163f856c4dcbde4106de61bb",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-09-21T11:42:11+00:00"
+        "routing_input_fingerprint": "e16c7a4fad21c6cff6f0af5c53185ecf771ddf7597e1c8cbb4e6ecab7b976750",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-21T14:24:11+00:00"
       },
       "failed": false,
       "pr_number": 51302,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51302",
-      "route": "author",
-      "top_level_history": {}
+      "route": "approver",
+      "top_level_history": {
+        "pr-issue-comment-5761220234": {
+          "evidence": {
+            "reply": "2026-09-21T14:24:11Z"
+          },
+          "reply_source_id": 5762068197
+        },
+        "pr-review-5266155130": {
+          "evidence": {
+            "reply": "2026-09-21T14:24:11Z"
+          },
+          "reply_source_id": 5762068197
+        }
+      }
     },
     "51305": {
       "facts": {
