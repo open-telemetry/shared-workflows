@@ -48,6 +48,22 @@ Your repository must have:
 - `skip-labels` is a comma-separated list of pull request labels that skip changelog enforcement, and defaults to `dependencies,Skip Changelog`. Set it to an empty string to disable label-based skipping entirely.
 - `skip-actors` is a comma-separated list of actors for which the entire job is skipped, and defaults to `dependabot[bot],renovate[bot]`. Set it to an empty string to disable actor-based skipping entirely.
 
+Example overriding every input:
+
+```yaml
+jobs:
+  changelog:
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: open-telemetry/shared-workflows/.github/workflows/chloggen.yml@<sha-or-tag>
+    with:
+      go-version: '1.23'
+      skip-title-marker: '[skip changelog]'
+      skip-labels: 'dependencies,Skip Changelog,internal'
+      skip-actors: 'dependabot[bot],renovate[bot],otelbot[bot]'
+```
+
 ## Skipping the check
 
 A pull request skips every check in this workflow (other than the job itself running) when either of these is true:
