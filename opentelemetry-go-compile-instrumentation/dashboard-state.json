@@ -2171,9 +2171,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
-        "conflicts": "yes",
-        "copilot_request_fingerprint": "65f420cfb45daacfe1504084195d0e4b681e1471389aec84724d04d1b14adad1",
+        "ci_pending_count": 4,
+        "conflicts": "no",
+        "copilot_request_fingerprint": "e4a4a89586298640847fbb1643dc39e17c483b60fcc2dd05a7d8cda1816f4a03",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2186,17 +2186,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "5d6abbfb36a14a1e526e854f37250534b6f2dce4",
+        "head_sha": "485cba1ce5c3b638aa1a4c540bd1a2a0d0f6c902",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-18T20:27:42+00:00",
+        "last_activity_at": "2026-09-21T17:42:23+00:00",
         "last_approver_activity_at": "2026-09-03T17:43:18+00:00",
-        "last_author_activity_at": "2026-09-18T20:27:42+00:00",
-        "non_blocking_check_failures": [
-          "codecov/patch",
-          "govulncheck (instrumentation)"
-        ],
-        "required_checks_settled": true,
+        "last_author_activity_at": "2026-09-21T17:42:23+00:00",
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
@@ -2211,7 +2207,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "893f146091da57f1b1be92a251caaf188862dc664a8c04c23b0a7079ec3a6e6b",
+        "routing_input_fingerprint": "2571dd23e27f0593bac8e073ea0da10f818f99a6c749e92c81c4a86479e6dda7",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-18T20:27:42+00:00"
       },
@@ -2220,6 +2216,12 @@
       "pr_url": "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1283",
       "route": "approver",
       "top_level_history": {
+        "pr-issue-comment-5467850671": {
+          "evidence": {
+            "reply": "2026-08-30T09:35:31Z"
+          },
+          "reply_source_id": 5467918369
+        },
         "pr-review-5104990388": {
           "evidence": {
             "reply": "2026-09-18T20:27:42Z"
