@@ -2141,7 +2141,7 @@
     },
     "761": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "lmolkova",
         "author_action_review_thread_urls": [],
@@ -2151,7 +2151,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c5c57e87045e128b856e3960b4da377c3320abfaa5d8678457124835850f58c6",
+        "copilot_request_fingerprint": "57643cec7a61a8f1152adb1720458c7bc836d649d6e08d268c6db4a926967c9a",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2167,21 +2167,32 @@
         "head_sha": "a5436f5eff201499a2370a911ef7c67889bc3c4b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-21T05:42:44+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-21T11:04:34+00:00",
+        "last_approver_activity_at": "2026-09-21T11:04:34+00:00",
         "last_author_activity_at": "2026-09-21T05:42:01+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f11d5eeb5f4f4c5198a04f27ae3e7221547d788b11ede92c39fb74169286cf24",
+        "routing_input_fingerprint": "483feba5b8295a2a8529f9e7c9795e5dacc24928ead26e03748c7b24ecee0983",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-21T06:33:39.091969+00:00"
       },
       "failed": false,
       "pr_number": 761,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/761",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "763": {
