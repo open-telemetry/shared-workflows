@@ -66,8 +66,16 @@ function restoreFiltersFromQuery() {
 function persistFiltersToQuery() {
   const url = new URL(window.location.href);
   url.searchParams.set("host", elements.host.value);
-  url.searchParams.set("label", elements.label.value);
-  url.searchParams.set("repository", elements.repository.value);
+  if (elements.label.value === ALL) {
+    url.searchParams.delete("label");
+  } else {
+    url.searchParams.set("label", elements.label.value);
+  }
+  if (elements.repository.value === ALL) {
+    url.searchParams.delete("repository");
+  } else {
+    url.searchParams.set("repository", elements.repository.value);
+  }
   url.searchParams.set("range", elements.range.value);
   window.history.replaceState(null, "", url);
 }
