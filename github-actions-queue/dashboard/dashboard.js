@@ -39,6 +39,39 @@ function updateDependentFilters() {
   );
 }
 
+function hasOption(select, value) {
+  return Array.from(select.options).some((option) => option.value === value);
+}
+
+function restoreFiltersFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const host = params.get("host");
+  if (host && hasOption(elements.host, host)) {
+    elements.host.value = host;
+  }
+  updateDependentFilters();
+
+  for (const [name, select] of [
+    ["label", elements.label],
+    ["repository", elements.repository],
+    ["range", elements.range],
+  ]) {
+    const value = params.get(name);
+    if (value && hasOption(select, value)) {
+      select.value = value;
+    }
+  }
+}
+
+function persistFiltersToQuery() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("host", elements.host.value);
+  url.searchParams.set("label", elements.label.value);
+  url.searchParams.set("repository", elements.repository.value);
+  url.searchParams.set("range", elements.range.value);
+  window.history.replaceState(null, "", url);
+}
+
 function datesForRange() {
   if (elements.range.value === "all") {
     return manifest.dates;
@@ -252,7 +285,8 @@ async function initialize() {
         row,
       );
     }
-    updateDependentFilters();
+    restoreFiltersFromQuery();
+    persistFiltersToQuery();
     elements.updatedAt.textContent = manifest.updated_at
       ? `Updated ${manifest.updated_at}`
       : "No queue data collected yet";
@@ -264,10 +298,20 @@ async function initialize() {
 
 elements.host.addEventListener("change", () => {
   updateDependentFilters();
+  persistFiltersToQuery();
   refreshData();
 });
-elements.label.addEventListener("change", refreshData);
-elements.repository.addEventListener("change", refreshData);
-elements.range.addEventListener("change", refreshData);
+elements.label.addEventListener("change", () => {
+  persistFiltersToQuery();
+  refreshData();
+});
+elements.repository.addEventListener("change", () => {
+  persistFiltersToQuery();
+  refreshData();
+});
+elements.range.addEventListener("change", () => {
+  persistFiltersToQuery();
+  refreshData();
+});
 
 initialize();
