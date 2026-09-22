@@ -16291,18 +16291,19 @@
     },
     "51397": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "atoulme",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "b2f23807e6c145ea9712db13ad7cfdd6",
-        "ci_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-22T15:21:14+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 9,
+        "ci_pending_count": 8,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7f619e6a4ecba68e97a14ec16b09e36ea64aa2ccd6b7e3b74c1d37f84ad93010",
+        "copilot_request_fingerprint": "32e72def239fa3ecb07ffbe3a85dad2645849711aa5272514ff14ddea9b3e124",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -16318,13 +16319,23 @@
         "head_sha": "7a5783dbbc58b72bb64f1017660b6c5ac9541619",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T15:19:26+00:00",
-        "last_approver_activity_at": "2026-09-22T15:16:57+00:00",
+        "last_activity_at": "2026-09-22T15:22:14+00:00",
+        "last_approver_activity_at": "2026-09-22T15:21:25+00:00",
         "last_author_activity_at": "2026-09-22T15:19:26+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
             "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "songy23",
@@ -16334,12 +16345,12 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-22T15:20:51.903988+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8a605abee5a41ecba2e73795892e8da7226bae7e12e9a9f4368f3c57c4cf60bf",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-22T15:00:42+00:00"
+        "routing_input_fingerprint": "48f79cfbe6fcb47f9d026113bec850e75d6b3ca076bbab52b8f281cd3eaaf779",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-22T15:21:14+00:00"
       },
       "failed": false,
       "pr_number": 51397,
