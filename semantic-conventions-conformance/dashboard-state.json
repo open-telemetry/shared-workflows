@@ -80,9 +80,7 @@
         "approval_count": 0,
         "assignees": [],
         "author": "jaydeluca",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/semantic-conventions-conformance/pull/118#discussion_r4050471889"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "efa88a1265e64824b50498d04c51a0be",
@@ -90,7 +88,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "458468842650172625a410c6de23c8cb8e80e9498fd77d88bed3d9dbacbcfd2c",
+        "copilot_request_fingerprint": "30e2d8650744282d679cc42ee2b2926410f37837d3c72a05cd2daecba652df43",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -126,10 +124,10 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "kamphaus",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           },
           {
             "approved": false,
@@ -152,10 +150,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-22T20:22:44.889529+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0e7cdcbdd06ce9e06b6ace87a7c39f73e5861bdeb5c34cff3c82d574123e6d65",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "6fa849b4e74527c1b8029c2d1f7a8ce5688638a81a2e95a2531e913e981c86b2",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-18T20:31:31+00:00"
       },
       "failed": false,
