@@ -20,7 +20,6 @@ SELF_HOSTED_LABEL_PATTERNS = (
     "*-s390x",
 )
 STATE_VERSION = 1
-REPORT_VERSION = 2
 KEY_SEPARATOR = "\x1f"
 PERCENTILES = (0.5, 0.9, 0.95, 0.99)
 SUMMARY_RANGES = (("1", 1), ("7", 7), ("30", 30))
@@ -124,8 +123,6 @@ def build_report(
 
     all_dates = sorted({key.split(KEY_SEPARATOR, 1)[0][:10] for key in state["buckets"]})
     output_dir.mkdir(parents=True, exist_ok=True)
-    if _existing_report_version(output_dir) != REPORT_VERSION:
-        dirty_dates.update(all_dates)
     for date in all_dates:
         if not (output_dir / f"date={date}.json").exists():
             dirty_dates.add(date)
@@ -256,7 +253,7 @@ def _write_daily_report(
     _atomic_write_json(
         output_dir / f"date={date}.json",
         {
-            "version": REPORT_VERSION,
+            "version": STATE_VERSION,
             "date": date,
             "series": rows,
         },
@@ -278,7 +275,7 @@ def _write_manifest(
     _atomic_write_json(
         output_dir / "manifest.json",
         {
-            "version": REPORT_VERSION,
+            "version": STATE_VERSION,
             "updated_at": state["updated_at"],
             "latest_hour": latest_hour,
             "dates": dates,
@@ -351,21 +348,10 @@ def _write_summary(
     _atomic_write_json(
         output_dir / "summary.json",
         {
-            "version": REPORT_VERSION,
+            "version": STATE_VERSION,
             "series": rows,
         },
     )
-
-
-def _existing_report_version(output_dir: Path) -> int | None:
-    manifest_path = output_dir / "manifest.json"
-    if not manifest_path.exists():
-        return None
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    return manifest.get("version")
 
 
 def _percentile(
