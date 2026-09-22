@@ -8775,8 +8775,11 @@
         "assignees": [],
         "author": "VinozzZ",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50536#pullrequestreview-5268212994"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "97ad6ca4bb5347ed97be2cf0f63bbfca",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
@@ -8809,28 +8812,21 @@
             "login": "MikeGoldsmith",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
         "routing_input_fingerprint": "fbb81d984d6dca04120c7ddbe28892c7469a5bdfb87c84849e125f9a85f507ba",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-21T19:53:16+00:00"
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-21T15:02:17+00:00"
       },
       "failed": false,
       "pr_number": 50536,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50536",
-      "route": "approver",
-      "top_level_history": {
-        "pr-review-5268212994": {
-          "evidence": {
-            "reply": "2026-09-21T19:53:16Z"
-          },
-          "reply_source_id": 5766582527
-        }
-      }
+      "route": "author",
+      "top_level_history": {}
     },
     "50537": {
       "facts": {
