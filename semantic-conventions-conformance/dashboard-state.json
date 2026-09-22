@@ -1271,7 +1271,7 @@
     },
     "239": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1281,7 +1281,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c55a5ea7621104dec011d435c51973c1f862dc62e9e6f3ff047aa3af65697f2b",
+        "copilot_request_fingerprint": "768a5ec4524a3610ca608e22ed7683df57b21293a5ff471ffa078b8238a0060a",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1297,21 +1297,32 @@
         "head_sha": "b6dc1e0d6f7b6b86780ed22b0c803d5060a9dc8c",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-22T00:45:41+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-22T05:51:22+00:00",
+        "last_approver_activity_at": "2026-09-22T05:51:22+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kamphaus",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c3f780ad1585477f2b46bf50dd5941ae8688aa2c1bfa28db5606d33e611d0057",
+        "routing_input_fingerprint": "027799c7b3f7f132736110a45584bc0a12df4736158b9a5810ff90dc4a2beeb1",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-22T00:45:41+00:00"
       },
       "failed": false,
       "pr_number": 239,
       "pr_url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/239",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "240": {
