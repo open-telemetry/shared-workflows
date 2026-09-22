@@ -44,7 +44,12 @@ class TransientGhError(RuntimeError):
     pass
 
 
+class GhNotFoundError(RuntimeError):
+    pass
+
+
 _RETRYABLE_GH_ERROR_FRAGMENTS = (
+    "http 499",
     "http 5",
     "gateway timeout",
     "graphql: something went wrong while executing your query",
@@ -107,6 +112,8 @@ def _run_gh(
     message = f"{' '.join(cmd)} failed: {last_stderr}"
     if is_retryable_gh_error(last_stderr):
         raise TransientGhError(message)
+    if last_stderr.strip().lower() == "gh: not found (http 404)":
+        raise GhNotFoundError(message)
     raise RuntimeError(message)
 
 

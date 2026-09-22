@@ -520,6 +520,7 @@ class ClassificationDiagnostics:
     error: str = ""
     response_text: str = ""
     stderr: str = ""
+    invalid_response: bool = False
 
 
 @dataclass(frozen=True)
@@ -1459,6 +1460,13 @@ def resolve_verdict_response(
                     error="; ".join(reasons),
                     response_text=response.stdout,
                     stderr=response.stderr,
+                    invalid_response=(
+                        response.returncode == 0
+                        and (
+                            not valid_response
+                            or discussion_id in duplicate_ids
+                        )
+                    ),
                 ),
                 cli_call=(index == 0),
             )
@@ -1526,6 +1534,13 @@ def resolve_author_comment_response(
                     error="; ".join(reasons),
                     response_text=response.stdout,
                     stderr=response.stderr,
+                    invalid_response=(
+                        response.returncode == 0
+                        and (
+                            bool(validation_errors)
+                            or discussion_id in duplicate_ids
+                        )
+                    ),
                 ),
                 cli_call=(index == 0),
             )
@@ -1594,6 +1609,10 @@ def combine_author_comment_results(
                     error="; ".join(errors),
                     response_text="\n".join(response_texts),
                     stderr="\n".join(stderrs),
+                    invalid_response=any(
+                        part.diagnostics.invalid_response
+                        for part in failed_parts
+                    ),
                 ),
                 cli_call=any(part.cli_call for part in parts),
             )

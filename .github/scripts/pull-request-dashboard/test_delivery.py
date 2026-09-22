@@ -351,6 +351,51 @@ class DeliveryTest(unittest.TestCase):
             {7},
         )
 
+    def test_targeted_delivery_discards_missing_pr_lookup(self) -> None:
+        with (
+            patch.object(
+                delivery,
+                "gh_api",
+                side_effect=delivery.GhNotFoundError("not found"),
+            ),
+            patch.object(
+                delivery,
+                "deliver_dashboard_command_replies",
+                return_value=[],
+            ),
+            patch.object(
+                delivery,
+                "deliver_prepared_author_nudges",
+                return_value=[],
+            ),
+            patch.object(
+                delivery,
+                "update_targeted_status_comment_from_state",
+                return_value=[],
+            ) as targeted_status,
+            patch.object(
+                delivery,
+                "deliver_copilot_review_requests",
+                return_value=[],
+            ),
+            patch.object(
+                delivery,
+                "notify_slack_from_state",
+                return_value=[],
+            ) as slack,
+        ):
+            errors = delivery.deliver_from_state(
+                "open-telemetry/example",
+                Path("author"),
+                Path("copilot"),
+                Path("slack"),
+                7,
+            )
+
+        self.assertEqual([], errors)
+        targeted_status.assert_called_once_with("open-telemetry/example", 7)
+        self.assertEqual([], slack.call_args.args[2])
+
     @patch.object(delivery.sys, "stderr")
     @patch.object(delivery, "deliver_from_state", return_value=["status comments: boom"])
     @patch.object(delivery, "claim_delivery_versions", return_value=True)

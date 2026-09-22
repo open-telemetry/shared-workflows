@@ -58,6 +58,7 @@ CLASSIFICATION_CACHE_DIR = Path(
 )
 MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR = 200
 MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR = 20
+INVALID_CLASSIFICATION_ATTEMPTS = 2
 
 
 @dataclass(frozen=True)
@@ -451,16 +452,40 @@ class ClassificationService:
         request: VerdictModelRequest,
         model: str,
     ) -> tuple[ClassificationResult, ...]:
-        response = self.runner.run(ModelRunRequest(request.prompt, model))
-        return resolve_verdict_response(request, response)
+        for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
+            response = self.runner.run(ModelRunRequest(request.prompt, model))
+            results = resolve_verdict_response(request, response)
+            if (
+                attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
+                or not self._has_invalid_response(results)
+            ):
+                return results
+        raise AssertionError("classification retry loop did not return")
 
     def _run_author_comment_request(
         self,
         request: AuthorCommentModelRequest,
         model: str,
     ) -> tuple[ClassificationResult, ...]:
-        response = self.runner.run(ModelRunRequest(request.prompt, model))
-        return resolve_author_comment_response(request, response)
+        for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
+            response = self.runner.run(ModelRunRequest(request.prompt, model))
+            results = resolve_author_comment_response(request, response)
+            if (
+                attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
+                or not self._has_invalid_response(results)
+            ):
+                return results
+        raise AssertionError("classification retry loop did not return")
+
+    @staticmethod
+    def _has_invalid_response(
+        results: Sequence[ClassificationResult],
+    ) -> bool:
+        return any(
+            isinstance(result, ClassificationFailure)
+            and result.diagnostics.invalid_response
+            for result in results
+        )
 
     def _run_author_comment_batch(
         self,
