@@ -2234,17 +2234,20 @@
     },
     "5323": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "jack-berg",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-specification/pull/5323#discussion_r4074066212"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "17e0de0d6e654d4aa4a88603ecb62291",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b10c65f6c4b042e5790fd274890251bf4de24ed6db81d5fa1f051e09b0f491c5",
+        "copilot_request_fingerprint": "586f13ac57925e8c82612b19e0df12eaf330cd7f16288640f570fc3558303212",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2260,11 +2263,21 @@
         "head_sha": "c9be6878628a35eb5dc96e955a7b26e5fd04d32b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T11:32:49+00:00",
-        "last_approver_activity_at": "2026-09-22T07:21:05+00:00",
+        "last_activity_at": "2026-09-22T16:41:45+00:00",
+        "last_approver_activity_at": "2026-09-22T16:41:45+00:00",
         "last_author_activity_at": "2026-09-21T18:42:16+00:00",
         "required_checks_settled": true,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "cijothomas",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -2288,14 +2301,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "21270472d20bf548638d0a2cef18c761afb298782061762ce7f4cac05d111364",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-09-21T19:25:01.830975+00:00"
+        "routing_input_fingerprint": "8a90d32821691b9223a97f139fd1b7002f5e7cab9ced1457f40923a91f15b297",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-22T16:41:41+00:00"
       },
       "failed": false,
       "pr_number": 5323,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-specification/pull/5323",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
