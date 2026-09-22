@@ -3675,7 +3675,7 @@
     },
     "11809": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot-docs",
         "author_action_review_thread_urls": [],
@@ -3685,7 +3685,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "53c00a2c4f49875150f631fcc73c919ba5130d6804b6776031a3c1cad32ae7af",
+        "copilot_request_fingerprint": "18a2658f170ead7bebfaed519dd883fc78521f74a543ac3324d21c4c2dd77abf",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3701,21 +3701,32 @@
         "head_sha": "a94a65df8a66f7b422e192e8c00e172df089eec6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T03:49:08+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-22T04:20:58+00:00",
+        "last_approver_activity_at": "2026-09-22T04:20:58+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "maryliag",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9d6209d8ff672bb1ff4dba4b80ec4d38f3485d3c622d0e3ba670c89771040a7e",
+        "routing_input_fingerprint": "09a14966c9682412ea84aec5d253d27c8e5d3651c361dc2d693985f22fc08ab3",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-22T03:49:08+00:00"
       },
       "failed": false,
       "pr_number": 11809,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11809",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5891": {
