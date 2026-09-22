@@ -236,7 +236,7 @@
     },
     "8770": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "Rajkaran-122",
         "author_action_review_thread_urls": [],
@@ -246,7 +246,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "8bec8d2a16608038f46ffdb69032293d353b7d6b21f37ce03c5454a7308e8135",
+        "copilot_request_fingerprint": "d360d424bb7da2aa4ad44cb8197b8029dc118c318defe9ef585b93fb3a5142cb",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -262,8 +262,8 @@
         "head_sha": "28e7376589e982c2f26751f1c973c8297b5affec",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-21T19:26:18+00:00",
-        "last_approver_activity_at": "2026-09-11T20:40:36+00:00",
+        "last_activity_at": "2026-09-22T11:24:27+00:00",
+        "last_approver_activity_at": "2026-09-22T11:24:27+00:00",
         "last_author_activity_at": "2026-09-21T19:26:18+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -276,18 +276,28 @@
             "pending_review": true,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "zeitlinger",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b047e9bce5863a67c4da9a1dca8ffa9575fae5de5f36ad6082d6007cea5ab753",
+        "routing_input_fingerprint": "31a34035a2c187d2efd8c5168011c2ee2e28bb08decfa0e23e4799ff5a4c3868",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-21T19:26:18+00:00"
       },
       "failed": false,
       "pr_number": 8770,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8770",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5640375209": {
           "evidence": {
