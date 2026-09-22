@@ -2843,12 +2843,12 @@
     },
     "4120": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/otel-arrow/pull/4120#discussion_r4059256603",
-          "https://github.com/open-telemetry/otel-arrow/pull/4120#discussion_r4059256615"
+          "https://github.com/open-telemetry/otel-arrow/pull/4120#discussion_r4059256615",
+          "https://github.com/open-telemetry/otel-arrow/pull/4120#discussion_r4059256603"
         ],
         "author_action_top_level_feedback_urls": [
           "https://github.com/open-telemetry/otel-arrow/pull/4120#issuecomment-5756332691"
@@ -2858,7 +2858,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ed830bec46f106704cf53bf6cdf4bcd3caa61c4f118520e8b7034601984a93c4",
+        "copilot_request_fingerprint": "8a553bfb56652fed5a907bcdc0b1f8706135576b9cf95e4b4b435fe663fd9001",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2874,20 +2874,20 @@
         "head_sha": "59d7daedfbdd0f42a5ce923d50ccf4d66de9ad8b",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-22T11:50:40+00:00",
-        "last_approver_activity_at": "2026-09-22T11:50:40+00:00",
+        "last_activity_at": "2026-09-22T11:51:20+00:00",
+        "last_approver_activity_at": "2026-09-22T11:51:20+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "albertlockett",
-            "open_thread": false,
+            "open_thread": true,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": false
+            "unresolved_thread": true
           },
           {
             "approved": false,
@@ -2910,10 +2910,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-22T11:52:04.142542+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8c7773546fbfd49eb5fcf5d66abc7ecb72f1b6a23446ea2e939097b8fe6f8a66",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "12a172e47a6bb5a3959bc27e079e0a39e5b406e12e67a9744f20a96e54ee35b2",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-21T04:23:48+00:00"
       },
       "failed": false,
