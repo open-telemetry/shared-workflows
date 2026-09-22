@@ -33,6 +33,7 @@ opens to the latest seven days of GitHub-hosted runner data and provides:
 - Repository filtering
 - 24-hour, 7-day, 30-day, and all-history ranges
 - Hourly p50, p90, and p95 queue times in UTC
+- Exact p50, p90, and p95 queue times across the selected range
 
 The self-hosted category matches runner labels case-insensitively against:
 

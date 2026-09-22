@@ -101,6 +101,64 @@ a:focus-visible {
   font-size: 0.82rem;
 }
 
+.range-summary {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 16px 0 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--cp-border);
+  border-radius: 12px;
+  background: var(--cp-surface-soft);
+}
+
+.range-summary > p {
+  margin: 0;
+  color: var(--cp-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.range-summary dl {
+  display: flex;
+  gap: 28px;
+  margin: 0;
+}
+
+.range-summary dl div {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.range-summary dt {
+  color: var(--cp-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.range-summary dd {
+  margin: 0;
+  color: var(--cp-text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.range-summary .p50 dd {
+  color: var(--cp-accent);
+}
+
+.range-summary .p90 dd {
+  color: var(--cp-link);
+}
+
+.range-summary .p95 dd {
+  color: var(--cp-warning);
+}
+
 .legend {
   display: flex;
   gap: 18px;
@@ -212,5 +270,16 @@ a {
 
   .chart-heading {
     display: grid;
+  }
+
+  .range-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .range-summary dl {
+    width: 100%;
+    justify-content: space-between;
   }
 }

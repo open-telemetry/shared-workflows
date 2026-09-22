@@ -131,6 +131,61 @@ class ReportTest(unittest.TestCase):
             self.assertEqual(1, self_hosted_rollup["count"])
             self.assertEqual(20, self_hosted_rollup["p95"])
 
+            summaries = json.loads(
+                (output / "summary.json").read_text()
+            )["series"]
+            github_summary = next(
+                row
+                for row in summaries
+                if row["range"] == "7"
+                and row["host"] == GITHUB_HOSTED
+                and row["repository"] == ALL
+                and row["label"] == ALL
+            )
+            self.assertEqual(3, github_summary["count"])
+            self.assertEqual(2, github_summary["p50"])
+            self.assertEqual(8.4, github_summary["p90"])
+            self.assertEqual(9.2, github_summary["p95"])
+
+    def test_builds_exact_summaries_for_each_time_range(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            jobs = root / "jobs"
+            output = root / "report-data"
+            write_collection(
+                jobs / "date=2026-09-18" / "collection-1.jsonl.gz",
+                [
+                    record(1, created_at="2026-09-10T12:00:00Z"),
+                    record(9, created_at="2026-09-18T12:00:00Z"),
+                ],
+            )
+
+            build_report(jobs, root / "state.json.gz", output)
+
+            summaries = json.loads(
+                (output / "summary.json").read_text()
+            )["series"]
+            seven_days = next(
+                row
+                for row in summaries
+                if row["range"] == "7"
+                and row["host"] == GITHUB_HOSTED
+                and row["repository"] == ALL
+                and row["label"] == ALL
+            )
+            all_history = next(
+                row
+                for row in summaries
+                if row["range"] == "all"
+                and row["host"] == GITHUB_HOSTED
+                and row["repository"] == ALL
+                and row["label"] == ALL
+            )
+            self.assertEqual(1, seven_days["count"])
+            self.assertEqual(9, seven_days["p50"])
+            self.assertEqual(2, all_history["count"])
+            self.assertEqual(5, all_history["p50"])
+
     def test_incrementally_processes_each_collection_once(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -282,7 +337,11 @@ class DashboardContractTest(unittest.TestCase):
         self.assertIn("--cp-accent", html)
         self.assertNotIn('id="log-scale"', html)
         self.assertIn("manifest.json", script)
+        self.assertIn("summary.json", script)
         self.assertIn("date=${date}.json", script)
+        self.assertIn('id="range-p50"', html)
+        self.assertIn('id="range-p90"', html)
+        self.assertIn('id="range-p95"', html)
         self.assertNotIn('class="method"', html)
         self.assertNotIn("negative timestamp anomalies", html)
         self.assertNotIn('id="exclusions"', html)

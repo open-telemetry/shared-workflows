@@ -8,12 +8,16 @@ const elements = {
   repository: document.querySelector("#repository"),
   range: document.querySelector("#time-range"),
   updatedAt: document.querySelector("#updated-at"),
+  rangeP50: document.querySelector("#range-p50"),
+  rangeP90: document.querySelector("#range-p90"),
+  rangeP95: document.querySelector("#range-p95"),
 };
 
 let manifest;
 let selectedRows = [];
 let refreshVersion = 0;
 const partitionCache = new Map();
+const summaryRows = new Map();
 
 function addOptions(select, values, allLabel) {
   const previous = select.value;
@@ -200,7 +204,21 @@ function renderChart() {
     labels;
 }
 
+function renderRangeSummary() {
+  const key = JSON.stringify([
+    elements.range.value,
+    elements.host.value,
+    elements.repository.value,
+    elements.label.value,
+  ]);
+  const summary = summaryRows.get(key);
+  elements.rangeP50.textContent = formatDuration(summary?.p50);
+  elements.rangeP90.textContent = formatDuration(summary?.p90);
+  elements.rangeP95.textContent = formatDuration(summary?.p95);
+}
+
 function render() {
+  renderRangeSummary();
   renderChart();
   if (selectedRows.length) {
     elements.status.textContent =
@@ -212,11 +230,24 @@ function render() {
 
 async function initialize() {
   try {
-    const response = await fetch(`${DATA_ROOT}/manifest.json`);
-    if (!response.ok) {
+    const [manifestResponse, summaryResponse] = await Promise.all([
+      fetch(`${DATA_ROOT}/manifest.json`),
+      fetch(`${DATA_ROOT}/summary.json`),
+    ]);
+    if (!manifestResponse.ok) {
       throw new Error("Unable to load the queue report manifest.");
     }
-    manifest = await response.json();
+    if (!summaryResponse.ok) {
+      throw new Error("Unable to load the queue report summary.");
+    }
+    const summary = await summaryResponse.json();
+    manifest = await manifestResponse.json();
+    for (const row of summary.series) {
+      summaryRows.set(
+        JSON.stringify([row.range, row.host, row.repository, row.label]),
+        row,
+      );
+    }
     updateDependentFilters();
     elements.updatedAt.textContent = manifest.updated_at
       ? `Updated ${manifest.updated_at}`
