@@ -159,6 +159,10 @@ a:focus-visible {
   color: var(--cp-warning);
 }
 
+.range-summary .p99 dd {
+  color: var(--cp-danger);
+}
+
 .legend {
   display: flex;
   gap: 18px;
@@ -185,6 +189,10 @@ a:focus-visible {
   background: var(--cp-warning);
 }
 
+.legend .p99::before {
+  background: var(--cp-danger);
+}
+
 svg {
   display: block;
   width: 100%;
@@ -207,7 +215,8 @@ svg {
 
 .line-p50,
 .line-p90,
-.line-p95 {
+.line-p95,
+.line-p99 {
   fill: none;
   vector-effect: non-scaling-stroke;
 }
@@ -227,6 +236,11 @@ svg {
   stroke-width: 2.5;
 }
 
+.line-p99 {
+  stroke: var(--cp-danger);
+  stroke-width: 2.5;
+}
+
 .dot-p50 {
   fill: var(--cp-accent);
 }
@@ -237,6 +251,10 @@ svg {
 
 .dot-p95 {
   fill: var(--cp-warning);
+}
+
+.dot-p99 {
+  fill: var(--cp-danger);
 }
 
 footer {

@@ -11,6 +11,7 @@ const elements = {
   rangeP50: document.querySelector("#range-p50"),
   rangeP90: document.querySelector("#range-p90"),
   rangeP95: document.querySelector("#range-p95"),
+  rangeP99: document.querySelector("#range-p99"),
 };
 
 let manifest;
@@ -147,7 +148,7 @@ function renderChart() {
     return;
   }
 
-  const maxValue = Math.max(...selectedRows.map((row) => row.p95), 1);
+  const maxValue = Math.max(...selectedRows.map((row) => row.p99), 1);
   const tickStep = niceStep(maxValue / 4);
   const maxAxis = Math.ceil(maxValue / tickStep) * tickStep;
   const y = (value) => top + ((maxAxis - value) / maxAxis) * plotHeight;
@@ -195,9 +196,11 @@ function renderChart() {
     grid +
     `<line class="axis" x1="${left}" x2="${left}" y1="${top}" y2="${height - bottom}"></line>` +
     `<line class="axis" x1="${left}" x2="${width - right}" y1="${height - bottom}" y2="${height - bottom}"></line>` +
+    `<path class="line-p99" d="${line("p99")}"></path>` +
     `<path class="line-p95" d="${line("p95")}"></path>` +
     `<path class="line-p90" d="${line("p90")}"></path>` +
     `<path class="line-p50" d="${line("p50")}"></path>` +
+    dots("p99") +
     dots("p95") +
     dots("p90") +
     dots("p50") +
@@ -215,6 +218,7 @@ function renderRangeSummary() {
   elements.rangeP50.textContent = formatDuration(summary?.p50);
   elements.rangeP90.textContent = formatDuration(summary?.p90);
   elements.rangeP95.textContent = formatDuration(summary?.p95);
+  elements.rangeP99.textContent = formatDuration(summary?.p99);
 }
 
 function render() {

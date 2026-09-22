@@ -120,6 +120,7 @@ class ReportTest(unittest.TestCase):
             self.assertEqual(2, github_rollup["p50"])
             self.assertEqual(8.4, github_rollup["p90"])
             self.assertEqual(9.2, github_rollup["p95"])
+            self.assertEqual(9.84, github_rollup["p99"])
 
             self_hosted_rollup = next(
                 row
@@ -146,6 +147,7 @@ class ReportTest(unittest.TestCase):
             self.assertEqual(2, github_summary["p50"])
             self.assertEqual(8.4, github_summary["p90"])
             self.assertEqual(9.2, github_summary["p95"])
+            self.assertEqual(9.84, github_summary["p99"])
 
     def test_builds_exact_summaries_for_each_time_range(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -342,6 +344,7 @@ class DashboardContractTest(unittest.TestCase):
         self.assertIn('id="range-p50"', html)
         self.assertIn('id="range-p90"', html)
         self.assertIn('id="range-p95"', html)
+        self.assertIn('id="range-p99"', html)
         self.assertNotIn('class="method"', html)
         self.assertNotIn("negative timestamp anomalies", html)
         self.assertNotIn('id="exclusions"', html)
