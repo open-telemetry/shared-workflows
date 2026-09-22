@@ -5,7 +5,7 @@ import fnmatch
 import gzip
 import json
 import math
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +22,6 @@ SELF_HOSTED_LABEL_PATTERNS = (
 STATE_VERSION = 1
 KEY_SEPARATOR = "\x1f"
 PERCENTILES = (0.5, 0.9, 0.95, 0.99)
-SUMMARY_RANGES = (("1", 1), ("7", 7), ("30", 30))
 
 
 def classify_runner(labels: list[str]) -> str:
@@ -129,7 +128,6 @@ def build_report(
     for date in sorted(dirty_dates):
         _write_daily_report(output_dir, date, state)
     _write_manifest(output_dir, all_dates, state)
-    _write_summary(output_dir, state)
     write_report_state(state_path, state)
 
     return {
@@ -220,10 +218,14 @@ def _write_daily_report(
     state: dict[str, Any],
 ) -> None:
     rows = []
+    summary_buckets: dict[tuple[str, str, str], dict[str, int]] = {}
     for key, histogram in state["buckets"].items():
         hour, host, repository, label = key.split(KEY_SEPARATOR)
         if not hour.startswith(date):
             continue
+        summary = summary_buckets.setdefault((host, repository, label), {})
+        for value, value_count in histogram.items():
+            summary[value] = summary.get(value, 0) + value_count
         values = sorted(
             ((float(value), count) for value, count in histogram.items()),
             key=lambda item: item[0],
@@ -242,6 +244,20 @@ def _write_daily_report(
                 "p99": _percentile(values, count, PERCENTILES[3]),
             }
         )
+    summaries = []
+    for (host, repository, label), histogram in sorted(summary_buckets.items()):
+        values = sorted(
+            ((float(value), count) for value, count in histogram.items()),
+            key=lambda item: item[0],
+        )
+        summaries.append(
+            {
+                "host": host,
+                "repository": repository,
+                "label": label,
+                "histogram": values,
+            }
+        )
     rows.sort(
         key=lambda row: (
             row["hour"],
@@ -256,6 +272,7 @@ def _write_daily_report(
             "version": STATE_VERSION,
             "date": date,
             "series": rows,
+            "summaries": summaries,
         },
     )
 
@@ -284,72 +301,6 @@ def _write_manifest(
             "records": state["records"],
             "valid_records": state["valid_records"],
             "self_hosted_label_patterns": list(SELF_HOSTED_LABEL_PATTERNS),
-        },
-    )
-
-
-def _write_summary(
-    output_dir: Path,
-    state: dict[str, Any],
-) -> None:
-    latest_hour = max(
-        (
-            key.split(KEY_SEPARATOR, 1)[0]
-            for key in state["buckets"]
-        ),
-        default=None,
-    )
-    summary_buckets: dict[tuple[str, str, str, str], dict[str, int]] = {}
-    if latest_hour is not None:
-        latest = _parse_instant(latest_hour)
-        cutoffs = {
-            range_key: latest - timedelta(days=days)
-            for range_key, days in SUMMARY_RANGES
-        }
-        for key, histogram in state["buckets"].items():
-            hour, host, repository, label = key.split(KEY_SEPARATOR)
-            ranges = ["all"]
-            ranges.extend(
-                range_key
-                for range_key, cutoff in cutoffs.items()
-                if _parse_instant(hour) > cutoff
-            )
-            for range_key in ranges:
-                summary = summary_buckets.setdefault(
-                    (range_key, host, repository, label),
-                    {},
-                )
-                for value, count in histogram.items():
-                    summary[value] = summary.get(value, 0) + count
-
-    rows = []
-    for (range_key, host, repository, label), histogram in sorted(
-        summary_buckets.items()
-    ):
-        values = sorted(
-            ((float(value), count) for value, count in histogram.items()),
-            key=lambda item: item[0],
-        )
-        count = sum(item[1] for item in values)
-        rows.append(
-            {
-                "range": range_key,
-                "host": host,
-                "repository": repository,
-                "label": label,
-                "count": count,
-                "p50": _percentile(values, count, PERCENTILES[0]),
-                "p90": _percentile(values, count, PERCENTILES[1]),
-                "p95": _percentile(values, count, PERCENTILES[2]),
-                "p99": _percentile(values, count, PERCENTILES[3]),
-            }
-        )
-
-    _atomic_write_json(
-        output_dir / "summary.json",
-        {
-            "version": STATE_VERSION,
-            "series": rows,
         },
     )
 

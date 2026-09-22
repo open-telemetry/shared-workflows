@@ -1,12 +1,19 @@
 const ALL = "*";
 const DATA_ROOT = "data";
+const PERCENTILES = {
+  p50: 0.5,
+  p90: 0.9,
+  p95: 0.95,
+  p99: 0.99,
+};
 const elements = {
   chart: document.querySelector("#chart"),
   status: document.querySelector("#chart-status"),
   host: document.querySelector("#runner-host"),
   label: document.querySelector("#runner-label"),
   repository: document.querySelector("#repository"),
-  range: document.querySelector("#time-range"),
+  start: document.querySelector("#start-date"),
+  end: document.querySelector("#end-date"),
   updatedAt: document.querySelector("#updated-at"),
   rangeP50: document.querySelector("#range-p50"),
   rangeP90: document.querySelector("#range-p90"),
@@ -16,9 +23,9 @@ const elements = {
 
 let manifest;
 let selectedRows = [];
+let selectedSummary;
 let refreshVersion = 0;
 const partitionCache = new Map();
-const summaryRows = new Map();
 
 function addOptions(select, values, allLabel) {
   const previous = select.value;
@@ -54,13 +61,42 @@ function restoreFiltersFromQuery() {
   for (const [name, select] of [
     ["label", elements.label],
     ["repository", elements.repository],
-    ["range", elements.range],
   ]) {
     const value = params.get(name);
     if (value && hasOption(select, value)) {
       select.value = value;
     }
   }
+
+  if (!manifest.dates.length) {
+    elements.start.disabled = true;
+    elements.end.disabled = true;
+    return;
+  }
+  const firstDate = manifest.dates[0];
+  const lastDate = manifest.dates.at(-1);
+  const defaultStart = manifest.dates.at(-7) || firstDate;
+  for (const input of [elements.start, elements.end]) {
+    input.min = firstDate;
+    input.max = lastDate;
+  }
+  const start = params.get("start");
+  const end = params.get("end");
+  elements.start.value = isValidDate(start) ? start : defaultStart;
+  elements.end.value = isValidDate(end) ? end : lastDate;
+  if (elements.start.value > elements.end.value) {
+    elements.start.value = defaultStart;
+    elements.end.value = lastDate;
+  }
+}
+
+function isValidDate(value) {
+  return (
+    manifest.dates.length > 0 &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value || "") &&
+    value >= manifest.dates[0] &&
+    value <= manifest.dates.at(-1)
+  );
 }
 
 function persistFiltersToQuery() {
@@ -76,16 +112,27 @@ function persistFiltersToQuery() {
   } else {
     url.searchParams.set("repository", elements.repository.value);
   }
-  url.searchParams.set("range", elements.range.value);
+  for (const [name, input] of [
+    ["start", elements.start],
+    ["end", elements.end],
+  ]) {
+    if (input.value) {
+      url.searchParams.set(name, input.value);
+    } else {
+      url.searchParams.delete(name);
+    }
+  }
+  url.searchParams.delete("range");
   window.history.replaceState(null, "", url);
 }
 
 function datesForRange() {
-  if (elements.range.value === "all") {
-    return manifest.dates;
+  if (!elements.start.value || !elements.end.value) {
+    return [];
   }
-  const days = Number(elements.range.value);
-  return manifest.dates.slice(-(days + 1));
+  return manifest.dates.filter(
+    (date) => date >= elements.start.value && date <= elements.end.value,
+  );
 }
 
 async function loadPartition(date) {
@@ -117,7 +164,7 @@ async function refreshData() {
     const host = elements.host.value;
     const repository = elements.repository.value;
     const label = elements.label.value;
-    let rows = partitions
+    selectedRows = partitions
       .flatMap((partition) => partition.series)
       .filter(
         (row) =>
@@ -126,20 +173,14 @@ async function refreshData() {
           row.label === label,
       )
       .sort((left, right) => left.hour.localeCompare(right.hour));
-
-    if (elements.range.value !== "all" && rows.length) {
-      const cutoff =
-        Date.parse(manifest.latest_hour) -
-        Number(elements.range.value) * 24 * 60 * 60 * 1000;
-      rows = rows.filter((row) => Date.parse(row.hour) > cutoff);
-    }
-    selectedRows = rows;
+    selectedSummary = summarizePartitions(partitions, host, repository, label);
     render();
   } catch (error) {
     if (version !== refreshVersion) {
       return;
     }
     selectedRows = [];
+    selectedSummary = undefined;
     render();
     elements.status.textContent = error.message;
   }
@@ -172,6 +213,57 @@ function niceStep(value) {
     return 5 * magnitude;
   }
   return 10 * magnitude;
+}
+
+function summarizePartitions(partitions, host, repository, label) {
+  const histogram = new Map();
+  for (const partition of partitions) {
+    const summary = partition.summaries.find(
+      (row) =>
+        row.host === host &&
+        row.repository === repository &&
+        row.label === label,
+    );
+    if (!summary) {
+      continue;
+    }
+    for (const [value, count] of summary.histogram) {
+      histogram.set(value, (histogram.get(value) || 0) + count);
+    }
+  }
+  const values = Array.from(histogram.entries()).sort(
+    (left, right) => left[0] - right[0],
+  );
+  const count = values.reduce((total, entry) => total + entry[1], 0);
+  if (!count) {
+    return undefined;
+  }
+  return Object.fromEntries(
+    Object.entries(PERCENTILES).map(([name, fraction]) => [
+      name,
+      percentile(values, count, fraction),
+    ]),
+  );
+}
+
+function percentile(values, count, fraction) {
+  const position = (count - 1) * fraction;
+  const lowerIndex = Math.floor(position);
+  const upperIndex = Math.ceil(position);
+  const lower = valueAtIndex(values, lowerIndex);
+  const upper = valueAtIndex(values, upperIndex);
+  return lower + (upper - lower) * (position - lowerIndex);
+}
+
+function valueAtIndex(values, index) {
+  let seen = 0;
+  for (const [value, count] of values) {
+    seen += count;
+    if (index < seen) {
+      return value;
+    }
+  }
+  throw new Error(`Percentile index ${index} exceeds histogram size ${seen}`);
 }
 
 function renderChart() {
@@ -249,17 +341,10 @@ function renderChart() {
 }
 
 function renderRangeSummary() {
-  const key = JSON.stringify([
-    elements.range.value,
-    elements.host.value,
-    elements.repository.value,
-    elements.label.value,
-  ]);
-  const summary = summaryRows.get(key);
-  elements.rangeP50.textContent = formatDuration(summary?.p50);
-  elements.rangeP90.textContent = formatDuration(summary?.p90);
-  elements.rangeP95.textContent = formatDuration(summary?.p95);
-  elements.rangeP99.textContent = formatDuration(summary?.p99);
+  elements.rangeP50.textContent = formatDuration(selectedSummary?.p50);
+  elements.rangeP90.textContent = formatDuration(selectedSummary?.p90);
+  elements.rangeP95.textContent = formatDuration(selectedSummary?.p95);
+  elements.rangeP99.textContent = formatDuration(selectedSummary?.p99);
 }
 
 function render() {
@@ -275,24 +360,11 @@ function render() {
 
 async function initialize() {
   try {
-    const [manifestResponse, summaryResponse] = await Promise.all([
-      fetch(`${DATA_ROOT}/manifest.json`),
-      fetch(`${DATA_ROOT}/summary.json`),
-    ]);
-    if (!manifestResponse.ok) {
+    const response = await fetch(`${DATA_ROOT}/manifest.json`);
+    if (!response.ok) {
       throw new Error("Unable to load the queue report manifest.");
     }
-    if (!summaryResponse.ok) {
-      throw new Error("Unable to load the queue report summary.");
-    }
-    const summary = await summaryResponse.json();
-    manifest = await manifestResponse.json();
-    for (const row of summary.series) {
-      summaryRows.set(
-        JSON.stringify([row.range, row.host, row.repository, row.label]),
-        row,
-      );
-    }
+    manifest = await response.json();
     restoreFiltersFromQuery();
     persistFiltersToQuery();
     elements.updatedAt.textContent = manifest.updated_at
@@ -317,9 +389,26 @@ elements.repository.addEventListener("change", () => {
   persistFiltersToQuery();
   refreshData();
 });
-elements.range.addEventListener("change", () => {
+
+function updateDateRange(changed) {
+  if (!isValidDate(elements.start.value)) {
+    elements.start.value = manifest.dates.at(-7) || manifest.dates[0];
+  }
+  if (!isValidDate(elements.end.value)) {
+    elements.end.value = manifest.dates.at(-1);
+  }
+  if (elements.start.value > elements.end.value) {
+    if (changed === "start") {
+      elements.end.value = elements.start.value;
+    } else {
+      elements.start.value = elements.end.value;
+    }
+  }
   persistFiltersToQuery();
   refreshData();
-});
+}
+
+elements.start.addEventListener("change", () => updateDateRange("start"));
+elements.end.addEventListener("change", () => updateDateRange("end"));
 
 initialize();

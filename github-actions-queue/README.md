@@ -31,7 +31,7 @@ opens to the latest seven days of GitHub-hosted runner data and provides:
 - Required GitHub-hosted or self-hosted runner selection
 - Runner labels scoped to the selected host category
 - Repository filtering
-- 24-hour, 7-day, 30-day, and all-history ranges
+- Inclusive UTC start and end dates that default to the latest seven days
 - Shareable URLs that retain the selected filters
 - Hourly p50, p90, p95, and p99 queue times in UTC
 - Exact p50, p90, p95, and p99 queue times across the selected range
