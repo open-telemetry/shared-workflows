@@ -933,11 +933,13 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "1d4074a25d1e4fdbb209169f943a06cf",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-23T21:10:50+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f52375b70a78c63d9debfe9f47a86e9b2417a5e17e48ee10aa18dbb53baed362",
+        "copilot_request_fingerprint": "3699d91ff4330835a907847df4b1df1e86d43af729320419107bb8de233a1840",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -956,7 +958,7 @@
         "last_activity_at": "2026-09-23T21:03:53+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-23T21:03:53+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -991,14 +993,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8632ae4313865f89e81211dbcb9a3929fda73673d604f348563385f0b7d27ba3",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-23T19:57:01+00:00"
+        "routing_input_fingerprint": "eed0e6e6996cbd9d3c6d9539f5d39182ce46be3a4b52648e4aa055518f25d7be",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-23T21:10:50+00:00"
       },
       "failed": false,
       "pr_number": 5405,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5405",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     }
   },
