@@ -36,6 +36,7 @@ from classification_policy import (
     discussion_cache_key,
     fallback_author_comment_decision,
     fallback_verdict_decision,
+    make_author_comment_request,
     map_verdict_result,
     prepare_author_comment_discussion,
     prepare_author_comment_requests,
@@ -44,6 +45,7 @@ from classification_policy import (
     resolve_author_comment_response,
     resolve_review_thread_policy,
     resolve_verdict_response,
+    render_verdict_prompt,
     select_author_comment_requests,
     with_result_metadata,
 )
@@ -58,7 +60,6 @@ CLASSIFICATION_CACHE_DIR = Path(
 )
 MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR = 200
 MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR = 20
-INVALID_CLASSIFICATION_ATTEMPTS = 2
 
 
 @dataclass(frozen=True)
@@ -452,38 +453,93 @@ class ClassificationService:
         request: VerdictModelRequest,
         model: str,
     ) -> tuple[ClassificationResult, ...]:
-        for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
-            response = self.runner.run(ModelRunRequest(request.prompt, model))
-            results = resolve_verdict_response(request, response)
-            if (
-                attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
-                or not self._has_invalid_response(results)
-            ):
-                return results
-        raise AssertionError("classification retry loop did not return")
+        response = self.runner.run(ModelRunRequest(request.prompt, model))
+        results = resolve_verdict_response(request, response)
+        invalid_ids = self._invalid_response_ids(results)
+        if not invalid_ids:
+            return results
+        retry_discussions = tuple(
+            discussion
+            for discussion in request.discussions
+            if discussion.identity.discussion_id in invalid_ids
+        )
+        retry_request = VerdictModelRequest(
+            retry_discussions,
+            request.contract,
+            render_verdict_prompt(
+                retry_discussions,
+                request.contract,
+                max_prompt_chars=self.max_prompt_chars,
+            ),
+        )
+        try:
+            retry_response = self.runner.run(
+                ModelRunRequest(retry_request.prompt, model)
+            )
+        except Exception:
+            return results
+        return self._merge_retry_results(
+            results,
+            resolve_verdict_response(retry_request, retry_response),
+        )
 
     def _run_author_comment_request(
         self,
         request: AuthorCommentModelRequest,
         model: str,
+        *,
+        retry_budget: list[int] | None = None,
     ) -> tuple[ClassificationResult, ...]:
-        for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
-            response = self.runner.run(ModelRunRequest(request.prompt, model))
-            results = resolve_author_comment_response(request, response)
-            if (
-                attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
-                or not self._has_invalid_response(results)
-            ):
+        response = self.runner.run(ModelRunRequest(request.prompt, model))
+        results = resolve_author_comment_response(request, response)
+        invalid_ids = self._invalid_response_ids(results)
+        if not invalid_ids:
+            return results
+        if retry_budget is not None:
+            if not retry_budget[0]:
                 return results
-        raise AssertionError("classification retry loop did not return")
+            retry_budget[0] -= 1
+        retry_request = make_author_comment_request(
+            [
+                discussion
+                for discussion in request.discussions
+                if discussion.identity.discussion_id in invalid_ids
+            ],
+            max_prompt_chars=self.max_prompt_chars,
+        )
+        try:
+            retry_response = self.runner.run(
+                ModelRunRequest(retry_request.prompt, model)
+            )
+        except Exception:
+            return results
+        return self._merge_retry_results(
+            results,
+            resolve_author_comment_response(retry_request, retry_response),
+        )
 
     @staticmethod
-    def _has_invalid_response(
+    def _invalid_response_ids(
         results: Sequence[ClassificationResult],
-    ) -> bool:
-        return any(
-            isinstance(result, ClassificationFailure)
+    ) -> set[str]:
+        return {
+            result.identity.discussion_id
+            for result in results
+            if isinstance(result, ClassificationFailure)
             and result.diagnostics.invalid_response
+        }
+
+    @staticmethod
+    def _merge_retry_results(
+        results: Sequence[ClassificationResult],
+        retry_results: Sequence[ClassificationResult],
+    ) -> tuple[ClassificationResult, ...]:
+        retry_by_id = {
+            result.identity.discussion_id: result
+            for result in retry_results
+        }
+        return tuple(
+            retry_by_id.get(result.identity.discussion_id, result)
             for result in results
         )
 
@@ -492,6 +548,7 @@ class ClassificationService:
         discussions: tuple[ClassificationDiscussion, ...],
         model: str,
         requests: tuple[AuthorCommentModelRequest, ...] | None = None,
+        retry_budget: list[int] | None = None,
     ) -> tuple[ClassificationResult, ...]:
         partial_results: dict[str, list[ClassificationResult]] = {
             discussion.identity.discussion_id: []
@@ -502,7 +559,11 @@ class ClassificationService:
             if requests is None
             else requests
         ):
-            for result in self._run_author_comment_request(request, model):
+            for result in self._run_author_comment_request(
+                request,
+                model,
+                retry_budget=retry_budget,
+            ):
                 partial_results[result.identity.discussion_id].append(result)
         return combine_author_comment_results(discussions, partial_results)
 
@@ -514,12 +575,14 @@ class ClassificationService:
         *,
         author_comment: bool,
         author_comment_requests: tuple[AuthorCommentModelRequest, ...] | None = None,
+        author_comment_retry_budget: list[int] | None = None,
     ) -> tuple[ClassificationResult, ...]:
         if author_comment:
             return self._run_author_comment_batch(
                 discussions,
                 model,
                 author_comment_requests,
+                author_comment_retry_budget,
             )
         if contract is None:
             raise ValueError("classification requires a verdict contract")
@@ -623,6 +686,20 @@ class ClassificationService:
                 for offset in range(0, len(uncached), self.batch_size)
             ]
 
+        author_comment_retry_budget = None
+        if author_comment:
+            admitted_requests = sum(
+                len(requests or ())
+                for _batch, requests in prepared_requests_by_batch
+            )
+            author_comment_retry_budget = [
+                max(
+                    0,
+                    self.max_author_comment_model_calls_per_pr
+                    - admitted_requests,
+                )
+            ]
+
         for batch, author_comment_requests in prepared_requests_by_batch:
             batch_discussions = tuple(discussion for discussion, _key in batch)
             try:
@@ -632,6 +709,7 @@ class ClassificationService:
                     contract,
                     author_comment=author_comment,
                     author_comment_requests=author_comment_requests,
+                    author_comment_retry_budget=author_comment_retry_budget,
                 )
             except subprocess.TimeoutExpired as error:
                 results = tuple(

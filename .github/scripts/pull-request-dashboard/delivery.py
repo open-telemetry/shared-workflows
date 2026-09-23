@@ -118,6 +118,7 @@ def deliver_from_state(
 ) -> list[str]:
     now = utc_now()
     errors: list[str] = []
+    targeted_pr_missing = False
     try:
         if pr_number is None:
             open_prs = list_open_prs(repo)
@@ -135,6 +136,7 @@ def deliver_from_state(
         else:
             print(f"PR #{pr_number} does not exist", file=sys.stderr)
             open_prs = []
+            targeted_pr_missing = True
     except Exception as e:
         errors.append(f"open pull requests: {e}")
         open_prs = None
@@ -170,7 +172,13 @@ def deliver_from_state(
             ),
             errors,
         )
-    if pr_number is not None and pr_number not in failed_command_reply_prs:
+    if (
+        pr_number is not None
+        and (
+            targeted_pr_missing
+            or pr_number not in failed_command_reply_prs
+        )
+    ):
         run_delivery_action(
             "status comments",
             lambda: update_targeted_status_comment_from_state(repo, pr_number),
