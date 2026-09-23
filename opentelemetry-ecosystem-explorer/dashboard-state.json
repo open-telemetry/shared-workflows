@@ -417,7 +417,7 @@
     },
     "1150": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot",
         "author_action_review_thread_urls": [],
@@ -427,7 +427,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "52d229e9aaae360096170a742ce4788839549784c18b8455fd3c25feacd28c8f",
+        "copilot_request_fingerprint": "bb669b85a1e1a5e5cccfa66315fccf0ceb4c0811e42415f8a077a682bf17d5f7",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -443,21 +443,32 @@
         "head_sha": "62423cb51a3fff76fdcc5a268ec2ce84c4007e5a",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-23T02:14:02+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-23T10:37:22+00:00",
+        "last_approver_activity_at": "2026-09-23T10:37:22+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jaydeluca",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1632b8c65de9b42c84bd680e210226996ed2f257ba3516ceefee012456be8556",
+        "routing_input_fingerprint": "2927cfbed862222484ecef739cb1581ef57ceb7ce0d81868bee3fa7323c152c3",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-23T02:14:02+00:00"
       },
       "failed": false,
       "pr_number": 1150,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ecosystem-explorer/pull/1150",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1151": {
