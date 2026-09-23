@@ -12,9 +12,54 @@ Queue time is measured per job:
 queue_seconds = job_started_at - job_created_at
 ```
 
-Matrix jobs are separate records. Jobs that never receive a runner retain their
-timestamps but have `runner_assigned: false` and `queue_seconds: null`, because
-GitHub can report equal creation and start timestamps for such jobs.
+Matrix jobs are separate records. Jobs that never receive a runner are not
+stored because they have no runner queue time. This excludes skipped jobs,
+jobs cancelled before assignment, and check runs created only to publish
+results.
+
+When only failed jobs are rerun, GitHub also returns cloned records for jobs
+that did not execute again. The clones have a later `created_at` but retain the
+original execution timestamps. The collector removes a clone only when it has
+exactly one earlier non-negative execution match in the same workflow run.
+
+## Dashboard
+
+The hourly queue-time dashboard is published at
+<https://open-telemetry.github.io/shared-workflows/github-actions-queue/>. It
+opens to the latest seven days of GitHub-hosted runner data and provides:
+
+- Required GitHub-hosted or self-hosted runner selection
+- Runner labels scoped to the selected host category
+- Repository filtering
+- Inclusive UTC start and end dates that default to the latest seven days
+- Shareable URLs that retain the selected filters
+- Hourly p50, p90, p95, and p99 queue times in UTC
+- Exact p50, p90, p95, and p99 queue times across the selected range
+
+The self-hosted category matches runner labels case-insensitively against:
+
+```text
+self-hosted
+cncf-*
+oracle-*
+*-s390x
+```
+
+These broad patterns cover the special self-hosted runners documented in the
+[OpenTelemetry community asset inventory](https://github.com/open-telemetry/community/blob/main/assets.md#special-github-action-runners).
+All other assigned runners are classified as GitHub-hosted. In particular,
+`otel-windows-latest-8-cores` is GitHub-hosted even though it uses an
+organization-defined runner group.
+
+The collector incrementally updates `report-state.json.gz` and daily report
+partitions under `report-data/` on the data branch. The Pages artifact includes
+only the dashboard assets and those derived partitions, not the raw job files
+or collector checkpoints.
+
+Repository administrators must enable GitHub Pages once in the repository
+settings and select **GitHub Actions** as the source. The deployment uses the
+standard `github-pages` environment and needs no new GitHub App permission,
+token, or secret.
 
 ## GitHub App
 
@@ -68,8 +113,9 @@ before the next schedule resumes it.
 
 Runs that have not reached a terminal state are saved in `state.json`. Later
 collections revisit them and emit their jobs only after every returned job is
-terminal. Job listing uses `filter=all`, so all attempts available when the run
-is finalized are retained.
+terminal. Job listing uses `filter=all`, so actual executions from every
+available attempt are retained when the run is finalized. Carry-forward clones
+created by partial reruns are not stored.
 
 The collector tracks the installation's REST quota. If it exhausts the quota,
 it commits the partial checkpoint and resumes during the next scheduled run.
@@ -102,15 +148,15 @@ reporting data. Each job line contains:
 | `job_id`, `job_name` | Individual job identity. Matrix values normally appear in `job_name`. |
 | `job_status`, `job_conclusion` | Terminal state and result. |
 | `job_created_at`, `job_started_at`, `job_completed_at` | GitHub job timestamps. |
-| `queue_seconds` | Start minus creation time, or null when no runner was assigned. |
-| `runner_assigned` | Whether GitHub reported a runner name. |
+| `queue_seconds` | Start minus creation time. |
+| `runner_assigned` | Always true for retained queue records. |
 | `runner_labels`, `runner_name`, `runner_group_name` | Runner classification. |
 | `html_url` | Direct link to the job. |
 | `collected_at` | Time the collector finalized the record. |
 
-The format deliberately retains self-hosted jobs, retries, fork runs, and large
-queue values. Reports should filter those dimensions rather than discarding raw
-records during collection.
+The format deliberately retains self-hosted jobs, actual retries, fork runs,
+and large queue values. Reports should filter those dimensions rather than
+discarding raw records during collection.
 
 ## Local use
 

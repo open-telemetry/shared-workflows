@@ -1073,6 +1073,47 @@ class UpsertStatusCommentTest(unittest.TestCase):
 
 
 class PublishPrStatusTest(unittest.TestCase):
+    @patch.object(
+        pr_status_comment,
+        "gh_api",
+        side_effect=pr_status_comment.GhNotFoundError("not found"),
+    )
+    def test_missing_pr_raises_target_missing(self, _gh_api: Mock) -> None:
+        with self.assertRaisesRegex(
+            pr_status_comment.StatusCommentTargetMissing,
+            "PR #1 does not exist",
+        ):
+            pr_status_comment.publish_pr_status(
+                "open-telemetry/example",
+                1,
+                dashboard_state(),
+            )
+
+    @patch.object(
+        pr_status_comment,
+        "upsert_status_comment",
+        side_effect=pr_status_comment.GhNotFoundError("comment not found"),
+    )
+    @patch.object(
+        pr_status_comment,
+        "gh_api",
+        return_value={"number": 1, "state": "open", "merged": False},
+    )
+    def test_downstream_not_found_remains_a_delivery_error(
+        self,
+        _gh_api: Mock,
+        _upsert: Mock,
+    ) -> None:
+        with self.assertRaisesRegex(
+            pr_status_comment.GhNotFoundError,
+            "comment not found",
+        ):
+            pr_status_comment.publish_pr_status(
+                "open-telemetry/example",
+                1,
+                dashboard_state(),
+            )
+
     @patch.object(pr_status_comment, "upsert_status_comment")
     @patch.object(
         pr_status_comment,
@@ -1310,6 +1351,50 @@ class RolloutStateTest(unittest.TestCase):
         save_rollout.assert_not_called()
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(
+        pr_status_comment,
+        "publish_pr_status",
+        side_effect=pr_status_comment.StatusCommentTargetMissing(
+            "PR #34 does not exist"
+        ),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": 12,
+            "completed_revision": 11,
+            "pending_pr_numbers": [34],
+            "_accepted_intent_revisions": {"34": "snapshot-b"},
+        },
+    )
+    def test_targeted_update_discards_missing_pr(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        _publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        status = pr_status_comment.update_targeted_status_comment_from_state(
+            "open-telemetry/example",
+            34,
+        )
+
+        self.assertEqual([], status)
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([], saved_state["pending_pr_numbers"])
+        self.assertEqual(12, saved_state["completed_revision"])
+        self.assertEqual(
+            {"34": "snapshot-b"},
+            saved_state.get("delivered_intent_revisions", {}),
+        )
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")
     @patch.object(
         pr_status_comment,
@@ -1452,7 +1537,6 @@ class RolloutStateTest(unittest.TestCase):
             pr_status_comment.STATUS_COMMENT_REVISION,
             saved_state["completed_revision"],
         )
-
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(pr_status_comment, "publish_pr_status")
     @patch.object(
@@ -1571,6 +1655,63 @@ class RolloutStateTest(unittest.TestCase):
         saved_state = save_rollout.call_args.args[0]
         self.assertEqual([12], saved_state["pending_pr_numbers"])
         self.assertEqual(0, saved_state["completed_revision"])
+
+    @patch.object(pr_status_comment, "save_status_comment_rollout_state")
+    @patch.object(
+        pr_status_comment,
+        "publish_pr_status",
+        side_effect=[
+            pr_status_comment.StatusCommentTargetMissing(
+                "PR #12 does not exist"
+            ),
+            None,
+        ],
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_dashboard_state_cache",
+        return_value=dashboard_state(),
+    )
+    @patch.object(
+        pr_status_comment,
+        "load_status_comment_rollout_state",
+        return_value={
+            "target_revision": 0,
+            "completed_revision": 0,
+            "pending_pr_numbers": [],
+            "_accepted_intent_revisions": {
+                "12": "snapshot-a",
+                "34": "snapshot-b",
+            },
+        },
+    )
+    def test_missing_pr_is_discarded_and_rollout_continues(
+        self,
+        _load_rollout: object,
+        _load_dashboard: object,
+        publish_pr_status: Mock,
+        save_rollout: Mock,
+    ) -> None:
+        errors = pr_status_comment.update_status_comments_from_state(
+            "open-telemetry/example",
+            {12, 34},
+        )
+
+        self.assertEqual([], errors)
+        self.assertEqual(
+            [12, 34],
+            [call.args[1] for call in publish_pr_status.call_args_list],
+        )
+        saved_state = save_rollout.call_args.args[0]
+        self.assertEqual([], saved_state["pending_pr_numbers"])
+        self.assertEqual(
+            pr_status_comment.STATUS_COMMENT_REVISION,
+            saved_state["completed_revision"],
+        )
+        self.assertEqual(
+            {"12": "snapshot-a", "34": "snapshot-b"},
+            saved_state["delivered_intent_revisions"],
+        )
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
     @patch.object(

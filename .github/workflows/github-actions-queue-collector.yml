@@ -69,9 +69,38 @@ jobs:
           else
             git worktree add --detach "$data_dir" HEAD
             git -C "$data_dir" switch --orphan "$DATA_BRANCH"
-            cp "$DATA_BRANCH_README" "$data_dir/README.md"
           fi
+          cp "$DATA_BRANCH_README" "$data_dir/README.md"
           echo "directory=$data_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Remove records without measurable queue time
+        id: migration
+        env:
+          DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+        run: |
+          set -euo pipefail
+          marker="$DATA_DIRECTORY/migrations/remove-unmeasurable-jobs-v1.json"
+          performed=false
+          if [[ -f "$marker" ]]; then
+            summary='{"carry_forward_records_removed":0,"files_changed":0,"files_scanned":0,"records_removed":0,"records_scanned":0,"runnerless_records_removed":0}'
+          else
+            summary=$(
+              python3 .github/scripts/github-actions-queue/migrate_queue_records.py \
+                --jobs-dir "$DATA_DIRECTORY/jobs"
+            )
+            mkdir -p "$(dirname "$marker")"
+            jq . <<< "$summary" > "$marker"
+            performed=true
+          fi
+          echo "$summary" | jq .
+          {
+            echo "### Queue record migration"
+            echo
+            echo '```json'
+            echo "$summary" | jq .
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "performed=$performed" >> "$GITHUB_OUTPUT"
 
       - name: Collect completed jobs
         id: collect
@@ -112,6 +141,31 @@ jobs:
           echo "pause_reason=$(jq -r .pause_reason <<< "$summary")" >> "$GITHUB_OUTPUT"
           echo "pending_run_failures=$(jq -r .pending_run_failures <<< "$summary")" >> "$GITHUB_OUTPUT"
 
+      - name: Build queue report
+        env:
+          DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+          MIGRATION_PERFORMED: ${{ steps.migration.outputs.performed }}
+        run: |
+          set -euo pipefail
+          if [[ "$MIGRATION_PERFORMED" == "true" ]]; then
+            rm -f "$DATA_DIRECTORY/report-state.json.gz"
+            rm -rf "$DATA_DIRECTORY/report-data"
+          fi
+          summary=$(
+            python3 .github/scripts/github-actions-queue/report.py \
+              --jobs-dir "$DATA_DIRECTORY/jobs" \
+              --state "$DATA_DIRECTORY/report-state.json.gz" \
+              --output-dir "$DATA_DIRECTORY/report-data"
+          )
+          echo "$summary" | jq .
+          {
+            echo "### GitHub Actions queue report"
+            echo
+            echo '```json'
+            echo "$summary" | jq .
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Commit collected data
         env:
           CURSOR: ${{ steps.collect.outputs.cursor }}
@@ -129,6 +183,23 @@ jobs:
           git -C "$DATA_DIRECTORY" commit -m "Collect queue data through $CURSOR"
           gh auth setup-git
           git -C "$DATA_DIRECTORY" push origin "HEAD:refs/heads/$DATA_BRANCH"
+
+      - name: Prepare Pages site
+        id: site
+        env:
+          DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+        run: |
+          set -euo pipefail
+          site_dir="$RUNNER_TEMP/github-actions-queue-site"
+          dashboard_dir="$site_dir/github-actions-queue"
+          mkdir -p "$dashboard_dir/data"
+          cp -R github-actions-queue/dashboard/. "$dashboard_dir/"
+          cp -R "$DATA_DIRECTORY/report-data/." "$dashboard_dir/data/"
+          echo "directory=$site_dir" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ steps.site.outputs.directory }}
 
       - name: Report collection pause
         if: steps.collect.outputs.paused == 'true'
@@ -159,3 +230,17 @@ jobs:
     uses: $/.github/workflows/workflow-failure-issue.yml
     with:
       success: ${{ needs.collect.result == 'success' }}
+
+  deploy:
+    if: github.repository == 'open-telemetry/shared-workflows'
+    needs: collect
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      pages: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        id: deployment

@@ -31,6 +31,7 @@ from classification_policy import (
     DiscussionAction,
     DiscussionKind,
     RawModelResponse,
+    VerdictModelRequest,
     cached_classification_record,
     discussion_cache_key,
     make_author_comment_request,
@@ -313,6 +314,112 @@ class FileClassificationCacheStoreTest(unittest.TestCase):
 
 
 class ClassificationServiceTest(unittest.TestCase):
+    def test_invalid_verdict_response_retries_once(self) -> None:
+        calls = 0
+
+        def responder(request: ModelRunRequest) -> RawModelResponse:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return RawModelResponse(0, '{"items":[]}', "")
+            return successful_response(request)
+
+        runner = FakeModelRunner(responder=responder)
+        discussion = ClassificationDiscussion.from_record(
+            discussion_record("feedback")
+        )
+
+        result = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        ).classify_reviewer_feedback(
+            ReviewerFeedbackClassificationRequest(
+                123,
+                "model",
+                (discussion,),
+            )
+        )
+
+        self.assertIsInstance(result[0], ClassificationSuccess)
+        self.assertEqual(2, len(runner.requests))
+
+    def test_invalid_author_comment_response_retries_once(self) -> None:
+        calls = 0
+
+        def responder(request: ModelRunRequest) -> RawModelResponse:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return RawModelResponse(0, '{"items":[]}', "")
+            return successful_response(request)
+
+        runner = FakeModelRunner(responder=responder)
+        record = discussion_record(
+            "reply",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            actor_role="author",
+            candidate_feedback=(("feedback", "Please fix this."),),
+        )
+
+        result = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        ).classify(
+            execution_request(author_comments=(record,))
+        ).top_level_author_comments[0]
+
+        self.assertIsInstance(result, ClassificationSuccess)
+        self.assertEqual(2, len(runner.requests))
+
+    def test_second_invalid_response_preserves_failure(self) -> None:
+        runner = FakeModelRunner(
+            responses=(
+                RawModelResponse(0, '{"items":[]}', ""),
+                RawModelResponse(0, '{"items":[]}', ""),
+            )
+        )
+        discussion = ClassificationDiscussion.from_record(
+            discussion_record("feedback")
+        )
+
+        result = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        ).classify_reviewer_feedback(
+            ReviewerFeedbackClassificationRequest(
+                123,
+                "model",
+                (discussion,),
+            )
+        )
+
+        self.assertIsInstance(result[0], ClassificationFailure)
+        self.assertEqual(2, len(runner.requests))
+
+    def test_nonzero_exit_with_valid_output_is_not_retried(self) -> None:
+        def responder(request: ModelRunRequest) -> RawModelResponse:
+            response = successful_response(request)
+            return RawModelResponse(1, response.stdout, "failed")
+
+        runner = FakeModelRunner(responder=responder)
+        discussion = ClassificationDiscussion.from_record(
+            discussion_record("feedback")
+        )
+
+        result = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        ).classify_reviewer_feedback(
+            ReviewerFeedbackClassificationRequest(
+                123,
+                "model",
+                (discussion,),
+            )
+        )
+
+        self.assertIsInstance(result[0], ClassificationFailure)
+        self.assertEqual(1, len(runner.requests))
+
     def test_partial_reviewer_feedback_uses_the_actionable_feedback_contract(
         self,
     ) -> None:
@@ -499,6 +606,7 @@ class ClassificationServiceTest(unittest.TestCase):
         def classified(
             request: AuthorCommentModelRequest,
             _model: str,
+            _call_budget=None,
         ) -> tuple[ClassificationSuccess, ...]:
             return tuple(
                 author_comment_result(
@@ -616,6 +724,7 @@ class ClassificationServiceTest(unittest.TestCase):
         def classified(
             request: AuthorCommentModelRequest,
             _model: str,
+            _call_budget=None,
         ) -> tuple[ClassificationSuccess, ...]:
             return tuple(
                 author_comment_result(
@@ -772,6 +881,7 @@ class ClassificationServiceTest(unittest.TestCase):
         def classified(
             request: AuthorCommentModelRequest,
             _model: str,
+            _call_budget=None,
         ) -> tuple[ClassificationSuccess, ...]:
             return tuple(
                 author_comment_result(
@@ -875,37 +985,48 @@ class ClassificationServiceTest(unittest.TestCase):
         cases = (
             (
                 "nonzero",
-                RawModelResponse(
-                    9,
-                    '{"items":[{"discussion_id":"feedback",'
-                    '"verdict":"no_author_action","reason":"done"}]}',
-                    "cli stderr",
+                (
+                    RawModelResponse(
+                        9,
+                        '{"items":[{"discussion_id":"feedback",'
+                        '"verdict":"no_author_action","reason":"done"}]}',
+                        "cli stderr",
+                    ),
                 ),
                 "exited with status 9",
                 "cli stderr",
+                1,
             ),
             (
                 "malformed",
-                RawModelResponse(0, "not json", "parse stderr"),
+                (
+                    RawModelResponse(0, "not json", "parse stderr"),
+                    RawModelResponse(0, "not json", "parse stderr"),
+                ),
                 "did not return a valid verdict",
                 "parse stderr",
+                2,
             ),
             (
                 "timeout",
-                subprocess.TimeoutExpired(
-                    "copilot",
-                    37,
-                    output="partial response",
-                    stderr="timeout stderr",
+                (
+                    subprocess.TimeoutExpired(
+                        "copilot",
+                        37,
+                        output="partial response",
+                        stderr="timeout stderr",
+                    ),
                 ),
                 "timed out after 37s",
                 "timeout stderr",
+                1,
             ),
         )
-        for name, response, error_text, stderr_text in cases:
+        for name, responses, error_text, stderr_text, expected_calls in cases:
             with self.subTest(name=name):
+                runner = FakeModelRunner(responses)
                 service = ClassificationService(
-                    FakeModelRunner([response]),
+                    runner,
                     MemoryClassificationCacheStore(),
                 )
 
@@ -918,6 +1039,246 @@ class ClassificationServiceTest(unittest.TestCase):
                 self.assertIn(error_text, result.diagnostics.error)
                 self.assertEqual(result.diagnostics.stderr, stderr_text)
                 self.assertTrue(result.cli_call)
+                self.assertEqual(expected_calls, len(runner.requests))
+
+    def test_later_verdict_request_failure_preserves_and_caches_success(self) -> None:
+        records = (
+            discussion_record("first"),
+            discussion_record("second"),
+        )
+        runner = FakeModelRunner((
+            RawModelResponse(
+                0,
+                '{"items":[{"discussion_id":"first",'
+                '"verdict":"no_author_action","reason":"done"}]}',
+            ),
+            subprocess.TimeoutExpired("copilot", 37),
+        ))
+        cache = MemoryClassificationCacheStore()
+        service = ClassificationService(runner, cache)
+
+        def split_requests(discussions, contract):
+            return tuple(
+                VerdictModelRequest((discussion,), contract, "prompt")
+                for discussion in discussions
+            )
+
+        with patch.object(
+            ClassificationService,
+            "_verdict_requests",
+            side_effect=split_requests,
+        ):
+            results = service.classify(
+                execution_request(top_level_items=records)
+            ).top_level_items
+
+        self.assertIsInstance(results[0], ClassificationSuccess)
+        self.assertIsInstance(results[1], ClassificationFailure)
+        self.assertEqual(len(runner.requests), 2)
+        self.assertEqual(len(cache.entries[123]), 1)
+
+    def test_later_author_comment_request_failure_preserves_success(self) -> None:
+        discussions = typed_discussions((
+            discussion_record(
+                "first",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=(("feedback-first", "Please fix this."),),
+            ),
+            discussion_record(
+                "second",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=(("feedback-second", "Please fix this."),),
+            ),
+        ))
+        requests = tuple(
+            make_author_comment_request((discussion,))
+            for discussion in discussions
+        )
+        runner = FakeModelRunner((
+            successful_response(ModelRunRequest(requests[0].prompt, "model")),
+            RuntimeError("request failed"),
+        ))
+        service = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        )
+
+        results = service._run_author_comment_batch(
+            discussions,
+            "model",
+            requests,
+        )
+
+        self.assertIsInstance(results[0], ClassificationSuccess)
+        self.assertIsInstance(results[1], ClassificationFailure)
+        self.assertEqual(len(runner.requests), 2)
+
+    def test_retry_rejects_partial_batch_when_second_attempt_fails(self) -> None:
+        records = (
+            discussion_record("valid"),
+            discussion_record("missing"),
+        )
+        runner = FakeModelRunner((
+            RawModelResponse(
+                0,
+                '{"items":[{"discussion_id":"valid",'
+                '"verdict":"no_author_action","reason":"done"}]}',
+            ),
+            RawModelResponse(9, "", "retry failed"),
+        ))
+        cache = MemoryClassificationCacheStore()
+
+        results = ClassificationService(runner, cache).classify(
+            execution_request(top_level_items=records)
+        ).top_level_items
+
+        self.assertIsInstance(results[0], ClassificationFailure)
+        self.assertIsInstance(results[1], ClassificationFailure)
+        self.assertEqual(cache.entries[123], {})
+        self.assertEqual(2, len(runner.requests))
+
+    def test_author_comment_retry_rejects_partial_batch(self) -> None:
+        discussions = typed_discussions((
+            discussion_record(
+                "valid",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=(("feedback-valid", "Please fix this."),),
+            ),
+            discussion_record(
+                "missing",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=(("feedback-missing", "Please fix this."),),
+            ),
+        ))
+        request = make_author_comment_request(discussions)
+        first_response = successful_response(
+            ModelRunRequest(request.prompt, "model")
+        )
+        first_payload = json.loads(first_response.stdout)
+        first_response = RawModelResponse(
+            0,
+            json.dumps({"items": first_payload["items"][:1]}),
+        )
+        service = ClassificationService(
+            FakeModelRunner((first_response, RuntimeError("retry failed"))),
+            MemoryClassificationCacheStore(),
+        )
+
+        results = service._run_author_comment_request(request, "model")
+
+        self.assertIsInstance(results[0], ClassificationFailure)
+        self.assertIsInstance(results[1], ClassificationFailure)
+
+    def test_retry_exception_replaces_only_invalid_verdict_diagnostics(self) -> None:
+        records = (
+            discussion_record("valid"),
+            discussion_record("invalid"),
+        )
+        runner = FakeModelRunner((
+            RawModelResponse(
+                0,
+                '{"items":['
+                '{"discussion_id":"valid","verdict":"no_author_action",'
+                '"reason":"done"},'
+                '{"discussion_id":"invalid","verdict":"unexpected",'
+                '"reason":"bad"}]}',
+            ),
+            RuntimeError("retry failed"),
+        ))
+
+        results = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        ).classify(execution_request(top_level_items=records)).top_level_items
+
+        self.assertIsInstance(results[0], ClassificationSuccess)
+        self.assertIsInstance(results[1], ClassificationFailure)
+        assert isinstance(results[1], ClassificationFailure)
+        self.assertIn("retry failed", results[1].diagnostics.error)
+
+    def test_author_comment_retry_exception_reports_retry_failure(self) -> None:
+        item = discussion_record(
+            "reply",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            actor_role="author",
+            candidate_feedback=(("feedback", "Please fix this."),),
+        )
+        request = make_author_comment_request(typed_discussions((item,)))
+        runner = FakeModelRunner((
+            RawModelResponse(0, '{"items":[]}'),
+            RuntimeError("retry failed"),
+        ))
+
+        result = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        )._run_author_comment_request(request, "model")[0]
+
+        self.assertIsInstance(result, ClassificationFailure)
+        assert isinstance(result, ClassificationFailure)
+        self.assertIn("retry failed", result.diagnostics.error)
+
+    def test_author_comment_retries_do_not_exceed_model_call_budget(self) -> None:
+        records = tuple(
+            discussion_record(
+                f"reply-{index}",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=((f"feedback-{index}", "Please fix this."),),
+            )
+            for index in range(20)
+        )
+        runner = FakeModelRunner(
+            tuple(RawModelResponse(0, "not json") for _index in range(20))
+        )
+
+        ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+            batch_size=1,
+            max_author_comment_model_calls_per_pr=20,
+        ).classify(execution_request(author_comments=records))
+
+        self.assertEqual(20, len(runner.requests))
+
+    def test_author_comment_fallback_reserves_every_initial_attempt(self) -> None:
+        records = tuple(
+            discussion_record(
+                f"reply-{index}",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=((f"feedback-{index}", "Please fix this."),),
+            )
+            for index in range(3)
+        )
+        runner = FakeModelRunner(
+            tuple(RawModelResponse(0, "not json") for _index in range(3))
+        )
+        service = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+            batch_size=1,
+            max_author_comment_model_calls_per_pr=3,
+        )
+
+        with patch.object(
+            ClassificationService,
+            "_author_comment_execution_batches",
+            return_value=None,
+        ):
+            service.classify(execution_request(author_comments=records))
+
+        self.assertEqual(
+            [["reply-0"], ["reply-1"], ["reply-2"]],
+            [
+                [item["discussion_id"] for item in prompt_items(request)]
+                for request in runner.requests
+            ],
+        )
 
     def test_failed_items_are_retried_and_limits_apply_only_to_uncached_items(
         self,

@@ -252,10 +252,13 @@ the implementation understandable and operationally cheap.
   latest usable snapshot without concurrent writers overwriting each other.
 - Cache snapshots are saved even when the update job fails, preserving valid
   classifications produced before or alongside an isolated failed item.
-- Failed classifications are not cached or retried in the same run. A later run
-  restores valid sibling classifications and sends only the still-uncached
-  items to the model. The original run remains failed so the item is visible
-  for operational triage.
+- Failed classifications are not cached. A structurally invalid model response
+  or contract-validation failure retries its model request once in the same
+  run. Copilot CLI failures, timeouts, and raised exceptions do not use this
+  retry. If the second response is still invalid, a later run restores valid
+  sibling classifications and sends only the still-uncached items to the
+  model. The original run remains failed so the item is visible for operational
+  triage.
 
 ## Required Status Checks
 
@@ -758,6 +761,9 @@ the implementation understandable and operationally cheap.
   bounded to 50 per run. Author reminders and Copilot requests use explicit
   durable ledgers; Slack eligibility is reconstructed from accepted dashboard
   and notification state.
+- A confirmed 404 from the pull request lookup removes that status-comment
+  target from the pending rollout. Other lookup and comment-write failures stay
+  pending and fail delivery.
 - The dashboard issue is rendered from `dashboard-state.json` and the target
   repository's current open PR list after delivery. Worker advancement does not
   invalidate an in-progress publish or trigger a retry loop. The resulting issue

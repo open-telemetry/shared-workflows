@@ -58,6 +58,7 @@ CLASSIFICATION_CACHE_DIR = Path(
 )
 MAX_TOP_LEVEL_CLASSIFICATIONS_PER_PR = 200
 MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR = 20
+INVALID_CLASSIFICATION_ATTEMPTS = 2
 
 
 @dataclass(frozen=True)
@@ -128,6 +129,24 @@ class CopilotCliModelRunner:
 
 
 ClassificationCache = dict[str, Any]
+
+
+@dataclass
+class AuthorCommentCallBudget:
+    remaining: int
+    pending_initial_attempts: int
+
+    def begin_request(self) -> None:
+        self.pending_initial_attempts -= 1
+        if self.remaining <= 0:
+            raise AssertionError("author comment model call budget exhausted")
+        self.remaining -= 1
+
+    def begin_retry(self) -> bool:
+        if self.remaining <= self.pending_initial_attempts:
+            return False
+        self.remaining -= 1
+        return True
 
 
 class ClassificationCacheStore(Protocol):
@@ -451,22 +470,102 @@ class ClassificationService:
         request: VerdictModelRequest,
         model: str,
     ) -> tuple[ClassificationResult, ...]:
-        response = self.runner.run(ModelRunRequest(request.prompt, model))
-        return resolve_verdict_response(request, response)
+        results: tuple[ClassificationResult, ...] | None = None
+        for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
+            try:
+                response = self.runner.run(ModelRunRequest(request.prompt, model))
+            except Exception as error:
+                if results is not None:
+                    return self._merge_retry_results(
+                        results,
+                        self._request_failure_results(
+                            request.discussions,
+                            error,
+                            request.contract,
+                            author_comment=False,
+                        ),
+                    )
+                raise
+            attempt_results = resolve_verdict_response(request, response)
+            results = self._merge_retry_results(results, attempt_results)
+            if (
+                attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
+                or not self._has_invalid_response(results)
+            ):
+                return results
+        raise AssertionError("classification retry loop did not return")
 
     def _run_author_comment_request(
         self,
         request: AuthorCommentModelRequest,
         model: str,
+        call_budget: AuthorCommentCallBudget | None = None,
     ) -> tuple[ClassificationResult, ...]:
-        response = self.runner.run(ModelRunRequest(request.prompt, model))
-        return resolve_author_comment_response(request, response)
+        results: tuple[ClassificationResult, ...] | None = None
+        for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
+            if call_budget is not None:
+                if attempt == 0:
+                    call_budget.begin_request()
+                elif not call_budget.begin_retry():
+                    assert results is not None
+                    return results
+            try:
+                response = self.runner.run(ModelRunRequest(request.prompt, model))
+            except Exception as error:
+                if results is not None:
+                    return self._merge_retry_results(
+                        results,
+                        self._request_failure_results(
+                            request.discussions,
+                            error,
+                            None,
+                            author_comment=True,
+                        ),
+                    )
+                raise
+            attempt_results = resolve_author_comment_response(request, response)
+            results = self._merge_retry_results(results, attempt_results)
+            if (
+                attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
+                or not self._has_invalid_response(results)
+            ):
+                return results
+        raise AssertionError("classification retry loop did not return")
+
+    @staticmethod
+    def _merge_retry_results(
+        results: tuple[ClassificationResult, ...] | None,
+        retry_results: tuple[ClassificationResult, ...],
+    ) -> tuple[ClassificationResult, ...]:
+        if results is None:
+            return retry_results
+        retry_by_id = {
+            result.identity.discussion_id: result for result in retry_results
+        }
+        return tuple(
+            retry_by_id[result.identity.discussion_id]
+            if isinstance(result, ClassificationFailure)
+            and result.diagnostics.invalid_response
+            else result
+            for result in results
+        )
+
+    @staticmethod
+    def _has_invalid_response(
+        results: Sequence[ClassificationResult],
+    ) -> bool:
+        return any(
+            isinstance(result, ClassificationFailure)
+            and result.diagnostics.invalid_response
+            for result in results
+        )
 
     def _run_author_comment_batch(
         self,
         discussions: tuple[ClassificationDiscussion, ...],
         model: str,
         requests: tuple[AuthorCommentModelRequest, ...] | None = None,
+        call_budget: AuthorCommentCallBudget | None = None,
     ) -> tuple[ClassificationResult, ...]:
         partial_results: dict[str, list[ClassificationResult]] = {
             discussion.identity.discussion_id: []
@@ -477,9 +576,54 @@ class ClassificationService:
             if requests is None
             else requests
         ):
-            for result in self._run_author_comment_request(request, model):
+            try:
+                request_results = self._run_author_comment_request(
+                    request,
+                    model,
+                    call_budget,
+                )
+            except Exception as error:
+                request_results = self._request_failure_results(
+                    request.discussions,
+                    error,
+                    None,
+                    author_comment=True,
+                )
+            for result in request_results:
                 partial_results[result.identity.discussion_id].append(result)
         return combine_author_comment_results(discussions, partial_results)
+
+    def _request_failure_results(
+        self,
+        discussions: Sequence[ClassificationDiscussion],
+        error: Exception,
+        contract: VerdictContract | None,
+        *,
+        author_comment: bool,
+    ) -> tuple[ClassificationFailure, ...]:
+        if isinstance(error, subprocess.TimeoutExpired):
+            reason = "LLM timeout"
+            diagnostics = ClassificationDiagnostics(
+                error=f"Copilot CLI timed out after {error.timeout}s",
+                response_text=error.stdout if isinstance(error.stdout, str) else "",
+                stderr=error.stderr if isinstance(error.stderr, str) else "",
+            )
+        else:
+            reason = f"LLM failed: {error!r}"
+            diagnostics = ClassificationDiagnostics(error=reason)
+        return tuple(
+            ClassificationFailure(
+                discussion.identity,
+                self._fallback_decision(
+                    reason,
+                    contract,
+                    author_comment=author_comment,
+                ),
+                diagnostics,
+                cli_call=(index == 0),
+            )
+            for index, discussion in enumerate(discussions)
+        )
 
     def _run_classification_batch(
         self,
@@ -489,20 +633,31 @@ class ClassificationService:
         *,
         author_comment: bool,
         author_comment_requests: tuple[AuthorCommentModelRequest, ...] | None = None,
+        author_comment_call_budget: AuthorCommentCallBudget | None = None,
     ) -> tuple[ClassificationResult, ...]:
         if author_comment:
             return self._run_author_comment_batch(
                 discussions,
                 model,
                 author_comment_requests,
+                author_comment_call_budget,
             )
         if contract is None:
             raise ValueError("classification requires a verdict contract")
-        return tuple(
-            result
-            for request in self._verdict_requests(discussions, contract)
-            for result in self._run_verdict_request(request, model)
-        )
+        results: list[ClassificationResult] = []
+        for request in self._verdict_requests(discussions, contract):
+            try:
+                results.extend(self._run_verdict_request(request, model))
+            except Exception as error:
+                results.extend(
+                    self._request_failure_results(
+                        request.discussions,
+                        error,
+                        contract,
+                        author_comment=False,
+                    )
+                )
+        return tuple(results)
 
     def _classify_items(
         self,
@@ -551,13 +706,15 @@ class ClassificationService:
         if author_comment:
             execution_plan = self._author_comment_execution_batches(uncached)
             if execution_plan is None:
-                prepared_requests_by_batch = [
-                    (
-                        uncached[offset:offset + self.batch_size],
-                        None,
-                    )
-                    for offset in range(0, len(uncached), self.batch_size)
-                ]
+                for offset in range(0, len(uncached), self.batch_size):
+                    batch = uncached[offset:offset + self.batch_size]
+                    try:
+                        requests = self._author_comment_requests(
+                            tuple(discussion for discussion, _key in batch)
+                        )
+                    except ValueError:
+                        requests = None
+                    prepared_requests_by_batch.append((batch, requests))
             else:
                 execution_batches, deferred = execution_plan
                 for discussion in deferred:
@@ -598,6 +755,18 @@ class ClassificationService:
                 for offset in range(0, len(uncached), self.batch_size)
             ]
 
+        author_comment_call_budget = (
+            AuthorCommentCallBudget(
+                self.max_author_comment_model_calls_per_pr,
+                sum(
+                    len(requests)
+                    for _batch, requests in prepared_requests_by_batch
+                    if requests is not None
+                ),
+            )
+            if author_comment
+            else None
+        )
         for batch, author_comment_requests in prepared_requests_by_batch:
             batch_discussions = tuple(discussion for discussion, _key in batch)
             try:
@@ -607,35 +776,7 @@ class ClassificationService:
                     contract,
                     author_comment=author_comment,
                     author_comment_requests=author_comment_requests,
-                )
-            except subprocess.TimeoutExpired as error:
-                results = tuple(
-                    ClassificationFailure(
-                        discussion.identity,
-                        self._fallback_decision(
-                            "LLM timeout",
-                            contract,
-                            author_comment=author_comment,
-                        ),
-                        ClassificationDiagnostics(
-                            error=(
-                                "Copilot CLI timed out after "
-                                f"{error.timeout}s"
-                            ),
-                            response_text=(
-                                error.stdout
-                                if isinstance(error.stdout, str)
-                                else ""
-                            ),
-                            stderr=(
-                                error.stderr
-                                if isinstance(error.stderr, str)
-                                else ""
-                            ),
-                        ),
-                        cli_call=(index == 0),
-                    )
-                    for index, discussion in enumerate(batch_discussions)
+                    author_comment_call_budget=author_comment_call_budget,
                 )
             except Exception as error:
                 print(
@@ -644,20 +785,11 @@ class ClassificationService:
                     file=sys.stderr,
                 )
                 traceback.print_exc()
-                results = tuple(
-                    ClassificationFailure(
-                        discussion.identity,
-                        self._fallback_decision(
-                            f"LLM failed: {error!r}",
-                            contract,
-                            author_comment=author_comment,
-                        ),
-                        ClassificationDiagnostics(
-                            error=f"LLM failed: {error!r}",
-                        ),
-                        cli_call=(index == 0),
-                    )
-                    for index, discussion in enumerate(batch_discussions)
+                results = self._request_failure_results(
+                    batch_discussions,
+                    error,
+                    contract,
+                    author_comment=author_comment,
                 )
             for result, (_discussion, key) in zip(
                 results,

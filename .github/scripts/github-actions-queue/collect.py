@@ -12,11 +12,14 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from http.client import IncompleteRead
 from pathlib import Path
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
+
+from rerun_carry_forwards import filter_rerun_carry_forwards
 
 
 API_ROOT = "https://api.github.com"
@@ -162,14 +165,28 @@ class GitHubClient:
         for attempt in range(self._max_retries + 1):
             self._wait_for_cooldown()
             self._reserve_request(check_rate_limit=check_rate_limit)
+            transport_error: IncompleteRead | ConnectionError | None = None
             try:
-                response = self._transport(url, self._headers)
-                self._update_rate(
-                    response.headers,
-                    capture_initial=check_rate_limit,
-                )
+                try:
+                    response = self._transport(url, self._headers)
+                except (IncompleteRead, ConnectionError) as error:
+                    transport_error = error
+                else:
+                    self._update_rate(
+                        response.headers,
+                        capture_initial=check_rate_limit,
+                    )
             finally:
                 self._release_request(check_rate_limit=check_rate_limit)
+
+            if transport_error is not None:
+                if attempt < self._max_retries:
+                    self._sleep_with_budget(2**attempt)
+                    continue
+                raise ApiError(
+                    f"GitHub API transport failed after {attempt + 1} attempts "
+                    f"for {url}: {transport_error}"
+                ) from transport_error
 
             if 200 <= response.status < 300:
                 return response
@@ -822,6 +839,8 @@ class QueueCollector:
         jobs = self._client.list_jobs(self._org, repository, run["id"])
         if any(job.get("status") != "completed" for job in jobs):
             return [], False
+        jobs, _ = filter_rerun_carry_forwards(jobs)
+        jobs = [job for job in jobs if job.get("runner_name")]
         collected_at = _format_instant(self._now())
         return [
             _job_record(self._org, repository, run, job, collected_at) for job in jobs
@@ -940,12 +959,13 @@ def _job_record(
     job: dict[str, Any],
     collected_at: str,
 ) -> dict[str, Any]:
-    runner_assigned = bool(job.get("runner_name"))
-    queue_seconds = None
-    if runner_assigned and job.get("created_at") and job.get("started_at"):
-        queue_seconds = (
-            _parse_instant(job["started_at"]) - _parse_instant(job["created_at"])
-        ).total_seconds()
+    if not job.get("runner_name"):
+        raise ValueError("job must have an assigned runner")
+    if not job.get("created_at") or not job.get("started_at"):
+        raise ValueError("assigned job must have creation and start timestamps")
+    queue_seconds = (
+        _parse_instant(job["started_at"]) - _parse_instant(job["created_at"])
+    ).total_seconds()
 
     head_repository = run.get("head_repository") or {}
     head_full_name = head_repository.get("full_name")
@@ -976,7 +996,7 @@ def _job_record(
         "job_started_at": job.get("started_at"),
         "job_completed_at": job.get("completed_at"),
         "queue_seconds": queue_seconds,
-        "runner_assigned": runner_assigned,
+        "runner_assigned": True,
         "runner_labels": job.get("labels") or [],
         "runner_name": job.get("runner_name"),
         "runner_group_name": job.get("runner_group_name"),

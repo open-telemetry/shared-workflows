@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import json
 import tempfile
 import threading
@@ -189,6 +190,63 @@ class GitHubClientTest(unittest.TestCase):
 
         self.assertEqual(2, len(transport.urls))
 
+    def test_retries_truncated_and_disconnected_responses(self):
+        failures = (
+            http.client.IncompleteRead(b"", 10),
+            http.client.RemoteDisconnected("connection closed"),
+        )
+
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__):
+                attempts = 0
+                sleeps = []
+
+                def handler(_url):
+                    nonlocal attempts
+                    attempts += 1
+                    if attempts == 1:
+                        raise failure
+                    return response({"login": "octocat"})
+
+                transport = FakeTransport(handler)
+                client = GitHubClient(
+                    "token",
+                    transport=transport,
+                    sleep=sleeps.append,
+                )
+
+                self.assertEqual({"login": "octocat"}, client.get_json("/user"))
+                self.assertEqual(2, attempts)
+                self.assertEqual([1], sleeps)
+                self.assertEqual(3, client.request_count)
+
+    def test_transport_retry_exhaustion_raises_api_error(self):
+        attempts = 0
+        sleeps = []
+
+        def handler(_url):
+            nonlocal attempts
+            attempts += 1
+            raise http.client.IncompleteRead(b"", 10)
+
+        transport = FakeTransport(handler)
+        client = GitHubClient(
+            "token",
+            transport=transport,
+            sleep=sleeps.append,
+            max_retries=2,
+        )
+
+        with self.assertRaisesRegex(
+            ApiError,
+            r"transport failed after 3 attempts .*\/user",
+        ):
+            client.get_json("/user")
+
+        self.assertEqual(3, attempts)
+        self.assertEqual([1, 2], sleeps)
+        self.assertEqual(4, client.request_count)
+
     def test_initial_rate_uses_first_data_response_headers(self):
         transport = FakeTransport(
             lambda _url: response({"login": "octocat"}, remaining=4200)
@@ -332,23 +390,24 @@ class JobRecordTest(unittest.TestCase):
         self.assertTrue(record["from_fork"])
         self.assertEqual("test (3.13, ubuntu)", record["job_name"])
 
-    def test_never_assigned_job_does_not_look_like_zero_wait(self):
-        record = _job_record(
-            "open-telemetry",
-            "example",
-            self.run,
-            {
-                "id": 22,
-                "status": "completed",
-                "created_at": "2026-09-15T00:00:10Z",
-                "started_at": "2026-09-15T00:00:10Z",
-                "runner_name": None,
-            },
-            "2026-09-15T01:00:00Z",
-        )
-
-        self.assertIsNone(record["queue_seconds"])
-        self.assertFalse(record["runner_assigned"])
+    def test_rejects_job_without_assigned_runner(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "job must have an assigned runner",
+        ):
+            _job_record(
+                "open-telemetry",
+                "example",
+                self.run,
+                {
+                    "id": 22,
+                    "status": "completed",
+                    "created_at": "2026-09-15T00:00:10Z",
+                    "started_at": "2026-09-15T00:00:10Z",
+                    "runner_name": None,
+                },
+                "2026-09-15T01:00:00Z",
+            )
 
     def test_unknown_head_repository_preserves_unknown_fork_origin(self):
         self.run["head_repository"] = None
@@ -360,6 +419,9 @@ class JobRecordTest(unittest.TestCase):
             {
                 "id": 22,
                 "status": "completed",
+                "created_at": "2026-09-15T00:00:10Z",
+                "started_at": "2026-09-15T00:00:20Z",
+                "runner_name": "runner",
             },
             "2026-09-15T01:00:00Z",
         )
@@ -689,6 +751,82 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual(1, len(state.pending_runs))
         self.assertEqual(1, state.pending_runs[0]["failures"])
         self.assertIn("502", state.pending_runs[0]["last_error"])
+
+    def test_removes_partial_rerun_carry_forward_before_recording(self):
+        class RerunClient(FakeClient):
+            def list_workflow_runs(self, _org, _repository, _start, _end):
+                return [
+                    {
+                        "id": 100,
+                        "name": "CI",
+                        "workflow_id": 1,
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:10:00Z",
+                        "status": "completed",
+                        "event": "push",
+                        "head_repository": {
+                            "full_name": "open-telemetry/a"
+                        },
+                    }
+                ]
+
+            def list_jobs(self, _org, _repository, _run_id):
+                common = {
+                    "name": "setup",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "completed_at": "2026-09-15T00:12:00Z",
+                    "runner_name": "runner",
+                    "runner_group_name": "GitHub Actions",
+                    "labels": ["ubuntu-latest"],
+                }
+                return [
+                    {
+                        **common,
+                        "id": 1,
+                        "run_attempt": 1,
+                        "created_at": "2026-09-15T00:10:00Z",
+                        "started_at": "2026-09-15T00:11:00Z",
+                    },
+                    {
+                        **common,
+                        "id": 2,
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:20:00Z",
+                        "started_at": "2026-09-15T00:11:00Z",
+                    },
+                    {
+                        **common,
+                        "id": 3,
+                        "name": "test",
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:20:00Z",
+                        "started_at": "2026-09-15T00:21:00Z",
+                        "completed_at": "2026-09-15T00:22:00Z",
+                    },
+                    {
+                        **common,
+                        "id": 4,
+                        "name": "skipped",
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:20:00Z",
+                        "started_at": "2026-09-15T00:20:00Z",
+                        "completed_at": "2026-09-15T00:20:00Z",
+                        "conclusion": "skipped",
+                        "runner_name": None,
+                    },
+                ]
+
+        collector = QueueCollector(
+            RerunClient(),
+            org="open-telemetry",
+            now=lambda: datetime(2026, 9, 15, 2, tzinfo=UTC),
+        )
+        state = CollectorState(cursor="2026-09-15T00:00:00Z")
+
+        result = collector.collect(state, selected_repositories=["a"])
+
+        self.assertEqual([1, 3], [item["job_id"] for item in result.records])
 
     def test_backfills_newest_windows_first(self):
         class WindowClient(FakeClient):

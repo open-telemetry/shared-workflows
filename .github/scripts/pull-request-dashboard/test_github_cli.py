@@ -7,6 +7,7 @@ from unittest.mock import ANY, call, patch
 
 from github_cli import (
     GH_RETRY_ATTEMPTS,
+    GhNotFoundError,
     TransientGhError,
     check_bucket,
     code_scanning_tools,
@@ -73,6 +74,46 @@ def _rollup_page(nodes):
 
 
 class RunGhJsonTest(unittest.TestCase):
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_recovers_from_http_499(self, run, sleep) -> None:
+        run.side_effect = [
+            subprocess.CompletedProcess(["gh"], 1, "", "gh: HTTP 499"),
+            subprocess.CompletedProcess(["gh"], 0, '{"ok": true}', ""),
+        ]
+
+        self.assertEqual({"ok": True}, run_gh_json(["gh", "api", "/test"]))
+        self.assertEqual(2, run.call_count)
+        sleep.assert_called_once_with(0)
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_http_499_exhaustion_is_transient(self, run, sleep) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 1, "", "gh: HTTP 499"
+        )
+
+        with self.assertRaises(TransientGhError):
+            run_gh_json(["gh", "api", "/test"])
+
+        self.assertEqual(GH_RETRY_ATTEMPTS, run.call_count)
+        self.assertEqual(GH_RETRY_ATTEMPTS - 1, sleep.call_count)
+
+    @patch("github_cli.sleep_for_retry")
+    @patch("github_cli.subprocess.run")
+    def test_exact_not_found_raises_typed_error_without_retry(
+        self, run, sleep
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess(
+            ["gh"], 1, "", "gh: Not Found (HTTP 404)"
+        )
+
+        with self.assertRaises(GhNotFoundError):
+            run_gh_json(["gh", "api", "/test"])
+
+        self.assertEqual(1, run.call_count)
+        sleep.assert_not_called()
+
     @patch("github_cli.sleep_for_retry")
     @patch("github_cli.subprocess.run")
     def test_recovers_from_malformed_json(self, run, sleep) -> None:
