@@ -352,6 +352,14 @@ class DeliveryTest(unittest.TestCase):
         )
 
     def test_targeted_delivery_discards_missing_pr_lookup(self) -> None:
+        def fail_reply(
+            _repo: str,
+            failed_pr_numbers: set[int],
+            _pr_number: int | None,
+        ) -> list[str]:
+            failed_pr_numbers.add(7)
+            return ["PR #7: comments not found"]
+
         with (
             patch.object(
                 delivery,
@@ -361,7 +369,7 @@ class DeliveryTest(unittest.TestCase):
             patch.object(
                 delivery,
                 "deliver_dashboard_command_replies",
-                return_value=[],
+                side_effect=fail_reply,
             ),
             patch.object(
                 delivery,
@@ -392,7 +400,10 @@ class DeliveryTest(unittest.TestCase):
                 7,
             )
 
-        self.assertEqual([], errors)
+        self.assertEqual(
+            ["dashboard command replies: PR #7: comments not found"],
+            errors,
+        )
         targeted_status.assert_called_once_with("open-telemetry/example", 7)
         self.assertEqual([], slack.call_args.args[2])
 

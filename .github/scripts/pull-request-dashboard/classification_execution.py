@@ -36,6 +36,7 @@ from classification_policy import (
     discussion_cache_key,
     fallback_author_comment_decision,
     fallback_verdict_decision,
+    make_author_comment_request,
     map_verdict_result,
     prepare_author_comment_discussion,
     prepare_author_comment_requests,
@@ -406,6 +407,7 @@ class ClassificationService:
                 plans,
                 max_model_calls=(
                     self.max_author_comment_model_calls_per_pr
+                    // INVALID_CLASSIFICATION_ATTEMPTS
                 ),
                 classification_batch_size=self.batch_size,
                 request_batch_size=self.batch_size,
@@ -452,30 +454,75 @@ class ClassificationService:
         request: VerdictModelRequest,
         model: str,
     ) -> tuple[ClassificationResult, ...]:
-        for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
-            response = self.runner.run(ModelRunRequest(request.prompt, model))
-            results = resolve_verdict_response(request, response)
-            if (
-                attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
-                or not self._has_invalid_response(results)
-            ):
-                return results
-        raise AssertionError("classification retry loop did not return")
+        response = self.runner.run(ModelRunRequest(request.prompt, model))
+        results = resolve_verdict_response(request, response)
+        unresolved = self._invalid_response_discussions(request.discussions, results)
+        if not unresolved:
+            return results
+        retry_request = self._verdict_requests(unresolved, request.contract)[0]
+        try:
+            retry_response = self.runner.run(
+                ModelRunRequest(retry_request.prompt, model)
+            )
+        except Exception:
+            return results
+        retry_results = resolve_verdict_response(retry_request, retry_response)
+        return self._replace_invalid_results(results, retry_results)
 
     def _run_author_comment_request(
         self,
         request: AuthorCommentModelRequest,
         model: str,
     ) -> tuple[ClassificationResult, ...]:
-        for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
-            response = self.runner.run(ModelRunRequest(request.prompt, model))
-            results = resolve_author_comment_response(request, response)
-            if (
-                attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
-                or not self._has_invalid_response(results)
-            ):
-                return results
-        raise AssertionError("classification retry loop did not return")
+        response = self.runner.run(ModelRunRequest(request.prompt, model))
+        results = resolve_author_comment_response(request, response)
+        unresolved = self._invalid_response_discussions(request.discussions, results)
+        if not unresolved:
+            return results
+        retry_request = make_author_comment_request(
+            unresolved,
+            max_prompt_chars=self.max_prompt_chars,
+        )
+        try:
+            retry_response = self.runner.run(
+                ModelRunRequest(retry_request.prompt, model)
+            )
+        except Exception:
+            return results
+        retry_results = resolve_author_comment_response(
+            retry_request,
+            retry_response,
+        )
+        return self._replace_invalid_results(results, retry_results)
+
+    @staticmethod
+    def _invalid_response_discussions(
+        discussions: Sequence[ClassificationDiscussion],
+        results: Sequence[ClassificationResult],
+    ) -> tuple[ClassificationDiscussion, ...]:
+        return tuple(
+            discussion
+            for discussion, result in zip(discussions, results, strict=True)
+            if isinstance(result, ClassificationFailure)
+            and result.diagnostics.invalid_response
+        )
+
+    @staticmethod
+    def _replace_invalid_results(
+        results: Sequence[ClassificationResult],
+        retry_results: Sequence[ClassificationResult],
+    ) -> tuple[ClassificationResult, ...]:
+        retry_by_id = {
+            result.identity.discussion_id: result
+            for result in retry_results
+        }
+        return tuple(
+            retry_by_id.get(result.identity.discussion_id, result)
+            if isinstance(result, ClassificationFailure)
+            and result.diagnostics.invalid_response
+            else result
+            for result in results
+        )
 
     @staticmethod
     def _has_invalid_response(
