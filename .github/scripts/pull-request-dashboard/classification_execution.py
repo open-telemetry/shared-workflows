@@ -474,9 +474,17 @@ class ClassificationService:
         for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
             try:
                 response = self.runner.run(ModelRunRequest(request.prompt, model))
-            except Exception:
+            except Exception as error:
                 if results is not None:
-                    return results
+                    return self._merge_retry_results(
+                        results,
+                        self._request_failure_results(
+                            request.discussions,
+                            error,
+                            request.contract,
+                            author_comment=False,
+                        ),
+                    )
                 raise
             attempt_results = resolve_verdict_response(request, response)
             results = self._merge_retry_results(results, attempt_results)
@@ -503,9 +511,17 @@ class ClassificationService:
                     return results
             try:
                 response = self.runner.run(ModelRunRequest(request.prompt, model))
-            except Exception:
+            except Exception as error:
                 if results is not None:
-                    return results
+                    return self._merge_retry_results(
+                        results,
+                        self._request_failure_results(
+                            request.discussions,
+                            error,
+                            None,
+                            author_comment=True,
+                        ),
+                    )
                 raise
             attempt_results = resolve_author_comment_response(request, response)
             results = self._merge_retry_results(results, attempt_results)

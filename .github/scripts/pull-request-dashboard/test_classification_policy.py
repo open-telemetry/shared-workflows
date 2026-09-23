@@ -997,6 +997,34 @@ class AuthorCommentMalformedResponseTest(unittest.TestCase):
             "feedback-2",
         )
 
+    def test_discussion_id_requires_a_json_string(self) -> None:
+        item = {
+            "discussion_id": 1,
+            "feedback_outcomes": [
+                {
+                    "feedback_key": "f0001",
+                    "discussion_action": "none",
+                    "reason": "Completed.",
+                }
+            ],
+        }
+        numeric_id = discussion(
+            "1",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            "Fixed.",
+            actor_role="author",
+            candidate_feedback=(("feedback-1", "Please fix this."),),
+        )
+
+        result = resolve_author_comment_response(
+            make_author_comment_request([numeric_id]),
+            RawModelResponse(0, json.dumps({"items": [item]})),
+        )[0]
+
+        self.assertIsInstance(result, ClassificationFailure)
+        assert isinstance(result, ClassificationFailure)
+        self.assertTrue(result.diagnostics.invalid_response)
+
     def test_duplicate_feedback_key_and_invalid_action_fail(self) -> None:
         request = make_author_comment_request([self.first])
         for name, outcomes, expected in (
@@ -1146,6 +1174,39 @@ class MalformedResponseTest(unittest.TestCase):
 
         self.assertIsInstance(result, ClassificationFailure)
         self.assertTrue(result.cli_call)
+
+    def test_discussion_id_requires_a_json_string(self) -> None:
+        numeric_id = discussion(
+            "1",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            "Please fix this.",
+            requester="reviewer",
+            pr_author="author",
+        )
+        result = resolve_verdict_response(
+            VerdictModelRequest(
+                (numeric_id,),
+                VerdictContract.REVIEWER_FEEDBACK,
+                "prompt",
+            ),
+            RawModelResponse(
+                0,
+                json.dumps({
+                    "items": [
+                        {
+                            "discussion_id": 1,
+                            "verdict": "no_author_action",
+                            "reason": "Done.",
+                        }
+                    ]
+                }),
+                "",
+            ),
+        )[0]
+
+        self.assertIsInstance(result, ClassificationFailure)
+        assert isinstance(result, ClassificationFailure)
+        self.assertTrue(result.diagnostics.invalid_response)
 
     def test_nonzero_exit_with_valid_verdict_reports_only_the_exit(self) -> None:
         result = resolve_verdict_response(

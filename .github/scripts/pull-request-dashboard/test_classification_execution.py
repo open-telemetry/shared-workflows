@@ -1173,6 +1173,55 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertIsInstance(results[0], ClassificationFailure)
         self.assertIsInstance(results[1], ClassificationFailure)
 
+    def test_retry_exception_replaces_only_invalid_verdict_diagnostics(self) -> None:
+        records = (
+            discussion_record("valid"),
+            discussion_record("invalid"),
+        )
+        runner = FakeModelRunner((
+            RawModelResponse(
+                0,
+                '{"items":['
+                '{"discussion_id":"valid","verdict":"no_author_action",'
+                '"reason":"done"},'
+                '{"discussion_id":"invalid","verdict":"unexpected",'
+                '"reason":"bad"}]}',
+            ),
+            RuntimeError("retry failed"),
+        ))
+
+        results = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        ).classify(execution_request(top_level_items=records)).top_level_items
+
+        self.assertIsInstance(results[0], ClassificationSuccess)
+        self.assertIsInstance(results[1], ClassificationFailure)
+        assert isinstance(results[1], ClassificationFailure)
+        self.assertIn("retry failed", results[1].diagnostics.error)
+
+    def test_author_comment_retry_exception_reports_retry_failure(self) -> None:
+        item = discussion_record(
+            "reply",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            actor_role="author",
+            candidate_feedback=(("feedback", "Please fix this."),),
+        )
+        request = make_author_comment_request(typed_discussions((item,)))
+        runner = FakeModelRunner((
+            RawModelResponse(0, '{"items":[]}'),
+            RuntimeError("retry failed"),
+        ))
+
+        result = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+        )._run_author_comment_request(request, "model")[0]
+
+        self.assertIsInstance(result, ClassificationFailure)
+        assert isinstance(result, ClassificationFailure)
+        self.assertIn("retry failed", result.diagnostics.error)
+
     def test_author_comment_retries_do_not_exceed_model_call_budget(self) -> None:
         records = tuple(
             discussion_record(

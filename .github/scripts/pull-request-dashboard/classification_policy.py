@@ -1412,7 +1412,7 @@ def resolve_verdict_response(
     ]
     response_ids = (
         [
-            str(item.get("discussion_id") or "")
+            item.get("discussion_id")
             for item in items
             if isinstance(item, dict)
         ]
@@ -1430,7 +1430,9 @@ def resolve_verdict_response(
         for item in items:
             if not isinstance(item, dict):
                 continue
-            discussion_id = str(item.get("discussion_id") or "")
+            discussion_id = item.get("discussion_id")
+            if not isinstance(discussion_id, str):
+                continue
             if discussion_id in response_by_id:
                 duplicate_ids.add(discussion_id)
             else:
@@ -1509,7 +1511,7 @@ def resolve_author_comment_response(
     ]
     response_ids = (
         [
-            str(item.get("discussion_id") or "")
+            item.get("discussion_id")
             for item in items
             if isinstance(item, dict)
         ]
@@ -1527,7 +1529,9 @@ def resolve_author_comment_response(
         for item in items:
             if not isinstance(item, dict):
                 continue
-            discussion_id = str(item.get("discussion_id") or "")
+            discussion_id = item.get("discussion_id")
+            if not isinstance(discussion_id, str):
+                continue
             if discussion_id in response_by_id:
                 duplicate_ids.add(discussion_id)
             else:
