@@ -261,7 +261,11 @@ function percentile(values, count, fraction) {
   const upperIndex = Math.ceil(position);
   const lower = valueAtIndex(values, lowerIndex);
   const upper = valueAtIndex(values, upperIndex);
-  return lower + (upper - lower) * (position - lowerIndex);
+  return (
+    Math.round(
+      (lower + (upper - lower) * (position - lowerIndex)) * 1000,
+    ) / 1000
+  );
 }
 
 function valueAtIndex(values, index) {
