@@ -605,6 +605,7 @@ class ClassificationServiceTest(unittest.TestCase):
         def classified(
             request: AuthorCommentModelRequest,
             _model: str,
+            _call_budget=None,
         ) -> tuple[ClassificationSuccess, ...]:
             return tuple(
                 author_comment_result(
@@ -722,6 +723,7 @@ class ClassificationServiceTest(unittest.TestCase):
         def classified(
             request: AuthorCommentModelRequest,
             _model: str,
+            _call_budget=None,
         ) -> tuple[ClassificationSuccess, ...]:
             return tuple(
                 author_comment_result(
@@ -878,6 +880,7 @@ class ClassificationServiceTest(unittest.TestCase):
         def classified(
             request: AuthorCommentModelRequest,
             _model: str,
+            _call_budget=None,
         ) -> tuple[ClassificationSuccess, ...]:
             return tuple(
                 author_comment_result(
@@ -1036,6 +1039,87 @@ class ClassificationServiceTest(unittest.TestCase):
                 self.assertEqual(result.diagnostics.stderr, stderr_text)
                 self.assertTrue(result.cli_call)
                 self.assertEqual(expected_calls, len(runner.requests))
+
+    def test_retry_preserves_valid_sibling_when_second_attempt_fails(self) -> None:
+        records = (
+            discussion_record("valid"),
+            discussion_record("missing"),
+        )
+        runner = FakeModelRunner((
+            RawModelResponse(
+                0,
+                '{"items":[{"discussion_id":"valid",'
+                '"verdict":"no_author_action","reason":"done"}]}',
+            ),
+            RawModelResponse(9, "", "retry failed"),
+        ))
+        cache = MemoryClassificationCacheStore()
+
+        results = ClassificationService(runner, cache).classify(
+            execution_request(top_level_items=records)
+        ).top_level_items
+
+        self.assertIsInstance(results[0], ClassificationSuccess)
+        self.assertIsInstance(results[1], ClassificationFailure)
+        self.assertEqual(len(cache.entries[123]), 1)
+        self.assertEqual(2, len(runner.requests))
+
+    def test_author_comment_retry_preserves_valid_sibling(self) -> None:
+        discussions = typed_discussions((
+            discussion_record(
+                "valid",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=(("feedback-valid", "Please fix this."),),
+            ),
+            discussion_record(
+                "missing",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=(("feedback-missing", "Please fix this."),),
+            ),
+        ))
+        request = make_author_comment_request(discussions)
+        first_response = successful_response(
+            ModelRunRequest(request.prompt, "model")
+        )
+        first_payload = json.loads(first_response.stdout)
+        first_response = RawModelResponse(
+            0,
+            json.dumps({"items": first_payload["items"][:1]}),
+        )
+        service = ClassificationService(
+            FakeModelRunner((first_response, RuntimeError("retry failed"))),
+            MemoryClassificationCacheStore(),
+        )
+
+        results = service._run_author_comment_request(request, "model")
+
+        self.assertIsInstance(results[0], ClassificationSuccess)
+        self.assertIsInstance(results[1], ClassificationFailure)
+
+    def test_author_comment_retries_do_not_exceed_model_call_budget(self) -> None:
+        records = tuple(
+            discussion_record(
+                f"reply-{index}",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=((f"feedback-{index}", "Please fix this."),),
+            )
+            for index in range(20)
+        )
+        runner = FakeModelRunner(
+            tuple(RawModelResponse(0, "not json") for _index in range(20))
+        )
+
+        ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+            batch_size=1,
+            max_author_comment_model_calls_per_pr=20,
+        ).classify(execution_request(author_comments=records))
+
+        self.assertEqual(20, len(runner.requests))
 
     def test_failed_items_are_retried_and_limits_apply_only_to_uncached_items(
         self,

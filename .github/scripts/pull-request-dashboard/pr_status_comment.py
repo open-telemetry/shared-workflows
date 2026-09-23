@@ -631,8 +631,7 @@ def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list
 
     pending_pr_numbers.remove(pr_number)
     rollout_state["pending_pr_numbers"] = pending_pr_numbers
-    if not missing:
-        record_delivered_status_intents(rollout_state, {pr_number})
+    record_delivered_status_intents(rollout_state, {pr_number})
     if not pending_pr_numbers:
         rollout_state["completed_revision"] = rollout_state["target_revision"]
     save_status_comment_rollout_state(rollout_state)
@@ -771,7 +770,10 @@ def update_status_comments_from_state(
     ] + [
         number for number in rollout_pr_numbers if number in deferred_pr_numbers
     ]
-    record_delivered_status_intents(rollout_state, successful_pr_numbers)
+    record_delivered_status_intents(
+        rollout_state,
+        successful_pr_numbers | missing_pr_numbers,
+    )
     pending = rollout_state["pending_pr_numbers"]
     if not pending:
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION
