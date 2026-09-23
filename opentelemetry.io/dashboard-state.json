@@ -1810,11 +1810,13 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "4dea362bd88546498f87a2eb70493000",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-23T00:28:13+00:00",
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9e06012f228c1103dafebe0713f9444f3f2a63fdb7192f6031b1f976e4fd892b",
+        "copilot_request_fingerprint": "278a10210fa78889395ecdac908d3ea0eadb7239d94af112d3254892a2655bac",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1830,8 +1832,8 @@
         "head_sha": "c952bd1b9e5b7fab530366e6e20f9e535daa0dcb",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T12:36:45+00:00",
-        "last_approver_activity_at": "2026-09-11T19:22:34+00:00",
+        "last_activity_at": "2026-09-23T00:44:34+00:00",
+        "last_approver_activity_at": "2026-09-23T00:44:34+00:00",
         "last_author_activity_at": "2026-09-22T12:36:45+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -1844,18 +1846,28 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "tiffany76",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "f826b76b703ab868409fe49b55810fb5697c9c4ac60de7016118b346788b2170",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-14T14:22:31+00:00"
+        "routing_input_fingerprint": "e5e5ef1ae62a32650f25751f3eb17db0356dcc723eac510f6ba3686e0a27178e",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-23T00:28:13+00:00"
       },
       "failed": false,
       "pr_number": 11573,
       "pr_url": "https://github.com/open-telemetry/opentelemetry.io/pull/11573",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "11575": {
