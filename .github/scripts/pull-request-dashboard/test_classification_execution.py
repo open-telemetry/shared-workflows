@@ -1245,6 +1245,41 @@ class ClassificationServiceTest(unittest.TestCase):
 
         self.assertEqual(20, len(runner.requests))
 
+    def test_author_comment_fallback_reserves_every_initial_attempt(self) -> None:
+        records = tuple(
+            discussion_record(
+                f"reply-{index}",
+                DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+                actor_role="author",
+                candidate_feedback=((f"feedback-{index}", "Please fix this."),),
+            )
+            for index in range(3)
+        )
+        runner = FakeModelRunner(
+            tuple(RawModelResponse(0, "not json") for _index in range(3))
+        )
+        service = ClassificationService(
+            runner,
+            MemoryClassificationCacheStore(),
+            batch_size=1,
+            max_author_comment_model_calls_per_pr=3,
+        )
+
+        with patch.object(
+            ClassificationService,
+            "_author_comment_execution_batches",
+            return_value=None,
+        ):
+            service.classify(execution_request(author_comments=records))
+
+        self.assertEqual(
+            [["reply-0"], ["reply-1"], ["reply-2"]],
+            [
+                [item["discussion_id"] for item in prompt_items(request)]
+                for request in runner.requests
+            ],
+        )
+
     def test_failed_items_are_retried_and_limits_apply_only_to_uncached_items(
         self,
     ) -> None:

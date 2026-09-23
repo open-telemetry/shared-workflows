@@ -706,13 +706,15 @@ class ClassificationService:
         if author_comment:
             execution_plan = self._author_comment_execution_batches(uncached)
             if execution_plan is None:
-                prepared_requests_by_batch = [
-                    (
-                        uncached[offset:offset + self.batch_size],
-                        None,
-                    )
-                    for offset in range(0, len(uncached), self.batch_size)
-                ]
+                for offset in range(0, len(uncached), self.batch_size):
+                    batch = uncached[offset:offset + self.batch_size]
+                    try:
+                        requests = self._author_comment_requests(
+                            tuple(discussion for discussion, _key in batch)
+                        )
+                    except ValueError:
+                        requests = None
+                    prepared_requests_by_batch.append((batch, requests))
             else:
                 execution_batches, deferred = execution_plan
                 for discussion in deferred:
