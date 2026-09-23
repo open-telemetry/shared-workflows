@@ -1,0 +1,20 @@
+{
+  "schema": {
+    "id": "github.copilot.copilot-review-loop-decision-report",
+    "version": 3
+  },
+  "decisions": [
+    {
+      "finding_id": "finding-78663d30cdaf632ff3356fa3",
+      "disposition": "no_change",
+      "reason": "The frozen source head already rejects non-round-tripping calendar dates and restores the default range.",
+      "proposed_reply": "Already addressed: date parameters must round-trip through UTC parsing before they are accepted."
+    },
+    {
+      "finding_id": "finding-922083f310a5be92927a2c26",
+      "disposition": "no_change",
+      "reason": "The frozen source head already uses the unrounded seconds value for summaries, hourly data, and chart tooltips.",
+      "proposed_reply": "Already addressed: displayed percentile values preserve their underlying precision in seconds."
+    }
+  ]
+}
