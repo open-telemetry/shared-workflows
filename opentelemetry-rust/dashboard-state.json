@@ -706,12 +706,11 @@
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "79c6a0124601489d865f511344754eba",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "60d369ac9c4b338167bc40ab5bbde70a7027a50280c8ec7787f6e3858351002c",
+        "copilot_request_fingerprint": "ebaf209ae937d37bd661bca35fd0d78c35afa40e46f99c68dabf1ac514aa1aad",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -730,7 +729,7 @@
         "last_activity_at": "2026-09-23T11:32:02+00:00",
         "last_approver_activity_at": "2026-07-21T23:42:40+00:00",
         "last_author_activity_at": "2026-09-23T11:32:02+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -753,17 +752,16 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-23T11:32:09.044228+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d6660a425b629302ebb92e5bc028b53a5cb9d306011b208e9a266211f2e37df0",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-23T09:40:18+00:00"
+        "routing_input_fingerprint": "55cab130cabddacdbc1d1607882fbae9fc972ec531484cd42b3ac22814b0133a",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-23T11:36:23.808472+00:00"
       },
       "failed": false,
       "pr_number": 3460,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-rust/pull/3460",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {
         "pr-issue-comment-4418002736": {
           "evidence": {
