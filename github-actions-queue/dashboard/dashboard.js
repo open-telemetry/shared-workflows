@@ -8,6 +8,7 @@ const PERCENTILES = {
 };
 const elements = {
   chart: document.querySelector("#chart"),
+  dataBody: document.querySelector("#hourly-data-body"),
   status: document.querySelector("#chart-status"),
   host: document.querySelector("#runner-host"),
   label: document.querySelector("#runner-label"),
@@ -285,11 +286,14 @@ function renderChart() {
   const tickStep = niceStep(maxValue / 4);
   const maxAxis = Math.ceil(maxValue / tickStep) * tickStep;
   const y = (value) => top + ((maxAxis - value) / maxAxis) * plotHeight;
+  const timestamps = selectedRows.map((row) => Date.parse(row.hour));
+  const firstTimestamp = timestamps[0];
+  const elapsed = timestamps.at(-1) - firstTimestamp;
   const x = (index) =>
     left +
-    (selectedRows.length === 1
+    (elapsed === 0
       ? plotWidth / 2
-      : (index / (selectedRows.length - 1)) * plotWidth);
+      : ((timestamps[index] - firstTimestamp) / elapsed) * plotWidth);
   const ticks = Array.from(
     { length: Math.round(maxAxis / tickStep) + 1 },
     (_, index) => tickStep * index,
@@ -347,9 +351,38 @@ function renderRangeSummary() {
   elements.rangeP99.textContent = formatDuration(selectedSummary?.p99);
 }
 
+function renderAccessibleData() {
+  const rows = selectedRows.map((row) => {
+    const tableRow = document.createElement("tr");
+    for (const value of [
+      row.hour,
+      row.count.toLocaleString(),
+      formatDuration(row.p50),
+      formatDuration(row.p90),
+      formatDuration(row.p95),
+      formatDuration(row.p99),
+    ]) {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      tableRow.append(cell);
+    }
+    return tableRow;
+  });
+  if (!rows.length) {
+    const tableRow = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
+    cell.textContent = "No queue measurements match these filters.";
+    tableRow.append(cell);
+    rows.push(tableRow);
+  }
+  elements.dataBody.replaceChildren(...rows);
+}
+
 function render() {
   renderRangeSummary();
   renderChart();
+  renderAccessibleData();
   if (selectedRows.length) {
     elements.status.textContent =
       `${selectedRows[0].hour} through ${selectedRows.at(-1).hour}`;

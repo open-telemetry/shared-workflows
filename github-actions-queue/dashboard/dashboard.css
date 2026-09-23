@@ -259,6 +259,39 @@ svg {
   fill: var(--cp-danger);
 }
 
+.hourly-data {
+  margin-top: 16px;
+}
+
+.hourly-data summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.table-scroll {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.hourly-data table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.hourly-data caption {
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.hourly-data th,
+.hourly-data td {
+  padding: 8px;
+  border-bottom: 1px solid var(--cp-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
 footer {
   display: flex;
   flex-wrap: wrap;
