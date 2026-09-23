@@ -1158,7 +1158,7 @@
     },
     "7809": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1166,9 +1166,9 @@
         "author_can_act": false,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "884bf87f1df341b90ab5616b04e4905ce24f4a55d086f999346d66e7a7ff18cb",
+        "copilot_request_fingerprint": "43bd698fdcfe8308e3eef8b0d29748be037a72cf2358775a21f3e9d096833cd7",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1184,21 +1184,32 @@
         "head_sha": "c532d5d70cac3724303aa43bf79e2f44cc524ea4",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-23T09:22:15+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-23T09:33:24+00:00",
+        "last_approver_activity_at": "2026-09-23T09:33:24+00:00",
         "last_author_activity_at": "",
-        "required_checks_settled": false,
-        "reviewers": [],
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0f7f00d32c0b53715c839be07729265f4fba2cb25b1a797c86d04d6f8e2016de",
+        "routing_input_fingerprint": "42916ea39e568402bf4ac6c851e5371a54c9a8650d0f3fe933cd95a636a46e6a",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-23T09:22:15+00:00"
       },
       "failed": false,
       "pr_number": 7809,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet/pull/7809",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "7810": {
