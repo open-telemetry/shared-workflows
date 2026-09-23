@@ -21,21 +21,50 @@ def filter_rerun_carry_forwards(
     for job in jobs:
         if not _has_negative_queue(job):
             continue
-        attempt = job.get("run_attempt")
-        candidates = [
-            original
-            for original in originals[_execution_fingerprint(job)]
-            if _attempt(original) < _attempt_value(attempt)
-        ]
-        if len(candidates) != 1:
-            raise CarryForwardError(
-                f"job {job.get('id')} has negative queue time and "
-                f"{len(candidates)} matching earlier executions"
-            )
+        _verified_original(job, originals[_execution_fingerprint(job)])
         removed.append(job)
 
     removed_ids = {id(job) for job in removed}
     return [job for job in jobs if id(job) not in removed_ids], removed
+
+
+def _verified_original(
+    job: dict[str, Any], originals: list[dict[str, Any]]
+) -> dict[str, Any]:
+    attempt = _attempt_value(job.get("run_attempt"))
+    earlier = [original for original in originals if _attempt(original) < attempt]
+    candidates = [
+        original
+        for original in earlier
+        if original.get("completed_at") == job.get("completed_at")
+    ]
+    if not candidates:
+        # An unchanged execution can have a one-second completion timestamp drift.
+        candidates = [
+            original
+            for original in earlier
+            if _completion_difference_seconds(original, job) <= 1
+        ]
+    if len(candidates) != 1:
+        raise CarryForwardError(
+            f"job {job.get('id')} has negative queue time and "
+            f"{len(candidates)} matching earlier executions"
+        )
+    return candidates[0]
+
+
+def _completion_difference_seconds(
+    original: dict[str, Any], job: dict[str, Any]
+) -> float:
+    original_completed = original.get("completed_at")
+    job_completed = job.get("completed_at")
+    if not original_completed or not job_completed:
+        return float("inf")
+    return abs(
+        (
+            _parse_instant(original_completed) - _parse_instant(job_completed)
+        ).total_seconds()
+    )
 
 
 def _execution_fingerprint(job: dict[str, Any]) -> tuple[Any, ...]:
@@ -47,7 +76,6 @@ def _execution_fingerprint(job: dict[str, Any]) -> tuple[Any, ...]:
     return (
         job.get("name"),
         job.get("started_at"),
-        job.get("completed_at"),
         job.get("conclusion"),
         job.get("runner_name"),
         job.get("runner_group_name"),

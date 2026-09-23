@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 import tempfile
+import tracemalloc
 import unittest
 from pathlib import Path
 
@@ -164,6 +165,24 @@ class CarryForwardFilterTest(unittest.TestCase):
                 [self.original, duplicate_original, self.clone]
             )
 
+    def test_accepts_one_second_completion_drift_for_unique_original(self):
+        clone = dict(self.clone, completed_at="2026-09-18T11:28:17Z")
+
+        kept, removed = filter_rerun_carry_forwards([self.original, clone])
+
+        self.assertEqual([1], [item["id"] for item in kept])
+        self.assertEqual([2], [item["id"] for item in removed])
+
+    def test_rejects_drift_without_unique_original(self):
+        clone = dict(self.clone, completed_at="2026-09-18T11:28:17Z")
+        duplicate = dict(self.original, id=5)
+        with self.assertRaisesRegex(CarryForwardError, "2 matching earlier"):
+            filter_rerun_carry_forwards([self.original, duplicate, clone])
+
+        clone["completed_at"] = "2026-09-18T11:28:18Z"
+        with self.assertRaisesRegex(CarryForwardError, "0 matching earlier"):
+            filter_rerun_carry_forwards([self.original, clone])
+
 
 class CarryForwardMigrationTest(unittest.TestCase):
     def setUp(self):
@@ -258,6 +277,22 @@ class CarryForwardMigrationTest(unittest.TestCase):
             self.assertEqual(1, summary["carry_forward_records_removed"])
             self.assertEqual(1, summary["files_changed"])
 
+    def test_migrates_clone_with_one_second_completion_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jobs = Path(directory) / "jobs"
+            path = jobs / "date=2026-09-18" / "collection-1.jsonl.gz"
+            clone = dict(self.clone, completed_at="2026-09-18T11:28:17Z")
+            write_collection(path, [record(self.original), record(clone)])
+
+            summary = migrate_collections(jobs)
+
+            with gzip.open(path, "rt", encoding="utf-8") as source:
+                self.assertEqual(
+                    [record(self.original)],
+                    [json.loads(line) for line in source],
+                )
+            self.assertEqual(1, summary["carry_forward_records_removed"])
+
     def test_rejects_duplicate_job_ids_before_rewriting(self):
         with tempfile.TemporaryDirectory() as directory:
             jobs = Path(directory) / "jobs"
@@ -271,6 +306,60 @@ class CarryForwardMigrationTest(unittest.TestCase):
                 "duplicate job_id in collections: 1",
             ):
                 migrate_collections(jobs)
+
+    def test_rejects_negative_queue_value_without_negative_interval(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jobs = Path(directory) / "jobs"
+            first = jobs / "date=2026-09-18" / "collection-1.jsonl.gz"
+            second = jobs / "date=2026-09-18" / "collection-2.jsonl.gz"
+            write_collection(first, [runnerless_record(3)])
+            inconsistent = dict(record(self.original), job_id=4, queue_seconds=-1)
+            write_collection(second, [inconsistent])
+            original_bytes = first.read_bytes()
+
+            with self.assertRaisesRegex(
+                CarryForwardError,
+                "negative records that are not verified carry-forwards",
+            ):
+                migrate_collections(jobs)
+
+            self.assertEqual(original_bytes, first.read_bytes())
+
+    def test_matches_only_originals_in_the_same_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jobs = Path(directory) / "jobs"
+            first = jobs / "date=2026-09-18" / "collection-1.jsonl.gz"
+            second = jobs / "date=2026-09-18" / "collection-2.jsonl.gz"
+            write_collection(first, [dict(record(self.original), run_id=11)])
+            write_collection(second, [record(self.clone)])
+
+            with self.assertRaisesRegex(
+                CarryForwardError,
+                "0 matching earlier executions",
+            ):
+                migrate_collections(jobs)
+
+    def test_large_collection_does_not_load_all_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jobs = Path(directory) / "jobs"
+            path = jobs / "date=2026-09-18" / "collection-1.jsonl.gz"
+            template = runnerless_record(1)
+            template["extra"] = "x" * 4096
+            write_collection(
+                path,
+                [dict(template, job_id=job_id) for job_id in range(1, 5001)],
+            )
+
+            tracemalloc.start()
+            try:
+                summary = migrate_collections(jobs)
+                _, peak = tracemalloc.get_traced_memory()
+            finally:
+                tracemalloc.stop()
+
+            self.assertEqual(5000, summary["records_scanned"])
+            self.assertEqual(5000, summary["runnerless_records_removed"])
+            self.assertLess(peak, 8 * 1024 * 1024)
 
 
 class MigrationWorkflowContractTest(unittest.TestCase):
@@ -291,6 +380,14 @@ class MigrationWorkflowContractTest(unittest.TestCase):
         )
         self.assertIn(
             'rm -f "$DATA_DIRECTORY/report-state.json.gz"',
+            workflow,
+        )
+        self.assertIn(
+            'max_runtime_seconds=1800',
+            workflow,
+        )
+        self.assertIn(
+            '--max-runtime-seconds "$max_runtime_seconds"',
             workflow,
         )
         self.assertIn(

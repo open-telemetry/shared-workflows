@@ -5,24 +5,27 @@ import gzip
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
-from rerun_carry_forwards import CarryForwardError, filter_rerun_carry_forwards
+from rerun_carry_forwards import (
+    CarryForwardError,
+    _execution_fingerprint,
+    _queue_interval,
+    _verified_original,
+)
 
 
 def migrate_collections(jobs_dir: Path) -> dict[str, int]:
-    plans: list[tuple[Path, list[bytes], int, int]] = []
     files = sorted(jobs_dir.rglob("*.jsonl.gz")) if jobs_dir.exists() else []
-    collections: list[tuple[Path, list[bytes], list[dict[str, Any]]]] = []
     records_scanned = 0
     seen_job_ids: set[int] = set()
+    negative_ids: set[int] = set()
+    negative_jobs: list[tuple[Path, tuple[Any, ...], dict[str, Any]]] = []
+    runnerless_counts: dict[Path, int] = defaultdict(int)
 
     for path in files:
-        lines = _read_lines(path)
-        records = [_read_record(path, line) for line in lines]
-        collections.append((path, lines, records))
-        records_scanned += len(records)
-        for record in records:
+        for _, record in _iter_records(path):
+            records_scanned += 1
             job_id = record.get("job_id")
             if isinstance(job_id, bool) or not isinstance(job_id, int):
                 raise CarryForwardError(
@@ -35,79 +38,70 @@ def migrate_collections(jobs_dir: Path) -> dict[str, int]:
                 raise CarryForwardError(
                     f"{path} has a record without boolean runner_assigned"
                 )
+            if not record["runner_assigned"]:
+                runnerless_counts[path] += 1
+            if _is_negative_queue(record.get("queue_seconds")):
+                negative_ids.add(job_id)
+            job = _as_api_job(record)
+            if (interval := _queue_interval(job)) is not None and interval < 0:
+                negative_jobs.append((path, _run_key(record), job))
 
-    all_records = [
-        record for _, _, records in collections for record in records
-    ]
-    carry_forward_ids = _carry_forward_ids(all_records)
-    negative_ids = {
-        record["job_id"]
-        for record in all_records
-        if _is_negative_queue(record.get("queue_seconds"))
-    }
+    del seen_job_ids
+    negative_by_fingerprint: dict[
+        tuple[Any, ...], list[tuple[Path, dict[str, Any]]]
+    ] = defaultdict(list)
+    for path, run_key, job in negative_jobs:
+        negative_by_fingerprint[run_key + _execution_fingerprint(job)].append(
+            (path, job)
+        )
+    del negative_jobs
+
+    originals: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
+    for path in files:
+        for _, record in _iter_records(path):
+            job = _as_api_job(record)
+            interval = _queue_interval(job)
+            if interval is not None and interval >= 0:
+                fingerprint = _run_key(record) + _execution_fingerprint(job)
+                if fingerprint in negative_by_fingerprint:
+                    originals[fingerprint].append(job)
+
+    carry_forward_ids: set[int] = set()
+    carry_forward_counts: dict[Path, int] = defaultdict(int)
+    for fingerprint, negatives in negative_by_fingerprint.items():
+        for path, job in negatives:
+            _verified_original(job, originals.get(fingerprint, []))
+            carry_forward_ids.add(job["id"])
+            carry_forward_counts[path] += 1
     if carry_forward_ids != negative_ids:
         raise CarryForwardError(
             "collections have negative records that are not verified carry-forwards"
         )
 
-    for path, lines, records in collections:
-        file_carry_forward_ids = {
-            record["job_id"]
-            for record in records
-            if record["job_id"] in carry_forward_ids
-        }
-        runnerless_ids = {
-            record["job_id"]
-            for record in records
-            if not record["runner_assigned"]
-        }
-        removed_ids = file_carry_forward_ids | runnerless_ids
-        if removed_ids:
-            kept_lines = [
-                line
-                for line, record in zip(lines, records, strict=True)
-                if record.get("job_id") not in removed_ids
-            ]
-            plans.append(
-                (
-                    path,
-                    kept_lines,
-                    len(file_carry_forward_ids),
-                    len(runnerless_ids),
-                )
-            )
-
-    for path, lines, _, _ in plans:
-        _write_lines(path, lines)
+    for path in files:
+        if carry_forward_counts[path] or runnerless_counts[path]:
+            _rewrite_collection(path, carry_forward_ids)
 
     return {
-        "carry_forward_records_removed": sum(plan[2] for plan in plans),
-        "files_changed": len(plans),
+        "carry_forward_records_removed": sum(carry_forward_counts.values()),
+        "files_changed": sum(
+            bool(carry_forward_counts[path] or runnerless_counts[path])
+            for path in files
+        ),
         "files_scanned": len(files),
-        "records_removed": sum(plan[2] + plan[3] for plan in plans),
+        "records_removed": sum(carry_forward_counts.values())
+        + sum(runnerless_counts.values()),
         "records_scanned": records_scanned,
-        "runnerless_records_removed": sum(plan[3] for plan in plans),
+        "runnerless_records_removed": sum(runnerless_counts.values()),
     }
 
 
-def _carry_forward_ids(
-    records: list[dict[str, Any]],
-) -> set[int]:
-    runs: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
-    for record in records:
-        runs[
-            (
-                record.get("organization"),
-                record.get("repository"),
-                record.get("run_id"),
-            )
-        ].append(_as_api_job(record))
-
-    removed_ids = set()
-    for jobs in runs.values():
-        _, removed = filter_rerun_carry_forwards(jobs)
-        removed_ids.update(job["id"] for job in removed)
-    return removed_ids
+def _run_key(record: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        record.get("organization"),
+        record.get("repository"),
+        record.get("run_id"),
+    )
 
 
 def _as_api_job(record: dict[str, Any]) -> dict[str, Any]:
@@ -133,10 +127,12 @@ def _is_negative_queue(value: Any) -> bool:
     )
 
 
-def _read_lines(path: Path) -> list[bytes]:
+def _iter_records(path: Path) -> Iterator[tuple[bytes, dict[str, Any]]]:
     try:
         with gzip.open(path, "rb") as source:
-            return source.read().splitlines()
+            for line in source:
+                line = line.rstrip(b"\r\n")
+                yield line, _read_record(path, line)
     except OSError as error:
         raise ValueError(f"unable to read collection {path}: {error}") from error
 
@@ -151,14 +147,21 @@ def _read_record(path: Path, line: bytes) -> dict[str, Any]:
     return record
 
 
-def _write_lines(path: Path, lines: list[bytes]) -> None:
+def _rewrite_collection(path: Path, removed_ids: set[int]) -> None:
     temporary = path.with_suffix(f"{path.suffix}.tmp")
-    with temporary.open("wb") as raw:
-        with gzip.GzipFile(fileobj=raw, mode="wb", mtime=0) as compressed:
-            for line in lines:
-                compressed.write(line)
-                compressed.write(b"\n")
-    temporary.replace(path)
+    try:
+        with temporary.open("wb") as raw:
+            with gzip.GzipFile(fileobj=raw, mode="wb", mtime=0) as compressed:
+                for line, record in _iter_records(path):
+                    if (
+                        record["runner_assigned"]
+                        and record["job_id"] not in removed_ids
+                    ):
+                        compressed.write(line)
+                        compressed.write(b"\n")
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def main() -> None:
