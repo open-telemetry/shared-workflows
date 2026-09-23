@@ -92,9 +92,9 @@ function restoreFiltersFromQuery() {
 }
 
 function isValidDate(value) {
-  const date =
-    /^\d{4}-\d{2}-\d{2}$/.test(value || "") &&
-    new Date(`${value}T00:00:00Z`);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value || "")
+    ? new Date(`${value}T00:00:00Z`)
+    : undefined;
   return (
     manifest.dates.length > 0 &&
     Number.isFinite(date?.getTime()) &&
