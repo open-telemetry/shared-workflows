@@ -670,14 +670,24 @@
         "approval_count": 1,
         "assignees": [],
         "author": "simonepri",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#discussion_r4080088646",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#discussion_r4080102230",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#discussion_r4080141901",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#discussion_r4080207451"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#issuecomment-5654430906",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#issuecomment-5694388628",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801#pullrequestreview-5288147986"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "70ef12de601a49fd831d72473a6694c4",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "31e24d7e4dbad1d82404b1128f0cdbf0804dac91ce3e2a227292a75f1a7cd51e",
+        "copilot_request_fingerprint": "eb0f97f16f300505682b2926c42d93393f11987da31e4faf7ab6871f6cf60c8a",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -693,8 +703,8 @@
         "head_sha": "595aa4bfaeac0e8814c7c3a3daf14d4b781be150",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T17:02:48+00:00",
-        "last_approver_activity_at": "2026-09-22T14:58:07+00:00",
+        "last_activity_at": "2026-09-23T07:54:08+00:00",
+        "last_approver_activity_at": "2026-09-23T07:54:08+00:00",
         "last_author_activity_at": "2026-09-22T17:02:48+00:00",
         "required_checks_settled": true,
         "reviewers": [
@@ -703,10 +713,10 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "fabled",
-            "open_thread": false,
+            "open_thread": true,
             "pending_review": false,
-            "top_level_feedback": false,
-            "unresolved_thread": false
+            "top_level_feedback": true,
+            "unresolved_thread": true
           },
           {
             "approved": false,
@@ -725,7 +735,7 @@
             "login": "rockdaboot",
             "open_thread": false,
             "pending_review": true,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           },
           {
@@ -735,33 +745,21 @@
             "login": "rogercoll",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": false,
+            "top_level_feedback": true,
             "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c6926cdc40e99b8bac744740f25e22afc976bf85340d45edd0a5359622435b18",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-22T17:02:48+00:00"
+        "routing_input_fingerprint": "31442f98adb6ac5ccb460e1d50a98efdc348af89edc7d20f526c328c96bea732",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-16T08:22:33+00:00"
       },
       "failed": false,
       "pr_number": 1801,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1801",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {
-        "pr-issue-comment-5654430906": {
-          "evidence": {
-            "reply": "2026-09-14T19:56:33Z"
-          },
-          "reply_source_id": 5669955497
-        },
-        "pr-issue-comment-5694388628": {
-          "evidence": {
-            "reply": "2026-09-22T17:02:48Z"
-          },
-          "reply_source_id": 5780630133
-        },
         "pr-issue-comment-5758356799": {
           "evidence": {
             "reply": "2026-09-21T15:25:42Z"
