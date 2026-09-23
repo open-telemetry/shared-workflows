@@ -617,12 +617,10 @@ def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list
     )
     if pr_number not in pending_pr_numbers:
         return []
-    missing = False
     try:
         publish_pr_status(repo, pr_number, dashboard_state)
     except StatusCommentTargetMissing as e:
         print(e, file=sys.stderr)
-        missing = True
     except StatusCommentDeferred as e:
         print(e, file=sys.stderr)
         return []
