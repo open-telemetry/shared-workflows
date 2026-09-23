@@ -1,0 +1,14 @@
+{
+  "schema": {
+    "id": "github.copilot.copilot-review-loop-decision-report",
+    "version": 3
+  },
+  "decisions": [
+    {
+      "finding_id": "finding-111afe8d485a5020a15744d0",
+      "disposition": "no_change",
+      "reason": "The frozen source already records consumed intent revisions for both successful and confirmed-missing targets, with regression coverage for this behavior.",
+      "proposed_reply": "Already addressed: confirmed-missing targets now receive intent receipts and are not reconstructed as pending on later delivery runs."
+    }
+  ]
+}
