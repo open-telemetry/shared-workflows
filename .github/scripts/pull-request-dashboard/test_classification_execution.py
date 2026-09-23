@@ -395,6 +395,49 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertIsInstance(result[0], ClassificationFailure)
         self.assertEqual(2, len(runner.requests))
 
+    def test_retry_preserves_successful_sibling(self) -> None:
+        records = (
+            discussion_record("successful"),
+            discussion_record("missing"),
+        )
+        discussions = tuple(
+            ClassificationDiscussion.from_record(record) for record in records
+        )
+        first_response = RawModelResponse(
+            0,
+            json.dumps({
+                "items": [{
+                    "discussion_id": "successful",
+                    "verdict": "no_author_action",
+                    "reason": "done",
+                }]
+            }),
+            "",
+        )
+        retry_outcomes = (
+            RawModelResponse(1, "", "retry failed"),
+            RuntimeError("retry raised"),
+        )
+
+        for retry_outcome in retry_outcomes:
+            with self.subTest(retry_outcome=type(retry_outcome).__name__):
+                cache = MemoryClassificationCacheStore()
+                runner = FakeModelRunner((first_response, retry_outcome))
+                results = ClassificationService(
+                    runner,
+                    cache,
+                ).classify_reviewer_feedback(
+                    ReviewerFeedbackClassificationRequest(
+                        123,
+                        "model",
+                        discussions,
+                    )
+                )
+
+                self.assertIsInstance(results[0], ClassificationSuccess)
+                self.assertIsInstance(results[1], ClassificationFailure)
+                self.assertEqual(1, len(cache.entries[123]))
+
     def test_nonzero_exit_with_valid_output_is_not_retried(self) -> None:
         def responder(request: ModelRunRequest) -> RawModelResponse:
             response = successful_response(request)
@@ -556,18 +599,18 @@ class ClassificationServiceTest(unittest.TestCase):
             execution_request(author_comments=records)
         ).top_level_author_comments
 
-        self.assertEqual(len(runner.requests), 2)
+        self.assertEqual(len(runner.requests), 1)
         self.assertEqual(
             [item.deferred for item in result],
-            [False, False, True],
+            [False, True, True],
         )
-        self.assertIsInstance(result[2], ClassificationDeferred)
-        assert isinstance(result[2].decision, AuthorCommentDecision)
+        self.assertIsInstance(result[1], ClassificationDeferred)
+        assert isinstance(result[1].decision, AuthorCommentDecision)
         self.assertEqual(
-            result[2].decision.reason,
+            result[1].decision.reason,
             "Deferred by per-PR classification limit",
         )
-        self.assertEqual(len(cache.entries[123]), 2)
+        self.assertEqual(len(cache.entries[123]), 1)
 
     def test_author_comment_budget_skips_overflow_and_retries_it(self) -> None:
         request_counts = {
@@ -639,7 +682,7 @@ class ClassificationServiceTest(unittest.TestCase):
                     for result in first
                     if not result.deferred
                 ],
-                ["expensive-1", "expensive-2", "cheap"],
+                ["expensive-1"],
             )
             self.assertEqual(
                 [
@@ -647,14 +690,14 @@ class ClassificationServiceTest(unittest.TestCase):
                     for result in first
                     if result.deferred
                 ],
-                ["overflow-1", "overflow-2"],
+                ["expensive-2", "overflow-1", "cheap", "overflow-2"],
             )
-            self.assertEqual(run_author_request.call_count, 20)
+            self.assertEqual(run_author_request.call_count, 10)
             self.assertEqual(
                 [result.cli_call for result in first],
-                [True, True, False, True, False],
+                [True, False, False, False, False],
             )
-            self.assertEqual(len(cache.entries[123]), 3)
+            self.assertEqual(len(cache.entries[123]), 1)
             self.assertEqual(
                 sum(
                     bool(record.get("deferred"))
@@ -674,18 +717,18 @@ class ClassificationServiceTest(unittest.TestCase):
                 call.args[0].identity.discussion_id
                 for call in prepare_discussion.call_args_list
             ],
-            ["overflow-1", "overflow-2"],
+            ["expensive-2", "overflow-1", "cheap", "overflow-2"],
         )
-        self.assertEqual(run_author_request.call_count, 4)
+        self.assertEqual(run_author_request.call_count, 10)
         self.assertEqual(
             [result.deferred for result in second],
-            [False] * 5,
+            [False, False, True, True, True],
         )
         self.assertEqual(
             [result.identity.discussion_id for result in second],
             list(request_counts),
         )
-        self.assertEqual(len(cache.entries[123]), 5)
+        self.assertEqual(len(cache.entries[123]), 2)
 
     def test_oversized_first_author_comment_does_not_block_later_items(
         self,
@@ -908,7 +951,7 @@ class ClassificationServiceTest(unittest.TestCase):
                 execution_request(author_comments=records)
             ).top_level_author_comments
 
-        self.assertEqual(run_author_request.call_count, 3)
+        self.assertEqual(run_author_request.call_count, 1)
         self.assertEqual(
             [
                 [
@@ -917,15 +960,11 @@ class ClassificationServiceTest(unittest.TestCase):
                 ]
                 for call in run_author_request.call_args_list
             ],
-            [
-                ["reply-0"],
-                ["reply-0"],
-                [f"reply-{index}" for index in range(10)],
-            ],
+            [[f"reply-{index}" for index in range(1, 11)]],
         )
         self.assertEqual(
             [result.deferred for result in results],
-            [False] * 10 + [True],
+            [True] + [False] * 10,
         )
 
     def test_author_comment_chunks_count_toward_budget_and_combine_attribution(

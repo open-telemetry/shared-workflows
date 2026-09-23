@@ -406,6 +406,7 @@ class ClassificationService:
                 plans,
                 max_model_calls=(
                     self.max_author_comment_model_calls_per_pr
+                    // INVALID_CLASSIFICATION_ATTEMPTS
                 ),
                 classification_batch_size=self.batch_size,
                 request_batch_size=self.batch_size,
@@ -452,14 +453,23 @@ class ClassificationService:
         request: VerdictModelRequest,
         model: str,
     ) -> tuple[ClassificationResult, ...]:
+        previous_results: tuple[ClassificationResult, ...] | None = None
         for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
-            response = self.runner.run(ModelRunRequest(request.prompt, model))
+            try:
+                response = self.runner.run(ModelRunRequest(request.prompt, model))
+            except Exception:
+                if previous_results is not None:
+                    return previous_results
+                raise
             results = resolve_verdict_response(request, response)
+            if previous_results is not None:
+                results = self._merge_retry_results(previous_results, results)
             if (
                 attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
                 or not self._has_invalid_response(results)
             ):
                 return results
+            previous_results = results
         raise AssertionError("classification retry loop did not return")
 
     def _run_author_comment_request(
@@ -467,15 +477,42 @@ class ClassificationService:
         request: AuthorCommentModelRequest,
         model: str,
     ) -> tuple[ClassificationResult, ...]:
+        previous_results: tuple[ClassificationResult, ...] | None = None
         for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
-            response = self.runner.run(ModelRunRequest(request.prompt, model))
+            try:
+                response = self.runner.run(ModelRunRequest(request.prompt, model))
+            except Exception:
+                if previous_results is not None:
+                    return previous_results
+                raise
             results = resolve_author_comment_response(request, response)
+            if previous_results is not None:
+                results = self._merge_retry_results(previous_results, results)
             if (
                 attempt + 1 == INVALID_CLASSIFICATION_ATTEMPTS
                 or not self._has_invalid_response(results)
             ):
                 return results
+            previous_results = results
         raise AssertionError("classification retry loop did not return")
+
+    @staticmethod
+    def _merge_retry_results(
+        previous_results: tuple[ClassificationResult, ...],
+        retry_results: tuple[ClassificationResult, ...],
+    ) -> tuple[ClassificationResult, ...]:
+        retry_by_id = {
+            result.identity.discussion_id: result for result in retry_results
+        }
+        return tuple(
+            (
+                retry_by_id[result.identity.discussion_id]
+                if isinstance(result, ClassificationFailure)
+                and result.diagnostics.invalid_response
+                else result
+            )
+            for result in previous_results
+        )
 
     @staticmethod
     def _has_invalid_response(

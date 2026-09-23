@@ -1390,8 +1390,8 @@ class RolloutStateTest(unittest.TestCase):
         self.assertEqual([], saved_state["pending_pr_numbers"])
         self.assertEqual(12, saved_state["completed_revision"])
         self.assertEqual(
-            {},
-            saved_state.get("delivered_intent_revisions", {}),
+            {"34": "snapshot-b"},
+            saved_state["delivered_intent_revisions"],
         )
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
@@ -1680,6 +1680,10 @@ class RolloutStateTest(unittest.TestCase):
             "target_revision": 0,
             "completed_revision": 0,
             "pending_pr_numbers": [],
+            "_accepted_intent_revisions": {
+                "12": "snapshot-a",
+                "34": "snapshot-b",
+            },
         },
     )
     def test_missing_pr_is_discarded_and_rollout_continues(
@@ -1704,6 +1708,10 @@ class RolloutStateTest(unittest.TestCase):
         self.assertEqual(
             pr_status_comment.STATUS_COMMENT_REVISION,
             saved_state["completed_revision"],
+        )
+        self.assertEqual(
+            {"12": "snapshot-a", "34": "snapshot-b"},
+            saved_state["delivered_intent_revisions"],
         )
 
     @patch.object(pr_status_comment, "save_status_comment_rollout_state")
