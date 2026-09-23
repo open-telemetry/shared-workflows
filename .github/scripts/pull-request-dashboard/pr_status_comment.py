@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 from github_cli import (
+    GhNotFoundError,
     gh_api,
     run_gh,
 )
@@ -68,6 +69,10 @@ RESPONSE_EXAMPLES = "(e.g. link a commit, explain why not, ask a follow-up)"
 
 
 class StatusCommentDeferred(Exception):
+    pass
+
+
+class StatusCommentTargetMissing(Exception):
     pass
 
 
@@ -579,7 +584,12 @@ def publish_pr_status(
     pr_number: int,
     dashboard_state: DashboardState,
 ) -> None:
-    pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
+    try:
+        pr = gh_api(f"/repos/{repo}/pulls/{pr_number}")
+    except GhNotFoundError as error:
+        raise StatusCommentTargetMissing(
+            f"PR #{pr_number} does not exist"
+        ) from error
     result = dashboard_state.result_for(pr_number)
     terminal = is_terminal_pr(pr)
     # A terminal status only exists to move an already published comment to its
@@ -609,6 +619,8 @@ def update_targeted_status_comment_from_state(repo: str, pr_number: int) -> list
         return []
     try:
         publish_pr_status(repo, pr_number, dashboard_state)
+    except StatusCommentTargetMissing as e:
+        print(e, file=sys.stderr)
     except StatusCommentDeferred as e:
         print(e, file=sys.stderr)
         return []
@@ -732,9 +744,13 @@ def update_status_comments_from_state(
     ][:STATUS_COMMENT_ROLLOUT_BATCH_SIZE]
     successful_pr_numbers: set[int] = set()
     deferred_pr_numbers: set[int] = set()
+    missing_pr_numbers: set[int] = set()
     for number in rollout_pr_numbers:
         try:
             publish_pr_status(repo, number, dashboard_state)
+        except StatusCommentTargetMissing as e:
+            print(e, file=sys.stderr)
+            missing_pr_numbers.add(number)
         except StatusCommentDeferred as e:
             print(e, file=sys.stderr)
             deferred_pr_numbers.add(number)
@@ -747,11 +763,15 @@ def update_status_comments_from_state(
         number
         for number in pending_pr_numbers
         if number not in successful_pr_numbers
+        and number not in missing_pr_numbers
         and number not in deferred_pr_numbers
     ] + [
         number for number in rollout_pr_numbers if number in deferred_pr_numbers
     ]
-    record_delivered_status_intents(rollout_state, successful_pr_numbers)
+    record_delivered_status_intents(
+        rollout_state,
+        successful_pr_numbers | missing_pr_numbers,
+    )
     pending = rollout_state["pending_pr_numbers"]
     if not pending:
         rollout_state["completed_revision"] = STATUS_COMMENT_REVISION

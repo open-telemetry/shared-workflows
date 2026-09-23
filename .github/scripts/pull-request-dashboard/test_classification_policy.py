@@ -920,6 +920,42 @@ class AuthorCommentMalformedResponseTest(unittest.TestCase):
             results[1].diagnostics.error,
         )
 
+    def test_response_ids_must_exactly_match_requested_order(self) -> None:
+        request = make_author_comment_request([self.first, self.second])
+
+        def item(discussion_id: str, feedback_key: str) -> dict[str, object]:
+            return {
+                "discussion_id": discussion_id,
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": feedback_key,
+                        "discussion_action": "none",
+                        "reason": "Completed.",
+                    }
+                ],
+            }
+
+        first = item("reply-1", "f0001")
+        second = item("reply-2", "f0002")
+        extra = item("unexpected", "f0003")
+        for name, items in (
+            ("extra", [first, second, extra]),
+            ("reordered", [second, first]),
+        ):
+            with self.subTest(name=name):
+                results = resolve_author_comment_response(
+                    request,
+                    RawModelResponse(0, json.dumps({"items": items})),
+                )
+
+                self.assertTrue(
+                    all(
+                        isinstance(result, ClassificationFailure)
+                        and result.diagnostics.invalid_response
+                        for result in results
+                    )
+                )
+
     def test_feedback_keys_cannot_cross_discussions(self) -> None:
         request = make_author_comment_request([self.first, self.second])
         response = RawModelResponse(
@@ -960,6 +996,34 @@ class AuthorCommentMalformedResponseTest(unittest.TestCase):
             second.decision.feedback_outcomes[0].feedback_id,
             "feedback-2",
         )
+
+    def test_discussion_id_requires_a_json_string(self) -> None:
+        item = {
+            "discussion_id": 1,
+            "feedback_outcomes": [
+                {
+                    "feedback_key": "f0001",
+                    "discussion_action": "none",
+                    "reason": "Completed.",
+                }
+            ],
+        }
+        numeric_id = discussion(
+            "1",
+            DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
+            "Fixed.",
+            actor_role="author",
+            candidate_feedback=(("feedback-1", "Please fix this."),),
+        )
+
+        result = resolve_author_comment_response(
+            make_author_comment_request([numeric_id]),
+            RawModelResponse(0, json.dumps({"items": [item]})),
+        )[0]
+
+        self.assertIsInstance(result, ClassificationFailure)
+        assert isinstance(result, ClassificationFailure)
+        self.assertTrue(result.diagnostics.invalid_response)
 
     def test_duplicate_feedback_key_and_invalid_action_fail(self) -> None:
         request = make_author_comment_request([self.first])
@@ -1061,6 +1125,47 @@ class MalformedResponseTest(unittest.TestCase):
         assert isinstance(result, ClassificationFailure)
         self.assertIn("duplicate discussion_id", result.diagnostics.error)
 
+    def test_response_ids_must_exactly_match_requested_order(self) -> None:
+        second_discussion = discussion(
+            "feedback-2",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            "Please fix that.",
+            requester="reviewer",
+            pr_author="author",
+        )
+        request = VerdictModelRequest(
+            (self.discussion, second_discussion),
+            VerdictContract.REVIEWER_FEEDBACK,
+            "prompt",
+        )
+
+        def item(discussion_id: str) -> dict[str, str]:
+            return {
+                "discussion_id": discussion_id,
+                "verdict": "no_author_action",
+                "reason": "Done.",
+            }
+
+        first = item("feedback-1")
+        second = item("feedback-2")
+        for name, items in (
+            ("extra", [first, second, item("unexpected")]),
+            ("reordered", [second, first]),
+        ):
+            with self.subTest(name=name):
+                results = resolve_verdict_response(
+                    request,
+                    RawModelResponse(0, json.dumps({"items": items}), ""),
+                )
+
+                self.assertTrue(
+                    all(
+                        isinstance(result, ClassificationFailure)
+                        and result.diagnostics.invalid_response
+                        for result in results
+                    )
+                )
+
     def test_missing_id_fails_only_the_requested_discussion(self) -> None:
         result = resolve_verdict_response(
             self.request,
@@ -1069,6 +1174,39 @@ class MalformedResponseTest(unittest.TestCase):
 
         self.assertIsInstance(result, ClassificationFailure)
         self.assertTrue(result.cli_call)
+
+    def test_discussion_id_requires_a_json_string(self) -> None:
+        numeric_id = discussion(
+            "1",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            "Please fix this.",
+            requester="reviewer",
+            pr_author="author",
+        )
+        result = resolve_verdict_response(
+            VerdictModelRequest(
+                (numeric_id,),
+                VerdictContract.REVIEWER_FEEDBACK,
+                "prompt",
+            ),
+            RawModelResponse(
+                0,
+                json.dumps({
+                    "items": [
+                        {
+                            "discussion_id": 1,
+                            "verdict": "no_author_action",
+                            "reason": "Done.",
+                        }
+                    ]
+                }),
+                "",
+            ),
+        )[0]
+
+        self.assertIsInstance(result, ClassificationFailure)
+        assert isinstance(result, ClassificationFailure)
+        self.assertTrue(result.diagnostics.invalid_response)
 
     def test_nonzero_exit_with_valid_verdict_reports_only_the_exit(self) -> None:
         result = resolve_verdict_response(

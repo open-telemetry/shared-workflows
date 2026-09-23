@@ -15,7 +15,14 @@ from typing import Callable
 from author_nudge import deliver_prepared_author_nudges
 from copilot_review_delivery import deliver_copilot_review_requests
 from dashboard_override_delivery import deliver_dashboard_command_replies
-from github_cli import detect_repo, gh_api, list_open_prs, normalize_repo, repo_state_key
+from github_cli import (
+    GhNotFoundError,
+    detect_repo,
+    gh_api,
+    list_open_prs,
+    normalize_repo,
+    repo_state_key,
+)
 from notify_slack import notify_slack_from_state
 from pr_status_comment import (
     update_status_comments_from_state,
@@ -111,6 +118,7 @@ def deliver_from_state(
 ) -> list[str]:
     now = utc_now()
     errors: list[str] = []
+    targeted_pr_missing = False
     try:
         if pr_number is None:
             open_prs = list_open_prs(repo)
@@ -121,6 +129,14 @@ def deliver_from_state(
                 if pr.get("state") == "open"
                 else []
             )
+    except GhNotFoundError as e:
+        if pr_number is None:
+            errors.append(f"open pull requests: {e}")
+            open_prs = None
+        else:
+            print(f"PR #{pr_number} does not exist", file=sys.stderr)
+            open_prs = []
+            targeted_pr_missing = True
     except Exception as e:
         errors.append(f"open pull requests: {e}")
         open_prs = None
@@ -156,7 +172,9 @@ def deliver_from_state(
             ),
             errors,
         )
-    if pr_number is not None and pr_number not in failed_command_reply_prs:
+    if pr_number is not None and (
+        targeted_pr_missing or pr_number not in failed_command_reply_prs
+    ):
         run_delivery_action(
             "status comments",
             lambda: update_targeted_status_comment_from_state(repo, pr_number),
