@@ -560,13 +560,54 @@ class ClassificationService:
             if requests is None
             else requests
         ):
-            for result in self._run_author_comment_request(
-                request,
-                model,
-                call_budget,
-            ):
+            try:
+                request_results = self._run_author_comment_request(
+                    request,
+                    model,
+                    call_budget,
+                )
+            except Exception as error:
+                request_results = self._request_failure_results(
+                    request.discussions,
+                    error,
+                    None,
+                    author_comment=True,
+                )
+            for result in request_results:
                 partial_results[result.identity.discussion_id].append(result)
         return combine_author_comment_results(discussions, partial_results)
+
+    def _request_failure_results(
+        self,
+        discussions: Sequence[ClassificationDiscussion],
+        error: Exception,
+        contract: VerdictContract | None,
+        *,
+        author_comment: bool,
+    ) -> tuple[ClassificationFailure, ...]:
+        if isinstance(error, subprocess.TimeoutExpired):
+            reason = "LLM timeout"
+            diagnostics = ClassificationDiagnostics(
+                error=f"Copilot CLI timed out after {error.timeout}s",
+                response_text=error.stdout if isinstance(error.stdout, str) else "",
+                stderr=error.stderr if isinstance(error.stderr, str) else "",
+            )
+        else:
+            reason = f"LLM failed: {error!r}"
+            diagnostics = ClassificationDiagnostics(error=reason)
+        return tuple(
+            ClassificationFailure(
+                discussion.identity,
+                self._fallback_decision(
+                    reason,
+                    contract,
+                    author_comment=author_comment,
+                ),
+                diagnostics,
+                cli_call=(index == 0),
+            )
+            for index, discussion in enumerate(discussions)
+        )
 
     def _run_classification_batch(
         self,
@@ -587,11 +628,20 @@ class ClassificationService:
             )
         if contract is None:
             raise ValueError("classification requires a verdict contract")
-        return tuple(
-            result
-            for request in self._verdict_requests(discussions, contract)
-            for result in self._run_verdict_request(request, model)
-        )
+        results: list[ClassificationResult] = []
+        for request in self._verdict_requests(discussions, contract):
+            try:
+                results.extend(self._run_verdict_request(request, model))
+            except Exception as error:
+                results.extend(
+                    self._request_failure_results(
+                        request.discussions,
+                        error,
+                        contract,
+                        author_comment=False,
+                    )
+                )
+        return tuple(results)
 
     def _classify_items(
         self,
@@ -710,35 +760,6 @@ class ClassificationService:
                     author_comment_requests=author_comment_requests,
                     author_comment_call_budget=author_comment_call_budget,
                 )
-            except subprocess.TimeoutExpired as error:
-                results = tuple(
-                    ClassificationFailure(
-                        discussion.identity,
-                        self._fallback_decision(
-                            "LLM timeout",
-                            contract,
-                            author_comment=author_comment,
-                        ),
-                        ClassificationDiagnostics(
-                            error=(
-                                "Copilot CLI timed out after "
-                                f"{error.timeout}s"
-                            ),
-                            response_text=(
-                                error.stdout
-                                if isinstance(error.stdout, str)
-                                else ""
-                            ),
-                            stderr=(
-                                error.stderr
-                                if isinstance(error.stderr, str)
-                                else ""
-                            ),
-                        ),
-                        cli_call=(index == 0),
-                    )
-                    for index, discussion in enumerate(batch_discussions)
-                )
             except Exception as error:
                 print(
                     f"  warning: {warning_label} batch on PR "
@@ -746,20 +767,11 @@ class ClassificationService:
                     file=sys.stderr,
                 )
                 traceback.print_exc()
-                results = tuple(
-                    ClassificationFailure(
-                        discussion.identity,
-                        self._fallback_decision(
-                            f"LLM failed: {error!r}",
-                            contract,
-                            author_comment=author_comment,
-                        ),
-                        ClassificationDiagnostics(
-                            error=f"LLM failed: {error!r}",
-                        ),
-                        cli_call=(index == 0),
-                    )
-                    for index, discussion in enumerate(batch_discussions)
+                results = self._request_failure_results(
+                    batch_discussions,
+                    error,
+                    contract,
+                    author_comment=author_comment,
                 )
             for result, (_discussion, key) in zip(
                 results,
