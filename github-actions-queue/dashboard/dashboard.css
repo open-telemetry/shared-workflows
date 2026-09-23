@@ -202,6 +202,43 @@ svg {
   overflow: visible;
 }
 
+.chart-data {
+  margin-top: 12px;
+}
+
+.chart-data summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.table-scroll {
+  margin-top: 10px;
+  overflow-x: auto;
+}
+
+.chart-data table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-data caption {
+  padding-bottom: 8px;
+  text-align: left;
+}
+
+.chart-data th,
+.chart-data td {
+  padding: 7px 10px;
+  border: 1px solid var(--cp-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.chart-data thead {
+  background: var(--cp-surface-soft);
+}
+
 .axis,
 .gridline {
   stroke: var(--cp-border);

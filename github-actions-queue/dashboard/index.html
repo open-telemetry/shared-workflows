@@ -30,7 +30,7 @@
       --cp-accent-fg: #ffffff;
       --cp-success: #16a34a;
       --cp-danger: #dc2626;
-      --cp-warning: #f59e0b;
+      --cp-warning: #a15c00;
       --cp-link: #0078d4;
       --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
       --cp-overlay: rgba(255, 255, 255, 0.8);
@@ -142,6 +142,25 @@
         <span class="p99">p99</span>
       </div>
       <svg id="chart" viewBox="0 0 1040 480" role="img" aria-label="Hourly p50, p90, p95, and p99 GitHub Actions queue times"></svg>
+      <details class="chart-data">
+        <summary>View hourly data table</summary>
+        <div class="table-scroll">
+          <table>
+            <caption>Hourly queue-time percentiles for the selected filters</caption>
+            <thead>
+              <tr>
+                <th scope="col">Hour (UTC)</th>
+                <th scope="col">Jobs</th>
+                <th scope="col">p50</th>
+                <th scope="col">p90</th>
+                <th scope="col">p95</th>
+                <th scope="col">p99</th>
+              </tr>
+            </thead>
+            <tbody id="chart-data"></tbody>
+          </table>
+        </div>
+      </details>
     </section>
 
     <footer>

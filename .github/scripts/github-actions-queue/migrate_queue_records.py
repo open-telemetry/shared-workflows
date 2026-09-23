@@ -13,12 +13,14 @@ from rerun_carry_forwards import CarryForwardError, filter_rerun_carry_forwards
 def migrate_collections(jobs_dir: Path) -> dict[str, int]:
     plans: list[tuple[Path, list[bytes], int, int]] = []
     files = sorted(jobs_dir.rglob("*.jsonl.gz")) if jobs_dir.exists() else []
+    collections: list[tuple[Path, list[bytes], list[dict[str, Any]]]] = []
     records_scanned = 0
     seen_job_ids: set[int] = set()
 
     for path in files:
         lines = _read_lines(path)
         records = [_read_record(path, line) for line in lines]
+        collections.append((path, lines, records))
         records_scanned += len(records)
         for record in records:
             job_id = record.get("job_id")
@@ -33,22 +35,33 @@ def migrate_collections(jobs_dir: Path) -> dict[str, int]:
                 raise CarryForwardError(
                     f"{path} has a record without boolean runner_assigned"
                 )
-        carry_forward_ids = _carry_forward_ids(path, records)
-        negative_ids = {
-            record.get("job_id")
+
+    all_records = [
+        record for _, _, records in collections for record in records
+    ]
+    carry_forward_ids = _carry_forward_ids(all_records)
+    negative_ids = {
+        record["job_id"]
+        for record in all_records
+        if _is_negative_queue(record.get("queue_seconds"))
+    }
+    if carry_forward_ids != negative_ids:
+        raise CarryForwardError(
+            "collections have negative records that are not verified carry-forwards"
+        )
+
+    for path, lines, records in collections:
+        file_carry_forward_ids = {
+            record["job_id"]
             for record in records
-            if _is_negative_queue(record.get("queue_seconds"))
+            if record["job_id"] in carry_forward_ids
         }
-        if carry_forward_ids != negative_ids:
-            raise CarryForwardError(
-                f"{path} has negative records that are not verified carry-forwards"
-            )
         runnerless_ids = {
             record["job_id"]
             for record in records
             if not record["runner_assigned"]
         }
-        removed_ids = carry_forward_ids | runnerless_ids
+        removed_ids = file_carry_forward_ids | runnerless_ids
         if removed_ids:
             kept_lines = [
                 line
@@ -59,7 +72,7 @@ def migrate_collections(jobs_dir: Path) -> dict[str, int]:
                 (
                     path,
                     kept_lines,
-                    len(carry_forward_ids),
+                    len(file_carry_forward_ids),
                     len(runnerless_ids),
                 )
             )
@@ -78,7 +91,6 @@ def migrate_collections(jobs_dir: Path) -> dict[str, int]:
 
 
 def _carry_forward_ids(
-    path: Path,
     records: list[dict[str, Any]],
 ) -> set[int]:
     runs: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)

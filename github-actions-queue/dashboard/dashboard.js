@@ -8,6 +8,7 @@ const PERCENTILES = {
 };
 const elements = {
   chart: document.querySelector("#chart"),
+  chartData: document.querySelector("#chart-data"),
   status: document.querySelector("#chart-status"),
   host: document.querySelector("#runner-host"),
   label: document.querySelector("#runner-label"),
@@ -285,11 +286,14 @@ function renderChart() {
   const tickStep = niceStep(maxValue / 4);
   const maxAxis = Math.ceil(maxValue / tickStep) * tickStep;
   const y = (value) => top + ((maxAxis - value) / maxAxis) * plotHeight;
+  const timestamps = selectedRows.map((row) => Date.parse(row.hour));
+  const firstTimestamp = timestamps[0];
+  const timeRange = timestamps.at(-1) - firstTimestamp;
   const x = (index) =>
     left +
-    (selectedRows.length === 1
+    (timeRange === 0
       ? plotWidth / 2
-      : (index / (selectedRows.length - 1)) * plotWidth);
+      : ((timestamps[index] - firstTimestamp) / timeRange) * plotWidth);
   const ticks = Array.from(
     { length: Math.round(maxAxis / tickStep) + 1 },
     (_, index) => tickStep * index,
@@ -340,6 +344,31 @@ function renderChart() {
     labels;
 }
 
+function renderChartData() {
+  elements.chartData.replaceChildren();
+  if (!selectedRows.length) {
+    const row = elements.chartData.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 6;
+    cell.textContent = "No queue measurements match these filters.";
+    return;
+  }
+  for (const data of selectedRows) {
+    const row = elements.chartData.insertRow();
+    const hour = document.createElement("th");
+    hour.scope = "row";
+    hour.textContent = data.hour;
+    row.append(hour);
+    for (const value of [
+      data.count.toLocaleString(),
+      ...Object.keys(PERCENTILES).map((key) => formatDuration(data[key])),
+    ]) {
+      const cell = row.insertCell();
+      cell.textContent = value;
+    }
+  }
+}
+
 function renderRangeSummary() {
   elements.rangeP50.textContent = formatDuration(selectedSummary?.p50);
   elements.rangeP90.textContent = formatDuration(selectedSummary?.p90);
@@ -350,6 +379,7 @@ function renderRangeSummary() {
 function render() {
   renderRangeSummary();
   renderChart();
+  renderChartData();
   if (selectedRows.length) {
     elements.status.textContent =
       `${selectedRows[0].hour} through ${selectedRows.at(-1).hour}`;
