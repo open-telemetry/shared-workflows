@@ -12,15 +12,15 @@ Queue time is measured per job:
 queue_seconds = job_started_at - job_created_at
 ```
 
-Matrix jobs are separate records. Jobs that never receive a runner are not
-stored because they have no runner queue time. This excludes skipped jobs,
-jobs cancelled before assignment, and check runs created only to publish
-results.
+Matrix jobs are separate records. Jobs that never receive a runner or have a
+negative queue interval are not stored because they have no usable runner
+queue time. This excludes skipped jobs, jobs cancelled before assignment, and
+check runs created only to publish results.
 
 When only failed jobs are rerun, GitHub also returns cloned records for jobs
 that did not execute again. The clones have a later `created_at` but retain the
-original execution timestamps. The collector removes a clone only when it has
-exactly one earlier non-negative execution match in the same workflow run.
+original execution timestamps, producing a negative queue interval that the
+collector discards.
 
 ## Dashboard
 
@@ -119,9 +119,10 @@ created by partial reruns are not stored.
 The collector tracks the installation's REST quota. If it exhausts the quota,
 it commits the partial checkpoint and resumes during the next scheduled run.
 
-The one-time data migration reads collection files in streaming passes to
-validate runner assignment and partial-rerun matches before rewriting any
-files. It records completion under `migrations/` on the data branch.
+The one-time data migration streams collection files and validates them before
+removing runnerless and negative-queue records. It retains job IDs and
+per-file counts during validation, then records completion under
+`migrations/` on the data branch.
 
 GitHub limits a filtered workflow-run search to 1,000 results. The collector
 splits busy one-hour windows into smaller ranges until each result can be
