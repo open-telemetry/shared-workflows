@@ -12090,7 +12090,7 @@
     },
     "51008": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "RutamBhagat",
         "author_action_review_thread_urls": [],
@@ -12098,9 +12098,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 5,
         "conflicts": "no",
-        "copilot_request_fingerprint": "24f26176e0f56147cb2f35a6f8a502becdf53e29d9aa4dbb48fe06643b0d62fb",
+        "copilot_request_fingerprint": "c2c451a52d0cd234a7ee5bf66fe3c64afee3158f2c7b56fd1626ceed97fe552a",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -12116,8 +12116,8 @@
         "head_sha": "9f6e60ad58d1a2e980b8c6808fa6797d669df30c",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-23T18:50:30+00:00",
-        "last_approver_activity_at": "2026-09-23T17:00:10+00:00",
+        "last_activity_at": "2026-09-23T19:44:00+00:00",
+        "last_approver_activity_at": "2026-09-23T19:44:00+00:00",
         "last_author_activity_at": "2026-09-23T18:50:30+00:00",
         "required_checks_settled": false,
         "reviewers": [
@@ -12132,20 +12132,21 @@
             "unresolved_thread": false
           },
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "TylerHelmuth",
             "open_thread": false,
-            "pending_review": true,
+            "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-23T19:45:00.569289+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "1568a1aea3d80501f7cdb5111465c87a2eff5511316dba2fee796ab61f3a299d",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "f106fb6bfe8c38c1da40092721bb7b7f6846b170ae11301c913b4d9d8f658f55",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-23T07:12:23+00:00"
       },
       "failed": false,
