@@ -219,7 +219,11 @@ class CarryForwardMigrationTest(unittest.TestCase):
                 valid_path,
                 [record(self.original), record(self.clone)],
             )
-            unmatched_clone = dict(self.clone, id=3)
+            unmatched_clone = dict(
+                self.clone,
+                id=3,
+                started_at="2026-09-18T11:24:58Z",
+            )
             write_collection(invalid_path, [record(unmatched_clone)])
             original_bytes = valid_path.read_bytes()
 
@@ -245,7 +249,10 @@ class CarryForwardMigrationTest(unittest.TestCase):
             summary = migrate_collections(jobs)
 
             with gzip.open(original_path, "rt", encoding="utf-8") as source:
-                self.assertEqual([original_record], [json.loads(line) for line in source])
+                self.assertEqual(
+                    [original_record],
+                    [json.loads(line) for line in source],
+                )
             with gzip.open(clone_path, "rt", encoding="utf-8") as source:
                 self.assertEqual([], list(source))
             self.assertEqual(1, summary["carry_forward_records_removed"])
