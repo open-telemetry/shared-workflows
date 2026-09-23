@@ -259,6 +259,45 @@ svg {
   fill: var(--cp-danger);
 }
 
+.data-table {
+  margin-top: 16px;
+}
+
+.data-table summary {
+  color: var(--cp-link);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.data-table-scroll {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.data-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table caption {
+  padding-bottom: 8px;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--cp-border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+  text-align: left;
+}
+
 footer {
   display: flex;
   flex-wrap: wrap;

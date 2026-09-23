@@ -219,8 +219,9 @@ class CarryForwardMigrationTest(unittest.TestCase):
                 valid_path,
                 [record(self.original), record(self.clone)],
             )
-            unmatched_clone = dict(self.clone, id=3)
-            write_collection(invalid_path, [record(unmatched_clone)])
+            unmatched_clone = record(dict(self.clone, id=3))
+            unmatched_clone["run_id"] = 11
+            write_collection(invalid_path, [unmatched_clone])
             original_bytes = valid_path.read_bytes()
 
             with self.assertRaisesRegex(
@@ -230,6 +231,28 @@ class CarryForwardMigrationTest(unittest.TestCase):
                 migrate_collections(jobs)
 
             self.assertEqual(original_bytes, valid_path.read_bytes())
+
+    def test_matches_carry_forward_across_collection_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jobs = Path(directory) / "jobs"
+            original_path = (
+                jobs / "date=2026-09-18" / "collection-1.jsonl.gz"
+            )
+            clone_path = (
+                jobs / "date=2026-09-18" / "collection-2.jsonl.gz"
+            )
+            original_record = record(self.original)
+            write_collection(original_path, [original_record])
+            write_collection(clone_path, [record(self.clone)])
+
+            summary = migrate_collections(jobs)
+
+            with gzip.open(original_path, "rt", encoding="utf-8") as source:
+                self.assertEqual([original_record], [json.loads(line) for line in source])
+            with gzip.open(clone_path, "rt", encoding="utf-8") as source:
+                self.assertEqual([], [json.loads(line) for line in source])
+            self.assertEqual(1, summary["carry_forward_records_removed"])
+            self.assertEqual(1, summary["files_changed"])
 
     def test_rejects_duplicate_job_ids_before_rewriting(self):
         with tempfile.TemporaryDirectory() as directory:

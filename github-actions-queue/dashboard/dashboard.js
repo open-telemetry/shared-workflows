@@ -19,6 +19,7 @@ const elements = {
   rangeP90: document.querySelector("#range-p90"),
   rangeP95: document.querySelector("#range-p95"),
   rangeP99: document.querySelector("#range-p99"),
+  dataBody: document.querySelector("#hourly-data-body"),
 };
 
 let manifest;
@@ -285,11 +286,16 @@ function renderChart() {
   const tickStep = niceStep(maxValue / 4);
   const maxAxis = Math.ceil(maxValue / tickStep) * tickStep;
   const y = (value) => top + ((maxAxis - value) / maxAxis) * plotHeight;
+  const timestamps = selectedRows.map((row) => Date.parse(row.hour));
+  const firstTimestamp = timestamps[0];
+  const lastTimestamp = timestamps.at(-1);
   const x = (index) =>
     left +
-    (selectedRows.length === 1
+    (firstTimestamp === lastTimestamp
       ? plotWidth / 2
-      : (index / (selectedRows.length - 1)) * plotWidth);
+      : ((timestamps[index] - firstTimestamp) /
+          (lastTimestamp - firstTimestamp)) *
+        plotWidth);
   const ticks = Array.from(
     { length: Math.round(maxAxis / tickStep) + 1 },
     (_, index) => tickStep * index,
@@ -347,9 +353,30 @@ function renderRangeSummary() {
   elements.rangeP99.textContent = formatDuration(selectedSummary?.p99);
 }
 
+function renderDataTable() {
+  const rows = selectedRows.map((row) => {
+    const tableRow = document.createElement("tr");
+    for (const value of [
+      row.hour,
+      row.count.toLocaleString(),
+      formatDuration(row.p50),
+      formatDuration(row.p90),
+      formatDuration(row.p95),
+      formatDuration(row.p99),
+    ]) {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      tableRow.append(cell);
+    }
+    return tableRow;
+  });
+  elements.dataBody.replaceChildren(...rows);
+}
+
 function render() {
   renderRangeSummary();
   renderChart();
+  renderDataTable();
   if (selectedRows.length) {
     elements.status.textContent =
       `${selectedRows[0].hour} through ${selectedRows.at(-1).hour}`;
