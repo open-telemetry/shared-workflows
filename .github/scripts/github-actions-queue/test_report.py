@@ -334,6 +334,7 @@ class DashboardContractTest(unittest.TestCase):
         self.assertIn('["repository", elements.repository]', script)
         self.assertIn('params.get("start")', script)
         self.assertIn('params.get("end")', script)
+        self.assertIn('date.toISOString().slice(0, 10) === value', script)
         self.assertIn('url.searchParams.set("label"', script)
         self.assertIn('url.searchParams.delete("label")', script)
         self.assertIn('url.searchParams.delete("repository")', script)
@@ -349,6 +350,12 @@ class DashboardContractTest(unittest.TestCase):
         self.assertIn('id="range-p99"', html)
         self.assertIn('id="hourly-data-body"', html)
         self.assertIn("renderAccessibleData();", script)
+        self.assertIn(
+            "elements.rangeP90.textContent = "
+            "formatExactDuration(selectedSummary?.p90)",
+            script,
+        )
+        self.assertIn("formatExactDuration(row.p99)", script)
         self.assertIn("Date.parse(row.hour)", script)
         self.assertIn("--cp-warning: #b45309", html)
         self.assertNotIn('class="method"', html)

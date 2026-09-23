@@ -92,9 +92,13 @@ function restoreFiltersFromQuery() {
 }
 
 function isValidDate(value) {
+  const date =
+    /^\d{4}-\d{2}-\d{2}$/.test(value || "") &&
+    new Date(`${value}T00:00:00Z`);
   return (
     manifest.dates.length > 0 &&
-    /^\d{4}-\d{2}-\d{2}$/.test(value || "") &&
+    Number.isFinite(date?.getTime()) &&
+    date.toISOString().slice(0, 10) === value &&
     value >= manifest.dates[0] &&
     value <= manifest.dates.at(-1)
   );
@@ -199,6 +203,10 @@ function formatDuration(seconds) {
     return `${minutes.toFixed(minutes < 10 ? 1 : 0)}m`;
   }
   return `${(seconds / 3600).toFixed(1)}h`;
+}
+
+function formatExactDuration(seconds) {
+  return Number.isFinite(seconds) ? `${seconds}s` : "-";
 }
 
 function niceStep(value) {
@@ -325,7 +333,7 @@ function renderChart() {
       .map(
         (row, index) =>
           `<circle class="dot-${key}" cx="${x(index)}" cy="${y(row[key])}" r="3.5">` +
-          `<title>${row.hour} | ${key}: ${formatDuration(row[key])} | n=${row.count.toLocaleString()}</title></circle>`,
+          `<title>${row.hour} | ${key}: ${formatExactDuration(row[key])} | n=${row.count.toLocaleString()}</title></circle>`,
       )
       .join("");
 
@@ -345,10 +353,10 @@ function renderChart() {
 }
 
 function renderRangeSummary() {
-  elements.rangeP50.textContent = formatDuration(selectedSummary?.p50);
-  elements.rangeP90.textContent = formatDuration(selectedSummary?.p90);
-  elements.rangeP95.textContent = formatDuration(selectedSummary?.p95);
-  elements.rangeP99.textContent = formatDuration(selectedSummary?.p99);
+  elements.rangeP50.textContent = formatExactDuration(selectedSummary?.p50);
+  elements.rangeP90.textContent = formatExactDuration(selectedSummary?.p90);
+  elements.rangeP95.textContent = formatExactDuration(selectedSummary?.p95);
+  elements.rangeP99.textContent = formatExactDuration(selectedSummary?.p99);
 }
 
 function renderAccessibleData() {
@@ -357,10 +365,10 @@ function renderAccessibleData() {
     for (const value of [
       row.hour,
       row.count.toLocaleString(),
-      formatDuration(row.p50),
-      formatDuration(row.p90),
-      formatDuration(row.p95),
-      formatDuration(row.p99),
+      formatExactDuration(row.p50),
+      formatExactDuration(row.p90),
+      formatExactDuration(row.p95),
+      formatExactDuration(row.p99),
     ]) {
       const cell = document.createElement("td");
       cell.textContent = value;
