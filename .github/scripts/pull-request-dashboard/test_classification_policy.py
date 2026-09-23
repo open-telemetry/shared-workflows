@@ -920,6 +920,42 @@ class AuthorCommentMalformedResponseTest(unittest.TestCase):
             results[1].diagnostics.error,
         )
 
+    def test_response_ids_must_exactly_match_requested_order(self) -> None:
+        request = make_author_comment_request([self.first, self.second])
+
+        def item(discussion_id: str, feedback_key: str) -> dict[str, object]:
+            return {
+                "discussion_id": discussion_id,
+                "feedback_outcomes": [
+                    {
+                        "feedback_key": feedback_key,
+                        "discussion_action": "none",
+                        "reason": "Completed.",
+                    }
+                ],
+            }
+
+        first = item("reply-1", "f0001")
+        second = item("reply-2", "f0002")
+        extra = item("unexpected", "f0003")
+        for name, items in (
+            ("extra", [first, second, extra]),
+            ("reordered", [second, first]),
+        ):
+            with self.subTest(name=name):
+                results = resolve_author_comment_response(
+                    request,
+                    RawModelResponse(0, json.dumps({"items": items})),
+                )
+
+                self.assertTrue(
+                    all(
+                        isinstance(result, ClassificationFailure)
+                        and result.diagnostics.invalid_response
+                        for result in results
+                    )
+                )
+
     def test_feedback_keys_cannot_cross_discussions(self) -> None:
         request = make_author_comment_request([self.first, self.second])
         response = RawModelResponse(
@@ -1060,6 +1096,47 @@ class MalformedResponseTest(unittest.TestCase):
         self.assertIsInstance(result, ClassificationFailure)
         assert isinstance(result, ClassificationFailure)
         self.assertIn("duplicate discussion_id", result.diagnostics.error)
+
+    def test_response_ids_must_exactly_match_requested_order(self) -> None:
+        second_discussion = discussion(
+            "feedback-2",
+            DiscussionKind.TOP_LEVEL_FEEDBACK,
+            "Please fix that.",
+            requester="reviewer",
+            pr_author="author",
+        )
+        request = VerdictModelRequest(
+            (self.discussion, second_discussion),
+            VerdictContract.REVIEWER_FEEDBACK,
+            "prompt",
+        )
+
+        def item(discussion_id: str) -> dict[str, str]:
+            return {
+                "discussion_id": discussion_id,
+                "verdict": "no_author_action",
+                "reason": "Done.",
+            }
+
+        first = item("feedback-1")
+        second = item("feedback-2")
+        for name, items in (
+            ("extra", [first, second, item("unexpected")]),
+            ("reordered", [second, first]),
+        ):
+            with self.subTest(name=name):
+                results = resolve_verdict_response(
+                    request,
+                    RawModelResponse(0, json.dumps({"items": items}), ""),
+                )
+
+                self.assertTrue(
+                    all(
+                        isinstance(result, ClassificationFailure)
+                        and result.diagnostics.invalid_response
+                        for result in results
+                    )
+                )
 
     def test_missing_id_fails_only_the_requested_discussion(self) -> None:
         result = resolve_verdict_response(

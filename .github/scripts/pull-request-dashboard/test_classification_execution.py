@@ -1040,7 +1040,7 @@ class ClassificationServiceTest(unittest.TestCase):
                 self.assertTrue(result.cli_call)
                 self.assertEqual(expected_calls, len(runner.requests))
 
-    def test_retry_preserves_valid_sibling_when_second_attempt_fails(self) -> None:
+    def test_retry_rejects_partial_batch_when_second_attempt_fails(self) -> None:
         records = (
             discussion_record("valid"),
             discussion_record("missing"),
@@ -1059,12 +1059,12 @@ class ClassificationServiceTest(unittest.TestCase):
             execution_request(top_level_items=records)
         ).top_level_items
 
-        self.assertIsInstance(results[0], ClassificationSuccess)
+        self.assertIsInstance(results[0], ClassificationFailure)
         self.assertIsInstance(results[1], ClassificationFailure)
-        self.assertEqual(len(cache.entries[123]), 1)
+        self.assertEqual(cache.entries[123], {})
         self.assertEqual(2, len(runner.requests))
 
-    def test_author_comment_retry_preserves_valid_sibling(self) -> None:
+    def test_author_comment_retry_rejects_partial_batch(self) -> None:
         discussions = typed_discussions((
             discussion_record(
                 "valid",
@@ -1095,7 +1095,7 @@ class ClassificationServiceTest(unittest.TestCase):
 
         results = service._run_author_comment_request(request, "model")
 
-        self.assertIsInstance(results[0], ClassificationSuccess)
+        self.assertIsInstance(results[0], ClassificationFailure)
         self.assertIsInstance(results[1], ClassificationFailure)
 
     def test_author_comment_retries_do_not_exceed_model_call_budget(self) -> None:

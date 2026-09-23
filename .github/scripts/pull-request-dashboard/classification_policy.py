@@ -1407,6 +1407,23 @@ def resolve_verdict_response(
 ) -> tuple[ClassificationResult, ...]:
     parsed = extract_json_object(response.stdout)
     items = parsed.get("items") if isinstance(parsed, dict) else None
+    expected_ids = [
+        discussion.identity.discussion_id for discussion in request.discussions
+    ]
+    response_ids = (
+        [
+            str(item.get("discussion_id") or "")
+            for item in items
+            if isinstance(item, dict)
+        ]
+        if isinstance(items, list)
+        else []
+    )
+    exact_ids = (
+        isinstance(items, list)
+        and len(response_ids) == len(items)
+        and response_ids == expected_ids
+    )
     response_by_id: dict[str, dict[str, Any]] = {}
     duplicate_ids: set[str] = set()
     if isinstance(items, list):
@@ -1431,6 +1448,7 @@ def resolve_verdict_response(
             response.returncode != 0
             or not valid_response
             or discussion_id in duplicate_ids
+            or not exact_ids
         )
         if not failed:
             results.append(
@@ -1452,6 +1470,11 @@ def resolve_verdict_response(
             reasons.append(
                 "Copilot CLI did not return a valid verdict for this discussion_id"
             )
+        if not exact_ids:
+            reasons.append(
+                "Copilot CLI response discussion_ids did not exactly match "
+                "the requested order"
+            )
         results.append(
             ClassificationFailure(
                 discussion.identity,
@@ -1465,6 +1488,7 @@ def resolve_verdict_response(
                         and (
                             not valid_response
                             or discussion_id in duplicate_ids
+                            or not exact_ids
                         )
                     ),
                 ),
@@ -1480,6 +1504,23 @@ def resolve_author_comment_response(
 ) -> tuple[ClassificationResult, ...]:
     parsed = extract_json_object(response.stdout)
     items = parsed.get("items") if isinstance(parsed, dict) else None
+    expected_ids = [
+        discussion.identity.discussion_id for discussion in request.discussions
+    ]
+    response_ids = (
+        [
+            str(item.get("discussion_id") or "")
+            for item in items
+            if isinstance(item, dict)
+        ]
+        if isinstance(items, list)
+        else []
+    )
+    exact_ids = (
+        isinstance(items, list)
+        and len(response_ids) == len(items)
+        and response_ids == expected_ids
+    )
     response_by_id: dict[str, dict[str, Any]] = {}
     duplicate_ids: set[str] = set()
     if isinstance(items, list):
@@ -1504,6 +1545,7 @@ def resolve_author_comment_response(
             response.returncode != 0
             or bool(validation_errors)
             or discussion_id in duplicate_ids
+            or not exact_ids
         )
         if not failed:
             results.append(
@@ -1526,6 +1568,11 @@ def resolve_author_comment_response(
                 "Copilot CLI did not return a valid classification for this "
                 f"discussion_id: {'; '.join(validation_errors)}"
             )
+        if not exact_ids:
+            reasons.append(
+                "Copilot CLI response discussion_ids did not exactly match "
+                "the requested order"
+            )
         results.append(
             ClassificationFailure(
                 discussion.identity,
@@ -1539,6 +1586,7 @@ def resolve_author_comment_response(
                         and (
                             bool(validation_errors)
                             or discussion_id in duplicate_ids
+                            or not exact_ids
                         )
                     ),
                 ),
