@@ -1400,7 +1400,7 @@
     },
     "5393": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -1410,7 +1410,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b7d424da0a6de39bee370994f80a6a173502cce2d1f0035ecb9e2756bbd8a034",
+        "copilot_request_fingerprint": "2bda19294a6d7fc16966b533350de1f232e41638d7690ec26f036beda8164064",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1426,21 +1426,32 @@
         "head_sha": "2ace43f60b55d19159add2db3bfa73fc84d26e97",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-23T09:24:23+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-23T09:42:44+00:00",
+        "last_approver_activity_at": "2026-09-23T09:42:44+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2409c64aebbacf555039cff849da1d1c4ac3dd4040ba09867495398afc66c1ed",
+        "routing_input_fingerprint": "190d32833e3ae8962ece85b6e32ba0c87d8463356c1228d72e99b84b06561921",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-23T09:24:23+00:00"
       },
       "failed": false,
       "pr_number": 5393,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/5393",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "5394": {
