@@ -752,7 +752,7 @@ class QueueCollectorTest(unittest.TestCase):
         self.assertEqual(1, state.pending_runs[0]["failures"])
         self.assertIn("502", state.pending_runs[0]["last_error"])
 
-    def test_removes_partial_rerun_carry_forward_before_recording(self):
+    def test_discards_negative_queue_jobs_without_matching(self):
         class RerunClient(FakeClient):
             def list_workflow_runs(self, _org, _repository, _start, _end):
                 return [
@@ -815,6 +815,22 @@ class QueueCollectorTest(unittest.TestCase):
                         "conclusion": "skipped",
                         "runner_name": None,
                     },
+                    {
+                        **common,
+                        "id": 5,
+                        "name": "unmatched",
+                        "run_attempt": 2,
+                        "created_at": "2026-09-15T00:20:00Z",
+                        "started_at": "2026-09-15T00:11:00Z",
+                        "completed_at": "2026-09-15T00:12:03Z",
+                    },
+                    {
+                        **common,
+                        "id": 6,
+                        "run_attempt": 1,
+                        "created_at": "2026-09-15T00:10:00Z",
+                        "started_at": "2026-09-15T00:11:00Z",
+                    },
                 ]
 
         collector = QueueCollector(
@@ -826,7 +842,7 @@ class QueueCollectorTest(unittest.TestCase):
 
         result = collector.collect(state, selected_repositories=["a"])
 
-        self.assertEqual([1, 3], [item["job_id"] for item in result.records])
+        self.assertEqual([1, 3, 6], [item["job_id"] for item in result.records])
 
     def test_backfills_newest_windows_first(self):
         class WindowClient(FakeClient):

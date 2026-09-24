@@ -12,15 +12,15 @@ Queue time is measured per job:
 queue_seconds = job_started_at - job_created_at
 ```
 
-Matrix jobs are separate records. Jobs that never receive a runner are not
-stored because they have no runner queue time. This excludes skipped jobs,
-jobs cancelled before assignment, and check runs created only to publish
-results.
+Matrix jobs are separate records. Jobs that never receive a runner or have a
+negative queue interval are not stored because they have no usable runner
+queue time. This excludes skipped jobs, jobs cancelled before assignment, and
+check runs created only to publish results.
 
 When only failed jobs are rerun, GitHub also returns cloned records for jobs
 that did not execute again. The clones have a later `created_at` but retain the
-original execution timestamps. The collector removes a clone only when it has
-exactly one earlier non-negative execution match in the same workflow run.
+original execution timestamps, producing a negative queue interval that the
+collector discards.
 
 ## Dashboard
 
@@ -106,6 +106,10 @@ These limits leave room below the App's 15,000-request hourly quota and the
 workflow's 50-minute timeout. A stopped run commits its records and checkpoints
 before the next schedule resumes it.
 
+When a run performs the one-time migration, collection has a 30-minute limit
+to leave time for the migration, full report rebuild, and data-branch push
+within the workflow timeout. Later runs use the normal 40-minute limit.
+
 Runs that have not reached a terminal state are saved in `state.json`. Later
 collections revisit them and emit their jobs only after every returned job is
 terminal. Job listing uses `filter=all`, so actual executions from every
@@ -114,6 +118,11 @@ created by partial reruns are not stored.
 
 The collector tracks the installation's REST quota. If it exhausts the quota,
 it commits the partial checkpoint and resumes during the next scheduled run.
+
+The one-time data migration streams collection files and validates them before
+removing runnerless and negative-queue records. It retains job IDs and
+per-file counts during validation, then records completion under
+`migrations/` on the data branch.
 
 GitHub limits a filtered workflow-run search to 1,000 results. The collector
 splits busy one-hour windows into smaller ranges until each result can be

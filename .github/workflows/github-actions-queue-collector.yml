@@ -82,7 +82,7 @@ jobs:
           marker="$DATA_DIRECTORY/migrations/remove-unmeasurable-jobs-v1.json"
           performed=false
           if [[ -f "$marker" ]]; then
-            summary='{"carry_forward_records_removed":0,"files_changed":0,"files_scanned":0,"records_removed":0,"records_scanned":0,"runnerless_records_removed":0}'
+            summary='{"files_changed":0,"files_scanned":0,"negative_queue_records_removed":0,"records_removed":0,"records_scanned":0,"runnerless_records_removed":0}'
           else
             summary=$(
               python3 .github/scripts/github-actions-queue/migrate_queue_records.py \
@@ -107,6 +107,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.collector-token.outputs.token }}
           DATA_DIRECTORY: ${{ steps.data.outputs.directory }}
+          MIGRATION_PERFORMED: ${{ steps.migration.outputs.performed }}
           MAX_WINDOWS: ${{ inputs.max_windows }}
         run: |
           set -euo pipefail
@@ -114,6 +115,10 @@ jobs:
           if (( max_windows < 1 || max_windows > 20 )); then
             echo "::error::max_windows must be between 1 and 20"
             exit 1
+          fi
+          max_runtime_seconds=2400
+          if [[ "$MIGRATION_PERFORMED" == "true" ]]; then
+            max_runtime_seconds=1800
           fi
           summary=$(
             python3 .github/scripts/github-actions-queue/collect.py \
@@ -126,7 +131,7 @@ jobs:
               --max-windows "$max_windows" \
               --max-workers 4 \
               --max-requests 12000 \
-              --max-runtime-seconds 2400
+              --max-runtime-seconds "$max_runtime_seconds"
           )
           echo "$summary" | jq .
           {

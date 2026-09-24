@@ -19,8 +19,6 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
-from rerun_carry_forwards import filter_rerun_carry_forwards
-
 
 API_ROOT = "https://api.github.com"
 API_VERSION = "2022-11-28"
@@ -839,12 +837,14 @@ class QueueCollector:
         jobs = self._client.list_jobs(self._org, repository, run["id"])
         if any(job.get("status") != "completed" for job in jobs):
             return [], False
-        jobs, _ = filter_rerun_carry_forwards(jobs)
         jobs = [job for job in jobs if job.get("runner_name")]
         collected_at = _format_instant(self._now())
-        return [
-            _job_record(self._org, repository, run, job, collected_at) for job in jobs
-        ], True
+        records = []
+        for job in jobs:
+            record = _job_record(self._org, repository, run, job, collected_at)
+            if record["queue_seconds"] >= 0:
+                records.append(record)
+        return records, True
 
 
 def collect_live_and_backfill(
