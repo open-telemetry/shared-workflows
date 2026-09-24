@@ -2334,7 +2334,9 @@
         "approval_count": 1,
         "assignees": [],
         "author": "trask",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20082#discussion_r4090096387"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "903dadd7c5884923ab253e9783df4862",
@@ -2342,12 +2344,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5ba45c65c76a0d7993e9ac616da52ab56cff99d86c9f077407948534aaf6cb3f",
+        "copilot_request_fingerprint": "406cab821f97cc9310c0570e9996e2fc9cf1184b5269138af6327902ac11bb24",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
         "created_at": "2026-09-10T02:08:46+00:00",
@@ -2355,14 +2357,24 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "147eace73e725c4b70e915d10d49417bfdf94853",
+        "head_sha": "2bebfe9d5762545a25a323f23338e0a79ff94929",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T04:36:02+00:00",
+        "last_activity_at": "2026-09-24T05:00:05+00:00",
         "last_approver_activity_at": "2026-09-23T07:47:01+00:00",
         "last_author_activity_at": "2026-09-24T04:36:02+00:00",
         "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -2374,12 +2386,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-24T04:48:54.501290+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "dd99e277f123fffe245c28c4b48ddc5e903d820f3ec42f1bd198de428773c846",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-23T07:47:01+00:00"
+        "routing_input_fingerprint": "18120b51047ec60796925cdf9e902acf550ef43544d9823dd36e6349d89ee322",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-24T05:00:00+00:00"
       },
       "failed": false,
       "pr_number": 20082,
