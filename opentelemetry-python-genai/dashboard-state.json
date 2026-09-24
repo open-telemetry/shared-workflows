@@ -2136,7 +2136,9 @@
         "approval_count": 0,
         "assignees": [],
         "author": "sangkyoonnam",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-python-genai/pull/785#discussion_r4090152421"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "95b211f4a3ee4fe4990f3703e026d192",
@@ -2145,12 +2147,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "117ad3f31df147642b3d2647ca9e29aa2c1638518545e0804ce9e79b4aba52c0",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "00e72d3eefa5024923d1150b594237d83e130e3bd7bd287970d5a40ea3dbd15c",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-24T05:08:31+00:00",
@@ -2165,10 +2167,21 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-24T05:08:32+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9c06a85fe95c015daf3a820addc1f94d95086cf647c7b639ecf87273fc97108e",
+        "routing_input_fingerprint": "9646b7fb76eac42340794d4939b13cc3d4f8f717d5852213e4a41c7fc71ea62f",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-09-24T05:08:42+00:00"
       },
