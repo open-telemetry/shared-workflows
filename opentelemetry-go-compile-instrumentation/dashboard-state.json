@@ -3357,7 +3357,7 @@
     },
     "1380": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "ADITYA-CODE-SOURCE",
         "author_action_review_thread_urls": [],
@@ -3365,9 +3365,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 5,
         "conflicts": "no",
-        "copilot_request_fingerprint": "b9c43c343695ce8fa86785daf1506e4b21b5ad3f87d645d38aad641d38ae671f",
+        "copilot_request_fingerprint": "ff32e1dbb89f0a16c9f5ecee68b9f2a0700be65b6b8d27d7d34797ec7200a1f0",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3380,16 +3380,13 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "b8278a77f8bbc94945853775670e23398d7382b7",
+        "head_sha": "d5ca7b0fdc5acf3b99143dcc32fb7bd826bc60c4",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T17:29:45+00:00",
-        "last_approver_activity_at": "2026-09-21T07:45:46+00:00",
+        "last_activity_at": "2026-09-24T09:20:47+00:00",
+        "last_approver_activity_at": "2026-09-24T09:20:47+00:00",
         "last_author_activity_at": "2026-09-22T17:29:45+00:00",
-        "non_blocking_check_failures": [
-          "govulncheck (instrumentation)"
-        ],
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
           {
             "approved": true,
@@ -3400,11 +3397,21 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kakkoyun",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "31d59171574546e94a784d9b6784b62347b0a8b69a75df3c4bb96c525a98914e",
+        "routing_input_fingerprint": "00e13549300c6ed62638e5463a66949c189c9239e711c19a6a5151c7b5d397b1",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-21T08:41:24.230713+00:00"
       },
