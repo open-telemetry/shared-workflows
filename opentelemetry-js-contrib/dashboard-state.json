@@ -4110,16 +4110,13 @@
         ],
         "author": "soltonigiri",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [
-          "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3710#pullrequestreview-5170790981"
-        ],
+        "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "9432a5c5e3d347ef9769b3aa77067ebc",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1652f100a10a11f2cd0184c4652df41b50bfc27017e63af1e091fa6f6488e4fa",
+        "copilot_request_fingerprint": "53acaa434789efcf69cde120ed420889a769dd29a3198b6e48881f6718b4c559",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4128,10 +4125,26 @@
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-08-29T04:56:29+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5804996017,
+            "head_sha": "4d28ab64b3c6ee0a3ea40ad1737c36749a252535",
+            "held_gates": "",
+            "kind": "routed",
+            "persistent_handoff": true,
+            "route": "approver",
+            "since": "2026-09-24T00:03:47Z",
+            "top_level_feedback_cutoff": "2026-09-24T00:03:47Z",
+            "user": "soltonigiri"
+          }
+        ],
+        "dashboard_override_bound_command_id": 5804996017,
+        "dashboard_override_command_id": 5804996017,
+        "dashboard_override_command_user": "soltonigiri",
+        "dashboard_override_head_sha": "4d28ab64b3c6ee0a3ea40ad1737c36749a252535",
+        "dashboard_override_persistent": true,
+        "dashboard_override_since": "2026-09-24T00:03:47Z",
+        "dashboard_top_level_feedback_cutoff": "2026-09-24T00:03:47Z",
         "head_sha": "4d28ab64b3c6ee0a3ea40ad1737c36749a252535",
         "is_draft": false,
         "is_maintenance_bot": false,
@@ -4167,7 +4180,7 @@
             "login": "maryliag",
             "open_thread": false,
             "pending_review": false,
-            "top_level_feedback": true,
+            "top_level_feedback": false,
             "unresolved_thread": false
           },
           {
@@ -4183,14 +4196,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "73f25ae4cc3b9da169b57363b6703869387c2550f33d78a0430d45806623ddc6",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-09-10T18:21:35+00:00"
+        "routing_input_fingerprint": "267975e25cc22080414a3054041bc7e23d19e06588a4e3a3f1dd3de8bd99c607",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-08-29T04:40:15+00:00"
       },
       "failed": false,
       "pr_number": 3710,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js-contrib/pull/3710",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "3713": {
