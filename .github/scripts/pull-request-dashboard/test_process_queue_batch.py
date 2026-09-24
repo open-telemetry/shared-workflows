@@ -92,14 +92,14 @@ class QueueBatchTest(unittest.TestCase):
             claim("example#pr:1", "example", pr_number=1),
             claim("example#head:abc", "example", head_sha="a" * 40),
         ]
-        work, completed = resolve_work_items(claims, lambda _repo, _sha: 1)
+        work, completed = resolve_work_items(claims, lambda _repo, _sha: (1,))
         self.assertEqual(completed, [])
         self.assertEqual(len(work), 1)
         self.assertEqual(len(work[0].claims), 2)
 
     def test_unresolved_heads_are_acknowledged_without_work(self) -> None:
         head = claim("example#head:abc", "example", head_sha="a" * 40)
-        work, completed = resolve_work_items([head], lambda _repo, _sha: None)
+        work, completed = resolve_work_items([head], lambda _repo, _sha: ())
         self.assertEqual(work, [])
         self.assertEqual(completed[0]["outcome"], "success")
 
@@ -107,13 +107,98 @@ class QueueBatchTest(unittest.TestCase):
         direct = claim("example#pr:1", "example", pr_number=1)
         head = claim("example#head:abc", "example", head_sha="a" * 40)
 
-        def fail_resolution(_repository: str, _head_sha: str) -> int | None:
+        def fail_resolution(_repository: str, _head_sha: str) -> tuple[int, ...]:
             raise RuntimeError("GitHub API unavailable")
 
         work, completed = resolve_work_items([direct, head], fail_resolution)
         self.assertEqual([item.pr_number for item in work], [1])
         self.assertEqual(completed[0]["itemKey"], head.item_key)
         self.assertEqual(completed[0]["outcome"], "retry")
+
+    def test_one_head_claim_refreshes_every_matching_pr_and_waits_for_all(self) -> None:
+        head = claim("example#head:abc", "example", head_sha="a" * 40)
+        direct = claim("example#pr:7", "example", pr_number=7)
+        work, completed = resolve_work_items(
+            [head, direct],
+            lambda _repo, _sha: (7, 9),
+        )
+        self.assertEqual(completed, [])
+        self.assertEqual([item.pr_number for item in work], [7, 9])
+        self.assertEqual(work[0].claims, (head, direct))
+        self.assertEqual(work[1].claims, (head,))
+
+        processed: list[int] = []
+
+        def process(_repository: str, items: list[WorkItem]) -> list[dict[str, object]]:
+            results = []
+            for item in items:
+                processed.append(item.pr_number)
+                for item_claim in item.claims:
+                    results.append(
+                        process_queue_batch.acknowledgment(
+                            item_claim,
+                            "retry" if item.pr_number == 9 else "success",
+                        )
+                    )
+            return results
+
+        results = process_batch(work, process)
+        self.assertEqual(processed, [7, 9])
+        self.assertEqual(
+            [(result["itemKey"], result["outcome"]) for result in results],
+            [("example#head:abc", "retry"), ("example#pr:7", "success")],
+        )
+
+    def test_canary_head_lookup_finds_fork_prs_across_pages(self) -> None:
+        sha = "a" * 40
+        paths: list[str] = []
+
+        def run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            paths.append(command[-1])
+            self.assertEqual(_kwargs["encoding"], "utf-8")
+            self.assertEqual(command[2:4], ["--paginate", "--slurp"])
+            data = [
+                [{"number": 3, "state": "open", "head": {"sha": "other"}}],
+                [
+                    {"number": 9, "state": "open", "head": {"sha": sha}},
+                    {"number": 7, "state": "open", "head": {"sha": sha}},
+                    {"number": 5, "state": "closed", "head": {"sha": sha}},
+                ],
+            ]
+            return subprocess.CompletedProcess(
+                command, 0, stdout=json.dumps(data), stderr=""
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text("[]", encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(config_path, run=run)
+            self.assertEqual(processor.resolve_head("example", sha), (7, 9))
+        self.assertEqual(
+            paths,
+            [
+                "repos/open-telemetry/example/pulls?state=open&per_page=100",
+            ],
+        )
+
+    def test_canary_head_lookup_preserves_genuine_no_match(self) -> None:
+        paths: list[str] = []
+
+        def run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            paths.append(command[-1])
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout='[[{"number":7,"state":"open","head":{"sha":"other"}}]]',
+                stderr="",
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text("[]", encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(config_path, run=run)
+            self.assertEqual(processor.resolve_head("example", "a" * 40), ())
+        self.assertEqual(len(paths), 1)
 
     def test_prs_are_grouped_sequentially_by_repository(self) -> None:
         items = [
@@ -397,8 +482,8 @@ class QueueBatchTest(unittest.TestCase):
             def __init__(self, *_args: object, **_kwargs: object) -> None:
                 pass
 
-            def resolve_head(self, _repository: str, _head_sha: str) -> int | None:
-                return None
+            def resolve_head(self, _repository: str, _head_sha: str) -> tuple[int, ...]:
+                return ()
 
             def process_repository(
                 self,
@@ -476,7 +561,7 @@ class QueueBatchTest(unittest.TestCase):
             def __init__(self, *_args: object, **_kwargs: object) -> None:
                 pass
 
-            def resolve_head(self, _repository: str, _head_sha: str) -> int | None:
+            def resolve_head(self, _repository: str, _head_sha: str) -> tuple[int, ...]:
                 raise AssertionError("unreachable")
 
             def process_repository(

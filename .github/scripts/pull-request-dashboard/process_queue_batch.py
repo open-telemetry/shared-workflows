@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from head_resolution import matching_open_pr_numbers
 from queue_worker_client import QueueWorkerClient, acknowledge_results
 import state_branch as state_branch_git
 
@@ -188,25 +189,41 @@ def process_claims(
 
 def resolve_work_items(
     claims: list[Claim],
-    resolve_head: Callable[[str, str], int | None],
+    resolve_head: Callable[[str, str], tuple[int, ...]],
 ) -> tuple[list[WorkItem], list[dict[str, Any]]]:
     grouped: dict[tuple[str, int], list[Claim]] = defaultdict(list)
     completed: list[dict[str, Any]] = []
     for claim in claims:
         try:
-            pr_number = claim.pr_number or resolve_head(claim.repository, claim.head_sha)
+            pr_numbers = (
+                (claim.pr_number,)
+                if claim.pr_number is not None
+                else resolve_head(claim.repository, claim.head_sha)
+            )
         except Exception as error:
             completed.extend(failure_acknowledgments((claim,), error))
             continue
-        if pr_number is None:
+        if not pr_numbers:
             completed.append(acknowledgment(claim, "success"))
             continue
-        grouped[(claim.repository, pr_number)].append(claim)
+        for pr_number in pr_numbers:
+            grouped[(claim.repository, pr_number)].append(claim)
     work = [
         WorkItem(repository, pr_number, tuple(item_claims))
         for (repository, pr_number), item_claims in sorted(grouped.items())
     ]
     return work, completed
+
+
+def coalesce_acknowledgments(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    combined: dict[str, dict[str, Any]] = {}
+    severity = {"success": 0, "retry": 1, "dead": 2}
+    for result in results:
+        key = result["itemKey"]
+        previous = combined.get(key)
+        if previous is None or severity[result["outcome"]] > severity[previous["outcome"]]:
+            combined[key] = result
+    return list(combined.values())
 
 
 def group_by_repository(work_items: list[WorkItem]) -> dict[str, list[WorkItem]]:
@@ -238,11 +255,12 @@ def process_batch(
         for future in concurrent.futures.as_completed(futures):
             repository = futures[future]
             try:
-                repository_results = future.result()
+                repository_results = coalesce_acknowledgments(future.result())
             except Exception as error:
                 repository_results = []
                 for item in repositories[repository]:
                     repository_results.extend(failure_acknowledgments(item.claims, error))
+                repository_results = coalesce_acknowledgments(repository_results)
             results.extend(repository_results)
             if on_results is not None:
                 try:
@@ -278,24 +296,24 @@ class DashboardBatchProcessor:
             if isinstance(entry, dict) and isinstance(entry.get("name"), str)
         }
 
-    def resolve_head(self, repository: str, head_sha: str) -> int | None:
-        result = self._run(
-            [
-                "gh",
-                "api",
-                f"repos/{OWNER}/{repository}/commits/{head_sha}/pulls",
-            ],
-            env=self.base_env,
+    def resolve_head(self, repository: str, head_sha: str) -> tuple[int, ...]:
+        def fetch(path: str) -> list[dict[str, Any]]:
+            result = self._run(
+                ["gh", "api", "--paginate", "--slurp", path],
+                env=self.base_env,
+                print_stdout=False,
+            )
+            pages = json.loads(result.stdout)
+            if not isinstance(pages, list) or not all(
+                isinstance(page, list) for page in pages
+            ):
+                raise RuntimeError("head pull request lookup returned invalid JSON")
+            return [pull_request for page in pages for pull_request in page]
+
+        return matching_open_pr_numbers(
+            fetch(f"repos/{OWNER}/{repository}/pulls?state=open&per_page=100"),
+            head_sha,
         )
-        pull_requests = json.loads(result.stdout)
-        matches = sorted(
-            pull_request["number"]
-            for pull_request in pull_requests
-            if pull_request.get("state") == "open"
-            and (pull_request.get("head") or {}).get("sha") == head_sha
-            and isinstance(pull_request.get("number"), int)
-        )
-        return matches[0] if matches else None
 
     def process_repository(
         self,
@@ -498,6 +516,7 @@ class DashboardBatchProcessor:
         command: list[str],
         *,
         env: dict[str, str],
+        print_stdout: bool = True,
     ) -> subprocess.CompletedProcess[str]:
         if self.lease_check is None:
             result = self.run(
@@ -505,6 +524,7 @@ class DashboardBatchProcessor:
                 cwd=self.script_dir.parents[2],
                 env=env,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
             )
         else:
@@ -514,6 +534,7 @@ class DashboardBatchProcessor:
                 cwd=self.script_dir.parents[2],
                 env=env,
                 text=True,
+                encoding="utf-8",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
@@ -534,7 +555,7 @@ class DashboardBatchProcessor:
                 stdout,
                 stderr,
             )
-        if result.stdout:
+        if result.stdout and print_stdout:
             print(result.stdout, end="")
         if result.stderr:
             print(result.stderr, end="", file=sys.stderr)

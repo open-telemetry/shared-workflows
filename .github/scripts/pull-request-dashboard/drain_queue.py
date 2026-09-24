@@ -4,10 +4,12 @@ import argparse
 import concurrent.futures
 import json
 import os
+import re
 import subprocess
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import defaultdict
 from collections.abc import Callable
@@ -15,11 +17,13 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from head_resolution import matching_open_pr_numbers
 from process_queue_batch import (
     SCRIPT_DIR,
     Claim,
     LeaseMonitor,
     acknowledgment,
+    coalesce_acknowledgments,
     failure_acknowledgments,
     load_claims,
     parse_claims,
@@ -171,15 +175,13 @@ class DashboardWorkflowDispatcher:
         self.token = token
         self.opener = opener
 
-    def resolve_head(
+    def _fetch_head_page(
         self,
-        repository: str,
-        head_sha: str,
+        url: str,
         token: str,
-    ) -> int | None:
+    ) -> tuple[list[dict[str, Any]], str]:
         request = urllib.request.Request(
-            f"https://api.github.com/repos/open-telemetry/{repository}/"
-            f"commits/{head_sha}/pulls",
+            url,
             headers={
                 "Accept": "application/vnd.github+json",
                 "Authorization": f"Bearer {token}",
@@ -195,6 +197,7 @@ class DashboardWorkflowDispatcher:
                         f"unexpected HTTP status {response.status}"
                     )
                 pull_requests = json.load(response)
+                link = response.headers.get("Link", "")
         except urllib.error.HTTPError as error:
             body = error.read().decode("utf-8", errors="replace")[:1000]
             raise RuntimeError(
@@ -202,16 +205,45 @@ class DashboardWorkflowDispatcher:
             ) from error
         if not isinstance(pull_requests, list):
             raise RuntimeError("head pull request lookup returned invalid JSON")
-        matches = sorted(
-            pull_request["number"]
-            for pull_request in pull_requests
-            if isinstance(pull_request, dict)
-            and pull_request.get("state") == "open"
-            and isinstance(pull_request.get("head"), dict)
-            and pull_request["head"].get("sha") == head_sha
-            and isinstance(pull_request.get("number"), int)
+        next_page = re.search(r'<([^>]+)>;\s*rel="next"', link)
+        return pull_requests, next_page.group(1) if next_page else ""
+
+    def resolve_head(
+        self,
+        repository: str,
+        head_sha: str,
+        token: str,
+    ) -> tuple[int, ...]:
+        base = f"https://api.github.com/repos/open-telemetry/{repository}"
+
+        def fetch(url: str) -> list[dict[str, Any]]:
+            pull_requests: list[dict[str, Any]] = []
+            while url:
+                page, next_page = self._fetch_head_page(url, token)
+                pull_requests.extend(page)
+                if next_page:
+                    parsed = urllib.parse.urlsplit(next_page)
+                    if (
+                        parsed.scheme != "https"
+                        or parsed.netloc != "api.github.com"
+                        or (
+                            parsed.path != f"/repos/open-telemetry/{repository}/pulls"
+                            and re.fullmatch(
+                                r"/repositories/[1-9]\d*/pulls", parsed.path
+                            )
+                            is None
+                        )
+                    ):
+                        raise RuntimeError(
+                            "head pull request lookup returned invalid next page"
+                        )
+                url = next_page
+            return pull_requests
+
+        return matching_open_pr_numbers(
+            fetch(f"{base}/pulls?state=open&per_page=100"),
+            head_sha,
         )
-        return matches[0] if matches else None
 
     def dispatch(self, claim: Claim) -> None:
         payload = json.dumps(
@@ -308,7 +340,7 @@ def process_claim_wave(
     *,
     canary_repositories: frozenset[str],
     configured_repositories: frozenset[str],
-    resolve_stable_head: Callable[[str, str, str], int | None],
+    resolve_stable_head: Callable[[str, str, str], tuple[int, ...]],
     dispatch_stable: Callable[[Claim], None],
     report_limits: Callable[..., None] = report_rate_limits,
 ) -> WaveResult:
@@ -358,7 +390,7 @@ def process_claim_wave(
 
         resolution_tokens: dict[str, str] = {}
         try:
-            def resolve_head(repository: str, head_sha: str) -> int | None:
+            def resolve_head(repository: str, head_sha: str) -> tuple[int, ...]:
                 monitor.assert_valid()
                 token = resolution_tokens.get(repository)
                 if token is None:
@@ -409,6 +441,7 @@ def process_claim_wave(
                 stable_results.extend(
                     acknowledgment(claim, "success") for claim in item.claims
                 )
+        stable_results = coalesce_acknowledgments(stable_results)
         acknowledge_results(
             client,
             stable_results,
