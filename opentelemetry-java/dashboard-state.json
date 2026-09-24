@@ -239,14 +239,21 @@
         "approval_count": 1,
         "assignees": [],
         "author": "Rajkaran-122",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8770#discussion_r4097663251",
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8770#discussion_r4097663260",
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8770#discussion_r4097663265"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-java/pull/8770#pullrequestreview-5309240133"
+        ],
         "author_can_act": true,
+        "author_nudge_episode_id": "1044cdec09d94d5fa89d50ebce806f34",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a3a68ac6746ee2bc0457951f570a13909e6759828148925069ba4a784751019f",
+        "copilot_request_fingerprint": "f5e6a78987e881331cc93d794fda455e2f4e3b5f7f75b873f8cd470ebfa5fa1a",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -262,20 +269,20 @@
         "head_sha": "28e7376589e982c2f26751f1c973c8297b5affec",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T14:08:44+00:00",
-        "last_approver_activity_at": "2026-09-22T11:24:27+00:00",
+        "last_activity_at": "2026-09-24T19:35:11+00:00",
+        "last_approver_activity_at": "2026-09-24T19:35:11+00:00",
         "last_author_activity_at": "2026-09-22T14:08:44+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
             "approved_non_team": false,
-            "changes_requested": false,
+            "changes_requested": true,
             "login": "jack-berg",
-            "open_thread": false,
-            "pending_review": true,
-            "top_level_feedback": false,
-            "unresolved_thread": false
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": true
           },
           {
             "approved": true,
@@ -290,14 +297,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2299216221619ecb72db1aa260c3900e25638cbdfb67583027a13d6967b44a34",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-21T19:26:18+00:00"
+        "routing_input_fingerprint": "0e4f7e947806226a4fedf4aaa9dedc6f91e71204a4714cc6119616748ab16ebd",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-24T19:34:25+00:00"
       },
       "failed": false,
       "pr_number": 8770,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8770",
-      "route": "maintainer",
+      "route": "author",
       "top_level_history": {
         "pr-issue-comment-5640375209": {
           "evidence": {
