@@ -984,7 +984,7 @@
     },
     "7806": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "stevejgordon",
         "author_action_review_thread_urls": [],
@@ -994,7 +994,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e880b450b57e57d98a1b10440217d75c6232fa2b0063603247bf0a3d78ea963a",
+        "copilot_request_fingerprint": "cc2249f6eb72ea892fb47f45d0761b0bd9d76b6dbb63c284b5409414c1d398e8",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -1010,13 +1010,13 @@
         "head_sha": "cb75661aa241ba480b9d023fd65248d8285da124",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T10:05:08+00:00",
-        "last_approver_activity_at": "2026-09-24T08:17:42+00:00",
+        "last_activity_at": "2026-09-24T10:09:07+00:00",
+        "last_approver_activity_at": "2026-09-24T10:09:07+00:00",
         "last_author_activity_at": "2026-09-24T10:05:08+00:00",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "martincostello",
@@ -1026,10 +1026,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-24T10:10:00.097887+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "13633c2c102cc5063d6e40ba9bd6ca4670a757566ddd745d31465a0efe53c6e2",
-        "waiting_age_basis": "oldest_pending_thread",
+        "routing_input_fingerprint": "e6a977c28a5523ec150d94be92d4de45904fa5cd8a8f3ee708c88a853092bc30",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-24T08:40:26+00:00"
       },
       "failed": false,
