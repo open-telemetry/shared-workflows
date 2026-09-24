@@ -207,6 +207,14 @@ Production function environment before deployment:
 The webhook function also supports `OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY` if the
 deployment environment can store a multiline PEM value directly.
 
+On the first deploy, the workflow creates the dispatcher client ID, encoded
+private key, and `PR_DASHBOARD_QUEUE_MODE` in the Production Functions
+environment. Later deploys update only their Production values, preserving
+the existing scope and the private key's secret setting. If an older Netlify
+project still has the deprecated `OTELBOT_SHARED_WORKFLOWS_APP_ID`, remove it
+once in Netlify's environment settings after confirming the client ID is set.
+The deploy workflow does not remove unrelated or deprecated variables.
+
 Deploy contexts:
 
 - Production

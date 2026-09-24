@@ -10,6 +10,7 @@ on:
       - .github/scripts/pull-request-dashboard/package-lock.json
       - .github/scripts/pull-request-dashboard/package.json
       - .github/scripts/pull-request-dashboard/public/**
+      - .github/scripts/pull-request-dashboard/set_netlify_dispatcher_env.sh
       - .github/workflows/pull-request-dashboard-deploy-webhook.yml
       - .github/workflows/pull-request-dashboard.yml
   workflow_dispatch:
@@ -49,42 +50,9 @@ jobs:
           echo "Deploying pull request dashboard queue mode: $queue_mode"
           dispatcher_private_key_base64=$(printf '%s' "$OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY" | base64 -w0)
           echo "::add-mask::$dispatcher_private_key_base64"
-          # Remove the deprecated variable left by App ID deployments.
-          npx --yes netlify-cli@26.0.2 env:unset OTELBOT_SHARED_WORKFLOWS_APP_ID \
-            --site "$NETLIFY_SITE_ID" \
-            --auth "$NETLIFY_AUTH_TOKEN" \
-            --force || true
-          npx --yes netlify-cli@26.0.2 env:unset OTELBOT_SHARED_WORKFLOWS_CLIENT_ID \
-            --site "$NETLIFY_SITE_ID" \
-            --auth "$NETLIFY_AUTH_TOKEN" \
-            --force || true
-          npx --yes netlify-cli@26.0.2 env:unset OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64 \
-            --site "$NETLIFY_SITE_ID" \
-            --auth "$NETLIFY_AUTH_TOKEN" \
-            --force || true
-          npx --yes netlify-cli@26.0.2 env:unset PR_DASHBOARD_QUEUE_MODE \
-            --site "$NETLIFY_SITE_ID" \
-            --auth "$NETLIFY_AUTH_TOKEN" \
-            --force || true
-          npx --yes netlify-cli@26.0.2 env:set OTELBOT_SHARED_WORKFLOWS_CLIENT_ID "$OTELBOT_SHARED_WORKFLOWS_CLIENT_ID" \
-            --context production \
-            --scope functions \
-            --site "$NETLIFY_SITE_ID" \
-            --auth "$NETLIFY_AUTH_TOKEN" \
-            --force
-          npx --yes netlify-cli@26.0.2 env:set OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64 "$dispatcher_private_key_base64" \
-            --context production \
-            --scope functions \
-            --site "$NETLIFY_SITE_ID" \
-            --auth "$NETLIFY_AUTH_TOKEN" \
-            --secret \
-            --force
-          npx --yes netlify-cli@26.0.2 env:set PR_DASHBOARD_QUEUE_MODE "$queue_mode" \
-            --context production \
-            --scope functions \
-            --site "$NETLIFY_SITE_ID" \
-            --auth "$NETLIFY_AUTH_TOKEN" \
-            --force
+          bash ./set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_CLIENT_ID "$OTELBOT_SHARED_WORKFLOWS_CLIENT_ID"
+          bash ./set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64 "$dispatcher_private_key_base64" --secret
+          bash ./set_netlify_dispatcher_env.sh PR_DASHBOARD_QUEUE_MODE "$queue_mode"
 
       - name: Install function dependencies
         working-directory: .github/scripts/pull-request-dashboard
