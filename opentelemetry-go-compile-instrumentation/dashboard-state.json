@@ -3776,7 +3776,7 @@
     },
     "1395": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "kakkoyun",
         "author_action_review_thread_urls": [],
@@ -3786,7 +3786,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "96f5614d5468021d2a012162f7727ba2748173aedf6add922af2430c8341dc9e",
+        "copilot_request_fingerprint": "66020a83ce86b7470c6b8539d8e2860349e0425b3357ba735cf3300410429932",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3802,21 +3802,32 @@
         "head_sha": "9817226b5076ad457e1cfbf8ea2fe4220cd1f622",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T14:48:15+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-24T15:58:41+00:00",
+        "last_approver_activity_at": "2026-09-24T15:58:41+00:00",
         "last_author_activity_at": "2026-09-24T14:47:57+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "txabman42",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "efcb658db9a963858d4bf200fa0cef8c6076d3d886686a288a56181f346a151c",
+        "routing_input_fingerprint": "f3c574d2cc67b8e47f86664d02394cafc2a985869c90e903c315ba6b49c18ba0",
         "waiting_age_basis": "last_author_activity",
         "waiting_since": "2026-09-24T14:47:57+00:00"
       },
       "failed": false,
       "pr_number": 1395,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1395",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "1396": {
