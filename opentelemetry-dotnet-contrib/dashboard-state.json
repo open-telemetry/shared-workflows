@@ -829,8 +829,11 @@
     },
     "5415": {
       "facts": {
-        "approval_count": 0,
-        "assignees": [],
+        "approval_count": 1,
+        "assignees": [
+          "matt-hensley",
+          "martincostello"
+        ],
         "author": "app/otelbot-dotnet-contrib",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
@@ -839,7 +842,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "ec2e2a490d9ec755ddb31b69c72d477957440a7175590d3680690b2a173e447f",
+        "copilot_request_fingerprint": "ae4c61b0cfa4015da6f920b2cdd98507931959b871bde41a5cb6a90ad8f958a7",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -855,15 +858,37 @@
         "head_sha": "a9ab1904ba6b7e455c64a88d8acbd33df8994606",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T09:51:53+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-24T09:53:00+00:00",
+        "last_approver_activity_at": "2026-09-24T09:53:00+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": false,
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "martincostello",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "matt-hensley",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-24T09:53:22.471423+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "81024710546cc762037202ddb4e2185dcfd66d606ac4aa00b168d78647ea2c98",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "bd0e6f5d1f9c396b2af5d369836dfb982c088627fc45abf940f45dd015be5ec9",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-24T09:51:53+00:00"
       },
       "failed": false,
