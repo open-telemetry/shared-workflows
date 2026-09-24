@@ -2808,7 +2808,7 @@
     },
     "20216": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "maryantocinn",
         "author_action_review_thread_urls": [],
@@ -2816,9 +2816,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7d86dc596edf0d6ccc0acabe91c8503bcd63eb134c9c313bb16fd42e3f478f74",
+        "copilot_request_fingerprint": "253e418b6015e51e6513ef45ecfc3c26802abcf5066aa0b3b5b081334b0331c3",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2834,10 +2834,10 @@
         "head_sha": "50d7010e36198b9c34b79a4364a6ba35bdc10eef",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T03:24:36+00:00",
-        "last_approver_activity_at": "2026-09-22T13:25:13+00:00",
+        "last_activity_at": "2026-09-24T10:55:10+00:00",
+        "last_approver_activity_at": "2026-09-24T10:55:10+00:00",
         "last_author_activity_at": "2026-09-24T03:24:36+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2848,18 +2848,28 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "laurit",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "51ad6cb80097360f0415878aefd75f05cdd3dd01230bda9d7ecab3552bfe81c4",
+        "routing_input_fingerprint": "3216ae471e024a7c62ce6e76b30b0067ee052049ea7ea0506355adb89f3819ff",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-23T07:44:54.537788+00:00"
       },
       "failed": false,
       "pr_number": 20216,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20216",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {
         "pr-issue-comment-5777358846": {
           "evidence": {
