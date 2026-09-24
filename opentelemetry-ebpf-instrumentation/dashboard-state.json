@@ -626,13 +626,16 @@
     },
     "3482": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 3,
         "assignees": [],
         "author": "NameHaibinZhang",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3482#discussion_r4097209569"
+        ],
         "author_action_top_level_feedback_urls": [
           "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3482#issuecomment-5736367555",
-          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3482#pullrequestreview-5270421032"
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3482#pullrequestreview-5270421032",
+          "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3482#pullrequestreview-5294672475"
         ],
         "author_can_act": true,
         "author_nudge_episode_id": "5c1183835aeb41c3b9775790ba3e7fd5",
@@ -640,7 +643,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "83763a79ce984b4d212b74ee24cc918ec0bfd831e0df80285ff7728bcb62eb3f",
+        "copilot_request_fingerprint": "339477a94d5683bb19000f147e017f048fd7567791c781746f10917daca0e4f7",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -653,21 +656,21 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "3d2e012d17e96dda1abdd197b370c00b0ea4fdc6",
+        "head_sha": "b35a5a91a2efdf9ce060e9d8519258185316fc76",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-23T15:25:37+00:00",
-        "last_approver_activity_at": "2026-09-23T14:33:59+00:00",
-        "last_author_activity_at": "2026-09-23T15:25:37+00:00",
+        "last_activity_at": "2026-09-24T18:45:03+00:00",
+        "last_approver_activity_at": "2026-09-24T18:45:03+00:00",
+        "last_author_activity_at": "2026-09-24T14:19:55+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "grcevski",
             "open_thread": false,
-            "pending_review": true,
+            "pending_review": false,
             "top_level_feedback": true,
             "unresolved_thread": false
           },
@@ -682,19 +685,29 @@
             "unresolved_thread": false
           },
           {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "mmat11",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "MrAlias",
-            "open_thread": false,
-            "pending_review": true,
+            "open_thread": true,
+            "pending_review": false,
             "top_level_feedback": true,
-            "unresolved_thread": false
+            "unresolved_thread": true
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "5241d6bb3ca941cbfd55d88877426f49e381e346ef84ece703120c83b4fc27f8",
+        "routing_input_fingerprint": "a2d0c9d160674ce6504195710e3f289f9b62d49d2782fb77aa9e441a2e12cbf3",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-18T21:24:56+00:00"
       },
@@ -702,7 +715,14 @@
       "pr_number": 3482,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/pull/3482",
       "route": "author",
-      "top_level_history": {}
+      "top_level_history": {
+        "pr-review-5304196246": {
+          "evidence": {
+            "reply": "2026-09-24T14:19:55Z"
+          },
+          "reply_source_id": 5815913783
+        }
+      }
     },
     "3521": {
       "facts": {
