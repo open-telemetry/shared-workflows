@@ -75,7 +75,7 @@ export async function cancelStalledDashboardRuns({
 
     for (const run of candidates) {
       const jobs = await actions.listRunJobs(run.id);
-      if (!wasNeverAssigned(jobs)) {
+      if (!canCancelStalledRun(jobs, staleBefore)) {
         continue;
       }
       const newerRun = matchingRuns
@@ -118,14 +118,23 @@ function sameConcurrencyGroup(left, right, workflow) {
     left.display_title.toLowerCase() === right.display_title.toLowerCase();
 }
 
-function wasNeverAssigned(jobs) {
-  if (jobs.length === 0) {
-    return true;
+function canCancelStalledRun(jobs, staleBefore) {
+  const unfinished = jobs.filter((job) => job.status !== "completed");
+  if (unfinished.length !== jobs.length) {
+    return unfinished.length > 0 && unfinished.every((job) => {
+      const startedAt = Date.parse(job.started_at);
+      return job.status === "waiting" &&
+        !wasAssigned(job) &&
+        Number.isFinite(startedAt) &&
+        startedAt <= staleBefore;
+    });
   }
-  return !jobs.some((job) =>
-    (Number.isInteger(job.runner_id) && job.runner_id !== 0) ||
+  return jobs.every((job) => !wasAssigned(job));
+}
+
+function wasAssigned(job) {
+  return (Number.isInteger(job.runner_id) && job.runner_id !== 0) ||
     Boolean(job.runner_name) ||
     (Array.isArray(job.steps) &&
-      job.steps.some((step) => Boolean(step.started_at)))
-  );
+      job.steps.some((step) => Boolean(step.started_at)));
 }

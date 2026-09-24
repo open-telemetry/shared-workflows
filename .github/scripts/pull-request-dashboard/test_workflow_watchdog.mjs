@@ -64,6 +64,15 @@ function unassignedJob(startedAt, status = "in_progress") {
   };
 }
 
+function completedJob(startedAt = "2026-09-10T11:00:00Z") {
+  return {
+    ...unassignedJob(startedAt, "completed"),
+    runner_id: 123,
+    runner_name: "GitHub Actions 123",
+    steps: [{ started_at: startedAt }],
+  };
+}
+
 test("cancels an unassigned stale run blocking a newer run", async () => {
   const { actions, calls } = fixture({
     runs: [
@@ -379,6 +388,132 @@ test("does not cancel a run that received a runner", async () => {
 
   assert.deepEqual(result.cancelled, []);
   assert.equal(calls.some(([action]) => action === "cancel"), false);
+});
+
+test("cancels a partially completed run when only stale unassigned waiting jobs remain", async () => {
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:45:00Z"),
+      run(1, "waiting", "2026-09-10T10:30:00Z"),
+    ],
+    jobs: {
+      1: [
+        completedJob(),
+        unassignedJob("2026-09-10T11:10:00Z", "waiting"),
+      ],
+    },
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [WORKFLOW],
+  });
+
+  assert.deepEqual(result.cancelled, [{
+    workflowId: "dashboard.yml",
+    runId: 1,
+    newerRunId: 2,
+    ageMinutes: 90,
+  }]);
+  assert.deepEqual(calls.map(([action]) => action), ["list-runs", "list-jobs", "cancel"]);
+});
+
+test("does not cancel a partially completed run with a newly waiting job", async () => {
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:30:00Z"),
+    ],
+    jobs: {
+      1: [
+        completedJob(),
+        unassignedJob("2026-09-10T11:45:00Z", "waiting"),
+      ],
+    },
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [WORKFLOW],
+  });
+
+  assert.deepEqual(result.cancelled, []);
+  assert.equal(calls.some(([action]) => action === "cancel"), false);
+});
+
+test("does not cancel a run with skipped jobs and a newly waiting job", async () => {
+  const { actions } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:30:00Z"),
+    ],
+    jobs: {
+      1: [
+        unassignedJob("2026-09-10T11:00:00Z", "completed"),
+        unassignedJob("2026-09-10T11:45:00Z", "waiting"),
+      ],
+    },
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [WORKFLOW],
+  });
+
+  assert.deepEqual(result.cancelled, []);
+});
+
+test("does not cancel a partially completed run with active or unknown work", async () => {
+  for (const unfinished of [
+    unassignedJob("2026-09-10T11:00:00Z", "in_progress"),
+    unassignedJob("2026-09-10T11:00:00Z", "queued"),
+    { ...unassignedJob("2026-09-10T11:00:00Z", "waiting"), runner_id: 456 },
+    { ...unassignedJob("2026-09-10T11:00:00Z", "waiting"), started_at: null },
+  ]) {
+    const { actions, calls } = fixture({
+      runs: [
+        run(2, "pending", "2026-09-10T11:45:00Z"),
+        run(1, "waiting", "2026-09-10T10:30:00Z"),
+      ],
+      jobs: {
+        1: [
+          completedJob(),
+          unassignedJob("2026-09-10T11:00:00Z", "waiting"),
+          unfinished,
+        ],
+      },
+    });
+
+    const result = await cancelStalledDashboardRuns({
+      actions,
+      now: () => NOW,
+      watchedWorkflows: [WORKFLOW],
+    });
+
+    assert.deepEqual(result.cancelled, []);
+    assert.equal(calls.some(([action]) => action === "cancel"), false);
+  }
+});
+
+test("does not cancel a completed run with no unfinished jobs", async () => {
+  const { actions } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:45:00Z"),
+      run(1, "waiting", "2026-09-10T10:30:00Z"),
+    ],
+    jobs: { 1: [completedJob()] },
+  });
+
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => NOW,
+    watchedWorkflows: [WORKFLOW],
+  });
+
+  assert.deepEqual(result.cancelled, []);
 });
 
 test("does not cancel without a newer queued run", async () => {
