@@ -7419,14 +7419,17 @@
         "assignees": [],
         "author": "braydonk",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/50363#issuecomment-5808874900"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "9e85af54266a44cd84e54248fe3096e8",
-        "ci_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-23T21:18:48+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "7d5fc498adcc15a641b413e340fa3deb4df7bbce07bdf1dfd05e4acd1ef5b90f",
+        "copilot_request_fingerprint": "c95f56b9ed2d4fa4110d2aa8ac78d861690fb5b2501777e0db655a88c2ff104c",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -7442,10 +7445,10 @@
         "head_sha": "ae1e5b43138f5ebf86f80811c893184edb0f6c9d",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-23T21:09:48+00:00",
+        "last_activity_at": "2026-09-24T06:21:44+00:00",
         "last_approver_activity_at": "2026-08-20T21:22:28+00:00",
         "last_author_activity_at": "2026-09-23T21:09:48+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -7461,6 +7464,16 @@
             "approved": false,
             "approved_non_team": false,
             "changes_requested": false,
+            "login": "singhvibhanshu",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
+          },
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
             "login": "VihasMakwana",
             "open_thread": false,
             "pending_review": false,
@@ -7468,12 +7481,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-23T21:11:31.050416+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "32de89799781321ec32ce267cc6a2b4afd51cd73779d55f80793990d7cb58e57",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-08-19T15:23:52+00:00"
+        "routing_input_fingerprint": "8831dee60615782d3a7da18f2273dd9e4dab97ba69d4f3be7070e6a64f46c970",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-23T21:18:48+00:00"
       },
       "failed": false,
       "pr_number": 50363,
