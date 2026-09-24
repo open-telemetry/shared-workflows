@@ -318,7 +318,9 @@
         "approval_count": 0,
         "assignees": [],
         "author": "lucacavenaghi97",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-ecosystem-explorer/pull/1161#discussion_r4091966228"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "1498709061a04c999200cd4eebe70958",
@@ -326,12 +328,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "f81d5c301a57bed45b466d379faee9836624613fddee1a9c1ae715dceceaef08",
+        "copilot_request_fingerprint": "8f12f0f4d0d4675e5eb4707863c92460ffde6928f8bbfaf1c714551bb37ab46e",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": true,
         "copilot_review_unreported": true,
         "created_at": "2026-09-24T08:25:47+00:00",
@@ -346,13 +348,24 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-24T09:19:34+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
-        "route_held_for_gates": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-24T09:20:09.243823+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "888f7d760ad42383e8d01ef774a6a53603078d36d3c2c3554b3ea2047598faf6",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-24T09:14:11+00:00"
+        "routing_input_fingerprint": "a56e1a0fe1bb7dd6479b9ddf308f7933199c3b845528d5571e05213459a82c58",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-24T09:21:37+00:00"
       },
       "failed": false,
       "pr_number": 1161,
