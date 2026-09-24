@@ -3128,7 +3128,7 @@
     },
     "20229": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -3138,7 +3138,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "61a1f65e11b681ca6f60fac270be9d607259cb4d7b9df674fc53cfc9d70cd3dc",
+        "copilot_request_fingerprint": "f8047e11c0c10ee5fc54a40dc58b433f9577d78b550ee15270e40f47ecd1f197",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": true,
@@ -3154,13 +3154,13 @@
         "head_sha": "e60cdb12598657341ac54d8b48343445deb08815",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-24T02:45:57+00:00",
-        "last_approver_activity_at": "2026-09-24T02:45:57+00:00",
+        "last_activity_at": "2026-09-24T02:47:59+00:00",
+        "last_approver_activity_at": "2026-09-24T02:47:59+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": false,
         "reviewers": [
           {
-            "approved": false,
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "trask",
@@ -3170,10 +3170,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-24T02:48:35.101584+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b62b2a52c4dc1de9aa2d24abe8ff9089aa3ef51a76131c3c812d47a3f814eab5",
-        "waiting_age_basis": "created",
+        "routing_input_fingerprint": "815642e8c8e0a4ca96427d50b5795f8b603f6342b1974cbdb3f7f17a06ecf3ea",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-23T14:19:13+00:00"
       },
       "failed": false,
