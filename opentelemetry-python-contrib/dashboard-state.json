@@ -5400,17 +5400,14 @@
         "approval_count": 0,
         "assignees": [],
         "author": "ghdtjdwn",
-        "author_action_review_thread_urls": [
-          "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5032#discussion_r4061074604"
-        ],
+        "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "89810307d4a1494b9ac8de1d82acfc9f",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "df48a2cb2c3b3eed8e30c42e8b7fd0d8ae238376e4670d241c14150308d5ffc3",
+        "copilot_request_fingerprint": "a5dda834cb4ff3947bb0ff7db1c1e435df9064ee519ea578ba1cd2d80c4bf8af",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -5419,19 +5416,32 @@
         "copilot_review_stale": true,
         "copilot_review_unreported": false,
         "created_at": "2026-09-07T03:07:14+00:00",
-        "dashboard_command_replies": [],
-        "dashboard_override_bound_command_id": 5615403786,
-        "dashboard_override_cleared_by_feedback": true,
-        "dashboard_override_command_id": 0,
-        "dashboard_override_command_user": "",
-        "dashboard_override_head_sha": "9ba5846d6978a2633d026d79ceef7f94e4eb422c",
-        "dashboard_override_since": "2026-09-10T08:16:25Z",
+        "dashboard_command_replies": [
+          {
+            "comment_id": 5823687536,
+            "head_sha": "2f602daf402cd3d3db31462769ef293083646c26",
+            "held_gates": "",
+            "kind": "routed",
+            "persistent_handoff": true,
+            "route": "approver",
+            "since": "2026-09-24T23:05:09Z",
+            "top_level_feedback_cutoff": "2026-09-24T23:05:09Z",
+            "user": "ghdtjdwn"
+          }
+        ],
+        "dashboard_override_bound_command_id": 5823687536,
+        "dashboard_override_command_id": 5823687536,
+        "dashboard_override_command_user": "ghdtjdwn",
+        "dashboard_override_head_sha": "2f602daf402cd3d3db31462769ef293083646c26",
+        "dashboard_override_persistent": true,
+        "dashboard_override_since": "2026-09-24T23:05:09Z",
+        "dashboard_top_level_feedback_cutoff": "2026-09-24T23:05:09Z",
         "head_sha": "2f602daf402cd3d3db31462769ef293083646c26",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T02:38:05+00:00",
+        "last_activity_at": "2026-09-24T23:05:09+00:00",
         "last_approver_activity_at": "2026-09-21T10:16:28+00:00",
-        "last_author_activity_at": "2026-09-22T02:38:05+00:00",
+        "last_author_activity_at": "2026-09-24T23:05:09+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
@@ -5459,22 +5469,22 @@
             "approved_non_team": false,
             "changes_requested": false,
             "login": "xrmx",
-            "open_thread": true,
+            "open_thread": false,
             "pending_review": false,
             "top_level_feedback": false,
-            "unresolved_thread": true
+            "unresolved_thread": false
           }
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "901f5099bfd499fb7cb6589b6ee96b002b4851b8f37e90696232edce393edeaf",
-        "waiting_age_basis": "oldest_pending_thread",
-        "waiting_since": "2026-09-22T02:27:06+00:00"
+        "routing_input_fingerprint": "b1afb05a9f6d33bccc9bf997b1acf6b6f053ca69d2e6280a8f5baccee579a53a",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-24T23:05:09+00:00"
       },
       "failed": false,
       "pr_number": 5032,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-contrib/pull/5032",
-      "route": "author",
+      "route": "approver",
       "top_level_history": {}
     },
     "5035": {
