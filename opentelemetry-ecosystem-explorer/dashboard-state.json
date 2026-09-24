@@ -360,7 +360,7 @@
     },
     "1163": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jaydeluca",
         "author_action_review_thread_urls": [],
@@ -370,7 +370,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "a6d1ec4cd877b7a55c0e49f245f1787455d8a65dea099268a44a89e06b463440",
+        "copilot_request_fingerprint": "987c3836ce6923ff5c9b6946823a0940ec0a5c32ac41ab195403ffa37abc7836",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -386,13 +386,23 @@
         "head_sha": "5b49dc072018d96d9a0b78e7886c51b0fdc41471",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T14:18:26+00:00",
-        "last_approver_activity_at": "2026-09-24T14:18:26+00:00",
+        "last_activity_at": "2026-09-24T14:23:04+00:00",
+        "last_approver_activity_at": "2026-09-24T14:22:27+00:00",
         "last_author_activity_at": "2026-09-24T13:53:36+00:00",
         "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
+            "approved_non_team": true,
+            "changes_requested": false,
+            "login": "didiViking",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
+          {
+            "approved": true,
             "approved_non_team": false,
             "changes_requested": false,
             "login": "lucacavenaghi97",
@@ -404,14 +414,14 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "c5f1bc2200421a302262b32eb35ad5de1e0c857cbfc0697a429c1d9b8ca4f630",
+        "routing_input_fingerprint": "0de7f58725f5173fbca046123906a4a653d4fd907bb97bb59ed5fb67e45fd641",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-24T14:03:02.278372+00:00"
       },
       "failed": false,
       "pr_number": 1163,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-ecosystem-explorer/pull/1163",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "382": {
