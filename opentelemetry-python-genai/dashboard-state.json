@@ -2011,7 +2011,7 @@
     },
     "783": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/renovate",
         "author_action_review_thread_urls": [],
@@ -2021,7 +2021,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "5f7c1403b2517ad4ef0507398914d2ca02fef54003e5ee894ee7f29c543aa404",
+        "copilot_request_fingerprint": "8ff1c971a4917e81add28935ea86562e7c00f74f8f7db4c2c9f843bab6777051",
         "copilot_review_exists": true,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2037,21 +2037,32 @@
         "head_sha": "c7b76497bc81293fbb2ef966fc384d4bc83c5490",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-24T01:50:43+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-24T02:22:23+00:00",
+        "last_approver_activity_at": "2026-09-24T02:22:23+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "eternalcuriouslearner",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b331c64999a838bc6d7e2dabf45db989e868b405586b7c769a8cd06ce24256bd",
+        "routing_input_fingerprint": "466f4b087d6ee29fdd97c24da20f5a1bb31a9f3b8389b605fd7d973f0940f923",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-24T01:50:43+00:00"
       },
       "failed": false,
       "pr_number": 783,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/783",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "784": {
