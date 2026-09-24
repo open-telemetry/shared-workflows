@@ -2881,18 +2881,17 @@
     },
     "4143": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "uros-stefanovic-db",
         "author_action_review_thread_urls": [],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
-        "author_nudge_episode_id": "88ea8656ecbf4a33924db0dc1c4c988b",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 1,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "3b85aaa0a99185f1a5cfe0f92afd086aa7a104ae336cb7c902bcd67c47144008",
+        "copilot_request_fingerprint": "ac5bc4c57d48fbbcb2f0e50eeb1e8a9117ab28fded9270c2f87ae8f6418e09f2",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2908,10 +2907,10 @@
         "head_sha": "6a3327857edc4c2c2e6d10fecdd87dca04ed3f07",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T14:45:42+00:00",
-        "last_approver_activity_at": "2026-09-24T14:45:42+00:00",
+        "last_activity_at": "2026-09-24T17:25:02+00:00",
+        "last_approver_activity_at": "2026-09-24T17:25:02+00:00",
         "last_author_activity_at": "2026-09-24T14:35:06+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": true,
@@ -2922,19 +2921,28 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": true
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "JakeDern",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-24T14:35:36.573505+00:00",
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d239ae36c5f4819a973be49088666e0b956978f61962cf103aebddaebd6a03e6",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-24T13:39:38+00:00"
+        "routing_input_fingerprint": "75a1237dec666105420b50d1e881eb494d0d222a97c39f29e9c151b9c5326658",
+        "waiting_age_basis": "gate_release",
+        "waiting_since": "2026-09-24T17:26:00.879499+00:00"
       },
       "failed": false,
       "pr_number": 4143,
       "pr_url": "https://github.com/open-telemetry/otel-arrow/pull/4143",
-      "route": "author",
+      "route": "maintainer",
       "top_level_history": {
         "pr-review-5305131294": {
           "evidence": {
