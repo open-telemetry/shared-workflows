@@ -14419,7 +14419,7 @@
     },
     "51386": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "sjyothi54",
         "author_action_review_thread_urls": [],
@@ -14427,9 +14427,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "147bc90be9f6fd43b23f8e853a83e1da399bc723cb712b470b53af15421b67aa",
+        "copilot_request_fingerprint": "3daa199d4a54f88a5e43e8ac6db951417e25ed77b27b5414ab7e300b2ecf74ba",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -14445,11 +14445,21 @@
         "head_sha": "b1a81293fcbf2a7c193ad2e6d8adf95a1833fce6",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-23T16:00:16+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-24T15:09:22+00:00",
+        "last_approver_activity_at": "2026-09-24T15:09:22+00:00",
         "last_author_activity_at": "2026-09-23T16:00:16+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "crobert-1",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": false,
             "approved_non_team": true,
@@ -14471,10 +14481,11 @@
             "unresolved_thread": false
           }
         ],
-        "route_held_for_gates": false,
+        "route_held_for_gates": true,
+        "route_held_since": "2026-09-24T15:10:11.449226+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "8842a0faf3fe66663f9f509e8e73df17fb27fbac684f4252021dd2f0e7276255",
-        "waiting_age_basis": "last_author_activity",
+        "routing_input_fingerprint": "7307c2b7a368d4ec1a20b35e71187e4639dc4f6e1aeed5a2f30b2a69dc994cf9",
+        "waiting_age_basis": "gate_hold",
         "waiting_since": "2026-09-23T16:00:16+00:00"
       },
       "failed": false,
