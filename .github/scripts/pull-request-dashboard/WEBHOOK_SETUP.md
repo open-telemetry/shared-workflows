@@ -242,11 +242,6 @@ that acquires the singleton dispatcher lease dispatches
 The generation identifies the dispatcher lease that the drain must activate.
 The drain claims repository and PR or head-SHA work from Netlify, so those
 values are not workflow inputs.
-For head-SHA claims, the canary worker and stable dispatcher paginate the target
-repository's open PRs and compare each head SHA. The commit-to-PR endpoint can
-omit fork heads or other PRs sharing the commit. Every matching open PR is
-refreshed or dispatched before the head claim is acknowledged; a head with no
-open PR is acknowledged without work.
 
 Direct dispatch notes:
 
@@ -255,9 +250,7 @@ Direct dispatch notes:
 - Omit `pr_number` or set it to an empty string for a backfill.
 - Send `head_sha` instead of `pr_number` when the event carries no pull request
   number. Check and status events for a pull request whose head branch lives in
-  a fork report no pull request association, so the central workflow resolves
-  the head against the target repository's open PRs, refreshes every match, and
-  skips the refresh when there is none.
+  a fork report no pull request association.
 - The central workflow validates `repository`, `pr_number` and `head_sha` before
   using them. `trigger_event` only selects a concurrency group, so it is
   validated on the backfill path only; the bridge is what restricts it to known
