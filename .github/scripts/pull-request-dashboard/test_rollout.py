@@ -104,6 +104,22 @@ class RolloutWiringTest(unittest.TestCase):
             self.assertIn(f"{prefix}-canary", self.jobs)
             self.assertIn(f"{prefix}-stable", self.jobs)
 
+    def test_direct_head_refreshes_each_matching_pr(self) -> None:
+        resolver = self.jobs["resolve-head-sha"]
+        self.assertIn('gh api --paginate --slurp', resolver)
+        self.assertIn('/pulls?state=open&per_page=100', resolver)
+        self.assertIn('select(.state == "open" and .head.sha == $sha)', resolver)
+        self.assertIn('pr_numbers: ${{ steps.trigger.outputs.pr_numbers }}', resolver)
+        for channel in ("canary", "stable"):
+            job = self.jobs[f"run-head-sha-dashboard-{channel}"]
+            self.assertIn("needs.resolve-head-sha.outputs.pr_numbers != '[]'", job)
+            self.assertIn(
+                "pr_number: ${{ fromJSON(needs.resolve-head-sha.outputs.pr_numbers) }}",
+                job,
+            )
+            self.assertIn("pr_number: ${{ matrix.pr_number }}", job)
+            self.assertIn("max-parallel: 1", job)
+
     def test_canary_jobs_run_the_workflow_from_this_commit(self) -> None:
         for job, body in self.jobs.items():
             if not job.endswith("-canary"):

@@ -251,6 +251,7 @@ class WorkflowDispatcherTest(unittest.TestCase):
     def test_resolves_a_head_to_its_open_pull_request(self) -> None:
         class Response(io.BytesIO):
             status = 200
+            headers: dict[str, str] = {}
 
             def __enter__(self) -> Response:
                 return self
@@ -276,8 +277,56 @@ class WorkflowDispatcherTest(unittest.TestCase):
 
         self.assertEqual(
             dispatcher.resolve_head("stable", "a" * 40, "stable-token"),
-            7,
+            (7,),
         )
+
+    def test_stable_head_lookup_finds_fork_prs_across_pages(self) -> None:
+        sha = "a" * 40
+        urls: list[str] = []
+
+        class Response(io.BytesIO):
+            status = 200
+
+            def __init__(self, data: object, link: str = "") -> None:
+                super().__init__(json.dumps(data).encode())
+                self.headers = {"Link": link}
+
+        def open_request(request: object, timeout: int) -> Response:
+            self.assertEqual(timeout, 30)
+            urls.append(request.full_url)
+            self.assertEqual(request.get_header("Authorization"), "Bearer stable-token")
+            if "page=2" in request.full_url:
+                return Response(
+                    [
+                        {"number": 9, "state": "open", "head": {"sha": sha}},
+                        {"number": 7, "state": "open", "head": {"sha": sha}},
+                        {"number": 5, "state": "closed", "head": {"sha": sha}},
+                    ]
+                )
+            return Response(
+                [{"number": 3, "state": "open", "head": {"sha": "other"}}],
+                ' <https://api.github.com/repositories/210933087/pulls?state=open&per_page=100&page=2>; rel="next"',
+            )
+
+        dispatcher = DashboardWorkflowDispatcher("actions-token", opener=open_request)
+        self.assertEqual(dispatcher.resolve_head("stable", sha, "stable-token"), (7, 9))
+        self.assertEqual(len(urls), 2)
+
+    def test_stable_head_lookup_preserves_genuine_no_match(self) -> None:
+        urls: list[str] = []
+
+        class Response(io.BytesIO):
+            status = 200
+            headers: dict[str, str] = {}
+
+        def open_request(request: object, timeout: int) -> Response:
+            self.assertEqual(timeout, 30)
+            urls.append(request.full_url)
+            return Response(b"[]")
+
+        dispatcher = DashboardWorkflowDispatcher("actions-token", opener=open_request)
+        self.assertEqual(dispatcher.resolve_head("stable", "a" * 40, "stable-token"), ())
+        self.assertEqual(len(urls), 1)
 
     def test_dispatches_the_coalesced_claim_to_the_targeted_workflow(self) -> None:
         requests: list[tuple[object, int]] = []
@@ -428,7 +477,7 @@ class ProcessClaimWaveTest(unittest.TestCase):
             0,
             ("status",),
         )
-        resolve_stable_head = mock.Mock(return_value=7)
+        resolve_stable_head = mock.Mock(return_value=(7,))
 
         with tempfile.TemporaryDirectory() as directory:
             result = process_claim_wave(
@@ -469,6 +518,84 @@ class ProcessClaimWaveTest(unittest.TestCase):
             [(item["itemKey"], item["outcome"]) for item in acknowledgments],
             [("stable#pr:7", "success"), ("stable#head:abc", "success")],
         )
+
+    def test_stable_shared_head_retries_if_either_dispatch_fails(self) -> None:
+        client = mock.Mock()
+        client.call.return_value = {"dispatcher": True}
+        token_client = mock.Mock()
+        token_client.mint.return_value = "stable-token"
+        head = Claim("stable#head:abc", 4, "stable", None, "a" * 40, 0)
+        dispatched: list[int] = []
+
+        def dispatch(item: Claim) -> None:
+            dispatched.append(item.pr_number)
+            if item.pr_number == 9:
+                raise RuntimeError("dispatch unavailable")
+
+        with tempfile.TemporaryDirectory() as directory:
+            result = process_claim_wave(
+                [head],
+                Path(directory) / "results.json",
+                client,
+                1,
+                "worker",
+                token_client,
+                canary_repositories=frozenset({"canary"}),
+                configured_repositories=frozenset({"stable"}),
+                resolve_stable_head=lambda _repo, _sha, _token: (7, 9),
+                dispatch_stable=dispatch,
+                report_limits=lambda *_args, **_kwargs: None,
+            )
+
+        self.assertEqual(dispatched, [7, 9])
+        self.assertEqual(result, WaveResult(0, ("stable#head:abc",)))
+        acknowledgments = [
+            call.kwargs
+            for call in client.call.call_args_list
+            if call.args == ("acknowledge",)
+        ]
+        self.assertEqual(
+            [(item["itemKey"], item["outcome"]) for item in acknowledgments],
+            [("stable#head:abc", "retry")],
+        )
+
+    def test_stable_head_lookup_failure_retries_instead_of_acknowledging_no_match(
+        self,
+    ) -> None:
+        client = mock.Mock()
+        client.call.return_value = {"dispatcher": True}
+        token_client = mock.Mock()
+        token_client.mint.return_value = "stable-token"
+        dispatch = mock.Mock()
+        head = Claim("stable#head:abc", 4, "stable", None, "a" * 40, 0)
+
+        with tempfile.TemporaryDirectory() as directory:
+            result = process_claim_wave(
+                [head],
+                Path(directory) / "results.json",
+                client,
+                1,
+                "worker",
+                token_client,
+                canary_repositories=frozenset({"canary"}),
+                configured_repositories=frozenset({"stable"}),
+                resolve_stable_head=mock.Mock(
+                    side_effect=RuntimeError("head lookup unavailable")
+                ),
+                dispatch_stable=dispatch,
+                report_limits=lambda *_args, **_kwargs: None,
+            )
+
+        dispatch.assert_not_called()
+        token_client.revoke.assert_called_once_with("stable-token")
+        self.assertEqual(result, WaveResult(0, ("stable#head:abc",)))
+        acknowledgment = next(
+            call.kwargs
+            for call in client.call.call_args_list
+            if call.args == ("acknowledge",)
+        )
+        self.assertEqual(acknowledgment["outcome"], "retry")
+        self.assertIn("head lookup unavailable", acknowledgment["error"])
 
     def test_dead_letters_unconfigured_stable_claim_without_dispatching(self) -> None:
         client = mock.Mock()
