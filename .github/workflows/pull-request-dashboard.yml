@@ -115,15 +115,14 @@ jobs:
             '{canary: [$canary[].name], stable: [$stable[].name]}'
 
   resolve-head-sha:
-    # Check and status events for a fork head carry no pull request number, so
-    # the head commit has to be resolved before the reusable workflow runs.
+    # Check and status events for a fork head carry no pull request number.
     if: inputs.head_sha != '' && inputs.pr_number == ''
     runs-on: ubuntu-slim
     permissions:
       contents: read
     environment: protected
     outputs:
-      pr_number: ${{ steps.trigger.outputs.pr_number }}
+      pr_numbers: ${{ steps.trigger.outputs.pr_numbers }}
       channel: ${{ steps.targets.outputs.channel }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -163,7 +162,7 @@ jobs:
           repositories: ${{ steps.targets.outputs.repository }}
           permission-pull-requests: read
 
-      - name: Resolve head commit
+      - name: Resolve open pull request heads
         id: trigger
         env:
           HEAD_SHA: ${{ inputs.head_sha }}
@@ -171,19 +170,14 @@ jobs:
           GH_TOKEN: ${{ steps.head-sha-token.outputs.token }}
         run: |
           set -euo pipefail
-          matches=$(gh api "repos/open-telemetry/${REPO_NAME}/commits/${HEAD_SHA}/pulls" \
-            | jq -r --arg sha "$HEAD_SHA" '[ .[] | select(.state == "open" and .head.sha == $sha) | .number ] | sort | join(" ")')
-          pr_number="${matches%% *}"
-          if [[ -z "$pr_number" ]]; then
+          pr_numbers=$(gh api --paginate --slurp "repos/open-telemetry/${REPO_NAME}/pulls?state=open&per_page=100" \
+            | jq -c --arg sha "$HEAD_SHA" '[.[][] | select(.state == "open" and .head.sha == $sha) | .number] | unique | map(tostring)')
+          if [[ "$pr_numbers" == "[]" ]]; then
             echo "no open pull request has head $HEAD_SHA; skipping refresh."
-          elif [[ "$matches" == *" "* ]]; then
-            # One head branch can be open against several base branches. The
-            # rest keep refreshing on their own events and on the backfill.
-            echo "head $HEAD_SHA belongs to open pull requests $matches; refreshing #$pr_number"
           else
-            echo "resolved head $HEAD_SHA to pull request #$pr_number"
+            echo "resolved head $HEAD_SHA to pull requests $pr_numbers"
           fi
-          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "pr_numbers=$pr_numbers" >> "$GITHUB_OUTPUT"
 
   # Rollout channels. Canary repositories run the workflow and scripts at the
   # commit that triggered the run; every other repository runs them at the
@@ -283,18 +277,22 @@ jobs:
 
   run-head-sha-dashboard-canary:
     needs: resolve-head-sha
-    # A head commit that matches no open pull request is not a request to
-    # refresh the whole repository.
+    # A head commit that matches no open pull request is not a backfill.
     if: >-
-      needs.resolve-head-sha.outputs.pr_number != '' &&
+      needs.resolve-head-sha.outputs.pr_numbers != '[]' &&
       needs.resolve-head-sha.outputs.channel == 'canary'
     permissions:
       contents: write
       copilot-requests: write
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        pr_number: ${{ fromJSON(needs.resolve-head-sha.outputs.pr_numbers) }}
     uses: ./.github/workflows/pull-request-dashboard-repo.yml
     with:
       repository: ${{ inputs.repository }}
-      pr_number: ${{ needs.resolve-head-sha.outputs.pr_number }}
+      pr_number: ${{ matrix.pr_number }}
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -302,15 +300,20 @@ jobs:
   run-head-sha-dashboard-stable:
     needs: resolve-head-sha
     if: >-
-      needs.resolve-head-sha.outputs.pr_number != '' &&
+      needs.resolve-head-sha.outputs.pr_numbers != '[]' &&
       needs.resolve-head-sha.outputs.channel == 'stable'
     permissions:
       contents: write
       copilot-requests: write
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        pr_number: ${{ fromJSON(needs.resolve-head-sha.outputs.pr_numbers) }}
     uses: open-telemetry/shared-workflows/.github/workflows/pull-request-dashboard-repo.yml@117fd4566ba1caa91248c987e827f3a668043ea7 # v0.15.0
     with:
       repository: ${{ inputs.repository }}
-      pr_number: ${{ needs.resolve-head-sha.outputs.pr_number }}
+      pr_number: ${{ matrix.pr_number }}
       code_ref: 117fd4566ba1caa91248c987e827f3a668043ea7 # v0.15.0
     secrets:
       PR_DASHBOARD_PRIVATE_KEY: ${{ secrets.PR_DASHBOARD_PRIVATE_KEY }}

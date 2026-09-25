@@ -58,11 +58,14 @@ instead of being requeued forever.
 
 The `dashboard-workflow-watchdog` scheduled function runs every 15 minutes. It
 cancels an automated dashboard run only when the run has waited at least 30
-minutes without receiving a runner, no steps have started, and a newer run is
-queued behind it in the same concurrency group. The watchdog covers queue
-drains, hourly dashboard backfills, targeted dashboard dispatches, and webhook
-deployments. Targeted dispatch run names expose their concurrency group so the
-watchdog does not pair unrelated repository or pull request updates.
+minutes and a newer run is queued behind it in the same concurrency group. If
+no jobs have completed, none may have received a runner or started a step. For
+partially completed runs, at least one job must still be waiting, and every
+unfinished job must have waited without a runner or started step for at least
+30 minutes. The watchdog covers queue drains, hourly dashboard backfills,
+targeted dashboard dispatches, and webhook deployments. Targeted dispatch
+run names expose their concurrency group so the watchdog does not pair
+unrelated repository or pull request updates.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
 PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->
@@ -258,9 +261,7 @@ Direct dispatch notes:
 - Omit `pr_number` or set it to an empty string for a backfill.
 - Send `head_sha` instead of `pr_number` when the event carries no pull request
   number. Check and status events for a pull request whose head branch lives in
-  a fork report no pull request association, so the central workflow resolves
-  the head commit to an open pull request and skips the refresh when there is
-  none.
+  a fork report no pull request association.
 - The central workflow validates `repository`, `pr_number` and `head_sha` before
   using them. `trigger_event` only selects a concurrency group, so it is
   validated on the backfill path only; the bridge is what restricts it to known

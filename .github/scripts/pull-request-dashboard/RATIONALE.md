@@ -31,12 +31,16 @@ the implementation understandable and operationally cheap.
 - The dashboard issue is discovered dynamically by title and label, so target
   repositories do not need to store issue numbers in config.
 - Refresh events that carry no pull request number report the head commit
-  instead, and the workflow resolves it to an open pull request. GitHub omits
-  the pull request association from check and status events whose head branch
-  lives in a fork, which is where nearly every contribution comes from, so
-  without this the CI columns of those PRs would only refresh on the hourly
-  backfill. The webhook bridge cannot resolve the commit itself, because its
-  GitHub App is installed only on `shared-workflows`.
+  instead. GitHub omits the pull request association from check and status
+  events whose head branch lives in a fork, which is where nearly every
+  contribution comes from, so without this the CI columns of those PRs would
+  only refresh on the hourly backfill. The webhook bridge cannot resolve the
+  commit itself, because its GitHub App is installed only on `shared-workflows`.
+- The central workflow, canary queue worker, and stable queue dispatcher
+  paginate each target repository's open PRs and compare head SHAs. The
+  commit-to-PR endpoint can omit fork heads or other PRs sharing the commit.
+  Each matching open PR is refreshed or dispatched before a head-SHA claim is
+  acknowledged; a head with no open PR needs no refresh.
 
 ## Staged Rollout
 
