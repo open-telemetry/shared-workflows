@@ -34,6 +34,34 @@ def claim(
 
 
 class QueueBatchTest(unittest.TestCase):
+    def test_canary_head_uses_fork_aware_resolver(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "repositories.json"
+            config.write_text("[]", encoding="utf-8")
+            runner = mock.Mock(
+                return_value=subprocess.CompletedProcess([], 0, "20254\n", "")
+            )
+            processor = process_queue_batch.DashboardBatchProcessor(
+                config, run=runner, env={"GH_TOKEN": "test-token"}
+            )
+
+            self.assertEqual(processor.resolve_head("example", "head"), 20254)
+            command = runner.call_args.args[0]
+            self.assertEqual(
+                command[1:],
+                [
+                    str(processor.script_dir / "head_pull_request.py"),
+                    "--repo",
+                    "open-telemetry/example",
+                    "--head-sha",
+                    "head",
+                ],
+            )
+            self.assertEqual(
+                runner.call_args.kwargs["creationflags"],
+                getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+
     def test_lease_monitor_reports_heartbeat_loss(self) -> None:
         class Client:
             calls = 0

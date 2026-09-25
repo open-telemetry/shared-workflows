@@ -92,6 +92,7 @@ def _run_gh(
             encoding="utf-8",
             errors="replace",
             env=env,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         if proc.returncode in allowed_exit_codes:
             try:

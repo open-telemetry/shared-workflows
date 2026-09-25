@@ -15,6 +15,7 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from head_pull_request import search_open_head_pull_request
 from process_queue_batch import (
     SCRIPT_DIR,
     Claim,
@@ -211,7 +212,13 @@ class DashboardWorkflowDispatcher:
             and pull_request["head"].get("sha") == head_sha
             and isinstance(pull_request.get("number"), int)
         )
-        return matches[0] if matches else None
+        return (
+            matches[0]
+            if matches
+            else search_open_head_pull_request(
+                f"open-telemetry/{repository}", head_sha, token=token
+            )
+        )
 
     def dispatch(self, claim: Claim) -> None:
         payload = json.dumps(

@@ -5,6 +5,7 @@ A centralized shared workflow that builds and publishes a per-repository pull re
 The workflow runs from `open-telemetry/shared-workflows` and targets the repositories listed in [`repositories.json`](../.github/scripts/pull-request-dashboard/repositories.json). Target repositories do not need to host any workflow files.
 
 Webhook-triggered incremental runs keep active dashboards close to real time. Hourly backfill runs provide a backstop for missed or failed targeted refreshes.
+For check suites on fork PRs, the dashboard resolves the head commit against open PRs even when GitHub's base-repository commit lookup has no association.
 
 The classification cache reuses prior results for unchanged review threads, minimizing Copilot token usage.
 

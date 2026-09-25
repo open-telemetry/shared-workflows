@@ -281,21 +281,17 @@ class DashboardBatchProcessor:
     def resolve_head(self, repository: str, head_sha: str) -> int | None:
         result = self._run(
             [
-                "gh",
-                "api",
-                f"repos/{OWNER}/{repository}/commits/{head_sha}/pulls",
+                sys.executable,
+                str(self.script_dir / "head_pull_request.py"),
+                "--repo",
+                f"{OWNER}/{repository}",
+                "--head-sha",
+                head_sha,
             ],
             env=self.base_env,
         )
-        pull_requests = json.loads(result.stdout)
-        matches = sorted(
-            pull_request["number"]
-            for pull_request in pull_requests
-            if pull_request.get("state") == "open"
-            and (pull_request.get("head") or {}).get("sha") == head_sha
-            and isinstance(pull_request.get("number"), int)
-        )
-        return matches[0] if matches else None
+        number = result.stdout.strip()
+        return int(number) if number else None
 
     def process_repository(
         self,
@@ -506,6 +502,7 @@ class DashboardBatchProcessor:
                 env=env,
                 text=True,
                 capture_output=True,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         else:
             self.lease_check()
@@ -516,6 +513,7 @@ class DashboardBatchProcessor:
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
             while True:
                 try:

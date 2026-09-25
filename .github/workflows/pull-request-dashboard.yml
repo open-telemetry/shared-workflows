@@ -171,15 +171,10 @@ jobs:
           GH_TOKEN: ${{ steps.head-sha-token.outputs.token }}
         run: |
           set -euo pipefail
-          matches=$(gh api "repos/open-telemetry/${REPO_NAME}/commits/${HEAD_SHA}/pulls" \
-            | jq -r --arg sha "$HEAD_SHA" '[ .[] | select(.state == "open" and .head.sha == $sha) | .number ] | sort | join(" ")')
-          pr_number="${matches%% *}"
+          pr_number=$(python .github/scripts/pull-request-dashboard/head_pull_request.py \
+            --repo "open-telemetry/${REPO_NAME}" --head-sha "$HEAD_SHA")
           if [[ -z "$pr_number" ]]; then
             echo "no open pull request has head $HEAD_SHA; skipping refresh."
-          elif [[ "$matches" == *" "* ]]; then
-            # One head branch can be open against several base branches. The
-            # rest keep refreshing on their own events and on the backfill.
-            echo "head $HEAD_SHA belongs to open pull requests $matches; refreshing #$pr_number"
           else
             echo "resolved head $HEAD_SHA to pull request #$pr_number"
           fi

@@ -274,10 +274,32 @@ class WorkflowDispatcherTest(unittest.TestCase):
             opener=open_request,
         )
 
-        self.assertEqual(
-            dispatcher.resolve_head("stable", "a" * 40, "stable-token"),
-            7,
-        )
+        with mock.patch.object(drain_queue, "search_open_head_pull_request") as search:
+            self.assertEqual(
+                dispatcher.resolve_head("stable", "a" * 40, "stable-token"),
+                7,
+            )
+            search.assert_not_called()
+
+    def test_resolves_a_fork_head_with_no_commit_association(self) -> None:
+        class Response(io.BytesIO):
+            status = 200
+
+        def open_request(_request: object, timeout: int) -> Response:
+            self.assertEqual(timeout, 30)
+            return Response(b"[]")
+
+        dispatcher = DashboardWorkflowDispatcher("actions-token", opener=open_request)
+        with mock.patch.object(
+            drain_queue, "search_open_head_pull_request", return_value=20254
+        ) as search:
+            self.assertEqual(
+                dispatcher.resolve_head("example", "a" * 40, "stable-token"),
+                20254,
+            )
+            search.assert_called_once_with(
+                "open-telemetry/example", "a" * 40, token="stable-token"
+            )
 
     def test_dispatches_the_coalesced_claim_to_the_targeted_workflow(self) -> None:
         requests: list[tuple[object, int]] = []

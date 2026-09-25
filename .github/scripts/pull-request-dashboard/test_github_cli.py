@@ -84,6 +84,10 @@ class RunGhJsonTest(unittest.TestCase):
 
         self.assertEqual({"ok": True}, run_gh_json(["gh", "api", "/test"]))
         self.assertEqual(2, run.call_count)
+        self.assertEqual(
+            run.call_args.kwargs["creationflags"],
+            getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
         sleep.assert_called_once_with(0)
 
     @patch("github_cli.sleep_for_retry")
