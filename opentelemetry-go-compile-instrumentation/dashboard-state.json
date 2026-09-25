@@ -4856,11 +4856,12 @@
         ],
         "author_can_act": true,
         "author_nudge_episode_id": "c8bc05c38c194eaa99d352819e86ec43",
-        "ci_failing_count": 0,
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-25T07:02:52+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 4,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "e3909354b63b5436131e0fbeb5d46e2e27876079c9d08091dd0ff8133b889503",
+        "copilot_request_fingerprint": "68cb513a1ac320c13e1db8bbab2fc0733e3fc8f2186e80da41858d1f5be964fe",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4879,7 +4880,13 @@
         "last_activity_at": "2026-09-25T06:38:11+00:00",
         "last_approver_activity_at": "2026-09-02T12:06:59+00:00",
         "last_author_activity_at": "2026-09-25T06:38:11+00:00",
-        "required_checks_settled": false,
+        "non_blocking_check_failures": [
+          "codecov/patch",
+          "Done (Check Consistency)",
+          "Done (LatestLibBuild Tests)",
+          "govulncheck (instrumentation)"
+        ],
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -4904,7 +4911,7 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "0b91f5010a51c4dc5e364cef0ff0aded49ec3d157f5c188f76c7c66f998e3547",
+        "routing_input_fingerprint": "99ef947ec0dbcf9e102e2a94e34e1a8ebb76a0a75d2841423abee7a00b38c890",
         "waiting_age_basis": "oldest_pending_thread",
         "waiting_since": "2026-09-02T12:06:59+00:00"
       },
