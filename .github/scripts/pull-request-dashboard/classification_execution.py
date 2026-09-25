@@ -116,7 +116,15 @@ class CopilotSdkModelRunner:
     ) -> None:
         try:
             if self._client is not None:
-                await self._client.stop()
+                try:
+                    await self._client.stop()
+                except BaseException as cleanup_error:
+                    if exc_value is None:
+                        raise
+                    print(
+                        f"  warning: failed to stop Copilot client: {cleanup_error!r}",
+                        file=sys.stderr,
+                    )
         finally:
             self._client = None
             if self._directory is not None:
@@ -208,11 +216,23 @@ class CopilotSdkModelRunner:
             raise
         finally:
             if session is not None:
+                active_exception = sys.exception()
                 try:
                     async with asyncio.timeout(10):
                         await session.disconnect()
-                except TimeoutError as error:
-                    raise TimeoutError("Copilot SDK session cleanup timed out after 10s") from error
+                except BaseException as cleanup_error:
+                    if active_exception is not None:
+                        print(
+                            "  warning: failed to disconnect Copilot session: "
+                            f"{cleanup_error!r}",
+                            file=sys.stderr,
+                        )
+                    elif isinstance(cleanup_error, TimeoutError):
+                        raise TimeoutError(
+                            "Copilot SDK session cleanup timed out after 10s"
+                        ) from cleanup_error
+                    else:
+                        raise
 
 
 ClassificationCache = dict[str, Any]

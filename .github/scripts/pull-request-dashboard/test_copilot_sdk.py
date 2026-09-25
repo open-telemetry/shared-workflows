@@ -214,6 +214,40 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
                 directory = Path(self.factory.call_args.kwargs["base_directory"])
         self.assertFalse(directory.exists())
 
+    async def test_shutdown_error_does_not_hide_body_error(self) -> None:
+        self.client.stop.side_effect = RuntimeError("shutdown failed")
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            with self.assertRaisesRegex(ValueError, "classification failed"):
+                async with CopilotSdkModelRunner() as runner:
+                    await runner.run(ModelRunRequest("prompt", "model"))
+                    directory = Path(self.factory.call_args.kwargs["base_directory"])
+                    raise ValueError("classification failed")
+        self.assertIn("failed to stop Copilot client", stderr.getvalue())
+        self.assertIn("shutdown failed", stderr.getvalue())
+        self.assertFalse(directory.exists())
+
+    async def test_disconnect_error_does_not_hide_request_error(self) -> None:
+        session = self.create_session()
+        session.send_and_wait.side_effect = ValueError("classification failed")
+        session.disconnect.side_effect = RuntimeError("disconnect failed")
+        self.client.create_session.side_effect = [session]
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            async with CopilotSdkModelRunner() as runner:
+                with self.assertRaisesRegex(ValueError, "classification failed"):
+                    await runner.run(ModelRunRequest("prompt", "model"))
+        self.assertIn("failed to disconnect Copilot session", stderr.getvalue())
+        self.assertIn("disconnect failed", stderr.getvalue())
+
+    async def test_disconnect_error_is_reported_after_success(self) -> None:
+        session = self.create_session()
+        session.disconnect.side_effect = RuntimeError("disconnect failed")
+        self.client.create_session.side_effect = [session]
+        async with CopilotSdkModelRunner() as runner:
+            with self.assertRaisesRegex(RuntimeError, "disconnect failed"):
+                await runner.run(ModelRunRequest("prompt", "model"))
+
     async def test_session_creation_is_bounded_by_request_timeout(self) -> None:
         async def stall(**_kwargs):
             await asyncio.sleep(60)
