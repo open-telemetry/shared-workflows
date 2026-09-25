@@ -3563,15 +3563,18 @@
         "approval_count": 0,
         "assignees": [],
         "author": "DenisCDev",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-js/pull/7107#discussion_r4102853731"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "2a9215af298d4840a470b48d39bbc789",
         "ci_failing_count": 1,
         "ci_failing_since": "2026-09-23T13:36:36+00:00",
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1a09a89ba7cce5da91ce53dfa336ab54ae525bdf5b18f7fbd26853b32d54975c",
+        "copilot_request_fingerprint": "f27218cf94f65e6dc1ebb7b946c7a176a93e4c39fae1a46830ac8e261c5f6817",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3582,6 +3585,7 @@
         "created_at": "2026-09-23T13:20:34+00:00",
         "dashboard_command_replies": [],
         "dashboard_override_bound_command_id": 5796001453,
+        "dashboard_override_cleared_by_feedback": true,
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "6987b70e99d7a1b42a6fa7cdded9b83eb2735730",
@@ -3591,21 +3595,32 @@
         "head_sha": "6987b70e99d7a1b42a6fa7cdded9b83eb2735730",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-23T13:44:59+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-25T08:53:22+00:00",
+        "last_approver_activity_at": "2026-09-25T08:53:22+00:00",
         "last_author_activity_at": "2026-09-23T13:44:59+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "david-luna",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "fba84cb1a22bffe90b56d3013dd31ad7cbb1262036a8cfe5006b836fe72e6a98",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-23T13:44:59+00:00"
+        "routing_input_fingerprint": "3338c9f82a193517972dc09244f295f63e0003ecc489cf10427c59eac760a359",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-23T13:36:36+00:00"
       },
       "failed": false,
       "pr_number": 7107,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-js/pull/7107",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "7108": {
