@@ -18,6 +18,7 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
         self.sessions = []
         self.client = MagicMock()
         self.client.stop = AsyncMock()
+        self.client.force_stop = AsyncMock()
         self.client.create_session = AsyncMock(side_effect=self.create_session)
         factory = patch("classification_execution.CopilotClient", return_value=self.client)
         self.factory = factory.start()
@@ -226,6 +227,31 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("failed to stop Copilot client", stderr.getvalue())
         self.assertIn("shutdown failed", stderr.getvalue())
         self.assertFalse(directory.exists())
+
+    async def test_shutdown_timeout_force_stops_client(self) -> None:
+        async def stall():
+            await asyncio.sleep(60)
+
+        self.client.stop.side_effect = stall
+        async with CopilotSdkModelRunner(stop_timeout_seconds=0.01) as runner:
+            await runner.run(ModelRunRequest("prompt", "model"))
+        self.client.stop.assert_awaited_once()
+        self.client.force_stop.assert_awaited_once()
+
+    async def test_force_stop_error_does_not_hide_body_error(self) -> None:
+        async def stall():
+            await asyncio.sleep(60)
+
+        self.client.stop.side_effect = stall
+        self.client.force_stop.side_effect = RuntimeError("forced shutdown failed")
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            with self.assertRaisesRegex(ValueError, "classification failed"):
+                async with CopilotSdkModelRunner(stop_timeout_seconds=0.01) as runner:
+                    await runner.run(ModelRunRequest("prompt", "model"))
+                    raise ValueError("classification failed")
+        self.client.force_stop.assert_awaited_once()
+        self.assertIn("forced shutdown failed", stderr.getvalue())
 
     async def test_disconnect_error_does_not_hide_request_error(self) -> None:
         session = self.create_session()

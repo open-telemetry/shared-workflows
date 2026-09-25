@@ -54,6 +54,7 @@ from classification_policy import (
 
 
 LLM_DISCUSSION_TIMEOUT_SECONDS = 180
+COPILOT_CLIENT_STOP_TIMEOUT_SECONDS = 10
 CLASSIFICATION_CACHE_DIR = Path(
     os.environ.get(
         "PR_DASHBOARD_CLASSIFICATION_CACHE_DIR",
@@ -97,8 +98,13 @@ def _print_copilot_otel_file(path: Path) -> None:
 
 
 class CopilotSdkModelRunner:
-    def __init__(self, timeout_seconds: float = LLM_DISCUSSION_TIMEOUT_SECONDS) -> None:
+    def __init__(
+        self,
+        timeout_seconds: float = LLM_DISCUSSION_TIMEOUT_SECONDS,
+        stop_timeout_seconds: float = COPILOT_CLIENT_STOP_TIMEOUT_SECONDS,
+    ) -> None:
         self.timeout_seconds = timeout_seconds
+        self.stop_timeout_seconds = stop_timeout_seconds
         self._directory: tempfile.TemporaryDirectory[str] | None = None
         self._client: CopilotClient | None = None
 
@@ -117,7 +123,12 @@ class CopilotSdkModelRunner:
         try:
             if self._client is not None:
                 try:
-                    await self._client.stop()
+                    try:
+                        await asyncio.wait_for(
+                            self._client.stop(), timeout=self.stop_timeout_seconds
+                        )
+                    except TimeoutError:
+                        await self._client.force_stop()
                 except BaseException as cleanup_error:
                     if exc_value is None:
                         raise
