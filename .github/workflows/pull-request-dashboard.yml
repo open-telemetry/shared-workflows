@@ -285,6 +285,7 @@ jobs:
       contents: write
       copilot-requests: write
     strategy:
+      fail-fast: false
       max-parallel: 1
       matrix:
         pr_number: ${{ fromJSON(needs.resolve-head-sha.outputs.pr_numbers) }}
@@ -305,6 +306,7 @@ jobs:
       contents: write
       copilot-requests: write
     strategy:
+      fail-fast: false
       max-parallel: 1
       matrix:
         pr_number: ${{ fromJSON(needs.resolve-head-sha.outputs.pr_numbers) }}
