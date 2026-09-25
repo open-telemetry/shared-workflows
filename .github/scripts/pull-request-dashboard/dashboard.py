@@ -277,6 +277,7 @@ runs when no underlying PR data has changed.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -292,6 +293,9 @@ from github_cli import (
 )
 from classification_execution import (
     DEFAULT_CLASSIFICATION_CACHE_STORE,
+    ClassificationOperation,
+    ClassificationService,
+    CopilotSdkModelRunner,
 )
 from classification_policy import (
     ActionDecision,
@@ -338,7 +342,7 @@ DEFAULT_BACKFILL_MAX_PRS = 50
 BACKFILL_FAILED_PR_PRIORITY_LIMIT = 10
 BACKFILL_RECORDED_FAILURE_STATUS = 2
 
-def build_dashboard_update_for_pr(
+async def build_dashboard_update_for_pr(
     repo: str,
     owner: str,
     repo_name: str,
@@ -350,6 +354,8 @@ def build_dashboard_update_for_pr(
     non_blocking_check_patterns: list[str],
     dashboard_state: DashboardState,
     require_clean_copilot_review_branches: list[str] | None = None,
+    *,
+    classification_service: ClassificationOperation,
 ) -> DashboardStateUpdate:
     print(f"refreshing dashboard state for PR #{pr_number}", file=sys.stderr)
     prepared_update = prepare_dashboard_update(
@@ -357,7 +363,7 @@ def build_dashboard_update_for_pr(
         open_pr_numbers,
         pr_number,
     )
-    trigger_pr_result = evaluate_pull_request(
+    trigger_pr_result = await evaluate_pull_request(
         PullRequestEvaluationConfig(
             repo=repo,
             owner=owner,
@@ -374,6 +380,7 @@ def build_dashboard_update_for_pr(
             pr_number=pr_number,
             previous_result=prepared_update.starting_result,
         ),
+        classification_service,
     )
     return prepared_update.with_evaluated_result(trigger_pr_result)
 
@@ -629,10 +636,14 @@ def save_dashboard_update_state(
     return 0
 
 
-def update_backfill_progress(pr_number: int, *, failed: bool) -> set[int]:
+def update_backfill_progress(pr_number: int, *, failed: bool | None) -> set[int]:
     backfill_state = load_backfill_state()
     set_backfill_cursor_pr_number(backfill_state, pr_number)
-    failed_pr_numbers = set_backfill_pr_failed(backfill_state, pr_number, failed)
+    failed_pr_numbers = (
+        backfill_failed_pr_numbers(backfill_state)
+        if failed is None
+        else set_backfill_pr_failed(backfill_state, pr_number, failed)
+    )
     save_backfill_state(backfill_state)
     return failed_pr_numbers
 
@@ -703,7 +714,10 @@ def remove_cached_dashboard_prs(
     )
 
 
-def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardStateUpdate | None:
+async def build_targeted_dashboard_update(
+    args: argparse.Namespace,
+    classification_service: ClassificationOperation,
+) -> DashboardStateUpdate | None:
     if args.pr_number is None:
         raise RuntimeError("build_targeted_dashboard_update requires --pr-number")
 
@@ -716,7 +730,7 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardStateU
         return None
 
     reviewers = load_reviewer_set(owner, args.approver_team)
-    return build_dashboard_update_for_pr(
+    return await build_dashboard_update_for_pr(
         repo,
         owner,
         repo_name,
@@ -728,6 +742,7 @@ def build_targeted_dashboard_update(args: argparse.Namespace) -> DashboardStateU
         args.non_blocking_check_pattern,
         loaded_dashboard_state,
         getattr(args, "require_clean_copilot_review_branches", []),
+        classification_service=classification_service,
     )
 
 
@@ -758,14 +773,18 @@ def apply_targeted_dashboard_update(
     )
 
 
-def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) -> int:
+async def update_dashboard_for_pr_number(
+    args: argparse.Namespace,
+    state_dir: Path,
+    classification_service: ClassificationOperation,
+) -> int:
     if args.pr_number is None:
         raise RuntimeError("update_dashboard_for_pr_number requires --pr-number")
 
     state_branch.configure_git()
     state_branch.checkout_state(state_dir, args.state_branch, require_existing=False)
     try:
-        update = build_targeted_dashboard_update(args)
+        update = await build_targeted_dashboard_update(args, classification_service)
     finally:
         state_branch.remove_existing_state_dir(state_dir)
 
@@ -781,7 +800,11 @@ def update_dashboard_for_pr_number(args: argparse.Namespace, state_dir: Path) ->
     )
 
 
-def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> int:
+async def update_dashboard_for_backfill(
+    args: argparse.Namespace,
+    state_dir: Path,
+    classification_service: ClassificationOperation,
+) -> int:
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
     owner, repo_name = repo.split("/", 1)
     prs = list_open_prs(repo)
@@ -842,11 +865,11 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
 
     for pr_summary in selection.selected_prs:
         observed_at = utc_now()
-
-        def update_selected_pr(pr_summary: dict[str, Any] = pr_summary) -> int:
-            pr_number = pr_summary["number"]
+        pr_number = pr_summary["number"]
+        state_branch.checkout_state(state_dir, args.state_branch, require_existing=False)
+        try:
             dashboard_state = load_dashboard_state_cache() or empty_state()
-            calculation = build_dashboard_update_for_pr(
+            calculation = await build_dashboard_update_for_pr(
                 repo,
                 owner,
                 repo_name,
@@ -858,7 +881,12 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                 args.non_blocking_check_pattern,
                 dashboard_state,
                 getattr(args, "require_clean_copilot_review_branches", []),
+                classification_service=classification_service,
             )
+        finally:
+            state_branch.remove_existing_state_dir(state_dir)
+
+        def update_selected_pr() -> int:
             acceptance = accept_dashboard_update(
                 calculation,
                 load_dashboard_state_cache(),
@@ -886,7 +914,15 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
                     False,
                 ),
             )
-            failed_pr_numbers = update_backfill_progress(pr_number, failed=False)
+            failed_pr_numbers = update_backfill_progress(
+                pr_number,
+                failed=(
+                    False
+                    if acceptance.effects.clear_backfill_failure
+                    or calculation.evaluated_result is None
+                    else None
+                ),
+            )
             completed_state = complete_initial_backfill_if_ready(
                 acceptance.dashboard_state,
                 open_pr_numbers,
@@ -923,10 +959,12 @@ def update_dashboard_for_backfill(args: argparse.Namespace, state_dir: Path) -> 
     return 0
 
 
-def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir: Path) -> int:
-    if args.pr_number is None:
-        return update_dashboard_for_backfill(args, state_dir)
-    return update_dashboard_for_pr_number(args, state_dir)
+async def update_dashboard_via_state_branch(args: argparse.Namespace, state_dir: Path) -> int:
+    async with CopilotSdkModelRunner() as runner:
+        service = ClassificationService(runner, DEFAULT_CLASSIFICATION_CACHE_STORE)
+        if args.pr_number is None:
+            return await update_dashboard_for_backfill(args, state_dir, service)
+        return await update_dashboard_for_pr_number(args, state_dir, service)
 
 
 def write_initial_backfill_output(github_output: Path) -> None:
@@ -987,7 +1025,7 @@ def main() -> int:
     with state_branch.temporary_state_dir() as state_dir:
         repo_key = repo_state_key(args.repo) if args.repo else repo_state_key(detect_repo())
         set_state_dir(state_dir / repo_key)
-        status = update_dashboard_via_state_branch(args, state_dir)
+        status = asyncio.run(update_dashboard_via_state_branch(args, state_dir))
         if args.github_output and status in (0, BACKFILL_RECORDED_FAILURE_STATUS):
             write_initial_backfill_output(args.github_output)
         return status

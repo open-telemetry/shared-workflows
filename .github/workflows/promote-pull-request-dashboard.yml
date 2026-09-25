@@ -70,6 +70,10 @@ jobs:
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
         run: python3 .github/scripts/pull-request-dashboard/promote_rollout.py "$RELEASE" "$RELEASE_SHA"
 
+      - name: Install Python dependencies
+        working-directory: .github/scripts/pull-request-dashboard
+        run: python3 -m pip install -r requirements.txt
+
       - name: Run pull request dashboard tests
         working-directory: .github/scripts/pull-request-dashboard
         run: python3 -m unittest discover -p 'test_*.py'

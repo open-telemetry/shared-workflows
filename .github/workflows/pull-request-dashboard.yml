@@ -205,7 +205,7 @@ jobs:
     strategy:
       fail-fast: false
       # Repositories hold separate state branches, so they only contend for the
-      # shared GitHub App rate limit and the Copilot CLI token. The canary set
+      # shared GitHub App rate limit and the Copilot token. The canary set
       # is small enough that one at a time keeps its added contention with the
       # stable channel's slots negligible.
       max-parallel: 1

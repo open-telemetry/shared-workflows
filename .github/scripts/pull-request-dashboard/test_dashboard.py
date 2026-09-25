@@ -156,14 +156,14 @@ def evaluation_config(
     )
 
 
-def evaluate_pr(
+async def evaluate_pr(
     pr_summary: dict[str, object],
     *,
     previous_result: StoredDashboardResult | None = None,
     require_clean_copilot_review_branches: list[str] | None = None,
     classification_service: FakeClassificationOperation | None = None,
 ) -> EvaluationResult | None:
-    return evaluate_pull_request(
+    return await evaluate_pull_request(
         evaluation_config(
             require_clean_copilot_review_branches=(
                 require_clean_copilot_review_branches
@@ -178,7 +178,7 @@ def evaluate_pr(
 
 
 class ReviewThreadPolicyOperation(FakeClassificationOperation):
-    def classify(
+    async def classify(
         self,
         request: ClassificationExecutionRequest,
     ) -> DiscussionClassifications:
@@ -331,9 +331,9 @@ class PullRequestSourceFetchTest(unittest.TestCase):
         )
 
 
-class DashboardEvaluationHandoffTest(unittest.TestCase):
+class DashboardEvaluationHandoffTest(unittest.IsolatedAsyncioTestCase):
     @patch("dashboard.evaluate_pull_request")
-    def test_passes_the_cached_result_and_wraps_the_evaluation(
+    async def test_passes_the_cached_result_and_wraps_the_evaluation(
         self,
         evaluate: Mock,
     ) -> None:
@@ -356,7 +356,7 @@ class DashboardEvaluationHandoffTest(unittest.TestCase):
         )
         evaluate.return_value = evaluated_result
 
-        update = build_dashboard_update_for_pr(
+        update = await build_dashboard_update_for_pr(
             "owner/repo",
             "owner",
             "repo",
@@ -368,9 +368,10 @@ class DashboardEvaluationHandoffTest(unittest.TestCase):
             ["optional-*"],
             dashboard_state(starting_result),
             ["main"],
+            classification_service=FakeClassificationOperation(),
         )
 
-        config, source = evaluate.call_args.args
+        config, source, _classifier = evaluate.call_args.args
         self.assertEqual(starting_result, source.previous_result)
         self.assertEqual(frozenset({"reviewer"}), config.approver_logins)
         self.assertEqual(("optional-*",), config.non_blocking_check_patterns)
@@ -382,7 +383,7 @@ class DashboardEvaluationHandoffTest(unittest.TestCase):
         self.assertEqual(evaluated_result, update.evaluated_result)
 
 
-class PullRequestEvaluationTest(unittest.TestCase):
+class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     def raw_pr(
         *,
@@ -421,7 +422,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(1, facts.approval_count)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_edited_old_changes_request_does_not_displace_newer_approval(
+    async def test_edited_old_changes_request_does_not_displace_newer_approval(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -444,7 +445,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             ),
         )
 
-        result = evaluate_pr({"number": 7})
+        result = await evaluate_pr({"number": 7})
 
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
@@ -459,7 +460,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
     @patch("pull_request_evaluation.resolve_routing", wraps=resolve_routing)
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(
+    async def test_evaluation_routes_pending_reviewers_and_projects_reviewer_rows(
         self,
         fetch_raw: Mock,
         resolve: Mock,
@@ -475,7 +476,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             review_requests=(review_request(),),
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
         )
 
@@ -492,7 +493,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_unresolved_copilot_thread_with_completed_reply_remains_author_action(
+    async def test_unresolved_copilot_thread_with_completed_reply_remains_author_action(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -544,7 +545,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             )
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             require_clean_copilot_review_branches=["main"],
             classification_service=classifier,
@@ -558,7 +559,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             result.facts.author_action_review_thread_urls,
         )
 
-        ungated_result = evaluate_pr(
+        ungated_result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -589,7 +590,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_resolved_or_outdated_copilot_thread_releases_author_hold(
+    async def test_resolved_or_outdated_copilot_thread_releases_author_hold(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -625,7 +626,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     ),),
                 )
 
-                result = evaluate_pr(
+                result = await evaluate_pr(
                     {"number": 7},
                     require_clean_copilot_review_branches=["main"],
                 )
@@ -640,7 +641,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                 )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_override_binds_to_the_observed_head_before_classification(
+    async def test_override_binds_to_the_observed_head_before_classification(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = normalize_pull_request_source({
@@ -693,7 +694,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         classifier = FakeClassificationOperation(
             error=AssertionError("classification must be bypassed")
         )
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             require_clean_copilot_review_branches=["main"],
             classification_service=classifier,
@@ -726,7 +727,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(classifier.requests, [])
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_override_without_head_uses_non_persistent_acknowledgement(
+    async def test_override_without_head_uses_non_persistent_acknowledgement(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -761,7 +762,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             DiscussionClassifications((classification,), (), ())
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -786,7 +787,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_persistent_handoff_without_head_defers_acknowledgement(
+    async def test_persistent_handoff_without_head_defers_acknowledgement(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -821,7 +822,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             DiscussionClassifications((classification,), (), ())
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             previous_result=stored_dashboard_result(
                 7,
@@ -850,7 +851,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             issue_comments=fetch_raw.return_value.issue_comments,
             review_threads=fetch_raw.return_value.review_threads,
         )
-        resumed = evaluate_pr(
+        resumed = await evaluate_pr(
             {"number": 7},
             previous_result=stored_dashboard_result(
                 7,
@@ -880,7 +881,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_actionable_feedback_after_push_ends_persistent_handoff(
+    async def test_actionable_feedback_after_push_ends_persistent_handoff(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -959,7 +960,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             ),
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             previous_result=stored_dashboard_result(
                 7,
@@ -1016,7 +1017,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_push_does_not_end_persistent_handoff(self, fetch_raw: Mock) -> None:
+    async def test_push_does_not_end_persistent_handoff(self, fetch_raw: Mock) -> None:
         fetch_raw.return_value = pull_request_source(
             pull_request=pull_request_metadata(head_sha="new-head"),
             issue_comments=(
@@ -1050,7 +1051,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             error=AssertionError("old discussions must remain suppressed")
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1065,7 +1066,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual([], classifier.reviewer_feedback_requests)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_new_reply_on_old_thread_ends_persistent_handoff(
+    async def test_new_reply_on_old_thread_ends_persistent_handoff(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -1115,7 +1116,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             reviewer_feedback_result=(classification,),
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1151,7 +1152,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_actionable_review_after_override_ends_handoff(
+    async def test_actionable_review_after_override_ends_handoff(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -1180,7 +1181,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             DiscussionClassifications((), (classification,), ()),
             reviewer_feedback_result=(classification,),
         )
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1205,7 +1206,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_actionable_review_edited_after_override_ends_handoff(
+    async def test_actionable_review_edited_after_override_ends_handoff(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -1236,7 +1237,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             reviewer_feedback_result=(classification,),
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1251,7 +1252,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_actionable_issue_feedback_after_override_ends_handoff(
+    async def test_actionable_issue_feedback_after_override_ends_handoff(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -1281,7 +1282,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             reviewer_feedback_result=(feedback,),
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1300,7 +1301,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_completed_author_response_retires_only_matching_review_work(
+    async def test_completed_author_response_retires_only_matching_review_work(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -1363,7 +1364,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             DiscussionClassifications((), (audit, release_note), (reply,))
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1385,7 +1386,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_non_actionable_review_keeps_handoff(
+    async def test_non_actionable_review_keeps_handoff(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -1412,7 +1413,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         classifier = FakeClassificationOperation(
             reviewer_feedback_result=(classification,)
         )
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1428,7 +1429,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_feedback_classification_failure_does_not_block_handoff(
+    async def test_feedback_classification_failure_does_not_block_handoff(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -1460,7 +1461,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         classifier = FakeClassificationOperation(
             reviewer_feedback_result=(failed,)
         )
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1475,7 +1476,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_informational_inline_feedback_keeps_handoff(
+    async def test_informational_inline_feedback_keeps_handoff(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -1515,7 +1516,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         classifier = FakeClassificationOperation(
             reviewer_feedback_result=(classification,)
         )
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1535,7 +1536,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_inactive_edited_inline_feedback_keeps_handoff(
+    async def test_inactive_edited_inline_feedback_keeps_handoff(
         self, fetch_raw: Mock
     ) -> None:
         classifier = FakeClassificationOperation(
@@ -1561,7 +1562,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                     ),),
                 )
 
-                result = evaluate_pr(
+                result = await evaluate_pr(
                     {"number": 7},
                     classification_service=classifier,
                 )
@@ -1580,7 +1581,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual([], classifier.requests)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_edited_reviewer_request_after_author_reply_clears_to_author(
+    async def test_edited_reviewer_request_after_author_reply_clears_to_author(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -1618,7 +1619,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             reviewer_feedback_result=(classification,)
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1648,7 +1649,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_edited_older_praise_attributes_remaining_thread_participants(
+    async def test_edited_older_praise_attributes_remaining_thread_participants(
         self,
         fetch_raw: Mock,
     ) -> None:
@@ -1687,7 +1688,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             MemoryClassificationCacheStore(),
         )
 
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1728,7 +1729,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_author_reply_does_not_reactivate_cleared_handoff(
+    async def test_author_reply_does_not_reactivate_cleared_handoff(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = pull_request_source(
@@ -1776,7 +1777,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
             DiscussionClassifications((), (feedback,), (author_reply,)),
             reviewer_feedback_result=(feedback,),
         )
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1791,7 +1792,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(len(classifier.reviewer_feedback_requests), 1)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_conflict_uses_normal_discussion_and_approval_routing(
+    async def test_conflict_uses_normal_discussion_and_approval_routing(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = normalize_pull_request_source({
@@ -1840,7 +1841,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         })
 
         classifier = FakeClassificationOperation()
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1855,7 +1856,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(len(classifier.requests), 1)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_normal_routing_flows_through_evaluation(
+    async def test_normal_routing_flows_through_evaluation(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = self.raw_pr(
@@ -1863,7 +1864,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
         classifier = FakeClassificationOperation()
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             classification_service=classifier,
         )
@@ -1878,7 +1879,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
 
     @patch("routing_decision.utc_now")
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_running_check_and_workflow_approval_keep_integrated_route_held(
+    async def test_running_check_and_workflow_approval_keep_integrated_route_held(
         self, fetch_raw: Mock, utc_now: Mock
     ) -> None:
         utc_now.return_value = datetime(2026, 8, 16, 12, 0, tzinfo=timezone.utc)
@@ -1893,7 +1894,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         )
 
         classifier = FakeClassificationOperation()
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             previous_result=stored_dashboard_result(
                 7,
@@ -1933,7 +1934,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
         self.assertEqual(len(classifier.requests), 1)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_classification_failure_preserves_integrated_routing_failure_facts(
+    async def test_classification_failure_preserves_integrated_routing_failure_facts(
         self, fetch_raw: Mock
     ) -> None:
         fetch_raw.return_value = self.raw_pr()
@@ -1945,7 +1946,7 @@ class PullRequestEvaluationTest(unittest.TestCase):
                 (),
             )
         )
-        result = evaluate_pr(
+        result = await evaluate_pr(
             {"number": 7},
             previous_result=stored_dashboard_result(
                 7,
@@ -2812,7 +2813,7 @@ class StatusCommentQueueTest(unittest.TestCase):
             prepare_due=False,
         )
 
-class RequiredCiRoutingTest(unittest.TestCase):
+class RequiredCiRoutingTest(unittest.IsolatedAsyncioTestCase):
     def test_non_blocking_check_failures_use_deterministic_casefold_tiebreaker(self) -> None:
         facts = evaluation_facts(
             {
@@ -2914,7 +2915,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
         self.assertEqual(1, facts.ci_maintainer_action_required_count)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_generic_action_required_routes_to_author(
+    async def test_generic_action_required_routes_to_author(
         self,
         fetch_source: Mock,
     ) -> None:
@@ -2925,7 +2926,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
             ),),
         )
 
-        result = evaluate_pr({"number": 7})
+        result = await evaluate_pr({"number": 7})
 
         self.assertIsInstance(result, EvaluationSuccess)
         assert isinstance(result, EvaluationSuccess)
@@ -2969,7 +2970,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
         self.assertEqual("2026-07-17T01:00:00+00:00", facts.ci_failing_since)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_permission_owned_blockers_route_like_audited_pull_requests(
+    async def test_permission_owned_blockers_route_like_audited_pull_requests(
         self,
         fetch_source: Mock,
     ) -> None:
@@ -2997,7 +2998,7 @@ class RequiredCiRoutingTest(unittest.TestCase):
                     ),),
                 )
 
-                result = evaluate_pr({"number": number})
+                result = await evaluate_pr({"number": number})
 
                 self.assertIsInstance(result, EvaluationSuccess)
                 assert isinstance(result, EvaluationSuccess)
@@ -3082,8 +3083,8 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
         )
 
 
-class BackfillFailureIsolationTest(unittest.TestCase):
-    def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
+class BackfillFailureIsolationTest(unittest.IsolatedAsyncioTestCase):
+    async def test_failed_pr_does_not_block_later_backfill_progress(self) -> None:
         args = Namespace(
             repo="repo",
             approver_team=["approvers"],
@@ -3106,7 +3107,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             backfill_state.clear()
             backfill_state.update(deepcopy(state))
 
-        def build_update(*call_args) -> DashboardStateUpdate:
+        def build_update(*call_args, **_kwargs) -> DashboardStateUpdate:
             pr_number = call_args[5]
             starting_state = call_args[9]
             refreshed_pr_numbers.append(pr_number)
@@ -3160,7 +3161,7 @@ class BackfillFailureIsolationTest(unittest.TestCase):
             patch("dashboard.state_branch.remove_existing_state_dir"),
             patch("dashboard.state_branch.push_state_changes", side_effect=push_state_changes),
         ):
-            status = update_dashboard_for_backfill(args, Path("state"))
+            status = await update_dashboard_for_backfill(args, Path("state"), FakeClassificationOperation())
 
         self.assertEqual(refreshed_pr_numbers, [1, 2])
         self.assertEqual(2, accept_update.call_count)

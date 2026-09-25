@@ -190,9 +190,11 @@ the implementation understandable and operationally cheap.
   the next selected PR is processed.
 - The one-PR transaction size keeps state-branch compare-and-swap retries cheap:
   a rejected push retries one PR instead of refreshing a whole large repository
-  and spending the same GitHub GraphQL rate-limit budget again. Backfill retries
-  refetch the selected PR; targeted PR retries reuse the already computed PR
-  result and only redo the latest-state merge and state save.
+  and spending the same GitHub GraphQL rate-limit budget again. Both backfill and
+  targeted retries reuse the already computed PR result and only redo the
+  latest-state merge and state save. A concurrent accepted change to that PR
+  wins over an evaluation based on its previous state. GitHub content changes
+  arriving during persistence are picked up by a later refresh.
 - Backfill progress is stored separately from dashboard state in
   `backfill-state.json`. The cursor is the last attempted PR number, and the
   next run continues after it in sorted PR-number order, wrapping when needed.
@@ -244,9 +246,11 @@ the implementation understandable and operationally cheap.
 - LLM classification cache is stored with `actions/cache`.
 - Unchanged review threads and top-level feedback items reuse cached
   classifications and avoid new Copilot calls.
-- Each discussion cache key includes the model, full prompt template, and prompt
-  input. Changing one classifier's policy invalidates its verdicts without
-  clearing unrelated classifier or dashboard state.
+- Each discussion cache key includes the model, full prompt template, prompt
+  input, replacement system prompt, and execution configuration version.
+  Changing one classifier's domain policy invalidates its verdicts without
+  clearing unrelated classifier or dashboard state. Changing shared inference
+  instructions invalidates all affected classification results.
 - Cache keys are scoped by target repository and by either PR number or
   backfill.
 - Targeted PR runs restore their PR-specific cache first, then fall back to the
@@ -258,7 +262,7 @@ the implementation understandable and operationally cheap.
   classifications produced before or alongside an isolated failed item.
 - Failed classifications are not cached. A structurally invalid model response
   or contract-validation failure retries its model request once in the same
-  run. Copilot CLI failures, timeouts, and raised exceptions do not use this
+  run. Copilot SDK failures, timeouts, and raised exceptions do not use this
   retry. If the second response is still invalid, a later run restores valid
   sibling classifications and sends only the still-uncached items to the
   model. The original run remains failed so the item is visible for operational
@@ -665,7 +669,7 @@ the implementation understandable and operationally cheap.
   each earlier feedback item the comment addresses. Timestamp
   ordering determines which items are candidates, but never applies a comment to
   every earlier item by itself. Candidate sets are split and model-call batches
-  are greedily packed against the fully serialized prompt, so every Copilot CLI
+  are greedily packed against the fully serialized prompt, so every Copilot SDK
   argument remains within the configured character limit. Partial results are
   merged into one cache entry per author comment. Completed reply evidence
   retains the source comment id as well as its timestamp, so comments created in

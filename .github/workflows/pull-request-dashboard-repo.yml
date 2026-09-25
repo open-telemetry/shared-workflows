@@ -122,12 +122,17 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
-      - name: Install Copilot CLI
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dashboard dependencies
         env:
           DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
         run: |
           npm ci --prefix "$DASHBOARD_CODE"
-          echo "$DASHBOARD_CODE/node_modules/.bin" >> "$GITHUB_PATH"
+          python -m pip install -r "$DASHBOARD_CODE/requirements.txt"
+          python -m copilot download-runtime
 
       - name: Generate and update dashboard state
         id: dashboard-update
@@ -135,9 +140,8 @@ jobs:
           TRIGGER_PR_NUMBER: ${{ inputs.pr_number }}
           GH_TOKEN: ${{ steps.dashboard-token.outputs.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Copilot CLI resolves auth in the order COPILOT_GITHUB_TOKEN, GH_TOKEN, GITHUB_TOKEN.
-          # GH_TOKEN holds the app installation token, which cannot make Copilot requests, so the
-          # CLI has to be pointed explicitly at the Actions token granted copilot-requests: write.
+          # The classifier receives only the Actions token granted copilot-requests: write,
+          # never the GitHub App installation token used for repository reads.
           COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
           PR_DASHBOARD_TOKEN: ${{ steps.dashboard-token.outputs.token }}

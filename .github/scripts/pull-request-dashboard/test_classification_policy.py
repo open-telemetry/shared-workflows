@@ -139,8 +139,8 @@ class PromptCompatibilityTest(unittest.TestCase):
             },
         )
 
-    def test_cache_keys_match_the_pre_extraction_keys(self) -> None:
-        self.assertEqual(
+    def test_sdk_cache_keys_do_not_reuse_cli_classifications(self) -> None:
+        self.assertNotEqual(
             discussion_cache_key(
                 self.review,
                 "gpt-test",
@@ -148,7 +148,7 @@ class PromptCompatibilityTest(unittest.TestCase):
             ),
             "c0bae7b1e460f5d7edd0b23e6193f5413a4dd2aee05cffe9d9c8ebc40ca0c8fb",
         )
-        self.assertEqual(
+        self.assertNotEqual(
             discussion_cache_key(
                 self.reply,
                 "gpt-test",
@@ -156,7 +156,7 @@ class PromptCompatibilityTest(unittest.TestCase):
             ),
             "e1ec5c0d70adb0981a7bfecdc7f8f5bd7b1a6a6d7ea597ea1cd512fe3de3e864",
         )
-        self.assertEqual(
+        self.assertNotEqual(
             discussion_cache_key(
                 self.thread,
                 "gpt-test",
@@ -164,6 +164,20 @@ class PromptCompatibilityTest(unittest.TestCase):
             ),
             "76e534a013fc212856acbebd3c1897aa2c27daa6a69c6c8bee02e2d11b7bb2fd",
         )
+
+    def test_system_prompt_and_execution_version_invalidate_each_classifier(self) -> None:
+        for item, kwargs in (
+            (self.review, {"verdict_contract": VerdictContract.REVIEWER_FEEDBACK}),
+            (self.reply, {"author_comment": True}),
+            (self.thread, {"verdict_contract": VerdictContract.PRAISE}),
+            (self.thread, {"verdict_contract": VerdictContract.AUTHOR_REPLY}),
+        ):
+            original = discussion_cache_key(item, "model", **kwargs)
+            for setting in ("CLASSIFIER_SYSTEM_PROMPT", "CLASSIFIER_EXECUTION_VERSION"):
+                with self.subTest(setting=setting, kwargs=kwargs):
+                    with patch(f"classification_policy.{setting}", "changed"):
+                        self.assertNotEqual(original, discussion_cache_key(item, "model", **kwargs))
+            self.assertEqual(original, discussion_cache_key(item, "model", **kwargs))
 
     def test_author_reply_prompt_distinguishes_current_pr_work(self) -> None:
         prompt = render_verdict_prompt(

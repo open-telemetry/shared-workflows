@@ -72,7 +72,7 @@ def raw_pr(
     ))
 
 
-class PullRequestEvaluationContractTest(unittest.TestCase):
+class PullRequestEvaluationContractTest(unittest.IsolatedAsyncioTestCase):
     def test_handoff_feedback_routes_to_author_only_after_successful_feedback(
         self,
     ) -> None:
@@ -109,7 +109,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             source.previous_result = stored_dashboard_result()  # type: ignore[misc]
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_success_uses_the_effective_copilot_author(
+    async def test_success_uses_the_effective_copilot_author(
         self,
         fetch_raw,
     ) -> None:
@@ -123,7 +123,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         )
 
         classifier = FakeClassificationOperation()
-        result = evaluate_pull_request(
+        result = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7),
             classifier,
@@ -142,7 +142,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         self.assertEqual(classifier.requests[0].model, "model")
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_copilot_bot_committer_is_not_recovered_as_the_human_author(
+    async def test_copilot_bot_committer_is_not_recovered_as_the_human_author(
         self,
         fetch_source,
     ) -> None:
@@ -155,7 +155,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             ),),
         )
 
-        result = evaluate_pull_request(
+        result = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7),
             FakeClassificationOperation(),
@@ -167,7 +167,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         self.assertFalse(result.facts.author_can_act)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_automation_user_is_not_recovered_as_a_copilot_author(
+    async def test_automation_user_is_not_recovered_as_a_copilot_author(
         self,
         fetch_source,
     ) -> None:
@@ -180,7 +180,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             ),
         )
 
-        result = evaluate_pull_request(
+        result = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7),
             FakeClassificationOperation(),
@@ -231,7 +231,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_opentelemetrybot_pr_routes_to_reviewers_then_maintainers(
+    async def test_opentelemetrybot_pr_routes_to_reviewers_then_maintainers(
         self,
         fetch_source,
     ) -> None:
@@ -251,12 +251,12 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             ),
         )
 
-        awaiting_approval = evaluate_pull_request(
+        awaiting_approval = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7715),
             FakeClassificationOperation(),
         )
-        approved = evaluate_pull_request(
+        approved = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7715),
             FakeClassificationOperation(),
@@ -278,7 +278,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         wraps=resolve_discussions,
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_cached_top_level_history_reaches_the_discussion_lifecycle(
+    async def test_cached_top_level_history_reaches_the_discussion_lifecycle(
         self,
         fetch_raw,
         resolve,
@@ -288,7 +288,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             "pr-review-456": {"evidence": {"commit": "2026-08-16T07:30:00Z"}},
         }
 
-        result = evaluate_pull_request(
+        result = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(
                 7,
@@ -306,14 +306,14 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         self.assertEqual(history, dict(resolve.call_args.args[2]))
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_open_draft_has_a_non_routed_result_without_classification(
+    async def test_open_draft_has_a_non_routed_result_without_classification(
         self,
         fetch_source,
     ) -> None:
         fetch_source.return_value = raw_pr(draft=True)
         classifier = FakeClassificationOperation()
 
-        result = evaluate_pull_request(
+        result = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7),
             classifier,
@@ -330,25 +330,27 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         self.assertEqual([], classifier.requests)
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_closed_pull_request_has_no_result(self, fetch_source) -> None:
+    async def test_closed_pull_request_has_no_result(self, fetch_source) -> None:
         fetch_source.return_value = raw_pr(state="CLOSED")
 
         self.assertIsNone(
-            evaluate_pull_request(
+            await evaluate_pull_request(
                 evaluation_config(),
                 PullRequestEvaluationInput(7),
+                FakeClassificationOperation(),
             )
         )
 
-    def test_transient_github_failure_has_the_stable_error_shape(self) -> None:
+    async def test_transient_github_failure_has_the_stable_error_shape(self) -> None:
         error = TransientGhError("temporary")
         with patch(
             "pull_request_evaluation.fetch_pull_request_source",
             side_effect=error,
         ):
-            result = evaluate_pull_request(
+            result = await evaluate_pull_request(
                 evaluation_config(),
                 PullRequestEvaluationInput(7),
+                FakeClassificationOperation(),
             )
 
         self.assertIsInstance(result, EvaluationFailure)
@@ -359,7 +361,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         self.assertIsNone(result.facts)
         self.assertEqual((), result.diagnostics.review_threads)
 
-    def test_unexpected_failure_is_contained_and_logged(self) -> None:
+    async def test_unexpected_failure_is_contained_and_logged(self) -> None:
         error = ValueError("broken")
         with (
             patch(
@@ -368,9 +370,10 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             ),
             patch("pull_request_evaluation.traceback.print_exc") as print_exc,
         ):
-            result = evaluate_pull_request(
+            result = await evaluate_pull_request(
                 evaluation_config(),
                 PullRequestEvaluationInput(7),
+                FakeClassificationOperation(),
             )
 
         self.assertIsInstance(result, EvaluationFailure)
@@ -384,7 +387,7 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
         return_value=datetime(2026, 8, 16, 9, tzinfo=timezone.utc),
     )
     @patch("pull_request_evaluation.fetch_pull_request_source")
-    def test_mixed_metadata_shapes_produce_equivalent_typed_results(
+    async def test_mixed_metadata_shapes_produce_equivalent_typed_results(
         self,
         fetch_source,
         _utc_now,
@@ -444,12 +447,12 @@ class PullRequestEvaluationContractTest(unittest.TestCase):
             facts=dashboard_facts(author_nudge_episode_id="episode"),
         )
 
-        gh_result = evaluate_pull_request(
+        gh_result = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7, previous),
             FakeClassificationOperation(),
         )
-        rest_result = evaluate_pull_request(
+        rest_result = await evaluate_pull_request(
             evaluation_config(),
             PullRequestEvaluationInput(7, previous),
             FakeClassificationOperation(),

@@ -6,7 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from threading import Barrier, BrokenBarrierError, Lock
+import asyncio
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
@@ -179,7 +179,7 @@ class RebuildTest(unittest.TestCase):
         clock.now.assert_called_once_with(regenerate_baseline.UTC)
 
 
-class RunBatchCachingTest(unittest.TestCase):
+class RunBatchCachingTest(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         cache = tempfile.TemporaryDirectory()
         self.addCleanup(cache.cleanup)
@@ -191,73 +191,73 @@ class RunBatchCachingTest(unittest.TestCase):
     def entries(self) -> list[Path]:
         return list(self.cache.iterdir())
 
-    def run_with(self, response: RawModelResponse | Exception) -> dict:
-        return run_batch(
+    async def run_with(self, response: RawModelResponse | Exception) -> dict:
+        return await run_batch(
             [case("a")],
             "model",
             "salt",
             FakeModelRunner([response]),
         )
 
-    def test_a_successful_call_is_cached(self) -> None:
-        raw = self.run_with(RawModelResponse(0, "{}"))
+    async def test_a_successful_call_is_cached(self) -> None:
+        raw = await self.run_with(RawModelResponse(0, "{}"))
 
         self.assertEqual(0, raw["returncode"])
         self.assertEqual(1, len(self.entries()))
 
-    def test_a_failed_call_is_not_cached(self) -> None:
+    async def test_system_prompt_and_execution_version_invalidate_cached_responses(self) -> None:
+        await self.run_with(RawModelResponse(0, "original"))
+        self.assertEqual("original", (await self.run_with(RuntimeError("must use cache")))["stdout"])
+        for index, setting in enumerate(("CLASSIFIER_SYSTEM_PROMPT", "CLASSIFIER_EXECUTION_VERSION")):
+            with patch.object(regenerate_baseline.policy, setting, "changed"):
+                result = await self.run_with(RawModelResponse(0, setting))
+            self.assertEqual(setting, result["stdout"])
+            self.assertEqual(index + 2, len(self.entries()))
+
+    async def test_a_failed_call_is_not_cached(self) -> None:
         # Caching a failure would make every later run replay it instead of
         # retrying the call.
-        raw = self.run_with(RawModelResponse(1, ""))
+        raw = await self.run_with(RawModelResponse(1, ""))
 
         self.assertEqual(1, raw["returncode"])
         self.assertEqual([], self.entries())
 
-    def test_a_raising_call_is_not_cached(self) -> None:
-        raw = self.run_with(RuntimeError("throttled"))
+    async def test_a_raising_call_is_not_cached(self) -> None:
+        raw = await self.run_with(RuntimeError("throttled"))
 
         self.assertIn("throttled", raw["error"])
         self.assertEqual([], self.entries())
 
 
-class MeasureTest(unittest.TestCase):
-    def test_injected_runner_calls_do_not_overlap(self) -> None:
+class MeasureTest(unittest.IsolatedAsyncioTestCase):
+    async def test_runner_calls_are_concurrent_and_bounded(self) -> None:
         cache = tempfile.TemporaryDirectory()
         self.addCleanup(cache.cleanup)
-        barrier = Barrier(2)
-        state_lock = Lock()
-        state = {"active": 0, "calls": 0, "overlap": False}
+        state = {"active": 0, "calls": 0, "maximum": 0}
 
         class Runner:
-            def run(self, _request) -> RawModelResponse:
-                with state_lock:
-                    state["active"] += 1
-                    state["calls"] += 1
-                    if state["active"] > 1:
-                        state["overlap"] = True
-                try:
-                    barrier.wait(timeout=0.2)
-                except BrokenBarrierError:
-                    pass
-                finally:
-                    with state_lock:
-                        state["active"] -= 1
+            async def run(self, _request) -> RawModelResponse:
+                state["active"] += 1
+                state["calls"] += 1
+                state["maximum"] = max(state["maximum"], state["active"])
+                await asyncio.sleep(0)
+                state["active"] -= 1
                 return RawModelResponse(0, '{"items":[]}', "")
 
         with (
             patch.object(regenerate_baseline, "CACHE_DIR", Path(cache.name)),
             contextlib.redirect_stdout(io.StringIO()),
         ):
-            measure(
-                [case(f"case-{index}") for index in range(20)],
+            await measure(
+                [case(f"case-{index}") for index in range(50)],
                 "model",
                 1,
                 2,
                 Runner(),
             )
 
-        self.assertEqual(state["calls"], 2)
-        self.assertFalse(state["overlap"])
+        self.assertEqual(state["calls"], 5)
+        self.assertEqual(state["maximum"], 2)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,6 @@ from __future__ import annotations
 import io
 import json
 import os
-import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr
@@ -14,7 +13,6 @@ from classification_execution import (
     LLM_DISCUSSION_TIMEOUT_SECONDS,
     ClassificationExecutionRequest,
     ClassificationService,
-    CopilotCliModelRunner,
     FileClassificationCacheStore,
     ModelRunRequest,
     ReviewerFeedbackClassificationRequest,
@@ -121,142 +119,6 @@ def author_comment_result(
     )
 
 
-class CopilotCliModelRunnerTest(unittest.TestCase):
-    @patch("classification_execution.subprocess.run")
-    def test_command_environment_telemetry_and_tempfile_lifecycle(
-        self,
-        run,
-    ) -> None:
-        observed_path: Path | None = None
-
-        def execute(command, **kwargs):
-            nonlocal observed_path
-            observed_path = Path(
-                kwargs["env"]["COPILOT_OTEL_FILE_EXPORTER_PATH"]
-            )
-            observed_path.write_text('{"event":"done"}\n', encoding="utf-8")
-            return subprocess.CompletedProcess(command, 7, "response", "diagnostic")
-
-        run.side_effect = execute
-        stderr = io.StringIO()
-        with (
-            patch.dict(os.environ, {}, clear=True),
-            redirect_stderr(stderr),
-        ):
-            response = CopilotCliModelRunner().run(
-                ModelRunRequest("prompt bytes", "gpt-test")
-            )
-
-        self.assertEqual(
-            run.call_args.args[0],
-            [
-                "copilot",
-                "-p",
-                "prompt bytes",
-                "--model",
-                "gpt-test",
-                "--silent",
-            ],
-        )
-        kwargs = run.call_args.kwargs
-        self.assertTrue(kwargs["capture_output"])
-        self.assertTrue(kwargs["text"])
-        self.assertEqual(kwargs["encoding"], "utf-8")
-        self.assertEqual(kwargs["errors"], "replace")
-        self.assertEqual(
-            kwargs["timeout"],
-            LLM_DISCUSSION_TIMEOUT_SECONDS,
-        )
-        self.assertEqual(
-            kwargs["env"]["COPILOT_OTEL_EXPORTER_TYPE"],
-            "file",
-        )
-        self.assertEqual(
-            response,
-            RawModelResponse(7, "response", "diagnostic"),
-        )
-        self.assertEqual(
-            stderr.getvalue().count("--- BEGIN COPILOT OTEL JSONL ---"),
-            1,
-        )
-        self.assertIn('{"event":"done"}', stderr.getvalue())
-        assert observed_path is not None
-        self.assertFalse(observed_path.parent.exists())
-
-    @patch("classification_execution.subprocess.run")
-    def test_existing_telemetry_exporter_type_is_preserved(self, run) -> None:
-        run.return_value = subprocess.CompletedProcess([], 0, "", "")
-
-        with patch.dict(
-            os.environ,
-            {"COPILOT_OTEL_EXPORTER_TYPE": "configured"},
-            clear=True,
-        ):
-            CopilotCliModelRunner().run(ModelRunRequest("prompt", "model"))
-
-        self.assertEqual(
-            run.call_args.kwargs["env"]["COPILOT_OTEL_EXPORTER_TYPE"],
-            "configured",
-        )
-
-    @patch("classification_execution.subprocess.run")
-    def test_timeout_prints_telemetry_and_propagates_after_cleaning_the_tempfile(
-        self,
-        run,
-    ) -> None:
-        observed_path: Path | None = None
-        expected_error = subprocess.TimeoutExpired(
-            "copilot",
-            LLM_DISCUSSION_TIMEOUT_SECONDS,
-            output="partial",
-            stderr="slow",
-        )
-
-        def timeout(_command, **kwargs):
-            nonlocal observed_path
-            observed_path = Path(
-                kwargs["env"]["COPILOT_OTEL_FILE_EXPORTER_PATH"]
-            )
-            observed_path.write_text('{"event":"timeout"}\n', encoding="utf-8")
-            raise expected_error
-
-        run.side_effect = timeout
-        stderr = io.StringIO()
-        with (
-            redirect_stderr(stderr),
-            self.assertRaises(subprocess.TimeoutExpired) as raised,
-        ):
-            CopilotCliModelRunner().run(ModelRunRequest("prompt", "model"))
-
-        self.assertIs(raised.exception, expected_error)
-        self.assertIn('{"event":"timeout"}', stderr.getvalue())
-        assert observed_path is not None
-        self.assertFalse(observed_path.parent.exists())
-
-    @patch("classification_execution.subprocess.run")
-    def test_subprocess_error_prints_telemetry_without_masking_error(
-        self,
-        run,
-    ) -> None:
-        expected_error = OSError("failed to launch Copilot")
-
-        def fail(_command, **kwargs):
-            otel_path = Path(kwargs["env"]["COPILOT_OTEL_FILE_EXPORTER_PATH"])
-            otel_path.write_text('{"event":"launch-error"}\n', encoding="utf-8")
-            raise expected_error
-
-        run.side_effect = fail
-        stderr = io.StringIO()
-        with (
-            redirect_stderr(stderr),
-            self.assertRaises(OSError) as raised,
-        ):
-            CopilotCliModelRunner().run(ModelRunRequest("prompt", "model"))
-
-        self.assertIs(raised.exception, expected_error)
-        self.assertIn('{"event":"launch-error"}', stderr.getvalue())
-
-
 class FileClassificationCacheStoreTest(unittest.TestCase):
     def setUp(self) -> None:
         temporary_directory = tempfile.TemporaryDirectory()
@@ -313,8 +175,24 @@ class FileClassificationCacheStoreTest(unittest.TestCase):
         self.assertEqual(list(self.directory.glob("*.tmp")), [])
 
 
-class ClassificationServiceTest(unittest.TestCase):
-    def test_invalid_verdict_response_retries_once(self) -> None:
+class ClassificationServiceTest(unittest.IsolatedAsyncioTestCase):
+    async def test_empty_model_output_uses_the_invalid_response_retry(self) -> None:
+        def responder(request: ModelRunRequest) -> RawModelResponse:
+            if len(runner.requests) == 1:
+                return RawModelResponse(0, "", "Copilot SDK returned an empty classification")
+            return successful_response(request)
+
+        runner = FakeModelRunner(responder=responder)
+        results = await ClassificationService(
+            runner, MemoryClassificationCacheStore()
+        ).classify(
+            execution_request(top_level_items=(discussion_record("feedback"),))
+        )
+
+        self.assertIsInstance(results.top_level_items[0], ClassificationSuccess)
+        self.assertEqual(2, len(runner.requests))
+
+    async def test_invalid_verdict_response_retries_once(self) -> None:
         calls = 0
 
         def responder(request: ModelRunRequest) -> RawModelResponse:
@@ -329,7 +207,7 @@ class ClassificationServiceTest(unittest.TestCase):
             discussion_record("feedback")
         )
 
-        result = ClassificationService(
+        result = await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
         ).classify_reviewer_feedback(
@@ -343,7 +221,7 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertIsInstance(result[0], ClassificationSuccess)
         self.assertEqual(2, len(runner.requests))
 
-    def test_invalid_author_comment_response_retries_once(self) -> None:
+    async def test_invalid_author_comment_response_retries_once(self) -> None:
         calls = 0
 
         def responder(request: ModelRunRequest) -> RawModelResponse:
@@ -361,17 +239,17 @@ class ClassificationServiceTest(unittest.TestCase):
             candidate_feedback=(("feedback", "Please fix this."),),
         )
 
-        result = ClassificationService(
+        result = (await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
         ).classify(
             execution_request(author_comments=(record,))
-        ).top_level_author_comments[0]
+        )).top_level_author_comments[0]
 
         self.assertIsInstance(result, ClassificationSuccess)
         self.assertEqual(2, len(runner.requests))
 
-    def test_second_invalid_response_preserves_failure(self) -> None:
+    async def test_second_invalid_response_preserves_failure(self) -> None:
         runner = FakeModelRunner(
             responses=(
                 RawModelResponse(0, '{"items":[]}', ""),
@@ -382,7 +260,7 @@ class ClassificationServiceTest(unittest.TestCase):
             discussion_record("feedback")
         )
 
-        result = ClassificationService(
+        result = await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
         ).classify_reviewer_feedback(
@@ -396,7 +274,7 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertIsInstance(result[0], ClassificationFailure)
         self.assertEqual(2, len(runner.requests))
 
-    def test_nonzero_exit_with_valid_output_is_not_retried(self) -> None:
+    async def test_nonzero_exit_with_valid_output_is_not_retried(self) -> None:
         def responder(request: ModelRunRequest) -> RawModelResponse:
             response = successful_response(request)
             return RawModelResponse(1, response.stdout, "failed")
@@ -406,7 +284,7 @@ class ClassificationServiceTest(unittest.TestCase):
             discussion_record("feedback")
         )
 
-        result = ClassificationService(
+        result = await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
         ).classify_reviewer_feedback(
@@ -420,7 +298,7 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertIsInstance(result[0], ClassificationFailure)
         self.assertEqual(1, len(runner.requests))
 
-    def test_partial_reviewer_feedback_uses_the_actionable_feedback_contract(
+    async def test_partial_reviewer_feedback_uses_the_actionable_feedback_contract(
         self,
     ) -> None:
         runner = FakeModelRunner(responder=successful_response)
@@ -434,7 +312,7 @@ class ClassificationServiceTest(unittest.TestCase):
             )
         )
 
-        result = service.classify_reviewer_feedback(
+        result = await service.classify_reviewer_feedback(
             ReviewerFeedbackClassificationRequest(
                 123,
                 "model",
@@ -451,7 +329,7 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         self.assertIn("---BEGIN REVIEWER FEEDBACK---", runner.requests[0].prompt)
 
-    def test_partial_reviewer_feedback_preserves_unrelated_cache_entries(
+    async def test_partial_reviewer_feedback_preserves_unrelated_cache_entries(
         self,
     ) -> None:
         cache = MemoryClassificationCacheStore({
@@ -465,7 +343,7 @@ class ClassificationServiceTest(unittest.TestCase):
             discussion_record("feedback")
         )
 
-        service.classify_reviewer_feedback(
+        await service.classify_reviewer_feedback(
             ReviewerFeedbackClassificationRequest(
                 123,
                 "model",
@@ -476,19 +354,19 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertIn("unrelated-key", cache.entries[123])
         self.assertEqual(2, len(cache.entries[123]))
 
-    def test_empty_partial_reviewer_feedback_does_not_rewrite_cache(self) -> None:
+    async def test_empty_partial_reviewer_feedback_does_not_rewrite_cache(self) -> None:
         existing = {"existing-key": {"discussion_id": "existing"}}
         cache = MemoryClassificationCacheStore({123: existing})
         service = ClassificationService(FakeModelRunner(), cache)
 
-        result = service.classify_reviewer_feedback(
+        result = await service.classify_reviewer_feedback(
             ReviewerFeedbackClassificationRequest(123, "model")
         )
 
         self.assertEqual(result, ())
         self.assertEqual(cache.writes, [])
 
-    def test_cache_miss_hit_batching_order_and_cli_call_attribution(self) -> None:
+    async def test_cache_miss_hit_batching_order_and_cli_call_attribution(self) -> None:
         records = tuple(
             discussion_record(f"feedback-{index}")
             for index in range(12)
@@ -497,7 +375,7 @@ class ClassificationServiceTest(unittest.TestCase):
         first_runner = FakeModelRunner(responder=successful_response)
         first_service = ClassificationService(first_runner, cache)
 
-        first = first_service.classify(
+        first = await first_service.classify(
             execution_request(top_level_items=records)
         )
 
@@ -520,7 +398,7 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertEqual(len(cache.entries[123]), 12)
 
         cached_runner = FakeModelRunner()
-        cached = ClassificationService(cached_runner, cache).classify(
+        cached = await ClassificationService(cached_runner, cache).classify(
             execution_request(top_level_items=records)
         )
 
@@ -534,7 +412,7 @@ class ClassificationServiceTest(unittest.TestCase):
             [False] * 12,
         )
 
-    def test_author_comment_model_call_budget_defers_the_remainder(self) -> None:
+    async def test_author_comment_model_call_budget_defers_the_remainder(self) -> None:
         records = tuple(
             discussion_record(
                 f"reply-{index}",
@@ -553,9 +431,9 @@ class ClassificationServiceTest(unittest.TestCase):
             max_author_comment_model_calls_per_pr=2,
         )
 
-        result = service.classify(
+        result = (await service.classify(
             execution_request(author_comments=records)
-        ).top_level_author_comments
+        )).top_level_author_comments
 
         self.assertEqual(len(runner.requests), 2)
         self.assertEqual(
@@ -570,7 +448,7 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         self.assertEqual(len(cache.entries[123]), 2)
 
-    def test_author_comment_budget_skips_overflow_and_retries_it(self) -> None:
+    async def test_author_comment_budget_skips_overflow_and_retries_it(self) -> None:
         request_counts = {
             "expensive-1": 10,
             "expensive-2": 10,
@@ -627,9 +505,9 @@ class ClassificationServiceTest(unittest.TestCase):
                 side_effect=classified,
             ) as run_author_request,
         ):
-            first = service.classify(
+            first = (await service.classify(
                 execution_request(author_comments=records)
-            ).top_level_author_comments
+            )).top_level_author_comments
 
             self.assertEqual(
                 [result.identity.discussion_id for result in first],
@@ -667,9 +545,9 @@ class ClassificationServiceTest(unittest.TestCase):
 
             run_author_request.reset_mock()
             prepare_discussion.reset_mock()
-            second = service.classify(
+            second = (await service.classify(
                 execution_request(author_comments=records)
-            ).top_level_author_comments
+            )).top_level_author_comments
 
         self.assertEqual(
             [
@@ -689,7 +567,7 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         self.assertEqual(len(cache.entries[123]), 5)
 
-    def test_oversized_first_author_comment_does_not_block_later_items(
+    async def test_oversized_first_author_comment_does_not_block_later_items(
         self,
     ) -> None:
         request_counts = {
@@ -745,9 +623,9 @@ class ClassificationServiceTest(unittest.TestCase):
                 side_effect=classified,
             ) as run_author_request,
         ):
-            results = service.classify(
+            results = (await service.classify(
                 execution_request(author_comments=records)
-            ).top_level_author_comments
+            )).top_level_author_comments
 
         self.assertEqual(run_author_request.call_count, 1)
         self.assertEqual(
@@ -778,7 +656,7 @@ class ClassificationServiceTest(unittest.TestCase):
             0,
         )
 
-    def test_deferred_author_comments_are_classified_on_the_next_refresh(
+    async def test_deferred_author_comments_are_classified_on_the_next_refresh(
         self,
     ) -> None:
         records = tuple(
@@ -792,7 +670,7 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         cache = MemoryClassificationCacheStore()
         first_runner = FakeModelRunner(responder=successful_response)
-        first = ClassificationService(
+        first = await ClassificationService(
             first_runner,
             cache,
             max_classifications_per_pr=2,
@@ -805,7 +683,7 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertEqual(len(cache.entries[123]), 2)
 
         second_runner = FakeModelRunner(responder=successful_response)
-        second = ClassificationService(
+        second = await ClassificationService(
             second_runner,
             cache,
             max_classifications_per_pr=2,
@@ -819,7 +697,7 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         self.assertEqual(len(cache.entries[123]), 3)
 
-    def test_cached_deferred_author_comment_is_retried(self) -> None:
+    async def test_cached_deferred_author_comment_is_retried(self) -> None:
         record = discussion_record(
             "reply",
             DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
@@ -843,15 +721,15 @@ class ClassificationServiceTest(unittest.TestCase):
         })
         runner = FakeModelRunner(responder=successful_response)
 
-        result = ClassificationService(runner, cache).classify(
+        result = (await ClassificationService(runner, cache).classify(
             execution_request(author_comments=(record,))
-        ).top_level_author_comments[0]
+        )).top_level_author_comments[0]
 
         self.assertEqual(len(runner.requests), 1)
         self.assertFalse(result.deferred)
         self.assertFalse(cache.entries[123][key].get("deferred"))
 
-    def test_author_comment_sliced_prompt_calls_are_bounded(self) -> None:
+    async def test_author_comment_sliced_prompt_calls_are_bounded(self) -> None:
         records = tuple(
             discussion_record(
                 f"reply-{index}",
@@ -908,9 +786,9 @@ class ClassificationServiceTest(unittest.TestCase):
                 side_effect=classified,
             ) as run_author_request,
         ):
-            results = service.classify(
+            results = (await service.classify(
                 execution_request(author_comments=records)
-            ).top_level_author_comments
+            )).top_level_author_comments
 
         self.assertEqual(run_author_request.call_count, 3)
         self.assertEqual(
@@ -932,7 +810,7 @@ class ClassificationServiceTest(unittest.TestCase):
             [False] * 10 + [True],
         )
 
-    def test_author_comment_chunks_count_toward_budget_and_combine_attribution(
+    async def test_author_comment_chunks_count_toward_budget_and_combine_attribution(
         self,
     ) -> None:
         record = discussion_record(
@@ -948,13 +826,13 @@ class ClassificationServiceTest(unittest.TestCase):
             ),
         )
         runner = FakeModelRunner(responder=successful_response)
-        result = ClassificationService(
+        result = (await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
             max_prompt_chars=5000,
         ).classify(
             execution_request(author_comments=(record,))
-        ).top_level_author_comments[0]
+        )).top_level_author_comments[0]
 
         self.assertGreater(len(runner.requests), 1)
         self.assertTrue(result.cli_call)
@@ -968,19 +846,19 @@ class ClassificationServiceTest(unittest.TestCase):
         )
 
         bounded_runner = FakeModelRunner(responder=successful_response)
-        bounded = ClassificationService(
+        bounded = (await ClassificationService(
             bounded_runner,
             MemoryClassificationCacheStore(),
             max_prompt_chars=5000,
             max_author_comment_model_calls_per_pr=1,
         ).classify(
             execution_request(author_comments=(record,))
-        ).top_level_author_comments[0]
+        )).top_level_author_comments[0]
 
         self.assertEqual(bounded_runner.requests, [])
         self.assertIsInstance(bounded, ClassificationDeferred)
 
-    def test_nonzero_malformed_and_timeout_responses_keep_diagnostics(self) -> None:
+    async def test_nonzero_malformed_and_timeout_responses_keep_diagnostics(self) -> None:
         record = discussion_record("feedback")
         cases = (
             (
@@ -1010,15 +888,10 @@ class ClassificationServiceTest(unittest.TestCase):
             (
                 "timeout",
                 (
-                    subprocess.TimeoutExpired(
-                        "copilot",
-                        37,
-                        output="partial response",
-                        stderr="timeout stderr",
-                    ),
+                    TimeoutError("Copilot SDK timed out after 37s"),
                 ),
                 "timed out after 37s",
-                "timeout stderr",
+                "",
                 1,
             ),
         )
@@ -1030,9 +903,9 @@ class ClassificationServiceTest(unittest.TestCase):
                     MemoryClassificationCacheStore(),
                 )
 
-                result = service.classify(
+                result = (await service.classify(
                     execution_request(top_level_items=(record,))
-                ).top_level_items[0]
+                )).top_level_items[0]
 
                 self.assertIsInstance(result, ClassificationFailure)
                 assert isinstance(result, ClassificationFailure)
@@ -1041,7 +914,7 @@ class ClassificationServiceTest(unittest.TestCase):
                 self.assertTrue(result.cli_call)
                 self.assertEqual(expected_calls, len(runner.requests))
 
-    def test_later_verdict_request_failure_preserves_and_caches_success(self) -> None:
+    async def test_later_verdict_request_failure_preserves_and_caches_success(self) -> None:
         records = (
             discussion_record("first"),
             discussion_record("second"),
@@ -1052,7 +925,7 @@ class ClassificationServiceTest(unittest.TestCase):
                 '{"items":[{"discussion_id":"first",'
                 '"verdict":"no_author_action","reason":"done"}]}',
             ),
-            subprocess.TimeoutExpired("copilot", 37),
+            TimeoutError("Copilot SDK timed out after 37s"),
         ))
         cache = MemoryClassificationCacheStore()
         service = ClassificationService(runner, cache)
@@ -1068,16 +941,16 @@ class ClassificationServiceTest(unittest.TestCase):
             "_verdict_requests",
             side_effect=split_requests,
         ):
-            results = service.classify(
+            results = (await service.classify(
                 execution_request(top_level_items=records)
-            ).top_level_items
+            )).top_level_items
 
         self.assertIsInstance(results[0], ClassificationSuccess)
         self.assertIsInstance(results[1], ClassificationFailure)
         self.assertEqual(len(runner.requests), 2)
         self.assertEqual(len(cache.entries[123]), 1)
 
-    def test_later_author_comment_request_failure_preserves_success(self) -> None:
+    async def test_later_author_comment_request_failure_preserves_success(self) -> None:
         discussions = typed_discussions((
             discussion_record(
                 "first",
@@ -1105,7 +978,7 @@ class ClassificationServiceTest(unittest.TestCase):
             MemoryClassificationCacheStore(),
         )
 
-        results = service._run_author_comment_batch(
+        results = await service._run_author_comment_batch(
             discussions,
             "model",
             requests,
@@ -1115,7 +988,7 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertIsInstance(results[1], ClassificationFailure)
         self.assertEqual(len(runner.requests), 2)
 
-    def test_retry_rejects_partial_batch_when_second_attempt_fails(self) -> None:
+    async def test_retry_rejects_partial_batch_when_second_attempt_fails(self) -> None:
         records = (
             discussion_record("valid"),
             discussion_record("missing"),
@@ -1130,16 +1003,16 @@ class ClassificationServiceTest(unittest.TestCase):
         ))
         cache = MemoryClassificationCacheStore()
 
-        results = ClassificationService(runner, cache).classify(
+        results = (await ClassificationService(runner, cache).classify(
             execution_request(top_level_items=records)
-        ).top_level_items
+        )).top_level_items
 
         self.assertIsInstance(results[0], ClassificationFailure)
         self.assertIsInstance(results[1], ClassificationFailure)
         self.assertEqual(cache.entries[123], {})
         self.assertEqual(2, len(runner.requests))
 
-    def test_author_comment_retry_rejects_partial_batch(self) -> None:
+    async def test_author_comment_retry_rejects_partial_batch(self) -> None:
         discussions = typed_discussions((
             discussion_record(
                 "valid",
@@ -1168,12 +1041,12 @@ class ClassificationServiceTest(unittest.TestCase):
             MemoryClassificationCacheStore(),
         )
 
-        results = service._run_author_comment_request(request, "model")
+        results = await service._run_author_comment_request(request, "model")
 
         self.assertIsInstance(results[0], ClassificationFailure)
         self.assertIsInstance(results[1], ClassificationFailure)
 
-    def test_retry_exception_replaces_only_invalid_verdict_diagnostics(self) -> None:
+    async def test_retry_exception_replaces_only_invalid_verdict_diagnostics(self) -> None:
         records = (
             discussion_record("valid"),
             discussion_record("invalid"),
@@ -1190,17 +1063,17 @@ class ClassificationServiceTest(unittest.TestCase):
             RuntimeError("retry failed"),
         ))
 
-        results = ClassificationService(
+        results = (await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
-        ).classify(execution_request(top_level_items=records)).top_level_items
+        ).classify(execution_request(top_level_items=records))).top_level_items
 
         self.assertIsInstance(results[0], ClassificationSuccess)
         self.assertIsInstance(results[1], ClassificationFailure)
         assert isinstance(results[1], ClassificationFailure)
         self.assertIn("retry failed", results[1].diagnostics.error)
 
-    def test_author_comment_retry_exception_reports_retry_failure(self) -> None:
+    async def test_author_comment_retry_exception_reports_retry_failure(self) -> None:
         item = discussion_record(
             "reply",
             DiscussionKind.TOP_LEVEL_AUTHOR_REPLY,
@@ -1213,16 +1086,16 @@ class ClassificationServiceTest(unittest.TestCase):
             RuntimeError("retry failed"),
         ))
 
-        result = ClassificationService(
+        result = (await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
-        )._run_author_comment_request(request, "model")[0]
+        )._run_author_comment_request(request, "model"))[0]
 
         self.assertIsInstance(result, ClassificationFailure)
         assert isinstance(result, ClassificationFailure)
         self.assertIn("retry failed", result.diagnostics.error)
 
-    def test_author_comment_retries_do_not_exceed_model_call_budget(self) -> None:
+    async def test_author_comment_retries_do_not_exceed_model_call_budget(self) -> None:
         records = tuple(
             discussion_record(
                 f"reply-{index}",
@@ -1236,7 +1109,7 @@ class ClassificationServiceTest(unittest.TestCase):
             tuple(RawModelResponse(0, "not json") for _index in range(20))
         )
 
-        ClassificationService(
+        await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
             batch_size=1,
@@ -1245,7 +1118,7 @@ class ClassificationServiceTest(unittest.TestCase):
 
         self.assertEqual(20, len(runner.requests))
 
-    def test_author_comment_fallback_reserves_every_initial_attempt(self) -> None:
+    async def test_author_comment_fallback_reserves_every_initial_attempt(self) -> None:
         records = tuple(
             discussion_record(
                 f"reply-{index}",
@@ -1270,7 +1143,7 @@ class ClassificationServiceTest(unittest.TestCase):
             "_author_comment_execution_batches",
             return_value=None,
         ):
-            service.classify(execution_request(author_comments=records))
+            await service.classify(execution_request(author_comments=records))
 
         self.assertEqual(
             [["reply-0"], ["reply-1"], ["reply-2"]],
@@ -1280,7 +1153,7 @@ class ClassificationServiceTest(unittest.TestCase):
             ],
         )
 
-    def test_failed_items_are_retried_and_limits_apply_only_to_uncached_items(
+    async def test_failed_items_are_retried_and_limits_apply_only_to_uncached_items(
         self,
     ) -> None:
         records = tuple(
@@ -1289,7 +1162,7 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         cache = MemoryClassificationCacheStore()
         first_runner = FakeModelRunner(responder=successful_response)
-        first = ClassificationService(
+        first = await ClassificationService(
             first_runner,
             cache,
             max_classifications_per_pr=20,
@@ -1303,7 +1176,7 @@ class ClassificationServiceTest(unittest.TestCase):
         self.assertEqual(len(cache.entries[123]), 20)
 
         second_runner = FakeModelRunner(responder=successful_response)
-        second = ClassificationService(
+        second = await ClassificationService(
             second_runner,
             cache,
             max_classifications_per_pr=20,
@@ -1317,7 +1190,7 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         self.assertEqual(len(cache.entries[123]), 23)
 
-    def test_over_limit_items_fail_to_the_author_without_a_model_call(
+    async def test_over_limit_items_fail_to_the_author_without_a_model_call(
         self,
     ) -> None:
         runner = FakeModelRunner(responder=successful_response)
@@ -1327,11 +1200,11 @@ class ClassificationServiceTest(unittest.TestCase):
             max_classifications_per_pr=0,
         )
 
-        result = service.classify(
+        result = (await service.classify(
             execution_request(
                 top_level_items=(discussion_record("feedback"),)
             )
-        ).top_level_items[0]
+        )).top_level_items[0]
 
         self.assertEqual(runner.requests, [])
         self.assertIsInstance(result, ClassificationFailure)
@@ -1350,33 +1223,33 @@ class ClassificationServiceTest(unittest.TestCase):
         )
         self.assertFalse(result.cli_call)
 
-    def test_cache_key_ignores_non_policy_facts_but_includes_comment_body(
+    async def test_cache_key_ignores_non_policy_facts_but_includes_comment_body(
         self,
     ) -> None:
         record = discussion_record("feedback")
         record["discussion_facts"] = {"current_conflicts": "no"}
         cache = MemoryClassificationCacheStore()
         first_runner = FakeModelRunner(responder=successful_response)
-        ClassificationService(first_runner, cache).classify(
+        await ClassificationService(first_runner, cache).classify(
             execution_request(top_level_items=(record,))
         )
 
         record["discussion_facts"]["current_conflicts"] = "yes"
         cached_runner = FakeModelRunner()
-        ClassificationService(cached_runner, cache).classify(
+        await ClassificationService(cached_runner, cache).classify(
             execution_request(top_level_items=(record,))
         )
 
         self.assertEqual(cached_runner.requests, [])
         record["comments"][0]["body"] = "Please change the implementation."
         changed_runner = FakeModelRunner(responder=successful_response)
-        ClassificationService(changed_runner, cache).classify(
+        await ClassificationService(changed_runner, cache).classify(
             execution_request(top_level_items=(record,))
         )
         self.assertEqual(len(changed_runner.requests), 1)
 
 
-class ReviewThreadExecutionTest(unittest.TestCase):
+class ReviewThreadExecutionTest(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     def thread(*comments: tuple[str, str, str]) -> dict:
         return {
@@ -1392,7 +1265,7 @@ class ReviewThreadExecutionTest(unittest.TestCase):
             ],
         }
 
-    def classify(
+    async def classify(
         self,
         thread: dict,
         *,
@@ -1403,14 +1276,14 @@ class ReviewThreadExecutionTest(unittest.TestCase):
             responses,
             responder=responder if not responses else None,
         )
-        result = ClassificationService(
+        result = await ClassificationService(
             runner,
             MemoryClassificationCacheStore(),
         ).classify(execution_request(review_threads=(thread,)))
         return result.review_threads[0], runner
 
-    def test_long_reviewer_request_needs_no_model(self) -> None:
-        result, runner = self.classify(self.thread(
+    async def test_long_reviewer_request_needs_no_model(self) -> None:
+        result, runner = await self.classify(self.thread(
             (
                 "approver",
                 "Could this be deterministic without relying on sleep? "
@@ -1424,22 +1297,22 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
 
-    def test_unresolved_copilot_finding_does_not_use_reply_classifier(self) -> None:
+    async def test_unresolved_copilot_finding_does_not_use_reply_classifier(self) -> None:
         thread = self.thread(
             ("bot", "Please fix this.", "2026-03-12T00:00:00Z"),
             ("author", "Fixed it.", "2026-05-20T00:00:00Z"),
         )
         thread["strict_author_action"] = True
 
-        result, runner = self.classify(thread)
+        result, runner = await self.classify(thread)
 
         self.assertEqual(runner.requests, [])
         assert isinstance(result.decision, ActionDecision)
         self.assertIs(result.decision.action, DiscussionAction.AUTHOR)
         self.assertEqual(result.since, "2026-05-20T00:00:00Z")
 
-    def test_praise_keeps_the_previous_request_and_wait_age(self) -> None:
-        result, runner = self.classify(self.thread(
+    async def test_praise_keeps_the_previous_request_and_wait_age(self) -> None:
+        result, runner = await self.classify(self.thread(
             ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
             ("approver", "LGTM", "2026-05-20T00:00:00Z"),
         ), responder=lambda request: successful_response(
@@ -1453,10 +1326,10 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         self.assertEqual(result.since, "2026-03-12T00:00:00Z")
         self.assertTrue(result.ignored_last_comment)
 
-    def test_praise_after_completed_author_reply_hands_back_to_reviewer(
+    async def test_praise_after_completed_author_reply_hands_back_to_reviewer(
         self,
     ) -> None:
-        result, runner = self.classify(self.thread(
+        result, runner = await self.classify(self.thread(
             ("author", "Fixed it.", "2026-03-12T00:00:00Z"),
             ("approver", "LGTM", "2026-05-20T00:00:00Z"),
         ), responder=lambda request: successful_response(
@@ -1471,7 +1344,7 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         self.assertEqual(result.since, "2026-03-12T00:00:00Z")
         self.assertTrue(result.ignored_last_comment)
 
-    def test_edited_older_praise_is_classified_and_removed_by_identity(
+    async def test_edited_older_praise_is_classified_and_removed_by_identity(
         self,
     ) -> None:
         thread = self.thread(
@@ -1481,7 +1354,7 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         )
         thread["comments"][1]["activity_timestamp"] = "2026-06-20T00:00:00Z"
 
-        result, runner = self.classify(
+        result, runner = await self.classify(
             thread,
             responder=lambda request: successful_response(
                 request,
@@ -1501,7 +1374,7 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         self.assertEqual(result.since, "2026-05-20T00:00:00Z")
         self.assertTrue(result.ignored_last_comment)
 
-    def test_cached_praise_recomputes_ignored_comment_index(self) -> None:
+    async def test_cached_praise_recomputes_ignored_comment_index(self) -> None:
         thread = self.thread(
             ("approver", "Please fix this.", "2026-03-12T00:00:00Z"),
             ("approver", "LGTM", "2026-04-12T00:00:00Z"),
@@ -1517,18 +1390,18 @@ class ReviewThreadExecutionTest(unittest.TestCase):
                 author_reply="complete",
             )
         )
-        ClassificationService(first_runner, cache).classify(request)
+        await ClassificationService(first_runner, cache).classify(request)
         cached_runner = FakeModelRunner()
 
-        result = ClassificationService(cached_runner, cache).classify(
+        result = (await ClassificationService(cached_runner, cache).classify(
             request
-        ).review_threads[0]
+        )).review_threads[0]
 
         self.assertEqual(cached_runner.requests, [])
         self.assertTrue(result.ignored_last_comment)
         self.assertEqual(result.ignored_comment_index, 1)
 
-    def test_edited_older_author_reply_supplies_body_and_result_time(
+    async def test_edited_older_author_reply_supplies_body_and_result_time(
         self,
     ) -> None:
         thread = self.thread(
@@ -1542,7 +1415,7 @@ class ReviewThreadExecutionTest(unittest.TestCase):
         )
         thread["comments"][1]["activity_timestamp"] = "2026-06-20T00:00:00Z"
 
-        result, runner = self.classify(
+        result, runner = await self.classify(
             thread,
             responder=lambda request: successful_response(
                 request,
@@ -1567,7 +1440,7 @@ class ReviewThreadExecutionTest(unittest.TestCase):
             ],
         )
 
-    def test_failed_praise_and_author_reply_calls_fail_safe_to_author(
+    async def test_failed_praise_and_author_reply_calls_fail_safe_to_author(
         self,
     ) -> None:
         praise_thread = self.thread(
@@ -1585,7 +1458,7 @@ class ReviewThreadExecutionTest(unittest.TestCase):
             ("author reply", author_thread),
         ):
             with self.subTest(name=name):
-                result, _runner = self.classify(
+                result, _runner = await self.classify(
                     thread,
                     responses=(RawModelResponse(1, "", "failed"),),
                 )

@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
-import subprocess
 import sys
 import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
+from types import TracebackType
 from typing import Any, Mapping, Protocol, Sequence
 
+from copilot import CopilotClient
+
 from classification_policy import (
+    CLASSIFIER_SYSTEM_PROMPT,
     MAX_PROMPT_CHARS,
     TOP_LEVEL_CLASSIFICATION_BATCH_SIZE,
     ActionDecision,
@@ -50,6 +54,7 @@ from classification_policy import (
 
 
 LLM_DISCUSSION_TIMEOUT_SECONDS = 180
+COPILOT_CLIENT_STOP_TIMEOUT_SECONDS = 10
 CLASSIFICATION_CACHE_DIR = Path(
     os.environ.get(
         "PR_DASHBOARD_CLASSIFICATION_CACHE_DIR",
@@ -68,7 +73,7 @@ class ModelRunRequest:
 
 
 class ModelRunner(Protocol):
-    def run(self, request: ModelRunRequest) -> RawModelResponse:
+    async def run(self, request: ModelRunRequest) -> RawModelResponse:
         """Execute one rendered model request."""
 
 
@@ -92,40 +97,164 @@ def _print_copilot_otel_file(path: Path) -> None:
         )
 
 
-@dataclass(frozen=True)
-class CopilotCliModelRunner:
-    timeout_seconds: int = LLM_DISCUSSION_TIMEOUT_SECONDS
+class CopilotSdkModelRunner:
+    def __init__(
+        self,
+        timeout_seconds: float = LLM_DISCUSSION_TIMEOUT_SECONDS,
+        stop_timeout_seconds: float = COPILOT_CLIENT_STOP_TIMEOUT_SECONDS,
+    ) -> None:
+        self.timeout_seconds = timeout_seconds
+        self.stop_timeout_seconds = stop_timeout_seconds
+        self._directory: tempfile.TemporaryDirectory[str] | None = None
+        self._client: CopilotClient | None = None
 
-    def run(self, request: ModelRunRequest) -> RawModelResponse:
-        with tempfile.TemporaryDirectory(prefix="copilot-otel-") as otel_dir:
-            otel_path = Path(otel_dir) / "copilot-otel.jsonl"
-            env = os.environ.copy()
-            env["COPILOT_OTEL_FILE_EXPORTER_PATH"] = str(otel_path)
-            env.setdefault("COPILOT_OTEL_EXPORTER_TYPE", "file")
-            try:
-                proc = subprocess.run(
-                    [
-                        "copilot",
-                        "-p",
-                        request.prompt,
-                        "--model",
-                        request.model,
-                        "--silent",
-                    ],
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    timeout=self.timeout_seconds,
-                    env=env,
+    async def __aenter__(self) -> CopilotSdkModelRunner:
+        if self._directory is not None:
+            raise RuntimeError("Copilot runner is already open")
+        self._directory = tempfile.TemporaryDirectory(prefix="copilot-classifier-")
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        try:
+            if self._client is not None:
+                try:
+                    try:
+                        await asyncio.wait_for(
+                            self._client.stop(), timeout=self.stop_timeout_seconds
+                        )
+                    except TimeoutError:
+                        await self._client.force_stop()
+                    except BaseException:
+                        try:
+                            await self._client.force_stop()
+                        except BaseException as force_stop_error:
+                            print(
+                                "  warning: failed to force-stop Copilot client: "
+                                f"{force_stop_error!r}",
+                                file=sys.stderr,
+                            )
+                        raise
+                except BaseException as cleanup_error:
+                    if exc_value is None:
+                        raise
+                    print(
+                        f"  warning: failed to stop Copilot client: {cleanup_error!r}",
+                        file=sys.stderr,
+                    )
+        finally:
+            self._client = None
+            if self._directory is not None:
+                _print_copilot_otel_file(
+                    Path(self._directory.name) / "copilot-otel.jsonl"
                 )
-            finally:
-                _print_copilot_otel_file(otel_path)
-        return RawModelResponse(
-            returncode=proc.returncode,
-            stdout=proc.stdout,
-            stderr=proc.stderr,
+                self._directory.cleanup()
+                self._directory = None
+
+    def _get_client(self) -> CopilotClient:
+        if self._directory is None:
+            raise RuntimeError("Copilot runner must be used as an async context manager")
+        if self._client is not None:
+            return self._client
+        actions = os.environ.get("GITHUB_ACTIONS") == "true"
+        token = (
+            os.environ.get("COPILOT_GITHUB_TOKEN")
+            or (None if actions else os.environ.get("GH_TOKEN"))
+            or os.environ.get("GITHUB_TOKEN")
         )
+        if not token:
+            raise RuntimeError("Copilot classification requires a GitHub token")
+        directory = self._directory.name
+        env = {
+            key: os.environ[key]
+            for key in (
+                "COMSPEC", "LD_LIBRARY_PATH", "PATH", "PATHEXT",
+                "SSL_CERT_DIR", "SSL_CERT_FILE", "SYSTEMROOT", "TEMP", "TMP", "WINDIR",
+            )
+            if key in os.environ
+        }
+        env.update(
+            CI="true",
+            HOME=directory,
+            COPILOT_GITHUB_TOKEN=token,
+            COPILOT_OTEL_ENABLED="true",
+            COPILOT_OTEL_EXPORTER_TYPE="file",
+            COPILOT_OTEL_FILE_EXPORTER_PATH=str(Path(directory) / "copilot-otel.jsonl"),
+        )
+        if actions:
+            env.update(GITHUB_ACTIONS="true", GITHUB_TOKEN=token)
+        self._client = CopilotClient(
+            mode="empty",
+            working_directory=directory,
+            base_directory=directory,
+            env=env,
+            github_token=None if actions else token,
+            use_logged_in_user=actions,
+        )
+        return self._client
+
+    async def run(self, request: ModelRunRequest) -> RawModelResponse:
+        session = None
+        try:
+            async with asyncio.timeout(self.timeout_seconds):
+                session = await self._get_client().create_session(
+                    model=request.model,
+                    available_tools=[],
+                    system_message={"mode": "replace", "content": CLASSIFIER_SYSTEM_PROMPT},
+                    enable_session_telemetry=True,
+                )
+                response = await session.send_and_wait(
+                    request.prompt,
+                    timeout=self.timeout_seconds,
+                )
+                if (
+                    response is None
+                    or not response.data.content
+                    or not response.data.content.strip()
+                ):
+                    # Completed calls without output use the invalid-response retry policy.
+                    message = "Copilot SDK returned an empty classification"
+                    print(f"  warning: {message}", file=sys.stderr)
+                    return RawModelResponse(0, "", message)
+                return RawModelResponse(0, response.data.content, "")
+        except (TimeoutError, asyncio.CancelledError) as error:
+            if session is not None:
+                try:
+                    async with asyncio.timeout(10):
+                        await session.abort()
+                except Exception as cleanup_error:
+                    print(
+                        f"  warning: failed to abort Copilot session: {cleanup_error!r}",
+                        file=sys.stderr,
+                    )
+            if isinstance(error, TimeoutError):
+                raise TimeoutError(
+                    f"Copilot SDK timed out after {self.timeout_seconds}s"
+                ) from error
+            raise
+        finally:
+            if session is not None:
+                active_exception = sys.exception()
+                try:
+                    async with asyncio.timeout(10):
+                        await session.disconnect()
+                except BaseException as cleanup_error:
+                    if active_exception is not None:
+                        print(
+                            "  warning: failed to disconnect Copilot session: "
+                            f"{cleanup_error!r}",
+                            file=sys.stderr,
+                        )
+                    elif isinstance(cleanup_error, TimeoutError):
+                        raise TimeoutError(
+                            "Copilot SDK session cleanup timed out after 10s"
+                        ) from cleanup_error
+                    else:
+                        raise
 
 
 ClassificationCache = dict[str, Any]
@@ -241,13 +370,13 @@ class ReviewerFeedbackClassificationRequest:
 
 
 class ClassificationOperation(Protocol):
-    def classify(
+    async def classify(
         self,
         request: ClassificationExecutionRequest,
     ) -> DiscussionClassifications:
         """Classify all prepared discussion domains for one pull request."""
 
-    def classify_reviewer_feedback(
+    async def classify_reviewer_feedback(
         self,
         request: ReviewerFeedbackClassificationRequest,
     ) -> tuple[ClassificationResult, ...]:
@@ -265,20 +394,20 @@ class ClassificationService:
         MAX_TOP_LEVEL_AUTHOR_COMMENT_MODEL_CALLS_PER_PR
     )
 
-    def classify(
+    async def classify(
         self,
         request: ClassificationExecutionRequest,
     ) -> DiscussionClassifications:
         cache_in = self.cache_store.load(request.pr_number)
         cache_out: ClassificationCache = {}
-        review_threads = self._classify_review_threads(
+        review_threads = await self._classify_review_threads(
             request.pr_number,
             request.review_threads,
             request.model,
             cache_in,
             cache_out,
         )
-        top_level_items = self._classify_items(
+        top_level_items = await self._classify_items(
             request.pr_number,
             request.top_level_items,
             request.model,
@@ -287,7 +416,7 @@ class ClassificationService:
             contract=VerdictContract.REVIEWER_FEEDBACK,
             warning_label="reviewer_feedback",
         )
-        top_level_author_comments = self._classify_items(
+        top_level_author_comments = await self._classify_items(
             request.pr_number,
             request.top_level_author_comments,
             request.model,
@@ -313,13 +442,13 @@ class ClassificationService:
             ),
         )
 
-    def classify_reviewer_feedback(
+    async def classify_reviewer_feedback(
         self,
         request: ReviewerFeedbackClassificationRequest,
     ) -> tuple[ClassificationResult, ...]:
         cache_in = self.cache_store.load(request.pr_number)
         cache_out: ClassificationCache = {}
-        classifications = self._classify_items(
+        classifications = await self._classify_items(
             request.pr_number,
             request.discussions,
             request.model,
@@ -465,7 +594,7 @@ class ClassificationService:
             max_prompt_chars=self.max_prompt_chars,
         )
 
-    def _run_verdict_request(
+    async def _run_verdict_request(
         self,
         request: VerdictModelRequest,
         model: str,
@@ -473,7 +602,7 @@ class ClassificationService:
         results: tuple[ClassificationResult, ...] | None = None
         for attempt in range(INVALID_CLASSIFICATION_ATTEMPTS):
             try:
-                response = self.runner.run(ModelRunRequest(request.prompt, model))
+                response = await self.runner.run(ModelRunRequest(request.prompt, model))
             except Exception as error:
                 if results is not None:
                     return self._merge_retry_results(
@@ -495,7 +624,7 @@ class ClassificationService:
                 return results
         raise AssertionError("classification retry loop did not return")
 
-    def _run_author_comment_request(
+    async def _run_author_comment_request(
         self,
         request: AuthorCommentModelRequest,
         model: str,
@@ -510,7 +639,7 @@ class ClassificationService:
                     assert results is not None
                     return results
             try:
-                response = self.runner.run(ModelRunRequest(request.prompt, model))
+                response = await self.runner.run(ModelRunRequest(request.prompt, model))
             except Exception as error:
                 if results is not None:
                     return self._merge_retry_results(
@@ -560,7 +689,7 @@ class ClassificationService:
             for result in results
         )
 
-    def _run_author_comment_batch(
+    async def _run_author_comment_batch(
         self,
         discussions: tuple[ClassificationDiscussion, ...],
         model: str,
@@ -577,7 +706,7 @@ class ClassificationService:
             else requests
         ):
             try:
-                request_results = self._run_author_comment_request(
+                request_results = await self._run_author_comment_request(
                     request,
                     model,
                     call_budget,
@@ -601,12 +730,10 @@ class ClassificationService:
         *,
         author_comment: bool,
     ) -> tuple[ClassificationFailure, ...]:
-        if isinstance(error, subprocess.TimeoutExpired):
+        if isinstance(error, TimeoutError):
             reason = "LLM timeout"
             diagnostics = ClassificationDiagnostics(
-                error=f"Copilot CLI timed out after {error.timeout}s",
-                response_text=error.stdout if isinstance(error.stdout, str) else "",
-                stderr=error.stderr if isinstance(error.stderr, str) else "",
+                error=str(error),
             )
         else:
             reason = f"LLM failed: {error!r}"
@@ -625,7 +752,7 @@ class ClassificationService:
             for index, discussion in enumerate(discussions)
         )
 
-    def _run_classification_batch(
+    async def _run_classification_batch(
         self,
         discussions: tuple[ClassificationDiscussion, ...],
         model: str,
@@ -636,7 +763,7 @@ class ClassificationService:
         author_comment_call_budget: AuthorCommentCallBudget | None = None,
     ) -> tuple[ClassificationResult, ...]:
         if author_comment:
-            return self._run_author_comment_batch(
+            return await self._run_author_comment_batch(
                 discussions,
                 model,
                 author_comment_requests,
@@ -647,7 +774,7 @@ class ClassificationService:
         results: list[ClassificationResult] = []
         for request in self._verdict_requests(discussions, contract):
             try:
-                results.extend(self._run_verdict_request(request, model))
+                results.extend(await self._run_verdict_request(request, model))
             except Exception as error:
                 results.extend(
                     self._request_failure_results(
@@ -659,7 +786,7 @@ class ClassificationService:
                 )
         return tuple(results)
 
-    def _classify_items(
+    async def _classify_items(
         self,
         number: int,
         discussions: tuple[ClassificationDiscussion, ...],
@@ -770,7 +897,7 @@ class ClassificationService:
         for batch, author_comment_requests in prepared_requests_by_batch:
             batch_discussions = tuple(discussion for discussion, _key in batch)
             try:
-                results = self._run_classification_batch(
+                results = await self._run_classification_batch(
                     batch_discussions,
                     model,
                     contract,
@@ -806,7 +933,7 @@ class ClassificationService:
             for discussion_id, result in classifications_by_id.items()
         }
 
-    def _classify_review_threads(
+    async def _classify_review_threads(
         self,
         number: int,
         discussions: tuple[ClassificationDiscussion, ...],
@@ -815,7 +942,7 @@ class ClassificationService:
         cache_out: ClassificationCache,
     ) -> dict[str, ClassificationResult]:
         praise_candidates = prepare_praise_candidates(discussions)
-        praise = self._classify_items(
+        praise = await self._classify_items(
             number,
             praise_candidates,
             model,
@@ -825,7 +952,7 @@ class ClassificationService:
             warning_label="praise",
         )
         plan = resolve_review_thread_policy(discussions, praise)
-        replies = self._classify_items(
+        replies = await self._classify_items(
             number,
             plan.author_replies,
             model,
@@ -864,11 +991,6 @@ class ClassificationService:
         return by_id
 
 
-DEFAULT_MODEL_RUNNER = CopilotCliModelRunner()
 DEFAULT_CLASSIFICATION_CACHE_STORE = FileClassificationCacheStore(
     CLASSIFICATION_CACHE_DIR
-)
-DEFAULT_CLASSIFICATION_SERVICE = ClassificationService(
-    DEFAULT_MODEL_RUNNER,
-    DEFAULT_CLASSIFICATION_CACHE_STORE,
 )
