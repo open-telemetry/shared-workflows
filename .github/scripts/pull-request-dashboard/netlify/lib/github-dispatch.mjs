@@ -136,18 +136,41 @@ export async function createGitHubActionsClient(
       ];
     },
     async listRunJobs(runId) {
-      const result = await githubJson(
-        `${GITHUB_API_ROOT}/actions/runs/${runId}/jobs?filter=latest&per_page=100`,
-        token,
-      );
-      if (!Array.isArray(result?.jobs)) {
-        throw dispatchError(
-          502,
-          "GitHub workflow jobs lookup failed",
-          "GitHub workflow jobs response did not include a jobs array",
+      const jobs = [];
+      let totalCount;
+      for (let page = 1;; page += 1) {
+        const result = await githubJson(
+          `${GITHUB_API_ROOT}/actions/runs/${runId}/jobs?filter=latest&per_page=100&page=${page}`,
+          token,
         );
+        if (
+          !Array.isArray(result?.jobs) ||
+          !Number.isSafeInteger(result.total_count) ||
+          result.total_count < 0
+        ) {
+          throw dispatchError(
+            502,
+            "GitHub workflow jobs lookup failed",
+            "GitHub workflow jobs response did not include jobs and total_count",
+          );
+        }
+        totalCount ??= result.total_count;
+        if (
+          result.total_count !== totalCount ||
+          jobs.length + result.jobs.length > totalCount ||
+          (jobs.length + result.jobs.length < totalCount && result.jobs.length < 100)
+        ) {
+          throw dispatchError(
+            502,
+            "GitHub workflow jobs lookup failed",
+            "GitHub workflow jobs changed or were incomplete during pagination",
+          );
+        }
+        jobs.push(...result.jobs);
+        if (jobs.length === totalCount) {
+          return jobs;
+        }
       }
-      return result.jobs;
     },
     async cancelWorkflowRun(runId) {
       await githubFetch(
