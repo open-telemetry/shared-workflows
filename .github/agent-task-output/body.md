@@ -1,0 +1,3 @@
+Replace the dashboard's general Copilot CLI classifier with the Python SDK's isolated, tool-free sessions. Each batch still contains up to ten discussions; a run reuses one client but starts a fresh session for each batch and invalid-output retry. The smaller task-specific system prompt avoids the default coding-agent prompt overhead, though token and cost savings have not been measured.
+
+Backfills evaluate each PR once before Git persistence retries. Retries reconcile that result against current dashboard state rather than repeat model calls. The workflows install the pinned SDK and matching runtime, and evaluation scripts and cache keys use the same classifier configuration.
