@@ -4875,7 +4875,7 @@
     },
     "5689": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "app/otelbot",
         "author_action_review_thread_urls": [],
@@ -4886,7 +4886,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "6a246310dcb7bcb7d65e2cadf5de4b6c3519eea7214b8fd12ba0c7fa4afcb9f1",
+        "copilot_request_fingerprint": "3f13972690ae6dea2c3fa1d899eb0a88f9a44399a119390d79de288d75b7c5a6",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -4902,21 +4902,32 @@
         "head_sha": "6f294b89dab0dc20462b04273106ed3c8e70dc83",
         "is_draft": false,
         "is_maintenance_bot": true,
-        "last_activity_at": "2026-09-25T12:17:31+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-25T12:40:18+00:00",
+        "last_approver_activity_at": "2026-09-25T12:40:18+00:00",
         "last_author_activity_at": "",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "emdneto",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "2138ec4ccada75c978b4de5536dd38ee99c87dad6296a2d95f06da27d15c22b2",
+        "routing_input_fingerprint": "c4c080b3dc810781b1d25fe605e58c9eb6fcededde88c7f36d72d34f813c76a1",
         "waiting_age_basis": "created",
         "waiting_since": "2026-09-25T12:17:31+00:00"
       },
       "failed": false,
       "pr_number": 5689,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-python/pull/5689",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     }
   },
