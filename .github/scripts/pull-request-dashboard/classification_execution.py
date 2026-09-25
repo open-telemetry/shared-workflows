@@ -129,6 +129,16 @@ class CopilotSdkModelRunner:
                         )
                     except TimeoutError:
                         await self._client.force_stop()
+                    except BaseException:
+                        try:
+                            await self._client.force_stop()
+                        except BaseException as force_stop_error:
+                            print(
+                                "  warning: failed to force-stop Copilot client: "
+                                f"{force_stop_error!r}",
+                                file=sys.stderr,
+                            )
+                        raise
                 except BaseException as cleanup_error:
                     if exc_value is None:
                         raise

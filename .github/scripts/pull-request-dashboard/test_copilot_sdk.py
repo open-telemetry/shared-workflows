@@ -214,6 +214,7 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
                 await runner.run(ModelRunRequest("prompt", "model"))
                 directory = Path(self.factory.call_args.kwargs["base_directory"])
         self.assertFalse(directory.exists())
+        self.client.force_stop.assert_awaited_once()
 
     async def test_shutdown_error_does_not_hide_body_error(self) -> None:
         self.client.stop.side_effect = RuntimeError("shutdown failed")
@@ -227,6 +228,7 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("failed to stop Copilot client", stderr.getvalue())
         self.assertIn("shutdown failed", stderr.getvalue())
         self.assertFalse(directory.exists())
+        self.client.force_stop.assert_awaited_once()
 
     async def test_shutdown_timeout_force_stops_client(self) -> None:
         async def stall():
