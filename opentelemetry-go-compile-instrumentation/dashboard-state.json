@@ -2913,18 +2913,24 @@
     },
     "1362": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "rarguelloF",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1362#discussion_r4105941767",
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1362#discussion_r4105941778",
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1362#discussion_r4105941784",
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1362#discussion_r4105941791",
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1362#discussion_r4105941794"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "73bbb0ed57334dfab63591c434acb159",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 2,
         "conflicts": "no",
-        "copilot_request_fingerprint": "40e73f6bdd06674cd1772a21d6d0d6537ba08c151557b6b4d2bab4aee63e3b6f",
+        "copilot_request_fingerprint": "8f193c24d8c184d87abc57f0364f9ea5c59000b690f7e21756efae4dc6ec298f",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2940,8 +2946,8 @@
         "head_sha": "a07be2cc2de15f43f5ff70970d3a514354c30a7b",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-23T14:30:37+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-25T15:17:17+00:00",
+        "last_approver_activity_at": "2026-09-25T15:17:17+00:00",
         "last_author_activity_at": "2026-09-23T14:30:37+00:00",
         "non_blocking_check_failures": [
           "codecov/patch"
@@ -2957,14 +2963,24 @@
             "pending_review": false,
             "top_level_feedback": false,
             "unresolved_thread": true
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kakkoyun",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
           }
         ],
-        "route_held_for_gates": true,
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-25T14:57:23.181499+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "56cd06bd015a554563ed7aaa384c801b559446fe111421ac5868cb3d316115c1",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-23T14:52:42+00:00"
+        "routing_input_fingerprint": "033834d3b0cba0cd98321fa1f554c7be3980c14bfd75bead161b62f7668fd915",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-25T15:17:17+00:00"
       },
       "failed": false,
       "pr_number": 1362,
