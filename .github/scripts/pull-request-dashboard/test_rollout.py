@@ -211,13 +211,24 @@ class RolloutWiringTest(unittest.TestCase):
         self.assertNotIn("vars.PR_DASHBOARD_QUEUE_MODE", body)
         self.assertIn("queue_mode=all", body)
         self.assertNotIn("stable_queue_ready", body)
-        queue_selection = body.index("queue_mode=all")
-        environment_remove = body.index("env:unset PR_DASHBOARD_QUEUE_MODE")
-        environment_write = body.index(
-            'env:set PR_DASHBOARD_QUEUE_MODE "$queue_mode"'
+        self.assertIn("    environment: protected", body)
+        self.assertNotIn("env:unset", body)
+        self.assertLess(
+            body.index("queue_mode=all"),
+            body.index('set_netlify_dispatcher_env.sh PR_DASHBOARD_QUEUE_MODE "$queue_mode"'),
         )
-        self.assertLess(queue_selection, environment_remove)
-        self.assertLess(environment_remove, environment_write)
+        self.assertIn(
+            'set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_CLIENT_ID "$OTELBOT_SHARED_WORKFLOWS_CLIENT_ID"',
+            body,
+        )
+        self.assertIn(
+            'set_netlify_dispatcher_env.sh OTELBOT_SHARED_WORKFLOWS_PRIVATE_KEY_BASE64 "$dispatcher_private_key_base64" --secret',
+            body,
+        )
+        self.assertIn(
+            ".github/scripts/pull-request-dashboard/set_netlify_dispatcher_env.sh",
+            DEPLOY_WORKFLOW.read_text(encoding="utf-8"),
+        )
 
 
 if __name__ == "__main__":
