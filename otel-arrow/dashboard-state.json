@@ -2746,7 +2746,7 @@
     },
     "4153": {
       "facts": {
-        "approval_count": 1,
+        "approval_count": 2,
         "assignees": [],
         "author": "JakeDern",
         "author_action_review_thread_urls": [],
@@ -2754,9 +2754,9 @@
         "author_can_act": true,
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 0,
+        "ci_pending_count": 3,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9910bd62e7b59af82e466530c1c6d5c4d506417807f1f108847bcf66c66ce4e7",
+        "copilot_request_fingerprint": "3c103ffd2d8bfd9957fb2ca64b8867f7ee4901d17c52382b96397e9cf41bcc51",
         "copilot_review_exists": true,
         "copilot_review_needed": true,
         "copilot_review_outstanding": false,
@@ -2769,14 +2769,24 @@
         "dashboard_override_command_id": 0,
         "dashboard_override_command_user": "",
         "dashboard_override_head_sha": "",
-        "head_sha": "aa0de33bf004dd0ce73aaa60537657501d17f4ef",
+        "head_sha": "58aace3ef54c3ea2738f7af3510dc241a28bacf7",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-24T18:19:44+00:00",
-        "last_approver_activity_at": "2026-09-24T18:19:44+00:00",
+        "last_activity_at": "2026-09-25T11:45:31+00:00",
+        "last_approver_activity_at": "2026-09-25T11:45:31+00:00",
         "last_author_activity_at": "2026-09-24T17:29:38+00:00",
-        "required_checks_settled": true,
+        "required_checks_settled": false,
         "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "albertlockett",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          },
           {
             "approved": true,
             "approved_non_team": false,
@@ -2790,9 +2800,9 @@
         ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d6d71d599b2d87c11321725e421ff1f1f995aeab3798870676e9cad0ec07d523",
-        "waiting_age_basis": "gate_release",
-        "waiting_since": "2026-09-24T18:20:44.592759+00:00"
+        "routing_input_fingerprint": "fad9910bd6e0862213033c19d2b671529ade3d6d8d9ea16eaeb110ac2f3e5890",
+        "waiting_age_basis": "last_author_activity",
+        "waiting_since": "2026-09-24T17:29:38+00:00"
       },
       "failed": false,
       "pr_number": 4153,
