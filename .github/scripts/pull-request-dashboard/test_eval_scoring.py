@@ -3,7 +3,7 @@ import io
 import sys
 import unittest
 from pathlib import Path
-from threading import Barrier, BrokenBarrierError, Lock
+import asyncio
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "eval"))
 
@@ -174,30 +174,21 @@ class BatchCasesTest(unittest.TestCase):
         self.assertEqual([10, 10, 5], [len(b) for b in batches])
 
 
-class ClassifyTest(unittest.TestCase):
-    def test_injected_runner_calls_do_not_overlap(self) -> None:
-        barrier = Barrier(2)
-        state_lock = Lock()
-        state = {"active": 0, "calls": 0, "overlap": False}
+class ClassifyTest(unittest.IsolatedAsyncioTestCase):
+    async def test_runner_calls_are_concurrent_and_bounded(self) -> None:
+        state = {"active": 0, "calls": 0, "maximum": 0}
 
         class Runner:
-            def run(self, _request) -> RawModelResponse:
-                with state_lock:
-                    state["active"] += 1
-                    state["calls"] += 1
-                    if state["active"] > 1:
-                        state["overlap"] = True
-                try:
-                    barrier.wait(timeout=0.2)
-                except BrokenBarrierError:
-                    pass
-                finally:
-                    with state_lock:
-                        state["active"] -= 1
+            async def run(self, _request) -> RawModelResponse:
+                state["active"] += 1
+                state["calls"] += 1
+                state["maximum"] = max(state["maximum"], state["active"])
+                await asyncio.sleep(0)
+                state["active"] -= 1
                 return RawModelResponse(0, '{"items":[]}', "")
 
-        classify(
-            [case(f"case-{index}") for index in range(20)],
+        await classify(
+            [case(f"case-{index}") for index in range(100)],
             policy.REVIEWER_FEEDBACK_PROMPT_TEMPLATE,
             ("verdict",),
             {"author_action": "author_action"},
@@ -205,8 +196,8 @@ class ClassifyTest(unittest.TestCase):
             Runner(),
         )
 
-        self.assertEqual(state["calls"], 2)
-        self.assertFalse(state["overlap"])
+        self.assertEqual(state["calls"], 10)
+        self.assertEqual(state["maximum"], 4)
 
 
 if __name__ == "__main__":

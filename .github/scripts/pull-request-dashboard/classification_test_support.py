@@ -44,7 +44,7 @@ class FakeModelRunner:
         self.responder = responder
         self.requests: list[ModelRunRequest] = []
 
-    def run(self, request: ModelRunRequest) -> RawModelResponse:
+    async def run(self, request: ModelRunRequest) -> RawModelResponse:
         self.requests.append(request)
         if self.responder is not None:
             return self.responder(request)
@@ -100,7 +100,7 @@ class FakeClassificationOperation:
             ReviewerFeedbackClassificationRequest
         ] = []
 
-    def classify(
+    async def classify(
         self,
         request: ClassificationExecutionRequest,
     ) -> DiscussionClassifications:
@@ -109,7 +109,7 @@ class FakeClassificationOperation:
             raise self.error
         return self.result
 
-    def classify_reviewer_feedback(
+    async def classify_reviewer_feedback(
         self,
         request: ReviewerFeedbackClassificationRequest,
     ) -> tuple[ClassificationResult, ...]:

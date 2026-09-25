@@ -14,20 +14,19 @@ Run manually; it makes several hundred model calls.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import hashlib
 import json
 import sys
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
-from threading import Lock
 from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from classification_execution import (  # noqa: E402
-    CopilotCliModelRunner,
+    CopilotSdkModelRunner,
     ModelRunRequest,
     ModelRunner,
 )
@@ -40,8 +39,6 @@ PROMPT = "REVIEWER_FEEDBACK_PROMPT_TEMPLATE"
 # onto the other unchanged. It stays because the file records the mapping it was
 # built with, and a prompt answering in its own vocabulary would need one.
 ACTION_LABELS = {"author_action": "author_action", "no_author_action": "no_author_action"}
-
-_printed = Lock()
 
 
 def batch_prompt(batch: list[dict]) -> str:
@@ -72,16 +69,23 @@ def batch_prompt(batch: list[dict]) -> str:
 def cache_key(prompt: str, model: str, salt: str) -> str:
     """Key on the prompt text itself, so a change to how it renders misses."""
     payload = json.dumps(
-        {"prompt": prompt, "model": model, "salt": salt}, sort_keys=True
+        {
+            "prompt": prompt,
+            "model": model,
+            "salt": salt,
+            "execution_version": policy.CLASSIFIER_EXECUTION_VERSION,
+            "system_prompt": policy.CLASSIFIER_SYSTEM_PROMPT,
+        },
+        sort_keys=True,
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
 
 
-def run_batch(
+async def run_batch(
     batch: list[dict],
     model: str,
     salt: str,
-    runner: ModelRunner | None = None,
+    runner: ModelRunner,
 ) -> dict:
     """Return the raw Copilot result for one batch, from cache when present."""
     prompt = batch_prompt(batch)
@@ -90,7 +94,7 @@ def run_batch(
         return json.loads(path.read_text(encoding="utf-8"))
 
     try:
-        response = (runner or CopilotCliModelRunner()).run(
+        response = await runner.run(
             ModelRunRequest(prompt, model)
         )
         raw = {
@@ -140,16 +144,14 @@ def answers(raw: dict, batch: list[dict]) -> dict[str, str]:
     return out
 
 
-def measure(
+async def measure(
     cases: list[dict],
     model: str,
     runs: int,
     workers: int,
-    runner: ModelRunner | None = None,
+    runner: ModelRunner,
 ) -> list[dict[str, str]]:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    runner_lock = Lock() if runner is not None else None
-    runner = runner or CopilotCliModelRunner()
     batches = batch_cases(cases)
     # A separate salt per run keeps the cache from replaying one trial as all of
     # them, which would report perfect stability no matter how the model behaves.
@@ -157,25 +159,24 @@ def measure(
     print(f"{len(batches)} batches x {runs} runs = {len(tasks)} calls", flush=True)
     done = 0
 
-    def work(task: tuple[list[dict], str]) -> tuple[str, dict[str, str]]:
+    semaphore = asyncio.Semaphore(workers)
+
+    async def work(task: tuple[list[dict], str]) -> tuple[str, dict[str, str]]:
         nonlocal done
         batch, salt = task
-        if runner_lock is None:
-            result = answers(run_batch(batch, model, salt, runner), batch)
-        else:
-            with runner_lock:
-                result = answers(run_batch(batch, model, salt, runner), batch)
-        with _printed:
-            done += 1
-            if done % 20 == 0 or done == len(tasks):
-                print(f"  {done}/{len(tasks)}", flush=True)
+        async with semaphore:
+            result = answers(await run_batch(batch, model, salt, runner), batch)
+        done += 1
+        if done % 20 == 0 or done == len(tasks):
+            print(f"  {done}/{len(tasks)}", flush=True)
         return salt, result
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(work, tasks))
+    async with asyncio.TaskGroup() as group:
+        pending = [group.create_task(work(task)) for task in tasks]
 
     trials: list[dict[str, str]] = [{} for _ in range(runs)]
-    for salt, result in results:
+    for completed in pending:
+        salt, result = completed.result()
         trials[int(salt.rsplit("-", 1)[1])].update(result)
     return trials
 
@@ -249,7 +250,12 @@ def main() -> None:
 
     payload = json.loads(CASES.read_text(encoding="utf-8"))
     before = payload["counts"]
-    trials = measure(payload["cases"], args.model, args.runs, args.workers)
+
+    async def run_measurement() -> list[dict[str, str]]:
+        async with CopilotSdkModelRunner() as runner:
+            return await measure(payload["cases"], args.model, args.runs, args.workers, runner)
+
+    trials = asyncio.run(run_measurement())
     rebuilt = rebuild(payload, trials, args.model)
     after = rebuilt["counts"]
 

@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from classification_execution import (
-    DEFAULT_CLASSIFICATION_SERVICE,
     ClassificationExecutionRequest,
     ClassificationOperation,
     ReviewerFeedbackClassificationRequest,
@@ -384,14 +383,14 @@ def _evaluation_diagnostics(
     )
 
 
-def _classify_discussions(
+async def _classify_discussions(
     number: int,
     prepared: PreparedDiscussions,
     classifier_model: str,
     previous_top_level_history: dict[str, dict[str, Any]],
     classification_service: ClassificationOperation,
 ) -> DiscussionLifecycleOutcome:
-    classifications = classification_service.classify(
+    classifications = await classification_service.classify(
         ClassificationExecutionRequest(
             pr_number=number,
             model=classifier_model,
@@ -430,12 +429,10 @@ def _handoff_feedback_routes_to_author(
     )
 
 
-def evaluate_pull_request(
+async def evaluate_pull_request(
     config: PullRequestEvaluationConfig,
     source: PullRequestEvaluationInput,
-    classification_service: ClassificationOperation = (
-        DEFAULT_CLASSIFICATION_SERVICE
-    ),
+    classification_service: ClassificationOperation,
 ) -> EvaluationResult | None:
     """Fetch and evaluate one pull request without mutating dashboard state."""
     number = source.pr_number
@@ -512,7 +509,7 @@ def evaluate_pull_request(
                 or handoff_feedback.top_level_items
             )
             feedback_classifications = (
-                classification_service.classify_reviewer_feedback(
+                await classification_service.classify_reviewer_feedback(
                     ReviewerFeedbackClassificationRequest(
                         pr_number=number,
                         model=config.classifier_model,
@@ -536,7 +533,7 @@ def evaluate_pull_request(
                     dashboard_override_cleared_by_feedback=True
                 )
                 manual_reviewer_handoff = False
-                lifecycle = _classify_discussions(
+                lifecycle = await _classify_discussions(
                     number,
                     prepared_discussions,
                     config.classifier_model,
@@ -551,7 +548,7 @@ def evaluate_pull_request(
                     mode=LifecycleMode.REVIEWER_HANDOFF,
                 )
         else:
-            lifecycle = _classify_discussions(
+            lifecycle = await _classify_discussions(
                 number,
                 prepared_discussions,
                 config.classifier_model,

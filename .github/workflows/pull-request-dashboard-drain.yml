@@ -66,11 +66,17 @@ jobs:
             --output "$RUNNER_TEMP/dashboard-claims.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Install Copilot CLI
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
+        with:
+          python-version: '3.12'
+
+      - name: Install dashboard dependencies
         if: steps.claim.outcome == 'success' && steps.claim.outputs.count != '0'
         run: |
           npm ci --prefix .github/scripts/pull-request-dashboard
-          echo "$GITHUB_WORKSPACE/.github/scripts/pull-request-dashboard/node_modules/.bin" >> "$GITHUB_PATH"
+          python -m pip install -r .github/scripts/pull-request-dashboard/requirements.txt
+          python -m copilot download-runtime
           # A batch that classifies nothing still has to leave the cache path
           # in place, because saving a missing path fails the job.
           mkdir -p .github/scripts/pull-request-dashboard/.cache/classifications

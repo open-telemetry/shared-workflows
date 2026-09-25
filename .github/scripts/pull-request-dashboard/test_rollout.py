@@ -75,6 +75,36 @@ class RolloutWiringTest(unittest.TestCase):
         self.jobs = job_blocks(self.text)
         self.canary = canary_repositories(self.text)
 
+    def test_both_classifier_entry_paths_install_the_sdk_runtime(self) -> None:
+        for path, requirements in (
+            (REPO_WORKFLOW, '"$DASHBOARD_CODE/requirements.txt"'),
+            (DRAIN_WORKFLOW, ".github/scripts/pull-request-dashboard/requirements.txt"),
+        ):
+            with self.subTest(workflow=path.name):
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("actions/setup-python@", text)
+                self.assertIn("python-version: '3.12'", text)
+                self.assertIn(f"python -m pip install -r {requirements}", text)
+                self.assertIn("python -m copilot download-runtime", text)
+                self.assertLess(
+                    text.index("python -m pip install"),
+                    text.index("python -m copilot download-runtime"),
+                )
+                self.assertIn("copilot-requests: write", text)
+                self.assertIn("COPILOT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}", text)
+                self.assertNotIn("node_modules/.bin", text)
+        dependencies = json.loads((SCRIPT_DIR / "package.json").read_text(encoding="utf-8"))
+        self.assertNotIn("@github/copilot", dependencies["dependencies"])
+        self.assertIn(
+            "github-copilot-sdk==1.0.14",
+            (SCRIPT_DIR / "requirements.txt").read_text(encoding="utf-8"),
+        )
+
+    def test_unit_tests_install_sdk_without_downloading_runtime(self) -> None:
+        text = (WORKFLOW.parent / "pull-request-dashboard-test.yml").read_text(encoding="utf-8")
+        self.assertIn("python -m pip install -r requirements.txt", text)
+        self.assertNotIn("download-runtime", text)
+
     def test_targeted_canary_job_inlines_the_workflow_canary_list(self) -> None:
         body = self.jobs["run-targeted-dashboard-canary"]
         inline = re.findall(r"fromJSON\('(\[[^']*\])'\)", body)

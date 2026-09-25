@@ -8,6 +8,34 @@ Webhook-triggered incremental runs keep active dashboards close to real time. Ho
 
 The classification cache reuses prior results for unchanged review threads, minimizing Copilot token usage.
 
+Classification uses the Python Copilot SDK with a task-specific system prompt
+and no tools or repository instructions. Each dashboard process reuses one
+client, but every batch of up to ten items gets a fresh session. This removes
+general coding-agent prompt overhead without sharing conversation history.
+
+## Running classifier evaluation locally
+
+Use Python 3.11 or later and install the SDK and its matching runtime from the
+dashboard script directory:
+
+```sh
+cd .github/scripts/pull-request-dashboard
+python -m pip install -r requirements.txt
+python -m copilot download-runtime
+python eval/score_reviewer_feedback.py --classifier reviewer_feedback --model gpt-5.6-luna
+```
+
+Set `COPILOT_GITHUB_TOKEN` to a token with Copilot access. Local runs also accept
+`GH_TOKEN` or `GITHUB_TOKEN` when no explicit Copilot token is set. Actions runs
+use the workflow token with `copilot-requests: write`, not the dashboard app's
+installation token.
+
+The evaluation makes model calls and reports against the recorded cases without
+rewriting them. It runs at most four model calls concurrently, with fresh
+sessions and the same batching rules as production. Runtime telemetry is printed
+when the client closes. Cache identities include the system prompt and execution
+configuration; changing those settings cannot reuse results from the old configuration.
+
 ## Webhook queue
 
 Webhook events are coalesced by repository and pull request before they start

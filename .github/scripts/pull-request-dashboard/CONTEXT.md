@@ -102,15 +102,28 @@ review-thread results, cache hits, model requests, batching, per-pull-request
 limits, failures, and deferrals. It attributes each model call to the first
 result produced by that call.
 
-The model runner accepts an immutable rendered prompt and returns a typed
-`RawModelResponse`. The production runner owns the Copilot CLI command, timeout,
-model argument, telemetry environment and temporary file, and telemetry
-diagnostics. It has no cache dependency. The cache store owns the existing
+The async model runner accepts an immutable rendered prompt and returns a typed
+`RawModelResponse`. Each dashboard or evaluation command owns one scoped Copilot
+SDK client, started only when a model call is needed. Every batch and retry uses
+a fresh session with no conversation history from other calls. Empty mode,
+disabled tools, and a trusted replacement system prompt keep coding-agent
+instructions out of classification. The rendered batch remains the user message.
+The runner owns the request timeout, session cleanup, isolated environment, and
+client-scoped telemetry output. It has no cache dependency. The cache store owns the existing
 per-pull-request JSON files, validation, replacement, and pruning. It has no
 classification policy.
 
-Production evaluation builds the typed request directly, and the dashboard
-prunes classification caches through the default cache store.
+Production evaluation awaits an injected classification service, and the
+dashboard prunes classification caches through the default cache store.
+Classification cache keys include the system prompt and execution configuration
+version as well as the domain prompt, model, and item.
+
+Both targeted refreshes and backfills evaluate a PR before entering the
+synchronous Git push-retry loop. Retries reconcile the immutable evaluated update
+with the latest accepted state, preserving concurrent changes to the same PR.
+Each backfill PR reads a fresh starting state and is persisted before the next
+PR is evaluated. Evaluation scripts use bounded async tasks on one event loop;
+the queue's separate dashboard subprocesses do not share SDK clients.
 
 ### Review thread
 

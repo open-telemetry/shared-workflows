@@ -13,17 +13,16 @@ Run manually; it makes model calls and is deliberately not part of the suite.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import sys
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Lock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from classification_execution import (  # noqa: E402
-    CopilotCliModelRunner,
+    CopilotSdkModelRunner,
     ModelRunRequest,
     ModelRunner,
 )
@@ -68,16 +67,14 @@ def batch_cases(cases: list[dict]) -> list[list[dict]]:
     return batches
 
 
-def classify(
+async def classify(
     cases: list[dict],
     template: str,
     fields: tuple[str, ...],
     mapping: dict,
     model: str,
-    runner: ModelRunner | None = None,
+    runner: ModelRunner,
 ) -> dict:
-    runner_lock = Lock() if runner is not None else None
-    runner = runner or CopilotCliModelRunner()
     batches = [
         [
             policy.reviewer_feedback_prompt_item(
@@ -96,7 +93,9 @@ def classify(
         for group in batch_cases(cases)
     ]
 
-    def run(batch: list[dict]) -> dict[str, str]:
+    semaphore = asyncio.Semaphore(4)
+
+    async def run(batch: list[dict]) -> dict[str, str]:
         prompt = policy.render_prompt_inputs(
             [dict(item) for item in batch],
             template,
@@ -104,11 +103,8 @@ def classify(
         # A batch that fails or answers unusably is unanswered, not fatal: one bad
         # response should not discard an evaluation of several hundred calls.
         try:
-            if runner_lock is None:
-                response = runner.run(ModelRunRequest(prompt, model))
-            else:
-                with runner_lock:
-                    response = runner.run(ModelRunRequest(prompt, model))
+            async with semaphore:
+                response = await runner.run(ModelRunRequest(prompt, model))
         except Exception:  # noqa: BLE001 - production also treats any batch failure as failed
             return {}
         if response.returncode != 0:
@@ -139,9 +135,10 @@ def classify(
         return out
 
     observed: dict[str, str] = {}
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        for answers in pool.map(run, batches):
-            observed.update(answers)
+    async with asyncio.TaskGroup() as group:
+        tasks = [group.create_task(run(batch)) for batch in batches]
+    for task in tasks:
+        observed.update(task.result())
     return observed
 
 
@@ -298,10 +295,15 @@ def main() -> None:
         f"baseline generated {data['baseline_generated_at']}; "
         f"measurements updated {data['measurements_updated_at']}\n"
     )
-    trials = [
-        classify(data["cases"], template, fields, mapping, args.model)
-        for _ in range(args.trials)
-    ]
+
+    async def run_trials() -> list[dict]:
+        async with CopilotSdkModelRunner() as runner:
+            return [
+                await classify(data["cases"], template, fields, mapping, args.model, runner)
+                for _ in range(args.trials)
+            ]
+
+    trials = asyncio.run(run_trials())
     report(
         data["cases"],
         trials,
