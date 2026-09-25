@@ -2989,7 +2989,10 @@
         "approval_count": 0,
         "assignees": [],
         "author": "uros-stefanovic-db",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/otel-arrow/pull/4168#discussion_r4104627895",
+          "https://github.com/open-telemetry/otel-arrow/pull/4168#discussion_r4104627959"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
         "author_nudge_episode_id": "216a52b1230e4d6c9453c723a6aeaa14",
@@ -2997,12 +3000,12 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "865c073fee97b1acbd0ce2a5e8af7e84d6b4536f50b69e4672f6669c58499a10",
-        "copilot_review_exists": false,
-        "copilot_review_needed": false,
+        "copilot_request_fingerprint": "7ad98c536f6939e7ec304cc3403c1a70b3da071b03cfb7b678374b29561fa24b",
+        "copilot_review_exists": true,
+        "copilot_review_needed": true,
         "copilot_review_outstanding": false,
         "copilot_review_request_needed": false,
-        "copilot_review_requested": true,
+        "copilot_review_requested": false,
         "copilot_review_stale": false,
         "copilot_review_unreported": false,
         "created_at": "2026-09-25T12:35:47+00:00",
@@ -3017,13 +3020,24 @@
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-25T12:34:53+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "copilot-pull-request-reviewer[bot]",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
+        "route_held_for_gates": false,
         "route_held_since": "2026-09-25T12:46:37.826455+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "b48308b15d2a360ccb55447d0ab24c93787fb0c0d3060ea3cefef365773a466e",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-25T12:35:47+00:00"
+        "routing_input_fingerprint": "da97960df7ea129c74b329dbc7cfc6f42965b88d651e7ac3bde095720f0790ce",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-25T12:48:30+00:00"
       },
       "failed": false,
       "pr_number": 4168,
