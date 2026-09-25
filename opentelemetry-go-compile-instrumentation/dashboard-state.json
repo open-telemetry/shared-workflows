@@ -2844,19 +2844,24 @@
     },
     "1360": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "krsatyamthakur-droid",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1360#discussion_r4106252842",
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1360#discussion_r4106254854"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/1360#pullrequestreview-5319751544"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "3e3b37cddcd1477d8ed64f4ed363bdf1",
         "ci_failing_count": 1,
         "ci_failing_since": "2026-09-25T14:21:11+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 3,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "9d8502ad3cc35a2c0b19b58cf082c170106d794a63aefc3154e701df4d9e73f2",
+        "copilot_request_fingerprint": "6acf932676f97d93485ac466711a9aa668bbe39752fb6469d3158fae57f95e90",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -2872,10 +2877,10 @@
         "head_sha": "e3127692ce8330dd52b31cd9e1ba8018bcaa92a9",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-22T13:15:36+00:00",
-        "last_approver_activity_at": "2026-09-22T12:50:34+00:00",
+        "last_activity_at": "2026-09-25T15:54:50+00:00",
+        "last_approver_activity_at": "2026-09-25T15:54:50+00:00",
         "last_author_activity_at": "2026-09-22T13:15:36+00:00",
-        "required_checks_settled": false,
+        "required_checks_settled": true,
         "reviewers": [
           {
             "approved": false,
@@ -2896,12 +2901,21 @@
             "pending_review": true,
             "top_level_feedback": false,
             "unresolved_thread": false
+          },
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "kakkoyun",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": true
           }
         ],
         "route_held_for_gates": false,
-        "route_held_since": "2026-09-25T14:21:04.217376+00:00",
         "route_hold_expired": false,
-        "routing_input_fingerprint": "e0e0c618ef0ef68984b0bbdadd8a5b976e33c159eeeb591ebb2d89db772ca92e",
+        "routing_input_fingerprint": "8244898afcc01e505f004ff27ae5629c642ee868919900e5ba413c8fd08c2b5f",
         "waiting_age_basis": "ci_failure",
         "waiting_since": "2026-09-25T14:21:11+00:00"
       },
