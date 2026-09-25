@@ -901,7 +901,7 @@
     },
     "8863": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jack-berg",
         "author_action_review_thread_urls": [],
@@ -911,7 +911,7 @@
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "1c4578b0920e2b97798d08910d6bace776c80ae0ea72411824316c15d54a5925",
+        "copilot_request_fingerprint": "776dd8b1d65f2fcfc17282f55e499b8f09b159c01b85bd0f862197cdd48b404c",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -927,24 +927,35 @@
         "head_sha": "d9674ca3a89fbf1cfc3c1041c49d628499c30192",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-25T14:15:18+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-25T19:48:26+00:00",
+        "last_approver_activity_at": "2026-09-25T19:48:26+00:00",
         "last_author_activity_at": "2026-09-25T14:10:14+00:00",
         "non_blocking_check_failures": [
           "codecov/patch"
         ],
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jkwatson",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "d81a566d099f7aad0c972654f5d17e88a965cb97ccc165b0765cf9cc98717aed",
+        "routing_input_fingerprint": "df9b3ce68084caf7c22e640eaaa134cd15721f263cae90f0c89d1a7b4772e167",
         "waiting_age_basis": "gate_release",
         "waiting_since": "2026-09-25T19:30:57.642592+00:00"
       },
       "failed": false,
       "pr_number": 8863,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-java/pull/8863",
-      "route": "approver",
+      "route": "maintainer",
       "top_level_history": {}
     },
     "8864": {
