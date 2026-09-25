@@ -3546,15 +3546,19 @@
         "approval_count": 0,
         "assignees": [],
         "author": "ymotongpoo",
-        "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11840#discussion_r4103169721"
+        ],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry.io/pull/11840#pullrequestreview-5316025072"
+        ],
         "author_can_act": true,
         "author_nudge_episode_id": "7cb888f4bf92442d9f3d089d790bb976",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 2,
+        "ci_pending_count": 0,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c5734153aef96115c6f6df12d50949e93ce8d8fe2e167cc5e8757fa193fd58dd",
+        "copilot_request_fingerprint": "264d16ec347b06c018e864ef7a2baa3939c3151c529291f145b37407628cfbd7",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -3570,17 +3574,27 @@
         "head_sha": "0e7ad530ef069b674ee4cb812e85c716c26f2f74",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-25T09:22:42+00:00",
+        "last_activity_at": "2026-09-25T09:37:02+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-25T09:21:57+00:00",
-        "required_checks_settled": false,
-        "reviewers": [],
-        "route_held_for_gates": true,
-        "route_held_since": "2026-09-25T09:23:43.138945+00:00",
+        "required_checks_settled": true,
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": true,
+            "login": "kohbis",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": true
+          }
+        ],
+        "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "75118a94acba34ebac51c52a2e56b998d02dc1e0eaec11c501006a3dfd8bb14c",
-        "waiting_age_basis": "gate_hold",
-        "waiting_since": "2026-09-25T09:22:42+00:00"
+        "routing_input_fingerprint": "528cf0d906b6f92137cd7bc6be9f4fd5c2f6b5cc0463836b74e8bcf4f8cecda6",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-25T09:36:46+00:00"
       },
       "failed": false,
       "pr_number": 11840,
