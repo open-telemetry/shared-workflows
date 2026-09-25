@@ -220,6 +220,22 @@ jobs:
         run: |
           echo "::warning::$FAILED_RUNS workflow runs have job API failures recorded in collector state and will be retried"
 
+  notify-collection-failure:
+    needs:
+      - collect
+    if: >-
+      always() &&
+      github.repository == 'open-telemetry/shared-workflows' &&
+      (
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
+    permissions:
+      issues: write # needed to open or close the collection failure tracking issue
+    uses: $/.github/workflows/workflow-failure-issue.yml
+    with:
+      success: ${{ needs.collect.result == 'success' }}
+
   deploy:
     if: github.repository == 'open-telemetry/shared-workflows'
     needs: collect
