@@ -1,0 +1,1 @@
+Resolve head-SHA dashboard refreshes against each target repository's open pull requests instead of its commit association, which can omit fork heads. Queue workers and direct dispatch refresh every PR sharing the head; a claim retries if any required refresh fails, while commits with no open PR still skip.
