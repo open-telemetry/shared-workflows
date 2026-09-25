@@ -828,17 +828,21 @@
     },
     "1770": {
       "facts": {
-        "approval_count": 0,
+        "approval_count": 1,
         "assignees": [],
         "author": "jerbly",
-        "author_action_review_thread_urls": [],
+        "author_action_review_thread_urls": [
+          "https://github.com/open-telemetry/weaver/pull/1770#discussion_r4108439106",
+          "https://github.com/open-telemetry/weaver/pull/1770#discussion_r4108459813"
+        ],
         "author_action_top_level_feedback_urls": [],
         "author_can_act": true,
+        "author_nudge_episode_id": "118c233533234499a022e46caf2a3b7d",
         "ci_failing_count": 0,
         "ci_maintainer_action_required_count": 0,
         "ci_pending_count": 0,
         "conflicts": "yes",
-        "copilot_request_fingerprint": "055333dee7504655205fc8b65428e7b7bcf7e6504e0a7c5a6bae94e1d568448b",
+        "copilot_request_fingerprint": "9fef9707261c7a1baf9389347c9766117a827b15391ae3f83c4692b9927e3723",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -854,21 +858,32 @@
         "head_sha": "462bedbe8593cd1cf7ef6c243d5b80333f43d283",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-16T00:02:47+00:00",
-        "last_approver_activity_at": "",
+        "last_activity_at": "2026-09-25T20:49:36+00:00",
+        "last_approver_activity_at": "2026-09-25T20:49:36+00:00",
         "last_author_activity_at": "2026-09-16T00:02:47+00:00",
         "required_checks_settled": true,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": true,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "jsuereth",
+            "open_thread": true,
+            "pending_review": false,
+            "top_level_feedback": false,
+            "unresolved_thread": true
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "a6dd3b6d23cd86dd70214f4dd265c1e301dfcdd0cf440f87232982598fb8cefe",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-16T00:02:47+00:00"
+        "routing_input_fingerprint": "eca49dae7472697886265f76477d2b7e457a7b4bee0e89bf3eca3265b9c94453",
+        "waiting_age_basis": "oldest_pending_thread",
+        "waiting_since": "2026-09-25T20:39:00+00:00"
       },
       "failed": false,
       "pr_number": 1770,
       "pr_url": "https://github.com/open-telemetry/weaver/pull/1770",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "1774": {
