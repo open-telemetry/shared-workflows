@@ -109,6 +109,7 @@ class CopilotSdkModelRunnerTest(unittest.IsolatedAsyncioTestCase):
                 "CI": "true",
                 "HOME": str(directory),
                 "COPILOT_GITHUB_TOKEN": "copilot-token",
+                "COPILOT_OTEL_ENABLED": "true",
                 "COPILOT_OTEL_EXPORTER_TYPE": "file",
                 "COPILOT_OTEL_FILE_EXPORTER_PATH": str(directory / "copilot-otel.jsonl"),
             },

@@ -181,6 +181,7 @@ class CopilotSdkModelRunner:
             CI="true",
             HOME=directory,
             COPILOT_GITHUB_TOKEN=token,
+            COPILOT_OTEL_ENABLED="true",
             COPILOT_OTEL_EXPORTER_TYPE="file",
             COPILOT_OTEL_FILE_EXPORTER_PATH=str(Path(directory) / "copilot-otel.jsonl"),
         )
