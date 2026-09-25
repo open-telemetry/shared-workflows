@@ -58,11 +58,14 @@ instead of being requeued forever.
 
 The `dashboard-workflow-watchdog` scheduled function runs every 15 minutes. It
 cancels an automated dashboard run only when the run has waited at least 30
-minutes without receiving a runner, no steps have started, and a newer run is
-queued behind it in the same concurrency group. The watchdog covers queue
-drains, hourly dashboard backfills, targeted dashboard dispatches, and webhook
-deployments. Targeted dispatch run names expose their concurrency group so the
-watchdog does not pair unrelated repository or pull request updates.
+minutes and a newer run is queued behind it in the same concurrency group. If
+no jobs have completed, none may have received a runner or started a step. For
+partially completed runs, at least one job must still be waiting, and every
+unfinished job must have waited without a runner or started step for at least
+30 minutes. The watchdog covers queue drains, hourly dashboard backfills,
+targeted dashboard dispatches, and webhook deployments. Targeted dispatch
+run names expose their concurrency group so the watchdog does not pair
+unrelated repository or pull request updates.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
 PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->
