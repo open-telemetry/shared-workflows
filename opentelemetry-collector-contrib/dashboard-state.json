@@ -15938,13 +15938,17 @@
         "assignees": [],
         "author": "rogercoll",
         "author_action_review_thread_urls": [],
-        "author_action_top_level_feedback_urls": [],
+        "author_action_top_level_feedback_urls": [
+          "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51495#pullrequestreview-5319492349"
+        ],
         "author_can_act": true,
-        "ci_failing_count": 0,
+        "author_nudge_episode_id": "67c7eafb23a240378f596dcac2224ac6",
+        "ci_failing_count": 1,
+        "ci_failing_since": "2026-09-25T15:25:20+00:00",
         "ci_maintainer_action_required_count": 0,
-        "ci_pending_count": 8,
+        "ci_pending_count": 1,
         "conflicts": "no",
-        "copilot_request_fingerprint": "c1e45f7ce7904a177873ab21cfaa7e5b2d4ca1fa29461abd48b6e514f0d322e9",
+        "copilot_request_fingerprint": "89fc79cca576cfa563f91a7bb8fe172db022b070554bee5b3504d4c3478bdefb",
         "copilot_review_exists": false,
         "copilot_review_needed": false,
         "copilot_review_outstanding": false,
@@ -15960,21 +15964,32 @@
         "head_sha": "4f8f27f38d46852c59e4f163f01b49241a078da1",
         "is_draft": false,
         "is_maintenance_bot": false,
-        "last_activity_at": "2026-09-25T15:14:07+00:00",
+        "last_activity_at": "2026-09-25T15:27:20+00:00",
         "last_approver_activity_at": "",
         "last_author_activity_at": "2026-09-25T15:14:07+00:00",
         "required_checks_settled": false,
-        "reviewers": [],
+        "reviewers": [
+          {
+            "approved": false,
+            "approved_non_team": false,
+            "changes_requested": false,
+            "login": "carsonip",
+            "open_thread": false,
+            "pending_review": false,
+            "top_level_feedback": true,
+            "unresolved_thread": false
+          }
+        ],
         "route_held_for_gates": false,
         "route_hold_expired": false,
-        "routing_input_fingerprint": "9362b8b61e509a95439d069059042439436b311e1ade36a884a4260839addd1a",
-        "waiting_age_basis": "last_author_activity",
-        "waiting_since": "2026-09-25T10:36:42+00:00"
+        "routing_input_fingerprint": "e11a37b1a3b9b6f403511110cf821ae6ee859054b6647aa926c4914dec589635",
+        "waiting_age_basis": "ci_failure",
+        "waiting_since": "2026-09-25T15:25:20+00:00"
       },
       "failed": false,
       "pr_number": 51495,
       "pr_url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/51495",
-      "route": "approver",
+      "route": "author",
       "top_level_history": {}
     },
     "51496": {
