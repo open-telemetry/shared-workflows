@@ -274,8 +274,8 @@ function canCancelStalledRun(jobs, staleBefore) {
     (job.status === "in_progress" ||
       job.status === "waiting" ||
       (job.status === "queued" &&
-        Number.isFinite(Date.parse(job.created_at)) &&
-        Date.parse(job.created_at) <= staleBefore)) &&
+        Number.isFinite(Date.parse(job.started_at || job.created_at)) &&
+        Date.parse(job.started_at || job.created_at) <= staleBefore)) &&
     !wasAssigned(job)
   );
 }
@@ -283,7 +283,6 @@ function canCancelStalledRun(jobs, staleBefore) {
 function wasAssigned(job) {
   return (Number.isInteger(job.runner_id) && job.runner_id !== 0) ||
     Boolean(job.runner_name) ||
-    Boolean(job.started_at && job.status === "queued") ||
     (Array.isArray(job.steps) &&
       job.steps.some((step) => Boolean(step.started_at)));
 }

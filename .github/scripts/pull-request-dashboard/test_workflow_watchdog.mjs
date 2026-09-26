@@ -489,6 +489,47 @@ test("requests cancellation for old queued jobs after other jobs finish", async 
   assert.equal(calls.some(([action]) => action === "cancel"), true);
 });
 
+test("requests cancellation for a partially finished targeted run with a queued unassigned job", async () => {
+  const title = "pull-request-dashboard-opentelemetry-ebpf-instrumentation-3555-refresh";
+  const { actions, calls } = fixture({
+    runs: [
+      run(36165134906, "pending", "2026-09-25T11:00:00Z", "workflow_dispatch", title),
+      run(36008669270, "queued", "2026-09-24T13:52:19Z", "workflow_dispatch", title),
+    ],
+    jobs: {
+      36008669270: [
+        ...Array.from({ length: 7 }, () => completedJob("2026-09-24T14:00:00Z")),
+        { ...completedJob("2026-09-24T14:00:00Z"), conclusion: "skipped" },
+        {
+          name: "run-targeted-dashboard-stable / update-dashboard",
+          status: "queued",
+          created_at: "2026-09-24T13:52:19Z",
+          started_at: "2026-09-24T13:52:19Z",
+          runner_id: null,
+          runner_name: null,
+          steps: [],
+        },
+      ],
+    },
+  });
+  const result = await cancelStalledDashboardRuns({
+    actions,
+    now: () => Date.parse("2026-09-25T12:00:00Z"),
+    watchedWorkflows: [{
+      workflowId: "dashboard.yml",
+      event: "workflow_dispatch",
+      groupByRunName: true,
+      runNamePrefix: "pull-request-dashboard-",
+    }],
+  });
+  assert.deepEqual(result.requested.map(({ runId, newerRunId }) =>
+    ({ runId, newerRunId })), [{
+    runId: 36008669270,
+    newerRunId: 36165134906,
+  }]);
+  assert.equal(calls.some(([action, id]) => action === "cancel" && id === 36008669270), true);
+});
+
 test("protects recently queued, assigned and started jobs in a partial run", async () => {
   for (const job of [
     unassignedJob("2026-09-10T11:45:00Z", "queued"),
@@ -497,7 +538,7 @@ test("protects recently queued, assigned and started jobs in a partial run", asy
       ...unassignedJob("2026-09-10T11:00:00Z", "queued"),
       steps: [{ started_at: "2026-09-10T11:30:00Z" }],
     },
-    { ...unassignedJob("2026-09-10T11:00:00Z", "queued"), started_at: "2026-09-10T11:00:00Z" },
+    { ...unassignedJob("2026-09-10T11:00:00Z", "queued"), started_at: "2026-09-10T11:45:00Z" },
   ]) {
     const { actions, calls } = fixture({
       runs: [
@@ -534,14 +575,54 @@ test("does not cancel a newly queued or unknown job in an old run", async () => 
   }
 });
 
+test("uses queued job age, not started_at as assignment evidence", async () => {
+  for (const [startedAt, shouldRequest] of [
+    ["2026-09-10T11:00:00Z", true],
+    ["2026-09-10T11:45:00Z", false],
+  ]) {
+    const { actions } = fixture({
+      runs: [
+        run(2, "pending", "2026-09-10T11:50:00Z"),
+        run(1, "queued", "2026-09-10T10:00:00Z"),
+      ],
+      jobs: {
+        1: [{
+          status: "queued",
+          created_at: "2026-09-10T11:00:00Z",
+          started_at: startedAt,
+          runner_id: null,
+          runner_name: null,
+          steps: [],
+        }],
+      },
+    });
+    const result = await cancelStalledDashboardRuns({
+      actions, now: () => NOW, watchedWorkflows: [WORKFLOW],
+    });
+    assert.equal(result.requested.length, Number(shouldRequest));
+  }
+});
+
 test("waits for normal cancellation before forcing and confirms the outcome", async () => {
   let clock = NOW;
   const { actions, calls, runs } = fixture({
     runs: [
       run(2, "pending", "2026-09-10T11:45:00Z"),
-      run(1, "waiting", "2026-09-10T10:00:00Z"),
+      run(1, "queued", "2026-09-10T10:00:00Z"),
     ],
-    jobs: { 1: [unassignedJob("2026-09-10T10:00:00Z", "waiting")] },
+    jobs: {
+      1: [
+        completedJob("2026-09-10T10:00:00Z"),
+        {
+          status: "queued",
+          created_at: "2026-09-10T10:00:00Z",
+          started_at: "2026-09-10T10:00:00Z",
+          runner_id: null,
+          runner_name: null,
+          steps: [],
+        },
+      ],
+    },
   });
   const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
   const first = await cancelStalledDashboardRuns(options);
