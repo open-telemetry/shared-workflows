@@ -90,7 +90,7 @@ from pull_request_evaluation import (
     evaluate_pull_request,
 )
 from pull_request_activity import PullRequestActivity
-from render import render_pr_tables
+from render import render_pr_tables, reviewers_cell_text
 from reviewer_state import ReviewerInput, prepare_reviewers
 from routing_decision import resolve_routing
 
@@ -127,6 +127,7 @@ def evaluation_facts(
             tuple(events),
             source.review_requests,
             source.pull_request.assignees,
+            author,
         )
     )
     return evaluation_compute_facts(
@@ -407,7 +408,7 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
             "state": "APPROVED",
         }]
         prepared_reviewers = prepare_reviewers(
-            ReviewerInput(tuple(events), (), ())
+            ReviewerInput(tuple(events), (), (), "author")
         )
 
         facts = evaluation_compute_facts(
@@ -490,6 +491,54 @@ class PullRequestEvaluationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             (ReviewerSummary(login="reviewer", pending_review=True),),
             result.facts.reviewers,
+        )
+
+    @patch("pull_request_evaluation.resolve_routing", wraps=resolve_routing)
+    @patch("pull_request_evaluation.fetch_pull_request_source")
+    async def test_copilot_pr_author_request_is_not_a_pending_review(
+        self,
+        fetch_raw: Mock,
+        resolve: Mock,
+    ) -> None:
+        fetch_raw.return_value = pull_request_source(
+            pull_request=pull_request_metadata(
+                author=actor("Copilot"),
+                assignees=(actor("trask"),),
+            ),
+            reviews=(
+                review_source(
+                    actor=actor("trask"),
+                    state="COMMENTED",
+                    body="",
+                ),
+                review_source(
+                    actor=actor("reviewer"),
+                    state="APPROVED",
+                    body="",
+                ),
+            ),
+            review_requests=(
+                review_request("trask"),
+                review_request("reviewer"),
+            ),
+        )
+
+        result = await evaluate_pr({"number": 7})
+
+        self.assertIsInstance(result, EvaluationSuccess)
+        assert isinstance(result, EvaluationSuccess)
+        self.assertEqual("trask", result.facts.author)
+        self.assertEqual(
+            frozenset({"reviewer"}),
+            resolve.call_args.args[0].pending_human_reviewer_logins,
+        )
+        self.assertEqual(
+            (ReviewerSummary(login="reviewer", pending_review=True),),
+            result.facts.reviewers,
+        )
+        self.assertEqual(
+            "reviewer&nbsp;⏳",
+            reviewers_cell_text(result.facts),
         )
 
     @patch("pull_request_evaluation.fetch_pull_request_source")
@@ -3029,7 +3078,7 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
             },
             "checks": [],
         }
-        prepared_reviewers = prepare_reviewers(ReviewerInput((), (), ()))
+        prepared_reviewers = prepare_reviewers(ReviewerInput((), (), (), "author"))
         activity = PullRequestActivity(
             (),
             datetime(2024, 1, 5, tzinfo=timezone.utc),
@@ -3072,7 +3121,7 @@ class ActivityFactsIntegrationTest(unittest.TestCase):
             normalize_pull_request_source(raw),
             "author",
             PullRequestActivity((), None, None, None),
-            prepare_reviewers(ReviewerInput((), (), ())),
+            prepare_reviewers(ReviewerInput((), (), (), "author")),
             frozenset(),
             dashboard_facts(),
         )
