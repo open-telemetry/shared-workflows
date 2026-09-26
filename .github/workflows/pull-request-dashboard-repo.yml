@@ -311,6 +311,7 @@ jobs:
           python3 "$DASHBOARD_CODE/delivery.py" "${delivery_args[@]}"
 
       - name: Publish dashboard issue
+        id: publish-issue
         if: >-
           always() &&
           steps.dashboard-token.outcome == 'success' &&
@@ -333,6 +334,26 @@ jobs:
             publish_args+=(--large-repo)
           fi
           python3 "$DASHBOARD_CODE/publish_dashboard.py" "${publish_args[@]}"
+
+      - name: Acknowledge full dashboard publication
+        if: >-
+          steps.delivery.outcome == 'success' &&
+          steps.delivery.outputs.active == 'true' &&
+          steps.delivery.outputs.full_publish_generation != '0' &&
+          steps.delivery.outputs.full_publish_generation != '' &&
+          steps.publish-issue.outcome == 'success'
+        env:
+          DASHBOARD_CODE: ${{ steps.dashboard-code.outputs.path }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ steps.config.outputs.name }}
+          FULL_PUBLISH_GENERATION: ${{ steps.delivery.outputs.full_publish_generation }}
+        run: |
+          set -euo pipefail
+          python3 "$DASHBOARD_CODE/delivery.py" \
+            --state-branch "${DASHBOARD_STATE_BRANCH_PREFIX}/${REPO_NAME}" \
+            --delivery-state-branch "${DASHBOARD_DELIVERY_STATE_BRANCH_PREFIX}/${REPO_NAME}" \
+            --repo "$REPO_NAME" \
+            --complete-full-publish-generation "$FULL_PUBLISH_GENERATION"
 
       - name: Report GitHub App rate limits
         if: always() && steps.dashboard-token.outcome == 'success'

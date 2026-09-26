@@ -31,6 +31,8 @@ COPILOT_REVIEW_REQUEST_STATE_FILE = "copilot-review-request-state.json"
 STATUS_COMMENT_ROLLOUT_STATE_FILE = "status-comment-rollout-state.json"
 DELIVERY_VERSIONS_FILE = "delivery-versions.json"
 DELIVERY_STATE_FILE = "delivery-state.json"
+FULL_PUBLISH_NEEDED_FILE = "full-publish-needed.json"
+FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 
 # These monotonic versions jointly order delivery compatibility. Increment the
 # relevant version whenever its stored shape, meaning, or delivered behavior
@@ -55,6 +57,7 @@ STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
 # Rendered status-comment behavior. Increment when existing comments need to
 # adopt a change; hourly runs durably roll it out to all open PRs.
 STATUS_COMMENT_REVISION = 20
+FULL_PUBLISH_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
 _accepted_state_dir: Path | None = None
@@ -119,6 +122,61 @@ def status_comment_rollout_state_path() -> Path:
 
 def delivery_versions_path() -> Path:
     return state_dir() / DELIVERY_VERSIONS_FILE
+
+
+def full_publish_needed_path() -> Path:
+    return accepted_state_dir() / FULL_PUBLISH_NEEDED_FILE
+
+
+def full_publish_delivered_path() -> Path:
+    return state_dir() / FULL_PUBLISH_DELIVERED_FILE
+
+
+def full_publish_generation(data: Any, source: str) -> int:
+    if (
+        not isinstance(data, dict)
+        or data.get("version") != FULL_PUBLISH_STATE_VERSION
+        or not isinstance(data.get("generation"), int)
+        or isinstance(data["generation"], bool)
+        or data["generation"] < 1
+    ):
+        raise RuntimeError(f"incompatible full publish state {source}")
+    return data["generation"]
+
+
+def read_full_publish_generation(path: Path) -> int:
+    if not path.exists():
+        return 0
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"unreadable full publish state {path}: {error}") from error
+    return full_publish_generation(data, str(path))
+
+
+def write_full_publish_generation(path: Path, generation: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {"version": FULL_PUBLISH_STATE_VERSION, "generation": generation},
+            sort_keys=True,
+            indent=2,
+        ) + "\n",
+        encoding="utf-8",
+    )
+
+
+def mark_full_publish_needed() -> None:
+    path = full_publish_needed_path()
+    write_full_publish_generation(path, read_full_publish_generation(path) + 1)
+
+
+def record_full_publish_delivered(generation: int) -> None:
+    if generation < 1:
+        raise ValueError("full publish generation must be positive")
+    path = full_publish_delivered_path()
+    if generation > read_full_publish_generation(path):
+        write_full_publish_generation(path, generation)
 
 
 def dashboard_markdown_path() -> Path:

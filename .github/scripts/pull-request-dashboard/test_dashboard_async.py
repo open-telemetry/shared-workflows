@@ -6,9 +6,11 @@ from argparse import Namespace
 from contextlib import redirect_stderr
 from copy import deepcopy
 from pathlib import Path
+import tempfile
 from unittest.mock import AsyncMock, patch
 
 import dashboard
+import state
 from classification_test_support import FakeClassificationOperation
 from dashboard_contracts import DashboardRoute
 from dashboard_test_support import (
@@ -21,6 +23,21 @@ from dashboard_test_support import (
 
 
 class BackfillRetryTest(unittest.IsolatedAsyncioTestCase):
+    async def test_backfill_marks_every_accepted_transaction_but_targeted_does_not(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(state, "_state_dir", Path(directory)),
+            patch.object(state, "_using_delivery_state", False),
+            patch.object(dashboard, "save_dashboard_state_cache"),
+        ):
+            args = Namespace(pr_number=None)
+            self.assertEqual(0, dashboard.save_dashboard_update_state(args, dashboard_state(), True))
+            self.assertEqual(0, dashboard.save_dashboard_update_state(args, dashboard_state(), True))
+            self.assertEqual(2, state.read_full_publish_generation(state.full_publish_needed_path()))
+            args.pr_number = 7
+            self.assertEqual(0, dashboard.save_dashboard_update_state(args, dashboard_state(), True))
+            self.assertEqual(2, state.read_full_publish_generation(state.full_publish_needed_path()))
+
     async def run_backfill(self, evaluation, *, concurrent_state, concurrent_failures=()):
         starting = dashboard_state(
             stored_dashboard_result(7, DashboardRoute.AUTHOR),
