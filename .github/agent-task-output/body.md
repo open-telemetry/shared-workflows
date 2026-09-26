@@ -1,0 +1,3 @@
+Recover queued and waiting dashboard Actions runs that block newer requests in the same concurrency group, including partially completed runs with old, unassigned queued jobs. Recently queued, assigned, or started jobs remain protected.
+
+The watchdog records normal cancellation attempts in a separate site-wide Netlify Blobs store. Only an accepted normal cancel that remains ineffective for 30 minutes can escalate to force-cancel, after fresh checks of both runs and all jobs. GitHub's final state determines confirmation; deleted runs are logged as unconfirmed and 409 retries are capped without promoting a rejected normal cancel to force. Backlog rotation bounds API work without pairing unrelated PR groups or manual runs.
