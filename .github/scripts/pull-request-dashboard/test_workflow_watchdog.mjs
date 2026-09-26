@@ -10,7 +10,8 @@ const WORKFLOW = Object.freeze({ workflowId: "dashboard.yml" });
 const ACTIVE_RUN_STATUSES = ["in_progress", "queued", "waiting", "pending"];
 
 function fixture({
-  runs, jobs = {}, cancellationErrors = {}, forceErrors = {}, onCancel,
+  runs, jobs = {}, cancellationErrors = {}, forceErrors = {},
+  getRunErrors = {}, jobErrors = {}, onCancel,
 }) {
   const calls = [];
   const entries = new Map();
@@ -40,10 +41,16 @@ function fixture({
     },
     async getWorkflowRun(runId) {
       calls.push(["get-run", Number(runId)]);
+      if (getRunErrors[runId]) {
+        throw getRunErrors[runId];
+      }
       return runs.find((candidate) => candidate.id === Number(runId));
     },
     async listRunJobs(runId) {
       calls.push(["list-jobs", runId]);
+      if (jobErrors[runId]) {
+        throw jobErrors[runId];
+      }
       return jobs[runId] || [];
     },
     async cancelWorkflowRun(runId) {
@@ -60,7 +67,7 @@ function fixture({
       }
     },
   };
-  return { actions, calls, store, runs, jobs };
+  return { actions, calls, store, runs, jobs, getRunErrors, jobErrors };
 }
 
 function cancelStalledDashboardRuns({ actions, ...options }) {
@@ -137,6 +144,8 @@ test("cancels an unassigned stale run blocking a newer run", async () => {
     }],
     forceRequested: [],
     confirmed: [],
+    unconfirmed: [],
+    conflicts: [],
     unresponsive: [],
   });
   assert.deepEqual(calls, [
@@ -375,7 +384,7 @@ test("continues when a run completes during cancellation", async () => {
   const conflict = Object.assign(new Error("Conflict"), {
     githubStatusCode: 409,
   });
-  const { actions, calls } = fixture({
+  const { actions, calls, runs } = fixture({
     runs: [
       run(3, "pending", "2026-09-10T11:45:00Z"),
       run(2, "queued", "2026-09-10T11:00:00Z"),
@@ -387,6 +396,14 @@ test("continues when a run completes during cancellation", async () => {
     },
     cancellationErrors: { 1: conflict },
   });
+  const cancel = actions.cancelWorkflowRun;
+  actions.cancelWorkflowRun = (runId) => {
+    if (runId === 1) {
+      runs[2].status = "completed";
+      runs[2].conclusion = "success";
+    }
+    return cancel(runId);
+  };
 
   const result = await cancelStalledDashboardRuns({
     actions,
@@ -400,6 +417,9 @@ test("continues when a run completes during cancellation", async () => {
     newerRunId: 3,
     ageMinutes: 60,
   }]);
+  assert.deepEqual(result.unconfirmed.map(({ runId, reason }) =>
+    ({ runId, reason })), [{ runId: 1, reason: "finished" }]);
+  assert.deepEqual(result.conflicts, []);
   assert.deepEqual(calls, [
     ["list-runs", "dashboard.yml", {
       event: undefined,
@@ -407,6 +427,7 @@ test("continues when a run completes during cancellation", async () => {
     }],
     ["list-jobs", 1],
     ["cancel", 1],
+    ["get-run", 1],
     ["list-jobs", 2],
     ["cancel", 2],
     ["get-run", 2],
@@ -668,6 +689,120 @@ test("confirms an asynchronous normal cancellation without force", async () => {
   assert.equal(calls.some(([action]) => action === "force-cancel"), false);
 });
 
+test("drops a deleted run receipt as unconfirmed during the next confirmation", async () => {
+  let clock = NOW;
+  const missing = Object.assign(new Error("Not Found"), { githubStatusCode: 404 });
+  const { actions, runs, getRunErrors, store } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+  });
+  const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
+  await cancelStalledDashboardRuns(options);
+  runs[1].status = "completed";
+  getRunErrors[1] = missing;
+  clock += 15 * 60 * 1000;
+  const result = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(result.confirmed, []);
+  assert.deepEqual(result.unconfirmed.map(({ runId, reason }) =>
+    ({ runId, reason })), [{ runId: 1, reason: "not_found" }]);
+  assert.deepEqual((await store.get("runs/dashboard.yml/all")).value.records, {});
+  assert.deepEqual((await cancelStalledDashboardRuns(options)).unconfirmed, []);
+});
+
+test("drops a deleted run receipt during force revalidation", async () => {
+  let clock = NOW;
+  const missing = Object.assign(new Error("Not Found"), { githubStatusCode: 404 });
+  const { actions, calls, getRunErrors, store } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+  });
+  const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
+  await cancelStalledDashboardRuns(options);
+  clock += 30 * 60 * 1000;
+  getRunErrors[1] = missing;
+  const result = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(result.unconfirmed.map(({ runId, reason }) =>
+    ({ runId, reason })), [{ runId: 1, reason: "not_found" }]);
+  assert.deepEqual(result.confirmed, []);
+  assert.deepEqual((await store.get("runs/dashboard.yml/all")).value.records, {});
+  assert.equal(calls.some(([action]) => action === "force-cancel"), false);
+});
+
+test("clears a receipt when job lookup races with run deletion", async () => {
+  let clock = NOW;
+  const missing = Object.assign(new Error("Not Found"), { githubStatusCode: 404 });
+  const jobErrors = {};
+  const { actions, store } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+    jobErrors,
+  });
+  const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
+  await cancelStalledDashboardRuns(options);
+  jobErrors[1] = missing;
+  const getRun = actions.getWorkflowRun;
+  let targetReads = 0;
+  actions.getWorkflowRun = (id) => {
+    if (Number(id) === 1 && ++targetReads > 1) {
+      throw missing;
+    }
+    return getRun(id);
+  };
+  clock += 30 * 60 * 1000;
+  const result = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(result.unconfirmed.map(({ runId, reason }) =>
+    ({ runId, reason })), [{ runId: 1, reason: "not_found" }]);
+  assert.deepEqual((await store.get("runs/dashboard.yml/all")).value.records, {});
+});
+
+test("does not force when the newer run disappears during revalidation", async () => {
+  let clock = NOW;
+  const missing = Object.assign(new Error("Not Found"), { githubStatusCode: 404 });
+  const { actions, calls, getRunErrors, store } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+  });
+  const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
+  await cancelStalledDashboardRuns(options);
+  getRunErrors[2] = missing;
+  clock += 30 * 60 * 1000;
+  const result = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(result.unconfirmed, []);
+  assert.deepEqual(result.forceRequested, []);
+  assert.ok((await store.get("runs/dashboard.yml/all")).value.records[1]);
+  assert.equal(calls.some(([action]) => action === "force-cancel"), false);
+});
+
+test("still surfaces other GitHub errors during receipt confirmation and revalidation", async () => {
+  for (const absentFromListing of [true, false]) {
+    let clock = NOW;
+    const forbidden = Object.assign(new Error("Forbidden"), { githubStatusCode: 403 });
+    const { actions, runs, getRunErrors, store } = fixture({
+      runs: [
+        run(2, "pending", "2026-09-10T11:50:00Z"),
+        run(1, "waiting", "2026-09-10T10:00:00Z"),
+      ],
+    });
+    const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
+    await cancelStalledDashboardRuns(options);
+    if (absentFromListing) {
+      runs[1].status = "completed";
+    }
+    getRunErrors[1] = forbidden;
+    clock += 30 * 60 * 1000;
+    await assert.rejects(cancelStalledDashboardRuns(options), (error) => error === forbidden);
+    assert.ok((await store.get("runs/dashboard.yml/all")).value.records[1]);
+  }
+});
+
 test("does not force a run that gains a runner or started step", async () => {
   for (const change of [
     (job) => { job.runner_id = 99; },
@@ -805,7 +940,7 @@ test("a recovered run is never force-cancelled", async () => {
   assert.equal(calls.some(([action]) => action === "force-cancel"), false);
 });
 
-test("handles a 409 race at force-cancel without claiming confirmation", async () => {
+test("caps force-cancel 409 retries without claiming confirmation", async () => {
   let clock = NOW;
   const conflict = Object.assign(new Error("Conflict"), { githubStatusCode: 409 });
   const { actions, calls } = fixture({
@@ -817,11 +952,126 @@ test("handles a 409 race at force-cancel without claiming confirmation", async (
   });
   const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
   await cancelStalledDashboardRuns(options);
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    clock += 30 * 60 * 1000;
+    const result = await cancelStalledDashboardRuns(options);
+    assert.deepEqual(result.forceRequested, []);
+    assert.deepEqual(result.confirmed, []);
+    assert.deepEqual(result.conflicts.map(({ runId, stage }) =>
+      ({ runId, stage })), [{ runId: 1, stage: "force" }]);
+  }
   clock += 30 * 60 * 1000;
   const result = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(result.unresponsive.map(({ runId, reason }) =>
+    ({ runId, reason })), [{ runId: 1, reason: "force_attempts" }]);
+  assert.equal(calls.filter(([action]) => action === "force-cancel").length, 2);
+});
+
+test("confirms a completed run after a force-cancel 409 race", async () => {
+  let clock = NOW;
+  const conflict = Object.assign(new Error("Conflict"), { githubStatusCode: 409 });
+  const { actions, runs, store } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+    forceErrors: { 1: conflict },
+  });
+  const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
+  await cancelStalledDashboardRuns(options);
+  const force = actions.forceCancelWorkflowRun;
+  actions.forceCancelWorkflowRun = (runId) => {
+    runs[1].status = "completed";
+    runs[1].conclusion = "cancelled";
+    return force(runId);
+  };
+  clock += 30 * 60 * 1000;
+  const result = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(result.confirmed.map(({ runId }) => runId), [1]);
+  assert.deepEqual(result.conflicts, []);
   assert.deepEqual(result.forceRequested, []);
+  assert.deepEqual((await store.get("runs/dashboard.yml/all")).value.records, {});
+});
+
+test("caps rejected normal cancellation requests without force-cancelling", async () => {
+  let clock = NOW;
+  const conflict = Object.assign(new Error("Conflict"), { githubStatusCode: 409 });
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+    cancellationErrors: { 1: conflict },
+  });
+  const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
+  const first = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(first.conflicts.map(({ runId, stage }) =>
+    ({ runId, stage })), [{ runId: 1, stage: "normal" }]);
+  assert.deepEqual(first.requested, []);
+  clock += 15 * 60 * 1000;
+  const waiting = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(waiting.conflicts, []);
+  assert.equal(calls.filter(([action]) => action === "cancel").length, 1);
+
+  clock += 15 * 60 * 1000;
+  const retry = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(retry.conflicts.map(({ runId, stage }) =>
+    ({ runId, stage })), [{ runId: 1, stage: "normal" }]);
+  clock += 30 * 60 * 1000;
+  const result = await cancelStalledDashboardRuns(options);
+  assert.deepEqual(result.unresponsive.map(({ runId, reason }) =>
+    ({ runId, reason })), [{ runId: 1, reason: "normal_conflicts" }]);
   assert.deepEqual(result.confirmed, []);
+  assert.deepEqual(result.forceRequested, []);
+  assert.equal(calls.filter(([action]) => action === "cancel").length, 2);
+  assert.equal(calls.some(([action]) => action === "force-cancel"), false);
+});
+
+test("starts the force grace period only after normal cancellation is accepted", async () => {
+  let clock = NOW;
+  const conflict = Object.assign(new Error("Conflict"), { githubStatusCode: 409 });
+  const cancellationErrors = { 1: conflict };
+  const { actions, calls } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+    cancellationErrors,
+  });
+  const options = { actions, now: () => clock, watchedWorkflows: [WORKFLOW] };
+  assert.equal((await cancelStalledDashboardRuns(options)).conflicts.length, 1);
+  delete cancellationErrors[1];
+  clock += 30 * 60 * 1000;
+  assert.equal((await cancelStalledDashboardRuns(options)).requested.length, 1);
+  clock += 15 * 60 * 1000;
+  assert.deepEqual((await cancelStalledDashboardRuns(options)).forceRequested, []);
+  clock += 15 * 60 * 1000;
+  assert.deepEqual((await cancelStalledDashboardRuns(options)).forceRequested
+    .map(({ runId }) => runId), [1]);
   assert.equal(calls.filter(([action]) => action === "force-cancel").length, 1);
+});
+
+test("confirms a completed run after a normal-cancel 409 race", async () => {
+  const conflict = Object.assign(new Error("Conflict"), { githubStatusCode: 409 });
+  const { actions, runs, store } = fixture({
+    runs: [
+      run(2, "pending", "2026-09-10T11:50:00Z"),
+      run(1, "waiting", "2026-09-10T10:00:00Z"),
+    ],
+    cancellationErrors: { 1: conflict },
+  });
+  const cancel = actions.cancelWorkflowRun;
+  actions.cancelWorkflowRun = (runId) => {
+    runs[1].status = "completed";
+    runs[1].conclusion = "cancelled";
+    return cancel(runId);
+  };
+  const result = await cancelStalledDashboardRuns({
+    actions, now: () => NOW, watchedWorkflows: [WORKFLOW],
+  });
+  assert.deepEqual(result.confirmed.map(({ runId }) => runId), [1]);
+  assert.deepEqual(result.conflicts, []);
+  assert.equal(await store.get("runs/dashboard.yml/all"), null);
 });
 
 test("caps force attempts and reports a still-blocked run", async () => {

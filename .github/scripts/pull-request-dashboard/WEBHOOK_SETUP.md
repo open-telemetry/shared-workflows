@@ -73,6 +73,13 @@ store with strong reads and conditional writes. If a run is still blocked after
 30 minutes, it checks the run, newer same-group request, and all jobs again
 before requesting GitHub's force-cancel. It waits another 30 minutes before a
 second force request, then reports an unresponsive run without further retries.
+GitHub 409 responses are logged as `conflicts` with the request stage and count
+toward the retry limit; a rejected normal request never authorizes force-cancel.
+An `unresponsive` result identifies which limit was reached. If GitHub no
+longer has a tracked run, the watchdog drops its receipt and logs `unconfirmed`
+rather than claiming cancellation. Other GitHub API errors still fail the
+function.
+
 It checks up to four candidate runs per workflow and eight in total per
 invocation, rotating through larger backlogs. `confirmed` means GitHub reports
 the run completed with a cancelled conclusion; a successful API response alone
