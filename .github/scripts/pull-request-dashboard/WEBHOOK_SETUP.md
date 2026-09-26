@@ -57,15 +57,33 @@ repeatedly without an acknowledgment is moved to the shard's dead letters
 instead of being requeued forever.
 
 The `dashboard-workflow-watchdog` scheduled function runs every 15 minutes. It
-cancels an automated dashboard run only when the run has waited at least 30
-minutes and a newer run is queued behind it in the same concurrency group. If
-no jobs have completed, none may have received a runner or started a step. For
-partially completed runs, at least one job must still be waiting, and every
-unfinished job must have waited without a runner or started step for at least
-30 minutes. The watchdog covers queue drains, hourly dashboard backfills,
-targeted dashboard dispatches, and webhook deployments. Targeted dispatch
-run names expose their concurrency group so the watchdog does not pair
-unrelated repository or pull request updates.
+requests cancellation of an automated dashboard run only when the run has
+waited at least 30 minutes and a newer run is queued behind it in the same
+concurrency group. If no jobs have completed, none may have received a runner
+or started a step. For partially completed runs, at least one job must still
+be waiting or queued, and every unfinished job must have waited without a
+runner or started step for at least 30 minutes. The watchdog covers queue
+drains, hourly dashboard backfills, targeted dashboard dispatches, and webhook
+deployments. Targeted dispatch run names expose their concurrency group so the
+watchdog does not pair unrelated repository or pull request updates.
+
+An accepted cancellation request is logged as `requested`, not `confirmed`.
+The watchdog records requests in the site-wide `pr-dashboard-watchdog` Blobs
+store with strong reads and conditional writes. If a run is still blocked after
+30 minutes, it checks the run, newer same-group request, and all jobs again
+before requesting GitHub's force-cancel. It waits another 30 minutes before a
+second force request, then reports an unresponsive run without further retries.
+GitHub 409 responses are logged as `conflicts` with the request stage and count
+toward the retry limit; a rejected normal request never authorizes force-cancel.
+An `unresponsive` result identifies which limit was reached. If GitHub no
+longer has a tracked run, the watchdog drops its receipt and logs `unconfirmed`
+rather than claiming cancellation. Other GitHub API errors still fail the
+function.
+
+It checks up to four candidate runs per workflow and eight in total per
+invocation, rotating through larger backlogs. `confirmed` means GitHub reports
+the run completed with a cancelled conclusion; a successful API response alone
+is not proof.
 
 Disable Deploy Previews. PR preview deploys are unused and only add noise to
 PRs. In Netlify, go to **Project configuration** -> **Build & deploy** ->
