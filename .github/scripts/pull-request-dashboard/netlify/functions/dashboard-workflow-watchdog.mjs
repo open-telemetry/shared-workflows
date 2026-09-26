@@ -1,4 +1,5 @@
 import { createGitHubActionsClient } from "../lib/github-dispatch.mjs";
+import { openQueueStore } from "../lib/dashboard-queue.mjs";
 import {
   cancelStalledDashboardRuns,
 } from "../lib/workflow-watchdog.mjs";
@@ -6,7 +7,10 @@ import {
 export default async () => {
   try {
     const actions = await createGitHubActionsClient();
-    const result = await cancelStalledDashboardRuns({ actions });
+    const result = await cancelStalledDashboardRuns({
+      actions,
+      store: openQueueStore("pr-dashboard-watchdog"),
+    });
     console.log(JSON.stringify({
       event: "dashboard_workflow_watchdog",
       ...result,

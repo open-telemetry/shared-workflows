@@ -5,14 +5,14 @@ import test from "node:test";
 import { createGitHubActionsClient } from "./netlify/lib/github-dispatch.mjs";
 import { cancelStalledDashboardRuns } from "./netlify/lib/workflow-watchdog.mjs";
 
-function mockClient(t, jobPages) {
+function mockClient(t, jobPages, onRequest) {
   const { privateKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
     privateKeyEncoding: { type: "pkcs8", format: "pem" },
     publicKeyEncoding: { type: "spki", format: "pem" },
   });
   const requestedPages = [];
-  t.mock.method(globalThis, "fetch", async (url) => {
+  t.mock.method(globalThis, "fetch", async (url, options) => {
     const request = new URL(url);
     if (request.pathname.endsWith("/installation")) {
       return Response.json({ id: 1 });
@@ -24,6 +24,9 @@ function mockClient(t, jobPages) {
       const page = Number(request.searchParams.get("page"));
       requestedPages.push(page);
       return Response.json(jobPages[page - 1]);
+    }
+    if (onRequest) {
+      return onRequest(request.pathname, options);
     }
     throw new Error(`unexpected GitHub API path: ${request.pathname}`);
   });
@@ -54,11 +57,12 @@ test("does not cancel when an active job is on a later page", async (t) => {
 
   const result = await cancelStalledDashboardRuns({
     actions,
+    store: { async get() { return null; } },
     now: () => Date.parse("2026-09-10T12:00:00Z"),
     watchedWorkflows: [{ workflowId: "dashboard.yml" }],
   });
 
-  assert.deepEqual(result.cancelled, []);
+  assert.deepEqual(result.requested, []);
   assert.deepEqual(requestedPages, [1, 2]);
 });
 
@@ -70,4 +74,34 @@ test("rejects a changing job count instead of checking an incomplete run", async
   ]);
 
   await assert.rejects((await client).listRunJobs(42), /changed or were incomplete/);
+});
+
+test("reads workflow run state and uses the force-cancel endpoint", async (t) => {
+  const requests = [];
+  const { client } = mockClient(t, [], (path, options) => {
+    requests.push([path, options?.method || "GET"]);
+    if (path.endsWith("/actions/runs/42")) {
+      return Response.json({ id: 42, status: "waiting" });
+    }
+    if (path.endsWith("/actions/runs/42/force-cancel")) {
+      return new Response(null, { status: 202 });
+    }
+    throw new Error(`unexpected GitHub API path: ${path}`);
+  });
+  const actions = await client;
+  assert.equal((await actions.getWorkflowRun(42)).status, "waiting");
+  await actions.forceCancelWorkflowRun(42);
+  assert.deepEqual(requests, [
+    ["/repos/open-telemetry/shared-workflows/actions/runs/42", "GET"],
+    ["/repos/open-telemetry/shared-workflows/actions/runs/42/force-cancel", "POST"],
+  ]);
+});
+
+test("propagates a force-cancel 409 for the watchdog to handle", async (t) => {
+  const { client } = mockClient(t, [], () =>
+    new Response("Conflict", { status: 409 }));
+  await assert.rejects(
+    (await client).forceCancelWorkflowRun(42),
+    (error) => error.githubStatusCode === 409,
+  );
 });

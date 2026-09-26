@@ -1,6 +1,11 @@
 export const DEFAULT_STALE_RUN_MS = 30 * 60 * 1000;
+export const DEFAULT_CANCEL_GRACE_MS = 30 * 60 * 1000;
 
 const DASHBOARD_RUN_NAME_PREFIX = "pull-request-dashboard-";
+const MAX_CANDIDATES_PER_WORKFLOW = 4;
+const MAX_CANDIDATES_PER_INVOCATION = 8;
+const MAX_FORCE_ATTEMPTS = 2;
+const WATCHDOG_INTERVAL_MS = 15 * 60 * 1000;
 
 export const WATCHED_DASHBOARD_WORKFLOWS = Object.freeze([
   Object.freeze({ workflowId: "pull-request-dashboard-drain.yml" }),
@@ -29,88 +34,222 @@ const ACTIVE_RUN_STATUSES = Object.freeze([
 
 export async function cancelStalledDashboardRuns({
   actions,
+  store,
   now = () => Date.now(),
   staleRunMs = DEFAULT_STALE_RUN_MS,
+  cancelGraceMs = DEFAULT_CANCEL_GRACE_MS,
   watchedWorkflows = WATCHED_DASHBOARD_WORKFLOWS,
 }) {
-  if (!actions) {
-    throw new Error("actions client is required");
+  if (!actions || !store) {
+    throw new Error("actions client and watchdog store are required");
   }
-  if (!Number.isFinite(staleRunMs) || staleRunMs <= 0) {
-    throw new Error("staleRunMs must be positive");
+  if (!Number.isFinite(staleRunMs) || staleRunMs <= 0 ||
+      !Number.isFinite(cancelGraceMs) || cancelGraceMs <= 0) {
+    throw new Error("staleRunMs and cancelGraceMs must be positive");
   }
 
   const checkedAt = now();
   const staleBefore = checkedAt - staleRunMs;
-  const cancelled = [];
+  const requested = [];
+  const forceRequested = [];
+  const confirmed = [];
+  const unresponsive = [];
+  let remainingCandidates = MAX_CANDIDATES_PER_INVOCATION;
+  const workflowOffset = watchedWorkflows.length
+    ? Math.floor(checkedAt / WATCHDOG_INTERVAL_MS) % watchedWorkflows.length
+    : 0;
+  const workflows = [
+    ...watchedWorkflows.slice(workflowOffset),
+    ...watchedWorkflows.slice(0, workflowOffset),
+  ];
 
-  for (const workflow of watchedWorkflows) {
+  for (const workflow of workflows) {
+    const key = `runs/${workflow.workflowId}/${workflow.event || "all"}`;
+    let entry = await store.get(key);
+    if (entry && (typeof entry.etag !== "string" || !entry.etag)) {
+      throw new Error(`watchdog state for ${key} has no ETag`);
+    }
+    const state = entry?.value ?? { records: {} };
+    if (!state.records || typeof state.records !== "object" ||
+        Array.isArray(state.records)) {
+      throw new Error(`invalid watchdog state for ${key}`);
+    }
+    async function saveState() {
+      const write = await store.set(
+        key,
+        state,
+        entry ? { onlyIfMatch: entry.etag } : { onlyIfNew: true },
+      );
+      if (!write.modified || !write.etag) {
+        throw new Error(`watchdog state changed while processing ${key}`);
+      }
+      entry = { etag: write.etag };
+    }
+
     const runs = await actions.listWorkflowRuns(workflow.workflowId, {
       event: workflow.event,
       statuses: ACTIVE_RUN_STATUSES,
     });
-    const matchingRuns = runs.filter((run) =>
-      (!workflow.event || run.event === workflow.event) &&
-      (!workflow.runNamePrefix ||
-        (
-          typeof run.display_title === "string" &&
-          run.display_title.startsWith(workflow.runNamePrefix)
-        ))
-    );
+    const matchingRuns = runs.filter((run) => matchesWorkflow(run, workflow));
+
+    const missingRecords = Object.entries(state.records)
+      .filter(([runId]) =>
+        !matchingRuns.some((run) => String(run.id) === runId));
+    const confirmationOffset = missingRecords.length > MAX_CANDIDATES_PER_WORKFLOW
+      ? Math.floor(checkedAt / WATCHDOG_INTERVAL_MS) % missingRecords.length
+      : 0;
+    for (const [runId, record] of [
+      ...missingRecords.slice(confirmationOffset),
+      ...missingRecords.slice(0, confirmationOffset),
+    ].slice(0, MAX_CANDIDATES_PER_WORKFLOW)) {
+      const current = await actions.getWorkflowRun(runId);
+      if (current.status === "completed") {
+        if (current.conclusion === "cancelled") {
+          confirmed.push(record.details);
+        }
+        delete state.records[runId];
+        await saveState();
+      }
+    }
+
     const candidates = matchingRuns
       .filter((run) => {
         const createdAt = Date.parse(run.created_at);
         return BLOCKING_RUN_STATUSES.has(run.status) &&
           Number.isFinite(createdAt) &&
           createdAt <= staleBefore &&
-          matchingRuns.some((newer) =>
-            WAITING_RUN_STATUSES.has(newer.status) &&
-            Date.parse(newer.created_at) > createdAt &&
-            sameConcurrencyGroup(run, newer, workflow)
-          );
+          findNewerRun(run, matchingRuns, workflow);
       })
       .sort((left, right) =>
         Date.parse(left.created_at) - Date.parse(right.created_at)
       );
+    // Rotate large backlogs so one run that ignores force-cancel cannot hide
+    // later eligible runs behind the per-invocation API budget.
+    const offset = candidates.length > MAX_CANDIDATES_PER_WORKFLOW
+      ? Math.floor(checkedAt / WATCHDOG_INTERVAL_MS) % candidates.length
+      : 0;
+    const selected = [...candidates.slice(offset), ...candidates.slice(0, offset)]
+      .slice(0, Math.min(MAX_CANDIDATES_PER_WORKFLOW, remainingCandidates));
+    remainingCandidates -= selected.length;
 
-    for (const run of candidates) {
-      const jobs = await actions.listRunJobs(run.id);
-      if (!canCancelStalledRun(jobs, staleBefore)) {
-        continue;
-      }
-      const newerRun = matchingRuns
-        .filter((candidate) =>
-          WAITING_RUN_STATUSES.has(candidate.status) &&
-          Date.parse(candidate.created_at) > Date.parse(run.created_at) &&
-          sameConcurrencyGroup(run, candidate, workflow)
-        )
-        .sort((left, right) =>
-          Date.parse(left.created_at) - Date.parse(right.created_at)
-        )[0];
-      try {
-        await actions.cancelWorkflowRun(run.id);
-      } catch (error) {
-        if (error.githubStatusCode === 409) {
-          continue;
-        }
-        throw error;
-      }
-      cancelled.push({
+    for (const run of selected) {
+      const newerRun = findNewerRun(run, matchingRuns, workflow);
+      const details = {
         workflowId: workflow.workflowId,
         runId: run.id,
         newerRunId: newerRun.id,
         ageMinutes: Math.floor(
           (checkedAt - Date.parse(run.created_at)) / (60 * 1000),
         ),
-      });
-      break;
+      };
+      const record = state.records[run.id];
+      if (record && (
+        !Number.isFinite(record.normalRequestedAt) ||
+        !Number.isSafeInteger(record.forceAttempts ?? 0) ||
+        (record.forceAttempts ?? 0) < 0
+      )) {
+        throw new Error(`invalid watchdog receipt for run ${run.id}`);
+      }
+      if (record) {
+        const lastRequestAt = record.forceRequestedAt ?? record.normalRequestedAt;
+        if (!Number.isFinite(lastRequestAt)) {
+          throw new Error(`invalid watchdog receipt for run ${run.id}`);
+        }
+        if (checkedAt - lastRequestAt < cancelGraceMs) {
+          continue;
+        }
+        const [current, currentNewer, jobs] = await Promise.all([
+          actions.getWorkflowRun(run.id),
+          actions.getWorkflowRun(newerRun.id),
+          actions.listRunJobs(run.id),
+        ]);
+        if (
+          !BLOCKING_RUN_STATUSES.has(current.status) ||
+          !Number.isFinite(Date.parse(current.created_at)) ||
+          Date.parse(current.created_at) > now() - staleRunMs ||
+          !matchesWorkflow(current, workflow) ||
+          !WAITING_RUN_STATUSES.has(currentNewer.status) ||
+          !matchesWorkflow(currentNewer, workflow) ||
+          Date.parse(currentNewer.created_at) <= Date.parse(current.created_at) ||
+          !sameConcurrencyGroup(current, currentNewer, workflow) ||
+          !canCancelStalledRun(jobs, now() - staleRunMs)
+        ) {
+          continue;
+        }
+        if ((record.forceAttempts || 0) >= MAX_FORCE_ATTEMPTS) {
+          unresponsive.push(record.details);
+          continue;
+        }
+        try {
+          await actions.forceCancelWorkflowRun(run.id);
+        } catch (error) {
+          if (error.githubStatusCode === 409) {
+            continue;
+          }
+          throw error;
+        }
+        record.forceRequestedAt = now();
+        record.forceAttempts = (record.forceAttempts || 0) + 1;
+        await saveState();
+        forceRequested.push(details);
+      } else {
+        const jobs = await actions.listRunJobs(run.id);
+        if (!canCancelStalledRun(jobs, staleBefore)) {
+          continue;
+        }
+        try {
+          await actions.cancelWorkflowRun(run.id);
+        } catch (error) {
+          if (error.githubStatusCode === 409) {
+            continue;
+          }
+          throw error;
+        }
+        state.records[run.id] = {
+          normalRequestedAt: now(),
+          details,
+        };
+        await saveState();
+        requested.push(details);
+      }
+
+      const current = await actions.getWorkflowRun(run.id);
+      if (current.status === "completed") {
+        if (current.conclusion === "cancelled") {
+          confirmed.push(details);
+        }
+        delete state.records[run.id];
+        await saveState();
+      }
     }
   }
 
   return {
     checkedWorkflows: watchedWorkflows.length,
-    cancelled,
+    requested,
+    forceRequested,
+    confirmed,
+    unresponsive,
   };
+}
+
+function matchesWorkflow(run, workflow) {
+  return (!workflow.event || run.event === workflow.event) &&
+    (!workflow.runNamePrefix ||
+      (typeof run.display_title === "string" &&
+        run.display_title.startsWith(workflow.runNamePrefix)));
+}
+
+function findNewerRun(run, runs, workflow) {
+  return runs
+    .filter((candidate) =>
+      WAITING_RUN_STATUSES.has(candidate.status) &&
+      Date.parse(candidate.created_at) > Date.parse(run.created_at) &&
+      sameConcurrencyGroup(run, candidate, workflow)
+    )
+    .sort((left, right) =>
+      Date.parse(left.created_at) - Date.parse(right.created_at)
+    )[0];
 }
 
 function sameConcurrencyGroup(left, right, workflow) {
@@ -122,19 +261,29 @@ function canCancelStalledRun(jobs, staleBefore) {
   const unfinished = jobs.filter((job) => job.status !== "completed");
   if (unfinished.length !== jobs.length) {
     return unfinished.length > 0 && unfinished.every((job) => {
-      const startedAt = Date.parse(job.started_at);
-      return job.status === "waiting" &&
+      const startedAt = Date.parse(
+        job.status === "queued" ? job.started_at || job.created_at : job.started_at,
+      );
+      return (job.status === "waiting" || job.status === "queued") &&
         !wasAssigned(job) &&
         Number.isFinite(startedAt) &&
         startedAt <= staleBefore;
     });
   }
-  return jobs.every((job) => !wasAssigned(job));
+  return jobs.every((job) =>
+    (job.status === "in_progress" ||
+      job.status === "waiting" ||
+      (job.status === "queued" &&
+        Number.isFinite(Date.parse(job.created_at)) &&
+        Date.parse(job.created_at) <= staleBefore)) &&
+    !wasAssigned(job)
+  );
 }
 
 function wasAssigned(job) {
   return (Number.isInteger(job.runner_id) && job.runner_id !== 0) ||
     Boolean(job.runner_name) ||
+    Boolean(job.started_at && job.status === "queued") ||
     (Array.isArray(job.steps) &&
       job.steps.some((step) => Boolean(step.started_at)));
 }
