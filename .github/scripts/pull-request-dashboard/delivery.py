@@ -37,8 +37,13 @@ from state import (
     author_nudge_state_path,
     claim_delivery_versions,
     copilot_review_request_state_path,
+    full_publish_delivered_path,
+    full_publish_needed_path,
     notification_state_path,
+    read_full_publish_generation,
+    record_full_publish_delivered,
     set_delivery_state_dirs,
+    set_state_dir,
     state_dir as current_state_dir,
 )
 import state_branch
@@ -238,22 +243,32 @@ def deliver_with_state(
     notification_retry = runner_temp_path("prior-notification-state.json")
     errors: list[str] = []
     active_versions = False
+    pending_generation = 0
 
     def deliver() -> int:
-        nonlocal active_versions
+        nonlocal active_versions, pending_generation
         if accepted_repo_dir is not None:
             initialize_delivery_state(accepted_repo_dir)
         active_versions = claim_delivery_versions()
         if not active_versions:
             errors.clear()
+            pending_generation = 0
             print("newer dashboard delivery versions are active; skipping", file=sys.stderr)
             return 0
+        needed = read_full_publish_generation(full_publish_needed_path())
+        delivered = read_full_publish_generation(full_publish_delivered_path())
+        pending_generation = needed if needed > delivered else 0
+        if pending_generation:
+            print(
+                f"full dashboard delivery needed at generation {pending_generation}",
+                file=sys.stderr,
+            )
         errors[:] = deliver_from_state(
             repo,
             author_retry,
             copilot_retry,
             notification_retry,
-            pr_number,
+            None if pending_generation else pr_number,
         )
         return 0
 
@@ -277,11 +292,36 @@ def deliver_with_state(
     if github_output is not None:
         with github_output.open("a", encoding="utf-8") as output:
             output.write(f"active={'true' if active_versions else 'false'}\n")
+            output.write(f"full_publish_generation={pending_generation}\n")
     if not errors:
         return 0
     print("Dashboard delivery failed:", file=sys.stderr)
     print("\n".join(errors), file=sys.stderr)
     return 1
+
+
+def complete_full_publish(
+    repo: str,
+    state_branch_name: str,
+    delivery_state_branch_name: str,
+    generation: int,
+) -> int:
+    with state_branch.temporary_state_dir() as checkout:
+        set_state_dir(checkout / repo_state_key(repo))
+
+        def complete() -> int:
+            if not claim_delivery_versions():
+                raise RuntimeError("newer dashboard delivery versions are active; full publish remains pending")
+            record_full_publish_delivered(generation)
+            return 0
+
+        return state_branch.push_state_changes(
+            checkout,
+            "Record full dashboard publication",
+            complete,
+            state_branch=delivery_state_branch_name,
+            add_paths=[repo_state_key(repo)],
+        )
 
 
 def main() -> int:
@@ -295,8 +335,22 @@ def main() -> int:
         help="git branch used for publisher receipts and rollout state",
     )
     parser.add_argument("--github-output", type=Path, help="append the active versions result")
+    parser.add_argument(
+        "--complete-full-publish-generation",
+        type=int,
+        help="acknowledge a full delivery after the dashboard issue was published",
+    )
     args = parser.parse_args()
     repo = normalize_repo(args.repo) if args.repo else detect_repo()
+    if args.complete_full_publish_generation is not None:
+        if args.complete_full_publish_generation < 1:
+            parser.error("--complete-full-publish-generation must be positive")
+        return complete_full_publish(
+            repo,
+            args.state_branch,
+            args.delivery_state_branch,
+            args.complete_full_publish_generation,
+        )
     with state_branch.accepted_state_dir(
         args.state_branch,
         required=True,

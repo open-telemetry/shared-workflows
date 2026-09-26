@@ -305,8 +305,13 @@ repository-scoped, read-only GitHub App access to calculate routing and persist
 pending work. A serialized publishing job holds pull request and issue write
 access and durably delivers status comments, author reminders, Copilot
 re-review requests, Slack notifications, and the dashboard issue. Successful
-deliveries are recorded on the state branch before another publishing run can
-start.
+delivery receipts live on a separate delivery branch. Each backfill records a
+full-publish generation on the state branch. If GitHub cancels its pending
+publisher, the next publisher for that repository performs a full delivery
+and acknowledges the generation after publishing the issue. Otherwise,
+webhook-triggered publishers continue to deliver status comments and Slack
+only for their triggering PR. An hourly health check reports generations that
+remain undelivered.
 
 Each repository can route Slack notifications to its own `slack_channel` and
 map GitHub logins to Slack user IDs via `slack_user_mapping`. Repositories

@@ -26,6 +26,7 @@ from state import (
     DASHBOARD_STATE_COMPATIBLE_VERSIONS,
     DASHBOARD_STATE_VERSION,
     NOTIFICATION_STATE_VERSION,
+    FULL_PUBLISH_STATE_VERSION,
     STATUS_COMMENT_ROLLOUT_STATE_VERSION,
     STATUS_COMMENT_REVISION,
     author_nudge_state_path,
@@ -33,6 +34,11 @@ from state import (
     copilot_review_request_state_path,
     claim_delivery_versions,
     current_delivery_versions,
+    full_publish_needed_path,
+    full_publish_delivered_path,
+    mark_full_publish_needed,
+    read_full_publish_generation,
+    record_full_publish_delivered,
     dashboard_state_path,
     decode_dashboard_facts,
     decode_dashboard_state,
@@ -69,6 +75,28 @@ from state import (
 
 
 class StateTest(unittest.TestCase):
+    def test_full_publish_generations_are_strict_and_monotonic(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch("state._state_dir", Path(temp_dir)),
+            patch("state._using_delivery_state", False),
+        ):
+            self.assertEqual(0, read_full_publish_generation(full_publish_needed_path()))
+            mark_full_publish_needed()
+            mark_full_publish_needed()
+            record_full_publish_delivered(2)
+            record_full_publish_delivered(1)
+            self.assertEqual(2, read_full_publish_generation(full_publish_needed_path()))
+            self.assertEqual(2, read_full_publish_generation(full_publish_delivered_path()))
+            self.assertEqual(FULL_PUBLISH_STATE_VERSION, current_delivery_versions()["FULL_PUBLISH_STATE_VERSION"])
+            full_publish_delivered_path().write_text(
+                '{"version":999,"generation":2}', encoding="utf-8"
+            )
+            with self.assertRaisesRegex(RuntimeError, "incompatible full publish state"):
+                read_full_publish_generation(full_publish_delivered_path())
+            with self.assertRaisesRegex(RuntimeError, "incompatible full publish state"):
+                record_full_publish_delivered(3)
+
     @patch(
         "state.load_accepted_dashboard_state",
         return_value=DashboardState(initial_backfill_complete=True),

@@ -443,7 +443,7 @@ class QueueBatchTest(unittest.TestCase):
                     processor,
                     "_deliver",
                     side_effect=lambda _repo, number, *_args: (
-                        lifecycle.append(f"deliver-{number}") or (True, None)
+                        lifecycle.append(f"deliver-{number}") or (True, None, 0)
                     ),
                 ),
                 mock.patch.object(
@@ -465,6 +465,50 @@ class QueueBatchTest(unittest.TestCase):
             ],
         )
         self.assertEqual([result["outcome"] for result in results], ["success", "success"])
+
+    def test_queue_drains_full_obligation_once_before_next_targeted_item(self) -> None:
+        lifecycle: list[str] = []
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(json.dumps([{"name": "example"}]), encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(config_path)
+            items = [
+                WorkItem("example", number, (claim(f"example#pr:{number}", "example", pr_number=number),))
+                for number in (1, 2)
+            ]
+            with (
+                mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
+                mock.patch.object(processor, "_update_dashboard"),
+                mock.patch.object(
+                    processor, "_deliver", side_effect=[(True, None, 5), (True, None, 0)]
+                ),
+                mock.patch.object(processor, "_publish", side_effect=lambda *_args: lifecycle.append("publish")),
+                mock.patch.object(
+                    processor, "_complete_full_publish",
+                    side_effect=lambda *_args: lifecycle.append("acknowledge"),
+                ) as acknowledge,
+            ):
+                results = processor.process_repository("example", items)
+        self.assertEqual(["publish", "acknowledge", "publish"], lifecycle)
+        acknowledge.assert_called_once()
+        self.assertEqual(["success", "success"], [result["outcome"] for result in results])
+
+    def test_queue_does_not_acknowledge_failed_full_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "repositories.json"
+            config_path.write_text(json.dumps([{"name": "example"}]), encoding="utf-8")
+            processor = process_queue_batch.DashboardBatchProcessor(config_path)
+            item = WorkItem("example", 1, (claim("example#pr:1", "example", pr_number=1),))
+            with (
+                mock.patch.object(processor, "_initial_backfill_complete", return_value=True),
+                mock.patch.object(processor, "_update_dashboard"),
+                mock.patch.object(processor, "_deliver", return_value=(True, None, 5)),
+                mock.patch.object(processor, "_publish", side_effect=RuntimeError("issue unavailable")),
+                mock.patch.object(processor, "_complete_full_publish") as acknowledge,
+            ):
+                results = processor.process_repository("example", [item])
+        self.assertEqual("retry", results[0]["outcome"])
+        acknowledge.assert_not_called()
 
     def test_an_aborted_batch_still_records_decided_acknowledgments(self) -> None:
         lifecycle: list[str] = []
